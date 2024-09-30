@@ -19,6 +19,8 @@
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/globals.hh"
 
+#include "centreon_agent/agent.grpc.pb.h"
+
 #include "otl_config.hh"
 #include "otl_fmt.hh"
 
@@ -45,16 +47,6 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "description": "true if we log otl grpc object to json format",
             "type": "boolean"
         },
-        "second_fifo_expiry": {
-            "description:": "lifetime of data points in fifos",
-            "type": "integer",
-            "min": 30
-        },
-        "max_fifo_size": {
-            "description:": "max number of data points in fifos",
-            "type": "integer",
-            "min": 1
-        },
         "otel_server": {
             "description": "otel grpc config",
             "type": "object"
@@ -62,12 +54,13 @@ static constexpr std::string_view _grpc_config_schema(R"(
         "telegraf_conf_server": {
             "description": "http(s) telegraf config server",
             "type": "object"
+        },
+        "centreon_agent": {
+            "description": "config of centreon_agent",
+            "type": "object"
         }
-    },
-    "required": [
-        "otel_server"
-    ],
-    "type": "object"
+      }, 
+      "type" : "object"
 }
 )");
 
@@ -95,14 +88,48 @@ otl_config::otl_config(const std::string_view& file_path,
   file_content.validate(validator);
   _max_length_grpc_log = file_content.get_unsigned("max_length_grpc_log", 400);
   _json_grpc_log = file_content.get_bool("grpc_json_log", false);
-  _second_fifo_expiry = file_content.get_unsigned("second_fifo_expiry", 600);
-  _max_fifo_size = file_content.get_unsigned("max_fifo_size", 5);
-  _grpc_conf =
-      std::make_shared<grpc_config>(file_content.get_member("otel_server"));
+  if (file_content.has_member("otel_server")) {
+    try {
+      _grpc_conf =
+          std::make_shared<grpc_config>(file_content.get_member("otel_server"));
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(config_logger,
+                          "fail to parse otl_server object: ", e.what());
+      throw;
+    }
+  }
+
+  if (file_content.has_member("centreon_agent")) {
+    try {
+      _centreon_agent_config = std::make_shared<centreon_agent::agent_config>(
+          file_content.get_member("centreon_agent"));
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
+          "fail to parse centreon agent conf server object: ", e.what());
+      throw;
+    }
+  }
+
+  // nor server nor reverse client?
+  if (!_grpc_conf &&
+      !(_centreon_agent_config &&
+        !_centreon_agent_config->get_agent_grpc_reverse_conf().empty())) {
+    throw exceptions::msg_fmt(
+        "nor an grpc server, nor a reverse client configured");
+  }
+
   if (file_content.has_member("telegraf_conf_server")) {
-    _telegraf_conf_server_config =
-        std::make_shared<telegraf::conf_server_config>(
-            file_content.get_member("telegraf_conf_server"), io_context);
+    try {
+      _telegraf_conf_server_config =
+          std::make_shared<telegraf::conf_server_config>(
+              file_content.get_member("telegraf_conf_server"), io_context);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
+          "fail to parse telegraf conf server object: ", e.what());
+      throw;
+    }
   }
 }
 
@@ -119,9 +146,11 @@ bool otl_config::operator==(const otl_config& right) const {
   }
   bool ret = *_grpc_conf == *right._grpc_conf &&
              _max_length_grpc_log == right._max_length_grpc_log &&
-             _json_grpc_log == right._json_grpc_log &&
-             _second_fifo_expiry == right._second_fifo_expiry &&
-             _max_fifo_size == right._max_fifo_size;
+             _json_grpc_log == right._json_grpc_log;
+
+  if (!ret) {
+    return false;
+  }
 
   if (_telegraf_conf_server_config && right._telegraf_conf_server_config) {
     return *_telegraf_conf_server_config == *right._telegraf_conf_server_config;

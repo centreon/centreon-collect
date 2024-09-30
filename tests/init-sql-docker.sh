@@ -16,8 +16,8 @@ apt update && apt install -y mysql-client
 #create users
 if [ $database_type == 'mysql' ]; then
     echo "create users mysql"
-    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
-    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED BY 'centreon'"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED BY 'centreon'"
 else
     #mariadb case
     ss -plant | grep -w 3306

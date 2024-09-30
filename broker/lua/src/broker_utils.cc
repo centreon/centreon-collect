@@ -36,7 +36,11 @@
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/hex_dump.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -647,9 +651,17 @@ static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
   auto logger = log_v2::instance().get(log_v2::LUA);
-  std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data, logger)};
+  std::list<com::centreon::common::perfdata> pds{
+      com::centreon::common::perfdata::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
-  for (auto const& pd : pds) {
+  for (auto& pd : pds) {
+    pd.resize_name(com::centreon::common::adjust_size_utf8(
+        pd.name(), get_centreon_storage_metrics_col_size(
+                       centreon_storage_metrics_metric_name)));
+    pd.resize_unit(com::centreon::common::adjust_size_utf8(
+        pd.unit(), get_centreon_storage_metrics_col_size(
+                       centreon_storage_metrics_unit_name)));
+
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());
     if (full) {
       std::string_view name{pd.name()};

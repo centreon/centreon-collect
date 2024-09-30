@@ -21,6 +21,15 @@
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace ::opentelemetry::proto::metrics::v1;
 
+/**
+ * @brief SummaryDataPoint doesn't have Exemplars so we use it to return an
+ * array of exemplars in any case
+ *
+ */
+static const ::google::protobuf::RepeatedPtrField<
+    ::opentelemetry::proto::metrics::v1::Exemplar>
+    _empty_exemplars;
+
 otl_data_point::otl_data_point(
     const metric_request_ptr& parent,
     const ::opentelemetry::proto::resource::v1::Resource& resource,
@@ -33,6 +42,8 @@ otl_data_point::otl_data_point(
       _metric(metric),
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
+      _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::number) {
   _value = data_pt.as_double() ? data_pt.as_double() : data_pt.as_int();
@@ -50,6 +61,8 @@ otl_data_point::otl_data_point(
       _metric(metric),
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
+      _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::histogram) {
   _value = data_pt.count();
@@ -68,6 +81,8 @@ otl_data_point::otl_data_point(
       _metric(metric),
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
+      _exemplars(data_pt.exemplars()),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::exponential_histogram) {
   _value = data_pt.count();
@@ -85,6 +100,8 @@ otl_data_point::otl_data_point(
       _metric(metric),
       _data_point(data_pt),
       _data_point_attributes(data_pt.attributes()),
+      _exemplars(_empty_exemplars),
+      _start_nano_timestamp(data_pt.start_time_unix_nano()),
       _nano_timestamp(data_pt.time_unix_nano()),
       _type(data_point_type::summary) {
   _value = data_pt.count();

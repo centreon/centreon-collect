@@ -1,0 +1,15 @@
+{
+    "log_file":"@AGENT_VAR_LOG_DIR@/@CENTREON_AGENT@.log",
+    "log_level":"info",
+    "log_type":"file",
+    "log_max_file_size":10,
+    "log_max_files":3,
+    "endpoint":"<poller ip>:4317",
+    "encryption":false,
+    "certificate":"",
+    "private_key":"",
+    "ca_certificate":"",
+    "ca_name":"",
+    "host":"my-centreon-host",
+    "reversed_grpc_streaming":false
+}

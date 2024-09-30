@@ -19,11 +19,14 @@
 # Global options.
 project("Centreon common" C CXX)
 
-add_subdirectory(log_v2)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(log_v2)
+endif()
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
-set (HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
+set(PROCESS_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/process/inc")
+set(HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 
@@ -43,30 +46,44 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Set sources.
-set(SOURCES 
-  ${SRC_DIR}/hex_dump.cc
-  ${SRC_DIR}/pool.cc 
-  ${SRC_DIR}/process_stat.cc 
-  ${SRC_DIR}/process_stat.pb.cc
-  ${SRC_DIR}/process_stat.grpc.pb.cc
-  ${SRC_DIR}/rapidjson_helper.cc
-)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(SOURCES 
+    ${SRC_DIR}/hex_dump.cc
+    ${SRC_DIR}/perfdata.cc
+    ${SRC_DIR}/pool.cc 
+    ${SRC_DIR}/process_stat.cc 
+    ${SRC_DIR}/process_stat.pb.cc
+    ${SRC_DIR}/process_stat.grpc.pb.cc
+    ${SRC_DIR}/rapidjson_helper.cc
+    ${SRC_DIR}/utf8.cc 
+  )
+else()
+#we need not many things to just compile centreon-monitoring-agent (centagent)
+  set(SOURCES 
+    ${SRC_DIR}/perfdata.cc
+    ${SRC_DIR}/utf8.cc
+  )
+endif()
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"
   ${HTTP_INCLUDE_DIR}
 	${VCPKG_INCLUDE_DIR}
+  ${PROCESS_INCLUDE_DIR}
   )
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_library(centreon_common STATIC ${SOURCES})
-target_include_directories(centreon_common PRIVATE ${INCLUDE_DIR})
 set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
-add_subdirectory(http)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(http)
+endif()
+
 add_subdirectory(grpc)
+add_subdirectory(process)
 
 if(WITH_TESTING)
   add_subdirectory(tests)

@@ -482,6 +482,47 @@ BRRDSTATUS
     Should Be Equal    ${result}    ${False}    We shouldn't have any error about empty value in RRD
 
 
+BRRDSTATUSRETENTION
+    [Documentation]    We are working with BBDO3. This test checks status are not sent twice after Engine reload.
+    [Tags]    rrd    status    bbdo3    MON-145058
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    rrd    rrd    debug
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Schedule Forced Svc Check    host_1    service_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Log To Console    Engine works during 20s
+    Sleep    20s
+
+    Log To Console    We modify the check_interval of the service service_1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+
+    ${start}    Ctn Get Round Current Date
+    Log To Console    Reloading Engine and waiting for 20s again
+    Ctn Reload Engine
+    Sleep    20s
+
+    Log To Console    Find in logs if there is an error in rrd.
+    ${index}    Ctn Get Service Index    1    1
+    ${content}    Create List    RRD: ignored update error in file '${VarRoot}/lib/centreon/status/${index}.rrd': ${VarRoot}/lib/centreon/status/${index}.rrd: illegal attempt to update using time
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    1
+    Should Be Equal
+    ...    ${result}    ${False}
+    ...    No message about an illegal attempt to update the rrd files should appear
+    Log To Console    Test finished
+
+
 *** Keywords ***
 Ctn Test Clean
     Ctn Stop Engine

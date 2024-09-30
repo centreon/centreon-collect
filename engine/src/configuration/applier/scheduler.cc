@@ -967,7 +967,8 @@ void applier::scheduler::_schedule_host_events(
   // add scheduled host checks to event queue.
   for (engine::host* h : hosts) {
     // update status of all hosts (scheduled or not).
-    h->update_status();
+    // FIXME DBO: Is this really needed?
+    // h->update_status();
 
     // skip most hosts that shouldn't be scheduled.
     if (!h->get_should_be_scheduled()) {
@@ -1075,7 +1076,8 @@ void applier::scheduler::_schedule_service_events(
   // add scheduled service checks to event queue.
   for (engine::service* s : services) {
     // update status of all services (scheduled or not).
-    s->update_status();
+    // FIXME DBO: Is this really needed?
+    // s->update_status();
 
     // skip most services that shouldn't be scheduled.
     if (!s->get_should_be_scheduled()) {

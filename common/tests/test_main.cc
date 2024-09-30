@@ -47,6 +47,7 @@ std::shared_ptr<spdlog::logger> pool_logger =
 int main(int argc, char* argv[]) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
+  sigignore(SIGPIPE);
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
