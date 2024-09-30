@@ -8,17 +8,21 @@ Test Timeout        220s
 Legacycmd with ${communication_mode} communication
     [Documentation]    Check Legacycmd module work.
     ${tmp}=    Set Variable    ${communication_mode}
-    [Teardown]    Legacycmd Teardown    comm=${tmp}
-    
+    ${central}=    Set Variable    ${communication_mode}_gorgone_central_legacycmd
+    ${poller}=    Set Variable    ${communication_mode}_gorgone_poller2_legacycmd
+
+    [Teardown]    Legacycmd Teardown    central=${central}    poller=${poller}    comm=${tmp}
+
+    Run    mkdir /var/lib/centreon/centcore/ -p
+
     @{central_config}    Create List    ${ROOT_CONFIG}legacycmd.yaml    ${ROOT_CONFIG}engine.yaml    ${ROOT_CONFIG}actions.yaml
     @{poller_config}    Create List     ${ROOT_CONFIG}actions.yaml    ${ROOT_CONFIG}engine.yaml
     Setup Two Gorgone Instances
     ...    central_config=${central_config}
     ...    communication_mode=${communication_mode}
-    ...    central_name=${communication_mode}_gorgone_central
-    ...    poller_name=${communication_mode}_gorgone_poller_2
+    ...    central_name=${central}
+    ...    poller_name=${poller}
     ...    poller_config=${poller_config}
-    Run    mkdir /var/lib/centreon/centcore/ -p
 
     Force Check Execution On Poller    comm=${communication_mode}
     Push Engine And vmware Configuration    comm=${communication_mode}
@@ -29,8 +33,8 @@ Legacycmd with ${communication_mode} communication
         
 *** Keywords ***
 Legacycmd Teardown
-    [Arguments]    ${comm}
-    @{process_list}    Create List    ${comm}_gorgone_central    ${comm}_gorgone_poller_2
+    [Arguments]    ${central}    ${poller}    ${comm}
+    @{process_list}    Create List    ${central}    ${poller}
 
     Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
     Terminate Process    pipeWatcher_${comm}
@@ -54,7 +58,7 @@ Push Engine And vmware Configuration
     ${log_query}    Create List    centreon_vmware.json
     # SENDCFGFILE say to gorgone to push conf to poller for a poller id.
     Run    echo SENDCFGFILE:${poller_id} > /var/lib/centreon/centcore/random.cmd
-    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central/gorgoned.log    content=${log_query}    regex=0    timeout=20
+    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/gorgoned.log    content=${log_query}    regex=0    timeout=20
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}
     Log To Console    File should be set in /etc/centreon/ now
 
@@ -66,6 +70,7 @@ Push Engine And vmware Configuration
 
     # check engine conf file
     # for now gorgone don't set user/group after it untar, it's only done when copying single files.
+    # We can't check the user in the test as "www-data" user is "httpd" on rhel based system
     ${res}=    Run    cat /etc/centreon-engine/engine-hosts.cfg
     Should Be Equal As Strings    ${res}    Engine conf, communicationmode:${comm}    data in /etc/centreon-engine/engine-hosts.cfg is not correct.
 
@@ -83,14 +88,13 @@ Force Check Execution On Poller
     ...    --pipename
     ...    /var/lib/centreon-engine/rw/centengine.cmd
     ...    --logfile
-    ...    /var/log/centreon-gorgone/${comm}_gorgone_central/legacycmd-pipe-poller.log
+    ...    /var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/legacycmd-pipe-poller.log
     ...    alias=pipeWatcher_${comm}
 
     Sleep    0.5
     ${date}=    Get Time
     ${forced_check_command}=    Set Variable    SCHEDULE_FORCED_SVC_CHECK;local2_${comm};Cpu;${date}
     Run    echo "EXTERNALCMD:2:[1724242926] ${forced_check_command}" > /var/lib/centreon/centcore/random.cmd
-    Sleep    0.5
     ${log_query}    Create List    ${forced_check_command}
-    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central/legacycmd-pipe-poller.log    content=${log_query}    regex=0    timeout=20
+    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/legacycmd-pipe-poller.log    content=${log_query}    regex=0    timeout=20
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}
