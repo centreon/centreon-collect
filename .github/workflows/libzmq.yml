@@ -107,6 +107,12 @@ jobs:
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
       - name: package deb
         run: |
           apt-get update
@@ -122,7 +128,7 @@ jobs:
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz | tar zxvf -
           cd libzmq-4.3.5
           ln -s packaging/debian
-          sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1~${{ matrix.distrib }}/' debian/changelog
+          sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
           cd ..
