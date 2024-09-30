@@ -79,10 +79,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bullseye
-            distrib: bullseye
-            runner: ubuntu-22.04
-            arch: amd64
           - image: packaging-nfpm-bookworm
             distrib: bookworm
             runner: ubuntu-22.04
@@ -91,10 +87,6 @@ jobs:
             distrib: jammy
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bullseye-arm64
-            distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
