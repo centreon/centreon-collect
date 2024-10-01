@@ -72,11 +72,11 @@ config::config(const std::string& registry_key) {
   _endpoint = get_sz_reg_or_default("endpoint", "");
 
   // pattern schema doesn't work so we do it ourselves
-  if (!RE2::FullMatch(_endpoint, "[\\w\\.:]+:\\w+")) {
+  if (!RE2::FullMatch(_endpoint, "[\\w\\.\\-:]+:\\w+")) {
     RegCloseKey(h_key);
     throw exceptions::msg_fmt(
-        "bad format for endpoint {}, it must match to the regex: "
-        "[\\w\\.:]+:\\w+",
+        "bad format for endpoint {}, it must match the regex: "
+        "[\\w\\.\\-:]+:\\w+",
         _endpoint);
   }
   _log_level =

@@ -32,7 +32,7 @@ detail::process::process(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          const std::string& cmd_line,
                          const std::shared_ptr<check_exec>& parent)
-    : common::process(io_context, logger, cmd_line), _parent(parent) {}
+    : common::process<false>(io_context, logger, cmd_line), _parent(parent) {}
 
 /**
  * @brief start a new process, if a previous one is already running, it's killed
@@ -44,7 +44,7 @@ void detail::process::start(unsigned running_index) {
   _stdout_eof = false;
   _running_index = running_index;
   _stdout.clear();
-  common::process::start_process(false);
+  common::process<false>::start_process(false);
 }
 
 /**
@@ -61,7 +61,7 @@ void detail::process::on_stdout_read(const boost::system::error_code& err,
     _stdout_eof = true;
     _on_completion();
   }
-  common::process::on_stdout_read(err, nb_read);
+  common::process<false>::on_stdout_read(err, nb_read);
 }
 
 /**
@@ -76,7 +76,7 @@ void detail::process::on_stderr_read(const boost::system::error_code& err,
     SPDLOG_LOGGER_ERROR(_logger, "process error: {}",
                         std::string_view(_stderr_read_buffer, nb_read));
   }
-  common::process::on_stderr_read(err, nb_read);
+  common::process<false>::on_stderr_read(err, nb_read);
 }
 
 /**
@@ -91,7 +91,7 @@ void detail::process::on_process_end(const boost::system::error_code& err,
     _stdout += fmt::format("fail to execute process {} : {}", get_exe_path(),
                            err.message());
   }
-  common::process::on_process_end(err, raw_exit_status);
+  common::process<false>::on_process_end(err, raw_exit_status);
   _process_ended = true;
   _on_completion();
 }
