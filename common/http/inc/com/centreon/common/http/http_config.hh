@@ -55,6 +55,8 @@ class http_config {
   std::string _certificate_path;
   // path to key file (server case)
   std::string _key_path;
+  // Should we verify peer (available for a https client, default value: true)
+  bool _verify_peer = true;
 
  public:
   using pointer = std::shared_ptr<http_config>;
@@ -146,6 +148,8 @@ class http_config {
   asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
   const std::string& get_certificate_path() const { return _certificate_path; }
   const std::string& get_key_path() const { return _key_path; }
+  void set_verify_peer(bool verify_peer) { _verify_peer = verify_peer; }
+  bool verify_peer() const { return _verify_peer; }
 };
 
 }  // namespace com::centreon::common::http

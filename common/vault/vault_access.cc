@@ -1,6 +1,8 @@
 #include "common/vault/vault_access.hh"
 #include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 #include <boost/beast.hpp>
+#include <exception>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "com/centreon/common/http/http_client.hh"
@@ -16,6 +18,7 @@ using com::centreon::common::crypto::aes256;
 
 vault_access::vault_access(const std::string& env_file,
                            const std::string& vault_file,
+                           bool verify_peer,
                            const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger} {
   if (env_file.empty())
@@ -41,32 +44,21 @@ vault_access::vault_access(const std::string& env_file,
         results, _url, true, std::chrono::seconds(10), std::chrono::seconds(30),
         std::chrono::seconds(30), 30, std::chrono::seconds(10), 5,
         std::chrono::hours(1), 1, asio::ssl::context_base::tlsv12_client);
+    client_conf->set_verify_peer(verify_peer);
     connection_creator conn_creator = [client_conf, logger = _logger]() {
       auto ssl_init = [](asio::ssl::context& ctx,
                          const http_config::pointer& conf [[maybe_unused]]) {
-        ctx.set_verify_mode(asio::ssl::context::verify_peer);
+        if (conf->verify_peer())
+          ctx.set_verify_mode(asio::ssl::context::verify_peer);
+        else
+          ctx.set_verify_mode(asio::ssl::context::verify_none);
         ctx.set_default_verify_paths();
       };
       return https_connection::load(common::pool::io_context_ptr(), logger,
                                     client_conf, ssl_init);
     };
-    auto client = client::load(common::pool::io_context_ptr(), _logger,
-                               client_conf, conn_creator);
-    auto req = std::make_shared<request_base>(boost::beast::http::verb::post,
-                                              _url, "/v1/auth/approle/login");
-    req->body() = fmt::format("{{ \"role_id\":\"{}\", \"secret_id\":\"{}\" }}",
-                              _role_id, _secret_id);
-    req->content_length(req->body().length());
-    client->send(req, [logger = _logger](const boost::beast::error_code& err,
-                                         const std::string& detail,
-                                         const response_ptr& response) mutable {
-      if (err && err != boost::asio::ssl::error::stream_truncated) {
-        logger->error("Error from http server: {}", err.message());
-      } else {
-        logger->info("We got a response: detail = {} ; response = {}", detail,
-                     response ? response->body() : "nullptr");
-      }
-    });
+    _client = client::load(common::pool::io_context_ptr(), _logger, client_conf,
+                           conn_creator);
   }
 }
 
@@ -83,6 +75,8 @@ void vault_access::set_vault_informations(const std::string& vault_file) {
     _url = vault_configuration["url"];
     _port = vault_configuration["port"];
     _root_path = vault_configuration["root_path"];
+    _role_id = vault_configuration["role_id"];
+    _secret_id = vault_configuration["secret_id"];
   } else
     throw exceptions::msg_fmt(
         "The '{}' file is malformed, we should have keys 'salt', 'role_id', "
@@ -105,4 +99,74 @@ void vault_access::set_env_informations(const std::string& env_file) {
     throw exceptions::msg_fmt("The env file could not be open");
 }
 
-void vault_access::_decrypt_role_and_secret() {}
+std::string vault_access::decrypt(const std::string& encrypted) {
+  std::string_view head = encrypted;
+  if (head.substr(0, 25) != "secret::hashicorp_vault::") {
+    _logger->debug("Password is not stored in the vault");
+    return encrypted;
+  } else
+    head.remove_prefix(25);
+
+  /* We get the token */
+  auto req = std::make_shared<request_base>(boost::beast::http::verb::post,
+                                            _url, "/v1/auth/approle/login");
+  req->body() = fmt::format("{{ \"role_id\":\"{}\", \"secret_id\":\"{}\" }}",
+                            _role_id, _secret_id);
+  req->content_length(req->body().length());
+
+  std::promise<std::string> promise;
+  std::future<std::string> future = promise.get_future();
+  _client->send(req, [logger = _logger, &promise](
+                         const boost::beast::error_code& err,
+                         const std::string& detail [[maybe_unused]],
+                         const response_ptr& response) mutable {
+    if (err && err != boost::asio::ssl::error::stream_truncated) {
+      auto exc = std::make_exception_ptr(
+          exceptions::msg_fmt("Error from http server: {}", err.message()));
+      promise.set_exception(exc);
+    } else {
+      nlohmann::json resp = nlohmann::json::parse(response->body());
+      std::string token = resp["auth"]["client_token"].get<std::string>();
+      promise.set_value(std::move(token));
+    }
+  });
+
+  std::pair<std::string_view, std::string_view> p =
+      absl::StrSplit(head, absl::ByString("::"));
+
+  try {
+    std::string token(future.get());
+    req = std::make_shared<request_base>(boost::beast::http::verb::get, _url,
+                                         fmt::format("/v1/{}", p.first));
+    req->set("X-Vault-Token", token);
+    std::promise<std::string> promise_decrypted;
+    std::future<std::string> future_decrypted = promise_decrypted.get_future();
+    _client->send(
+        req, [logger = _logger, &promise_decrypted, field = p.second](
+                 const boost::beast::error_code& err, const std::string& detail,
+                 const response_ptr& response) mutable {
+          if (err && err != boost::asio::ssl::error::stream_truncated) {
+            logger->error("Error from http server: {}", err.message());
+            auto exc = std::make_exception_ptr(exceptions::msg_fmt(
+                "Error from http server: {}", err.message()));
+            promise_decrypted.set_exception(exc);
+          } else {
+            logger->info("We got a the result: detail = {} ; response = {}",
+                         detail, response ? response->body() : "nullptr");
+            nlohmann::json resp = nlohmann::json::parse(response->body());
+            try {
+              std::string result = resp["data"]["data"][field];
+              promise_decrypted.set_value(result);
+            } catch (const std::exception& e) {
+              auto exc = std::make_exception_ptr(exceptions::msg_fmt(
+                  "Response is not as expected: {}", err.message()));
+              promise_decrypted.set_exception(exc);
+            }
+          }
+        });
+    return future_decrypted.get();
+  } catch (const std::exception& e) {
+    _logger->error("{}", e.what());
+  }
+  return encrypted;
+}

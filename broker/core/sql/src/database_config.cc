@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/sql/database_config.hh"
 #include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
 #include <fmt/format.h>
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
@@ -104,33 +105,6 @@ database_config::database_config(const std::string& type,
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
 
-std::string database_config::_get_first_key_from_global_params(
-    const absl::flat_hash_map<std::string, std::string>& global_params) const {
-  std::string first_key;
-  auto found = global_params.find("env_file");
-  std::string env_file;
-  if (found != global_params.end()) {
-    env_file = found->second;
-    _config_logger->debug("Env file '{}' used.", env_file);
-  } else {
-    env_file = "/usr/share/centreon/.env";
-    _config_logger->debug("No env_file provided default one used.");
-  }
-  std::ifstream ifs(env_file);
-  if (ifs.is_open()) {
-    std::string line;
-    while (std::getline(ifs, line)) {
-      if (line.find("APP_SECRET=") == 0) {
-        first_key = line.substr(11);
-        first_key = absl::StripAsciiWhitespace(first_key);
-        break;
-      }
-    }
-  } else
-    _config_logger->info("The env file could not be open");
-  return first_key;
-}
-
 /**
  *  Build a database configuration from a configuration set.
  *
@@ -164,94 +138,21 @@ database_config::database_config(
           "No vault configuration file provided in Broker configuration.");
     }
   }
-  try {
-    common::vault::vault_access vault(env_file, vault_file, _config_logger);
-  } catch (const std::exception& e) {
-    _config_logger->info("No usable Vault configuration: {}", e.what());
-  }
-
-  std::string first_key = _get_first_key_from_global_params(global_params);
-  std::string role_id;
-  std::string secret_id;
-  std::string url;
-  uint16_t port;
-  std::string root_path;
-  if (!first_key.empty()) {
-    std::string vault_file;
-    auto found = global_params.find("vault_configuration");
+  bool verify_peer = true;
+  {
+    auto found = global_params.find("verify_vault_peer");
     if (found != global_params.end()) {
-      vault_file = found->second;
-      try {
-        std::ifstream ifs(vault_file);
-        nlohmann::json vault_configuration = nlohmann::json::parse(ifs);
-        if (vault_configuration.contains("salt") &&
-            vault_configuration.contains("role_id") &&
-            vault_configuration.contains("secret_id") &&
-            vault_configuration.contains("url") &&
-            vault_configuration.contains("port") &&
-            vault_configuration.contains("root_path")) {
-          const std::string& second_key = vault_configuration["salt"];
-          common::crypto::aes256 access(first_key, second_key);
-          role_id = access.decrypt(vault_configuration["role_id"]);
-          secret_id = access.decrypt(vault_configuration["secret_id"]);
-          url = vault_configuration["url"];
-          port = vault_configuration["port"];
-          root_path = vault_configuration["root_path"];
-          asio::ip::tcp::resolver resolver(common::pool::io_context());
-          const auto results = resolver.resolve(url, fmt::format("{}", port));
-          if (results.empty())
-            _config_logger->error("Unable to resolve the vault server '{}'",
-                                  url);
-          else {
-            http_config::pointer client_conf = std::make_shared<http_config>(
-                results, url, true, std::chrono::seconds(10),
-                std::chrono::seconds(30), std::chrono::seconds(30), 30,
-                std::chrono::seconds(10), 5, std::chrono::hours(1), 1,
-                asio::ssl::context_base::tlsv12_client);
-            connection_creator conn_creator = [client_conf,
-                                               logger = _config_logger]() {
-              auto ssl_init = [](asio::ssl::context& ctx,
-                                 const http_config::pointer& conf
-                                 [[maybe_unused]]) {
-                ctx.set_verify_mode(asio::ssl::context::verify_peer);
-                ctx.set_default_verify_paths();
-              };
-              return https_connection::load(common::pool::io_context_ptr(),
-                                            logger, client_conf, ssl_init);
-            };
-            auto client =
-                client::load(common::pool::io_context_ptr(), _config_logger,
-                             client_conf, conn_creator);
-            auto req = std::make_shared<request_base>(
-                boost::beast::http::verb::post, url, "/v1/auth/approle/login");
-            req->body() =
-                fmt::format("{{ \"role_id\":\"{}\", \"secret_id\":\"{}\" }}",
-                            role_id, secret_id);
-            req->content_length(req->body().length());
-            client->send(req, [logger = _config_logger](
-                                  const boost::beast::error_code& err,
-                                  const std::string& detail,
-                                  const response_ptr& response) mutable {
-              if (err && err != boost::asio::ssl::error::stream_truncated) {
-                logger->error("Error from http server: {}", err.message());
-              } else {
-                logger->info("We got a response: detail = {} ; response = {}",
-                             detail, response ? response->body() : "nullptr");
-              }
-            });
-          }
-        } else
-          _config_logger->error(
-              "The file '{}' must contain keys 'salt', 'role_id', 'secret_id', "
-              "url, port and root_path.",
-              vault_file);
-      } catch (const std::exception& e) {
-        _config_logger->error("Error while reading '{}': {}", vault_file,
-                              e.what());
+      if (absl::SimpleAtob(found->second, &verify_peer)) {
+        _config_logger->debug("Verify Vault peer {}.",
+                              verify_peer ? "enabled" : "disabled");
+      } else {
+        _config_logger->debug("Verification of Vault peer enabled by default.");
+        verify_peer = true;
       }
+    } else {
+      _config_logger->debug("Verification of Vault peer enabled by default.");
     }
-  } else
-    _config_logger->error("Bad value of the APP_SECRET");
+  }
 
   // db_type
   auto found = cfg.params.find("db_type");
@@ -303,6 +204,15 @@ database_config::database_config(
   found = cfg.params.find("db_password");
   if (found != cfg.params.end())
     _password = found->second;
+
+  try {
+    common::vault::vault_access vault(env_file, vault_file, verify_peer,
+                                      _config_logger);
+    _password = vault.decrypt(_password);
+    _config_logger->info("Database password get from Vault configuration");
+  } catch (const std::exception& e) {
+    _config_logger->info("No usable Vault configuration: {}", e.what());
+  }
 
   // db_name
   found = cfg.params.find("db_name");
@@ -375,14 +285,9 @@ database_config::database_config(
  *
  *  @param[in] other  Object to copy.
  */
-database_config::database_config(database_config const& other) {
+database_config::database_config(const database_config& other) {
   _internal_copy(other);
 }
-
-/**
- *  Destructor.
- */
-database_config::~database_config() {}
 
 /**
  *  Assignment operator.
@@ -391,7 +296,7 @@ database_config::~database_config() {}
  *
  *  @return This object.
  */
-database_config& database_config::operator=(database_config const& other) {
+database_config& database_config::operator=(const database_config& other) {
   if (this != &other)
     _internal_copy(other);
   return *this;
@@ -427,7 +332,8 @@ bool database_config::operator==(database_config const& other) const {
             _host, other._host);
       else if (_socket != other._socket)
         logger->debug(
-            "database configurations do not match because of their sockets: {} "
+            "database configurations do not match because of their sockets: "
+            "{} "
             "!= {}",
             _socket, other._socket);
       else if (_port != other._port)
@@ -442,7 +348,8 @@ bool database_config::operator==(database_config const& other) const {
             _user, other._user);
       else if (_password != other._password)
         logger->debug(
-            "database configurations do not match because of their passwords: "
+            "database configurations do not match because of their "
+            "passwords: "
             "{} != {}",
             _password, other._password);
       else if (_name != other._name)
@@ -452,12 +359,14 @@ bool database_config::operator==(database_config const& other) const {
             _name, other._name);
       else if (_queries_per_transaction != other._queries_per_transaction)
         logger->debug(
-            "database configurations do not match because of their queries per "
+            "database configurations do not match because of their queries "
+            "per "
             "transactions: {} != {}",
             _queries_per_transaction, other._queries_per_transaction);
       else if (_connections_count != other._connections_count)
         logger->debug(
-            "database configurations do not match because of their connections "
+            "database configurations do not match because of their "
+            "connections "
             "counts: {} != {}",
             _connections_count, other._connections_count);
       else if (_max_commit_delay != other._max_commit_delay)

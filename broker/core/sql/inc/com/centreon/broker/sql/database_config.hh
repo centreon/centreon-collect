@@ -80,8 +80,8 @@ class database_config {
   database_config(
       config::endpoint const& cfg,
       const absl::flat_hash_map<std::string, std::string>& global_params);
-  database_config(database_config const& other);
-  ~database_config();
+  database_config(const database_config& other);
+  ~database_config() noexcept = default;
   database_config& operator=(database_config const& other);
   bool operator==(database_config const& other) const;
   bool operator!=(const database_config& other) const;

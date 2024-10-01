@@ -17,12 +17,14 @@
  */
 #ifndef CCC_VAULT_VAULT_ACCESS_HH
 #define CCC_VAULT_VAULT_ACCESS_HH
+#include <com/centreon/common/http/http_client.hh>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include "common/crypto/aes256.hh"
 
 using com::centreon::common::crypto::aes256;
+using com::centreon::common::http::client;
 
 namespace com::centreon::common::vault {
 class vault_access {
@@ -45,14 +47,22 @@ class vault_access {
   std::string _role_id;
   std::string _secret_id;
 
+  /* The http client to the vault */
+  std::shared_ptr<client> _client;
+
+  /* The token to ask for a password */
+  std::string _token;
+
   void _decrypt_role_and_secret();
 
  public:
   vault_access(const std::string& env_file,
                const std::string& vault_file,
+               bool verify_peer,
                const std::shared_ptr<spdlog::logger>& logger);
   void set_vault_informations(const std::string& vault_file);
   void set_env_informations(const std::string& env_file);
+  std::string decrypt(const std::string& encrypted);
 };
 }  // namespace com::centreon::common::vault
 #endif /* !CCC_VAULT_VAULT_ACCESS_HH */
