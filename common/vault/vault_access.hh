@@ -15,9 +15,44 @@
  *
  * For more information : contact@centreon.com
  */
+#ifndef CCC_VAULT_VAULT_ACCESS_HH
+#define CCC_VAULT_VAULT_ACCESS_HH
+#include <cstdint>
+#include <memory>
+#include <string>
+#include "common/crypto/aes256.hh"
+
+using com::centreon::common::crypto::aes256;
+
 namespace com::centreon::common::vault {
 class vault_access {
+  /* The url and port to access to the Vault. */
+  std::string _url;
+  uint16_t _port;
+  std::shared_ptr<spdlog::logger> _logger;
+
+  std::string _root_path;
+
+  /* The AES256 encrypt/decrypt tool to access the vault. */
+  std::unique_ptr<aes256> _aes_encryptor;
+
+  /* First key needed to use _aes_encryptor. */
+  std::string _app_secret;
+  /* Second key needed to use _aes_encryptor. */
+  std::string _salt;
+
+  /* The main credentials to access the Vault. */
+  std::string _role_id;
+  std::string _secret_id;
+
+  void _decrypt_role_and_secret();
+
+ public:
+  vault_access(const std::string& env_file,
+               const std::string& vault_file,
+               const std::shared_ptr<spdlog::logger>& logger);
   void set_vault_informations(const std::string& vault_file);
   void set_env_informations(const std::string& env_file);
 };
 }  // namespace com::centreon::common::vault
+#endif /* !CCC_VAULT_VAULT_ACCESS_HH */

@@ -19,7 +19,12 @@
 
 #ifndef CCB_HTTP_CLIENT_CONFIG_HH__
 #define CCB_HTTP_CLIENT_CONFIG_HH__
+#include <spdlog/formatter.h>
+#include <spdlog/spdlog.h>
+#include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+
+namespace asio = boost::asio;
 
 namespace com::centreon::common::http {
 

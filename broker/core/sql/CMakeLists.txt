@@ -83,7 +83,8 @@ set(SOURCES
 add_library(sql STATIC ${SOURCES})
 set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
-target_link_libraries(sql spdlog::spdlog mariadb nlohmann_json::nlohmann_json centreon_http)
+target_link_libraries(sql spdlog::spdlog ctnvault mariadb
+                      nlohmann_json::nlohmann_json centreon_http)
 
 # if(WITH_TESTING) set( TESTS_SOURCES ${TESTS_SOURCES}
 # ${TESTS_DIR}/engine/start_stop.cc ${TESTS_DIR}/muxer/read.cc

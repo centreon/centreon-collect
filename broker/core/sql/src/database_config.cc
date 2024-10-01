@@ -28,6 +28,7 @@
 #include "com/centreon/common/pool.hh"
 #include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/vault/vault_access.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
@@ -140,6 +141,35 @@ database_config::database_config(
     const absl::flat_hash_map<std::string, std::string>& global_params)
     : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
       _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
+  std::string env_file;
+  {
+    auto found = global_params.find("env_file");
+    if (found != global_params.end()) {
+      env_file = found->second;
+      _config_logger->debug("Env file '{}' used.", env_file);
+    } else {
+      env_file = "/usr/share/centreon/.env";
+      _config_logger->debug(
+          "No env_file provided in Broker configuration, default one used.");
+    }
+  }
+  std::string vault_file;
+  {
+    auto found = global_params.find("vault_configuration");
+    if (found != global_params.end()) {
+      vault_file = found->second;
+      _config_logger->debug("Vault configuration file '{}' used.", env_file);
+    } else {
+      _config_logger->debug(
+          "No vault configuration file provided in Broker configuration.");
+    }
+  }
+  try {
+    common::vault::vault_access vault(env_file, vault_file, _config_logger);
+  } catch (const std::exception& e) {
+    _config_logger->info("No usable Vault configuration: {}", e.what());
+  }
+
   std::string first_key = _get_first_key_from_global_params(global_params);
   std::string role_id;
   std::string secret_id;
