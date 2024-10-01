@@ -1,4 +1,4 @@
-Source: centreon-gorgone
+Source: gorgone
 Section: net
 Priority: optional
 Maintainer: Centreon <contact@centreon.com>
@@ -39,6 +39,7 @@ Depends:
   libev-perl,
   libzmq-ffi-perl,
   libclone-choose-perl,
+  perl-base,
   sudo,
   ${shlibs:Depends},
   ${misc:Depends}
