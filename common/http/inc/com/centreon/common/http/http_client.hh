@@ -20,7 +20,6 @@
 #ifndef CCB_HTTP_CLIENT_CLIENT_HH__
 #define CCB_HTTP_CLIENT_CLIENT_HH__
 
-#include <boost/container/flat_set.hpp>
 #include "http_connection.hh"
 
 class client_test;

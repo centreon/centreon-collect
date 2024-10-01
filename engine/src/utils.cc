@@ -19,30 +19,23 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/utils.hh"
-
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <csignal>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/raw.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
