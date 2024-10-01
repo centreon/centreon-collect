@@ -71,6 +71,15 @@ Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
 
+Ctn Start Vault
+    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+
+Ctn Stop Vault
+    ${result}    Terminate Process    vault    kill=False
+    Should Be True
+    ...    ${result.rc} == -15 or ${result.rc} == 0
+    ...    Vault not correctly stopped
+
 Ctn Start Broker
     [Arguments]    ${only_central}=False
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1

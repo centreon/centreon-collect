@@ -219,6 +219,7 @@ BAV
     [Documentation]    Broker accesses to the vault to get database credentials.
     [Tags]    broker    MON-116610
 
+    Ctn Start Vault
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    debug
@@ -233,6 +234,8 @@ BAV
 
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault.json
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Add Item    central    verify_vault_peer    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
 
     ${vault_content}    Catenate    SEPARATOR=\n
     ...    {
@@ -252,9 +255,15 @@ BAV
 
     Create File    /tmp/env_file    ${env_file}
 
-#    Ctn Start Broker
-#
-#    Ctn Kindly Stop Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    Database password get from Vault configuration
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the password found in the vault.
+
+    Ctn Kindly Stop Broker
+    Ctn Stop Vault
 
 *** Variables ***
 ${Salt}        U2FsdA==
