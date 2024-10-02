@@ -26,7 +26,8 @@ BWVC1
     Ctn Kindly Stop Broker
 
 BWVC2
-    [Documentation]    Broker is tuned with a wrong vault configuration and the env file exists.
+    [Documentation]    Broker is tuned with a wrong vault configuration and the env file exists
+    ...    with a wrong content.
     [Tags]    broker    engine    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -42,13 +43,14 @@ BWVC2
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    Bad value of the APP_SECRET
+    ${content}    Create List    No usable Vault configuration: No APP_SECRET provided.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad value in APP_SECRET.
     Ctn Kindly Stop Broker
 
 BWVC3
-    [Documentation]    Broker is tuned with an env file containing a strange key APP_SECRET and a wrong vault configuration.
+    [Documentation]    Broker is tuned with an env file containing a strange key APP_SECRET
+    ...    and a wrong vault configuration.
     [Tags]    broker    engine    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -64,8 +66,8 @@ BWVC3
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    Error while reading '/tmp/wrong_file'
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${content}    Create List    No usable Vault configuration: .*check that your input string or stream contains the expected JSON
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the wrong vault file.
     Ctn Kindly Stop Broker
 
@@ -94,7 +96,7 @@ BWVC4
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${content}    Create List    The file '/tmp/vault_file.json' must contain keys 'salt', 'role_id', 'secret_id', url, port and root_path.
+    ${content}    Create List    No usable Vault configuration: The '/tmp/vault_file.json' file is malformed, we should have keys 'salt', 'role_id'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about wrong keys displayed.
     Ctn Kindly Stop Broker
@@ -147,10 +149,12 @@ BWVC6
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
     ...      "name": "vault",
-    ...      "strange_key": 42,
+    ...      "port": 42,
     ...      "salt": "strange&éè",
     ...      "role_id": "strangeéé",
-    ...      "secret_id": "strangeàà@"
+    ...      "secret_id": "strangeàà@",
+    ...      "url": "my_url",
+    ...      "root_path": "my_path"
     ...    }
 
     Create File    /tmp/vault_file.json    ${vault_file}
@@ -264,6 +268,54 @@ BAV
 
     Ctn Kindly Stop Broker
     Ctn Stop Vault
+
+BASV
+    [Documentation]    Broker accesses to the vault to get database credentials but vault is stopped.
+    [Tags]    broker    MON-116610
+
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Config BBDO3    1
+    Ctn Start Broker
+
+    ${encrypted_role_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
+    ${encrypted_secret_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
+
+    Ctn Kindly Stop Broker
+
+    Ctn Broker Config Add Item    central    vault_configuration    /tmp/vault.json
+    Ctn Broker Config Add Item    central    env_file    /tmp/env_file
+    Ctn Broker Config Add Item    central    verify_vault_peer    no
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+
+    ${vault_content}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "my_vault",
+    ...      "url": "localhost",
+    ...      "port": 4443,
+    ...      "root_path": "john-doe",
+    ...      "secret_id": "${encrypted_secret_id}",
+    ...      "role_id": "${encrypted_role_id}",
+    ...      "salt": "${Salt}"
+    ...    }
+
+    Create File    /tmp/vault.json    ${vault_content}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= ${AppSecret}
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    No usable Vault configuration: Error from http server: Connection refused
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the inactivity of the http server.
+
+    Ctn Kindly Stop Broker
 
 *** Variables ***
 ${Salt}        U2FsdA==
