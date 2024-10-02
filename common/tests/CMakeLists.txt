@@ -31,13 +31,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
-  add_executable(ut_common
-    perfdata_test.cc
-    process_test.cc
-    test_main_win.cc
-    utf8_test.cc
-    ${TESTS_SOURCES})
+  add_executable(ut_common perfdata_test.cc process_test.cc test_main_win.cc
+                           utf8_test.cc ${TESTS_SOURCES})
 endif()
+
+target_compile_definitions(
+  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
 
 set_target_properties(
   ut_common

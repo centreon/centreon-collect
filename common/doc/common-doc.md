@@ -5,6 +5,7 @@
 * [Pool](#Pool)
 * [Grpc](#Grpc)
 * [Process](#Process)
+* [Vault](#Vault)
 * [Engine configuration](#Engineconfiguration)
 
 

@@ -55,6 +55,7 @@ class database_config {
   unsigned _category;
   // where mariadb will find extension such as caching_sha2_password.so
   std::string _extension_directory;
+  std::shared_ptr<spdlog::logger> _config_logger;
 
   void _internal_copy(database_config const& other);
 

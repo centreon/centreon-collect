@@ -93,7 +93,7 @@ class request_base : public request_type {
  public:
   request_base();
   request_base(boost::beast::http::verb method,
-               const std::string& server_name,
+               const std::string_view& server_name,
                boost::beast::string_view target);
 
   virtual ~request_base() {}
