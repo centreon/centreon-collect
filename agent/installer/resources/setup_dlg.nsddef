@@ -13,5 +13,5 @@ Do not edit manually!
   <TextBox Name="host_name" Location="129, 2" Size="188, 20" TabIndex="4" />
   <TextBox Name="endpoint" Location="129, 29" Size="188, 20" TabIndex="5" />
   <CheckBox Name="reverse" Location="12, 69" Size="156, 24" Text="Poller-initiated connection" TabIndex="6" onClick="reverse_onClick" />
-  <Label Name="Label15" Location="12, 5" Size="128, 20" Text="Host name in Centron:" Font="Microsoft Sans Serif, 8.25pt" TabIndex="7" />
+  <Label Name="Label15" Location="12, 5" Size="128, 20" Text="Host name in Centreon:" Font="Microsoft Sans Serif, 8.25pt" TabIndex="7" />
 </Dialog>

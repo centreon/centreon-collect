@@ -19,8 +19,8 @@ Call on_log_type_changed</CreateFunctionCustomScript>
   </GroupBox>
   <DropList Name="log_type" Location="168, 3" TabIndex="1" onChange="on_log_type_changed">
     <Items>
-      <value>EventLog</value>
-      <value>File</value>
+      <value>event-log</value>
+      <value>file</value>
     </Items>
   </DropList>
   <DropList Name="log_level" Location="168, 30" TabIndex="2">
