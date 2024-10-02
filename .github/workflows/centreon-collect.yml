@@ -131,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
+        distrib: [alma8, alma9, debian-bookworm]
 
     runs-on: [self-hosted, collect]
 
@@ -255,11 +255,6 @@ jobs:
             package_extension: rpm
             runner: collect
             arch: amd64
-          - image: centreon-collect-debian-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: collect
-            arch: amd64
           - image: centreon-collect-debian-bookworm
             distrib: bookworm
             package_extension: deb
@@ -270,11 +265,6 @@ jobs:
             package_extension: deb
             runner: collect
             arch: amd64
-          - image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: collect-arm64
-            arch: arm64
           - image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm
             package_extension: deb
@@ -323,13 +313,6 @@ jobs:
             arch: amd64
             database_type: mysql
             test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
             tests_params: '{}'
           - distrib: bookworm
             image: centreon-collect-debian-bookworm-arm64-test
@@ -448,10 +431,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: jammy
@@ -485,7 +464,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
 
     steps:
       - name: Checkout sources
