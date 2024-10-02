@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2023 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/broker/broker_impl.hh"
+#include <grpcpp/support/status.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -26,10 +27,12 @@
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
+using com::centreon::common::crypto::aes256;
 using com::centreon::common::log_v2::log_v2;
 
 /**
@@ -393,4 +396,38 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                         boost::diagnostic_information(e));
   }
   return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::Aes256Encrypt(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const AesMessage* request,
+                                        GenericString* response) {
+  std::string first_key = request->app_secret();
+  std::string second_key = request->salt();
+
+  try {
+    aes256 access(first_key, second_key);
+    std::string result = access.encrypt(request->content());
+    response->set_str_arg(result);
+    return grpc::Status::OK;
+  } catch (const std::exception& e) {
+    return grpc::Status(grpc::INVALID_ARGUMENT, grpc::string(e.what()));
+  }
+}
+
+grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const AesMessage* request,
+                                        GenericString* response) {
+  std::string first_key = request->app_secret();
+  std::string second_key = request->salt();
+
+  try {
+    aes256 access(first_key, second_key);
+    std::string result = access.decrypt(request->content());
+    response->set_str_arg(result);
+    return grpc::Status::OK;
+  } catch (const std::exception& e) {
+    return grpc::Status(grpc::INVALID_ARGUMENT, grpc::string(e.what()));
+  }
 }
