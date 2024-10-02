@@ -19,6 +19,7 @@
 
 #ifndef CCB_HTTP_CLIENT_CONFIG_HH__
 #define CCB_HTTP_CLIENT_CONFIG_HH__
+#include <boost/asio/ssl.hpp>
 
 namespace com::centreon::common::http {
 
@@ -33,6 +34,7 @@ using duration = system_clock::duration;
 class http_config {
   // destination or listen address
   asio::ip::tcp::endpoint _endpoint;
+  asio::ip::tcp::resolver::results_type _endpoints_list;
   std::string _server_name;
   bool _crypted;
   duration _connect_timeout;
@@ -48,12 +50,14 @@ class http_config {
   std::string _certificate_path;
   // path to key file (server case)
   std::string _key_path;
+  // Should we verify peer (available for a https client, default value: true)
+  bool _verify_peer = true;
 
  public:
   using pointer = std::shared_ptr<http_config>;
 
   http_config(const asio::ip::tcp::endpoint& endpoint,
-              const std::string& server_name,
+              const std::string_view& server_name,
               bool crypted = false,
               duration connect_timeout = std::chrono::seconds(10),
               duration send_timeout = std::chrono::seconds(30),
@@ -82,12 +86,45 @@ class http_config {
         _certificate_path(certificate_path),
         _key_path(key_path) {}
 
+  http_config(const asio::ip::tcp::resolver::results_type& endpoints_list,
+              const std::string_view& server_name,
+              bool crypted = false,
+              duration connect_timeout = std::chrono::seconds(10),
+              duration send_timeout = std::chrono::seconds(30),
+              duration receive_timeout = std::chrono::seconds(30),
+              unsigned second_tcp_keep_alive_interval = 30,
+              duration max_retry_interval = std::chrono::seconds(10),
+              unsigned max_send_retry = 5,
+              duration default_http_keepalive_duration = std::chrono::hours(1),
+              unsigned max_connections = 10,
+              asio::ssl::context_base::method ssl_method =
+                  asio::ssl::context_base::tlsv13_client,
+              const std::string& certificate_path = "",
+              const std::string& key_path = "")
+      : _endpoints_list(endpoints_list),
+        _server_name(server_name),
+        _crypted(crypted),
+        _connect_timeout(connect_timeout),
+        _send_timeout(send_timeout),
+        _receive_timeout(receive_timeout),
+        _second_tcp_keep_alive_interval(second_tcp_keep_alive_interval),
+        _max_retry_interval(max_retry_interval),
+        _max_send_retry(max_send_retry),
+        _default_http_keepalive_duration(default_http_keepalive_duration),
+        _max_connections(max_connections),
+        _ssl_method(ssl_method),
+        _certificate_path(certificate_path),
+        _key_path(key_path) {}
+
   http_config()
       : _crypted(false),
         _second_tcp_keep_alive_interval(30),
         _max_send_retry(0),
         _max_connections(0) {}
 
+  const asio::ip::tcp::resolver::results_type& get_endpoints_list() const {
+    return _endpoints_list;
+  }
   const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
   const std::string& get_server_name() const { return _server_name; }
   bool is_crypted() const { return _crypted; }
@@ -106,6 +143,8 @@ class http_config {
   asio::ssl::context_base::method get_ssl_method() const { return _ssl_method; }
   const std::string& get_certificate_path() const { return _certificate_path; }
   const std::string& get_key_path() const { return _key_path; }
+  void set_verify_peer(bool verify_peer) { _verify_peer = verify_peer; }
+  bool verify_peer() const { return _verify_peer; }
 };
 
 }  // namespace com::centreon::common::http

@@ -40,6 +40,9 @@ else()
     ${TESTS_SOURCES})
 endif()
 
+target_compile_definitions(
+  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
+
 set_target_properties(
   ut_common
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
