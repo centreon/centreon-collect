@@ -19,7 +19,6 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 
 #include "rapidjson_helper.hh"
 

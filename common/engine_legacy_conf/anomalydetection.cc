@@ -18,10 +18,6 @@
  */
 
 #include "anomalydetection.hh"
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_split.h>
-#include <absl/strings/string_view.h>
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
