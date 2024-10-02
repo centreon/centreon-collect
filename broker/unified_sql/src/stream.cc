@@ -23,7 +23,6 @@
 #include <cstring>
 
 #include "bbdo/events.hh"
-#include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"

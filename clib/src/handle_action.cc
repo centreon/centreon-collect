@@ -17,8 +17,6 @@
 */
 
 #include "com/centreon/handle_action.hh"
-#include <cstdlib>
-#include "com/centreon/handle.hh"
 #include "com/centreon/handle_listener.hh"
 
 using namespace com::centreon;
