@@ -39,7 +39,7 @@ runs:
       with:
         registry: ${{ inputs.registry_url }}
         username: ${{ inputs.registry_private_username }}
-        password: ${{ inputs.registry_private_password }}
+        password: ${{ inputs.registry_private_token }}
 
     # REMOVE ME LATER
     - run: docker pull ${{ inputs.registry_url }}/${{ inputs.image_name }}:${{ inputs.image_version}}
