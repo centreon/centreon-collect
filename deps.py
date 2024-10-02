@@ -1,9 +1,27 @@
 #!/usr/bin/python3
+"""
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+"""
 
 import argparse
 import re
 import os
 import json
+import sys
 
 ESC = '\x1b'
 YELLOW = ESC + '[1;33m'
@@ -40,7 +58,8 @@ def parse_command(entry):
                 break
 
     # -I at first
-    retval['include_dirs'] = [a[2:].strip() for a in args if a.startswith('-I')]
+    retval['include_dirs'] = [a[2:].strip()
+                              for a in args if a.startswith('-I')]
 
     # -isystem at second
     try:
@@ -65,9 +84,9 @@ def get_headers(full_name):
 
     r_include = re.compile(r"^\s*#include\s*[\"<](.*)[\">]")
     for line in lines:
-            m = r_include.match(line)
-            if m:
-                headers.append(m.group(1))
+        m = r_include.match(line)
+        if m:
+            headers.append(m.group(1))
     return headers
 
 
@@ -113,7 +132,8 @@ def build_recursive_headers(parent, includes, headers, precomp_headers, level, o
             output.add(f"\"{parent[1]}\" -> \"{pair[1]}\"\n")
         new_headers = get_headers(pair[0])
         if not pair[0].startswith("/usr/include") and "vcpkg" not in pair[0]:
-            build_recursive_headers(pair, includes, new_headers, [], level, output)
+            build_recursive_headers(
+                pair, includes, new_headers, [], level, output)
 
 
 def build_recursive_headers_explain(parent, includes, headers, precomp_headers, level, output):
@@ -133,14 +153,16 @@ def build_recursive_headers_explain(parent, includes, headers, precomp_headers, 
             output.add((parent[0], pair[0], False, False))
         new_headers = get_headers(pair[0])
         if not pair[0].startswith("/usr/include") and "vcpkg" not in pair[0]:
-            build_recursive_headers_explain(pair, includes, new_headers, [], level, output)
+            build_recursive_headers_explain(
+                pair, includes, new_headers, [], level, output)
+
 
 home = os.getcwd()
 
 parser = argparse.ArgumentParser(
-        prog="deps.py", description='Draw a header dependency tree from one file.')
+    prog="deps.py", description='Draw a header dependency tree from one file.')
 parser.add_argument('--file', '-f', type=str,
-        help='Specify the file whose headers are to analyze.')
+                    help='Specify the file whose headers are to analyze.')
 parser.add_argument('--output', '-o', type=str,
                     help='Specify the DOT file to store the result graph.')
 parser.add_argument('--depth', '-d', type=int, default=2,
@@ -150,6 +172,10 @@ parser.add_argument('--compile-commands', '-c', type=str, default="compile_comma
 parser.add_argument('--explain', '-e', action='store_true', default=False,
                     help='Explain what header to remove from the file.')
 args = parser.parse_args()
+
+if not os.path.isfile(args.compile_commands):
+    print("the compile_commands.json file must be provided, by default deps looks for it in the current path, otherwise you can provide it with the -c option.", file=sys.stderr)
+    sys.exit(1)
 
 with open(args.compile_commands, "r") as f:
     js = json.load(f)
@@ -172,7 +198,8 @@ if not args.explain:
             includes = result['include_dirs']
 
             headers = get_headers(full_name[0])
-            build_recursive_headers(full_name, includes, headers, precomp_headers, args.depth, output)
+            build_recursive_headers(
+                full_name, includes, headers, precomp_headers, args.depth, output)
             break
 
     if args.output:
@@ -211,7 +238,8 @@ else:
             includes = result['include_dirs']
 
             headers = get_headers(full_name[0])
-            build_recursive_headers_explain(full_name, includes, headers, precomp_headers, args.depth, output)
+            build_recursive_headers_explain(
+                full_name, includes, headers, precomp_headers, args.depth, output)
             selected = [o for o in output if o[2]]
             complement = [o for o in output if not o[2]]
             to_remove = []
@@ -221,7 +249,8 @@ else:
                         to_remove.append(oo)
                         break
             if len(to_remove) > 0:
-                print(f"In file {YELLOW}{full_name[1]}{RESET}, there are includes coming from others headers:")
+                print(
+                    f"In file {YELLOW}{full_name[1]}{RESET}, there are includes coming from others headers:")
                 print("-from precomp header:")
                 for o in to_remove:
                     if o[3]:

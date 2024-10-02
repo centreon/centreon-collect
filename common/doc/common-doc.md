@@ -6,6 +6,7 @@
 * [Grpc](#Grpc)
 * [Http](#Http)
 * [Process](#Process)
+* [Vault](#Vault)
 * [Engine configuration](#Engineconfiguration)
 
 
@@ -196,6 +197,66 @@ void do_stuff() {
 
   /* When all the stuff is done, we can stop p */
   p->kill();
+}
+```
+
+## Vault
+
+Broker can work with Hashicorp Vault to get its database passwords.
+We have a library designed for that in `common/vault`.
+
+To use it, we need two files:
+* the JSON vault file that contains all the fields needed to access the Vault.
+* an env file that contains the APP_SECRET salt used to encrypt the Vault access secrets.
+
+The Vault file is of the form:
+```
+{
+  "name": "my_vault",
+  "url": "localhost",
+  "port": 4443,
+  "root_path": "john-doe",
+  "secret_id": "clb0EZHfRypwmDSi61gZivsNj+VnSHUdAGgcD5bjaYiYIwZjb9NKrY+j/x/sUIivYDQWC3hm8J8L2qlk1tP9RkVrFMndR5fK+bTKJrTlc97NJzwxgvkzgNKXqfehmo6IOlcHMzun8/SoObYQW+bFJgTSeOkXlfIUYDJuBXv7FDU=",
+  "role_id": "S4t2tU2MgOgXESsIZfcw3LJlJiLd17OiEnjPCNSsLnJ81i7Rvr+sgrHP8EnWR+r6QT0c/XHH0XOoPd09RGyv06dBRmfmArvBz8itfVeFTGIbzsZltliua2NfcMT7A1W3VFRq9OpM29rOtrgmGxArAiFgXPGymDPLXmgIjMNz+K4=",
+  "salt": "U2FsdA=="
+}
+```
+
+The `secret_id` and the `role_id` are used for the authentication to the Vault. They are AES256 encrypted
+in this file so not directly usable.
+The `salt` is used during the AES256 encryption, `url` and `port` are the access to the vault.
+
+If we have these two files and a spdlog::logger, it is pretty simple to access the vault.
+
+Let's suppose we have a path in the vault and we want to get the corresponding password, let's say
+```
+std::string path = "secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password";
+```
+
+We can use the following code to get the password:
+
+```
+std::string env_file("/tmp/env_file");
+std::string vault_file("/tmp/vault_file");
+bool verify_peer = true;
+std::shared_ptr<spdlog::logger> logger = my_logger();
+common::vault::vault_access vault(env_file, vault_file, verify_peer, logger);
+std::string password = vault.decrypt(path);
+```
+
+In case of error, an exception is thrown with the error message, so to also catch the
+message we can write something like this:
+
+```
+std::string env_file("/tmp/env_file");
+std::string vault_file("/tmp/vault_file");
+bool verify_peer = true;
+std::shared_ptr<spdlog::logger> logger = my_logger();
+try {
+  common::vault::vault_access vault(env_file, vault_file, verify_peer, logger);
+  std::string password = vault.decrypt(path);
+} catch (const std::exception& e) {
+  logger->error("Error with the vault: {}", e.what());
 }
 ```
 
