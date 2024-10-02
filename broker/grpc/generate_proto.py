@@ -195,28 +195,46 @@ for directory in args.proto_directory:
             for line in proto_file.readlines():
                 line_counter += 1
                 m = re.match(message_parser, line)
-                if m is not None and io_protobuf_match is not None:
-                    messages.append([m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2)])
+                if m and io_protobuf_match:
+                    # Check that the message and the io_protobuf_match are coherent
+                    # Let's take the message name and remove the de_pb_ prefix if it exists
+                    message_name = io_protobuf_match.group(1).split(',')[
+                        1].split('::')[1]
+                    message_name = message_name[3:] if message_name.startswith(
+                        'de_') else message_name
+                    message_name = message_name[3:] if message_name.startswith(
+                        'pb_') else message_name
+                    # Let's change the name into SnakeCase
+                    message_name = ''.join(word.title()
+                                           for word in message_name.split('_'))
+                    if m.group(1) != message_name:
+                        print(
+                            f"generate_proto.py : Error: Message {{ {m.group(1)} }} does not match the io_protobuf_match {{ {io_protobuf_match[1]} }} : file :{file}:{line_counter}", file=sys.stderr)
+                        exit(2)
+                    messages.append(
+                        [m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2)])
                     io_protobuf_match = None
                     flag_ignore = True
                 else:
                     io_protobuf_match = re.match(io_protobuf_parser, line)
 
-                #check if no bbo message have the comment: Ignore 
+                # check if no bbo message have the comment: Ignore
                 if ignore_message in line:
                     flag_ignore = True
-                #check if message have comment ignore or it's bbo message
-                if flag_ignore and m is not None:
+                # check if message has comment ignore or it's bbdo message
+                if flag_ignore and m:
                     flag_ignore = False
-                elif not flag_ignore and m is not None : 
-                    print (f"generate_proto.py : Error: Message {{ {m.group(1)} }} has no protobuf id or missing the comment /* Ignore */ : file :{file}:{line_counter}",file=sys.stderr)
-                    print (f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state*/",file=sys.stderr)
+                elif not flag_ignore and m:
+                    print(
+                        f"generate_proto.py : Error: Message {{ {m.group(1)} }} has no protobuf id or missing the comment /* Ignore */ : file :{file}:{line_counter}", file=sys.stderr)
+                    print(
+                        f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state*/", file=sys.stderr)
                     exit(1)
-                
+
         if len(messages) > 0:
-                file_begin_content += f"import \"{file}\";\n"
-                message_save += messages
-#sort the message with index (io_protobuf_match.group(2))
+            file_begin_content += f"import \"{file}\";\n"
+            message_save += messages
+# sort the message with index (io_protobuf_match.group(2))
 message_save.sort(key=lambda x: int(x[2]))
 for mess, id, index in message_save:
     # proto file
@@ -240,8 +258,8 @@ return std::make_shared<detail::received_protobuf<
 
 """
 
-#The following message is not in bbdo protobuff files so we need to add manually.
-                    
+# The following message is not in bbdo protobuff files so we need to add manually.
+
 file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = {one_of_index};\n"
 
 cc_file_protobuf_to_event_function += """

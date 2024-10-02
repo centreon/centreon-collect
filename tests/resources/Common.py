@@ -1256,7 +1256,7 @@ def ctn_delete_service_downtime(hst: str, svc: str):
 
     logger.console(f"delete downtime internal_id={did}")
     cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1463,7 +1463,11 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
 
 def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
-    d = parser.parse(start).timestamp()
+    try:
+        d = parser.parse(start)
+    except:
+        d = datetime.fromtimestamp(start)
+    d = d.timestamp()
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1473,6 +1477,8 @@ def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+                logger.console(
+                    f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 cursor.execute(
                     f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 result = cursor.fetchall()
