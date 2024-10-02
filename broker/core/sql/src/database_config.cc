@@ -18,16 +18,13 @@
 
 #include "com/centreon/broker/sql/database_config.hh"
 #include <absl/strings/ascii.h>
-#include <absl/strings/numbers.h>
 #include <fmt/format.h>
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/exceptions/config.hh"
-#include "com/centreon/common/http/http_client.hh"
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
-#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/vault/vault_access.hh"
 
@@ -132,7 +129,7 @@ database_config::database_config(
     auto found = global_params.find("vault_configuration");
     if (found != global_params.end()) {
       vault_file = found->second;
-      _config_logger->debug("Vault configuration file '{}' used.", env_file);
+      _config_logger->debug("Vault configuration file '{}' used.", vault_file);
     } else {
       _config_logger->debug(
           "No vault configuration file provided in Broker configuration.");

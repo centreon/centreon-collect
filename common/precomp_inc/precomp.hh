@@ -43,8 +43,6 @@
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 
-#include <spdlog/spdlog.h>
-
 #include <boost/asio.hpp>
 #ifndef _WINDOWS
 #include <boost/beast.hpp>

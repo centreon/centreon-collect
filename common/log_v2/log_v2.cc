@@ -20,7 +20,6 @@
 
 #include <absl/container/flat_hash_set.h>
 #include <grpc/impl/codegen/log.h>
-#include <spdlog/common.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
