@@ -24,6 +24,7 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace asio;
@@ -31,6 +32,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 using log_v2 = com::centreon::common::log_v2::log_v2;
+using namespace com::centreon::common::crypto;
 
 /**
  *  Constructor.
@@ -69,7 +71,7 @@ stream::stream(std::string const& metric_naming,
     auth.append(":").append(_db_password);
 
     _auth_query.append("Authorization: Basic ")
-        .append(misc::string::base64_encode(auth))
+        .append(base64_encode(auth))
         .append("\n");
     _query.append(_auth_query);
   }

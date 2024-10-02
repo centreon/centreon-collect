@@ -35,8 +35,7 @@ inline std::string& replace(std::string& str,
   return (str);
 }
 
-std::string& trim(std::string& str) throw();
-std::string base64_encode(std::string const& str);
+std::string& trim(std::string& str) noexcept;
 bool is_number(const std::string& s);
 
 std::string escape(const std::string& str, size_t s);
