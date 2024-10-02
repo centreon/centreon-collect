@@ -2934,3 +2934,71 @@ def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return str(res)
+
+
+def aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
+    """
+    Send a gRPC command to aes encrypt a content
+
+    Args:
+        port (int): the port to the gRPC server.
+        app_secret (str): The APP_SECRET base64 encoded.
+        salt (str): Salt base64 encoded.
+        content (str): The content to encrypt.
+
+    Returns:
+        The encrypted result string or an error message.
+    """
+    limit = time.time() + timeout
+    encoded = ""
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            te = broker_pb2.AesMessage()
+            te.app_secret = app_secret
+            te.salt = salt
+            te.content = content
+            try:
+                encoded = stub.Aes256Encrypt(te)
+                break
+            except grpc.RpcError as rpc_error:
+                return rpc_error.details()
+            except:
+                logger.console("gRPC server not ready")
+
+    return encoded.str_arg
+
+
+def aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
+    """
+    Send a gRPC command to aes decrypt a content
+
+    Args:
+        port (int): the port to the gRPC server.
+        app_secret (str): The APP_SECRET base64 encoded.
+        salt (str): Salt base64 encoded.
+        content (str): The content to decrypt.
+
+    Returns:
+        The decrypted result string or an error message.
+    """
+    limit = time.time() + timeout
+    encoded = ""
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            te = broker_pb2.AesMessage()
+            te.app_secret = app_secret
+            te.salt = salt
+            te.content = content
+            try:
+                encoded = stub.Aes256Decrypt(te)
+                break
+            except grpc.RpcError as rpc_error:
+                return rpc_error.details()
+            except:
+                logger.console("gRPC server not ready")
+
+    return encoded.str_arg

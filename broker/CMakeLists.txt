@@ -444,18 +444,17 @@ target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo target_extcmd)
 target_link_libraries(
   rokerbase
-  sql
   bbdo_bbdo
+  berpc
+  ctncrypto
+  dl
   pb_bbdo_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  berpc
-  z
-  spdlog::spdlog
-  crypto
-  ssl
   pthread
-  dl)
+  spdlog::spdlog
+  sql
+  z)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(

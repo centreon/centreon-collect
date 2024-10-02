@@ -91,6 +91,14 @@ service Broker {
    * @return nothing.
    */
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+  rpc Aes256Encrypt(AesMessage) returns (GenericString) {}
+  rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
+}
+
+message AesMessage {
+  string app_secret = 1;
+  string salt = 2;
+  string content = 3;
 }
 
 message Version {
