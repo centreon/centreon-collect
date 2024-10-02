@@ -22,6 +22,12 @@ inputs:
   registry_password:
     description: Docker registry password
     required: true
+  registry_private_username:
+    description: Docker private registry username
+    required: true
+  registry_private_token:
+    description: Docker private registry token
+    required: true
   params:
     description: "params for script"
     required: false
@@ -32,8 +38,8 @@ runs:
       uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
       with:
         registry: ${{ inputs.registry_url }}
-        username: ${{ inputs.registry_username }}
-        password: ${{ inputs.registry_password }}
+        username: ${{ inputs.registry_private_username }}
+        password: ${{ inputs.registry_private_password }}
 
     # REMOVE ME LATER
     - run: docker pull ${{ inputs.registry_url }}/${{ inputs.image_name }}:${{ inputs.image_version}}
