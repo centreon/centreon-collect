@@ -18,13 +18,10 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
-#include <absl/synchronization/mutex.h>
 #include <cassert>
 #include <cstring>
-#include <thread>
 
 #include "bbdo/events.hh"
-#include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -35,8 +32,6 @@
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/common/perfdata.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;

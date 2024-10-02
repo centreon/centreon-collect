@@ -19,10 +19,7 @@
  */
 
 #include "host.hh"
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_split.h>
 #include "bbdo/neb.pb.h"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;

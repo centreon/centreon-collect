@@ -491,7 +491,10 @@ state parser::parse(std::string const& file) {
           if (it.key() == "stats")
             retval.add_module("15-stats.so");
 
-          retval.params()[it.key()] = it.value().dump();
+          if (it.value().is_string())
+            retval.params()[it.key()] = it.value().get<std::string>();
+          else
+            retval.params()[it.key()] = it.value().dump();
         }
       }
     }
