@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -69,9 +69,6 @@ jobs:
           - package_extension: rpm
             image: packaging-nfpm-alma9
             distrib: el9
-          - package_extension: deb
-            image: packaging-nfpm-bullseye
-            distrib: bullseye
           - package_extension: deb
             image: packaging-nfpm-bookworm
             distrib: bookworm
@@ -139,7 +136,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -147,9 +144,6 @@ jobs:
           - package_extension: rpm
             image: gorgone-testing-alma9
             distrib: el9
-          - package_extension: deb
-            image: gorgone-testing-bullseye
-            distrib: bullseye
           - package_extension: deb
             image: gorgone-testing-jammy
             distrib: jammy
@@ -208,14 +202,20 @@ jobs:
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
           fail-on-cache-miss: true
 
-      - name: Install gorgogne from just built package
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
+      - name: Install gorgone from just built package
         shell: bash
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*${{ matrix.distrib }}*
+            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}*
           else
-            dnf install -y ./centreon-gorgone*${{ matrix.distrib }}* ./centreon-gorgone-centreon-config*${{ matrix.distrib }}*
+            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}*
             # in el8 at least, there is a package for the configuration and a package for the actual code.
             # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
           fi
@@ -294,7 +294,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bullseye, bookworm, jammy]
+        distrib: [bookworm, jammy]
 
     steps:
       - name: Checkout sources
@@ -322,7 +322,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources

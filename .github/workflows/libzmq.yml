@@ -79,10 +79,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bullseye
-            distrib: bullseye
-            runner: ubuntu-22.04
-            arch: amd64
           - image: packaging-nfpm-bookworm
             distrib: bookworm
             runner: ubuntu-22.04
@@ -91,10 +87,6 @@ jobs:
             distrib: jammy
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bullseye-arm64
-            distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
@@ -184,10 +176,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: jammy
@@ -221,7 +209,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
 
     steps:
       - name: Checkout sources
