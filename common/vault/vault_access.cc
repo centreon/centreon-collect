@@ -134,39 +134,34 @@ std::string vault_access::decrypt(const std::string& encrypted) {
   std::pair<std::string_view, std::string_view> p =
       absl::StrSplit(head, absl::ByString("::"));
 
-  try {
-    std::string token(future.get());
-    req = std::make_shared<request_base>(boost::beast::http::verb::get, _url,
-                                         fmt::format("/v1/{}", p.first));
-    req->set("X-Vault-Token", token);
-    std::promise<std::string> promise_decrypted;
-    std::future<std::string> future_decrypted = promise_decrypted.get_future();
-    _client->send(
-        req, [logger = _logger, &promise_decrypted, field = p.second](
-                 const boost::beast::error_code& err, const std::string& detail,
-                 const response_ptr& response) mutable {
-          if (err && err != boost::asio::ssl::error::stream_truncated) {
-            logger->error("Error from http server: {}", err.message());
-            auto exc = std::make_exception_ptr(exceptions::msg_fmt(
-                "Error from http server: {}", err.message()));
-            promise_decrypted.set_exception(exc);
-          } else {
-            logger->info("We got a the result: detail = {} ; response = {}",
-                         detail, response ? response->body() : "nullptr");
+  std::string token(future.get());
+  req = std::make_shared<request_base>(boost::beast::http::verb::get, _url,
+                                       fmt::format("/v1/{}", p.first));
+  req->set("X-Vault-Token", token);
+  std::promise<std::string> promise_decrypted;
+  std::future<std::string> future_decrypted = promise_decrypted.get_future();
+  _client->send(
+      req, [logger = _logger, &promise_decrypted, field = p.second](
+               const boost::beast::error_code& err, const std::string& detail,
+               const response_ptr& response) mutable {
+        if (err && err != boost::asio::ssl::error::stream_truncated) {
+          logger->error("Error from http server: {}", err.message());
+          auto exc = std::make_exception_ptr(
+              exceptions::msg_fmt("Error from http server: {}", err.message()));
+          promise_decrypted.set_exception(exc);
+        } else {
+          logger->info("We got a the result: detail = {} ; response = {}",
+                       detail, response ? response->body() : "nullptr");
+          try {
             nlohmann::json resp = nlohmann::json::parse(response->body());
-            try {
-              std::string result = resp["data"]["data"][field];
-              promise_decrypted.set_value(result);
-            } catch (const std::exception& e) {
-              auto exc = std::make_exception_ptr(exceptions::msg_fmt(
-                  "Response is not as expected: {}", err.message()));
-              promise_decrypted.set_exception(exc);
-            }
+            std::string result = resp["data"]["data"][field];
+            promise_decrypted.set_value(result);
+          } catch (const std::exception& e) {
+            auto exc = std::make_exception_ptr(exceptions::msg_fmt(
+                "Response is not as expected: {}", err.message()));
+            promise_decrypted.set_exception(exc);
           }
-        });
-    return future_decrypted.get();
-  } catch (const std::exception& e) {
-    _logger->error("{}", e.what());
-  }
-  return encrypted;
+        }
+      });
+  return future_decrypted.get();
 }
