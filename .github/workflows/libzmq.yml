@@ -204,7 +204,7 @@ jobs:
 
   promote:
     needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    #if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -223,5 +223,5 @@ jobs:
           major_version: ${{ needs.get-version.outputs.major_version }}
           stability: ${{ needs.get-version.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_type: release
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
