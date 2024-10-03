@@ -31,13 +31,14 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -150,12 +151,19 @@ void stream::_unified_sql_process_pb_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
           ss.host_id(), ss.service_id(), ss.perfdata().c_str(), _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
+
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -242,7 +250,7 @@ void stream::_unified_sql_process_pb_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(static_cast<misc::perfdata::data_type>(
+          pd.value_type(static_cast<common::perfdata::data_type>(
               it_index_cache->second.type));
 
           SPDLOG_LOGGER_DEBUG(
@@ -453,10 +461,10 @@ void stream::_unified_sql_process_service_status(
     if (!_index_data_insert.prepared())
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
-    fmt::string_view hv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));
@@ -520,12 +528,19 @@ void stream::_unified_sql_process_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
           ss.host_id, ss.service_id, ss.perf_data.c_str(), _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
+
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -612,7 +627,7 @@ void stream::_unified_sql_process_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(static_cast<misc::perfdata::data_type>(
+          pd.value_type(static_cast<common::perfdata::data_type>(
               it_index_cache->second.type));
 
           SPDLOG_LOGGER_DEBUG(
@@ -711,7 +726,7 @@ void stream::_unified_sql_process_service_status(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
+              static_cast<common::perfdata::data_type>(pd.value_type()))};
           SPDLOG_LOGGER_DEBUG(
               _logger_sto,
               "unified sql: generating perfdata event for metric {} "

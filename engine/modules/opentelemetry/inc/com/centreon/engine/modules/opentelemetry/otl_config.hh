@@ -19,6 +19,7 @@
 #ifndef CCE_MOD_OTL_SERVER_OTLCONFIG_HH
 #define CCE_MOD_OTL_SERVER_OTLCONFIG_HH
 
+#include "centreon_agent/agent_config.hh"
 #include "grpc_config.hh"
 #include "telegraf/conf_server.hh"
 
@@ -27,15 +28,11 @@ class otl_config {
   grpc_config::pointer _grpc_conf;
   telegraf::conf_server_config::pointer _telegraf_conf_server_config;
 
+  centreon_agent::agent_config::pointer _centreon_agent_config;
+
   int _max_length_grpc_log = -1;  // all otel are logged if negative
   bool _json_grpc_log = false;    // if true, otel object are logged in json
                                   // format instead of protobuf debug format
-
-  // this two attributes are limits used by otel otl_data_point fifos
-  // if fifo size exceed _max_fifo_size, oldest data_points are removed
-  // Also, data_points older than _second_fifo_expiry are removed from fifos
-  unsigned _second_fifo_expiry;
-  size_t _max_fifo_size;
 
  public:
   otl_config(const std::string_view& file_path, asio::io_context& io_context);
@@ -46,11 +43,12 @@ class otl_config {
     return _telegraf_conf_server_config;
   }
 
+  centreon_agent::agent_config::pointer get_centreon_agent_config() const {
+    return _centreon_agent_config;
+  }
+
   int get_max_length_grpc_log() const { return _max_length_grpc_log; }
   bool get_json_grpc_log() const { return _json_grpc_log; }
-
-  unsigned get_second_fifo_expiry() const { return _second_fifo_expiry; }
-  size_t get_max_fifo_size() const { return _max_fifo_size; }
 
   bool operator==(const otl_config& right) const;
 

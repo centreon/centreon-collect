@@ -1168,10 +1168,10 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     broker_sink->set_level(spdlog::level::info);
     log_cfg.add_custom_sink(broker_sink);
 
-    log_cfg.apply_custom_sinks({"functions", "config", "events", "checks",
-                                "notifications", "eventbroker",
-                                "external_command", "commands", "downtimes",
-                                "comments", "macros", "process", "runtime"});
+    log_cfg.apply_custom_sinks(
+        {"functions", "config", "events", "checks", "notifications",
+         "eventbroker", "external_command", "commands", "downtimes", "comments",
+         "macros", "process", "runtime", "otl"});
     log_cfg.set_level("functions", new_cfg.log_level_functions());
     log_cfg.set_level("config", new_cfg.log_level_config());
     log_cfg.set_level("events", new_cfg.log_level_events());
@@ -1185,7 +1185,7 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-    log_cfg.set_level("otel", new_cfg.log_level_otl());
+    log_cfg.set_level("otl", new_cfg.log_level_otl());
     if (has_already_been_loaded)
       log_cfg.allow_only_atomic_changes(true);
     log_v2::instance().apply(log_cfg);

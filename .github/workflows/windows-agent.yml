@@ -1,0 +1,82 @@
+name: Centreon Monitoring Agent Windows build and packaging
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - agent/**
+      - custom-triplets/**
+      - CMakeLists.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - agent/**
+      - custom-triplets/**
+      - CMakeLists.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+    with:
+      version_file: CMakeLists.txt
+
+  build-and-test-agent:
+    needs: [get-version]
+    runs-on: windows-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Compile Agent
+        run: .github/scripts/windows-agent-compile.ps1
+        shell: powershell
+
+      - name: Common test
+        run: |
+          cd build_windows
+          tests/ut_common
+
+      - name: Agent test
+        run: |
+          cd build_windows
+          tests/ut_agent
+
+      - name: Zip agent
+        run: |
+          $files_to_compress = "agent\conf\centagent.reg", "build_windows\agent\Release\centagent.exe"
+          Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
+
+      - name: Save agent package in cache
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: centreon-monitoring-agent.zip
+          key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
+
+      - name: Upload package artifacts
+        if: |
+          github.event_name != 'workflow_dispatch' &&
+          contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: packages-centreon-monitoring-agent-windows
+          path: centreon-monitoring-agent.zip
+          retention-days: 1

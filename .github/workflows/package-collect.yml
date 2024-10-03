@@ -3,7 +3,10 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
-      version:
+      major_version:
+        required: true
+        type: string
+      minor_version:
         required: true
         type: string
       img_version:
@@ -80,7 +83,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Install sccache
         run: |
@@ -105,9 +108,9 @@ jobs:
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
           cd selinux
-          for MODULE in "centreon-engine" "centreon-broker"; do
+          for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
             cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
+            sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
             cd -
           done
@@ -187,8 +190,9 @@ jobs:
                "build/engine/modules/bench/centengine_bench_passive"
                "build/connectors/perl/centreon_connector_perl"
                "build/connectors/ssh/centreon_connector_ssh"
-               "build/ccc/ccc")
-          for file in ${exe[@]}; do
+               "build/ccc/ccc"
+               "build/agent/centagent")
+          for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
@@ -201,7 +205,8 @@ jobs:
           nfpm_file_pattern: "packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          version: ${{ inputs.version }}
+          major_version: ${{ inputs.major_version }}
+          minor_version: ${{ inputs.minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
@@ -218,7 +223,7 @@ jobs:
       # set condition to true if artifacts are needed
       - if: ${{ false }}
         name: Upload package artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
           path: ./*.${{ matrix.package_extension}}

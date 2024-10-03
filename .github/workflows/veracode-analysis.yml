@@ -2,6 +2,9 @@
 on:
   workflow_call:
     inputs:
+      module_directory:
+        required: false
+        type: string
       module_name:
         required: true
         type: string
@@ -32,6 +35,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
+      skip_analysis: ${{ steps.routing-mode.outputs.skip_analysis }}
 
     steps:
       - name: Set routing mode
@@ -46,14 +50,21 @@ jobs:
             fi
           done
 
+          # skip analysis of draft PR and analysis on development branches using workflow dispatch
+          SKIP_ANALYSIS="true"
+          if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.event.pull_request.number }}" && -n "${{ github.event.pull_request.draft }}" && "${{ github.event.pull_request.draft }}" == "false" ]] || [[ "$DEVELOPMENT_STAGE" != "Development" ]]; then
+            SKIP_ANALYSIS="false"
+          fi
+
           echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
+          echo "skip_analysis=$SKIP_ANALYSIS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
     needs: [routing]
-    if: needs.routing.outputs.development_stage != 'Development'
+    if: needs.routing.outputs.skip_analysis == 'false'
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -61,9 +72,10 @@ jobs:
         password: ${{ secrets.docker_registry_passwd }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Compiling Cpp sources
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Compiling Cpp sources
         run: |
           mv /root/.cache /github/home
           export VCPKG_ROOT=/vcpkg
@@ -101,11 +113,17 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
 
-      - name: Binary preparation
+      - if: ${{ inputs.module_name == 'centreon-collect' }}
+        name: Preserve centreon-collect binaries from cleaning
         run: |
           echo "[INFO] - Keeping only compiled files"
-          # preserve binaries from cleaning
           find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
+
+      - name: Binary preparation of ${{ inputs.module_name }}
+        run: |
+          if [ -n "${{ inputs.module_directory }}" ]; then
+            cd ${{ inputs.module_directory }}
+          fi
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -125,17 +143,26 @@ jobs:
           else
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "[INFO] - Keeping only build's non empty folders"
-          find build -empty -type d -delete
-          ls -la build
 
-          echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          if [ "${{ inputs.module_name }}" = "centreon-collect" ]; then
+            echo "[INFO] - Keeping only build's non empty folders"
+            find build -empty -type d -delete
+            ls -la build
+            echo "[INFO] - Generating the tarball"
+            tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          else
+            echo "[INFO] - Generating the zip"
+            zip -rq "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip" *
+            if [ -n "${{ inputs.module_directory }}" ]; then
+              cd -
+              mv ${{ inputs.module_directory }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip .
+            fi
+          fi
 
       - name: Cache
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   policy-scan:
@@ -165,7 +192,7 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
@@ -173,8 +200,8 @@ jobs:
         continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
         with:
           appname: "${{ inputs.module_name }}"
-          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}_attempt-${{ github.run_attempt }}"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -182,4 +209,4 @@ jobs:
           sandboxname: "${{ github.ref_name }}"
           includenewmodules: true
           scanallnonfataltoplevelmodules: true
-          deleteincompletescan: 2
+          deleteincompletescan: 1

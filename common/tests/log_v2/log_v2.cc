@@ -61,10 +61,12 @@ TEST_F(TestLogV2, LoggerUpdated) {
   const auto& core_logger = log_v2::instance().get(log_v2::CORE);
   ASSERT_EQ(core_logger->level(), spdlog::level::info);
   testing::internal::CaptureStdout();
-  core_logger->info("First log");
-  core_logger->debug("First debug log");
   config cfg("/tmp/test.log", config::logger_type::LOGGER_STDOUT, 0, false,
              false);
+  cfg.set_level("core", "info");
+  log_v2::instance().apply(cfg);
+  core_logger->info("First log");
+  core_logger->debug("First debug log");
   cfg.set_level("core", "debug");
   log_v2::instance().apply(cfg);
   ASSERT_EQ(core_logger->level(), spdlog::level::debug);

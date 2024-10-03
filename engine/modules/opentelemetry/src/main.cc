@@ -56,7 +56,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
  *  @return 0 on success, any other value on failure.
  */
 extern "C" int nebmodule_deinit(int /*flags*/, int /*reason*/) {
-  open_telemetry::unload(log_v2::instance().get(log_v2::OTEL));
+  open_telemetry::unload(log_v2::instance().get(log_v2::OTL));
   return 0;
 }
 
@@ -107,7 +107,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
     throw msg_fmt("main: no configuration file provided");
 
   open_telemetry::load(conf_file_path, g_io_context,
-                       log_v2::instance().get(log_v2::OTEL));
+                       log_v2::instance().get(log_v2::OTL));
   commands::otel_connector::init_all();
 
   return 0;
@@ -118,6 +118,6 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
  *
  */
 extern "C" int nebmodule_reload() {
-  open_telemetry::reload(log_v2::instance().get(log_v2::OTEL));
+  open_telemetry::reload(log_v2::instance().get(log_v2::OTL));
   return 0;
 }

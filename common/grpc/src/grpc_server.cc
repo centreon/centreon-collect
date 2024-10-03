@@ -84,7 +84,7 @@ void grpc_server_base::_init(const builder_option& options) {
     builder.SetDefaultCompressionAlgorithm(algo);
     builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
   }
-  _server = std::move(builder.BuildAndStart());
+  _server = builder.BuildAndStart();
 }
 
 /**

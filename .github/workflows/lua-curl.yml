@@ -1,0 +1,227 @@
+name: lua-curl
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - lua-curl/**
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - lua-curl/**
+
+env:
+  major_version: 0.3
+  minor_version: 13
+  release: 20 # 10 for openssl 1.1.1 / 20 for openssl system
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  package:
+    needs: [get-version]
+    if: ${{ needs.get-version.outputs.stability != 'stable' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_extension: rpm
+            image: centreon-collect-alma8
+            distrib: el8
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: rpm
+            image: centreon-collect-alma9
+            distrib: el9
+            lua_version: 5.4
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: centreon-collect-debian-bullseye
+            distrib: bullseye
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: centreon-collect-ubuntu-jammy
+            distrib: jammy
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: centreon-collect-debian-bullseye-arm64
+            distrib: bullseye
+            lua_version: 5.3
+            runner: ["self-hosted", "collect-arm64"]
+            arch: arm64
+          - package_extension: deb
+            image: centreon-collect-debian-bookworm-arm64
+            distrib: bookworm
+            lua_version: 5.3
+            runner: ["self-hosted", "collect-arm64"]
+            arch: arm64
+
+    runs-on: ${{ matrix.runner }}
+
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+    name: package ${{ matrix.distrib }} ${{ matrix.arch }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Checkout sources of lua-curl
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          repository: Lua-cURL/Lua-cURLv3
+          path: lua-curl-src
+          ref: v${{ env.major_version }}.${{ env.minor_version }}
+
+      - name: Compile lua-curl and prepare packaging
+        run: |
+          if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+            dnf install -y dnf-plugins-core
+            if [ "${{ matrix.distrib }}" == "el8" ]; then
+              dnf config-manager --set-enabled powertools
+            else
+              dnf config-manager --set-enabled crb
+            fi
+            dnf install -y make gcc openssl openssl-devel libcurl-devel lua lua-devel
+            cd lua-curl-src
+            make
+            cd ..
+          else
+            apt-get update
+            apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+            cd lua-curl-src
+            make LUA_IMPL=lua${{ matrix.lua_version }} LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+            cd ..
+          fi
+
+          sed -i "s/@luaver@/${{ matrix.lua_version }}/g" lua-curl/packaging/lua-curl.yaml
+        shell: bash
+
+      - name: Package
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
+          distrib: ${{ matrix.distrib }}
+          package_extension: ${{ matrix.package_extension }}
+          major_version: ${{ env.major_version }}
+          minor_version: ${{ env.minor_version }}
+          release: ${{ env.release }}
+          arch: ${{ matrix.arch }}
+          commit_hash: ${{ github.sha }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
+          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          stability: ${{ needs.get-version.outputs.stability }}
+
+  deliver-rpm:
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - distrib: el8
+            arch: amd64
+          - distrib: el9
+            arch: amd64
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/rpm-delivery
+        with:
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.major_version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+
+  deliver-deb:
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-version, package]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - distrib: bullseye
+            arch: amd64
+          - distrib: bullseye
+            arch: arm64
+          - distrib: bookworm
+            arch: amd64
+          - distrib: jammy
+            arch: amd64
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/deb-delivery
+        with:
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.major_version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+
+  promote:
+    needs: [get-version]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9, bullseye, bookworm]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Promote ${{ matrix.distrib }} to stable
+        uses: ./.github/actions/promote-to-stable
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-version.outputs.major_version }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          github_ref_name: ${{ github.ref_name }}
+          release_type: ${{ needs.get-version.outputs.release_type }}
+          release_cloud: ${{ needs.get-version.outputs.release_cloud }}

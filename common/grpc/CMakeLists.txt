@@ -33,5 +33,4 @@ target_include_directories(centreon_grpc PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
 
-set_target_properties(centreon_grpc PROPERTIES COMPILE_FLAGS "-fPIC")
-
+set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)

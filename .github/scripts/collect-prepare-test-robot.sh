@@ -67,8 +67,10 @@ fi
 if [ "$distrib" = "ALMALINUX" ]; then
   dnf groupinstall -y "Development Tools"
   dnf install -y python3-devel
+  dnf clean all
 else
   apt-get update
   apt-get install -y build-essential
   apt-get install -y python3-dev
+  apt-get clean
 fi

@@ -46,28 +46,27 @@ void applier::connector::add_object(configuration::connector const& obj) {
   nagios_macros* macros(get_global_macros());
   std::string command_line;
   process_macros_r(macros, obj.connector_line(), command_line, 0);
-  std::string processed_cmd(command_line);
 
   // Add connector to the global configuration set.
   config->connectors().insert(obj);
 
   // Create connector.
-  boost::trim(processed_cmd);
+  boost::trim(command_line);
 
   // if executable connector path ends with opentelemetry, it's a fake
   // opentelemetry connector
-  size_t end_path = processed_cmd.find(' ');
-  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
+  size_t end_path = command_line.find(' ');
+  size_t otel_pos = command_line.find(_otel_fake_exe);
 
   if (otel_pos < end_path) {
     commands::otel_connector::create(
         obj.connector_name(),
         boost::algorithm::trim_copy(
-            processed_cmd.substr(otel_pos + _otel_fake_exe.length())),
+            command_line.substr(otel_pos + _otel_fake_exe.length())),
         &checks::checker::instance());
   } else {
     auto cmd = std::make_shared<commands::connector>(
-        obj.connector_name(), processed_cmd, &checks::checker::instance());
+        obj.connector_name(), command_line, &checks::checker::instance());
     commands::connector::connectors[obj.connector_name()] = cmd;
   }
 }
@@ -105,27 +104,23 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   nagios_macros* macros(get_global_macros());
   std::string command_line;
   process_macros_r(macros, obj.connector_line(), command_line, 0);
-  std::string processed_cmd(command_line);
 
-  boost::trim(processed_cmd);
+  boost::trim(command_line);
 
   // if executable connector path ends with opentelemetry, it's a fake
   // opentelemetry connector
-  size_t end_path = processed_cmd.find(' ');
-  size_t otel_pos = processed_cmd.find(_otel_fake_exe);
+  size_t end_path = command_line.find(' ');
+  size_t otel_pos = command_line.find(_otel_fake_exe);
 
   connector_map::iterator exist_connector(
       commands::connector::connectors.find(obj.key()));
 
   if (otel_pos < end_path) {
-    std::string otel_cmdline = boost::algorithm::trim_copy(
-        processed_cmd.substr(otel_pos + _otel_fake_exe.length()));
-
-    if (!commands::otel_connector::update(obj.key(), processed_cmd)) {
+    if (!commands::otel_connector::update(obj.key(), command_line)) {
       // connector object become an otel fake connector
       if (exist_connector != commands::connector::connectors.end()) {
         commands::connector::connectors.erase(exist_connector);
-        commands::otel_connector::create(obj.key(), processed_cmd,
+        commands::otel_connector::create(obj.key(), command_line,
                                          &checks::checker::instance());
       } else {
         throw com::centreon::exceptions::msg_fmt(
@@ -135,12 +130,12 @@ void applier::connector::modify_object(configuration::connector const& obj) {
   } else {
     if (exist_connector != commands::connector::connectors.end()) {
       // Set the new command line.
-      exist_connector->second->set_command_line(processed_cmd);
+      exist_connector->second->set_command_line(command_line);
     } else {
       // old otel_connector => connector
       if (commands::otel_connector::remove(obj.key())) {
         auto cmd = std::make_shared<commands::connector>(
-            obj.connector_name(), processed_cmd, &checks::checker::instance());
+            obj.connector_name(), command_line, &checks::checker::instance());
         commands::connector::connectors[obj.connector_name()] = cmd;
 
       } else {

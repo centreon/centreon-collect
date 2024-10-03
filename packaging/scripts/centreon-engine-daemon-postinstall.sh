@@ -8,6 +8,16 @@ startCentengine() {
   systemctl restart centengine.service ||:
 }
 
+debianLinkNagios() {
+  if [ ! -r /usr/lib64/nagios/plugins ]; then
+    if [ ! -d /usr/lib64/nagios ]; then
+      mkdir -p /usr/lib64/nagios
+      chmod 0755 /usr/lib64/nagios
+    fi
+    ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins
+  fi
+}
+
 # on debian, it is needed to recreate centreon-engine user at each upgrade because it is removed on postrm step on versions < 23.10
 if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-engine)" ]; then
@@ -43,6 +53,13 @@ if  [ "$1" = "configure" ] && [ -z "$2" ]; then
 elif [ "$1" = "configure" ] && [ -n "$2" ]; then
   # deb passes $1=configure $2=<current version>
   action="upgrade"
+fi
+
+#In debian nagios plugins are stored in /usr/lib/nagios/plugins instead of /usr/lib64/nagios/plugins
+#so we create a link /usr/lib/nagios/plugins instead => /usr/lib64/nagios/plugins in order to have
+#the same commands configuration for all pollers
+if  [ "$1" = "configure" ]; then
+  debianLinkNagios
 fi
 
 case "$action" in

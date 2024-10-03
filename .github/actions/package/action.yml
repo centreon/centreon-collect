@@ -10,8 +10,11 @@ inputs:
   distrib:
     description: The package distrib
     required: true
-  version:
-    description: The package version
+  major_version:
+    description: The major version
+    required: false
+  minor_version:
+    description: The minor version
     required: false
   release:
     description: The package release number
@@ -53,7 +56,8 @@ runs:
         RPM_GPG_SIGNING_KEY_ID: ${{ inputs.rpm_gpg_signing_key_id }}
         RPM_GPG_SIGNING_PASSPHRASE: ${{ inputs.rpm_gpg_signing_passphrase }}
       run: |
-        export VERSION="${{ inputs.version }}"
+        export MAJOR_VERSION="${{ inputs.major_version }}"
+        export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
@@ -67,6 +71,19 @@ runs:
             export RELEASE="1~${{ inputs.distrib }}"
           fi
         fi
+
+        MAJOR_LEFT=$( echo $MAJOR_VERSION | cut -d "." -f1 )
+        MAJOR_RIGHT=$( echo $MAJOR_VERSION | cut -d "-" -f1 | cut -d "." -f2 )
+        BUMP_MAJOR_RIGHT=$(( MAJOR_RIGHT_PART + 1 ))
+        if [ "$MAJOR_RIGHT" = "04" ]; then
+          BUMP_MAJOR_LEFT="$MAJOR_LEFT"
+          BUMP_MAJOR_RIGHT="10"
+        else
+          BUMP_MAJOR_LEFT=$(( $MAJOR_LEFT + 1 ))
+          BUMP_MAJOR_RIGHT="04"
+        fi
+
+        export NEXT_MAJOR_VERSION="$BUMP_MAJOR_LEFT.$BUMP_MAJOR_RIGHT"
 
         export RPM_SIGNING_KEY_FILE="$(pwd)/key.gpg"
         export RPM_SIGNING_KEY_ID="$RPM_GPG_SIGNING_KEY_ID"
@@ -91,3 +108,12 @@ runs:
       with:
         path: ./*.${{ inputs.package_extension }}
         key: ${{ inputs.cache_key }}
+
+    # Update if condition to true to get packages as artifacts
+    - if: ${{ false }}
+      name: Upload package artifacts
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      with:
+        name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}
+        path: ./*.${{ inputs.package_extension}}
+        retention-days: 1

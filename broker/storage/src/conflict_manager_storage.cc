@@ -26,11 +26,12 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -135,10 +136,10 @@ void conflict_manager::_storage_process_service_status(
           "(host_id,host_name,service_id,service_description,must_be_rebuild,"
           "special) VALUES (?,?,?,?,?,?)");
 
-    fmt::string_view hv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));
@@ -259,11 +260,17 @@ void conflict_manager::_storage_process_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
           ss.host_id, ss.service_id, ss.perf_data.c_str(), _logger_storage)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -346,7 +353,8 @@ void conflict_manager::_storage_process_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(it_index_cache->second.type);
+          pd.value_type(static_cast<common::perfdata::data_type>(
+              it_index_cache->second.type));
 
           _logger_storage->debug(
               "conflict_manager: metric {} concerning index {}, perfdata "
@@ -409,7 +417,7 @@ void conflict_manager::_storage_process_service_status(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
+              static_cast<common::perfdata::data_type>(pd.value_type()))};
           _logger_storage->debug(
               "conflict_manager: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",

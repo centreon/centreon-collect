@@ -51,8 +51,6 @@ class check_result {
     return _object_check_type;
   }
   void set_object_check_type(enum check_source object_check_type);
-  uint64_t get_command_id() const { return _command_id; }
-  void set_command_id(uint64_t command_id) { _command_id = command_id; }
 
   inline notifier* get_notifier() { return _notifier; }
   void set_notifier(notifier* notifier);
@@ -81,7 +79,6 @@ class check_result {
 
  private:
   enum check_source _object_check_type;  // is this a service or a host check?
-  uint64_t _command_id;
   notifier* _notifier;
   // was this an active or passive service check?
   enum checkable::check_type _check_type;
