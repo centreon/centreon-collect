@@ -45,9 +45,6 @@ runs:
         echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
         echo "[DEBUG] - release_type: ${{ inputs.release_type }}"
 
-        # Vars
-        SEARCH_REPO_PATH=""
-
         # Cloud specific promote
         # delivery by default to onprem, override to internal if base branch is master
         if [[ ${{ inputs.github_ref_name }} == "master-tun" ]]; then
