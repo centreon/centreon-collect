@@ -1,23 +1,22 @@
 /**
-* Copyright 2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2023-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -35,8 +34,9 @@ inline std::string operator+(const std::string& left,
 
 std::shared_ptr<global_cache> global_cache::_instance;
 
-global_cache::global_cache(const std::string& file_path)
-    : _file_size(0), _file_path(file_path) {}
+global_cache::global_cache(const std::string& file_path,
+                           const std::shared_ptr<spdlog::logger>& logger)
+    : _file_size(0), _file_path(file_path), _logger{logger} {}
 
 global_cache::~global_cache() {
   if (_file) {
@@ -62,13 +62,12 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           // dirty will be erased by destructor
           *dirty = true;
-          SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache open file {}",
-                             _file_path);
+          SPDLOG_LOGGER_INFO(_logger, "global_cache open file {}", _file_path);
           this->managed_map(false);
           return;
         } else {
           SPDLOG_LOGGER_ERROR(
-              log_v2::core(),
+              _logger,
               "global_cache dirty flag not reset => erase file and recreate");
         }
       }
@@ -77,7 +76,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           fmt::format("corrupted cache file {} => recreate {}", _file_path,
                       boost::diagnostic_information(e));
 
-      SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+      SPDLOG_LOGGER_ERROR(_logger, err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
@@ -85,14 +84,13 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
       std::string err_detail = fmt::format(
           "corrupted cache file {} => recreate {}", _file_path, e.what());
 
-      SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+      SPDLOG_LOGGER_ERROR(_logger, err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache create file {}",
-                       _file_path);
+    SPDLOG_LOGGER_INFO(_logger, "global_cache create file {}", _file_path);
 
     ::remove(_file_path.c_str());
     _grow(initial_size_on_create);
@@ -100,7 +98,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
     try {
       this->managed_map(true);
     } catch (const boost::interprocess::bad_alloc& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::core(),
+      SPDLOG_LOGGER_ERROR(_logger,
                           "allocation error: {}, too small initial file size?",
                           boost::diagnostic_information(e));
       throw;
@@ -122,8 +120,8 @@ void global_cache::_grow(size_t new_size, void* address) {
   if (new_size <= _file_size) {
     return;
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "resize file {} from {} to {}",
-                      _file_path, _file_size, new_size);
+  SPDLOG_LOGGER_DEBUG(_logger, "resize file {} from {} to {}", _file_path,
+                      _file_size, new_size);
   size_t old_size = 0;
   if (_file) {
     _file->flush();
@@ -139,7 +137,7 @@ void global_cache::_grow(size_t new_size, void* address) {
     // file doesn't exist
     if (stat(_file_path.c_str(), &exist) || !S_ISREG(exist.st_mode)) {
       ::remove(_file_path.c_str());
-      SPDLOG_LOGGER_DEBUG(log_v2::core(),
+      SPDLOG_LOGGER_DEBUG(_logger,
                           "file {} removed or not a file => remove and create",
                           _file_path);
       _file = std::make_unique<managed_mapped_file>(
@@ -154,7 +152,7 @@ void global_cache::_grow(size_t new_size, void* address) {
   } catch (const std::exception& e) {
     std::string err_msg = fmt::format("fail to map file {} to size {} : {}",
                                       _file_path, new_size, e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::core(), err_msg);
+    SPDLOG_LOGGER_ERROR(_logger, err_msg);
     _file.reset();
     _file_size = 0;
     throw msg_fmt(err_msg);

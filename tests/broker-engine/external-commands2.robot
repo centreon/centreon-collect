@@ -948,20 +948,20 @@ BEEXTCMD_REVERSE_GRPC1
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Ctn Clear Retention
-        ${start}    Get Current Date
-        Sleep    1s
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Wait For Engine To Be Ready    ${1}
+        #lets time to grpc to start
+        Sleep  0.1
+
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        Connect To Database
+	...    pymysql
+	...    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-        FOR    ${index}    IN RANGE    300
+        FOR    ${index}    IN RANGE    60
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -1399,16 +1399,51 @@ BEHOSTCHECK
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${result}    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
-    Should Be True    ${result}    hosts table not updated
+    ${result}    Ctn Check Host Check With Timeout    host_1    ${start}    30
+    Should Be True    ${result}    last_check column in resources table not updated.
+
+
+BE_BACKSLASH_CHECK_RESULT
+    [Documentation]    external command PROCESS_SERVICE_CHECK_RESULT with \:
+    [Tags]    broker    engine    services    extcmd   MON-51121
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn ConfigBBDO3    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    sql    debug
+    FOR    ${use_grpc}    IN RANGE    0    2
+        Log To Console    external command PROCESS_SERVICE_CHECK_RESULT  use_grpc=${use_grpc}
+        Ctn Clear Retention
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start engine
+        Ctn Wait For Engine To Be Ready    ${start}  ${1}
+
+        ${start}    Ctn Get Round Current Date
+        Ctn Process Service Check Result    host_1    service_1    0    output ok D: \\: Total: 1.205TB - Used: 1.203TB (100%) - Free: 2.541GB (0%) ${use_grpc}  config0  ${use_grpc}
+        
+        ${result}    Ctn Check Service Output Resource Status With Timeout
+        ...    host_1
+        ...    service_1
+        ...    35
+        ...    ${start}
+        ...    0
+        ...    HARD
+        ...    output ok D: \\: Total: 1.205TB - Used: 1.203TB (100%) - Free: 2.541GB (0%) ${use_grpc}
+        Should Be True    ${result}    resources table not updated
+
+
+        Ctn Stop engine
+        Ctn Kindly Stop Broker
+    END

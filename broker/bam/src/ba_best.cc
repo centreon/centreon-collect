@@ -26,7 +26,6 @@
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -42,16 +41,19 @@ using namespace com::centreon::broker::bam;
  *  @param[in] generate_virtual_status  Whether or not the BA object
  *                                      should generate statuses of
  *                                      virtual hosts and services.
+ *  @param[in] logger The logger to use in this BA.
  */
 ba_best::ba_best(uint32_t id,
                  uint32_t host_id,
                  uint32_t service_id,
-                 bool generate_virtual_status)
+                 bool generate_virtual_status,
+                 const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_best,
-         generate_virtual_status) {}
+         generate_virtual_status,
+         logger) {}
 
 /**
  *  Get BA hard state.
@@ -220,7 +222,7 @@ std::shared_ptr<pb_ba_status> ba_best::_generate_ba_status(
     status.set_output(get_output() + "|" + perfdata);
 
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM: generating status of best BA {} '{}' (state {}, in downtime {})",
       get_id(), _name, status.state(), status.in_downtime());
   return ret;

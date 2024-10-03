@@ -62,6 +62,9 @@ echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD
 
+echo "###### git clone opentelemetry-proto  #######"
+git clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
+
 echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh

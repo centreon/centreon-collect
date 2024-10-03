@@ -24,7 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "com/centreon/broker/config/applier/state.hh"
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -34,15 +34,21 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/common/hex_dump.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
 using namespace nlohmann;
+using com::centreon::common::log_v2::log_v2;
 
 static void broker_json_encode(lua_State* L, std::ostringstream& oss);
 static void broker_json_decode(lua_State* L, const json& it);
@@ -189,6 +195,7 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
         case google::protobuf::FieldDescriptor::TYPE_INT64:
           oss << fmt::format("\"{}\":[", entry_name);
           for (size_t j = 0; j < s; j++) {
@@ -198,6 +205,7 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_FIXED64:
         case google::protobuf::FieldDescriptor::TYPE_UINT64:
           oss << fmt::format("\"{}\":[", entry_name);
           for (size_t j = 0; j < s; j++) {
@@ -237,6 +245,16 @@ static void _message_to_json(std::ostringstream& oss,
           }
           oss << ']';
           break;
+        case google::protobuf::FieldDescriptor::TYPE_BYTES:
+          oss << fmt::format("\"{}\":[", entry_name);
+          for (size_t j = 0; j < s; j++) {
+            if (j > 0)
+              oss << ',';
+            tmpl = refl->GetRepeatedStringReference(*p, f, j, &tmpl);
+            oss << '"' << com::centreon::common::hex_dump(tmpl, 0) << '"';
+          }
+          oss << ']';
+          break;
         default:  // Error, a type not handled
           throw msg_fmt(
               "protobuf {} type ID is not handled in the broker json converter",
@@ -258,9 +276,11 @@ static void _message_to_json(std::ostringstream& oss,
         case google::protobuf::FieldDescriptor::TYPE_UINT32:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt32(*p, f));
           break;
+        case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
         case google::protobuf::FieldDescriptor::TYPE_INT64:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetInt64(*p, f));
           break;
+        case google::protobuf::FieldDescriptor::TYPE_FIXED64:
         case google::protobuf::FieldDescriptor::TYPE_UINT64:
           oss << fmt::format("\"{}\":{}", entry_name, refl->GetUInt64(*p, f));
           break;
@@ -276,6 +296,11 @@ static void _message_to_json(std::ostringstream& oss,
           oss << fmt::format("\"{}\":{{", entry_name);
           _message_to_json(oss, &refl->GetMessage(*p, f));
           oss << '}';
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_BYTES:
+          tmpl = refl->GetStringReference(*p, f, &tmpl);
+          oss << fmt::format(R"("{}":"{}")", entry_name,
+                             com::centreon::common::hex_dump(tmpl, 0));
           break;
         default:  // Error, a type not handled
           throw msg_fmt(
@@ -470,7 +495,8 @@ static int l_broker_json_encode(lua_State* L) noexcept {
     lua_pushlstring(L, s.c_str(), s.size());
     return 1;
   } catch (const std::exception& e) {
-    log_v2::lua()->error("lua: json_encode encountered an error: {}", e.what());
+    auto logger = log_v2::instance().get(log_v2::LUA);
+    logger->error("lua: json_encode encountered an error: {}", e.what());
   }
   return 0;
 }
@@ -624,9 +650,18 @@ static auto l_stacktrace = [](lua_State* L) -> void {
 static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
-  std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data)};
+  auto logger = log_v2::instance().get(log_v2::LUA);
+  std::list<com::centreon::common::perfdata> pds{
+      com::centreon::common::perfdata::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
-  for (auto const& pd : pds) {
+  for (auto& pd : pds) {
+    pd.resize_name(com::centreon::common::adjust_size_utf8(
+        pd.name(), get_centreon_storage_metrics_col_size(
+                       centreon_storage_metrics_metric_name)));
+    pd.resize_unit(com::centreon::common::adjust_size_utf8(
+        pd.unit(), get_centreon_storage_metrics_col_size(
+                       centreon_storage_metrics_unit_name)));
+
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());
     if (full) {
       std::string_view name{pd.name()};
@@ -775,6 +810,31 @@ static int l_broker_stat(lua_State* L) {
   }
 }
 
+static void md5_message(const unsigned char* message,
+                        size_t message_len,
+                        unsigned char** digest,
+                        unsigned int* digest_len) {
+  EVP_MD_CTX* mdctx;
+  auto logger = log_v2::instance().get(log_v2::LUA);
+  if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
+    logger->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+  }
+  if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
+    logger->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
+  }
+  if (1 != EVP_DigestUpdate(mdctx, message, message_len)) {
+    logger->error("lua: fail to call MD5 (EVP_DigestUpdate call)");
+  }
+  if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
+      nullptr) {
+    logger->error("lua: fail to call MD5 (OPENSSL_malloc call)");
+  }
+  if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
+    logger->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
+  }
+  EVP_MD_CTX_free(mdctx);
+}
+
 static int l_broker_md5(lua_State* L) {
   auto digit = [](unsigned char d) -> char {
     if (d < 10)
@@ -785,11 +845,12 @@ static int l_broker_md5(lua_State* L) {
   size_t len;
   const unsigned char* str =
       reinterpret_cast<const unsigned char*>(lua_tolstring(L, -1, &len));
-  unsigned char md5[MD5_DIGEST_LENGTH];
-  MD5(str, len, md5);
-  char result[2 * MD5_DIGEST_LENGTH + 1];
+  unsigned char* md5;
+  uint32_t md5_len;
+  md5_message(str, len, &md5, &md5_len);
+  char result[2 * md5_len + 1];
   char* tmp = result;
-  for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+  for (uint32_t i = 0; i < md5_len; i++) {
     *tmp = digit(md5[i] >> 4);
     ++tmp;
     *tmp = digit(md5[i] & 0xf);
@@ -797,6 +858,7 @@ static int l_broker_md5(lua_State* L) {
   }
   *tmp = 0;
   lua_pushstring(L, result);
+  OPENSSL_free(md5);
   return 1;
 }
 

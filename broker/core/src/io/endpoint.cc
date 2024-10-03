@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013, 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/io/endpoint.hh"
 
 #include "com/centreon/broker/persistent_cache.hh"
@@ -22,12 +22,20 @@
 using namespace com::centreon::broker::io;
 
 /**
- *  Default constructor.
+ * @brief Constructor for an acceptor or a connector, that also gets filters,
+ * the minimal filter configuration for the endpoint to work and also the list
+ * of filters that must not make part of it.
  *
- *  @param[in] is_accptr  True if endpoint is an acceptor.
+ * @param is_accptr True for an acceptor, false otherwise.
+ * @param mandatory_filter The filters needed by the endpoint.
+ * @param forbidden_filter The filters that would break the endpoint.
  */
-endpoint::endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
-    : _is_acceptor(is_accptr), _stream_mandatory_filter{filter} {}
+endpoint::endpoint(bool is_accptr,
+                   const multiplexing::muxer_filter& mandatory_filter,
+                   const multiplexing::muxer_filter& forbidden_filter)
+    : _is_acceptor(is_accptr),
+      _stream_mandatory_filter{mandatory_filter},
+      _stream_forbidden_filter{forbidden_filter} {}
 
 /**
  *  Copy constructor.
@@ -37,6 +45,7 @@ endpoint::endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
 endpoint::endpoint(endpoint const& other)
     : _is_acceptor(other._is_acceptor),
       _stream_mandatory_filter{other._stream_mandatory_filter},
+      _stream_forbidden_filter{other._stream_forbidden_filter},
       _from(other._from) {}
 
 /**
@@ -45,6 +54,8 @@ endpoint::endpoint(endpoint const& other)
  *  @param[in] endp Lower layer endpoint object.
  */
 void endpoint::from(std::shared_ptr<endpoint> endp) {
+  _stream_mandatory_filter |= endp->get_stream_mandatory_filter();
+  _stream_forbidden_filter |= endp->get_stream_forbidden_filter();
   _from = endp;
 }
 

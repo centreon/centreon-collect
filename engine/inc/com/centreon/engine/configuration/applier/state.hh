@@ -1,29 +1,30 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
-
+/**
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCE_CONFIGURATION_APPLIER_STATE_HH
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/state.hh"
+#else
+#include "com/centreon/engine/configuration/applier/pb_difference.hh"
+#endif
 
 namespace com::centreon::engine {
 
@@ -38,6 +39,8 @@ class state;
 }
 
 namespace configuration {
+struct error_cnt;
+
 namespace applier {
 /**
  *  @class state state.hh
@@ -47,15 +50,26 @@ namespace applier {
  */
 class state {
  public:
-  void apply(configuration::state& new_cfg);
-  void apply(configuration::state& new_cfg, retention::state& state);
+#ifdef LEGACY_CONF
+  void apply(configuration::state& new_cfg,
+             error_cnt& err,
+             retention::state* state = nullptr);
+  void apply_log_config(configuration::state& new_cfg);
+#else
+  void apply(configuration::State& new_cfg,
+             error_cnt& err,
+             retention::state* state = nullptr);
+  void apply_log_config(configuration::State& new_cfg);
+#endif
   static state& instance();
   void clear();
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
+#ifdef LEGACY_CONF
   servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency::key_type const& k);
+#endif
   std::unordered_map<std::string, std::string>& user_macros();
   std::unordered_map<std::string, std::string>::const_iterator user_macros_find(
       std::string const& key) const;
@@ -72,7 +86,7 @@ class state {
 
   state();
   state(state const&);
-  ~state() throw();
+  ~state() noexcept;
 
 #ifdef DEBUG_CONFIG
   void _check_serviceescalations() const;
@@ -84,19 +98,47 @@ class state {
 #endif
 
   state& operator=(state const&);
-  void _apply(configuration::state const& new_cfg);
+#ifdef LEGACY_CONF
+  void _apply(configuration::state const& new_cfg, error_cnt& err);
   template <typename ConfigurationType, typename ApplierType>
-  void _apply(difference<std::set<ConfigurationType>> const& diff);
-  void _apply(configuration::state& new_cfg, retention::state& state);
+  void _apply(difference<std::set<ConfigurationType>> const& diff,
+              error_cnt& err);
+  void _apply(configuration::state& new_cfg,
+              retention::state& state,
+              error_cnt& err);
+#else
+  void _apply(const configuration::State& new_cfg, error_cnt& err);
+  template <typename ConfigurationType, typename Key, typename ApplierType>
+  void _apply(const pb_difference<ConfigurationType, Key>& diff,
+              error_cnt& err);
+  void _apply(configuration::State& new_cfg,
+              retention::state& state,
+              error_cnt& err);
+#endif
+#ifdef LEGACY_CONF
   template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::state& new_state);
+  void _expand(configuration::state& new_state, error_cnt& err);
   void _processing(configuration::state& new_cfg,
-                   retention::state* state = NULL);
+                   error_cnt& err,
+                   retention::state* state = nullptr);
   template <typename ConfigurationType, typename ApplierType>
-  void _resolve(std::set<ConfigurationType>& cfg);
+  void _resolve(std::set<ConfigurationType>& cfg, error_cnt& err);
+#else
+  template <typename ConfigurationType, typename ApplierType>
+  void _expand(configuration::State& new_state, error_cnt& err);
+  void _processing(configuration::State& new_cfg,
+                   error_cnt& err,
+                   retention::state* state = nullptr);
+  template <typename ConfigurationType, typename ApplierType>
+  void _resolve(
+      const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
+      error_cnt& err);
+#endif
 
   std::mutex _apply_lock;
+#ifdef LEGACY_CONF
   state* _config;
+#endif
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;
@@ -105,6 +147,6 @@ class state {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_STATE_HH

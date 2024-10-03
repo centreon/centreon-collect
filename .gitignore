@@ -65,6 +65,11 @@ log.html
 output.xml
 report.html
 
+# agent
+agent/scripts/centagent.service
+agent/conf/centagent.json
+opentelemetry-proto
+
 # bbdo
 bbdo/*_accessor.hh
 
@@ -137,5 +142,7 @@ test/python/*.crt
 test/python/*.key
 tests/logs/*
 tests/bench.unqlite
-tests/resources/process_stat_pb2.py
-tests/resources/process_stat_pb2_grpc.py
+tests/resources/*_pb2.py
+tests/resources/*_pb2_grpc.py
+tests/resources/grpc_stream.proto
+tests/resources/opentelemetry

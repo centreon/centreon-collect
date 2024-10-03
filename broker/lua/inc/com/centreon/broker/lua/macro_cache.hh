@@ -27,14 +27,14 @@
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::lua {
 
-namespace lua {
 /**
  *  @class macro_cache macro_cache.hh "com/centreon/broker/lua/macro_cache.hh"
  *  @brief Data cache for Lua macro.
@@ -43,14 +43,26 @@ class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _host_groups;
+  /* The host groups cache stores also a set with the pollers telling they need
+   * the cache. So if no more poller needs a host group, we can remove it from
+   * the cache. */
+  absl::flat_hash_map<uint64_t,
+                      std::pair<std::shared_ptr<neb::pb_host_group>,
+                                absl::flat_hash_set<uint32_t>>>
+      _host_groups;
   absl::btree_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _host_group_members;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _service_groups;
+  /* The service groups cache stores also a set with the pollers telling they
+   * need the cache. So if no more poller needs a service group, we can remove
+   * it from the cache. */
+  absl::flat_hash_map<uint64_t,
+                      std::pair<std::shared_ptr<neb::pb_service_group>,
+                                absl::flat_hash_set<uint32_t>>>
+      _service_groups;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<io::data>>
       _service_group_members;
@@ -68,7 +80,8 @@ class macro_cache {
       _dimension_bv_events;
 
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache);
+  macro_cache(const std::shared_ptr<persistent_cache>& cache);
+  macro_cache(const macro_cache&) = delete;
   ~macro_cache();
 
   void write(std::shared_ptr<io::data> const& data);
@@ -109,7 +122,6 @@ class macro_cache {
       uint64_t id) const;
 
  private:
-  macro_cache(macro_cache const& f);
   macro_cache& operator=(macro_cache const& f);
 
   void _process_instance(std::shared_ptr<io::data> const& data);
@@ -145,8 +157,6 @@ class macro_cache {
 
   void _save_to_disk();
 };
-}  // namespace lua
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::lua
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

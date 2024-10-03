@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013,2015-2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015-2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/retention/dump.hh"
 #include <fstream>
@@ -29,7 +29,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -48,7 +48,7 @@ using namespace com::centreon::engine::retention;
 std::ostream& dump::comment(std::ostream& os,
                             com::centreon::engine::comment const& obj) {
   engine_logger(dbg_functions, basic) << "dump::comment()";
-  log_v2::functions()->trace("dump::comment()");
+  functions_logger->trace("dump::comment()");
   char const* host_name;
   char const* service_description;
   if (obj.get_comment_type() == com::centreon::engine::comment::host) {
@@ -109,7 +109,7 @@ std::ostream& dump::comment(std::ostream& os,
  */
 std::ostream& dump::comments(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::comments()";
-  log_v2::functions()->trace("dump::comments()");
+  functions_logger->trace("dump::comments()");
   for (comment_map::iterator it(comment::comments.begin()),
        end(comment::comments.end());
        it != end; ++it)
@@ -127,6 +127,18 @@ std::ostream& dump::comments(std::ostream& os) {
  */
 std::ostream& dump::contact(std::ostream& os,
                             com::centreon::engine::contact const& obj) {
+#ifdef LEGACY_CONF
+  uint32_t retained_contact_host_attribute_mask =
+      config->retained_contact_host_attribute_mask();
+  uint32_t retained_contact_service_attribute_mask =
+      config->retained_contact_service_attribute_mask();
+#else
+  uint32_t retained_contact_host_attribute_mask =
+      pb_config.retained_contact_host_attribute_mask();
+  uint32_t retained_contact_service_attribute_mask =
+      pb_config.retained_contact_service_attribute_mask();
+#endif
+
   os << "contact {\n"
         "contact_name="
      << obj.get_name()
@@ -148,11 +160,11 @@ std::ostream& dump::contact(std::ostream& os,
      << "\n"
         "modified_host_attributes="
      << (obj.get_modified_host_attributes() &
-         ~config->retained_contact_host_attribute_mask())
+         ~retained_contact_host_attribute_mask)
      << "\n"
         "modified_service_attributes="
      << (obj.get_modified_service_attributes() &
-         ~config->retained_contact_service_attribute_mask())
+         ~retained_contact_service_attribute_mask)
      << "\n"
         "service_notification_period="
      << obj.get_service_notification_period()
@@ -192,7 +204,7 @@ std::ostream& dump::customvariables(std::ostream& os,
                                     map_customvar const& obj) {
   for (auto const& cv : obj)
     os << "_" << cv.first << "=" << cv.second.has_been_modified() << ","
-       << cv.second.get_value() << "\n";
+       << cv.second.value() << "\n";
   return os;
 }
 
@@ -215,7 +227,7 @@ std::ostream& dump::notifications(
  */
 std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
   engine_logger(dbg_functions, basic) << "dump::scheduled_downtime()";
-  log_v2::functions()->trace("dump::scheduled_downtime()");
+  functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;
 }
@@ -229,7 +241,7 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
  */
 std::ostream& dump::downtimes(std::ostream& os) {
   engine_logger(dbg_functions, basic) << "dump::downtimes()";
-  log_v2::functions()->trace("dump::downtimes()");
+  functions_logger->trace("dump::downtimes()");
   for (auto obj = downtimes::downtime_manager::instance()
                       .get_scheduled_downtimes()
                       .begin();
@@ -267,6 +279,13 @@ std::ostream& dump::header(std::ostream& os) {
  */
 std::ostream& dump::host(std::ostream& os,
                          com::centreon::engine::host const& obj) {
+#ifdef LEGACY_CONF
+  uint32_t retained_host_attribute_mask =
+      config->retained_host_attribute_mask();
+#else
+  uint32_t retained_host_attribute_mask =
+      pb_config.retained_host_attribute_mask();
+#endif
   os << "host {\n"
         "host_name="
      << obj.name()
@@ -374,8 +393,7 @@ std::ostream& dump::host(std::ostream& os,
      << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
-     << (obj.get_modified_attributes() &
-         ~config->retained_host_attribute_mask())
+     << (obj.get_modified_attributes() & ~retained_host_attribute_mask)
      << "\n"
         "next_check="
      << static_cast<unsigned long>(obj.get_next_check())
@@ -466,6 +484,7 @@ std::ostream& dump::info(std::ostream& os) {
   return os;
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Dump retention of program.
  *
@@ -540,6 +559,82 @@ std::ostream& dump::program(std::ostream& os) {
         "}\n";
   return os;
 }
+#else
+/**
+ *  Dump retention of program.
+ *
+ *  @param[out] os The output stream.
+ *
+ *  @return The output stream.
+ */
+std::ostream& dump::program(std::ostream& os) {
+  os << "program {\n"
+        "active_host_checks_enabled="
+     << pb_config.execute_host_checks()
+     << "\n"
+        "active_service_checks_enabled="
+     << pb_config.execute_service_checks()
+     << "\n"
+        "check_host_freshness="
+     << pb_config.check_host_freshness()
+     << "\n"
+        "check_service_freshness="
+     << pb_config.check_service_freshness()
+     << "\n"
+        "enable_event_handlers="
+     << pb_config.enable_event_handlers()
+     << "\n"
+        "enable_flap_detection="
+     << pb_config.enable_flap_detection()
+     << "\n"
+        "enable_notifications="
+     << pb_config.enable_notifications()
+     << "\n"
+        "global_host_event_handler="
+     << pb_config.global_host_event_handler().c_str()
+     << "\n"
+        "global_service_event_handler="
+     << pb_config.global_service_event_handler().c_str()
+     << "\n"
+        "modified_host_attributes="
+     << (modified_host_process_attributes &
+         ~pb_config.retained_process_host_attribute_mask())
+     << "\n"
+        "modified_service_attributes="
+     << (modified_service_process_attributes &
+         ~pb_config.retained_process_host_attribute_mask())
+     << "\n"
+        "next_comment_id="
+     << comment::get_next_comment_id()
+     << "\n"
+        "next_event_id="
+     << next_event_id
+     << "\n"
+        "next_notification_id="
+     << next_notification_id
+     << "\n"
+        "next_problem_id="
+     << next_problem_id
+     << "\n"
+        "obsess_over_hosts="
+     << pb_config.obsess_over_hosts()
+     << "\n"
+        "obsess_over_services="
+     << pb_config.obsess_over_services()
+     << "\n"
+        "passive_host_checks_enabled="
+     << pb_config.accept_passive_host_checks()
+     << "\n"
+        "passive_service_checks_enabled="
+     << pb_config.accept_passive_service_checks()
+     << "\n"
+        "process_performance_data="
+     << pb_config.process_performance_data()
+     << "\n"
+        "}\n";
+  return os;
+}
+#endif
 
 /**
  *  Save all data.
@@ -549,8 +644,13 @@ std::ostream& dump::program(std::ostream& os) {
  *  @return True on success, otherwise false.
  */
 bool dump::save(std::string const& path) {
+#ifdef LEGACY_CONF
   if (!config->retain_state_information())
     return true;
+#else
+  if (!pb_config.retain_state_information())
+    return true;
+#endif
 
   // send data to event broker
   broker_retention_data(NEBTYPE_RETENTIONDATA_STARTSAVE, NEBFLAG_NONE,
@@ -560,8 +660,13 @@ bool dump::save(std::string const& path) {
   try {
     std::ofstream stream(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!stream.is_open())
-      throw(engine_error() << "Cannot open retention file '"
-                           << config->state_retention_file() << "'");
+#ifdef LEGACY_CONF
+      throw engine_error() << "Cannot open retention file '"
+                           << config->state_retention_file() << "'";
+#else
+      throw engine_error() << "Cannot open retention file '"
+                           << pb_config.state_retention_file() << "'";
+#endif
     dump::header(stream);
     dump::info(stream);
     dump::program(stream);
@@ -574,7 +679,7 @@ bool dump::save(std::string const& path) {
     ret = true;
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic) << e.what();
-    log_v2::runtime()->error(e.what());
+    runtime_logger->error(e.what());
   }
 
   // send data to event broker.
@@ -719,8 +824,13 @@ std::ostream& dump::service(std::ostream& os,
      << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
+#ifdef LEGACY_CONF
      << (obj.get_modified_attributes() &
          ~config->retained_host_attribute_mask())
+#else
+     << (obj.get_modified_attributes() &
+         ~pb_config.retained_host_attribute_mask())
+#endif
      << "\n"
         "next_check="
      << static_cast<unsigned long>(obj.get_next_check())

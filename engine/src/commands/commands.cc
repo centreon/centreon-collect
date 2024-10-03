@@ -1,22 +1,22 @@
 /**
-* Copyright 1999-2008           Ethan Galstad
-* Copyright 2011-2013,2015-2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2008           Ethan Galstad
+ * Copyright 2011-2013,2015-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
@@ -34,7 +34,6 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -54,10 +53,16 @@ using namespace com::centreon::engine::logging;
 int check_for_external_commands() {
   engine_logger(dbg_functions, basic) << "check_for_external_commands()";
 
-  log_v2::functions()->trace("check_for_external_commands()");
+  functions_logger->trace("check_for_external_commands()");
+
+#ifdef LEGACY_CONF
+  bool check_external_commands = config->check_external_commands();
+#else
+  bool check_external_commands = pb_config.check_external_commands();
+#endif
 
   /* bail out if we shouldn't be checking for external commands */
-  if (!config->check_external_commands())
+  if (!check_external_commands)
     return ERROR;
 
   /* update last command check time */
@@ -98,7 +103,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
   engine_logger(dbg_functions, basic)
       << "process_external_commands_from_file()";
 
-  log_v2::functions()->trace("process_external_commands_from_file()");
+  functions_logger->trace("process_external_commands_from_file()");
 
   if (!file)
     return ERROR;
@@ -107,7 +112,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
       << "Processing commands from file '" << file << "'.  File will "
       << (delete_file ? "be" : "NOT be") << " deleted after processing.";
 
-  log_v2::external_command()->debug(
+  external_command_logger->debug(
       "Processing commands from file '{}'.  File will {} deleted after "
       "processing.",
       file, delete_file ? "be" : "NOT be");
@@ -118,7 +123,7 @@ int process_external_commands_from_file(char const* file, int delete_file) {
     engine_logger(log_info_message, basic)
         << "Error: Cannot open file '" << file
         << "' to process external commands!";
-    log_v2::config()->info(
+    config_logger->info(
         "Error: Cannot open file '{}' to process external commands!", file);
     return ERROR;
   }
@@ -203,7 +208,7 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   if (!absl::SimpleAtob(temp_ptr, &persistent)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not {} : persistent '{}' must be 1 or 0", command_name,
         temp_ptr);
     return ERROR;
@@ -224,9 +229,8 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
       comment_data, persistent, comment::external, false, (time_t)0);
   uint64_t comment_id = com->get_comment_id();
   comment::comments.insert({comment_id, com});
-  log_v2::external_command()->trace("{}, comment_id: {}, data: {}",
-                                    command_name, comment_id,
-                                    com->get_comment_data());
+  external_command_logger->trace("{}, comment_id: {}, data: {}", command_name,
+                                 comment_id, com->get_comment_data());
   return OK;
 }
 
@@ -235,7 +239,7 @@ int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   uint64_t comment_id{0};
   /* get the comment id we should delete */
   if (!absl::SimpleAtoi(args, &comment_id)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delete comment : comment_id '{}' must be an "
         "integer >= 0",
         args);
@@ -326,7 +330,7 @@ int cmd_delay_notification(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delay notification : delay_time '{}' must be "
         "an integer",
         temp_ptr);
@@ -381,7 +385,7 @@ int cmd_schedule_check(int cmd, char* args) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule check : delay_time '{}' must be "
         "an integer",
         temp_ptr);
@@ -442,7 +446,7 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
   if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule host service checks : delay_time '{}' "
         "must be an integer",
         temp_ptr);
@@ -471,7 +475,7 @@ void cmd_signal_process(int cmd, char* args) {
   if ((temp_ptr = my_strtok(args, "\n")) == nullptr)
     scheduled_time = 0L;
   else if (!absl::SimpleAtoi(temp_ptr, &scheduled_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not signal process : scheduled_time '{}' "
         "must be an integer",
         temp_ptr);
@@ -499,9 +503,16 @@ void cmd_signal_process(int cmd, char* args) {
 int cmd_process_service_check_result(int cmd [[maybe_unused]],
                                      time_t check_time,
                                      char* args) {
+#ifdef LEGACY_CONF
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+#else
+  bool accept_passive_service_checks =
+      pb_config.accept_passive_service_checks();
+#endif
+
   /* skip this service check result if we aren't accepting passive service
    * checks */
-  if (!config->accept_passive_service_checks())
+  if (!accept_passive_service_checks)
     return ERROR;
 
   auto a{absl::StrSplit(args, absl::MaxSplits(';', 3))};
@@ -539,7 +550,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << real_host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
         fmt::string_view(svc_description.data(), svc_description.size()),
@@ -555,7 +566,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << real_host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the service could not be found!",
@@ -573,8 +584,8 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
   ++ait;
 
   // replace \\n with \n
-  std::string output;
-  absl::CUnescape(*ait, &output);
+  std::string output(ait->data(), ait->size());
+  string::unescape(output);
 
   timeval tv;
   gettimeofday(&tv, nullptr);
@@ -610,9 +621,16 @@ int process_passive_service_check(time_t check_time,
                                   char const* output) {
   char const* real_host_name(nullptr);
 
+#ifdef LEGACY_CONF
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+#else
+  bool accept_passive_service_checks =
+      pb_config.accept_passive_service_checks();
+#endif
+
   /* skip this service check result if we aren't accepting passive service
    * checks */
-  if (config->accept_passive_service_checks() == false)
+  if (!accept_passive_service_checks)
     return ERROR;
 
   /* make sure we have all required data */
@@ -640,7 +658,7 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the host could not be found!",
@@ -656,7 +674,7 @@ int process_passive_service_check(time_t check_time,
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
         "host "
         "'{}', but the service could not be found!",
@@ -740,8 +758,16 @@ int process_passive_host_check(time_t check_time,
                                int return_code,
                                char const* output) {
   char const* real_host_name(nullptr);
+
+#ifdef LEGACY_CONF
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+#else
+  bool accept_passive_service_checks =
+      pb_config.accept_passive_service_checks();
+#endif
+
   /* skip this host check result if we aren't accepting passive host checks */
-  if (!config->accept_passive_service_checks())
+  if (!accept_passive_service_checks)
     return ERROR;
 
   /* make sure we have all required data */
@@ -772,7 +798,7 @@ int process_passive_host_check(time_t check_time,
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
         host_name);
@@ -844,7 +870,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
-  log_v2::external_command()->trace("New acknowledgement with type {}", type);
+  external_command_logger->trace("New acknowledgement with type {}", type);
 
   /* get the notification option */
   int ival;
@@ -980,7 +1006,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &start_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : start_time '{}' must be "
         "an integer",
         *ait);
@@ -992,7 +1018,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &end_time)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : end_time '{}' must be "
         "an integer",
         *ait);
@@ -1004,7 +1030,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtob(*ait, &fixed)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : fixed '{}' must be 1 or 0", *ait);
     return ERROR;
   }
@@ -1014,7 +1040,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   if (ait == a.end())
     return ERROR;
   if (!absl::SimpleAtoi(*ait, &triggered_by)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not schedule downtime : triggered_by '{}' must be an "
         "integer >= 0",
         *ait);
@@ -1027,7 +1053,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     return ERROR;
   if (!ait->empty()) {
     if (!absl::SimpleAtoi(*ait, &duration)) {
-      log_v2::external_command()->error(
+      external_command_logger->error(
           "Error: could not schedule downtime : duration '{}' must be an "
           "integer "
           ">= 0",
@@ -1055,7 +1081,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** duration>0 is needed.
   */
   if (!fixed && !duration) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+    SPDLOG_LOGGER_ERROR(external_command_logger,
                         "no duration defined for a fixed downtime");
     return ERROR;
   }
@@ -1198,7 +1224,7 @@ int cmd_delete_downtime(int cmd, char* args) {
     return ERROR;
 
   if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
-    log_v2::external_command()->error(
+    external_command_logger->error(
         "Error: could not delete downtime : downtime_id '{}' must be an "
         "integer >= 0",
         temp_ptr);
@@ -1218,7 +1244,7 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] args  Command arguments.
  */
 int cmd_delete_downtime_full(int cmd, char* args) {
-  log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
+  functions_logger->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
   auto a{absl::StrSplit(args, ';')};
@@ -1920,13 +1946,21 @@ int cmd_change_object_char_var(int cmd, char* args) {
   /* update the variable */
   switch (cmd) {
     case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
+#ifdef LEGACY_CONF
       config->global_host_event_handler(temp_ptr);
+#else
+      pb_config.set_global_host_event_handler(temp_ptr);
+#endif
       global_host_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 
     case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
+#ifdef LEGACY_CONF
       config->global_service_event_handler(temp_ptr);
+#else
+      pb_config.set_global_service_event_handler(temp_ptr);
+#endif
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
@@ -2257,8 +2291,14 @@ void enable_service_checks(service* svc) {
 void enable_all_notifications(void) {
   constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool enable_notifications = config->enable_notifications();
+#else
+  bool enable_notifications = pb_config.enable_notifications();
+#endif
+
   /* bail out if we're already set... */
-  if (config->enable_notifications())
+  if (enable_notifications)
     return;
 
   /* set the attribute modified flag */
@@ -2266,7 +2306,11 @@ void enable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
+#ifdef LEGACY_CONF
   config->enable_notifications(true);
+#else
+  pb_config.set_enable_notifications(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2282,8 +2326,14 @@ void enable_all_notifications(void) {
 void disable_all_notifications(void) {
   constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool enable_notifications = config->enable_notifications();
+#else
+  bool enable_notifications = pb_config.enable_notifications();
+#endif
+
   /* bail out if we're already set... */
-  if (config->enable_notifications() == false)
+  if (!enable_notifications)
     return;
 
   /* set the attribute modified flag */
@@ -2291,7 +2341,11 @@ void disable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
+#ifdef LEGACY_CONF
   config->enable_notifications(false);
+#else
+  pb_config.set_enable_notifications(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2703,15 +2757,25 @@ void remove_service_acknowledgement(service* svc) {
 void start_executing_service_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool execute_service_checks = config->execute_service_checks();
+#else
+  bool execute_service_checks = pb_config.execute_service_checks();
+#endif
+
   /* bail out if we're already executing services */
-  if (config->execute_service_checks())
+  if (execute_service_checks)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
+#ifdef LEGACY_CONF
   config->execute_service_checks(true);
+#else
+  pb_config.set_execute_service_checks(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2727,15 +2791,25 @@ void start_executing_service_checks(void) {
 void stop_executing_service_checks(void) {
   unsigned long attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool execute_service_checks = config->execute_service_checks();
+#else
+  bool execute_service_checks = pb_config.execute_service_checks();
+#endif
+
   /* bail out if we're already not executing services */
-  if (config->execute_service_checks() == false)
+  if (!execute_service_checks)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
+#ifdef LEGACY_CONF
   config->execute_service_checks(false);
+#else
+  pb_config.set_execute_service_checks(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2751,15 +2825,26 @@ void stop_executing_service_checks(void) {
 void start_accepting_passive_service_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+#else
+  bool accept_passive_service_checks =
+      pb_config.accept_passive_service_checks();
+#endif
+
   /* bail out if we're already accepting passive services */
-  if (config->accept_passive_service_checks())
+  if (accept_passive_service_checks)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
+#ifdef LEGACY_CONF
   config->accept_passive_service_checks(true);
+#else
+  pb_config.set_accept_passive_service_checks(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2775,15 +2860,25 @@ void start_accepting_passive_service_checks(void) {
 void stop_accepting_passive_service_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool accept_passive_service_checks = config->accept_passive_service_checks();
+#else
+  bool accept_passive_service_checks = pb_config.accept_passive_service_checks();
+#endif
+
   /* bail out if we're already not accepting passive services */
-  if (config->accept_passive_service_checks() == false)
+  if (!accept_passive_service_checks)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
+#ifdef LEGACY_CONF
   config->accept_passive_service_checks(false);
+#else
+  pb_config.set_accept_passive_service_checks(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2837,15 +2932,25 @@ void disable_passive_service_checks(service* svc) {
 void start_executing_host_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool execute_host_checks = config->execute_host_checks();
+#else
+  bool execute_host_checks = pb_config.execute_host_checks();
+#endif
+
   /* bail out if we're already executing hosts */
-  if (config->execute_host_checks())
+  if (execute_host_checks)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
+#ifdef LEGACY_CONF
   config->execute_host_checks(true);
+#else
+  pb_config.set_execute_host_checks(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2861,15 +2966,24 @@ void start_executing_host_checks(void) {
 void stop_executing_host_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool execute_host_checks = config->execute_host_checks();
+#else
+  bool execute_host_checks = pb_config.execute_host_checks();
+#endif
   /* bail out if we're already not executing hosts */
-  if (config->execute_host_checks() == false)
+  if (!execute_host_checks)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
-  config->execute_host_checks(false);
+#ifdef LEGACY_CONF
+  config->execute_host_checks(true);
+#else
+  pb_config.set_execute_host_checks(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2885,15 +2999,25 @@ void stop_executing_host_checks(void) {
 void start_accepting_passive_host_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool accept_passive_host_checks = config->accept_passive_host_checks();
+#else
+  bool accept_passive_host_checks = pb_config.accept_passive_host_checks();
+#endif
+
   /* bail out if we're already accepting passive hosts */
-  if (config->accept_passive_host_checks())
+  if (accept_passive_host_checks)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
+#ifdef LEGACY_CONF
   config->accept_passive_host_checks(true);
+#else
+  pb_config.set_accept_passive_host_checks(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2909,15 +3033,25 @@ void start_accepting_passive_host_checks(void) {
 void stop_accepting_passive_host_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool accept_passive_host_checks = config->accept_passive_host_checks();
+#else
+  bool accept_passive_host_checks = pb_config.accept_passive_host_checks();
+#endif
+
   /* bail out if we're already not accepting passive hosts */
-  if (config->accept_passive_host_checks() == false)
+  if (!accept_passive_host_checks)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
+#ifdef LEGACY_CONF
   config->accept_passive_host_checks(false);
+#else
+  pb_config.set_accept_passive_host_checks(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2970,8 +3104,14 @@ void disable_passive_host_checks(host* hst) {
 void start_using_event_handlers(void) {
   constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool enable_event_handlers = config->enable_event_handlers();
+#else
+  bool enable_event_handlers = pb_config.enable_event_handlers();
+#endif
+
   /* no change */
-  if (config->enable_event_handlers())
+  if (enable_event_handlers)
     return;
 
   /* set the attribute modified flag */
@@ -2979,7 +3119,11 @@ void start_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
+#ifdef LEGACY_CONF
   config->enable_event_handlers(true);
+#else
+  pb_config.set_enable_event_handlers(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -2995,8 +3139,14 @@ void start_using_event_handlers(void) {
 void stop_using_event_handlers(void) {
   constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool enable_event_handlers = config->enable_event_handlers();
+#else
+  bool enable_event_handlers = pb_config.enable_event_handlers();
+#endif
+
   /* no change */
-  if (config->enable_event_handlers() == false)
+  if (!enable_event_handlers)
     return;
 
   /* set the attribute modified flag */
@@ -3004,7 +3154,11 @@ void stop_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
+#ifdef LEGACY_CONF
   config->enable_event_handlers(false);
+#else
+  pb_config.set_enable_event_handlers(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3158,15 +3312,25 @@ void enable_host_checks(host* hst) {
 void start_obsessing_over_service_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool obsess_over_services = config->obsess_over_services();
+#else
+  bool obsess_over_services = pb_config.obsess_over_services();
+#endif
+
   /* no change */
-  if (config->obsess_over_services())
+  if (obsess_over_services)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
+#ifdef LEGACY_CONF
   config->obsess_over_services(true);
+#else
+  pb_config.set_obsess_over_services(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3182,15 +3346,25 @@ void start_obsessing_over_service_checks(void) {
 void stop_obsessing_over_service_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool obsess_over_services = config->obsess_over_services();
+#else
+  bool obsess_over_services = pb_config.obsess_over_services();
+#endif
+
   /* no change */
-  if (config->obsess_over_services() == false)
+  if (!obsess_over_services)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
+#ifdef LEGACY_CONF
   config->obsess_over_services(false);
+#else
+  pb_config.set_obsess_over_services(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3206,15 +3380,25 @@ void stop_obsessing_over_service_checks(void) {
 void start_obsessing_over_host_checks(void) {
   unsigned long attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool obsess_over_hosts = config->obsess_over_hosts();
+#else
+  bool obsess_over_hosts = pb_config.obsess_over_hosts();
+#endif
+
   /* no change */
-  if (config->obsess_over_hosts())
+  if (obsess_over_hosts)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
+#ifdef LEGACY_CONF
   config->obsess_over_hosts(true);
+#else
+  pb_config.set_obsess_over_hosts(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3230,15 +3414,25 @@ void start_obsessing_over_host_checks(void) {
 void stop_obsessing_over_host_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool obsess_over_hosts = config->obsess_over_hosts();
+#else
+  bool obsess_over_hosts = pb_config.obsess_over_hosts();
+#endif
+
   /* no change */
-  if (config->obsess_over_hosts() == false)
+  if (!obsess_over_hosts)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
+#ifdef LEGACY_CONF
   config->obsess_over_hosts(false);
+#else
+  pb_config.set_obsess_over_hosts(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3254,15 +3448,25 @@ void stop_obsessing_over_host_checks(void) {
 void enable_service_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool check_service_freshness = config->check_service_freshness();
+#else
+  bool check_service_freshness = pb_config.check_service_freshness();
+#endif
+
   /* no change */
-  if (config->check_service_freshness())
+  if (check_service_freshness)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
+#ifdef LEGACY_CONF
   config->check_service_freshness(true);
+#else
+  pb_config.set_check_service_freshness(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3278,15 +3482,25 @@ void enable_service_freshness_checks(void) {
 void disable_service_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool check_service_freshness = config->check_service_freshness();
+#else
+  bool check_service_freshness = pb_config.check_service_freshness();
+#endif
+
   /* no change */
-  if (config->check_service_freshness() == false)
+  if (!check_service_freshness)
     return;
 
   /* set the attribute modified flag */
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
+#ifdef LEGACY_CONF
   config->check_service_freshness(false);
+#else
+  pb_config.set_check_service_freshness(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3302,15 +3516,25 @@ void disable_service_freshness_checks(void) {
 void enable_host_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool check_host_freshness = config->check_host_freshness();
+#else
+  bool check_host_freshness = pb_config.check_host_freshness();
+#endif
+
   /* no change */
-  if (config->check_host_freshness())
+  if (check_host_freshness)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
+#ifdef LEGACY_CONF
   config->check_host_freshness(true);
+#else
+  pb_config.set_check_host_freshness(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3325,15 +3549,25 @@ void enable_host_freshness_checks(void) {
 void disable_host_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool check_host_freshness = config->check_host_freshness();
+#else
+  bool check_host_freshness = pb_config.check_host_freshness();
+#endif
+
   /* no change */
-  if (config->check_host_freshness() == false)
+  if (!check_host_freshness)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
+#ifdef LEGACY_CONF
   config->check_host_freshness(false);
+#else
+  pb_config.set_check_host_freshness(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3349,15 +3583,25 @@ void disable_host_freshness_checks(void) {
 void enable_performance_data(void) {
   constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool process_performance_data = config->process_performance_data();
+#else
+  bool process_performance_data = pb_config.process_performance_data();
+#endif
+
   /* bail out if we're already set... */
-  if (config->process_performance_data())
+  if (process_performance_data)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
+#ifdef LEGACY_CONF
   config->process_performance_data(true);
+#else
+  pb_config.set_process_performance_data(true);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
@@ -3373,15 +3617,25 @@ void enable_performance_data(void) {
 void disable_performance_data(void) {
   constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
+#ifdef LEGACY_CONF
+  bool process_performance_data = config->process_performance_data();
+#else
+  bool process_performance_data = pb_config.process_performance_data();
+#endif
+
   /* bail out if we're already set... */
-  if (config->process_performance_data() == false)
+  if (!process_performance_data)
     return;
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
+#ifdef LEGACY_CONF
   config->process_performance_data(false);
+#else
+  pb_config.set_process_performance_data(false);
+#endif
 
   /* send data to event broker */
   broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,

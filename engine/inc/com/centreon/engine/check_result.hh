@@ -1,22 +1,22 @@
-/*
-** Copyright 2002-2006 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2002-2006 Ethan Galstad
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CHECKS_HH
 #define CCE_CHECKS_HH
@@ -51,6 +51,7 @@ class check_result {
     return _object_check_type;
   }
   void set_object_check_type(enum check_source object_check_type);
+
   inline notifier* get_notifier() { return _notifier; }
   void set_notifier(notifier* notifier);
   inline struct timeval get_finish_time() const { return _finish_time; }
@@ -91,6 +92,14 @@ class check_result {
   int _return_code;             // plugin return code
   std::string _output;          // plugin output
 };
-}
+
+std::ostream& operator<<(std::ostream& stream, const check_result& res);
+
+}  // namespace com::centreon::engine
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::engine::check_result> : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCE_CHECKS_HH

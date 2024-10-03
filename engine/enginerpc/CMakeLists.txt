@@ -37,9 +37,9 @@ add_custom_command(
   OUTPUT ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.grpc.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    --grpc_out="${ENGINERPC_DIR}" ${ENGINERPC_DIR}/engine.proto
+    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${ENGINERPC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${ENGINERPC_DIR}"
+    ${ENGINERPC_DIR}/engine.proto
   DEPENDS ${ENGINERPC_DIR}/engine.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${ENGINERPC_DIR}/engine.pb.cc ${ENGINERPC_DIR}/engine.pb.h
@@ -47,7 +47,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${ENGINERPC_DIR}"
     --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${ENGINERPC_DIR}/engine.proto
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target(
   engine_rpc
@@ -59,22 +59,43 @@ add_library(
                ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
 target_link_libraries(cerpc protobuf)
 
-# mod_enginerpc target.
-add_library(
-  ${ENGINERPC} STATIC
-  # Sources.
-  engine_impl.cc enginerpc.cc
-  # Headers.
-  "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+if(LEGACY_ENGINE)
+  # mod_enginerpc target.
+  add_library(
+    enginerpc_legacy STATIC
+    # Sources.
+    engine_impl.cc enginerpc.cc
+    # Headers.
+    "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-add_dependencies(${ENGINERPC} centreon_common)
+  add_dependencies(enginerpc_legacy centreon_common)
+  target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
 
-target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
+  # Prettier name.
+  set_property(
+    TARGET enginerpc_legacy
+    PROPERTY PREFIX ""
+    PROPERTY POSITION_INDEPENDENT_CODE ON)
+  # Link target with libraries.
+  target_link_libraries(enginerpc_legacy cerpc centreon_common spdlog::spdlog)
+else()
+  # mod_enginerpc target.
+  add_library(
+    ${ENGINERPC} STATIC
+    # Sources.
+    engine_impl.cc enginerpc.cc
+    # Headers.
+    "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-# Prettier name.
-set_property(
-  TARGET ${ENGINERPC}
-  PROPERTY PREFIX ""
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
-# Link target with libraries.
-target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
+  add_dependencies(${ENGINERPC} centreon_common)
+
+  target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
+
+  # Prettier name.
+  set_property(
+    TARGET ${ENGINERPC}
+    PROPERTY PREFIX ""
+    PROPERTY POSITION_INDEPENDENT_CODE ON)
+  # Link target with libraries.
+  target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
+endif()

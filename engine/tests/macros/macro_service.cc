@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/contact.hh>
@@ -29,11 +30,11 @@
 #include <com/centreon/engine/configuration/applier/servicegroup.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <com/centreon/engine/hostescalation.hh>
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
+#include <common/engine_legacy_conf/parser.hh>
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
@@ -45,6 +46,8 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+
+using namespace std::literals;
 
 class MacroService : public TestEngine {
  public:
@@ -112,8 +115,8 @@ TEST_F(MacroService, ServiceMacro) {
   std::string out;
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]->set_plugin_output(
-      "foo bar!");
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
+      ->set_plugin_output("foo bar!");
   process_macros_r(mac, "$SERVICEOUTPUT:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "foo bar!");
 }
@@ -390,7 +393,7 @@ TEST_F(MacroService, ServicePerfData) {
   nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]->set_perf_data(
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]->set_perf_data(
       "foo");
   process_macros_r(mac, "$SERVICEPERFDATA:test_host:test_svc$", out, 0);
   ASSERT_EQ(out, "foo");
@@ -440,7 +443,7 @@ TEST_F(MacroService, ServiceExecutionTime) {
   nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_execution_time(20.00);
   process_macros_r(mac, "$SERVICEEXECUTIONTIME:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "20.000");
@@ -490,7 +493,7 @@ TEST_F(MacroService, ServiceLatency) {
   nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]->set_latency(
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]->set_latency(
       20.00);
   process_macros_r(mac, "$SERVICELATENCY:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "20.000");
@@ -540,7 +543,7 @@ TEST_F(MacroService, ServiceDuration) {
   nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]->set_latency(
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]->set_latency(
       20.00);
   process_macros_r(mac, "$SERVICEDURATION:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "5787d 0h 53m 20s");
@@ -589,7 +592,7 @@ TEST_F(MacroService, ServiceDurationSec) {
   nagios_macros* mac(get_global_macros());
   host::hosts["test_host"]->set_current_state(host::state_up);
   host::hosts["test_host"]->set_has_been_checked(true);
-  service::services[std::make_pair("test_host", "test_svc")]->set_latency(
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]->set_latency(
       20.00);
   process_macros_r(mac, "$SERVICEDURATIONSEC:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "500000000");
@@ -723,12 +726,13 @@ TEST_F(MacroService, ServiceGroupName) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -763,13 +767,14 @@ TEST_F(MacroService, ServiceGroupAlias) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   grp.parse("alias", "test_group_alias");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -812,8 +817,8 @@ TEST_F(MacroService, LastServiceOK) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]->set_last_time_ok(
-      20);
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
+      ->set_last_time_ok(20);
   process_macros_r(mac, "$LASTSERVICEOK:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "20");
 }
@@ -849,7 +854,7 @@ TEST_F(MacroService, LastServiceWarning) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_last_time_warning(30);
   process_macros_r(mac, "$LASTSERVICEWARNING:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "30");
@@ -886,7 +891,7 @@ TEST_F(MacroService, LastServiceUnknown) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_last_time_unknown(40);
   process_macros_r(mac, "$LASTSERVICEUNKNOWN:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "40");
@@ -923,7 +928,7 @@ TEST_F(MacroService, LastServiceCritical) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_last_time_critical(50);
   process_macros_r(mac, "$LASTSERVICECRITICAL:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "50");
@@ -960,32 +965,10 @@ TEST_F(MacroService, ServiceCheckCommand) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_last_time_critical(50);
   process_macros_r(mac, "$SERVICECHECKCOMMAND:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "cmd");
-}
-
-TEST_F(MacroService, ServicePerfDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "service_perfdata_file=/var/log/centreon-engine/service-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$SERVICEPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/service-perfdata.dat");
 }
 
 TEST_F(MacroService, ServiceDisplayName) {
@@ -1019,7 +1002,7 @@ TEST_F(MacroService, ServiceDisplayName) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_last_time_critical(50);
   process_macros_r(mac, "$SERVICEDISPLAYNAME:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "test_svc");
@@ -1493,7 +1476,7 @@ TEST_F(MacroService, LongServiceOutput) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$LONGSERVICEOUTPUT:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "test_long_output");
@@ -1531,7 +1514,7 @@ TEST_F(MacroService, ServiceNotificationID) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$SERVICENOTIFICATIONID:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "0");
@@ -1569,7 +1552,7 @@ TEST_F(MacroService, ServiceEventID) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$SERVICEEVENTID:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "0");
@@ -1607,7 +1590,7 @@ TEST_F(MacroService, LastServiceEventID) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$LASTSERVICEEVENTID:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "0");
@@ -1636,12 +1619,13 @@ TEST_F(MacroService, ServiceGroupNames) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 
   init_macros();
   int now{500000000};
@@ -1649,7 +1633,7 @@ TEST_F(MacroService, ServiceGroupNames) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test")]
+  service::services[std::make_pair("test_host"sv, "test"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$SERVICEGROUPNAMES:test_host:test$", out, 1);
   ASSERT_EQ(out, "test_group");
@@ -1687,7 +1671,7 @@ TEST_F(MacroService, MaxServiceAttempts) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$MAXSERVICEATTEMPTS:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "3");
@@ -1716,20 +1700,21 @@ TEST_F(MacroService, ServiceGroupNotes) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("notes", "test_notes"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test")]
+  service::services[std::make_pair("test_host"sv, "test"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$SERVICEGROUPNOTES:test_group$", out, 1);
   ASSERT_EQ(out, "test_notes");
@@ -1758,13 +1743,14 @@ TEST_F(MacroService, ServiceGroupNotesUrl) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("notes_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1798,13 +1784,14 @@ TEST_F(MacroService, ServiceGroupActionUrl) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1838,13 +1825,14 @@ TEST_F(MacroService, ServiceGroupMembers) {
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
+  configuration::error_cnt err;
   aply_svc.add_object(svc);
   ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
   grp.parse("members", "test_host,test");
   ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
   init_macros();
   int now{500000000};
   set_time(now);
@@ -1925,7 +1913,7 @@ TEST_F(MacroService, ServiceTimeZone) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$SERVICETIMEZONE:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "test_time");
@@ -1963,7 +1951,7 @@ TEST_F(MacroService, LastServiceState) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$LASTSERVICESTATE:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "OK");
@@ -2001,7 +1989,7 @@ TEST_F(MacroService, LastServiceStateId) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$LASTSERVICESTATEID:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "0");
@@ -2010,6 +1998,7 @@ TEST_F(MacroService, LastServiceStateId) {
 TEST_F(MacroService, ServiceProblemID) {
   init_macros();
 
+  configuration::error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
@@ -2017,8 +2006,8 @@ TEST_F(MacroService, ServiceProblemID) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -2029,8 +2018,8 @@ TEST_F(MacroService, ServiceProblemID) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -2108,7 +2097,7 @@ TEST_F(MacroService, LastServiceProblemID) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  service::services[std::make_pair("test_host", "test_svc")]
+  service::services[std::make_pair("test_host"sv, "test_svc"sv)]
       ->set_long_plugin_output("test_long_output");
   process_macros_r(mac, "$LASTSERVICEPROBLEMID:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "0");

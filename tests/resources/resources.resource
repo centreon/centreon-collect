@@ -142,7 +142,7 @@ Ctn Stop Processes
     Ctn Kill Broker
     Ctn Kill Engine
 
-Ctn Start engine
+Ctn Start Engine
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -157,6 +157,27 @@ Ctn Start engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
+    END
+
+Ctn Start Engine With Extend Conf
+    ${count}    Ctn Get Engines Count
+    FOR    ${idx}    IN RANGE    0    ${count}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
+        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        Create Directory    ${log}
+        Create Directory    ${lib}
+        TRY
+            Remove File    ${lib}/rw/centengine.cmd
+        EXCEPT
+            Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        Start Process
+        ...    /usr/sbin/centengine
+        ...    --config-file\=/tmp/centengine_extend.json
+        ...    ${conf}
+        ...    alias=${alias}
     END
 
 Ctn Restart Engine
@@ -174,12 +195,11 @@ Ctn Stop Custom Engine
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
-Ctn Stop engine
+Ctn Stop Engine
     Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        Send Signal To Process    SIGTERM    ${alias}
+        Send Signal To Process    SIGTERM    e${idx}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -212,6 +232,11 @@ Ctn Stop Engine Broker And Save Logs
         Ctn Kindly Stop Broker    only_central=${only_central}
     EXCEPT
         Log    Can't kindly stop Broker
+    END
+    TRY
+        Ctn Kindly Stop Agent
+    EXCEPT
+        Log    Can't kindly stop Agent
     END
     Ctn Save Logs If Failed
 
@@ -263,7 +288,9 @@ Ctn Save Logs
     Copy Files    ${rrdLog}    ${failDir}
     Copy Files    ${moduleLog0}    ${failDir}
     Copy Files    ${engineLog0}    ${failDir}
+    Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
 
@@ -276,7 +303,8 @@ Ctn Dump Process
         ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
         ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
         # Log To Console    Creation of core ${output}.${pid} to debug
-        # Run Process    gcore    -o    ${output}    ${pid}
+        Run Process    gcore    -o    ${output}    ${pid}
+        Log To Console    Creation of core ${gdb_output}
         Run Process
         ...    gdb
         ...    -batch
@@ -358,7 +386,35 @@ Ctn Wait For Engine To Be Ready
         ${result}    Ctn Find In Log With Timeout
         ...    ${ENGINE_LOG}/config${i}/centengine.log
         ...    ${start}    ${content}    60
+	...    verbose=False
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+    END
+
+
+Ctn Start Agent
+    Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+
+Ctn Kindly Stop Agent
+    #in most case centreon_agent is not started
+    ${centreon_agent_process}    Get Process Object  centreon_agent
+
+    IF  ${{$centreon_agent_process is None}}  RETURN
+
+    Send Signal To Process    SIGTERM    centreon_agent
+    ${result}    Wait For Process    centreon_agent    timeout=60s
+    # In case of process not stopping
+    IF    "${result}" == "${None}"
+        Log To Console    "fail to stop centreon_agent"
+        Ctn Save Logs
+        Ctn Dump Process    centreon_agent    /usr/bin/centagent   centreon_agent
+        Send Signal To Process    SIGKILL    centreon_agent
+        Fail    centreon_agent not correctly stopped (coredump generated)
+    ELSE
+        IF    ${result.rc} != 0
+            Ctn Save Logs
+            Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
+            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+        END
     END

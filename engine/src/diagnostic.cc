@@ -1,32 +1,36 @@
 /**
-* Copyright 2013,2015 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2013,2015 Merethis
+ * Copyright 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/engine/diagnostic.hh"
 #include <sys/stat.h>
-#include "com/centreon/engine/configuration/parser.hh"
-#include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
+#else
+#include "common/engine_conf/parser.hh"
+#include "common/engine_conf/state_helper.hh"
+#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -155,14 +159,27 @@ void diagnostic::generate(std::string const& cfg_file,
   // Parse configuration file.
   std::cout << "Diagnostic: Parsing configuration file '" << cfg_file << "'"
             << std::endl;
+#ifdef LEGACY_CONF
   configuration::state conf;
   try {
+    configuration::error_cnt err;
     configuration::parser parsr;
-    parsr.parse(cfg_file, conf);
+    parsr.parse(cfg_file, conf, err);
   } catch (std::exception const& e) {
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;
   }
+#else
+  configuration::State conf;
+  try {
+    configuration::error_cnt err;
+    configuration::parser parsr;
+    parsr.parse(cfg_file, &conf, err);
+  } catch (std::exception const& e) {
+    std::cerr << "Diagnostic: configuration file '" << cfg_file
+              << "' parsing failed: " << e.what() << std::endl;
+  }
+#endif
 
   // Create temporary configuration directory.
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");
@@ -181,8 +198,7 @@ void diagnostic::generate(std::string const& cfg_file,
   }
 
   // Copy other configuration files.
-  for (std::list<std::string>::const_iterator it(conf.cfg_file().begin()),
-       end(conf.cfg_file().end());
+  for (auto it = conf.cfg_file().begin(), end = conf.cfg_file().end();
        it != end; ++it) {
     std::string target_path(_build_target_path(tmp_cfg_dir, *it));
     to_remove.push_back(target_path);

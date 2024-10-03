@@ -18,19 +18,19 @@
  */
 
 #include "com/centreon/engine/events/loop.hh"
-
 #include <gtest/gtest.h>
-
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/host.hh"
+#include "common/engine_legacy_conf/service.hh"
+#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -40,25 +40,42 @@ using namespace com::centreon::engine::configuration;
 class LoopTest : public TestEngine {
  public:
   void SetUp() override {
+    error_cnt err;
     init_config_state();
+    events::loop::instance().clear();
 
     configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+#else
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
+    ct_aply.add_object(ctct);
+    ct_aply.expand_objects(pb_config);
+#endif
+    ct_aply.resolve_object(ctct, err);
 
+#ifdef LEGACY_CONF
     configuration::host hst{new_configuration_host("test_host", "admin")};
+#else
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
+#endif
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
+#ifdef LEGACY_CONF
     configuration::service svc{
         new_configuration_service("test_host", "test_svc", "admin")};
+#else
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin")};
+#endif
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

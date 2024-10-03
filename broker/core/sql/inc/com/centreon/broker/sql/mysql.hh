@@ -1,20 +1,20 @@
-/*
-** Copyright 2018 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCB_MYSQL_HH
 #define CCB_MYSQL_HH
 
@@ -30,6 +30,20 @@ using my_error = database::mysql_error;
  *  Here is a binding to the C MySQL connector.
  */
 class mysql {
+  static std::atomic_int _count_ref;
+
+  const database_config _db_cfg;
+  int _pending_queries;
+
+  std::vector<std::shared_ptr<mysql_connection>> _connection;
+  int _current_connection;
+  std::unordered_map<std::string, int> _connection_by_name;
+  std::string _server_version;
+  bool _support_bulk_statement;
+
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   mysql(database_config const& db_cfg);
   ~mysql();
@@ -89,19 +103,8 @@ class mysql {
   static void _initialize_mysql();
   void _check_errors();
   void _get_server_infos();
-
-  static std::atomic_int _count_ref;
-
-  const database_config _db_cfg;
-  int _pending_queries;
-
-  std::vector<std::shared_ptr<mysql_connection>> _connection;
-  int _current_connection;
-  std::unordered_map<std::string, int> _connection_by_name;
-  std::string _server_version;
-  bool _support_bulk_statement;
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_HH

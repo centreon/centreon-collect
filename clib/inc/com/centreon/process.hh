@@ -105,7 +105,7 @@ class process {
           bool in_stream = true,
           bool out_stream = true,
           bool err_stream = true);
-  virtual ~process() noexcept;
+  virtual ~process();
   process(const process&) = delete;
   process& operator=(const process&) = delete;
   // void enable_stream(stream s, bool enable);
@@ -129,6 +129,6 @@ class process {
   void set_timeout(bool timeout);
 };
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_PROCESS_POSIX_HH

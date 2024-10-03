@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,3 +118,15 @@ void check_result::set_latency(double latency) {
 void check_result::set_check_options(unsigned check_options) {
   _check_options = check_options;
 }
+
+namespace com::centreon::engine {
+
+std::ostream& operator<<(std::ostream& stream, const check_result& res) {
+  stream << " timeout=" << res.get_early_timeout()
+         << " ok=" << res.get_exited_ok()
+         << " ret_code=" << res.get_return_code()
+         << " output:" << res.get_output();
+  return stream;
+}
+
+}  // namespace com::centreon::engine

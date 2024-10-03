@@ -128,9 +128,8 @@ BRCTSMN
 
     Ctn Start engine
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${1}
+
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1

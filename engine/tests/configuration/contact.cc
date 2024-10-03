@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2017 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-
-#include "com/centreon/engine/configuration/contact.hh"
+#include "common/engine_legacy_conf/contact.hh"
 #include <gtest/gtest.h>
 
 #include "helper.hh"
@@ -39,5 +38,6 @@ class ConfigContact : public ::testing::Test {
 // Then an exception is thrown.
 TEST_F(ConfigContact, NewContactWithNoName) {
   configuration::contact ctct("");
-  ASSERT_THROW(ctct.check_validity(), std::exception);
+  configuration::error_cnt err;
+  ASSERT_THROW(ctct.check_validity(err), std::exception);
 }

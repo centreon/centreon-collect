@@ -19,10 +19,10 @@
 # Global options.
 
 set(INC_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/inc/com/centreon/broker/http_tsdb")
-set(HTTP_CLIENT_INC_DIR "${PROJECT_SOURCE_DIR}/http_client/inc")
+set(HTTP_INC_DIR "${CMAKE_SOURCE_DIR}/common/http/inc")
 set(SRC_DIR "src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/test")
-include_directories(inc ${INC_DIR} ${HTTP_CLIENT_INC_DIR})
+include_directories(inc ${INC_DIR} ${HTTP_INC_DIR})
 
 # Sources.
 set(SOURCES

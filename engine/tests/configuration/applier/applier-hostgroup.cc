@@ -21,9 +21,9 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/engine_legacy_conf/hostgroup.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -41,6 +41,7 @@ class ApplierHostGroup : public ::testing::Test {
 // Given host configuration without host_id
 // Then the applier add_object throws an exception.
 TEST_F(ApplierHostGroup, NewHostGroup) {
+  error_cnt err;
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
   configuration::hostgroup hg;
@@ -72,10 +73,10 @@ TEST_F(ApplierHostGroup, NewHostGroup) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_b));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_b, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
   ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 3u);
@@ -111,9 +112,10 @@ TEST_F(ApplierHostGroup, HostRenamed) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   ASSERT_NO_THROW(hg_aply.remove_object(hg));
   ASSERT_TRUE(hg.parse("hostgroup_name", "temp_hg"));
@@ -155,9 +157,10 @@ TEST_F(ApplierHostGroup, HostRemoved) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+  error_cnt err;
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
 
   engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);

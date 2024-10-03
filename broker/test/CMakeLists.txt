@@ -16,8 +16,6 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${CONAN_INCLUDE_DIRS_GTEST})
-
 # Tests directory.
 set(TESTS_DIR ${PROJECT_SOURCE_DIR}/core/test)
 set(BAM_TESTS_DIR ${PROJECT_SOURCE_DIR}/bam/test)
@@ -43,7 +41,9 @@ include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
-include_directories(${PROJECT_SOURCE_DIR}/http_client/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/grpc/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/log_v2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
@@ -75,9 +75,14 @@ target_link_libraries(
   rpc_client
   berpc
   centreon_common
+  spdlog::spdlog
   -L${PROTOBUF_LIB_DIR}
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-  crypto ssl
+  gRPC::gpr
+  gRPC::grpc
+  gRPC::grpc++
+  gRPC::grpc++_alts
+  crypto
+  ssl
   z
   dl
   pthread)
@@ -116,7 +121,6 @@ add_executable(
   ${TESTS_DIR}/misc/filesystem.cc
   ${TESTS_DIR}/misc/math.cc
   ${TESTS_DIR}/misc/misc.cc
-  ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
   ${TESTS_DIR}/processing/acceptor.cc
@@ -130,31 +134,43 @@ add_executable(
   # Module sources.
   ${TESTS_SOURCES})
 
+message(STATUS "###################################")
+message(STATUS "###################################")
+message(STATUS ${TESTS_SOURCES})
+message(STATUS "###################################")
+message(STATUS "###################################")
+
 target_link_libraries(
-  ut_broker PRIVATE
-  test_util
-  roker
-  rokerbase
-  rokerlog
-  multiplexing
-  ${TESTS_LIBRARIES}
-  conflictmgr
-  centreon_common
-  stdc++fs
-  nlohmann_json::nlohmann_json
-  fmt::fmt
-  spdlog::spdlog
-    GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
-  mariadb
-  crypto ssl
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+  ut_broker
+  PRIVATE test_util
+          roker
+          rokerbase
+          multiplexing
+          ${TESTS_LIBRARIES}
+          conflictmgr
+          centreon_common
+          centreon_grpc
+          stdc++fs
+          nlohmann_json::nlohmann_json
+          fmt::fmt
+          log_v2
+          GTest::gtest
+          GTest::gtest_main
+          GTest::gmock
+          GTest::gmock_main
+          mariadb
+          crypto
+          ssl
+          gRPC::gpr
+          gRPC::grpc
+          gRPC::grpc++
+          gRPC::grpc++_alts)
 
 add_dependencies(
   ut_broker
   test_util
   roker
   rokerbase
-  rokerlog
   multiplexing
   conflictmgr
   centreon_common)

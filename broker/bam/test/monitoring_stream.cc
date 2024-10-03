@@ -1,20 +1,20 @@
 /**
-* Copyright 2014 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2022-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 
@@ -24,17 +24,14 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
+#include "common/log_v2/log_v2.hh"
 
+using log_v2 = com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class BamMonitoringStream : public testing::Test {
-  void SetUp() override {
-    g_io_context->restart();
-    config::applier::init(0, "test_broker", 0);
-  }
+  void SetUp() override { config::applier::init(0, "test_broker", 0); }
   void TearDown() override { config::applier::deinit(); }
 };
 
@@ -47,7 +44,8 @@ TEST_F(BamMonitoringStream, WriteKpi) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<pb_kpi_status> st{std::make_shared<pb_kpi_status>()};
   st->mut_obj().set_kpi_id(1);
@@ -64,7 +62,8 @@ TEST_F(BamMonitoringStream, WriteBA) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -80,7 +79,8 @@ TEST_F(BamMonitoringStream, WorkWithNoPendigMysqlRequest) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 
@@ -101,7 +101,8 @@ TEST_F(BamMonitoringStream, WorkWithPendigMysqlRequest) {
   std::shared_ptr<persistent_cache> cache;
   std::unique_ptr<monitoring_stream> ms;
 
-  ASSERT_NO_THROW(ms.reset(new monitoring_stream("", cfg, storage, cache)));
+  ASSERT_NO_THROW(ms.reset(new monitoring_stream(
+      "", cfg, storage, cache, log_v2::instance().get(log_v2::BAM))));
 
   std::shared_ptr<ba_status> st{std::make_shared<ba_status>(ba_status())};
 

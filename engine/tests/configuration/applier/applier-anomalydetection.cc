@@ -28,8 +28,8 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "common/engine_legacy_conf/host.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -60,7 +60,6 @@ TEST_F(ApplierAnomalydetection,
 // Then the applier add_object throws an exception.
 TEST_F(ApplierAnomalydetection, NewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service ad_aply;
   configuration::anomalydetection ad;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));

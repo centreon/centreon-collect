@@ -27,8 +27,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bulk_bind::mysql_bulk_bind(int size, size_t reserved_rows_count)
-    : mysql_bind_base(size), _column(size) {
+mysql_bulk_bind::mysql_bulk_bind(int size,
+                                 size_t reserved_rows_count,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_bind_base(size, logger), _column(size) {
   for (auto& c : _column)
     c.reserve(reserved_rows_count);
 }
@@ -110,7 +112,7 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
     else {                                                                \
       assert("This field is not an " #sqltype == nullptr);                \
       SPDLOG_LOGGER_CRITICAL(                                             \
-          log_v2::sql(), "{} This field is not an " #sqltype " but {}",   \
+          _logger, "{} This field is not an " #sqltype " but {}",         \
           __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
       return 0;                                                           \
     }                                                                     \

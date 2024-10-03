@@ -20,9 +20,6 @@
 #ifndef CCE_CONTACT_HH
 #define CCE_CONTACT_HH
 
-#include <absl/container/flat_hash_map.h>
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notifier.hh"
 
 /* Max number of custom addresses a contact can have. */
@@ -64,7 +61,10 @@ class contact {
   // Base properties.
   std::string const& get_address(int index) const;
   std::vector<std::string> const& get_addresses() const;
-  void set_addresses(std::vector<std::string> const& addresses);
+#ifdef LEGACY_CONF
+  void set_addresses(const std::vector<std::string>& addresses);
+#endif
+  void set_addresses(std::vector<std::string>&& addresses);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
   bool get_can_submit_commands() const;
@@ -127,7 +127,7 @@ class contact {
   bool should_be_notified(notifier::notification_category cat,
                           notifier::reason_type type,
                           notifier const& notif) const;
-  void resolve(int& w, int& e);
+  void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
   map_customvar& get_custom_variables();
   timeperiod* get_host_notification_period_ptr() const;
@@ -180,14 +180,14 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& name,
     std::string const& alias,
     std::string const& email,
     std::string const& pager,
-    std::array<std::string, MAX_CONTACT_ADDRESSES> const& addresses,
+    std::vector<std::string>&& addresses,
     std::string const& svc_notification_period,
     std::string const& host_notification_period,
     int notify_service_ok,

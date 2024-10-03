@@ -38,7 +38,8 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class factory_test : public http_tsdb::factory {
  public:
   factory_test(const std::string& name,
-               const std::shared_ptr<asio::io_context>& io_context)
+               const std::shared_ptr<asio::io_context>& io_context
+               [[maybe_unused]])
       : http_tsdb::factory(name, g_io_context) {}
 
   io::endpoint* new_endpoint(

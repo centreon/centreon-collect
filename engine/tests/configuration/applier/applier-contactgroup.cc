@@ -21,8 +21,10 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
-#include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/contact.hh"
+#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -30,16 +32,9 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern int config_errors;
-extern int config_warnings;
-
 class ApplierContactgroup : public ::testing::Test {
  public:
-  void SetUp() override {
-    config_errors = 0;
-    config_warnings = 0;
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -146,6 +141,7 @@ TEST_F(ApplierContactgroup, ResolveInexistentContact) {
 // When the resolve_object() method is called
 // Then the contact is really added to the contact group.
 TEST_F(ApplierContactgroup, ResolveContactgroup) {
+  error_cnt err;
   configuration::applier::contact aply;
   configuration::applier::contactgroup aply_grp;
   configuration::contactgroup grp("test_group");
@@ -155,7 +151,7 @@ TEST_F(ApplierContactgroup, ResolveContactgroup) {
   grp.parse("members", "test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
 // Given a contactgroup with a contact already configured
@@ -164,6 +160,7 @@ TEST_F(ApplierContactgroup, ResolveContactgroup) {
 // Then the parse method returns true and set the first one contacts
 // to the second one.
 TEST_F(ApplierContactgroup, SetContactgroupMembers) {
+  error_cnt err;
   configuration::applier::contact aply;
   configuration::applier::contactgroup aply_grp;
   configuration::contactgroup grp("test_group");
@@ -172,7 +169,7 @@ TEST_F(ApplierContactgroup, SetContactgroupMembers) {
   grp.parse("members", "test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
+  aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().size() == 1);
 
   configuration::contactgroup grp1("big_group");
@@ -185,6 +182,7 @@ TEST_F(ApplierContactgroup, SetContactgroupMembers) {
 }
 
 TEST_F(ApplierContactgroup, ContactRemove) {
+  error_cnt err;
   configuration::applier::contact aply;
   configuration::applier::contactgroup aply_grp;
   configuration::contactgroup grp("test_group");
@@ -198,7 +196,7 @@ TEST_F(ApplierContactgroup, ContactRemove) {
   grp.parse("members", "test, test2");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
+  aply_grp.resolve_object(grp, err);
   ASSERT_EQ(
       engine::contactgroup::contactgroups["test_group"]->get_members().size(),
       2u);

@@ -1,11 +1,35 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+# This script is a little tcp server working on port 5669. It can simulate
+# a cbd instance. It is useful to test the validity of BBDO packets sent by
+# centengine.
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
+from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import random
+import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -13,7 +37,6 @@ from robot.libraries.BuiltIn import BuiltIn
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
-import grpc_stream_pb2
 
 
 TIMEOUT = 30
@@ -178,7 +201,7 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, True)
+        ok, c = ctn_find_in_log(log, date, content, regex=True)
         if ok:
             return True, c
         time.sleep(5)
@@ -186,12 +209,13 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
     return False, c
 
 
-def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
-
+def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs):
     limit = time.time() + timeout
     c = ""
-    while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+    kwargs['regex'] = False
+
+    while time.time() <= limit:
+        ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
         time.sleep(5)
@@ -202,7 +226,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int):
 def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
     """! search a pattern in log from date param
     @param log: path of the log file
-    @param date: date from witch it begins search
+    @param date: date from which it begins search
     @param content: array of pattern to search
     @param timeout: time out in second
     @return  True/False, array of lines found for each pattern
@@ -210,7 +234,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, False)
+        ok, c = ctn_find_in_log(log, date, content, regex=False)
         if ok:
             return ok, c
         time.sleep(5)
@@ -218,7 +242,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
     return False, None
 
 
-def ctn_find_in_log(log: str, date, content, regex=False):
+def ctn_find_in_log(log: str, date, content, **kwargs):
     """Find content in log file from the given date
 
     Args:
@@ -229,13 +253,18 @@ def ctn_find_in_log(log: str, date, content, regex=False):
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
-    logger.info(f"regex={regex}")
+    verbose = True
+    regex = False
+    if 'verbose' in kwargs:
+        verbose = 'verbose' == 'True'
+    if 'regex' in kwargs:
+        regex = bool(kwargs['regex'])
+
     res = []
 
     try:
-        f = open(log, "r", encoding="latin1")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
         idx = ctn_find_line_from(lines, date)
 
         for c in content:
@@ -247,7 +276,8 @@ def ctn_find_in_log(log: str, date, content, regex=False):
                 else:
                     match = c in line
                 if match:
-                    logger.console(f"\"{c}\" found at line {i} from {idx}")
+                    if verbose:
+                        logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
                     res.append(line)
                     break
@@ -393,6 +423,10 @@ def ctn_clear_retention():
 
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
+
+def ctn_clear_logs():
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
+    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):
@@ -669,7 +703,7 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
                         f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
-                    elif state_type != 'HARD':
+                    elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
                         return True
         time.sleep(1)
     return False
@@ -954,7 +988,20 @@ def ctn_check_service_check_with_timeout(hostname: str, service_desc: str,  time
     return False
 
 
-def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str,  timeout: int,  min_last_check: int, state: int, output: str):
+    """
+    check_service_check_status_with_timeout
+
+    check if service checks infos have been updated
+
+    Args:
+        host_name:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected service state
+        output: expected output
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -968,12 +1015,177 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT command_line FROM hosts WHERE name='{hostname}'")
+                    f"SELECT s.last_check, s.state, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
-                        f"command_line={result[0]['command_line']} ")
-                    if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
+                        return True
+        time.sleep(1)
+    return False
+
+
+def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+    """
+    ctn_check_service_output_resource_status_with_timeout
+
+    check if resource checks infos of an host have been updated
+
+    Args:
+        hostname:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        status: expected host state
+        status_type: HARD or SOFT
+        output: expected output
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}" )
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if status_type == 'HARD' and int(result[0]['status_confirmed']) == 1 and output in result[0]['output']:
+                        return True
+                    elif status_type == 'SOFT' and int(result[0]['status_confirmed']) == 0 and output in result[0]['output']:
+                        return True
+        time.sleep(1)
+    return False
+
+
+
+def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
+    """
+    ctl_check_host_check_with_timeout
+
+    Checks that the last_check is after the start timestamp.
+
+    Args:
+        hostname: the host concerned by the check
+        start: a timestamp that should be approximatively the date of the check.
+        timeout: A timeout.
+
+    Returns: True on success.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT last_check FROM resources WHERE name='{hostname}'")
+                result = cursor.fetchall()
+                if len(result) > 0 and len(result[0]) > 0 and result[0]['last_check'] is not None:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} ")
+                    last_check = int(result[0]['last_check'])
+                    if last_check > start:
+                        return True
+        time.sleep(1)
+    return False
+
+def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
+    """
+    ctn_check_host_check_status_with_timeout
+
+    check if host checks infos have been updated
+
+    Args:
+        hostname:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        state: expected host state
+        output: expected output
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT last_check, state, output FROM hosts WHERE name='{hostname}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(
+                        f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
+                    if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
+                        return True
+                    else:
+                        logger.console(
+                                f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
+        time.sleep(1)
+    return False
+
+
+def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+    """
+    ctn_check_host_output_resource_status_with_timeout
+
+    check if resource checks infos of an host have been updated
+
+    Args:
+        hostname:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        status: expected host state
+        status_type: HARD or SOFT
+        output: expected output
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}" )
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if status_type == 'HARD' and int(result[0]['status_confirmed']) == 1 and output in result[0]['output']:
+                        return True
+                    elif status_type == 'SOFT' and int(result[0]['status_confirmed']) == 0 and output in result[0]['output']:
                         return True
         time.sleep(1)
     return False
@@ -1264,6 +1476,7 @@ def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, va
                     "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
@@ -1442,56 +1655,6 @@ def ctn_check_types_in_resources(lst: list):
     return False
 
 
-def ctn_check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout=TIMEOUT):
-    limit = time.time() + timeout
-    logger.console(
-        f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     autocommit=True,
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()
-                logger.console(result)
-                cursor.execute(
-                    f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-                result = cursor.fetchall()
-                logger.console(result)
-                if len(result) > 0 and int(result[0]['count(*)']) > 0:
-                    return True
-                time.sleep(2)
-    return False
-
-
-def ctn_check_no_host_dependencies(timeout=TIMEOUT):
-    limit = time.time() + timeout
-    logger.console("SELECT count(*) FROM hosts_hosts_dependencies")
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     autocommit=True,
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT count(*) FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()
-                if len(result) > 0 and int(result[0]['count(*)']) == 0:
-                    return True
-    return False
-
-
 def ctn_get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
@@ -1639,3 +1802,108 @@ def ctn_create_bbdo_grpc_server(port : int, ):
     server.add_secure_port("0.0.0.0:5669", creds)
     server.start()
     return server
+
+
+def create_random_string(length:int):
+    """
+    create_random_string
+
+    create a string with random char
+    Args:
+        length output string length
+    Returns: a string
+    """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def ctn_create_random_dictionary(nb_entries: int):
+    """
+    create_random_dictionary
+
+    create a dictionary with random keys and random string values
+    
+    Args:
+        nb_entries  dictionary size
+    Returns: a dictionary
+    """
+    dict_ret = {}
+    for ii in range(nb_entries):
+        dict_ret[create_random_string(10)] = create_random_string(10)
+
+    return dict_ret;
+
+
+def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
+    """
+    extract_event_from_lua_log
+
+    extract a json object from a lua log file 
+    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
+
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
+
+    Returns: True if they have the same content, False otherwise.
+    """
+
+    with open(file1, "r") as f1:
+        content1 = f1.readlines()
+    with open(file2, "r") as f2:
+        content2 = f2.readlines()
+    r = re.compile(r"(.*) 0x[0-9a-f]+")
+
+    def replace_ptr(line):
+        m = r.match(line)
+        if m:
+            return m.group(1)
+        else:
+            return line
+
+    content1 = list(map(replace_ptr, content1))
+    content2 = list(map(replace_ptr, content2))
+
+    if len(content1) != len(content2):
+        return False
+    for i in range(len(content1)):
+        if content1[i] != content2[i]:
+            logger.console(
+                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
+            return False
+    return True
+
+
+
+def ctn_protobuf_to_json(protobuf_obj):
+    """
+    protobuf_to_json
+
+    Convert a protobuf object to json
+    it replaces uppercase letters in keys by _<lower>
+    """
+    converted = MessageToJson(protobuf_obj)
+    return json.loads(converted)
+
+
+def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+    """
+    ctn_compare_string_with_file
+
+    compare a multiline string with a file content
+    Args:
+        string_to_compare: multiline string to compare
+        file_path: path of the file to compare
+
+    Returns: True if contents are identical
+    """
+    str_lines = string_to_compare.splitlines(keepends=True)
+    with open(file_path) as f:
+        file_lines = f.readlines()
+    if len(str_lines) != len(file_lines):
+        return False
+    for str_line, file_line in zip(str_lines, file_lines):
+        if str_line != file_line:
+            return False
+    return True
+

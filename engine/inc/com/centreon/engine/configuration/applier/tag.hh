@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,12 +19,18 @@
 
 #ifndef CCE_CONFIGURATION_APPLIER_TAG_HH
 #define CCE_CONFIGURATION_APPLIER_TAG_HH
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/object.hh"
+#else
+#include "common/engine_conf/tag_helper.hh"
+#endif
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
+#ifdef LEGACY_CONF
 class tag;
 class state;
+#endif
 
 namespace applier {
 class tag {
@@ -32,15 +38,22 @@ class tag {
   tag() = default;
   ~tag() noexcept = default;
   tag& operator=(const tag& other) = delete;
+#ifdef LEGACY_CONF
   void add_object(const configuration::tag& obj);
   void expand_objects(configuration::state& s);
   void modify_object(const configuration::tag& obj);
   void remove_object(const configuration::tag& obj);
-  void resolve_object(const configuration::tag& obj);
+  void resolve_object(const configuration::tag& obj, error_cnt& err);
+#else
+  void add_object(const configuration::Tag& obj);
+  void modify_object(configuration::Tag* to_modify,
+                     const configuration::Tag& new_object);
+  void remove_object(ssize_t idx);
+  void resolve_object(const configuration::Tag& obj,
+                      error_cnt& err);
+#endif
 };
 }  // namespace applier
-}  // namespace configuration
-
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_TAG_HH

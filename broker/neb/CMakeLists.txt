@@ -20,7 +20,7 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}")
+include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
 
 # NEB sources.
 set(NEB_SOURCES
@@ -31,13 +31,11 @@ set(NEB_SOURCES
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
     ${SRC_DIR}/custom_variable_status.cc
-    ${SRC_DIR}/dependency.cc
     ${SRC_DIR}/downtime.cc
     ${SRC_DIR}/group.cc
     ${SRC_DIR}/group_member.cc
     ${SRC_DIR}/host.cc
     ${SRC_DIR}/host_check.cc
-    ${SRC_DIR}/host_dependency.cc
     ${SRC_DIR}/host_group.cc
     ${SRC_DIR}/host_group_member.cc
     ${SRC_DIR}/host_parent.cc
@@ -51,7 +49,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/responsive_instance.cc
     ${SRC_DIR}/service.cc
     ${SRC_DIR}/service_check.cc
-    ${SRC_DIR}/service_dependency.cc
     ${SRC_DIR}/service_group.cc
     ${SRC_DIR}/service_group_member.cc
     ${SRC_DIR}/service_status.cc
@@ -61,14 +58,12 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/comment.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/downtime.hh
     ${INC_DIR}/com/centreon/broker/neb/events.hh
     ${INC_DIR}/com/centreon/broker/neb/group.hh
     ${INC_DIR}/com/centreon/broker/neb/group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host.hh
     ${INC_DIR}/com/centreon/broker/neb/host_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host_parent.hh
@@ -83,7 +78,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
     ${INC_DIR}/com/centreon/broker/neb/service.hh
     ${INC_DIR}/com/centreon/broker/neb/service_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/service_status.hh
@@ -91,20 +85,19 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase
-	table_max_size
-	target_neb
-	target_severity
-	target_tag
-	pb_neb_lib
-	pb_header_lib
-)
+add_dependencies(
+  nebbase
+  table_max_size
+  target_neb
+  pb_neb_lib
+  pb_header_lib)
 
-target_link_libraries(nebbase
-		      -L${PROTOBUF_LIB_DIR}
-		      pb_severity_lib pb_tag_lib
-		      protobuf
-                      pb_neb_lib pb_header_lib)
+target_link_libraries(nebbase 
+  -L${PROTOBUF_LIB_DIR}
+  protobuf 
+  pb_neb_lib 
+  pb_header_lib
+  pb_open_telemetry_lib)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
@@ -122,14 +115,10 @@ add_library(
 )
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB}
-  "-Wl,--whole-archive"
-  nebbase
-  "-Wl,--no-whole-archive"
-  spdlog::spdlog)
+target_link_libraries(${NEB} "-Wl,--whole-archive" nebbase
+                      "-Wl,--no-whole-archive" spdlog::spdlog)
 
 set_target_properties("${NEB}" PROPERTIES PREFIX "")
-target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
@@ -162,22 +151,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_link_libraries(
     "${CBMOD}"
     -L${PROTOBUF_LIB_DIR}
-    rokerlog
     "-Wl,--whole-archive"
     rokerbase
     multiplexing
-    "-Wl,--no-whole-archive"
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog)
+    "-Wl,--no-whole-archive")
 else()
-  target_link_libraries("${CBMOD}"
-    -L${PROTOBUF_LIB_DIR}
-    "rokerbase" nlohmann_json::nlohmann_json
-                        spdlog::spdlog)
+  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
+
+target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)
@@ -189,7 +174,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc
       ${TEST_DIR}/host_check.cc
-      ${TEST_DIR}/host_dependency.cc
       ${TEST_DIR}/host_parent.cc
       ${TEST_DIR}/host_status.cc
       ${TEST_DIR}/instance.cc
@@ -199,7 +183,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/randomize.hh
       ${TEST_DIR}/service.cc
       ${TEST_DIR}/service_check.cc
-      ${TEST_DIR}/service_dependency.cc
       ${TEST_DIR}/service_status.cc
       ${TEST_DIR}/set_log_data.cc
       PARENT_SCOPE)

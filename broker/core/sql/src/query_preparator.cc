@@ -1,32 +1,33 @@
 /**
-* Copyright 2015, 2020-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015, 2020-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/query_preparator.hh"
 
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -39,7 +40,10 @@ query_preparator::query_preparator(
     uint32_t event_id,
     query_preparator::event_unique const& unique,
     query_preparator::excluded_fields const& excluded)
-    : _event_id(event_id), _excluded(excluded), _unique(unique) {}
+    : _logger{log_v2::instance().get(log_v2::SQL)},
+      _event_id(event_id),
+      _excluded(excluded),
+      _unique(unique) {}
 
 /**
  *  Constructor.
@@ -50,7 +54,9 @@ query_preparator::query_preparator(
 query_preparator::query_preparator(
     uint32_t event_id,
     const query_preparator::event_pb_unique& pb_unique)
-    : _event_id(event_id), _pb_unique(pb_unique) {}
+    : _logger{log_v2::instance().get(log_v2::SQL)},
+      _event_id(event_id),
+      _pb_unique(pb_unique) {}
 
 /**
  * @brief Prepare an INSERT query. The function waits for the table to insert
@@ -125,7 +131,7 @@ mysql_stmt query_preparator::prepare_insert_into(
   query.resize(query.size() - 1);
   query.append(")");
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -216,7 +222,7 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
     query.resize(query.size() - 1);
     query.append(")");
   }
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -293,7 +299,7 @@ mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
     insert_bind_mapping.insert(
         std::make_pair(it->first, it->second + insert_size));
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", insert);
+  _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -400,7 +406,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     insert_bind_mapping.insert(
         std::make_pair(it->first, it->second + insert_size));
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", insert);
+  _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -670,7 +676,7 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
   }
   query.resize(query.size() - 5);
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {

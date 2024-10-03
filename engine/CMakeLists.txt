@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2023 Centreon
+# Copyright 2011-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -47,8 +47,8 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories("${INC_DIR}"
-"${INC_DIR}/compatibility")
+include_directories("${INC_DIR}" "${INC_DIR}/compatibility"
+                    "${CMAKE_SOURCE_DIR}/common/inc")
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -148,9 +148,6 @@ set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
-# # Library directory. if (WITH_PREFIX_LIB_ENGINE) set(PREFIX_LIB
-# "${WITH_PREFIX_LIB_ENGINE}") else () set(PREFIX_LIB
-# "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine") endif ()
 #
 
 # User used to run Centreon Engine.
@@ -356,13 +353,7 @@ configure_file("${INC_DIR}/compatibility/common.h.in"
                "${INC_DIR}/compatibility/common.h")
 
 # Locations definitions
-add_definitions(-DDEFAULT_STATUS_FILE="${ENGINE_VAR_LOG_DIR}/status.dat")
-add_definitions(-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log")
 add_definitions(-DDEFAULT_LOG_ARCHIVE_PATH="${ENGINE_VAR_LOG_ARCHIVE_DIR}")
-add_definitions(-DDEFAULT_DEBUG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.debug")
-add_definitions(-DDEFAULT_RETENTION_FILE="${ENGINE_VAR_LOG_DIR}/retention.dat")
-add_definitions(
-  -DDEFAULT_COMMAND_FILE="${ENGINE_VAR_LIB_DIR}/rw/centengine.cmd")
 add_definitions(-DDEFAULT_CONFIG_FILE="${PREFIX_ENGINE_CONF}/centengine.cfg")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
@@ -417,7 +408,6 @@ set(FILES
     "${SRC_DIR}/timezone_locker.cc"
     "${SRC_DIR}/timezone_manager.cc"
     "${SRC_DIR}/utils.cc"
-    "${SRC_DIR}/xpddefault.cc"
     "${SRC_DIR}/xsddefault.cc"
     # Headers.
     "${INC_DIR}/com/centreon/engine/anomalydetection.hh"
@@ -453,7 +443,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/notification.hh"
     "${INC_DIR}/com/centreon/engine/notifier.hh"
     "${INC_DIR}/com/centreon/engine/objects.hh"
-    "${INC_DIR}/com/centreon/engine/opt.hh"
     "${INC_DIR}/com/centreon/engine/sehandlers.hh"
     "${INC_DIR}/com/centreon/engine/service.hh"
     "${INC_DIR}/com/centreon/engine/servicedependency.hh"
@@ -471,7 +460,6 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
     "${INC_DIR}/com/centreon/engine/utils.hh"
     "${INC_DIR}/com/centreon/engine/version.hh"
-    "${INC_DIR}/com/centreon/engine/xpddefault.hh"
     "${INC_DIR}/com/centreon/engine/xsddefault.hh")
 
 # Subdirectories with core features.
@@ -493,62 +481,140 @@ add_subdirectory(src/macros)
 add_subdirectory(modules)
 add_subdirectory(src/retention)
 add_subdirectory(enginerpc)
-include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
-
-# Library engine target.
-add_library(enginelog STATIC src/log_v2.cc)
-target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
-set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog spdlog::spdlog)
-
-add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core engine_rpc)
-add_dependencies(cce_core centreon_clib)
-
-target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
-
-# Link target with required libraries.
-target_link_libraries(
-  cce_core
-  nlohmann_json::nlohmann_json
-  ${MATH_LIBRARIES}
-  ${PTHREAD_LIBRARIES}
-  ${SOCKET_LIBRARIES}
-  centreon_clib
-  fmt::fmt
-  spdlog::spdlog)
-
-# centengine target.
-add_executable("centengine" "${SRC_DIR}/main.cc")
-set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
-add_dependencies(centengine centreon_clib)
-
-# Link centengine with required libraries.
-target_link_libraries(
-  centengine
-  -L${PROTOBUF_LIB_DIR}
-  "-rdynamic"
-  centreon_clib
-  enginelog
-  "-Wl,-whole-archive"
-  enginerpc
-  cce_core
-  gRPC::grpc++
-  "-Wl,--no-whole-archive"
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-  absl::any absl::log absl::base absl::bits
-  crypto ssl
-  ${c-ares_LIBS}
-  z
-  ryml::ryml
-  stdc++fs
-  dl)
+include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
+                    ${CMAKE_SOURCE_DIR}/common/inc)
 
 # centenginestats target.
-add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
-add_dependencies("centenginestats" centreon_clib)
-target_link_libraries("centenginestats" centreon_clib fmt::fmt)
+add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
+add_dependencies(centenginestats centreon_clib)
+target_link_libraries(centenginestats centreon_clib fmt::fmt)
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
+
+# Library engine target.
+
+if(LEGACY_ENGINE)
+  add_library(cce_core ${LIBRARY_TYPE} ${FILES})
+  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
+
+  target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
+
+  # Link target with required libraries.
+  target_link_libraries(
+    cce_core
+    ${MATH_LIBRARIES}
+    ${PTHREAD_LIBRARIES}
+    ${SOCKET_LIBRARIES}
+    centreon_clib
+    engine_legacy_conf
+    fmt::fmt
+    spdlog::spdlog)
+
+  # centengine target.
+
+  # centengine target.
+  add_executable(centengine "${SRC_DIR}/main.cc")
+  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+  add_dependencies(centengine centreon_clib)
+
+  # Link centengine with required libraries.
+  target_link_libraries(
+    centengine
+    -L${PROTOBUF_LIB_DIR}
+    "-rdynamic"
+    centreon_clib
+    log_v2
+    "-Wl,-whole-archive"
+    enginerpc_legacy
+    centreon_grpc
+    centreon_http
+    centreon_common
+    -L${Boost_LIBRARY_DIR_RELEASE}
+    boost_url
+    cce_core
+    gRPC::grpc++
+    boost_program_options
+    "-Wl,--no-whole-archive"
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++_alts
+    absl::any
+    absl::log
+    absl::base
+    absl::bits
+    crypto
+    ssl
+    ${c-ares_LIBS}
+    z
+    ryml::ryml
+    stdc++fs
+    dl)
+
+install(
+  TARGETS centengine centenginestats
+  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
+  COMPONENT "runtime")
+else()
+  add_library(cce_core ${LIBRARY_TYPE} ${FILES})
+  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
+
+  target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
+
+  # Link target with required libraries.
+  target_link_libraries(
+    cce_core
+    ${MATH_LIBRARIES}
+    ${PTHREAD_LIBRARIES}
+    ${SOCKET_LIBRARIES}
+    centreon_clib
+    engine_conf
+    fmt::fmt
+    spdlog::spdlog)
+
+  # centengine target.
+
+  add_executable(centengine "${SRC_DIR}/main.cc")
+  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+  add_dependencies(centengine centreon_clib)
+
+  # Link centengine with required libraries.
+  target_link_libraries(
+    centengine
+    -L${PROTOBUF_LIB_DIR}
+    "-rdynamic"
+    centreon_clib
+    log_v2
+    "-Wl,-whole-archive"
+    enginerpc
+    centreon_grpc
+    centreon_http
+    centreon_common
+    -L${Boost_LIBRARY_DIR_RELEASE}
+    boost_url
+    cce_core
+    gRPC::grpc++
+    boost_program_options
+    protobuf
+    "-Wl,--no-whole-archive"
+    gRPC::gpr
+    gRPC::grpc
+    gRPC::grpc++_alts
+    absl::any
+    absl::log
+    absl::base
+    absl::bits
+    crypto
+    ssl
+    ${c-ares_LIBS}
+    z
+    ryml::ryml
+    stdc++fs
+    dl)
+
+install(
+  TARGETS centengine centenginestats
+  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
+  COMPONENT "runtime")
+endif()
 
 # Unit tests.
 add_subdirectory(tests)
@@ -558,10 +624,6 @@ add_subdirectory(tests)
 #
 
 # Install rules.
-install(
-  TARGETS "centengine" "centenginestats"
-  DESTINATION "${CMAKE_INSTALL_FULL_SBINDIR}"
-  COMPONENT "runtime")
 
 # Create directories.
 if(CREATE_FILES)

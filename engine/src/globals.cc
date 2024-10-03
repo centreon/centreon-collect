@@ -1,33 +1,39 @@
 /**
-* Copyright 1999-2009           Ethan Galstad
-* Copyright 2009-2010           Nagios Core Development Team and Community
-*Contributors
-* Copyright 2011-2013,2016-2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2009           Ethan Galstad
+ * Copyright 2009-2010           Nagios Core Development Team and Community
+ *Contributors
+ * Copyright 2011-2013,2016-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/globals.hh"
 
 #include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 #include "nagios.h"
 
 using namespace com::centreon::engine;
+using com::centreon::common::log_v2::log_v2;
 
-configuration::state* config(NULL);
+#ifdef LEGACY_CONF
+configuration::state* config = nullptr;
+#else
+configuration::State pb_config;
+#endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",
@@ -38,7 +44,21 @@ char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
 
 com::centreon::engine::restart_stats restart_apply_stats;
 
-char* config_file(NULL);
+std::shared_ptr<spdlog::logger> checks_logger;
+std::shared_ptr<spdlog::logger> commands_logger;
+std::shared_ptr<spdlog::logger> config_logger;
+std::shared_ptr<spdlog::logger> downtimes_logger;
+std::shared_ptr<spdlog::logger> eventbroker_logger;
+std::shared_ptr<spdlog::logger> events_logger;
+std::shared_ptr<spdlog::logger> external_command_logger;
+std::shared_ptr<spdlog::logger> functions_logger;
+std::shared_ptr<spdlog::logger> macros_logger;
+std::shared_ptr<spdlog::logger> notifications_logger;
+std::shared_ptr<spdlog::logger> process_logger;
+std::shared_ptr<spdlog::logger> runtime_logger;
+std::shared_ptr<spdlog::logger> otl_logger;
+
+std::string config_file;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);
 char* global_service_event_handler(NULL);
@@ -58,8 +78,6 @@ com::centreon::engine::commands::command* global_service_event_handler_ptr(
 com::centreon::engine::commands::command* ochp_command_ptr(NULL);
 com::centreon::engine::commands::command* ocsp_command_ptr(NULL);
 int additional_freshness_latency(15);
-int config_errors(0);
-int config_warnings(0);
 int sig_id(0);
 bool sighup{false};
 int sigrestart(false);
@@ -116,3 +134,19 @@ unsigned long modified_service_process_attributes(MODATTR_NONE);
 unsigned long next_event_id(1);
 unsigned long next_notification_id(1);
 unsigned long next_problem_id(1);
+
+void init_loggers() {
+  checks_logger = log_v2::instance().get(log_v2::CHECKS);
+  commands_logger = log_v2::instance().get(log_v2::COMMANDS);
+  config_logger = log_v2::instance().get(log_v2::CONFIG);
+  downtimes_logger = log_v2::instance().get(log_v2::DOWNTIMES);
+  eventbroker_logger = log_v2::instance().get(log_v2::EVENTBROKER);
+  events_logger = log_v2::instance().get(log_v2::EVENTS);
+  external_command_logger = log_v2::instance().get(log_v2::EXTERNAL_COMMAND);
+  functions_logger = log_v2::instance().get(log_v2::FUNCTIONS);
+  macros_logger = log_v2::instance().get(log_v2::MACROS);
+  notifications_logger = log_v2::instance().get(log_v2::NOTIFICATIONS);
+  process_logger = log_v2::instance().get(log_v2::PROCESS);
+  runtime_logger = log_v2::instance().get(log_v2::RUNTIME);
+  otl_logger = log_v2::instance().get(log_v2::OTL);
+}

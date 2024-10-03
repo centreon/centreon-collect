@@ -1,20 +1,20 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCB_SQL_CONFLICT_MANAGER_HH
 #define CCB_SQL_CONFLICT_MANAGER_HH
 
@@ -22,10 +22,10 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/mfifo.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
+#include "com/centreon/common/perfdata.hh"
 
 namespace com::centreon::broker {
 /* Forward declarations */
@@ -78,11 +78,9 @@ class conflict_manager {
   enum special_conn {
     custom_variable,
     downtime,
-    host_dependency,
     host_group,
     host_parent,
     log,
-    service_dependency,
     service_group,
     severity,
     tag,
@@ -94,21 +92,19 @@ class conflict_manager {
     comments = 1 << 1,
     custom_variables = 1 << 2,
     downtimes = 1 << 3,
-    host_dependencies = 1 << 4,
-    host_hostgroups = 1 << 5,
-    host_parents = 1 << 6,
-    hostgroups = 1 << 7,
-    hosts = 1 << 8,
-    instances = 1 << 9,
-    modules = 1 << 10,
-    service_dependencies = 1 << 11,
-    service_servicegroups = 1 << 12,
-    servicegroups = 1 << 13,
-    services = 1 << 14,
-    index_data = 1 << 15,
-    metrics = 1 << 16,
-    severities = 1 << 17,
-    tags = 1 << 18,
+    host_hostgroups = 1 << 4,
+    host_parents = 1 << 5,
+    hostgroups = 1 << 6,
+    hosts = 1 << 7,
+    instances = 1 << 8,
+    modules = 1 << 9,
+    service_servicegroups = 1 << 10,
+    servicegroups = 1 << 11,
+    services = 1 << 12,
+    index_data = 1 << 13,
+    metrics = 1 << 14,
+    severities = 1 << 15,
+    tags = 1 << 16,
   };
 
   struct index_info {
@@ -126,23 +122,23 @@ class conflict_manager {
     bool locked;
     uint32_t metric_id;
     int16_t type;
-    double value;
+    float value;
     std::string unit_name;
-    double warn;
-    double warn_low;
+    float warn;
+    float warn_low;
     bool warn_mode;
-    double crit;
-    double crit_low;
+    float crit;
+    float crit_low;
     bool crit_mode;
-    double min;
-    double max;
+    float min;
+    float max;
     bool metric_mapping_sent;
   };
   struct metric_value {
     time_t c_time;
     uint32_t metric_id;
     short status;
-    double value;
+    float value;
   };
 
   static void (conflict_manager::*const _neb_processing_table[])(
@@ -179,6 +175,7 @@ class conflict_manager {
   std::thread _thread;
 
   /* Stats */
+  std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
   std::mutex _stat_m;
   int32_t _events_handled = 0;
@@ -236,6 +233,8 @@ class conflict_manager {
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_storage;
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
@@ -244,7 +243,6 @@ class conflict_manager {
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
-  database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
@@ -256,7 +254,6 @@ class conflict_manager {
   database::mysql_stmt _instance_status_insupdate;
   database::mysql_stmt _module_insert;
   database::mysql_stmt _service_check_update;
-  database::mysql_stmt _service_dependency_insupdate;
   database::mysql_stmt _service_group_insupdate;
   database::mysql_stmt _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
@@ -301,8 +298,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_host_dependency(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_group(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_group_member(
@@ -318,8 +313,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_log(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_check(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_service_dependency(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_group(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
@@ -370,7 +363,7 @@ class conflict_manager {
                            uint32_t interval_length,
                            const database_config& dbcfg);
   static conflict_manager& instance();
-  int32_t unload(stream_type type);
+  static int32_t unload(stream_type type);
   nlohmann::json get_statistics();
 
   int32_t send_event(stream_type c, std::shared_ptr<io::data> const& e);
@@ -380,8 +373,9 @@ class conflict_manager {
                                 std::string const& metric_name,
                                 short metric_type);
   void remove_graphs(const std::shared_ptr<io::data>& d);
+  void process_stop(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_SQL_CONFLICT_MANAGER_HH */

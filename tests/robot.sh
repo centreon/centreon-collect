@@ -1,5 +1,7 @@
 #!/bin/bash
 
+getent group centreon-engine || groupadd centreon-engine
+
 sed -i -r 's/(\$\{DBUserRoot\}\s*)root_centreon/\1root/g' resources/db_variables.resource
 ulimit -c unlimited
 sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t

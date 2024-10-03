@@ -25,13 +25,13 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -50,8 +50,8 @@ using namespace com::centreon::broker::storage;
  *
  *  @return true if they are equal, false otherwise.
  */
-static inline bool check_equality(double a, double b) {
-  static const double eps = 0.000001;
+static inline bool check_equality(float a, float b) {
+  static const float eps = 0.00001;
   if (a == b)
     return true;
   if (std::isnan(a) && std::isnan(b))
@@ -72,7 +72,7 @@ void conflict_manager::_storage_process_service_status(
   auto& d = std::get<0>(t);
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
-  log_v2::perfdata()->debug(
+  _logger_storage->debug(
       "conflict_manager::_storage_process_service_status(): host_id:{}, "
       "service_id:{}",
       host_id, service_id);
@@ -96,7 +96,7 @@ void conflict_manager::_storage_process_service_status(
     }
 
     /* Insert index in cache. */
-    log_v2::perfdata()->info(
+    _logger_storage->info(
         "conflict_manager: add_metric_in_cache: index {}, for host_id {} and "
         "service_id {}",
         index_id, host_id, service_id);
@@ -109,7 +109,7 @@ void conflict_manager::_storage_process_service_status(
 
     _index_cache[{host_id, service_id}] = std::move(info);
     rrd_len = _rrd_len;
-    log_v2::perfdata()->debug(
+    _logger_storage->debug(
         "add metric in cache: (host: {}, service: {}, index: {}, returned "
         "rrd_len {}",
         ss.host_name, ss.service_description, index_id, rrd_len);
@@ -125,7 +125,7 @@ void conflict_manager::_storage_process_service_status(
   /* Index does not exist */
   if (it_index_cache == _index_cache.end()) {
     _finish_action(-1, actions::index_data);
-    log_v2::perfdata()->debug(
+    _logger_storage->debug(
         "conflict_manager::_storage_process_service_status(): host_id:{}, "
         "service_id:{} - index not found in cache",
         host_id, service_id);
@@ -136,11 +136,13 @@ void conflict_manager::_storage_process_service_status(
           "(host_id,host_name,service_id,service_description,must_be_rebuild,"
           "special) VALUES (?,?,?,?,?,?)");
 
-    fmt::string_view hv(misc::string::truncate(
-        ss.host_name, get_index_data_col_size(index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
+        ss.host_name, get_centreon_storage_index_data_col_size(
+                          centreon_storage_index_data_host_name)));
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
-        get_index_data_col_size(index_data_service_description)));
+        get_centreon_storage_index_data_col_size(
+            centreon_storage_index_data_service_description)));
     _index_data_insert.bind_value_as_i32(0, host_id);
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, service_id);
@@ -167,7 +169,7 @@ void conflict_manager::_storage_process_service_status(
         {
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
-          log_v2::sql()->debug(
+          _logger_sql->debug(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
@@ -193,7 +195,7 @@ void conflict_manager::_storage_process_service_status(
               "special=? "
               "WHERE id=?");
 
-        log_v2::sql()->debug(
+        _logger_sql->debug(
             "Updating index_data for host_id={} and service_id={}", host_id,
             service_id);
         _index_data_update.bind_value_as_str(0, hv);
@@ -211,7 +213,7 @@ void conflict_manager::_storage_process_service_status(
 
         add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
                             special, rrd_len);
-        log_v2::sql()->debug(
+        _logger_sql->debug(
             "Index {} stored in cache for host_id={} and service_id={}",
             index_id, host_id, service_id);
       } catch (std::exception const& e) {
@@ -225,7 +227,7 @@ void conflict_manager::_storage_process_service_status(
     index_id = it_index_cache->second.index_id;
     rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
-    log_v2::perfdata()->debug(
+    _logger_storage->debug(
         "conflict_manager: host_id:{}, service_id:{} - index already in cache "
         "- index_id {}, rrd_len {}",
         host_id, service_id, index_id, rrd_len);
@@ -233,7 +235,7 @@ void conflict_manager::_storage_process_service_status(
 
   if (index_id) {
     /* Generate status event */
-    log_v2::perfdata()->debug(
+    _logger_storage->debug(
         "conflict_manager: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -258,18 +260,24 @@ void conflict_manager::_storage_process_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
-          ss.host_id, ss.service_id, ss.perf_data.c_str())};
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
+          ss.host_id, ss.service_id, ss.perf_data.c_str(), _logger_storage)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
         uint32_t metric_id;
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
-          log_v2::perfdata()->debug(
+          _logger_storage->debug(
               "conflict_manager: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -303,7 +311,7 @@ void conflict_manager::_storage_process_service_status(
             metric_id = future.get();
 
             // Insert metric in cache.
-            log_v2::perfdata()->info(
+            _logger_storage->info(
                 "conflict_manager: new metric {} for index {} and perfdata "
                 "'{}'",
                 metric_id, index_id, pd.name());
@@ -326,17 +334,15 @@ void conflict_manager::_storage_process_service_status(
             std::lock_guard<std::mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (const std::exception& e) {
-            log_v2::perfdata()->error(
-                "conflict_manager: failed to create metric {} with type {}, "
+            _logger_storage->error(
+                "conflict_manager: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "storage: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           std::lock_guard<std::mutex> lock(_metric_cache_m);
@@ -347,9 +353,10 @@ void conflict_manager::_storage_process_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(it_index_cache->second.type);
+          pd.value_type(static_cast<common::perfdata::data_type>(
+              it_index_cache->second.type));
 
-          log_v2::perfdata()->debug(
+          _logger_storage->debug(
               "conflict_manager: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -366,7 +373,7 @@ void conflict_manager::_storage_process_service_status(
               it_index_cache->second.crit_mode != pd.critical_mode() ||
               !check_equality(it_index_cache->second.min, pd.min()) ||
               !check_equality(it_index_cache->second.max, pd.max())) {
-            log_v2::perfdata()->info(
+            _logger_storage->info(
                 "conflict_manager: updating metric {} of index {}, perfdata "
                 "'{}' with unit: {}, warning: {}:{}, critical: {}:{}, min: "
                 "{}, max: {}",
@@ -386,8 +393,8 @@ void conflict_manager::_storage_process_service_status(
             it_index_cache->second.max = pd.max();
             _metrics[it_index_cache->second.metric_id] =
                 &it_index_cache->second;
-            log_v2::perfdata()->debug("new metric with metric_id={}",
-                                      it_index_cache->second.metric_id);
+            _logger_storage->debug("new metric with metric_id={}",
+                                   it_index_cache->second.metric_id);
           }
         }
         if (need_metric_mapping)
@@ -410,8 +417,8 @@ void conflict_manager::_storage_process_service_status(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
-          log_v2::perfdata()->debug(
+              static_cast<common::perfdata::data_type>(pd.value_type()))};
+          _logger_storage->debug(
               "conflict_manager: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
@@ -435,7 +442,8 @@ void conflict_manager::_update_metrics() {
     m.emplace_back(fmt::format(
         "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric->metric_id,
         misc::string::escape(metric->unit_name,
-                             get_metrics_col_size(metrics_unit_name)),
+                             get_centreon_storage_metrics_col_size(
+                                 centreon_storage_metrics_unit_name)),
         std::isnan(metric->warn) || std::isinf(metric->warn)
             ? "NULL"
             : fmt::format("{}", metric->warn),
@@ -473,7 +481,7 @@ void conflict_manager::_update_metrics() {
       fmt::join(m, ",")));
   int32_t conn = _mysql.choose_best_connection(-1);
   _finish_action(-1, actions::metrics);
-  log_v2::sql()->trace("Send query: {}", query);
+  _logger_sql->trace("Send query: {}", query);
   _mysql.run_query(query, database::mysql_error::update_metrics, conn);
   _add_action(conn, actions::metrics);
   _metrics.clear();
@@ -528,7 +536,7 @@ void conflict_manager::_insert_perfdatas() {
     _mysql.run_query(query.str(), database::mysql_error::insert_data);
 
     //_update_status("");
-    log_v2::sql()->info("storage: {} perfdata inserted in data_bin", count);
+    _logger_sql->info("storage: {} perfdata inserted in data_bin", count);
   }
 }
 
@@ -537,7 +545,7 @@ void conflict_manager::_insert_perfdatas() {
  */
 void conflict_manager::_check_deleted_index() {
   // Info.
-  log_v2::sql()->info("storage: starting DB cleanup");
+  _logger_sql->info("storage: starting DB cleanup");
   uint32_t deleted_index(0);
   uint32_t deleted_metrics(0);
 
@@ -594,7 +602,7 @@ void conflict_manager::_check_deleted_index() {
       multiplexing::publisher().write(rg);
 
       _metrics.erase(i);
-      log_v2::perfdata()->debug("metrics erasing metric_id = {}", i);
+      _logger_storage->debug("metrics erasing metric_id = {}", i);
       deleted_metrics++;
     }
 
@@ -613,7 +621,7 @@ void conflict_manager::_check_deleted_index() {
   }
 
   // End.
-  log_v2::perfdata()->info(
+  _logger_storage->info(
       "storage: end of DB cleanup: {} metrics and {} indices removed",
       deleted_metrics, deleted_index);
 }

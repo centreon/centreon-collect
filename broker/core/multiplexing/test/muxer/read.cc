@@ -22,10 +22,9 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 using namespace com::centreon::broker;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
 
 class MultiplexingMuxerRead : public ::testing::Test {
  protected:
@@ -34,7 +33,6 @@ class MultiplexingMuxerRead : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      g_io_context->restart();
       config::applier::init(0, "test_broker", 0);
       stats::center::load();
     } catch (std::exception const& e) {
@@ -49,8 +47,9 @@ class MultiplexingMuxerRead : public ::testing::Test {
   }
 
   void setup(std::string const& name) {
-    multiplexing::muxer::filters f{io::raw::static_type()};
-    _m = multiplexing::muxer::create(name, f, f, false);
+    multiplexing::muxer_filter f{io::raw::static_type()};
+    _m = multiplexing::muxer::create(name, multiplexing::engine::instance_ptr(),
+                                     f, f, false);
   }
 
   void publish_events(int count = 10000) {

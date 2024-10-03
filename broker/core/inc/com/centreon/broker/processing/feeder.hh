@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2012, 2020-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2012, 2020-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_PROCESSING_FEEDER_HH
 #define CCB_PROCESSING_FEEDER_HH
@@ -39,6 +39,7 @@ namespace processing {
  *  Take events from a source and send them to a destination.
  */
 class feeder : public stat_visitable,
+               public multiplexing::muxer::data_handler,
                public std::enable_shared_from_this<feeder> {
   enum class state : unsigned { running, finished };
   // Condition variable used when waiting for the thread to finish
@@ -54,6 +55,7 @@ class feeder : public stat_visitable,
   std::shared_ptr<asio::io_context> _io_context;
 
   mutable std::timed_mutex _protect;
+  std::shared_ptr<spdlog::logger> _logger;
 
  protected:
   feeder(const std::string& name,
@@ -61,6 +63,8 @@ class feeder : public stat_visitable,
          std::shared_ptr<io::stream>& client,
          const multiplexing::muxer_filter& read_filters,
          const multiplexing::muxer_filter& write_filters);
+
+  void init();
 
   const std::string& _get_read_filters() const override;
   const std::string& _get_write_filters() const override;
@@ -73,13 +77,9 @@ class feeder : public stat_visitable,
   void _start_read_from_stream_timer();
   void _read_from_stream_timer_handler(const boost::system::error_code& err);
 
-  void _read_from_muxer();
-  unsigned _write_to_client(
-      const std::vector<std::shared_ptr<io::data>>& events);
-
   void _stop_no_lock();
 
-  void _ack_event_to_muxer(unsigned count) noexcept;
+  void _ack_events_on_muxer(uint32_t count) noexcept;
 
  public:
   static std::shared_ptr<feeder> create(
@@ -98,9 +98,12 @@ class feeder : public stat_visitable,
   bool is_finished() const noexcept;
 
   bool wait_for_all_events_written(unsigned ms_timeout);
+
+  uint32_t on_events(
+      const std::vector<std::shared_ptr<io::data>>& events) override;
 };
 }  // namespace processing
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PROCESSING_FEEDER_HH

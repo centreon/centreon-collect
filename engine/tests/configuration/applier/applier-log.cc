@@ -18,10 +18,10 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/configuration/applier/hostescalation.hh>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <fstream>
-
+#include "com/centreon/engine/configuration/applier/hostescalation.hh"
+#include "common/engine_legacy_conf/parser.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -39,6 +39,7 @@ class ApplierLog : public ::testing::Test {
 TEST_F(ApplierLog, logV2Enabled) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_v2_enabled(), true);
 
@@ -48,7 +49,7 @@ TEST_F(ApplierLog, logV2Enabled) {
   ofs << "log_v2_enabled=0" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.log_v2_enabled(), false);
@@ -57,6 +58,7 @@ TEST_F(ApplierLog, logV2Enabled) {
 TEST_F(ApplierLog, logLegacyEnabled) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_legacy_enabled(), true);
 
@@ -66,13 +68,14 @@ TEST_F(ApplierLog, logLegacyEnabled) {
   ofs << "log_legacy_enabled=0" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.log_legacy_enabled(), false);
 }
 
 TEST_F(ApplierLog, logV2Logger) {
+  configuration::error_cnt err;
   configuration::parser parser;
   configuration::state st;
 
@@ -84,13 +87,14 @@ TEST_F(ApplierLog, logV2Logger) {
   ofs << "log_v2_logger=syslog" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.log_v2_logger(), "syslog");
 }
 
 TEST_F(ApplierLog, logLevelFunctions) {
+  configuration::error_cnt err;
   configuration::parser parser;
   configuration::state st;
 
@@ -102,7 +106,7 @@ TEST_F(ApplierLog, logLevelFunctions) {
   ofs << "log_level_functions=trace" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_functions(), "trace");
 
@@ -110,13 +114,14 @@ TEST_F(ApplierLog, logLevelFunctions) {
   ofs << "log_level_functions=tracerrrr" << std::endl;
   ofs.close();
 
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
 }
 
 TEST_F(ApplierLog, logLevelConfig) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_config(), "info");
 
@@ -126,7 +131,7 @@ TEST_F(ApplierLog, logLevelConfig) {
   ofs << "log_level_config=debug" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_config(), "debug");
 
@@ -134,7 +139,7 @@ TEST_F(ApplierLog, logLevelConfig) {
   ofs << "log_level_config=tracerrrr" << std::endl;
   ofs.close();
 
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
 
   // testing::internal::CaptureStdout();
@@ -151,6 +156,7 @@ TEST_F(ApplierLog, logLevelConfig) {
 }
 
 TEST_F(ApplierLog, logLevelEvents) {
+  configuration::error_cnt err;
   configuration::parser parser;
   configuration::state st;
 
@@ -162,14 +168,14 @@ TEST_F(ApplierLog, logLevelEvents) {
   ofs << "log_level_events=warning" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_events(), "warning");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_events=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -187,6 +193,7 @@ TEST_F(ApplierLog, logLevelEvents) {
 TEST_F(ApplierLog, logLevelChecks) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_checks(), "info");
 
@@ -196,14 +203,14 @@ TEST_F(ApplierLog, logLevelChecks) {
   ofs << "log_level_checks=error" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_checks(), "error");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_checks=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -221,6 +228,7 @@ TEST_F(ApplierLog, logLevelChecks) {
 TEST_F(ApplierLog, logLevelNotifications) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_notifications(), "error");
 
@@ -230,14 +238,14 @@ TEST_F(ApplierLog, logLevelNotifications) {
   ofs << "log_level_notifications=off" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_notifications(), "off");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_notifications=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -255,6 +263,7 @@ TEST_F(ApplierLog, logLevelNotifications) {
 TEST_F(ApplierLog, logLevelEventBroker) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_eventbroker(), "error");
 
@@ -264,14 +273,14 @@ TEST_F(ApplierLog, logLevelEventBroker) {
   ofs << "log_level_eventbroker=critical" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_eventbroker(), "critical");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_eventbroker=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -289,6 +298,7 @@ TEST_F(ApplierLog, logLevelEventBroker) {
 TEST_F(ApplierLog, logLevelExternalCommand) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_external_command(), "error");
 
@@ -298,14 +308,14 @@ TEST_F(ApplierLog, logLevelExternalCommand) {
   ofs << "log_level_external_command=trace" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_external_command(), "trace");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_external_command=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -323,6 +333,7 @@ TEST_F(ApplierLog, logLevelExternalCommand) {
 TEST_F(ApplierLog, logLevelCommands) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_commands(), "error");
 
@@ -332,14 +343,14 @@ TEST_F(ApplierLog, logLevelCommands) {
   ofs << "log_level_commands=debug" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_commands(), "debug");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_commands=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -357,6 +368,7 @@ TEST_F(ApplierLog, logLevelCommands) {
 TEST_F(ApplierLog, logLevelDowntimes) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_downtimes(), "error");
 
@@ -366,14 +378,14 @@ TEST_F(ApplierLog, logLevelDowntimes) {
   ofs << "log_level_downtimes=warning" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_downtimes(), "warning");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_downtimes=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -391,6 +403,7 @@ TEST_F(ApplierLog, logLevelDowntimes) {
 TEST_F(ApplierLog, logLevelComments) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_comments(), "error");
 
@@ -400,14 +413,14 @@ TEST_F(ApplierLog, logLevelComments) {
   ofs << "log_level_comments=error" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_comments(), "error");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_comments=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -425,6 +438,7 @@ TEST_F(ApplierLog, logLevelComments) {
 TEST_F(ApplierLog, logLevelMacros) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_macros(), "error");
 
@@ -434,14 +448,14 @@ TEST_F(ApplierLog, logLevelMacros) {
   ofs << "log_level_macros=critical" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_macros(), "critical");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_macros=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -459,6 +473,7 @@ TEST_F(ApplierLog, logLevelMacros) {
 TEST_F(ApplierLog, logLevelProcess) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_process(), "info");
 
@@ -468,14 +483,14 @@ TEST_F(ApplierLog, logLevelProcess) {
   ofs << "log_level_process=off" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_process(), "off");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_process=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -493,6 +508,7 @@ TEST_F(ApplierLog, logLevelProcess) {
 TEST_F(ApplierLog, logLevelRuntime) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_level_runtime(), "error");
 
@@ -502,14 +518,14 @@ TEST_F(ApplierLog, logLevelRuntime) {
   ofs << "log_level_runtime=off" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
 
   ASSERT_EQ(st.log_level_runtime(), "off");
 
   ofs.open("/tmp/test-config.cfg");
   ofs << "log_level_runtime=tracerrrr" << std::endl;
   ofs.close();
-  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st), std::exception);
+  ASSERT_THROW(parser.parse("/tmp/test-config.cfg", st, err), std::exception);
   std::remove("/tmp/test-config.cfg");
   // testing::internal::CaptureStdout();
   // parser.parse("/tmp/test-config.cfg", st);
@@ -527,6 +543,7 @@ TEST_F(ApplierLog, logLevelRuntime) {
 TEST_F(ApplierLog, logFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   ASSERT_EQ(st.log_file(), DEFAULT_LOG_FILE);
 
@@ -536,7 +553,7 @@ TEST_F(ApplierLog, logFile) {
   ofs << "log_file=/tmp/centengine.log" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
+  parser.parse("/tmp/test-config.cfg", st, err);
   std::remove("/tmp/test-config.cfg");
 
   ASSERT_EQ(st.log_file(), "/tmp/centengine.log");

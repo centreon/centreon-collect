@@ -1,23 +1,23 @@
-/*
-** Copyright 2002-2006 Ethan Galstad
-** Copyright 2011-2013 Merethis
-** Copyright 2018-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2002-2006 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2018-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
@@ -425,8 +425,8 @@ int broker_contact_notification_method_data(
 void broker_contact_status(int type, com::centreon::engine::contact* cntct);
 void broker_custom_variable(int type,
                             void* data,
-                            char const* varname,
-                            char const* varvalue,
+                            std::string_view&& varname,
+                            std::string_view&& varvalue,
                             struct timeval const* timestamp);
 void broker_downtime_data(int type,
                           int attr,

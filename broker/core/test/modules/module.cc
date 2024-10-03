@@ -21,16 +21,19 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-
-extern std::shared_ptr<asio::io_context> g_io_context;
+using com::centreon::common::log_v2::log_v2;
 
 class Modules : public testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   void SetUp() override {
-    g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
+    _logger = log_v2::instance().get(log_v2::CORE);
   }
 
   void TearDown() override { config::applier::deinit(); }
@@ -40,13 +43,13 @@ class Modules : public testing::Test {
  *  Verify that the module version checks work.
  */
 TEST_F(Modules, loadNoVersion) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   ASSERT_FALSE(modules.load_file(CENTREON_BROKER_TEST_MODULE_PATH
                                  "./libnull_module.so"));
 }
 
 TEST_F(Modules, loadBadVersion) {
-  config::applier::modules modules;
+  config::applier::modules modules(_logger);
   ASSERT_FALSE(modules.load_file(CENTREON_BROKER_TEST_MODULE_PATH
                                  "./libbad_version_module.so"));
 }

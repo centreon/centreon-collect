@@ -1,21 +1,22 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
@@ -23,7 +24,6 @@
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -44,13 +44,13 @@ timeperiod_map timeperiod::timeperiods;
  *  @param[in] alias Time period alias.
  *
  */
-
+#ifdef LEGACY_CONF
 timeperiod::timeperiod(std::string const& name, std::string const& alias)
     : _name{name}, _alias{alias} {
   if (name.empty() || alias.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Name or alias for timeperiod is NULL";
-    log_v2::config()->error("Error: Name or alias for timeperiod is NULL");
+    config_logger->error("Error: Name or alias for timeperiod is NULL");
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 
@@ -59,11 +59,99 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (it != timeperiod::timeperiods.end()) {
     engine_logger(log_config_error, basic)
         << "Error: Timeperiod '" << name << "' has already been defined";
-    log_v2::config()->error("Error: Timeperiod '{}' has already been defined",
-                            name);
+    config_logger->error("Error: Timeperiod '{}' has already been defined",
+                         name);
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 }
+#else
+/**
+ * @brief Constructor of a timeperiod from its configuration protobuf object.
+ *
+ * @param obj The configuration protobuf object.
+ */
+timeperiod::timeperiod(const configuration::Timeperiod& obj)
+    : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
+  if (_name.empty() || _alias.empty()) {
+    engine_logger(log_config_error, basic)
+        << "Error: Name or alias for timeperiod is NULL";
+    config_logger->error("Error: Name or alias for timeperiod is NULL");
+    throw engine_error() << "Could not register time period '" << _name << "'";
+  }
+
+  // Check if the timeperiod already exist.
+  timeperiod_map::const_iterator it{timeperiod::timeperiods.find(_name)};
+  if (it != timeperiod::timeperiods.end()) {
+    config_logger->error("Error: Timeperiod '{}' has already been defined",
+                         _name);
+    throw engine_error() << "Could not register time period '" << _name << "'";
+  }
+
+  // Fill time period structure.
+  for (auto& r : obj.timeranges().sunday())
+    days[0].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().monday())
+    days[1].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().tuesday())
+    days[2].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().wednesday())
+    days[3].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().thursday())
+    days[4].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().friday())
+    days[5].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : obj.timeranges().saturday())
+    days[6].emplace_back(r.range_start(), r.range_end());
+
+  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
+    for (auto& r : obj_daterange) {
+      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
+                                   r.syear(), r.smon(), r.smday(), r.swday(),
+                                   r.swday_offset(), r.eyear(), r.emon(),
+                                   r.emday(), r.ewday(), r.ewday_offset(),
+                                   r.skip_interval(), r.timerange());
+    }
+  };
+
+  fill_exceptions(obj.exceptions().calendar_date(), 0);
+  fill_exceptions(obj.exceptions().month_date(), 1);
+  fill_exceptions(obj.exceptions().month_day(), 2);
+  fill_exceptions(obj.exceptions().month_week_day(), 3);
+  fill_exceptions(obj.exceptions().week_day(), 4);
+
+  set_exclusions(obj.exclude());
+}
+
+void timeperiod::set_exclusions(const configuration::StringSet& exclusions) {
+  _exclusions.clear();
+  for (auto& s : exclusions.data())
+    _exclusions.emplace(s, nullptr);
+}
+
+void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
+  for (auto& e : exceptions)
+    e.clear();
+
+  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
+    for (auto& r : obj_daterange) {
+      //      std::list<timerange> tr;
+      //      for (auto& t : r.timerange())
+      //        tr.emplace_back(t.range_start(), t.range_end());
+      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
+                                   r.syear(), r.smon(), r.smday(), r.swday(),
+                                   r.swday_offset(), r.eyear(), r.emon(),
+                                   r.emday(), r.ewday(), r.ewday_offset(),
+                                   r.skip_interval(), r.timerange());
+    }
+  };
+
+  fill_exceptions(array.calendar_date(), 0);
+  fill_exceptions(array.month_date(), 1);
+  fill_exceptions(array.month_day(), 2);
+  fill_exceptions(array.month_week_day(), 3);
+  fill_exceptions(array.week_day(), 4);
+}
+#endif
 
 void timeperiod::set_name(std::string const& name) {
   _name = name;
@@ -85,7 +173,7 @@ bool timeperiod::operator==(timeperiod const& obj) noexcept {
   if (_name == obj._name && _alias == obj._alias &&
       (_exclusions.size() == obj._exclusions.size() &&
        std::equal(_exclusions.begin(), _exclusions.end(),
-                  obj._exclusions.begin()))) {
+                  obj._exclusions.begin(), obj._exclusions.end()))) {
     for (uint32_t i{0}; i < exceptions.size(); ++i)
       if (exceptions[i] != obj.exceptions[i])
         return false;
@@ -107,41 +195,6 @@ bool timeperiod::operator==(timeperiod const& obj) noexcept {
  */
 bool timeperiod::operator!=(timeperiod const& obj) noexcept {
   return !(*this == obj);
-}
-
-/**
- *  Dump timeperiod content into the stream.
- *
- *  @param[out] os  The output stream.
- *  @param[in]  obj The timeperiod to dump.
- *
- *  @return The output stream.
- */
-std::ostream& operator<<(std::ostream& os, timeperiod const& obj) {
-  os << "timeperiod {\n"
-     << "  name:  " << obj.get_name() << "\n"
-     << "  alias: " << obj.get_alias() << "\n"
-     << "  exclusions: " << obj.get_exclusions() << "\n";
-
-  for (uint32_t i = 0; i < obj.days.size(); ++i)
-    if (!obj.days[i].empty())
-      os << "  " << daterange::get_weekday_name(i) << ": " << obj.days[i]
-         << "\n";
-
-  for (uint32_t i = 0; i < obj.exceptions.size(); ++i)
-    for (daterange_list::const_iterator it(obj.exceptions[i].begin()),
-         end(obj.exceptions[i].end());
-         it != end; ++it)
-      os << "  " << *it << "\n";
-  os << "}\n";
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, timeperiodexclusion const& obj) {
-  for (timeperiodexclusion::const_iterator it(obj.begin()), end(obj.end());
-       it != end; ++it)
-    os << it->first << (std::next(it) != obj.end() ? ", " : "");
-  return os;
 }
 
 /**
@@ -755,7 +808,7 @@ static bool _timerange_to_time_t(const timerange& trange,
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "check_time_against_period()";
-  log_v2::functions()->trace("check_time_against_period()");
+  functions_logger->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -765,8 +818,8 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   time_t next_valid_time{(time_t)-1};
   tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
                                               false);
-  log_v2::functions()->trace("check_time_against_period {} ret={}",
-                             tperiod->get_name(), next_valid_time == test_time);
+  functions_logger->trace("check_time_against_period {} ret={}",
+                          tperiod->get_name(), next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
@@ -784,7 +837,7 @@ bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic)
       << "check_time_against_period_for_notif()";
-  log_v2::functions()->trace("check_time_against_period_for_notif()");
+  functions_logger->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -810,7 +863,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       bool notif_timeperiod) {
   engine_logger(dbg_functions, basic)
       << "get_next_invalid_time_per_timeperiod()";
-  log_v2::functions()->trace("get_next_invalid_time_per_timeperiod()");
+  functions_logger->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in invalid_time at the end of the loop.
@@ -995,7 +1048,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time_per_timeperiod()";
-  log_v2::functions()->trace("get_next_valid_time_per_timeperiod()");
+  functions_logger->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1106,9 +1159,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   // Else use the calculated time.
   else
     *valid_time = earliest_time;
-  log_v2::functions()->trace(
-      "get_next_valid_time_per_timeperiod {} valid_time={}", _name,
-      *valid_time);
+  functions_logger->trace("get_next_valid_time_per_timeperiod {} valid_time={}",
+                          _name, *valid_time);
 }
 
 /**
@@ -1123,7 +1175,7 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time()";
-  log_v2::functions()->trace("get_next_valid_time()");
+  functions_logger->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time(std::max(pref_time, time(NULL)));
@@ -1150,15 +1202,15 @@ void get_next_valid_time(time_t pref_time,
  * @param e[out] Number of errors produced during this resolution.
  *
  */
-void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
-  int errors{0};
+void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
+  uint32_t errors = 0;
 
   // Check for illegal characters in timeperiod name.
   if (contains_illegal_object_chars(_name.c_str())) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of time period '" << _name
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: The name of time period '{}' contains one or more illegal "
         "characters.",
         _name);
@@ -1177,7 +1229,7 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
           << "Error: Excluded time period '" << it->first
           << "' specified in timeperiod '" << _name
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
           it->first, _name);
@@ -1194,3 +1246,25 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
     throw engine_error() << "Cannot resolve time period '" << _name << "'";
   }
 }
+
+#ifndef LEGACY_CONF
+void timeperiod::set_days(const configuration::DaysArray& array) {
+  for (auto& d : days)
+    d.clear();
+
+  for (auto& r : array.sunday())
+    days[0].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.monday())
+    days[1].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.tuesday())
+    days[2].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.wednesday())
+    days[3].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.thursday())
+    days[4].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.friday())
+    days[5].emplace_back(r.range_start(), r.range_end());
+  for (auto& r : array.saturday())
+    days[6].emplace_back(r.range_start(), r.range_end());
+}
+#endif

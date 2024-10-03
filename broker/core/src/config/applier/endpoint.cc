@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2012,2015,2017-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2015,2017-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 
@@ -24,7 +24,6 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
@@ -33,10 +32,13 @@
 #include "com/centreon/broker/processing/endpoint.hh"
 #include "com/centreon/broker/processing/failover.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 static config::applier::endpoint* gl_endpoint = nullptr;
@@ -45,7 +47,8 @@ static std::atomic_bool gl_loaded{false};
 /**
  * @brief Default constructor.
  */
-endpoint::endpoint() : _discarding{false} {}
+endpoint::endpoint()
+    : _discarding{false}, _logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Comparison classes.
@@ -99,15 +102,15 @@ endpoint::~endpoint() {
  */
 void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Log messages.
-  log_v2::config()->info("endpoint applier: loading configuration");
+  SPDLOG_LOGGER_INFO(_logger, "endpoint applier: loading configuration");
 
-  {
+  if (_logger->level() <= spdlog::level::debug) {
     std::vector<std::string> eps;
     for (auto& ep : endpoints)
       eps.push_back(ep.name);
-    log_v2::config()->debug("endpoint applier: {} endpoints to apply: {}",
-                            endpoints.size(),
-                            fmt::format("{}", fmt::join(eps, ", ")));
+    SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: {} endpoints to apply: {}",
+                        endpoints.size(),
+                        fmt::format("{}", fmt::join(eps, ", ")));
   }
 
   // Copy endpoint configurations and apply eventual modifications.
@@ -127,8 +130,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       // resources that might be used by other endpoints.
       auto it = _endpoints.find(ep);
       if (it != _endpoints.end()) {
-        log_v2::config()->debug("endpoint applier: removing old endpoint {}",
-                                it->first.name);
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "endpoint applier: removing old endpoint {}",
+                            it->first.name);
         /* failover::exit() is called. */
         it->second->exit();
         delete it->second;
@@ -139,14 +143,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
 
   // Update existing endpoints.
   for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it) {
-    log_v2::config()->debug("endpoint applier: updating endpoint {}",
-                            it->first.name);
+    SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: updating endpoint {}",
+                        it->first.name);
     it->second->update();
   }
 
   // Debug message.
-  log_v2::config()->debug("endpoint applier: {} endpoints to create",
-                          endp_to_create.size());
+  SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: {} endpoints to create",
+                      endp_to_create.size());
 
   // Create new endpoints.
   for (config::endpoint& ep : endp_to_create) {
@@ -155,8 +159,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
     if (ep.name.empty() ||
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
-      log_v2::config()->debug("endpoint applier: creating endpoint {}",
-                              ep.name);
+      SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: creating endpoint {}",
+                          ep.name);
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
@@ -173,13 +177,18 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
        * if broker sends data to map. This is needed because a failover needs
        * its peer to ack events to release them (and a failover is also able
        * to write data). */
-      multiplexing::muxer_filter r_filter = parse_filters(ep.read_filters);
-      multiplexing::muxer_filter w_filter = parse_filters(ep.write_filters);
+      multiplexing::muxer_filter r_filter =
+          parse_filters(ep.read_filters, e->get_stream_forbidden_filter());
+      multiplexing::muxer_filter w_filter =
+          parse_filters(ep.write_filters, e->get_stream_forbidden_filter());
       if (is_acceptor) {
+        w_filter -= e->get_stream_forbidden_filter();
+        r_filter -= e->get_stream_forbidden_filter();
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name, r_filter,
                                                    w_filter));
-        log_v2::config()->debug(
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
             "endpoint applier: acceptor '{}' configured with write filters: {} "
             "and read filters: {}",
             ep.name, w_filter.get_allowed_categories(),
@@ -187,23 +196,38 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
-        if (e->get_stream_mandatory_filter().is_in(w_filter)) {
-          w_filter = e->get_stream_mandatory_filter();
-          log_v2::config()->debug(
-              "endpoint applier: filters for endpoint '{}' reduced to the "
-              "needed ones: {}",
-              ep.name, misc::dump_filters(w_filter));
-        } else if (!e->get_stream_mandatory_filter().allows_all()) {
-          w_filter = e->get_stream_mandatory_filter();
-          log_v2::config()->error(
+
+        /* Are there missing events in the w_filter ? */
+        if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
+          w_filter |= e->get_stream_mandatory_filter();
+          SPDLOG_LOGGER_DEBUG(
+              _logger,
               "endpoint applier: The configured write filters for the endpoint "
-              "'{}' are too restrictive and will be ignored.{} categories are "
-              "mandatory.",
-              ep.name, w_filter.get_allowed_categories());
-        } else
-          log_v2::config()->debug(
-              "endpoint applier: filters {} for endpoint '{}' applied.",
-              w_filter.get_allowed_categories(), ep.name);
+              "'{}' are too restrictive. Mandatory categories added to them",
+              ep.name);
+        }
+        /* Are there events in w_filter that are forbidden ? */
+        if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+          w_filter -= e->get_stream_forbidden_filter();
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "endpoint applier: The configured write filters for the endpoint "
+              "'{}' contain forbidden filters. These ones are removed",
+              ep.name);
+        }
+
+        /* Are there events in r_filter that are forbidden ? */
+        if (r_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+          r_filter -= e->get_stream_forbidden_filter();
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "endpoint applier: The configured read filters for the endpoint "
+              "'{}' contain forbidden filters. These ones are removed",
+              ep.name);
+        }
+        SPDLOG_LOGGER_DEBUG(
+            _logger, "endpoint applier: filters {} for endpoint '{}' applied.",
+            w_filter.get_allowed_categories(), ep.name);
 
         auto mux = multiplexing::muxer::create(
             ep.name, multiplexing::engine::instance_ptr(), r_filter, w_filter,
@@ -216,7 +240,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       }
 
       // Run thread.
-      log_v2::config()->debug(
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
           "endpoint applier: endpoint thread {} of '{}' is registered and "
           "ready to run",
           static_cast<void*>(endp.get()), ep.name);
@@ -231,13 +256,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
  */
 void endpoint::_discard() {
   _discarding = true;
-  log_v2::config()->debug("endpoint applier: destruction");
+  SPDLOG_LOGGER_DEBUG(_logger, "endpoint applier: destruction");
 
   // wait for failover and feeder to push endloop event
   ::usleep(processing::idle_microsec_wait_idle_thread_delay + 100000);
   // Exit threads.
   {
-    log_v2::config()->debug("endpoint applier: requesting threads termination");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // Send termination requests.
@@ -245,8 +271,8 @@ void endpoint::_discard() {
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
       if (it->second->is_feeder()) {
         it->second->wait_for_all_events_written(5000);
-        log_v2::config()->trace(
-            "endpoint applier: send exit signal to endpoint '{}'",
+        SPDLOG_LOGGER_TRACE(
+            _logger, "endpoint applier: send exit signal to endpoint '{}'",
             it->second->get_name());
         delete it->second;
         it = _endpoints.erase(it);
@@ -257,20 +283,22 @@ void endpoint::_discard() {
 
   // Exit threads.
   {
-    log_v2::config()->debug("endpoint applier: requesting threads termination");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // We continue with failovers
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
       it->second->wait_for_all_events_written(5000);
-      log_v2::config()->trace(
-          "endpoint applier: send exit signal on endpoint '{}'",
-          it->second->get_name());
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "endpoint applier: send exit signal on endpoint '{}'",
+                          it->second->get_name());
       delete it->second;
       it = _endpoints.erase(it);
     }
 
-    log_v2::config()->debug("endpoint applier: all threads are terminated");
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "endpoint applier: all threads are terminated");
   }
 
   // Stop multiplexing: we must stop the engine after failovers otherwise
@@ -278,8 +306,7 @@ void endpoint::_discard() {
   try {
     multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
-    log_v2::config()->warn("multiplexing engine stop interrupted: {}",
-                           e.what());
+    _logger->warn("multiplexing engine stop interrupted: {}", e.what());
   }
 }
 
@@ -362,8 +389,8 @@ processing::failover* endpoint::_create_failover(
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
-  log_v2::config()->info("endpoint applier: creating new failover '{}'",
-                         cfg.name);
+  SPDLOG_LOGGER_INFO(_logger, "endpoint applier: creating new failover '{}'",
+                     cfg.name);
 
   // Check that failover is configured.
   std::shared_ptr<processing::failover> failovr;
@@ -372,7 +399,8 @@ processing::failover* endpoint::_create_failover(
     std::list<config::endpoint>::iterator it =
         std::find_if(l.begin(), l.end(), failover_match_name(front_failover));
     if (it == l.end())
-      log_v2::config()->error(
+      SPDLOG_LOGGER_ERROR(
+          _logger,
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
           front_failover, cfg.name);
     else {
@@ -401,7 +429,8 @@ processing::failover* endpoint::_create_failover(
         bool is_acceptor{false};
         std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
         if (is_acceptor) {
-          log_v2::config()->error(
+          SPDLOG_LOGGER_ERROR(
+              _logger,
               "endpoint applier: secondary failover '{}' is an acceptor and "
               "cannot therefore be instantiated for endpoint '{}'",
               *failover_it, cfg.name);
@@ -439,15 +468,21 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
       std::shared_ptr<persistent_cache> cache;
-      if (cfg.cache_enabled)
-        cache = std::make_shared<persistent_cache>(fmt::format(
-            "{}.cache.{}", config::applier::state::instance().cache_dir(),
-            cfg.name));
+      if (cfg.cache_enabled) {
+        log_v2::logger_id log_id = log_v2::instance().get_id(it->first);
+        if (log_id == log_v2::LOGGER_SIZE)
+          log_id = log_v2::CORE;
+        cache = std::make_shared<persistent_cache>(
+            fmt::format("{}.cache.{}",
+                        config::applier::state::instance().cache_dir(),
+                        cfg.name),
+            log_v2::instance().get(log_id));
+      }
 
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
-      log_v2::config()->info(" create endpoint {} for endpoint '{}'", it->first,
-                             cfg.name);
+      SPDLOG_LOGGER_INFO(_logger, " create endpoint {} for endpoint '{}'",
+                         it->first, cfg.name);
       level = it->second.osi_to + 1;
       break;
     }
@@ -468,8 +503,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
           (it->second.endpntfactry->has_endpoint(cfg, nullptr))) {
         std::shared_ptr<io::endpoint> current(
             it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
-        log_v2::config()->info(" create endpoint {} for endpoint '{}'",
-                               it->first, cfg.name);
+        SPDLOG_LOGGER_INFO(_logger, " create endpoint {} for endpoint '{}'",
+                           it->first, cfg.name);
         current->from(endp);
         endp = current;
         level = it->second.osi_to;
@@ -529,7 +564,8 @@ void endpoint::_diff_endpoints(
           list_it = std::find_if(new_ep.begin(), new_ep.end(),
                                  failover_match_name(failover));
           if (list_it == new_ep.end())
-            log_v2::config()->error(
+            SPDLOG_LOGGER_ERROR(
+                _logger,
                 "endpoint applier: could not find failover '{}' for endpoint "
                 "'{}'",
                 failover, entry.name);
@@ -554,14 +590,18 @@ void endpoint::_diff_endpoints(
  *  Create filters from a set of categories.
  *
  *  @param[in] cfg  Endpoint configuration.
+ *  @param[in] forbidden_filter  forbidden filter applied in case of default
+ * filter config
  *
  *  @return Filters.
  */
 multiplexing::muxer_filter endpoint::parse_filters(
-    const std::set<std::string>& str_filters) {
+    const std::set<std::string>& str_filters,
+    const multiplexing::muxer_filter& forbidden_filter) {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   multiplexing::muxer_filter elements({});
   std::forward_list<fmt::string_view> applied_filters;
-  auto fill_elements = [&elements](const std::string& str) -> bool {
+  auto fill_elements = [&elements, logger](const std::string& str) -> bool {
     bool retval = false;
     io::events::events_container const& tmp_elements(
         io::events::instance().get_matching_events(str));
@@ -569,8 +609,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
              it = tmp_elements.cbegin(),
              end = tmp_elements.cend();
          it != end; ++it) {
-      log_v2::config()->trace("endpoint applier: new filtering element: {}",
-                              it->first);
+      logger->trace("endpoint applier: new filtering element: {}", it->first);
       elements.insert(it->first);
       retval = true;
     }
@@ -579,6 +618,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
 
   if (str_filters.size() == 1 && *str_filters.begin() == "all") {
     elements = multiplexing::muxer_filter();
+    elements -= forbidden_filter;
     applied_filters.emplace_front("all");
   } else {
     for (auto& str : str_filters) {
@@ -586,19 +626,19 @@ multiplexing::muxer_filter endpoint::parse_filters(
       try {
         ok = fill_elements(str);
       } catch (const std::exception& e) {
-        log_v2::config()->error(
-            "endpoint applier: '{}' is not a known category: {}", str,
-            e.what());
+        logger->error("endpoint applier: '{}' is not a known category: {}", str,
+                      e.what());
       }
       if (ok)
         applied_filters.emplace_front(str);
     }
     if (applied_filters.empty() && !str_filters.empty()) {
       fill_elements("all");
+      elements -= forbidden_filter;
       applied_filters.emplace_front("all");
     }
   }
-  log_v2::config()->info("Filters applied on endpoint:{}",
-                         fmt::join(applied_filters, ", "));
+  SPDLOG_LOGGER_INFO(logger, "Filters applied on endpoint:{}",
+                     fmt::join(applied_filters, ", "));
   return elements;
 }

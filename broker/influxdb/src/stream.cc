@@ -1,32 +1,33 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -53,15 +54,22 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _cache(cache) {
-  _influx_db.reset(new influxdb(user, passwd, addr, port, db, status_ts,
-                                status_cols, metric_ts, metric_cols, _cache));
+      _cache(cache),
+      _logger{cache ? cache->logger()
+                    : log_v2::instance().get(log_v2::INFLUXDB)},
+      _influx_db{std::make_unique<influxdb>(user,
+                                            passwd,
+                                            addr,
+                                            port,
+                                            db,
+                                            status_ts,
+                                            status_cols,
+                                            metric_ts,
+                                            metric_cols,
+                                            _cache,
+                                            _logger)} {
+  _logger->trace("influxdb::stream constructor {}", static_cast<void*>(this));
 }
-
-/**
- *  Destructor.
- */
-stream::~stream() {}
 
 /**
  *  Flush the stream.
@@ -69,7 +77,7 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  log_v2::influxdb()->debug("influxdb: commiting {} queries", _actual_query);
+  _logger->debug("influxdb: commiting {} queries", _actual_query);
   int ret(_pending_queries);
   _actual_query = 0;
   _pending_queries = 0;
@@ -84,9 +92,9 @@ int32_t stream::flush() {
  * @return Number of acknowledged events.
  */
 int32_t stream::stop() {
+  _logger->trace("influxdb::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
-  log_v2::core()->info("influxdb stream stopped with {} acknowledged events",
-                       retval);
+  _logger->info("influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }
 

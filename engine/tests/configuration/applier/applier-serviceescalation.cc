@@ -74,6 +74,42 @@ TEST_F(ApplierServiceEscalation, AddEscalation) {
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 }
 
+TEST_F(ApplierServiceEscalation, ResolveObject) {
+  configuration::error_cnt err;
+  configuration::applier::host hst_aply;
+  configuration::host hst;
+  ASSERT_TRUE(hst.parse("host_name", "test_host"));
+  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 1u);
+
+  configuration::applier::command cmd_aply;
+  configuration::command cmd;
+  cmd.parse("command_name", "cmd");
+  cmd.parse("command_line", "echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::service svc;
+  ASSERT_TRUE(svc.parse("host", "test_host"));
+  ASSERT_TRUE(svc.parse("service_description", "test_svc"));
+  ASSERT_TRUE(svc.parse("service_id", "12"));
+  ASSERT_TRUE(svc.parse("check_command", "cmd"));
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 1u);
+
+  configuration::applier::serviceescalation se_apply;
+  configuration::serviceescalation se;
+  ASSERT_TRUE(se.parse("host", "test_host"));
+  ASSERT_TRUE(se.parse("service_description", "test_svc"));
+  ASSERT_TRUE(se.parse("first_notification", "4"));
+  ASSERT_THROW(se_apply.resolve_object(se, err), std::exception);
+  se_apply.add_object(se);
+  ASSERT_NO_THROW(se_apply.resolve_object(se, err));
+}
+
 TEST_F(ApplierServiceEscalation, RemoveEscalation) {
   configuration::applier::host hst_aply;
   configuration::host hst;

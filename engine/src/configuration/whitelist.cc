@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  *
  */
-
 #define C4_NO_DEBUG_BREAK 1
 
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -30,13 +29,14 @@
 #include <ryml/ryml.hpp>
 
 #include "absl/base/call_once.h"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine::configuration {
 
@@ -52,7 +52,7 @@ const std::string command_blacklist_output(
  * by default on error rapidyaml call abort so this handler
  */
 void on_rapidyaml_error(const char* buff,
-                        size_t length,
+                        size_t length [[maybe_unused]],
                         ryml::Location loc,
                         void*) {
   throw msg_fmt("fail to parse {} at line {}: {}", loc.name.data(), loc.line,
@@ -84,7 +84,8 @@ static std::atomic_uint _instance_gen(1);
  * @param file_path
  */
 whitelist::whitelist(const std::string_view& file_path)
-    : _instance_id(_instance_gen.fetch_add(1)) {
+    : _logger{log_v2::instance().get(log_v2::CONFIG)},
+      _instance_id(_instance_gen.fetch_add(1)) {
   init_ryml_error_handler();
   _parse_file(file_path);
 }
@@ -98,16 +99,15 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
   // check file
   struct stat infos;
   if (::stat(file_path.data(), &infos)) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} doesn't exist", file_path);
+    SPDLOG_LOGGER_ERROR(_logger, "{} doesn't exist", file_path);
     return false;
   }
   if ((infos.st_mode & S_IFMT) != S_IFREG) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a regular file",
-                        file_path);
+    SPDLOG_LOGGER_ERROR(_logger, "{} is not a regular file", file_path);
     return false;
   }
   if (!infos.st_size) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is an empty file", file_path);
+    SPDLOG_LOGGER_ERROR(_logger, "{} is an empty file", file_path);
     return false;
   }
 
@@ -115,13 +115,12 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
 
   if (centengine_group) {
     if (infos.st_uid || infos.st_gid != centengine_group->gr_gid) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "file {} must be owned by root@centreon-engine",
-                          file_path);
+      SPDLOG_LOGGER_ERROR(
+          _logger, "file {} must be owned by root@centreon-engine", file_path);
     }
   }
   if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "file {} must have x40 right access",
+    SPDLOG_LOGGER_ERROR(_logger, "file {} must have x40 right access",
                         file_path);
   }
 
@@ -135,14 +134,13 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
       std::streamsize some_read =
           f.readsome(buff.get() + read, file_size - read);
       if (some_read < 0) {
-        SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}");
+        SPDLOG_LOGGER_ERROR(_logger, "fail to read {}: {}");
         return false;
       }
       read += some_read;
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}", file_path,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "fail to read {}: {}", file_path, e.what());
     return false;
   }
   // parse file content
@@ -151,8 +149,7 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
     ryml::Tree tree = ryml::parse_in_place(ryml::substr(buff.get(), file_size));
     return _read_file_content(tree);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse {}: {}", file_path,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(_logger, "fail to parse {}: {}", file_path, e.what());
     return false;
   }
 }
@@ -171,12 +168,12 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
   bool ret = false;
   if (wildcards.valid() && !wildcards.empty()) {
     if (!wildcards.is_seq()) {  // not an array => error
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: wildcard is not a sequence");
+      SPDLOG_LOGGER_ERROR(_logger, "{}: wildcard is not a sequence");
     } else {
       for (auto wildcard : wildcards) {
         auto value = wildcard.val();
         std::string_view str_value(value.data(), value.size());
-        SPDLOG_LOGGER_INFO(log_v2::config(), "wildcard '{}' added to whitelist",
+        SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
                            str_value);
         _wildcards.emplace_back(str_value);
         ret = true;
@@ -185,7 +182,7 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
   }
   if (regexps.valid() && !regexps.empty()) {
     if (!regexps.is_seq()) {  // not an array => error
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: regex is not a sequence");
+      SPDLOG_LOGGER_ERROR(_logger, "{}: regex is not a sequence");
     } else {
       for (auto re : regexps) {
         auto value = re.val();
@@ -194,14 +191,14 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
             std::make_unique<re2::RE2>(str_value);
         if (to_push_back->error_code() ==
             re2::RE2::ErrorCode::NoError) {  // success compile regex
-          SPDLOG_LOGGER_INFO(log_v2::config(), "regexp '{}' added to whitelist",
+          SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
                              str_value);
           _regex.push_back(std::move(to_push_back));
           ret = true;
         } else {  // bad regex
           SPDLOG_LOGGER_ERROR(
-              log_v2::config(), "fail to parse regex {}: error: {} at {} ",
-              str_value, to_push_back->error(), to_push_back->error_arg());
+              _logger, "fail to parse regex {}: error: {} at {} ", str_value,
+              to_push_back->error(), to_push_back->error_arg());
         }
       }
     }
@@ -259,8 +256,8 @@ whitelist::e_refresh_result whitelist::parse_dir(
     return e_refresh_result::no_directory;
   }
   if ((dir_infos.st_mode & S_IFMT) != S_IFDIR) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory: {}",
-                        directory, dir_infos.st_mode);
+    SPDLOG_LOGGER_ERROR(_logger, "{} is not a directory: {}", directory,
+                        dir_infos.st_mode);
     return e_refresh_result::no_directory;
   }
 
@@ -268,7 +265,7 @@ whitelist::e_refresh_result whitelist::parse_dir(
 
   if (centengine_group) {
     if (dir_infos.st_uid || dir_infos.st_gid != centengine_group->gr_gid) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
+      SPDLOG_LOGGER_ERROR(_logger,
                           "directory {} must be owned by root@centreon-engine",
                           directory);
     }
@@ -276,8 +273,8 @@ whitelist::e_refresh_result whitelist::parse_dir(
 
   if (dir_infos.st_mode & S_IRWXO ||
       (dir_infos.st_mode & S_IRWXG) != S_IRGRP + S_IXGRP) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "directory {} must have 750 right access", directory);
+    SPDLOG_LOGGER_ERROR(_logger, "directory {} must have 750 right access",
+                        directory);
   }
 
   e_refresh_result res = e_refresh_result::empty_directory;
@@ -304,6 +301,7 @@ whitelist& whitelist::instance() {
 
 void whitelist::reload() {
   static constexpr std::string_view directories[] = {
-      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"};
+      "/etc/centreon-engine-whitelist",
+      "/usr/share/centreon-engine/whitelist.conf.d"};
   _instance = std::make_unique<whitelist>(directories, directories + 2);
 }

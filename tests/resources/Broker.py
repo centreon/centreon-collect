@@ -1,7 +1,27 @@
+#!/usr/bin/python3
+#
+# Copyright 2023-2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
+
 import signal
 from os import setsid
 from os import makedirs
 from os.path import exists
+import datetime
 import pymysql.cursors
 import time
 import re
@@ -1039,13 +1059,45 @@ def ctn_broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_broker_config_remove_output(name, output):
+    """
+    Remove an output from the broker configuration
+
+    Args:
+        name: The broker instance name among central, rrd and module%d
+        output: The output to remove.
+
+    *Example:*
+
+    | Ctn Broker Config Remove Output | central | unified_sql |
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name == 'rrd':
+        filename = "central-rrd.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == output:
+            output_dict.pop(i)
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration
 
     Args:
         name: The broker instance name among central, rrd and module%d
-        key: The key to remove. It must be defined at the first level of the configuration.
+        key: The key to remove. It must be defined from the "centreonBroker" level.
+        We can define several levels by splitting them with a colon.
 
     *Example:*
 
@@ -1061,7 +1113,14 @@ def ctn_broker_config_remove_item(name, key):
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
-    conf["centreonBroker"].pop(key)
+    cc = conf["centreonBroker"]
+    if ":" in key:
+        steps = key.split(':')
+        for s in steps[:-1]:
+            cc = cc[s]
+        key = steps[-1]
+
+    cc.pop(key)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -1603,6 +1662,41 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     return False
 
 
+def ctn_get_service_index(host_id: int, service_id: int, timeout: int = 60):
+    """
+    Try to get the index data of a service.
+
+    Args:
+        host_id (int): The ID of the host.
+        service_id (int): The ID of the service.
+
+    Returns:
+        An integer representing the index data.
+    """
+    select_request = f"SELECT id FROM index_data WHERE host_id={host_id} AND service_id={service_id}"
+    limit = time.time() + timeout
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                my_id = [r['id'] for r in result]
+                if len(my_id) > 0:
+                    logger.console(
+                            f"Index data {id} found for service {host_id}:{service_id}")
+                    return my_id[0]
+                time.sleep(2)
+    logger.console(f"no index data found for service {host_id}:{service_id}")
+    return None
+
+
 def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
     """
     Try to get the metric IDs of a service.
@@ -1913,7 +2007,7 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
          A list of indexes.
     """
     files = [os.path.basename(x) for x in glob.glob(
-        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/status/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
@@ -1923,47 +2017,66 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                                  database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
-    retval = []
+    retval = set()
     with connection:
         with connection.cursor() as cursor:
             # Read a single record
-            sql = "SELECT `metric_id`,`index_id` FROM `metrics`"
+            sql = "SELECT `metric_id`,`index_id` FROM `metrics` ORDER BY index_id"
             cursor.execute(sql)
             result = cursor.fetchall()
+            last_index = 0
             for r in result:
-                if int(r['metric_id']) in ids:
-                    index_id = int(r['index_id'])
-                    logger.console(
-                        "building data for metric {} index_id {}".format(r['metric_id'], index_id))
-                    # We go back to 180 days with steps of 5 mn
-                    start = int(time.time() / 86400) * 86400 - \
-                        24 * 60 * 60 * nb_day
-                    value = int(r['metric_id']) // 2
-                    status_value = index_id % 3
-                    cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
-                        r['metric_id'], start))
-                    # We set the value to a constant on 180 days
-                    for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
-                        cursor.execute(
-                            "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                                r['metric_id'], start + i, value, status_value))
-                    connection.commit()
-                    retval.append(index_id)
+                index_id = int(r['index_id'])
 
-                if len(retval) == count:
+                if index_id not in ids:
+                    continue
+
+                # We must rebuild all the metrics of a given index.
+                if last_index != index_id and len(retval) == count:
                     return retval
+
+                logger.console(
+                    f"building data for metric {r['metric_id']} index_id {index_id}")
+                # We go back to 180 days with steps of 5 mn
+                now = datetime.datetime.now()
+                dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                start = dt - datetime.timedelta(days=nb_day)
+                start = int(start.timestamp())
+                logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
+                value = int(r['metric_id']) // 2
+                status_value = index_id % 3
+                cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
+                    r['metric_id'], start))
+                # We set the value to a constant on 180 days
+                now = int(now.timestamp())
+                logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                for i in range(start, now, 60 * 5):
+                    if i == start:
+                        logger.console(
+                            "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                                r['metric_id'], i, value, status_value))
+                    cursor.execute(
+                        "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                            r['metric_id'], i, value, status_value))
+                connection.commit()
+                retval.add(index_id)
+
+                last_index = index_id
 
     # if the loop is already and retval length is not sufficiently long, we
     # still return what we get.
     return retval
 
 
-def ctn_add_duplicate_metrics():
+def ctn_add_duplicate_metrics(metric_ids):
     """
-    Add a value at the middle of the first day of each metric
+    Add a value at the middle of the last day of each metric in the provided list.
+
+    Args:
+        metric_ids: A list of metric IDs.
 
     Returns:
-        A list of indexes of pair <time of oldest value>, <metric id>
+        A list of pairs <time,metric id> corresponding to the inserted rows.
     """
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -1974,32 +2087,35 @@ def ctn_add_duplicate_metrics():
     retval = []
     with connection:
         with connection.cursor() as cursor:
-            sql = "SELECT * FROM(SELECT  min(ctime) AS ctime, count(*) AS nb, id_metric FROM data_bin GROUP BY id_metric) s WHERE nb > 100"
-            cursor.execute(sql)
+            ids_str = ",".join(map(str, metric_ids))
+            query = f"SELECT id_metric, ctime FROM data_bin WHERE id_metric IN ({ids_str}) AND ctime > UNIX_TIMESTAMP(CURRENT_TIMESTAMP()) - 43200 ORDER BY ctime limit {len(metric_ids)}"
+            logger.console(query)
+            cursor.execute(query)
             result = cursor.fetchall()
             for metric_info in result:
                 # insert a duplicate value at the mid of the day
-                low_limit = metric_info['ctime'] + 43200 - 60
-                upper_limit = metric_info['ctime'] + 43200 + 60
+                id_metric = metric_info['id_metric']
+                ctime = metric_info['ctime']
                 cursor.execute(
-                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={metric_info['id_metric']} AND ctime BETWEEN {low_limit} AND {upper_limit}")
+                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={id_metric} AND ctime={ctime}")
                 retval.append({metric_info['id_metric'], metric_info['ctime']})
             connection.commit()
     return retval
 
 
-def ctn_check_for_NaN_metric(add_duplicate_metrics_ret):
+def ctn_check_for_nan_metric(add_duplicate_metrics_ret):
     """
-    Check that metrics are not a NaN during one day
+    Check that metrics are not NaN during one day
 
     Args:
-        add_duplicate_metrics_ret (): an array of pair <time of oldest value>, <metric id> returned by ctn_add_duplicate_metrics
+        add_duplicate_metrics_ret (): an array of pairs <time,metric id> returned by ctn_add_duplicate_metrics
 
     Returns:
         True on Success, otherwise False.
     """
-    for min_timestamp, metric_id in add_duplicate_metrics_ret:
-        max_timestamp = min_timestamp + 86400
+    for timestamp, metric_id in add_duplicate_metrics_ret:
+        min_timestamp = timestamp - 86400
+        max_timestamp = timestamp + 86400
         res = getoutput(
             f"rrdtool dump {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
         # we search a string like <!-- 2022-12-07 23: 00: 00 CET / 1670450400 - -> < row > <v > NaN < /v > </row >
@@ -2485,7 +2601,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
@@ -2786,3 +2902,35 @@ def check_last_checked_services_with_given_metric_more_than(metric_like: str, no
                     return True
                 time.sleep(1)
     return False
+
+
+def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
+    """
+    Get the log info of a given logger or all of them by specifying "ALL" as log
+    value.
+
+    Args:
+        port: The gRPC port.
+        log: The name of the logger or the string "ALL".
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            if log != "ALL":
+                ref.logger = log
+
+            try:
+                res = stub.GetLogInfo(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return str(res)

@@ -22,11 +22,7 @@
 #define CCE_MACROS_DEFINES_HH_
 
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 
 // Length Limitations
@@ -105,8 +101,8 @@
 #define MACRO_LOGFILE 69
 #define MACRO_RESOURCEFILE 70
 #define MACRO_COMMANDFILE 71
-#define MACRO_HOSTPERFDATAFILE 72
-#define MACRO_SERVICEPERFDATAFILE 73
+#define MACRO_HOSTPERFDATAFILE 72     // Not used anymore
+#define MACRO_SERVICEPERFDATAFILE 73  // Not used anymore
 #define MACRO_HOSTACTIONURL 74
 #define MACRO_HOSTNOTESURL 75
 #define MACRO_HOSTNOTES 76

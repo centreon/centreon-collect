@@ -27,75 +27,50 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(DEFINED ENV{VCPKG_ROOT})
-  set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
-  message(STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
-else()
-  message(STATUS "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
-  set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
-endif()
+string(TIMESTAMP CENTREON_CURRENT_YEAR "%Y")
+add_definitions(-DCENTREON_CURRENT_YEAR="${CENTREON_CURRENT_YEAR}")
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+#when we build from cache(CI), we don't use vcpkg because it recompiles often everything
+if (NOT BUILD_FROM_CACHE)
+  if(DEFINED ENV{VCPKG_ROOT})
+    set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
+    message(
+      STATUS "TOOLCHAIN set to ${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE
+        "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+  else()
+    message(
+      STATUS
+        "TOOLCHAIN set to ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    )
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+  endif()
+
+  set(CMAKE_TOOLCHAIN_FILE
+      "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      CACHE STRING "Vcpkg toolchain file")
+
+endif()
 
 project("Centreon Collect" C CXX)
-
-option(WITH_ASAN
-       "Add the libasan to check memory leaks and other memory issues." OFF)
-
-option(WITH_TSAN
-       "Add the libtsan to check threads and other multithreading issues." OFF)
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID
-                                                STREQUAL "Clang")
-  message(
-    FATAL_ERROR "You can build broker with g++ or clang++. CMake will exit.")
-endif()
-
-option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-option(DEBUG_ROBOT OFF)
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(WITH_TSAN)
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
-  set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=thread")
-endif()
-
-if(WITH_ASAN)
-  set(CMAKE_BUILD_TYPE Debug)
-  if(WITH_CLANG)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
-    set(CMAKE_LINKER_FLAGS_DEBUG
-        "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
-  else()
-    set(CMAKE_CXX_FLAGS_DEBUG
-        "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-    set(CMAKE_LINKER_FLAGS_DEBUG
-        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
-    )
-  endif()
-endif()
-
-set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
-
-set(BUILD_ARGS "-w" "dupbuild=warn")
 
 #
 # Get distributions name
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release REGEX "^ID")
+  file(STRINGS "/etc/os-release" release REGEX "ID")
 
   foreach(line ${release})
     if(${line} MATCHES "ID_LIKE=.*")
@@ -104,6 +79,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     if(${line} MATCHES "ID=.*")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
+    endif()
+
+    if(${line} MATCHES "VERSION_ID=.*")
+      string(REGEX REPLACE "VERSION_ID=\"([0-9]+)\..*" "\\1" os_version ${line})
     endif()
   endforeach()
 
@@ -125,6 +104,11 @@ else()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
 endif()
 
+if(OS_DISTRIBUTOR STREQUAL "CentOS" AND os_version STREQUAL "8")
+  message(STATUS "Legacy gettimeofday")
+  add_definitions("-DLEGACY_GETTIMEOFDAY")
+endif()
+
 message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")
 
 # set -latomic if OS is Raspbian.
@@ -134,105 +118,13 @@ endif()
 
 # Version.
 set(COLLECT_MAJOR 24)
-set(COLLECT_MINOR 05)
+set(COLLECT_MINOR 09)
 set(COLLECT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
-add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
 
-if (DEBUG_ROBOT)
-  add_definitions(-DDEBUG_ROBOT)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  include(CMakeListsLinux.txt)
+else()
+  include(CMakeListsWindows.txt)
 endif()
-
-# ########### CONSTANTS ###########
-set(USER_BROKER centreon-broker)
-set(USER_ENGINE centreon-engine)
-
-find_package(fmt CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
-find_package(Protobuf REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(opentelemetry-cpp REQUIRED)
-find_package(GTest CONFIG REQUIRED)
-find_package(CURL REQUIRED)
-find_package(Boost REQUIRED)
-find_package(ryml CONFIG REQUIRED)
-add_definitions("-DSPDLOG_FMT_EXTERNAL")
-
-include(FindPkgConfig)
-pkg_check_modules(MARIADB REQUIRED libmariadb)
-pkg_check_modules(LIBSSH2 REQUIRED libssh2)
-
-# There is a bug with grpc. It is not put in the triplet directory. So we have
-# to search for its plugin.
-file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
-  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
-find_program(GRPC_CPP_PLUGIN
-  NAMES ${GRPC_CPP_PLUGIN_EXE}
-  PATHS ${CMAKE_BINARY_DIR}
-  REQUIRED
-  NO_DEFAULT_PATH)
-
-set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
-set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
-set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
-include(GNUInstallDirs)
-
-# var directories.
-set(BROKER_VAR_LOG_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-broker")
-set(BROKER_VAR_LIB_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-broker")
-set(ENGINE_VAR_LOG_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine")
-set(ENGINE_VAR_LOG_ARCHIVE_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-engine/archives")
-set(ENGINE_VAR_LIB_DIR
-    "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/centreon-engine")
-
-set(CMAKE_INSTALL_PREFIX "/usr")
-option(WITH_TESTING "Build unit tests." OFF)
-
-option(WITH_CONF "Install configuration files." ON)
-
-# Code coverage on unit tests
-option(WITH_COVERAGE "Add code coverage on unit tests." OFF)
-
-if(WITH_TESTING AND WITH_COVERAGE)
-  set(CMAKE_BUILD_TYPE "Debug")
-  include(cmake/CodeCoverage.cmake)
-  append_coverage_compiler_flags()
-endif()
-
-set(protobuf_MODULE_COMPATIBLE True)
-
-include_directories(${CMAKE_SOURCE_DIR}
-  ${VCPKG_INCLUDE_DIR}
-  fmt::fmt
-  spdlog::spdlog
-  ${CMAKE_SOURCE_DIR}/clib/inc)
-
-add_subdirectory(clib)
-add_subdirectory(common)
-add_subdirectory(broker)
-add_subdirectory(bbdo)
-add_subdirectory(engine)
-add_subdirectory(connectors)
-add_subdirectory(ccc)
-
-if (WITH_MALLOC_TRACE)
-  add_subdirectory(malloc-trace)
-endif()
-
-
-add_custom_target(test-broker COMMAND tests/ut_broker)
-add_custom_target(test-engine COMMAND tests/ut_engine)
-add_custom_target(test-clib COMMAND tests/ut_clib)
-add_custom_target(test-connector COMMAND tests/ut_connector)
-add_custom_target(test-common COMMAND tests/ut_common)
-
-add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector
-                               test-common)
-
-add_custom_target(test-coverage DEPENDS broker-test-coverage
-                                        engine-test-coverage clib-test-coverage)

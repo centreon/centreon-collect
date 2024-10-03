@@ -1,27 +1,33 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <gtest/gtest.h>
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "gtest/gtest.h"
+#ifdef LEGACY_CONF
+#include "common/engine_legacy_conf/timeperiod.hh"
+#else
+#include "common/engine_conf/timeperiod_helper.hh"
+#endif
 
 #include "helper.hh"
 
@@ -33,6 +39,13 @@ struct test_param {
   std::string prefered;  // YYYY-MM-DD HH:MM:SS format
   std::string expected;  // YYYY-MM-DD HH:MM:SS format
 };
+
+std::string PrintToString(const test_param& data) {
+  std::stringstream ss;
+  ss << "name: " << data.name << " ; now: " << data.now
+     << " ; prefered: " << data.prefered << " ; expected: " << data.expected;
+  return ss.str();
+}
 
 class timeperiod_exception : public ::testing::TestWithParam<test_param> {
  protected:
@@ -72,8 +85,15 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
 
   bool wait_time_period_begin = true;
 
+#ifdef LEGACY_CONF
   std::unique_ptr<configuration::timeperiod> conf(
       std::make_unique<configuration::timeperiod>());
+#else
+  std::unique_ptr<configuration::Timeperiod> conf(
+      std::make_unique<configuration::Timeperiod>());
+  std::unique_ptr<configuration::timeperiod_helper> conf_hlp =
+      std::make_unique<configuration::timeperiod_helper>(conf.get());
+#endif
   while (!f.eof()) {
     std::getline(f, line);
 
@@ -88,10 +108,42 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
       if (line[0] == '}') {
         wait_time_period_begin = true;
         _applier.add_object(*conf);
+#ifdef LEGACY_CONF
         conf = std::make_unique<configuration::timeperiod>();
+#else
+        conf = std::make_unique<configuration::Timeperiod>();
+        conf_hlp =
+            std::make_unique<configuration::timeperiod_helper>(conf.get());
+#endif
         continue;
       }
+      if (line.substr(0, 9) == "\tmonday 3") {
+        std::cout << "monday 3..." << std::endl;
+      }
+#ifdef LEGACY_CONF
       conf->parse(string::trim(line));
+#else
+      std::string_view line_view = absl::StripAsciiWhitespace(line);
+      if (line_view[0] == '#')
+        continue;
+      std::vector<std::string_view> v =
+          absl::StrSplit(line_view, absl::MaxSplits(absl::ByAnyChar(" \t"), 1),
+                         absl::SkipWhitespace());
+      if (v.size() != 2)
+        abort();
+
+      std::string_view key = absl::StripAsciiWhitespace(v[0]);
+      std::string_view value = absl::StripAsciiWhitespace(v[1]);
+      bool retval = false;
+      /* particular cases with hook */
+      retval = conf_hlp->hook(key, value);
+      if (!retval)
+        retval = conf_hlp->set(key, value);
+      if (!retval) {
+        std::cout << "Unable to parse <<" << line << ">>" << std::endl;
+        abort();
+      }
+#endif
     }
   }
 }

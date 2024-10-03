@@ -21,6 +21,7 @@ apt-get -y install cmake \
     mariadb-server \
     openssh-server \
     libmariadb3 \
+    libmariadb-dev \
     librrd-dev \
     libgnutls28-dev \
     liblua5.3-dev \

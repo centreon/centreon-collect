@@ -1,26 +1,28 @@
 /**
-* Copyright 2011-2012,2015,2017, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2015,2017-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
+
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::io;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor. The name is chosen by the developer. This name is
@@ -29,16 +31,6 @@ using namespace com::centreon::broker::io;
  * @param name a string representing the stream.
  */
 stream::stream(const std::string& name) : _name(name) {}
-
-/**
- * @brief This method provides a mecanism to stop threads behind the stream and
- * to flush pending events. It returns the number of acknowledged events.
- *
- * @return The number of acknowledged events.
- */
-// int32_t stream::stop() {
-//  return 0;
-//}
 
 /**
  *  Flush data.
@@ -97,11 +89,13 @@ void stream::update() {}
 bool stream::validate(std::shared_ptr<io::data> const& d,
                       std::string const& error) {
   if (!d) {
-    log_v2::core()->error(
-        "{}: received a null event. This should never happen. "
-        "This is likely a software bug that you should report "
-        "to Centreon Broker developers.",
-        error);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "{}: received a null event. This should never happen. "
+            "This is likely a software bug that you should report "
+            "to Centreon Broker developers.",
+            error);
     return false;
   }
   return true;

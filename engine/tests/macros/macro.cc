@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include "com/centreon/engine/globals.hh"
+#include "common/engine_legacy_conf/state.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/contact.hh>
@@ -29,11 +30,11 @@
 #include <com/centreon/engine/configuration/applier/servicegroup.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
-#include <com/centreon/engine/configuration/parser.hh>
 #include <com/centreon/engine/hostescalation.hh>
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
+#include <common/engine_legacy_conf/parser.hh>
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
@@ -78,6 +79,7 @@ class Macro : public TestEngine {
 TEST_F(Macro, pollerName) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -86,8 +88,8 @@ TEST_F(Macro, pollerName) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
@@ -98,6 +100,7 @@ TEST_F(Macro, pollerName) {
 TEST_F(Macro, pollerId) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -106,8 +109,8 @@ TEST_F(Macro, pollerId) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$POLLERID$", out, 0);
@@ -320,6 +323,7 @@ TEST_F(Macro, ContactPager) {
 TEST_F(Macro, FullCmd) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -329,14 +333,14 @@ TEST_F(Macro, FullCmd) {
   ofs << "admin_pager=\"pager\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  // process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
   process_macros_r(mac,
                    "/bin/sh -c '/bin/echo \"LogFile: $LOGFILE$ - AdminEmail: "
                    "$ADMINEMAIL$ - AdminPager: $ADMINPAGER$\"",
@@ -349,6 +353,7 @@ TEST_F(Macro, FullCmd) {
 TEST_F(Macro, AdminEmail) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -357,14 +362,14 @@ TEST_F(Macro, AdminEmail) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  // process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
   process_macros_r(mac, "$ADMINEMAIL$", out, 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }
@@ -372,6 +377,7 @@ TEST_F(Macro, AdminEmail) {
 TEST_F(Macro, AdminPager) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -380,8 +386,8 @@ TEST_F(Macro, AdminPager) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
 
   init_macros();
 
@@ -394,6 +400,7 @@ TEST_F(Macro, AdminPager) {
 TEST_F(Macro, MainConfigFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -401,8 +408,8 @@ TEST_F(Macro, MainConfigFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -414,6 +421,7 @@ TEST_F(Macro, MainConfigFile) {
 TEST_F(Macro, StatusDataFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -422,8 +430,8 @@ TEST_F(Macro, StatusDataFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -435,6 +443,7 @@ TEST_F(Macro, StatusDataFile) {
 TEST_F(Macro, RetentionDataFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -444,8 +453,8 @@ TEST_F(Macro, RetentionDataFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -457,6 +466,7 @@ TEST_F(Macro, RetentionDataFile) {
 TEST_F(Macro, TempFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -464,8 +474,8 @@ TEST_F(Macro, TempFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -477,6 +487,7 @@ TEST_F(Macro, TempFile) {
 TEST_F(Macro, LogFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -484,8 +495,8 @@ TEST_F(Macro, LogFile) {
   ofs << "log_file=/tmp/centengine.log" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -497,6 +508,7 @@ TEST_F(Macro, LogFile) {
 TEST_F(Macro, CommandFile) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -505,8 +517,8 @@ TEST_F(Macro, CommandFile) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -518,6 +530,7 @@ TEST_F(Macro, CommandFile) {
 TEST_F(Macro, TempPath) {
   configuration::parser parser;
   configuration::state st;
+  configuration::error_cnt err;
 
   std::remove("/tmp/test-config.cfg");
 
@@ -525,8 +538,8 @@ TEST_F(Macro, TempPath) {
   ofs << "log_file=\"\"" << std::endl;
   ofs.close();
 
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
+  parser.parse("/tmp/test-config.cfg", st, err);
+  configuration::applier::state::instance().apply(st, err);
   init_macros();
 
   std::string out;
@@ -536,18 +549,19 @@ TEST_F(Macro, TempPath) {
 }
 
 TEST_F(Macro, ContactGroupName) {
+  configuration::error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", true)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
 
   init_macros();
   int now{500000000};
@@ -560,18 +574,19 @@ TEST_F(Macro, ContactGroupName) {
 }
 
 TEST_F(Macro, ContactGroupAlias) {
+  configuration::error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", true)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -587,14 +602,15 @@ TEST_F(Macro, ContactGroupMembers) {
   configuration::contact ctct{new_configuration_contact("test_contact", true)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  configuration::error_cnt err;
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -606,18 +622,19 @@ TEST_F(Macro, ContactGroupMembers) {
 }
 
 TEST_F(Macro, ContactGroupNames) {
+  configuration::error_cnt err;
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("test_contact", true)};
   ct_aply.add_object(ctct);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
+  ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
   configuration::contactgroup cg{
       new_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   cg_aply.expand_objects(*config);
-  cg_aply.resolve_object(cg);
+  cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
   set_time(now);
@@ -637,13 +654,14 @@ TEST_F(Macro, NotificationRecipients) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  configuration::error_cnt err;
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
   configuration::contact ctct2{
       new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct2);
+  ct_aply.resolve_object(ctct2, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -654,8 +672,8 @@ TEST_F(Macro, NotificationRecipients) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -683,6 +701,7 @@ TEST_F(Macro, NotificationRecipients) {
 }
 
 TEST_F(Macro, NotificationAuthor) {
+  configuration::error_cnt err;
   init_macros();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -691,13 +710,13 @@ TEST_F(Macro, NotificationAuthor) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
   configuration::contact ctct2{
       new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct2);
+  ct_aply.resolve_object(ctct2, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -708,8 +727,8 @@ TEST_F(Macro, NotificationAuthor) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -737,6 +756,7 @@ TEST_F(Macro, NotificationAuthor) {
 }
 
 TEST_F(Macro, NotificationAuthorName) {
+  configuration::error_cnt err;
   init_macros();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -745,13 +765,13 @@ TEST_F(Macro, NotificationAuthorName) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
   configuration::contact ctct2{
       new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct2);
+  ct_aply.resolve_object(ctct2, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -762,8 +782,8 @@ TEST_F(Macro, NotificationAuthorName) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -790,6 +810,7 @@ TEST_F(Macro, NotificationAuthorName) {
 }
 
 TEST_F(Macro, NotificationAuthorAlias) {
+  configuration::error_cnt err;
   init_macros();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -798,13 +819,13 @@ TEST_F(Macro, NotificationAuthorAlias) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
   configuration::contact ctct2{
       new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct2);
+  ct_aply.resolve_object(ctct2, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -815,8 +836,8 @@ TEST_F(Macro, NotificationAuthorAlias) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;
@@ -843,6 +864,7 @@ TEST_F(Macro, NotificationAuthorAlias) {
 }
 
 TEST_F(Macro, NotificationComment) {
+  configuration::error_cnt err;
   init_macros();
   configuration::applier::contact ct_aply;
   configuration::contact ctct{new_configuration_contact("admin", true)};
@@ -851,13 +873,13 @@ TEST_F(Macro, NotificationComment) {
       new_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct);
-  ct_aply.resolve_object(ctct1);
+  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct1, err);
   configuration::contact ctct2{
       new_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
   ct_aply.expand_objects(*config);
-  ct_aply.resolve_object(ctct2);
+  ct_aply.resolve_object(ctct2, err);
 
   configuration::host hst{new_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
@@ -868,8 +890,8 @@ TEST_F(Macro, NotificationComment) {
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   host_map const& hm{engine::host::hosts};
   _host3 = hm.begin()->second;

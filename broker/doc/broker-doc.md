@@ -4,6 +4,10 @@
 
 - [Broker documentation {#mainpage}](#broker-documentation-mainpage)
   - [Table of content](#table-of-content)
+  - [BBDO events](#BbdoEvents)
+  - [Multiplexing](#Multiplexing)
+    - [Muxer](#Muxer)
+    - [Engine](#Engine)
   - [Processing](#processing)
     - [Feeder](#feeder)
       - [Initialization](#initialization)
@@ -24,9 +28,74 @@
       - [Main classes](#main-classes)
       - [generate\_proto.py](#generate_protopy)
 
+## BBDO events
+Broker is a software that gets events on some inputs and sends them on some outputs. We
+can apply filters on all these inputs/outputs.
+
+Events are divided by categories, they are:
+  * *neb:* For Nagios Event broker. They are the main events received from Engine.
+  * *bbdo:* They are the cops of the BBDO events. Essentially created by Broker to
+    control others events.
+  * *storage:* This category represents all the events created by the sql streams
+    after transformation of some neb events.
+  * *dumper:* not used.
+  * *bam:* the bam events.
+  * *extcmd:* If you use the Broker API, then the sent commands will generate
+    such category events.
+  * *generator:* not used.
+  * *local:* That is an internal category. **Events here can not pass through
+    network**. They stay inside the generator software.
+  * *internal:* Others cops events. They are very few.
+
+## Multiplexing
+### Muxer
+A muxer can be plugged to an input or an output stream.
+Muxers exchange data through the Engine object. Each muxer holds a shared pointer to the Engine. So the Engine is destroyed when all the muxers are removed from Broker.
+
+We can send a data `d` to the muxer by using the `write(d)` method. With that method, the Muxer publishes to the Engine the data `d`. And then the Engine stacks on its queue the event. In case, the Engine is running, the task finishes by calling an internal function `_send_to_subscribers()` that empties the queue and sends all the data to each muxer on its own queue.
+
+So, when a data is written to a muxer, it is stacked on all the muxers using the Engine, even the muxer at the origin of the data.
+
+The `_send_to_subscribers()` internal function is a complex function. It can take a callback as argument. Let's take a look at it.
+
+Firstly, it checks if `_sending_to_subscribers` is `true`, that means the action of sending data to subscribers is already running and the function returns.
+
+If `_sending_to_subscribers` is `false`, it is changed to `true` and a copy of the Engine queue is made as a shared pointer to give it to each muxer. To send that queue, the thread pool is used and its task is just to call the `publish()` method of the muxers to push the events on their stack.
+In case of a callback is given as argument, it will be called once all the tasks are finished.
+
+This callback is rarely used. It is essentially used when we want to be sure that no more data are sent to the subscribers. In this context, the callback is just a promise to wait until all the tasks are finished. We can see this in:
+* the `stop()` method of Engine: If we want to stop it, we must be sure that no events have to be written somewhere.
+* the `unsubscribe_muxer()` method of Engine: This method removes the muxer from the Engine list of subscribers. So if we remove one muxer from it but there are still events to write into it, we have the risk of an access to a removed muxer.
+
+#### Muxer filter
+
+To limit data in muxers, they work with filters. Each muxer is created with two filters:
+
+* mandatory filter: it contains data types mandatory for the good work of the muxer. Each stream defines its mandatory filter, and when the muxer is created, this filter is transferred to the muxer.
+* forbidden filter: This filter declares what event type we don't want to see in the muxer
+
+From these two filters, and with the configuration given by the user, a map of filters is defined in the muxer and each time an event arrives, we check that the event is authorized to go through the muxer.
+
+If the user allows events that make part of the forbidden filter, an error message is raised in the logs but the events are forbidden to be coherent with the forbidden filter. If the user doesn't declare events that are mandatory, broker will add them into the filter to allow them.
+
+### Engine
+
+The Broker engine is hold by its subscriber muxers. Each one has a shared pointer
+to it. So the engine can be removed only when there are no more muxers.
+
+The engine has an array of weak pointers to these muxers. So when it is time
+to stop it, we wait for each muxer to be removed from the array. This is produced
+when the muxers themselves are stopped. If there are still data in the engine, they
+are saved to an *unprocessed* file that will be loaded on next Broker start.
+
+The engine class is the root of events dispatching. Events arrive from a stream,
+are transfered to a muxer and then to engine (at the root of the tree).
+This one then sends events to all its children. Each muxer receives these events
+and sends them to its stream.
+ 
 ## Processing
 
-There are two main classes in the broker Processing:
+There are two main classes in the Broker processing:
 
 * **failover**: This is mainly used to get events from broker and send them to a
   stream.
@@ -38,9 +107,7 @@ There are two main classes in the broker Processing:
 
 A feeder has two roles:
 
-1. The feeder can read events from its muxer. This is the case with a reverse
-   connections, the feeder gets its events from the broker engine through the
-   muxer and writes them to the stream client.
+1. The feeder can read events from its muxer. This is the case with a reverse connections, the feeder gets its events from the Broker engine through the muxer and writes them to the stream client.
 
 2. The feeder can also read events from its stream client. This is more usual.
 
@@ -53,17 +120,16 @@ A feeder is created with a static function `feeder::create()`. This function:
 * starts the statistics timer
 * starts its main loop.
 
-The main loop runs with a thread pool managed by ASIO so don't expect to see
-an std::thread somewhere.
+The main loop runs with a thread pool managed by ASIO so don't expect to see an std::thread somewhere.
 
 A feeder is initialized with:
 
-* name: name of the feeder.
-* client: the stream to exchange events with.
-* read\_filters: read filters, that is to say events allowed to be read by the
+* `name`: name of the feeder.
+* `client`: the stream to exchange events with.
+* `read_filters`: read filters, that is to say events allowed to be read by the
   feeder. Events that don't obey to these filters are ignored and thrown away
   by the feeder.
-* write\_filters: same as read filters, but concerning writing.
+* `write_filters`: same as `read_filters`, but concerning writing.
 
 After the construction, the feeder has its statistics started.
 Statistics are handled by an ASIO timer, every 5s the handler `feeder::_stat_timer_handler()` is called.
@@ -206,7 +272,8 @@ When BAM is stopped (broker is stopped or reloaded), living data are saved into 
 
 #### caution
 
-grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler) 
+grpc threads block at shutdown if grpc object aren't cleanly stopped. For example, we must call ClientBeReactor::Finish before delete. That's why grpc::stream::stop must be called before destruction (shared_ptr< stream >::reset()). So be careful to not forget a case (a catch handler).
+Another issue: channel is owned both by connector and client stream context. At shutdown, if the last owner is client stream object, client destructor is called by OnDone method called by a grpc thread. Then channel destructor is called by grpc thread. The issue is that channel destructor tries to join current grpc thread. The solution is to leave stream destruction job to asio threads.
 
 #### Main classes
 

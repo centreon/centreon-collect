@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012, 2021-2022 Centreon
+ * Copyright 2011-2012, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class state {
   absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
   mutable std::mutex _connected_pollers_m;
 
-  state();
+  state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
 
  public:

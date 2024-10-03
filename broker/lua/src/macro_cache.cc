@@ -17,13 +17,16 @@
  */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
+#include <absl/container/flat_hash_set.h>
+#include <memory>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -53,7 +56,7 @@ macro_cache::~macro_cache() {
     try {
       _save_to_disk();
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_cache->logger(),
                           "lua: macro cache couldn't save data to disk: '{}'",
                           e.what());
     }
@@ -367,17 +370,15 @@ macro_cache::get_host_group_members() const {
  *
  *  @return             The name of the host group.
  */
-std::string const& macro_cache::get_host_group_name(uint64_t id) const {
-  auto const found = _host_groups.find(id);
+const std::string& macro_cache::get_host_group_name(uint64_t id) const {
+  const auto found = _host_groups.find(id);
 
-  if (found == _host_groups.end())
+  if (found == _host_groups.end()) {
+    _cache->logger()->error("lua: could not find information on host group {}",
+                            id);
     throw msg_fmt("lua: could not find information on host group {}", id);
-  if (found->second->type() == neb::host_group::static_type())
-    return std::static_pointer_cast<neb::host_group>(found->second)->name;
-  else
-    return std::static_pointer_cast<neb::pb_host_group>(found->second)
-        ->obj()
-        .name();
+  }
+  return found->second.first->obj().name();
 }
 
 /**
@@ -428,14 +429,12 @@ macro_cache::get_service_group_members() const {
 std::string const& macro_cache::get_service_group_name(uint64_t id) const {
   auto found = _service_groups.find(id);
 
-  if (found == _service_groups.end())
+  if (found == _service_groups.end()) {
+    _cache->logger()->error(
+        "lua: could not find information on service group {}", id);
     throw msg_fmt("lua: could not find information on service group {}", id);
-  if (found->second->type() == neb::service_group::static_type())
-    return std::static_pointer_cast<neb::service_group>(found->second)->name;
-  else
-    return std::static_pointer_cast<neb::pb_service_group>(found->second)
-        ->obj()
-        .name();
+  }
+  return found->second.first->obj().name();
 }
 
 /**
@@ -636,7 +635,7 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host> const& h =
       std::static_pointer_cast<neb::host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->host_name, h->host_id);
   if (h->enabled)
     _hosts[h->host_id] = data;
@@ -652,7 +651,7 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::pb_host> const& h =
       std::static_pointer_cast<neb::pb_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->obj().name(), h->obj().host_id());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = data;
@@ -665,12 +664,12 @@ void macro_cache::_process_pb_host_status(
   const auto& s = std::static_pointer_cast<neb::pb_host_status>(data);
   const auto& obj = s->obj();
 
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host status ({})",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host status ({})",
                       obj.host_id());
 
   auto it = _hosts.find(obj.host_id());
   if (it == _hosts.end()) {
-    log_v2::lua()->warn(
+    _cache->logger()->warn(
         "lua: Attempt to update host ({}) in lua cache, but it does not "
         "exist. Maybe Engine should be restarted to update the cache.",
         obj.host_id());
@@ -734,8 +733,8 @@ void macro_cache::_process_pb_host_status(
     hst.set_acknowledgement_type(obj.acknowledgement_type());
     hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   } else {
-    log_v2::lua()->error("lua: The host ({}) stored in cache is corrupted",
-                         obj.host_id());
+    _cache->logger()->error("lua: The host ({}) stored in cache is corrupted",
+                            obj.host_id());
   }
 }
 /**
@@ -746,7 +745,7 @@ void macro_cache::_process_pb_host_status(
 void macro_cache::_process_pb_adaptive_host(
     const std::shared_ptr<io::data>& data) {
   const auto& h = std::static_pointer_cast<neb::pb_adaptive_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing adaptive host {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing adaptive host {}",
                       h->obj().host_id());
   auto& ah = h->obj();
   auto it = _hosts.find(ah.host_id());
@@ -818,7 +817,7 @@ void macro_cache::_process_pb_adaptive_host(
     }
   } else
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: cannot update cache for host {}, it does not exist in "
         "the cache",
         h->obj().host_id());
@@ -830,14 +829,42 @@ void macro_cache::_process_pb_adaptive_host(
  *  @param data  The event.
  */
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<neb::host_group> const& hg =
+  const std::shared_ptr<neb::host_group>& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing host group '{}' of id {} enabled: {}",
                       hg->name, hg->id, hg->enabled);
-  if (hg->enabled)
-    _host_groups[hg->id] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (hg->enabled) {
+    auto found = _host_groups.find(hg->id);
+    if (found != _host_groups.end()) {
+      /* here, we complete the set of pollers */
+      found->second.second.insert(hg->poller_id);
+      found->second.first->mut_obj().set_name(hg->name);
+    } else {
+      /* Here, we add the hostgroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{hg->poller_id};
+      auto pb_hg = std::make_shared<neb::pb_host_group>();
+      auto& obj = pb_hg->mut_obj();
+      obj.set_enabled(hg->enabled);
+      obj.set_hostgroup_id(hg->id);
+      obj.set_name(hg->name);
+      obj.set_poller_id(hg->poller_id);
+      _host_groups[hg->id] = std::make_pair(std::move(pb_hg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this host group. So if the set is
+     * empty, we can also remove the host group. */
+    auto found = _host_groups.find(hg->id);
+    if (found != _host_groups.end()) {
+      auto f = found->second.second.find(hg->poller_id);
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _host_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -846,15 +873,39 @@ void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
  *  @param data  The event.
  */
 void macro_cache::_process_pb_host_group(
-    std::shared_ptr<io::data> const& data) {
-  const HostGroup& hg =
-      std::static_pointer_cast<neb::pb_host_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    const std::shared_ptr<io::data>& data) {
+  auto pb_hg = std::static_pointer_cast<neb::pb_host_group>(data);
+  const HostGroup& hg = pb_hg->obj();
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb host group '{}' of id {}, enabled {}",
                       hg.name(), hg.hostgroup_id(), hg.enabled());
-  if (hg.enabled())
-    _host_groups[hg.hostgroup_id()] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (hg.enabled()) {
+    auto found = _host_groups.find(hg.hostgroup_id());
+    if (found != _host_groups.end()) {
+      found->second.second.insert(hg.poller_id());
+      HostGroup& current_hg =
+          std::static_pointer_cast<neb::pb_host_group>(found->second.first)
+              ->mut_obj();
+      current_hg.set_name(hg.name());
+    } else {
+      absl::flat_hash_set<uint32_t> pollers{hg.poller_id()};
+      _host_groups[hg.hostgroup_id()] =
+          std::make_pair(std::move(pb_hg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this host group. So if the set is
+     * empty, we can also remove the host group. */
+    auto found = _host_groups.find(hg.hostgroup_id());
+    if (found != _host_groups.end()) {
+      auto f = found->second.second.find(hg.poller_id());
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _host_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -867,7 +918,7 @@ void macro_cache::_process_host_group_member(
   std::shared_ptr<neb::host_group_member> const& hgm =
       std::static_pointer_cast<neb::host_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm->group_name, hgm->group_id, hgm->host_id, hgm->enabled);
@@ -887,7 +938,7 @@ void macro_cache::_process_pb_host_group_member(
   const HostGroupMember& hgm =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing pb host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm.name(), hgm.hostgroup_id(), hgm.host_id(), hgm.enabled());
@@ -904,7 +955,7 @@ void macro_cache::_process_pb_host_group_member(
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service ({}, {}) (description:{})",
                       s->host_id, s->service_id, s->service_description);
   if (s->enabled)
@@ -921,7 +972,7 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(), "lua: processing service ({}, {}) (description:{})",
+      _cache->logger(), "lua: processing service ({}, {}) (description:{})",
       s->obj().host_id(), s->obj().service_id(), s->obj().description());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
@@ -934,12 +985,13 @@ void macro_cache::_process_pb_service_status(
   const auto& s = std::static_pointer_cast<neb::pb_service_status>(data);
   const auto& obj = s->obj();
 
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing service status ({}, {})",
-                      obj.host_id(), obj.service_id());
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing service status ({}, {})", obj.host_id(),
+                      obj.service_id());
 
   auto it = _services.find({obj.host_id(), obj.service_id()});
   if (it == _services.end()) {
-    log_v2::lua()->warn(
+    _cache->logger()->warn(
         "lua: Attempt to update service ({}, {}) in lua cache, but it does not "
         "exist. Maybe Engine should be restarted to update the cache.",
         obj.host_id(), obj.service_id());
@@ -1006,7 +1058,7 @@ void macro_cache::_process_pb_service_status(
     svc.set_acknowledgement_type(obj.acknowledgement_type());
     svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   } else {
-    log_v2::lua()->error(
+    _cache->logger()->error(
         "lua: The service ({}, {}) stored in cache is corrupted", obj.host_id(),
         obj.service_id());
   }
@@ -1020,7 +1072,7 @@ void macro_cache::_process_pb_service_status(
 void macro_cache::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& s = std::static_pointer_cast<neb::pb_adaptive_service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing adaptive service ({}, {})",
                       s->obj().host_id(), s->obj().service_id());
   auto& as = s->obj();
@@ -1094,7 +1146,7 @@ void macro_cache::_process_pb_adaptive_service(
     }
   } else {
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _cache->logger(),
         "lua: cannot update cache for service ({}, {}), it does not exist in "
         "the cache",
         s->obj().host_id(), s->obj().service_id());
@@ -1109,12 +1161,40 @@ void macro_cache::_process_pb_adaptive_service(
 void macro_cache::_process_service_group(
     std::shared_ptr<io::data> const& data) {
   auto const& sg = std::static_pointer_cast<neb::service_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service group '{}' of id {}", sg->name,
                       sg->id);
-  if (sg->enabled)
-    _service_groups[sg->id] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (sg->enabled) {
+    auto found = _service_groups.find(sg->id);
+    if (found != _service_groups.end()) {
+      /* here, we complete the set of pollers */
+      found->second.second.insert(sg->poller_id);
+      found->second.first->mut_obj().set_name(sg->name);
+    } else {
+      /* Here, we add the servicegroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{sg->poller_id};
+      auto pb_sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = pb_sg->mut_obj();
+      obj.set_servicegroup_id(sg->id);
+      obj.set_enabled(sg->enabled);
+      obj.set_name(sg->name);
+      obj.set_poller_id(sg->poller_id);
+      _service_groups[sg->id] = std::make_pair(std::move(pb_sg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this service group. So if the set is
+     * empty, we can also remove the service group. */
+    auto found = _service_groups.find(sg->id);
+    if (found != _service_groups.end()) {
+      auto f = found->second.second.find(sg->poller_id);
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _service_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1123,15 +1203,38 @@ void macro_cache::_process_service_group(
  *  @param sg  The event.
  */
 void macro_cache::_process_pb_service_group(
-    std::shared_ptr<io::data> const& data) {
-  const ServiceGroup& sg =
-      std::static_pointer_cast<neb::pb_service_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    const std::shared_ptr<io::data>& data) {
+  auto pb_sg = std::static_pointer_cast<neb::pb_service_group>(data);
+  const ServiceGroup& sg = pb_sg->obj();
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group '{}' of id {}",
                       sg.name(), sg.servicegroup_id());
-  if (sg.enabled())
-    _service_groups[sg.servicegroup_id()] = data;
-  // erasure is desactivated because a group cen be owned by several pollers
+  if (sg.enabled()) {
+    auto found = _service_groups.find(sg.servicegroup_id());
+    if (found != _service_groups.end()) {
+      found->second.second.insert(sg.poller_id());
+      ServiceGroup& current_sg = found->second.first->mut_obj();
+      current_sg.set_name(sg.name());
+    } else {
+      /* Here, we add the servicegroup and the first poller that needs it */
+      absl::flat_hash_set<uint32_t> pollers{sg.poller_id()};
+      _service_groups[sg.servicegroup_id()] =
+          std::make_pair(std::move(pb_sg), pollers);
+    }
+  } else {
+    /* We check that no more pollers need this service group. So if the set is
+     * empty, we can also remove the service group. */
+    auto found = _service_groups.find(sg.servicegroup_id());
+    if (found != _service_groups.end()) {
+      auto f = found->second.second.find(sg.poller_id());
+      if (f != found->second.second.end()) {
+        found->second.second.erase(f);
+        if (found->second.second.empty()) {
+          _service_groups.erase(found);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1143,7 +1246,7 @@ void macro_cache::_process_service_group_member(
     std::shared_ptr<io::data> const& data) {
   auto const& sgm = std::static_pointer_cast<neb::service_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {}, enabled: {}",
       sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id,
@@ -1165,7 +1268,7 @@ void macro_cache::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
   const ServiceGroupMember& sgm =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group member (group_name: "
                       "{}, group_id: {}, "
                       "host_id: {}, service_id: {} enabled: {}",
@@ -1247,7 +1350,7 @@ void macro_cache::_process_dimension_ba_event(
   if (data->type() == bam::pb_dimension_ba_event::static_type()) {
     auto const& dbae =
         std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -1263,7 +1366,7 @@ void macro_cache::_process_dimension_ba_event(
     to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
     to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
     to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -1281,7 +1384,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
     const auto& pb_data =
         std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
     const DimensionBaBvRelationEvent& rel = pb_data->obj();
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: processing pb dimension ba bv relation event "
                         "(ba_id: {}, bv_id: {})",
                         rel.ba_id(), rel.bv_id());
@@ -1289,7 +1392,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
   } else {
     auto const& rel =
         std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: processing dimension ba bv relation event "
                         "(ba_id: {}, bv_id: {})",
                         rel->ba_id, rel->bv_id);
@@ -1331,7 +1434,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
   auto const& trunc =
       std::static_pointer_cast<bam::dimension_truncate_table_signal>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
@@ -1348,7 +1451,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
  */
 void macro_cache::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing dimension truncate table signal");
 
   if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
@@ -1371,7 +1474,7 @@ void macro_cache::_process_custom_variable(
     std::shared_ptr<io::data> const& data) {
   auto const& cv = std::static_pointer_cast<neb::custom_variable>(data);
   if (cv->name == "CRITICALITY_LEVEL") {
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_cache->logger(),
                         "lua: processing custom variable representing a "
                         "criticality level for "
                         "host_id {} and service_id {} and level {}",
@@ -1396,7 +1499,7 @@ void macro_cache::_process_pb_custom_variable(
   if (cv->obj().name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(cv->obj().value(), &value)) {
-      SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+      SPDLOG_LOGGER_DEBUG(_cache->logger(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
@@ -1404,7 +1507,7 @@ void macro_cache::_process_pb_custom_variable(
       if (value)
         _custom_vars[{cv->obj().host_id(), cv->obj().service_id()}] = cv;
     } else {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_cache->logger(),
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} incorrect value {}",
@@ -1426,8 +1529,13 @@ void macro_cache::_save_to_disk() {
   for (auto it(_hosts.begin()), end(_hosts.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_host_groups.begin()), end(_host_groups.end()); it != end; ++it)
-    _cache->add(it->second);
+  for (auto it = _host_groups.begin(), end = _host_groups.end(); it != end;
+       ++it) {
+    for (auto poller_id : it->second.second) {
+      it->second.first->mut_obj().set_poller_id(poller_id);
+      _cache->add(it->second.first);
+    }
+  }
 
   for (auto it(_host_group_members.begin()), end(_host_group_members.end());
        it != end; ++it)
@@ -1436,9 +1544,13 @@ void macro_cache::_save_to_disk() {
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it(_service_groups.begin()), end(_service_groups.end()); it != end;
-       ++it)
-    _cache->add(it->second);
+  for (auto it = _service_groups.begin(), end = _service_groups.end();
+       it != end; ++it) {
+    for (auto poller_id : it->second.second) {
+      it->second.first->mut_obj().set_poller_id(poller_id);
+      _cache->add(it->second.first);
+    }
+  }
 
   for (auto it = _service_group_members.begin(),
             end = _service_group_members.end();

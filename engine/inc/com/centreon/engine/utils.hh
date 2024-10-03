@@ -35,7 +35,7 @@ extern "C" {
 int my_system_r(nagios_macros* mac,
                 std::string const& cmd,
                 int timeout,
-                int* early_timeout,
+                bool* early_timeout,
                 double* exectime,
                 std::string& output,
                 unsigned int max_output_length);

@@ -1,24 +1,23 @@
-/*
-** Copyright 2014-2015 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_DATABASE_CONFIG_HH
 #define CCB_DATABASE_CONFIG_HH
-
 
 namespace com::centreon::broker {
 
@@ -76,6 +75,9 @@ class database_config {
   int get_connections_count() const;
   unsigned get_max_commit_delay() const;
   unsigned get_category() const;
+  const std::string& get_extension_directory() const {
+    return _extension_directory;
+  }
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
@@ -88,6 +90,9 @@ class database_config {
   void set_queries_per_transaction(int qpt);
   void set_check_replication(bool check_replication);
   void set_category(unsigned category);
+  void set_extension_directory(std::string const& extension_directory) {
+    _extension_directory = extension_directory;
+  }
 
   database_config auto_commit_conf() const;
 
@@ -106,11 +111,13 @@ class database_config {
   int _connections_count;
   unsigned _max_commit_delay;
   unsigned _category;
+  // where mariadb will find extension such as caching_sha2_password.so
+  std::string _extension_directory;
 };
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);
 
-}
+}  // namespace com::centreon::broker
 
 namespace fmt {
 // formatter specializations for fmt

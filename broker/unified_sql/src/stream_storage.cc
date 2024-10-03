@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/synchronization/mutex.h>
 #include <fmt/format.h>
 
 #include <cfloat>
@@ -29,15 +30,15 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -56,8 +57,8 @@ constexpr int32_t queue_timer_duration = 10;
  *
  *  @return true if they are equal, false otherwise.
  */
-static inline bool check_equality(double a, double b) {
-  static const double eps = 0.000001;
+static inline bool check_equality(float a, float b) {
+  static const float eps = 0.00001;
   if (a == b)
     return true;
   if (std::isnan(a) && std::isnan(b))
@@ -82,13 +83,13 @@ void stream::_unified_sql_process_pb_service_status(
   uint64_t host_id = ss.host_id(), service_id = ss.service_id();
 
   SPDLOG_LOGGER_DEBUG(
-      log_v2::perfdata(),
+      _logger_sto,
       "unified sql::_unified_sql service_status processing: host_id:{}, "
       "service_id:{}",
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
   if (it_index_cache == _index_cache.end()) {
-    log_v2::sql()->critical(
+    _logger_sql->critical(
         "sql: could not find index for service({}, {}) - maybe the poller with "
         "that service should be restarted",
         host_id, service_id);
@@ -111,7 +112,7 @@ void stream::_unified_sql_process_pb_service_status(
   index_locked = it_index_cache->second.locked;
   uint32_t interval = it_index_cache->second.interval * _interval_length;
   SPDLOG_LOGGER_DEBUG(
-      log_v2::perfdata(),
+      _logger_sto,
       "unified sql: host_id:{}, service_id:{} - index already in cache "
       "- index_id {}, rrd_len {}, serv_interval {}, interval {}",
       host_id, service_id, index_id, rrd_len, it_index_cache->second.interval,
@@ -120,7 +121,7 @@ void stream::_unified_sql_process_pb_service_status(
   if (index_id) {
     /* Generate status event */
     SPDLOG_LOGGER_DEBUG(
-        log_v2::perfdata(),
+        _logger_sto,
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -150,12 +151,19 @@ void stream::_unified_sql_process_pb_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
-          ss.host_id(), ss.service_id(), ss.perfdata().c_str())};
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
+          ss.host_id(), ss.service_id(), ss.perfdata().c_str(), _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
+
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -164,7 +172,7 @@ void stream::_unified_sql_process_pb_service_status(
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -198,7 +206,7 @@ void stream::_unified_sql_process_pb_service_status(
             metric_id = future.get();
 
             // Insert metric in cache.
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: new metric {} for index {} and perfdata "
                 "'{}'",
                 metric_id, index_id, pd.name());
@@ -221,17 +229,16 @@ void stream::_unified_sql_process_pb_service_status(
             std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
-            log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+            _logger_sto->error(
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();
@@ -243,11 +250,11 @@ void stream::_unified_sql_process_pb_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(static_cast<misc::perfdata::data_type>(
+          pd.value_type(static_cast<common::perfdata::data_type>(
               it_index_cache->second.type));
 
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -264,7 +271,7 @@ void stream::_unified_sql_process_pb_service_status(
               it_index_cache->second.crit_mode != pd.critical_mode() ||
               !check_equality(it_index_cache->second.min, pd.min()) ||
               !check_equality(it_index_cache->second.max, pd.max())) {
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: updating metric {} of index {}, perfdata "
                 "'{}' with unit: {}, warning: {}:{}, critical: {}:{}, min: "
                 "{}, max: {}",
@@ -287,8 +294,7 @@ void stream::_unified_sql_process_pb_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            SPDLOG_LOGGER_DEBUG(log_v2::perfdata(),
-                                "new metric with metric_id={}",
+            SPDLOG_LOGGER_DEBUG(_logger_sto, "new metric with metric_id={}",
                                 it_index_cache->second.metric_id);
           }
         }
@@ -321,7 +327,7 @@ void stream::_unified_sql_process_pb_service_status(
               else
                 b.set_value_as_f32(3, pd.value());
               SPDLOG_LOGGER_TRACE(
-                  log_v2::sql(),
+                  _logger_sql,
                   "New value {} inserted on metric {} with state {}",
                   pd.value(), metric_id, ss.state());
               b.next_row();
@@ -357,7 +363,7 @@ void stream::_unified_sql_process_pb_service_status(
           m.set_host_id(ss.host_id());
           m.set_service_id(ss.service_id());
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               m.metric_id(), pd.name(), m.time(), m.value(), rrd_len,
@@ -365,7 +371,7 @@ void stream::_unified_sql_process_pb_service_status(
           to_publish.emplace_back(std::move(perf));
         } else {
           SPDLOG_LOGGER_TRACE(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: index {} is locked, so metric {} event not sent "
               "to rrd",
               index_id, metric_id);
@@ -390,7 +396,7 @@ void stream::_unified_sql_process_service_status(
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
 
   SPDLOG_LOGGER_DEBUG(
-      log_v2::perfdata(),
+      _logger_sto,
       "unified sql::_unified_sql_process_service_status(): host_id:{}, "
       "service_id:{}",
       host_id, service_id);
@@ -414,7 +420,7 @@ void stream::_unified_sql_process_service_status(
     }
 
     /* Insert index in cache. */
-    log_v2::perfdata()->info(
+    _logger_sto->info(
         "unified sql: add_metric_in_cache: index {}, for host_id {} and "
         "service_id {}",
         index_id, host_id, service_id);
@@ -431,7 +437,7 @@ void stream::_unified_sql_process_service_status(
     _index_cache[{host_id, service_id}] = std::move(info);
     rrd_len = _rrd_len;
     SPDLOG_LOGGER_DEBUG(
-        log_v2::perfdata(),
+        _logger_sto,
         "add metric in cache: (host: {}, service: {}, index: {}, returned "
         "rrd_len {}",
         ss.host_name, ss.service_description, index_id, rrd_len);
@@ -447,7 +453,7 @@ void stream::_unified_sql_process_service_status(
   if (it_index_cache == _index_cache.end()) {
     _finish_action(-1, actions::index_data);
     SPDLOG_LOGGER_DEBUG(
-        log_v2::perfdata(),
+        _logger_sto,
         "unified sql::_unified_sql_process_service_status(): host_id:{}, "
         "service_id:{} - index not found in cache",
         host_id, service_id);
@@ -455,11 +461,13 @@ void stream::_unified_sql_process_service_status(
     if (!_index_data_insert.prepared())
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
-    fmt::string_view hv(misc::string::truncate(
-        ss.host_name, get_index_data_col_size(index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
+        ss.host_name, get_centreon_storage_index_data_col_size(
+                          centreon_storage_index_data_host_name)));
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
-        get_index_data_col_size(index_data_service_description)));
+        get_centreon_storage_index_data_col_size(
+            centreon_storage_index_data_service_description)));
     _index_data_insert.bind_value_as_i32(0, host_id);
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, service_id);
@@ -481,7 +489,7 @@ void stream::_unified_sql_process_service_status(
     rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
     SPDLOG_LOGGER_DEBUG(
-        log_v2::perfdata(),
+        _logger_sto,
         "unified sql: host_id:{}, service_id:{} - index already in cache "
         "- index_id {}, rrd_len {}",
         host_id, service_id, index_id, rrd_len);
@@ -495,7 +503,7 @@ void stream::_unified_sql_process_service_status(
 
     /* Generate status event */
     SPDLOG_LOGGER_DEBUG(
-        log_v2::perfdata(),
+        _logger_sto,
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -520,12 +528,19 @@ void stream::_unified_sql_process_service_status(
 
       /* Parse perfdata. */
       _finish_action(-1, actions::metrics);
-      std::list<misc::perfdata> pds{misc::parse_perfdata(
-          ss.host_id, ss.service_id, ss.perf_data.c_str())};
+      std::list<common::perfdata> pds{common::perfdata::parse_perfdata(
+          ss.host_id, ss.service_id, ss.perf_data.c_str(), _logger_sto)};
 
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
+        pd.resize_name(common::adjust_size_utf8(
+            pd.name(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_metric_name)));
+        pd.resize_unit(common::adjust_size_utf8(
+            pd.unit(), get_centreon_storage_metrics_col_size(
+                           centreon_storage_metrics_unit_name)));
+
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
 
         /* The cache does not contain this metric */
@@ -534,7 +549,7 @@ void stream::_unified_sql_process_service_status(
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -568,7 +583,7 @@ void stream::_unified_sql_process_service_status(
             metric_id = future.get();
 
             // Insert metric in cache.
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: new metric {} for index {} and perfdata "
                 "'{}'",
                 metric_id, index_id, pd.name());
@@ -591,17 +606,16 @@ void stream::_unified_sql_process_service_status(
             std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
-            log_v2::perfdata()->error(
-                "unified sql: failed to create metric {} with type {}, "
+            _logger_sto->error(
+                "unified sql: failed to create metric '{}' with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
-                metric_id, type, pd.value(), pd.unit(), pd.warning(),
+                pd.name(), type, pd.value(), pd.unit(), pd.warning(),
                 pd.warning_low(), pd.warning_mode(), pd.critical(),
                 pd.critical_low(), pd.critical_mode(), pd.min(), pd.max());
-            throw msg_fmt(
-                "unified_sql: insertion of metric '{}"
-                "' of index {} failed: {}",
-                pd.name(), index_id, e.what());
+
+            // The metric creation failed, we pass to the next metric.
+            continue;
           }
         } else {
           rlck.unlock();
@@ -613,11 +627,11 @@ void stream::_unified_sql_process_service_status(
           else
             need_metric_mapping = false;
 
-          pd.value_type(static_cast<misc::perfdata::data_type>(
+          pd.value_type(static_cast<common::perfdata::data_type>(
               it_index_cache->second.type));
 
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -634,7 +648,7 @@ void stream::_unified_sql_process_service_status(
               it_index_cache->second.crit_mode != pd.critical_mode() ||
               !check_equality(it_index_cache->second.min, pd.min()) ||
               !check_equality(it_index_cache->second.max, pd.max())) {
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: updating metric {} of index {}, perfdata "
                 "'{}' with unit: {}, warning: {}:{}, critical: {}:{}, min: "
                 "{}, max: {}",
@@ -657,8 +671,7 @@ void stream::_unified_sql_process_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            SPDLOG_LOGGER_DEBUG(log_v2::perfdata(),
-                                "new metric with metric_id={}",
+            SPDLOG_LOGGER_DEBUG(_logger_sto, "new metric with metric_id={}",
                                 it_index_cache->second.metric_id);
           }
         }
@@ -713,9 +726,9 @@ void stream::_unified_sql_process_service_status(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
+              static_cast<common::perfdata::data_type>(pd.value_type()))};
           SPDLOG_LOGGER_DEBUG(
-              log_v2::perfdata(),
+              _logger_sto,
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
@@ -742,7 +755,8 @@ void stream::_update_metrics() {
     m.emplace_back(fmt::format(
         "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric.metric_id,
         misc::string::escape(metric.unit_name,
-                             get_metrics_col_size(metrics_unit_name)),
+                             get_centreon_storage_metrics_col_size(
+                                 centreon_storage_metrics_unit_name)),
         std::isnan(metric.warn) || std::isinf(metric.warn)
             ? "NULL"
             : fmt::format("{}", metric.warn),
@@ -781,7 +795,7 @@ void stream::_update_metrics() {
         fmt::join(m, ",")));
     int32_t conn = _mysql.choose_best_connection(-1);
     _finish_action(-1, actions::metrics);
-    SPDLOG_LOGGER_TRACE(log_v2::sql(), "Send query: {}", query);
+    SPDLOG_LOGGER_TRACE(_logger_sql, "Send query: {}", query);
     _mysql.run_query(query, database::mysql_error::update_metrics, conn);
     _add_action(conn, actions::metrics);
   }
@@ -789,8 +803,8 @@ void stream::_update_metrics() {
 
 void stream::_check_queues(boost::system::error_code ec) {
   if (ec)
-    log_v2::sql()->error(
-        "unified_sql: the queues check encountered an error: {}", ec.message());
+    _logger_sql->error("unified_sql: the queues check encountered an error: {}",
+                       ec.message());
   else {
     time_t now = time(nullptr);
     size_t sz_metrics;
@@ -801,206 +815,214 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     bool resources_done = false;
 
-    if (_bulk_prepared_statement) {
-      _finish_action(-1, actions::host_parents | actions::comments |
-                             actions::downtimes | actions::host_dependencies |
-                             actions::service_dependencies);
-      if (_store_in_hosts_services) {
-        if (_hscr_bind) {
-          SPDLOG_LOGGER_TRACE(
-              log_v2::sql(),
-              "Check if some statements are ready,  hscr_bind connections "
-              "count "
-              "= {}",
-              _hscr_bind->connections_count());
-          for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
-               conn++) {
-            if (_hscr_bind->ready(conn)) {
-              SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
-                  "Sending {} hosts rows of host status on connection {}",
-                  _hscr_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _hscr_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_hscr_update,
-                                   database::mysql_error::store_host_status,
-                                   conn);
-              _add_action(conn, actions::hosts);
+    try {
+      if (_bulk_prepared_statement) {
+        _finish_action(
+            -1, actions::host_parents | actions::comments | actions::downtimes);
+        if (_store_in_hosts_services) {
+          if (_hscr_bind) {
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready,  hscr_bind connections "
+                "count "
+                "= {}",
+                _hscr_bind->connections_count());
+            for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
+                 conn++) {
+              if (_hscr_bind->ready(conn)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger_sql,
+                    "Sending {} hosts rows of host status on connection {}",
+                    _hscr_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _hscr_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(*_hscr_update,
+                                     database::mysql_error::store_host_status,
+                                     conn);
+                _add_action(conn, actions::hosts);
+              }
+            }
+          }
+          if (_sscr_bind) {
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready,  sscr_bind connections "
+                "count "
+                "= {}",
+                _sscr_bind->connections_count());
+            for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
+                 conn++) {
+              if (_sscr_bind->ready(conn)) {
+                SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                    "Sending {} services rows of service "
+                                    "status on connection {}",
+                                    _sscr_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _sscr_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(
+                    *_sscr_update, database::mysql_error::store_service_status,
+                    conn);
+                _add_action(conn, actions::services);
+              }
             }
           }
         }
-        if (_sscr_bind) {
-          SPDLOG_LOGGER_TRACE(
-              log_v2::sql(),
-              "Check if some statements are ready,  sscr_bind connections "
-              "count "
-              "= {}",
-              _sscr_bind->connections_count());
-          for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
-               conn++) {
-            if (_sscr_bind->ready(conn)) {
-              SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
-                  "Sending {} services rows of service status on connection {}",
-                  _sscr_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _sscr_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_sscr_update,
-                                   database::mysql_error::store_service_status,
-                                   conn);
-              _add_action(conn, actions::services);
+        if (_store_in_resources) {
+          if (_hscr_resources_bind) {
+            for (uint32_t conn = 0;
+                 conn < _hscr_resources_bind->connections_count(); conn++) {
+              if (_hscr_resources_bind->ready(conn)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger_sql,
+                    "Sending {} host rows of resource status on connection {}",
+                    _hscr_resources_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _hscr_resources_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(*_hscr_resources_update,
+                                     database::mysql_error::store_host_status,
+                                     conn);
+                _add_action(conn, actions::resources);
+              }
+            }
+          }
+          if (_sscr_resources_bind) {
+            for (uint32_t conn = 0;
+                 conn < _sscr_resources_bind->connections_count(); conn++) {
+              if (_sscr_resources_bind->ready(conn)) {
+                SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                    "Sending {} service rows of resource "
+                                    "status on connection {}",
+                                    _sscr_resources_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _sscr_resources_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(
+                    *_sscr_resources_update,
+                    database::mysql_error::store_service_status, conn);
+                _add_action(conn, actions::resources);
+              }
             }
           }
         }
+        resources_done = true;
       }
-      if (_store_in_resources) {
-        if (_hscr_resources_bind) {
-          for (uint32_t conn = 0;
-               conn < _hscr_resources_bind->connections_count(); conn++) {
-            if (_hscr_resources_bind->ready(conn)) {
-              SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
-                  "Sending {} host rows of resource status on connection {}",
-                  _hscr_resources_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _hscr_resources_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_hscr_resources_update,
-                                   database::mysql_error::store_host_status,
-                                   conn);
-              _add_action(conn, actions::resources);
-            }
-          }
-        }
-        if (_sscr_resources_bind) {
-          for (uint32_t conn = 0;
-               conn < _sscr_resources_bind->connections_count(); conn++) {
-            if (_sscr_resources_bind->ready(conn)) {
-              SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
-                  "Sending {} service rows of resource status on connection {}",
-                  _sscr_resources_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _sscr_resources_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_sscr_resources_update,
-                                   database::mysql_error::store_service_status,
-                                   conn);
-              _add_action(conn, actions::resources);
-            }
-          }
+
+      bool perfdata_done = false;
+      {
+        std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
+        if (_perfdata_query->ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new perfdata inserted",
+                              _perfdata_query->row_count());
+          _perfdata_query->execute(
+              _dedicated_connections ? *_dedicated_connections : _mysql);
+          perfdata_done = true;
         }
       }
-      resources_done = true;
-    }
 
-    bool perfdata_done = false;
-    {
-      std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
-      if (_perfdata_query->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new perfdata inserted",
-                            _perfdata_query->row_count());
-        _perfdata_query->execute(
-            _dedicated_connections ? *_dedicated_connections : _mysql);
-        perfdata_done = true;
+      bool metrics_done = false;
+      if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
+        _next_update_metrics = now + queue_timer_duration;
+        _update_metrics();
+        metrics_done = true;
       }
-    }
 
-    bool metrics_done = false;
-    if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
-      _next_update_metrics = now + queue_timer_duration;
-      _update_metrics();
-      metrics_done = true;
-    }
-
-    bool customvar_done = false;
-    if (_cv.ready()) {
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new custom variables inserted",
-                          _cv.size());
-      std::string query = _cv.get_query();
-      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
-      _add_action(conn, actions::custom_variables);
-      customvar_done = true;
-    }
-
-    if (_cvs.ready()) {
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(), "{} new custom variable status inserted", _cvs.size());
-      std::string query = _cvs.get_query();
-      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
-      _add_action(conn, actions::custom_variables);
-      customvar_done = true;
-    }
-
-    bool downtimes_done = false;
-    {
-      std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
-      if (_downtimes->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new downtimes inserted",
-                            _downtimes->row_count());
-        _finish_action(-1, actions::hosts | actions::instances |
-                               actions::downtimes | actions::host_parents |
-                               actions::host_dependencies |
-                               actions::service_dependencies);
-        int32_t conn = special_conn::downtime % _mysql.connections_count();
-        _downtimes->execute(_mysql, database::mysql_error::store_downtime,
-                            conn);
-        _add_action(conn, actions::downtimes);
-        downtimes_done = true;
+      bool customvar_done = false;
+      if (_cv.ready()) {
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
+                            _cv.size());
+        std::string query = _cv.get_query();
+        int32_t conn =
+            special_conn::custom_variable % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_customvariables,
+                         conn);
+        _add_action(conn, actions::custom_variables);
+        customvar_done = true;
       }
-    }
 
-    bool comments_done = false;
-    {
-      std::lock_guard<database::bulk_or_multi> lck(*_comments);
-      if (_comments->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new comments inserted",
-                            _comments->row_count());
-        int32_t conn = special_conn::comment % _mysql.connections_count();
-        _comments->execute(_mysql, database::mysql_error::store_downtime, conn);
-        comments_done = true;
-        _add_action(conn, actions::comments);
+      if (_cvs.ready()) {
+        SPDLOG_LOGGER_DEBUG(
+            _logger_sql, "{} new custom variable status inserted", _cvs.size());
+        std::string query = _cvs.get_query();
+        int32_t conn =
+            special_conn::custom_variable % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_customvariables,
+                         conn);
+        _add_action(conn, actions::custom_variables);
+        customvar_done = true;
       }
-    }
 
-    bool logs_done = false;
-    {
-      std::lock_guard<database::bulk_or_multi> lck(*_logs);
-      if (_logs->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new logs inserted",
-                            _logs->row_count());
-        if (_dedicated_connections)
-          _logs->execute(*_dedicated_connections,
-                         database::mysql_error::update_logs);
-        else
-          _logs->execute(_mysql, database::mysql_error::update_logs,
-                         special_conn::log % _mysql.connections_count());
-        logs_done = true;
+      bool downtimes_done = false;
+      {
+        std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
+        if (_downtimes->ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new downtimes inserted",
+                              _downtimes->row_count());
+          _finish_action(-1, actions::hosts | actions::instances |
+                                 actions::downtimes | actions::host_parents);
+          int32_t conn = special_conn::downtime % _mysql.connections_count();
+          _downtimes->execute(_mysql, database::mysql_error::store_downtime,
+                              conn);
+          _add_action(conn, actions::downtimes);
+          downtimes_done = true;
+        }
       }
-    }
 
-    // End.
-    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                        "unified_sql:_check_queues   - resources: {}, "
-                        "perfdata: {}, metrics: {}, customvar: "
-                        "{}, logs: {}, downtimes: {} comments: {}",
-                        resources_done, perfdata_done, metrics_done,
-                        customvar_done, logs_done, downtimes_done,
-                        comments_done);
+      bool comments_done = false;
+      {
+        std::lock_guard<database::bulk_or_multi> lck(*_comments);
+        if (_comments->ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new comments inserted",
+                              _comments->row_count());
+          int32_t conn = special_conn::comment % _mysql.connections_count();
+          _comments->execute(_mysql, database::mysql_error::store_downtime,
+                             conn);
+          comments_done = true;
+          _add_action(conn, actions::comments);
+        }
+      }
+
+      bool logs_done = false;
+      {
+        std::lock_guard<database::bulk_or_multi> lck(*_logs);
+        if (_logs->ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new logs inserted",
+                              _logs->row_count());
+          if (_dedicated_connections)
+            _logs->execute(*_dedicated_connections,
+                           database::mysql_error::update_logs);
+          else
+            _logs->execute(_mysql, database::mysql_error::update_logs,
+                           special_conn::log % _mysql.connections_count());
+          logs_done = true;
+        }
+      }
+
+      // End.
+      SPDLOG_LOGGER_DEBUG(_logger_sql,
+                          "unified_sql:_check_queues   - resources: {}, "
+                          "perfdata: {}, metrics: {}, customvar: "
+                          "{}, logs: {}, downtimes: {} comments: {}",
+                          resources_done, perfdata_done, metrics_done,
+                          customvar_done, logs_done, downtimes_done,
+                          comments_done);
+
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          _logger_sql, "fail to store queued data in database: {}", e.what());
+    }
 
     if (!_stop_check_queues) {
-      std::lock_guard<std::mutex> l(_timer_m);
+      absl::MutexLock l(&_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
-      _queues_timer.async_wait(
-          [this](const boost::system::error_code& err) { _check_queues(err); });
+      _queues_timer.async_wait([this](const boost::system::error_code& err) {
+        absl::ReaderMutexLock lck(&_barrier_timer_m);
+        _check_queues(err);
+      });
     } else {
-      SPDLOG_LOGGER_INFO(log_v2::sql(),
+      SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
       _check_queues_stopped = true;
       _queues_cond_var.notify_all();
@@ -1013,7 +1035,7 @@ void stream::_check_queues(boost::system::error_code ec) {
  */
 void stream::_check_deleted_index() {
   // Info.
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "unified_sql: starting DB cleanup");
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: starting DB cleanup");
 
   std::promise<database::mysql_result> promise;
   std::future<database::mysql_result> future = promise.get_future();
@@ -1042,15 +1064,15 @@ void stream::_check_deleted_index() {
       metrics_to_delete.insert(res.value_as_u64(0));
     }
   } catch (const std::exception& e) {
-    log_v2::sql()->error(
+    _logger_sql->error(
         "could not query index / metrics table(s) to get index to delete: "
         "{} ",
         e.what());
   }
 
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "Something to remove?");
+  SPDLOG_LOGGER_INFO(_logger_sql, "Something to remove?");
   if (!metrics_to_delete.empty() || !index_to_delete.empty()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "YES!!!");
+    SPDLOG_LOGGER_INFO(_logger_sql, "YES!!!");
     auto rg = std::make_shared<bbdo::pb_remove_graphs>();
     auto& obj = rg->mut_obj();
     for (auto& m : metrics_to_delete)
@@ -1081,17 +1103,17 @@ void stream::_check_rebuild_index() {
     }
 
   } catch (const std::exception& e) {
-    log_v2::sql()->error(
+    _logger_sql->error(
         "could not query indexes table to get indexes to delete: {}", e.what());
   }
 
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "Something to rebuild?");
+  SPDLOG_LOGGER_INFO(_logger_sql, "Something to rebuild?");
   if (!index_to_rebuild.empty()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "YES!!!");
+    SPDLOG_LOGGER_INFO(_logger_sql, "YES!!!");
     auto rg = std::make_shared<bbdo::pb_rebuild_graphs>();
     auto& obj = rg->mut_obj();
     for (auto& i : index_to_rebuild)
       obj.add_index_ids(i);
-    _rebuilder.rebuild_graphs(rg);
+    _rebuilder.rebuild_graphs(rg, _logger_sql);
   }
 }

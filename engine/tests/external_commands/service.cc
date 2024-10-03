@@ -26,6 +26,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/process_manager.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -42,6 +43,7 @@ class ServiceExternalCommand : public ::testing::Test {
 };
 
 TEST_F(ServiceExternalCommand, AddServiceDowntime) {
+  configuration::error_cnt err;
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::command cmd_aply;
@@ -73,8 +75,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
   hst_aply.expand_objects(*config);
   svc_aply.expand_objects(*config);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   set_time(20000);
   time_t now = time(nullptr);
@@ -123,8 +125,9 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
   hst_aply.expand_objects(*config);
   svc_aply.expand_objects(*config);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  configuration::error_cnt err;
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   set_time(20000);
   time_t now = time(nullptr);
@@ -173,8 +176,9 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
   hst_aply.expand_objects(*config);
   svc_aply.expand_objects(*config);
 
-  hst_aply.resolve_object(hst);
-  svc_aply.resolve_object(svc);
+  configuration::error_cnt err;
+  hst_aply.resolve_object(hst, err);
+  svc_aply.resolve_object(svc, err);
 
   std::string cmd_com1{
       "test_host;test_description;1;user;this is a first comment"};

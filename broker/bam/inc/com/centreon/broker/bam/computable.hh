@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class computable computable.hh "com/centreon/broker/bam/computable.hh"
  *  @brief Object that get computed by the BAM engine.
@@ -34,9 +32,10 @@ namespace bam {
 class computable {
  protected:
   std::list<std::weak_ptr<computable>> _parents;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  computable() = default;
+  computable(const std::shared_ptr<spdlog::logger>& logger) : _logger(logger) {}
   computable(const computable&) = delete;
   virtual ~computable() noexcept = default;
   computable& operator=(const computable&) = delete;
@@ -69,8 +68,6 @@ class computable {
   virtual void dump(std::ofstream& output) const = 0;
   void dump_parents(std::ofstream& output) const;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_COMPUTABLE_HH

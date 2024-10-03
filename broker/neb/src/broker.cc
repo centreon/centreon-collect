@@ -16,15 +16,28 @@
  * For more information : contact@centreon.com
  */
 
+#include <string>
+
+#include <string_view>
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
+
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static uint32_t neb_instances(0);
 
@@ -55,9 +68,9 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
+  auto logger = log_v2::instance().get(log_v2::NEB);
   if (!neb_instances++) {
-    log_v2::core()->info("NEB: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+    logger->info("NEB: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
     io::events& e(io::events::instance());
 
     // Register events.
@@ -81,10 +94,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                        &neb::host_check::operations, neb::host_check::entries,
                        "hosts");
-      e.register_event(make_type(io::neb, neb::de_host_dependency),
-                       "host_dependency", &neb::host_dependency::operations,
-                       neb::host_dependency::entries,
-                       "hosts_hosts_dependencies");
       e.register_event(make_type(io::neb, neb::de_host), "host",
                        &neb::host::operations, neb::host::entries, "hosts");
       e.register_event(make_type(io::neb, neb::de_host_group), "host_group",
@@ -111,10 +120,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_service_check),
                        "service_check", &neb::service_check::operations,
                        neb::service_check::entries, "services");
-      e.register_event(
-          make_type(io::neb, neb::de_service_dependency), "service_dependency",
-          &neb::service_dependency::operations,
-          neb::service_dependency::entries, "services_services_dependencies");
       e.register_event(make_type(io::neb, neb::de_service), "service",
                        &neb::service::operations, neb::service::entries,
                        "services");
@@ -198,13 +203,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_acknowledgement),
                        "Acknowledgement", &neb::pb_acknowledgement::operations,
                        "acknowledgements");
-      e.register_event(neb::pb_host_dependency::static_type(), "HostDependency",
-                       &neb::pb_host_dependency::operations,
-                       "hosts_hosts_dependencies");
-      e.register_event(neb::pb_service_dependency::static_type(),
-                       "ServiceDependency",
-                       &neb::pb_service_dependency::operations,
-                       "services_services_dependencies");
       e.register_event(neb::pb_host_group::static_type(), "HostGroup",
                        &neb::pb_host_group::operations, "hostgroups");
       e.register_event(
@@ -215,13 +213,13 @@ void broker_module_init(void const* arg) {
       e.register_event(
           neb::pb_service_group_member::static_type(), "ServiceGroupMember",
           &neb::pb_service_group_member::operations, "services_servicegroups");
-
       e.register_event(neb::pb_host_parent::static_type(), "HostParent",
                        &neb::pb_host_parent::operations, "hosts_hosts_parents");
-
       e.register_event(neb::pb_instance_configuration::static_type(),
                        "InstanceConfiguration",
                        &neb::pb_instance_configuration::operations, "no_table");
+      e.register_event(neb::pb_otl_metrics::static_type(), "OTLMetrics",
+                       &neb::pb_otl_metrics::operations, "otl_metrics");
     }
   }
 }

@@ -29,6 +29,7 @@ dnf --best install -y cmake \
     openssh-server \
     mariadb-server \
     mariadb \
+    mariadb-connector-c-devel \
     gnutls-devel \
     libgcrypt-devel \
     lua-devel \

@@ -1,24 +1,25 @@
 /**
-* Copyright 2020-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_STATS_CENTER_HH
 #define CCB_STATS_CENTER_HH
 
+#include <absl/synchronization/mutex.h>
 #include "broker.pb.h"
 
 namespace com::centreon::broker::stats {
@@ -47,45 +48,56 @@ namespace com::centreon::broker::stats {
  *   value value.
  */
 class center {
-  static center* _instance;
-  BrokerStats _stats;
-  mutable std::mutex _stats_m;
+  static std::shared_ptr<center> _instance;
+  BrokerStats _stats ABSL_GUARDED_BY(_stats_m);
+  mutable absl::Mutex _stats_m;
   int _json_stats_file_creation;
 
-  center();
-  ~center();
-
  public:
-  static center& instance();
+  center();
+
+  static std::shared_ptr<center> instance_ptr();
   static void load();
   static void unload();
-  std::string to_string();
+  std::string to_string() ABSL_LOCKS_EXCLUDED(_stats_m);
 
-  EngineStats* register_engine();
-  ConflictManagerStats* register_conflict_manager();
-  void unregister_muxer(const std::string& name);
-  void update_muxer(std::string name, std::string queue_file, uint32_t size,
-                    uint32_t unack);
-  void init_queue_file(std::string muxer, std::string queue_file,
-                       uint32_t max_file_size);
+  EngineStats* register_engine() ABSL_LOCKS_EXCLUDED(_stats_m);
+  ConflictManagerStats* register_conflict_manager()
+      ABSL_LOCKS_EXCLUDED(_stats_m);
+  void unregister_muxer(const std::string& name) ABSL_LOCKS_EXCLUDED(_stats_m);
+  void update_muxer(std::string name,
+                    std::string queue_file,
+                    uint32_t size,
+                    uint32_t unack) ABSL_LOCKS_EXCLUDED(_stats_m);
+  void init_queue_file(std::string muxer,
+                       std::string queue_file,
+                       uint32_t max_file_size) ABSL_LOCKS_EXCLUDED(_stats_m);
 
-  bool muxer_stats(const std::string& name, MuxerStats* response);
-  MuxerStats* muxer_stats(const std::string& name);
-  void clear_muxer_queue_file(const std::string& name);
+  bool muxer_stats(const std::string& name, MuxerStats* response)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
+  MuxerStats* muxer_stats(const std::string& name)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
+  void clear_muxer_queue_file(const std::string& name)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
 
-  bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
+  bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
   void get_conflict_manager_stats(ConflictManagerStats* response);
-  void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1);
+  void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
   SqlConnectionStats* connection(size_t idx);
-  SqlConnectionStats* add_connection();
-  void remove_connection(SqlConnectionStats* stats);
+  SqlConnectionStats* add_connection() ABSL_LOCKS_EXCLUDED(_stats_m);
+  void remove_connection(SqlConnectionStats* stats)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
 
   int get_json_stats_file_creation(void);
-  void get_sql_connection_size(GenericSize* response);
-  void get_processing_stats(ProcessingStats* response);
+  void get_sql_connection_size(GenericSize* response)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
+  void get_processing_stats(ProcessingStats* response)
+      ABSL_LOCKS_EXCLUDED(_stats_m);
   const BrokerStats& stats() const;
-  void lock();
-  void unlock();
+  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_stats_m);
+  void unlock() ABSL_UNLOCK_FUNCTION(_stats_m);
 
   /**
    * @brief Set the value pointed by ptr to the value value.
@@ -95,24 +107,10 @@ class center {
    * @param value The value of type T to set.
    */
   template <typename T>
-  void update(T* ptr, T value) {
-    std::lock_guard<std::mutex> lck(_stats_m);
+  void update(T* ptr, T value) ABSL_LOCKS_EXCLUDED(_stats_m) {
+    absl::MutexLock lck(&_stats_m);
     *ptr = std::move(value);
   }
-
-  /**
-   * @brief Almost the same function as in the previous case, but with a
-   * Timestamp object. And we can directly set a time_t value.
-   *
-   * @param ptr A pointer to object of type Timestamp.
-   * @param value The value of type time_t to set.
-   */
-  // void update(google::protobuf::Timestamp* ptr, time_t value) {
-  //  _strand.post([ptr, value] {
-  //    ptr->Clear();
-  //    ptr->set_seconds(value);
-  //  });
-  //}
 
   /**
    * @brief Sometimes with protobuf, we can not access to a mutable pointer.
@@ -126,19 +124,19 @@ class center {
    * @param value The value to set.
    */
   template <typename U, typename T>
-  void update(void (U::*f)(T), U* ptr, T value) {
-    std::lock_guard<std::mutex> lck(_stats_m);
+  void update(void (U::*f)(T), U* ptr, T value) ABSL_LOCKS_EXCLUDED(_stats_m) {
+    absl::MutexLock lck(&_stats_m);
     (ptr->*f)(value);
   }
 
-  void execute(std::function<void()>&& f) {
-    std::lock_guard<std::mutex> lck(_stats_m);
+  void execute(std::function<void()>&& f) ABSL_LOCKS_EXCLUDED(_stats_m) {
+    absl::MutexLock lck(&_stats_m);
     f();
   }
 
   template <typename U, typename T>
-  const T& get(T (U::*f)() const, const U* ptr) {
-    std::lock_guard<std::mutex> lck(_stats_m);
+  const T& get(T (U::*f)() const, const U* ptr) ABSL_LOCKS_EXCLUDED(_stats_m) {
+    absl::MutexLock lck(&_stats_m);
     return (ptr->*f)();
   }
 };

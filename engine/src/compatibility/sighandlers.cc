@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "sighandlers.h"
 #include <com/centreon/engine/notifier.hh>
@@ -45,7 +45,6 @@ static void sighandler_helper(char const* msg, unsigned int size, int ret) {
 
   // Exit.
   _Exit(ret);
-  return;
 }
 
 extern "C" {
@@ -58,7 +57,6 @@ void host_check_sighandler(int sig) {
   (void)sig;
   sighandler_helper(HOST_TIMEOUT_OUTPUT, sizeof(HOST_TIMEOUT_OUTPUT) - 1,
                     service::state_unknown);
-  return;
 }
 
 /**
@@ -69,7 +67,6 @@ void host_check_sighandler(int sig) {
 void my_system_sighandler(int sig) {
   (void)sig;
   sighandler_helper(NULL, 0, service::state_unknown);
-  return;
 }
 
 /**
@@ -81,6 +78,5 @@ void service_check_sighandler(int sig) {
   (void)sig;
   sighandler_helper(SERVICE_TIMEOUT_OUTPUT, sizeof(SERVICE_TIMEOUT_OUTPUT) - 1,
                     service::state_unknown);
-  return;
 }
 }

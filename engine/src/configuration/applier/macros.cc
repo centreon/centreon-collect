@@ -1,22 +1,21 @@
 /**
-* Copyright 2011-2013,2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2013,2016-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/configuration/applier/macros.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -51,6 +50,7 @@ static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
   return (true);
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Apply new configuration.
  *
@@ -66,8 +66,6 @@ void applier::macros::apply(configuration::state& config) {
     _set_macro(MACRO_RESOURCEFILE, config.resource_file().front());
   _set_macro(MACRO_STATUSDATAFILE, config.status_file());
   _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
-  _set_macro(MACRO_HOSTPERFDATAFILE, config.host_perfdata_file());
-  _set_macro(MACRO_SERVICEPERFDATAFILE, config.service_perfdata_file());
   _set_macro(MACRO_POLLERNAME, config.poller_name());
   _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));
 
@@ -83,6 +81,39 @@ void applier::macros::apply(configuration::state& config) {
       _set_macros_user(val - 1, it->second);
   }
 }
+#else
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] config The new configuration.
+ */
+void applier::macros::apply(configuration::State& pb_config) {
+  _set_macro(MACRO_ADMINEMAIL, pb_config.admin_email());
+  _set_macro(MACRO_ADMINPAGER, pb_config.admin_pager());
+  _set_macro(MACRO_COMMANDFILE, pb_config.command_file());
+  _set_macro(MACRO_LOGFILE, pb_config.log_file());
+  _set_macro(MACRO_MAINCONFIGFILE, pb_config.cfg_main());
+  if (pb_config.resource_file().size() > 0)
+    _set_macro(MACRO_RESOURCEFILE, pb_config.resource_file(0));
+  _set_macro(MACRO_STATUSDATAFILE, pb_config.status_file());
+  _set_macro(MACRO_RETENTIONDATAFILE, pb_config.state_retention_file());
+  _set_macro(MACRO_POLLERNAME, pb_config.poller_name());
+  _set_macro(MACRO_POLLERID, std::to_string(pb_config.poller_id()));
+
+  auto& users = applier::state::instance().user_macros();
+  users.clear();
+
+  for (auto& p : pb_config.users())
+    users[p.first] = p.second;
+
+  // Save old style user macros into old style structures.
+  for (auto& p : users) {
+    unsigned int val = 1;
+    if (is_old_style_user_macro(p.first, val))
+      _set_macros_user(val - 1, p.second);
+  }
+}
+#endif
 
 /**
  *  Get the singleton instance of macros applier.

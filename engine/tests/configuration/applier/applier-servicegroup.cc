@@ -24,7 +24,8 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
-#include "com/centreon/engine/configuration/service.hh"
+#include "com/centreon/engine/servicegroup.hh"
+#include "common/engine_legacy_conf/service.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -32,16 +33,9 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern int config_errors;
-extern int config_warnings;
-
 class ApplierServicegroup : public ::testing::Test {
  public:
-  void SetUp() override {
-    config_errors = 0;
-    config_warnings = 0;
-    init_config_state();
-  }
+  void SetUp() override { init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -93,13 +87,14 @@ TEST_F(ApplierServicegroup, ModifyServicegroupFromConfig) {
 // When the resolve_object() method is called
 // Then no warning, nor error are given
 TEST_F(ApplierServicegroup, ResolveEmptyservicegroup) {
+  error_cnt err;
   configuration::applier::servicegroup aplyr;
   configuration::servicegroup grp("test");
   aplyr.add_object(grp);
   aplyr.expand_objects(*config);
-  aplyr.resolve_object(grp);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 0);
+  aplyr.resolve_object(grp, err);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 0);
 }
 
 // Given a servicegroup with a non-existing service
@@ -107,20 +102,22 @@ TEST_F(ApplierServicegroup, ResolveEmptyservicegroup) {
 // Then an exception is thrown
 // And the method returns 1 error
 TEST_F(ApplierServicegroup, ResolveInexistentService) {
+  error_cnt err;
   configuration::applier::servicegroup aplyr;
   configuration::servicegroup grp("test");
   grp.parse("members", "host1,non_existing_service");
   aplyr.add_object(grp);
   aplyr.expand_objects(*config);
-  ASSERT_THROW(aplyr.resolve_object(grp), std::exception);
-  ASSERT_EQ(config_warnings, 0);
-  ASSERT_EQ(config_errors, 1);
+  ASSERT_THROW(aplyr.resolve_object(grp, err), std::exception);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(err.config_errors, 1);
 }
 
 // Given a servicegroup with a service and a host
 // When the resolve_object() method is called
 // Then the service is really added to the service group.
 TEST_F(ApplierServicegroup, ResolveServicegroup) {
+  error_cnt err;
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
@@ -148,7 +145,7 @@ TEST_F(ApplierServicegroup, ResolveServicegroup) {
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
 // Given a servicegroup with a service already configured
@@ -157,6 +154,7 @@ TEST_F(ApplierServicegroup, ResolveServicegroup) {
 // Then the parse method returns true and set the first one service
 // to the second one.
 TEST_F(ApplierServicegroup, SetServicegroupMembers) {
+  error_cnt err;
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
@@ -184,7 +182,7 @@ TEST_F(ApplierServicegroup, SetServicegroupMembers) {
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
+  aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().size() == 1);
 
   configuration::servicegroup grp1("big_group");
@@ -201,6 +199,7 @@ TEST_F(ApplierServicegroup, SetServicegroupMembers) {
 // When we remove the configuration
 // Then it is really removed
 TEST_F(ApplierServicegroup, RemoveServicegroupFromConfig) {
+  error_cnt err;
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
@@ -228,7 +227,7 @@ TEST_F(ApplierServicegroup, RemoveServicegroupFromConfig) {
   grp.parse("members", "test_host,test");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
+  aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().size() == 1);
 
   configuration::servicegroup grp1("big_group");
@@ -248,6 +247,7 @@ TEST_F(ApplierServicegroup, RemoveServicegroupFromConfig) {
 // When we remove the configuration
 // Then it is really removed
 TEST_F(ApplierServicegroup, RemoveServiceFromGroup) {
+  error_cnt err;
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
@@ -287,7 +287,7 @@ TEST_F(ApplierServicegroup, RemoveServiceFromGroup) {
   grp.parse("members", "test_host,test,test_host,test2");
   aply_grp.add_object(grp);
   aply_grp.expand_objects(*config);
-  aply_grp.resolve_object(grp);
+  aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().size() == 2);
 
   engine::servicegroup* sg{

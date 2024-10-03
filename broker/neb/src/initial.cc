@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -28,7 +27,6 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/objects.hh"
@@ -58,7 +56,7 @@ typedef int (*neb_sender)(int, void*);
 static void send_custom_variables_list(
     neb_sender sender = neb::callback_custom_variable) {
   // Start log message.
-  log_v2::neb()->info("init: beginning custom variables dump");
+  neb_logger->info("init: beginning custom variables dump");
 
   // Iterate through all hosts.
   for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
@@ -73,11 +71,10 @@ static void send_custom_variables_list(
       if (cit->second.is_sent()) {
         // Fill callback struct.
         nebstruct_custom_variable_data nscvd;
-        memset(&nscvd, 0, sizeof(nscvd));
         nscvd.type = NEBTYPE_HOSTCUSTOMVARIABLE_ADD;
         nscvd.timestamp.tv_sec = time(nullptr);
         nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.get_value().c_str());
+        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
         nscvd.object_ptr = it->second.get();
 
         // Callback.
@@ -99,13 +96,13 @@ static void send_custom_variables_list(
       std::string name{cit->first};
       if (cit->second.is_sent()) {
         // Fill callback struct.
-        nebstruct_custom_variable_data nscvd;
-        memset(&nscvd, 0, sizeof(nscvd));
-        nscvd.type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD;
-        nscvd.timestamp.tv_sec = time(nullptr);
-        nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.get_value().c_str());
-        nscvd.object_ptr = it->second.get();
+        nebstruct_custom_variable_data nscvd{
+            .type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+            .timestamp = {time(nullptr), 0},
+            .var_name = std::string_view(name),
+            .var_value = std::string_view(cit->second.value()),
+            .object_ptr = it->second.get(),
+        };
 
         // Callback.
         sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
@@ -114,7 +111,7 @@ static void send_custom_variables_list(
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of custom variables dump");
+  neb_logger->info("init: end of custom variables dump");
 }
 
 static void send_pb_custom_variables_list() {
@@ -126,7 +123,7 @@ static void send_pb_custom_variables_list() {
  */
 static void send_downtimes_list(neb_sender sender = neb::callback_downtime) {
   // Start log message.
-  log_v2::neb()->info("init: beginning downtimes dump");
+  neb_logger->info("init: beginning downtimes dump");
 
   std::multimap<
       time_t,
@@ -164,7 +161,7 @@ static void send_downtimes_list(neb_sender sender = neb::callback_downtime) {
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of downtimes dump");
+  neb_logger->info("init: end of downtimes dump");
 }
 
 /**
@@ -175,55 +172,13 @@ static void send_pb_downtimes_list() {
 }
 
 /**
- *  Send to the global publisher the list of host dependencies within Nagios.
- */
-static void send_host_dependencies_list(
-    neb_sender callbackfct = neb::callback_dependency) {
-  // Start log message.
-  log_v2::neb()->info("init: beginning host dependencies dump");
-
-  try {
-    // Loop through all dependencies.
-    for (hostdependency_mmap::const_iterator
-             it{com::centreon::engine::hostdependency::hostdependencies
-                    .begin()},
-         end{com::centreon::engine::hostdependency::hostdependencies.end()};
-         it != end; ++it) {
-      // Fill callback struct.
-      nebstruct_adaptive_dependency_data nsadd;
-      memset(&nsadd, 0, sizeof(nsadd));
-      nsadd.type = NEBTYPE_HOSTDEPENDENCY_ADD;
-      nsadd.object_ptr = it->second.get();
-
-      // Callback.
-      callbackfct(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
-    }
-  } catch (std::exception const& e) {
-    log_v2::neb()->info(
-        "init: error occurred while dumping host dependencies: {}", e.what());
-  } catch (...) {
-    log_v2::neb()->error(
-        "init: unknown error occurred while dumping host dependencies");
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of host dependencies dump");
-
-  return;
-}
-
-static void send_pb_host_dependencies_list() {
-  send_host_dependencies_list(neb::callback_pb_dependency);
-}
-
-/**
  *  Send to the global publisher the list of host groups within Engine.
  */
 static void send_host_group_list(
     neb_sender group_sender = neb::callback_group,
     neb_sender group_member_sender = neb::callback_group_member) {
   // Start log message.
-  log_v2::neb()->info("init: beginning host group dump");
+  neb_logger->info("init: beginning host group dump");
 
   // Loop through all host groups.
   for (hostgroup_map::const_iterator
@@ -256,7 +211,7 @@ static void send_host_group_list(
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of host group dump");
+  neb_logger->info("init: end of host group dump");
 }
 
 static void send_pb_host_group_list() {
@@ -268,7 +223,7 @@ static void send_pb_host_group_list() {
  */
 static void send_severity_list() {
   /* Start log message. */
-  log_v2::neb()->info("init: beginning severity dump");
+  neb_logger->info("init: beginning severity dump");
 
   for (auto it = com::centreon::engine::severity::severities.begin(),
             end = com::centreon::engine::severity::severities.end();
@@ -282,7 +237,7 @@ static void send_severity_list() {
  */
 static void send_tag_list() {
   /* Start log message. */
-  log_v2::neb()->info("init: beginning tag dump");
+  neb_logger->info("init: beginning tag dump");
 
   for (auto it = com::centreon::engine::tag::tags.begin(),
             end = com::centreon::engine::tag::tags.end();
@@ -296,7 +251,7 @@ static void send_tag_list() {
  */
 static void send_host_list(neb_sender sender = neb::callback_host) {
   // Start log message.
-  log_v2::neb()->info("init: beginning host dump");
+  neb_logger->info("init: beginning host dump");
 
   // Loop through all hosts.
   for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
@@ -314,7 +269,7 @@ static void send_host_list(neb_sender sender = neb::callback_host) {
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of host dump");
+  neb_logger->info("init: end of host dump");
 }
 
 /**
@@ -329,7 +284,7 @@ static void send_pb_host_list() {
  */
 static void send_host_parents_list(neb_sender sender = neb::callback_relation) {
   // Start log message.
-  log_v2::neb()->info("init: beginning host parents dump");
+  neb_logger->info("init: beginning host parents dump");
 
   try {
     // Loop through all hosts.
@@ -352,15 +307,15 @@ static void send_host_parents_list(neb_sender sender = neb::callback_relation) {
       }
     }
   } catch (std::exception const& e) {
-    log_v2::neb()->error("init: error occurred while dumping host parents: {}",
-                         e.what());
+    neb_logger->error("init: error occurred while dumping host parents: {}",
+                      e.what());
   } catch (...) {
-    log_v2::neb()->error(
+    neb_logger->error(
         "init: unknown error occurred while dumping host parents");
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of host parents dump");
+  neb_logger->info("init: end of host parents dump");
 }
 
 /**
@@ -371,56 +326,13 @@ static void send_pb_host_parents_list() {
 }
 
 /**
- *  Send to the global publisher the list of service dependencies within
- *  Nagios.
- */
-static void send_service_dependencies_list(
-    neb_sender sender_fct = neb::callback_dependency) {
-  // Start log message.
-  log_v2::neb()->info("init: beginning service dependencies dump");
-
-  try {
-    // Loop through all dependencies.
-    for (servicedependency_mmap::const_iterator
-             it{com::centreon::engine::servicedependency::servicedependencies
-                    .begin()},
-         end{com::centreon::engine::servicedependency::servicedependencies
-                 .end()};
-         it != end; ++it) {
-      // Fill callback struct.
-      nebstruct_adaptive_dependency_data nsadd;
-      memset(&nsadd, 0, sizeof(nsadd));
-      nsadd.type = NEBTYPE_SERVICEDEPENDENCY_ADD;
-      nsadd.object_ptr = it->second.get();
-
-      // Callback.
-      sender_fct(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
-    }
-  } catch (std::exception const& e) {
-    log_v2::neb()->error(
-        "init: error occurred while dumping service dependencies: {}",
-        e.what());
-  } catch (...) {
-    log_v2::neb()->error(
-        "init: unknown error occurred while dumping service dependencies");
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of service dependencies dump");
-}
-
-static void send_pb_service_dependencies_list() {
-  send_service_dependencies_list(neb::callback_pb_dependency);
-}
-
-/**
  *  Send to the global publisher the list of service groups within Engine.
  */
 static void send_service_group_list(
     neb_sender group_sender = neb::callback_group,
     neb_sender group_member_sender = neb::callback_group_member) {
   // Start log message.
-  log_v2::neb()->info("init: beginning service group dump");
+  neb_logger->info("init: beginning service group dump");
 
   // Loop through all service groups.
   for (servicegroup_map::const_iterator
@@ -453,7 +365,7 @@ static void send_service_group_list(
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of service groups dump");
+  neb_logger->info("init: end of service groups dump");
 }
 
 static void send_pb_service_group_list() {
@@ -466,7 +378,7 @@ static void send_pb_service_group_list() {
  */
 static void send_service_list(neb_sender sender = neb::callback_service) {
   // Start log message.
-  log_v2::neb()->info("init: beginning service dump");
+  neb_logger->info("init: beginning service dump");
 
   // Loop through all services.
   for (service_map::const_iterator
@@ -485,7 +397,7 @@ static void send_service_list(neb_sender sender = neb::callback_service) {
   }
 
   // End log message.
-  log_v2::neb()->info("init: end of services dump");
+  neb_logger->info("init: end of services dump");
 }
 
 /**
@@ -495,13 +407,14 @@ static void send_pb_service_list() {
   send_service_list(neb::callback_pb_service);
 }
 
-
 /**
  *  Send the instance configuration loaded event.
  */
 static void send_instance_configuration() {
-  log_v2::neb()->info(
-      "init: sending initial instance configuration loading event");
+  neb_logger->info(
+      "init: sending initial instance configuration loading event, poller id: "
+      "{}",
+      config::applier::state::instance().poller_id());
   std::shared_ptr<neb::instance_configuration> ic(
       new neb::instance_configuration);
   ic->loaded = true;
@@ -513,7 +426,7 @@ static void send_instance_configuration() {
  *  Send the instance configuration loaded event.
  */
 static void send_pb_instance_configuration() {
-  log_v2::neb()->info(
+  neb_logger->info(
       "init: sending initial instance configuration loading event");
   auto ic = std::make_shared<neb::pb_instance_configuration>();
   ic->mut_obj().set_loaded(true);
@@ -531,7 +444,7 @@ static void send_pb_instance_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_configuration() {
-  SPDLOG_LOGGER_INFO(log_v2::neb(), "init: send poller conf");
+  SPDLOG_LOGGER_INFO(neb_logger, "init: send poller conf");
   send_severity_list();
   send_tag_list();
   send_host_list();
@@ -541,8 +454,6 @@ void neb::send_initial_configuration() {
   send_host_parents_list();
   send_host_group_list();
   send_service_group_list();
-  send_host_dependencies_list();
-  send_service_dependencies_list();
   send_instance_configuration();
 }
 
@@ -556,7 +467,7 @@ void neb::send_initial_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
-  SPDLOG_LOGGER_INFO(log_v2::neb(), "init: send poller pb conf");
+  SPDLOG_LOGGER_INFO(neb_logger, "init: send poller pb conf");
   send_severity_list();
   send_tag_list();
   send_pb_host_list();
@@ -566,7 +477,5 @@ void neb::send_initial_pb_configuration() {
   send_pb_host_parents_list();
   send_pb_host_group_list();
   send_pb_service_group_list();
-  send_pb_host_dependencies_list();
-  send_pb_service_dependencies_list();
   send_pb_instance_configuration();
 }

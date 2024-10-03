@@ -1,22 +1,21 @@
 /**
-* Copyright 2011-2013,2015 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+ * Copyright 2011-2013,2015-2024 Merethis
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 #include "com/centreon/engine/retention/program.hh"
 
 using namespace com::centreon::engine;
@@ -33,7 +32,6 @@ program::setters const program::_setters[] = {
     {"check_host_freshness", SETTER(bool, _set_check_host_freshness)},
     {"check_service_freshness", SETTER(bool, _set_check_service_freshness)},
     {"enable_event_handlers", SETTER(bool, _set_enable_event_handlers)},
-    {"enable_failure_prediction", SETTER(bool, _set_enable_failure_prediction)},
     {"enable_flap_detection", SETTER(bool, _set_enable_flap_detection)},
     {"enable_notifications", SETTER(bool, _set_enable_notifications)},
     {"global_host_event_handler",
@@ -407,16 +405,6 @@ bool program::_set_check_service_freshness(bool value) {
  */
 bool program::_set_enable_event_handlers(bool value) {
   _enable_event_handlers = value;
-  return (true);
-}
-
-/**
- *  Deprecated.
- *
- *  @param[in] value  Unused.
- */
-bool program::_set_enable_failure_prediction(bool value) {
-  (void)value;
   return (true);
 }
 

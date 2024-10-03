@@ -54,7 +54,7 @@ do
       ;;
     -r|--release)
       echo "Release build"
-      BUILD_TYPE="Release"
+      BUILD_TYPE="RelWithDebInfo"
       shift
       ;;
     -clang)
@@ -204,6 +204,7 @@ elif [ -r /etc/issue ] ; then
       libgcrypt20-dev
       libgnutls28-dev
       liblua5.3-dev
+      libmariadb-dev
       libperl-dev
       librrd-dev
       libssh2-1-dev
@@ -258,7 +259,7 @@ fi
 
 if [ ! -d vcpkg ] ; then
   echo "No vcpkg directory. Cloning the repo"
-  git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+  git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
   ./vcpkg/bootstrap-vcpkg.sh
 fi
 

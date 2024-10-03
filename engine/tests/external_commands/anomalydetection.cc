@@ -29,10 +29,11 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
+#include "common/engine_legacy_conf/contact.hh"
+#include "common/engine_legacy_conf/state.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -43,11 +44,12 @@ class ADExtCmd : public TestEngine {
   void SetUp() override {
     init_config_state();
 
+    configuration::error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(*config);
-    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct, err);
 
     configuration::host hst{new_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -58,8 +60,8 @@ class ADExtCmd : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst);
-    svc_aply.resolve_object(svc);
+    hst_aply.resolve_object(hst, err);
+    svc_aply.resolve_object(svc, err);
 
     configuration::anomalydetection ad{new_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
@@ -69,7 +71,7 @@ class ADExtCmd : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad);
+    ad_aply.resolve_object(ad, err);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

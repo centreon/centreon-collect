@@ -19,7 +19,6 @@
 syntax = "proto3";
 
 import "header.proto";
-import "tag.proto";
 
 package com.centreon.broker;
 
@@ -739,4 +738,80 @@ message InstanceConfiguration {
   BBDOHeader header = 1;
   bool loaded = 2;
   uint64 poller_id = 3;
+}
+
+/**
+ * @brief A severity is a way to give some importance to a resource. It has a
+ * level that is an integer from 1. 1 is more important than 2, than 3...
+ * It also has an id, a level, an icon_id and a name.
+ *
+ * Because a severity can be sent from several poller, and by moment a poller
+ * can say it does not need it anymore, broker needs to know from which poller
+ * the severity event comes from, so we have a poller_id in the message.
+ *
+ * For example, two pollers use a severity named 'foo'. Then the first one sends
+ * a Severity message with the action DELETE. This means this poller does not
+ * need it anymore but we don't know about the other poller. Then we can remove
+ * relations between resources of our poller and this severity. And only if the
+ * severity is no more used at all, we can remove it.
+ */
+/*io::neb, neb::de_pb_severity*/
+message Severity {
+  uint64 id = 1;
+  enum Action {
+    ADD = 0;
+    DELETE = 1;
+    MODIFY = 2;
+  }
+  Action action = 2;
+  uint32 level = 3;
+  uint64 icon_id = 4;
+  string name = 5;
+  enum Type {
+    SERVICE = 0;
+    HOST = 1;
+  }
+  Type type = 6;
+  uint64 poller_id = 7;
+}
+
+/**
+ * @brief A tag is a generalization of a host group or a service group. It
+ * is a way to group resources. It has an id, a type and a name.
+ *
+ * Because a tag can be sent from several poller, and by moment a poller can
+ * say it does not need it anymore, broker needs to know from which poller the
+ * tag event comes from, so we have a poller_id in the message.
+ *
+ * For example, two pollers use a tag named 'foo'. Then the first one sends a
+ * Tag message with the action DELETE. This means this poller does not need it
+ * anymore but we don't know about the other poller. Then we can remove
+ * relations between resources of our poller and this tag. And only if the tag
+ * is no more used at all, we can remove it.
+ */
+enum TagType {
+  SERVICEGROUP = 0;
+  HOSTGROUP = 1;
+  SERVICECATEGORY = 2;
+  HOSTCATEGORY = 3;
+}
+
+/*io::neb, neb::de_pb_tag*/
+message Tag {
+  uint64 id = 1;
+  enum Action {
+    ADD = 0;
+    DELETE = 1;
+    MODIFY = 2;
+  }
+
+  Action action = 2;
+  TagType type = 3;
+  string name = 4;
+  int64 poller_id = 5;
+}
+
+message TagInfo {
+  uint64 id = 1;
+  TagType type = 2;
 }

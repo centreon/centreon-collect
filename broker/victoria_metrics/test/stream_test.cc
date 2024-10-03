@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,11 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
+#include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using namespace com::centreon::common;
 using namespace com::centreon::broker::victoria_metrics;
 using namespace nlohmann;
 
@@ -49,11 +52,17 @@ class victoria_stream_test : public ::testing::Test {
 };
 
 TEST_F(victoria_stream_test, Authorization) {
-  http_client::http_config dummy;
+  http::http_config dummy;
   std::vector<http_tsdb::column> dummy2;
   auto cfg = std::make_shared<http_tsdb::http_tsdb_config>(
       dummy, "/write", "Aladdin", "open sesame", 1, dummy2, dummy2);
 
-  std::shared_ptr<stream> s = stream::load(g_io_context, cfg, "my_account");
+  std::shared_ptr<stream> s =
+      stream::load(g_io_context, cfg, "my_account", [cfg]() {
+        return http::http_connection::load(
+            com::centreon::common::pool::io_context_ptr(),
+            log_v2::log_v2::instance().get(log_v2::log_v2::VICTORIA_METRICS),
+            cfg);
+      });
   ASSERT_EQ(s->get_authorization(), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
 }

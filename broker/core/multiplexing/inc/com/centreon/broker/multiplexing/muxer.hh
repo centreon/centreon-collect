@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2017-2023 Centreon
+ * Copyright 2009-2017,2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
 
+#include <absl/base/thread_annotations.h>
 #include <absl/container/flat_hash_map.h>
+#include <absl/synchronization/mutex.h>
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
@@ -48,9 +50,14 @@ namespace com::centreon::broker::multiplexing {
  *
  *  @see engine
  */
-class muxer : public io::stream {
+class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
  public:
-  using read_handler = std::function<void()>;
+  class data_handler {
+   public:
+    virtual ~data_handler() = default;
+    virtual uint32_t on_events(
+        const std::vector<std::shared_ptr<io::data>>& events) = 0;
+  };
 
  private:
   static uint32_t _event_queue_max_size;
@@ -63,28 +70,45 @@ class muxer : public io::stream {
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;
-  read_handler _read_handler;
 
-  std::unique_ptr<persistent_file> _file;
-  std::condition_variable _cv;
-  mutable std::mutex _mutex;
-  std::list<std::shared_ptr<io::data>> _events;
-  size_t _events_size;
-  std::list<std::shared_ptr<io::data>>::iterator _pos;
+  std::shared_ptr<data_handler> _data_handler;
+  std::atomic_bool _reader_running = false;
+
+  /** Events are stacked into _events or into _file. Because several threads
+   * access to them, they are protected by a mutex _events_m. */
+  mutable absl::Mutex _events_m;
+  std::list<std::shared_ptr<io::data>> _events ABSL_GUARDED_BY(_events_m);
+  size_t _events_size ABSL_GUARDED_BY(_events_m);
+  std::list<std::shared_ptr<io::data>>::iterator _pos
+      ABSL_GUARDED_BY(_events_m);
+  std::unique_ptr<persistent_file> _file ABSL_GUARDED_BY(_events_m);
+  absl::CondVar _no_event_cv;
+
+  std::shared_ptr<stats::center> _center;
   std::time_t _last_stats;
 
-  static std::mutex _running_muxers_m;
-  static absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers;
+  /* The map of running muxers with the mutex to protect it. */
+  static absl::Mutex _running_muxers_m;
+  static absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers
+      ABSL_GUARDED_BY(_running_muxers_m);
 
-  void _clean();
-  void _get_event_from_file(std::shared_ptr<io::data>& event);
-  void _push_to_queue(std::shared_ptr<io::data> const& event);
+  /* The logger of the muxer. */
+  std::shared_ptr<spdlog::logger> _logger;
 
-  void _update_stats(void) noexcept;
+  void _clean() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+  void _get_event_from_file(std::shared_ptr<io::data>& event)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+  void _push_to_queue(std::shared_ptr<io::data> const& event)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
 
-  muxer(std::string name, const std::shared_ptr<engine>& parent,
-        const muxer_filter& r_filter, const muxer_filter& w_filter,
+  void _update_stats(void) noexcept ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+
+  muxer(std::string name,
+        const std::shared_ptr<engine>& parent,
+        const muxer_filter& r_filter,
+        const muxer_filter& w_filter,
         bool persistent = false);
+  void _execute_reader_if_needed();
 
  public:
   static std::string queue_file(const std::string& name);
@@ -104,14 +128,16 @@ class muxer : public io::stream {
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   template <class container>
-  bool read(container& to_fill, size_t max_to_read,
-            read_handler&& handler) noexcept;
+  bool read(container& to_fill, size_t max_to_read) noexcept
+      ABSL_LOCKS_EXCLUDED(_events_m);
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
-  uint32_t get_event_queue_size() const;
-  void nack_events();
+  uint32_t get_event_queue_size() const ABSL_LOCKS_EXCLUDED(_events_m);
+  void nack_events() ABSL_LOCKS_EXCLUDED(_events_m)
+      ABSL_LOCKS_EXCLUDED(_events_m);
   void remove_queue_files();
-  void statistics(nlohmann::json& tree) const override;
+  void statistics(nlohmann::json& tree) const override
+      ABSL_LOCKS_EXCLUDED(_events_m);
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
   void write(std::deque<std::shared_ptr<io::data>>& to_publish);
@@ -121,6 +147,9 @@ class muxer : public io::stream {
   void set_write_filter(const muxer_filter& w_filter);
   void clear_read_handler();
   void unsubscribe();
+  void set_action_on_new_data(const std::shared_ptr<data_handler>& handler)
+      ABSL_LOCKS_EXCLUDED(_events_m);
+  void clear_action_on_new_data() ABSL_LOCKS_EXCLUDED(_events_m);
 };
 
 /**
@@ -132,14 +161,14 @@ class muxer : public io::stream {
  * @tparam container list<std::shared_ptr<io::data>> or
  * vector<std::shared_ptr<io::data>>
  * @param to_fill container to  fill
- * @param max_to_read max events to read from muxer and to push_back in to_fill
- * @param handler handler that will be called if we can't read max_to_read
- * events as soon as data will be available
+ * @param max_to_read max events to read from muxer and to push_back in to_fill.
+ *
+ * @return A boolean if there are still events to read.
  */
 template <class container>
-bool muxer::read(container& to_fill, size_t max_to_read,
-                 read_handler&& handler) noexcept {
-  std::unique_lock<std::mutex> lock(_mutex);
+bool muxer::read(container& to_fill, size_t max_to_read) noexcept {
+  _logger->debug("muxer::read ({}) call", _name);
+  absl::MutexLock lck(&_events_m);
 
   size_t nb_read = 0;
   while (_pos != _events.end() && nb_read < max_to_read) {
@@ -149,11 +178,14 @@ bool muxer::read(container& to_fill, size_t max_to_read,
   }
   // no more data => store handler to call when data will be available
   if (_pos == _events.end()) {
-    _read_handler = std::move(handler);
     _update_stats();
+    _logger->debug("muxer::read ({}) no more data to handle", _name);
     return false;
   } else {
     _update_stats();
+    _logger->debug(
+        "muxer::read ({}) still some data but max count of data reached",
+        _name);
     return true;
   }
 }

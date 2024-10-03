@@ -22,6 +22,10 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/timerange.hh"
 
+#ifndef LEGACY_CONF
+#include "common/engine_conf/state.pb.h"
+#endif
+
 struct timeperiod_struct;
 
 namespace com::centreon::engine {
@@ -45,6 +49,7 @@ class daterange {
     week_day = 4
   };
 
+#ifdef LEGACY_CONF
   daterange(type_range type,
             int syear,
             int smon,
@@ -56,7 +61,25 @@ class daterange {
             int emday,
             int ewday,
             int ewday_offset,
-            int skip_interval);
+            int skip_interval,
+            const std::list<configuration::timerange>& timeranges);
+#else
+  daterange(type_range type,
+            int syear,
+            int smon,
+            int smday,
+            int swday,
+            int swday_offset,
+            int eyear,
+            int emon,
+            int emday,
+            int ewday,
+            int ewday_offset,
+            int skip_interval,
+            const google::protobuf::RepeatedPtrField<configuration::Timerange>&
+                timeranges);
+#endif
+
   daterange(type_range type);
 
   type_range get_type() const { return _type; }
@@ -91,8 +114,6 @@ class daterange {
 
   bool operator==(daterange const& obj) const;
   bool operator!=(daterange const& obj2) const;
-  bool operator<(daterange const& right) const;
-  bool is_date_data_equal(daterange const& obj) const;
 
   static std::string const& get_month_name(unsigned int index);
   static std::string const& get_weekday_name(unsigned int index);
@@ -120,6 +141,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH
