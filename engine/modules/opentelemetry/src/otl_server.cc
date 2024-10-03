@@ -258,7 +258,7 @@ std::shared_ptr<metric_service> metric_service::load(
 ::grpc::ServerUnaryReactor* metric_service::Export(
     ::grpc::CallbackServerContext* context,
     const otl_col_metrics::ExportMetricsServiceRequest* request,
-    otl_col_metrics::ExportMetricsServiceResponse* response) {
+    otl_col_metrics::ExportMetricsServiceResponse* response [[maybe_unused]]) {
   metric_request_ptr shared_request =
       _allocator->get_metric_request_ptr_from_raw(request);
 
