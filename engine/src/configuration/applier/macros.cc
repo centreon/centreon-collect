@@ -50,6 +50,7 @@ static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
   return (true);
 }
 
+#ifdef LEGACY_CONF
 /**
  *  Apply new configuration.
  *
@@ -80,6 +81,39 @@ void applier::macros::apply(configuration::state& config) {
       _set_macros_user(val - 1, it->second);
   }
 }
+#else
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] config The new configuration.
+ */
+void applier::macros::apply(configuration::State& pb_config) {
+  _set_macro(MACRO_ADMINEMAIL, pb_config.admin_email());
+  _set_macro(MACRO_ADMINPAGER, pb_config.admin_pager());
+  _set_macro(MACRO_COMMANDFILE, pb_config.command_file());
+  _set_macro(MACRO_LOGFILE, pb_config.log_file());
+  _set_macro(MACRO_MAINCONFIGFILE, pb_config.cfg_main());
+  if (pb_config.resource_file().size() > 0)
+    _set_macro(MACRO_RESOURCEFILE, pb_config.resource_file(0));
+  _set_macro(MACRO_STATUSDATAFILE, pb_config.status_file());
+  _set_macro(MACRO_RETENTIONDATAFILE, pb_config.state_retention_file());
+  _set_macro(MACRO_POLLERNAME, pb_config.poller_name());
+  _set_macro(MACRO_POLLERID, std::to_string(pb_config.poller_id()));
+
+  auto& users = applier::state::instance().user_macros();
+  users.clear();
+
+  for (auto& p : pb_config.users())
+    users[p.first] = p.second;
+
+  // Save old style user macros into old style structures.
+  for (auto& p : users) {
+    unsigned int val = 1;
+    if (is_old_style_user_macro(p.first, val))
+      _set_macros_user(val - 1, p.second);
+  }
+}
+#endif
 
 /**
  *  Get the singleton instance of macros applier.

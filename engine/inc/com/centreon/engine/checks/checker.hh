@@ -23,9 +23,8 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/commands/command.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::checks {
 
-namespace checks {
 /**
  *  @class checks check_result.hh
  *  @brief Run object and reap the result.
@@ -57,6 +56,9 @@ class checker : public commands::command_listener {
 
   void wait_completion(e_completion_filter filter = e_completion_filter::all);
 
+  template <class queue_handler>
+  void inspect_reap_partial(queue_handler&& handler) const;
+
  private:
   checker(bool used_by_test);
   checker(checker const& right);
@@ -66,7 +68,7 @@ class checker : public commands::command_listener {
   host::host_state _execute_sync(host* hst);
 
   /* A mutex to protect access on _waiting_check_result and _to_reap_partial */
-  std::mutex _mut_reap;
+  mutable std::mutex _mut_reap;
   /*
    * Here is the list of prepared check results but with a command being
    * running. When the command will be finished, each check result is get back
@@ -92,8 +94,19 @@ class checker : public commands::command_listener {
   std::condition_variable _finish_cond;
   bool _finished;
 };
-}  // namespace checks
 
+/**
+ * @brief allow to inspect _to_reap_partial
+ *
+ * @tparam queue_handler
+ * @param handler must have () (const std::deque<check_result::pointer>  &)
+ */
+template <class queue_handler>
+void checker::inspect_reap_partial(queue_handler&& handler) const {
+  std::lock_guard<std::mutex> lock(_mut_reap);
+  handler(_to_reap_partial);
 }
+
+}  // namespace com::centreon::engine::checks
 
 #endif  // !CCE_CHECKS_CHECKER_HH

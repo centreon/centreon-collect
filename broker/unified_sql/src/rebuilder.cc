@@ -67,10 +67,10 @@ rebuilder::~rebuilder() noexcept {
  *
  * @param d The BBDO message with all the metric ids to rebuild.
  */
-void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
+void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d,
+                               const std::shared_ptr<spdlog::logger>& logger) {
   asio::post(com::centreon::common::pool::io_context(), [this, data = d,
-                                  logger =
-                                      log_v2::instance().get(log_v2::SQL)] {
+                                                         logger] {
     {
       std::lock_guard<std::mutex> lck(_rebuilding_m);
       _rebuilding++;
@@ -190,16 +190,21 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
               while (ms.fetch_row(res)) {
                 uint64_t id_metric = res.value_as_u64(0);
                 time_t ctime = res.value_as_u64(1);
-                double value = res.value_as_f64(2);
+                float value = res.value_as_f32(2);
                 uint32_t status = res.value_as_u32(3);
                 // duplicate values not allowed by rrd library
                 auto yet_inserted = last_inserted.find(id_metric);
                 if (yet_inserted != last_inserted.end()) {
-                  if (yet_inserted->second >= ctime)
+                  if (yet_inserted->second >= ctime) {
+                    logger->trace("Metric {} too old to be inserted: {} >= {}",
+                                  id_metric, yet_inserted->second, ctime);
                     continue;
-                  else
+                  } else {
+                    logger->trace("Metric {} updated at {}", id_metric, ctime);
                     yet_inserted->second = ctime;
+                  }
                 } else {
+                  logger->trace("Metric {} inserted at {}", id_metric, ctime);
                   last_inserted[id_metric] = ctime;
                 }
                 Point* pt =

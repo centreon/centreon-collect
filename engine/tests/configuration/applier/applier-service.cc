@@ -64,7 +64,6 @@ TEST_F(ApplierService, NewServiceWithHostNotDefinedFromConfig) {
 // Then the applier add_object throws an exception.
 TEST_F(ApplierService, NewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service svc_aply;
   configuration::service svc;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));

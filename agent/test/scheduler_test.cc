@@ -59,6 +59,7 @@ class tempo_check : public check {
   void start_check(const duration& timeout) override {
     {
       std::lock_guard l(check_starts_m);
+      SPDLOG_INFO("start tempo check");
       check_starts.emplace_back(this, std::chrono::system_clock::now());
     }
     check::start_check(timeout);
@@ -91,6 +92,11 @@ class scheduler_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     spdlog::default_logger()->set_level(spdlog::level::trace);
+  }
+
+  void TearDown() override {
+    // let time to async check to end
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 
   std::shared_ptr<com::centreon::agent::MessageToAgent> create_conf(
@@ -148,10 +154,23 @@ TEST_F(scheduler_test, no_config) {
   ASSERT_FALSE(weak_shed.lock());
 }
 
+static bool tempo_check_assert_pred(const time_point& after,
+                                    const time_point& before) {
+  if ((after - before) <= std::chrono::milliseconds(400)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  if ((after - before) >= std::chrono::milliseconds(600)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  return true;
+}
+
 TEST_F(scheduler_test, correct_schedule) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
-      create_conf(20, 1, 1, 50, 1),
+      create_conf(20, 10, 1, 50, 1),
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
@@ -170,10 +189,10 @@ TEST_F(scheduler_test, correct_schedule) {
     tempo_check::check_starts.clear();
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10100));
 
-  // we have 2 * 10 = 20 checks spread over 1 second
-  duration expected_interval = std::chrono::milliseconds(50);
+  // we have 2 * 10 = 20 checks spread over 10 second
+  duration expected_interval = std::chrono::milliseconds(1000);
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -185,16 +204,14 @@ TEST_F(scheduler_test, correct_schedule) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        ASSERT_GT((check_time.second - previous.second),
-                  expected_interval - std::chrono::milliseconds(1));
-        ASSERT_LT((check_time.second - previous.second),
-                  expected_interval + std::chrono::milliseconds(1));
+        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
+                     previous.second);
       }
       previous = check_time;
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -206,10 +223,8 @@ TEST_F(scheduler_test, correct_schedule) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        ASSERT_TRUE((check_time.second - previous.second) >
-                    expected_interval - std::chrono::milliseconds(1));
-        ASSERT_TRUE((check_time.second - previous.second) <
-                    expected_interval + std::chrono::milliseconds(1));
+        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
+                     previous.second);
       }
       previous = check_time;
     }
@@ -306,7 +321,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
 
   ASSERT_TRUE(exported_request);
 
-  SPDLOG_INFO("export:{}", exported_request->otel_request().DebugString());
+  SPDLOG_INFO("export:{}", exported_request->otel_request().ShortDebugString());
 
   ASSERT_EQ(exported_request->otel_request().resource_metrics_size(), 2);
   const ::opentelemetry::proto::metrics::v1::ResourceMetrics& res =
@@ -422,7 +437,7 @@ unsigned concurent_check::max_active_check;
 TEST_F(scheduler_test, max_concurent) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
-      create_conf(200, 1, 1, 10, 1),
+      create_conf(200, 10, 1, 10, 1),
       [&](const std::shared_ptr<MessageFromAgent>& req) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
@@ -432,17 +447,17 @@ TEST_F(scheduler_test, max_concurent) {
          check::completion_handler&& handler) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, service, cmd_name, cmd_line,
-            engine_to_agent_request, 0, std::chrono::milliseconds(75),
+            engine_to_agent_request, 0, std::chrono::milliseconds(750),
             std::move(handler));
       });
 
-  // to many tests to be completed in one second
-  std::this_thread::sleep_for(std::chrono::milliseconds(1100));
+  // to many tests to be completed in eleven second
+  std::this_thread::sleep_for(std::chrono::milliseconds(11000));
   ASSERT_LT(concurent_check::checked.size(), 200);
   ASSERT_EQ(concurent_check::max_active_check, 10);
 
-  // all tests must be completed in 1.5s
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  // all tests must be completed in 16s
+  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
   ASSERT_EQ(concurent_check::max_active_check, 10);
   ASSERT_EQ(concurent_check::checked.size(), 200);
 

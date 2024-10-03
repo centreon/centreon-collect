@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "data_point_fifo_container.hh"
-
 #include "otl_check_result_builder.hh"
 
 #include "centreon_agent/agent_check_result_builder.hh"
@@ -127,59 +125,60 @@ void perf_data::append_to_string(std::string* to_append) {
  * @return true
  * @return false
  */
-bool agent_check_result_builder::_build_result_from_metrics(
-    metric_name_to_fifo& fifos,
-    commands::result& res) {
+bool agent_check_result_builder::build_result_from_metrics(
+    const metric_to_datapoints& data_pts,
+    check_result& res) {
   // first we search last state timestamp from status
   uint64_t last_time = 0;
 
-  for (auto& metric_to_fifo : fifos) {
-    if (metric_to_fifo.first == "status") {
-      auto& fifo = metric_to_fifo.second.get_fifo();
-      if (!fifo.empty()) {
-        const auto& last_sample = *fifo.rbegin();
-        last_time = last_sample.get_nano_timestamp();
-        res.exit_code = last_sample.get_value();
-        // output of plugins is stored in description metric field
-        res.output = last_sample.get_metric().description();
-        metric_to_fifo.second.clean_oldest(last_time);
-      }
-      break;
-    }
-  }
-  if (!last_time) {
+  auto status_metric = data_pts.find("status");
+  if (status_metric == data_pts.end()) {
     return false;
   }
-  res.command_id = get_command_id();
-  res.exit_status = process::normal;
-  res.end_time = res.start_time =
-      timestamp(last_time / 1000000000, (last_time / 1000) % 1000000);
+  const auto& last_sample = status_metric->second.rbegin();
+  last_time = last_sample->get_nano_timestamp();
+  res.set_return_code(last_sample->get_value());
 
-  res.output.push_back('|');
+  // output of plugins is stored in description metric field
+  std::string output = last_sample->get_metric().description();
 
-  for (auto& metric_to_fifo : fifos) {
-    if (metric_to_fifo.first == "status")
+  res.set_finish_time(
+      {.tv_sec = static_cast<long>(last_time / 1000000000),
+       .tv_usec = static_cast<long>((last_time / 1000) % 1000000)});
+
+  if (last_sample->get_start_nano_timestamp() > 0) {
+    res.set_start_time(
+        {.tv_sec = static_cast<long>(last_sample->get_start_nano_timestamp() /
+                                     1000000000),
+         .tv_usec = static_cast<long>(
+             (last_sample->get_start_nano_timestamp() / 1000) % 1000000)});
+  } else {
+    res.set_start_time(res.get_finish_time());
+  }
+
+  output.push_back('|');
+
+  for (const auto& metric_to_data_pt : data_pts) {
+    if (metric_to_data_pt.first == "status")
       continue;
-    auto& fifo = metric_to_fifo.second.get_fifo();
-    auto data_pt_search = fifo.find(last_time);
-    if (data_pt_search != fifo.end()) {
-      res.output.push_back(' ');
+    auto data_pt_search = metric_to_data_pt.second.find(last_time);
+    if (data_pt_search != metric_to_data_pt.second.end()) {
+      output.push_back(' ');
       const otl_data_point& data_pt = *data_pt_search;
-      absl::StrAppend(&res.output, metric_to_fifo.first, "=",
+      absl::StrAppend(&output, metric_to_data_pt.first, "=",
                       data_pt.get_value(), data_pt.get_metric().unit(), ";");
 
-      // all other metric value (warning_lt, critical_gt, min... are stored in
-      // exemplars)
+      // all other metric value (warning_lt, critical_gt, min... are stored
+      // in exemplars)
       detail::perf_data to_append;
       for (const auto& exemplar : data_pt.get_exemplars()) {
         to_append.apply_exemplar(exemplar);
       }
-      to_append.append_to_string(&res.output);
+      to_append.append_to_string(&output);
     }
-    metric_to_fifo.second.clean_oldest(last_time);
   }
 
-  data_point_fifo_container::clean_empty_fifos(fifos);
+  res.set_output(output);
 
   return true;
 }

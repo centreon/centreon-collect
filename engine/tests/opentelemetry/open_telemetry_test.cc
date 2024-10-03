@@ -35,16 +35,21 @@
 #include <rapidjson/document.h>
 
 #include "com/centreon/common/http/http_server.hh"
+#include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/host.hh"
 #include "common/engine_legacy_conf/service.hh"
+#endif
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
+#include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/modules/opentelemetry/open_telemetry.hh"
 
 #include "helper.hh"
@@ -56,36 +61,6 @@ using namespace com::centreon::engine;
 extern const char* telegraf_example;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
-
-class open_telemetry
-    : public com::centreon::engine::modules::opentelemetry::open_telemetry {
- protected:
-  void _create_otl_server(
-      const grpc_config::pointer& server_conf,
-      const centreon_agent::agent_config::pointer&) override {}
-
- public:
-  open_telemetry(const std::string_view config_file_path,
-                 const std::shared_ptr<asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger)
-      : com::centreon::engine::modules::opentelemetry::open_telemetry(
-            config_file_path,
-            io_context,
-            logger) {}
-
-  void on_metric(const metric_request_ptr& metric) { _on_metric(metric); }
-  void shutdown() { _shutdown(); }
-  static std::shared_ptr<open_telemetry> load(
-      const std::string_view& config_path,
-      const std::shared_ptr<asio::io_context>& io_context,
-      const std::shared_ptr<spdlog::logger>& logger) {
-    std::shared_ptr<open_telemetry> ret =
-        std::make_shared<open_telemetry>(config_path, io_context, logger);
-    ret->_reload();
-    ret->_start_second_timer();
-    return ret;
-  }
-};
 
 class open_telemetry_test : public TestEngine {
  public:
@@ -105,7 +80,7 @@ open_telemetry_test::open_telemetry_test()
 void open_telemetry_test::SetUpTestSuite() {
   std::ofstream conf_file("/tmp/otel_conf.json");
   conf_file << R"({
-    "server": {
+    "otel_server": {
       "host": "127.0.0.1",
       "port": 4317
     }
@@ -118,27 +93,90 @@ void open_telemetry_test::SetUpTestSuite() {
 void open_telemetry_test::SetUp() {
   configuration::error_cnt err;
   init_config_state();
+#ifdef LEGACY_CONF
   config->contacts().clear();
+#else
+  pb_config.mutable_contacts()->Clear();
+#endif
   configuration::applier::contact ct_aply;
+#ifdef LEGACY_CONF
   configuration::contact ctct{new_configuration_contact("admin", true)};
+#else
+  configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
+#endif
   ct_aply.add_object(ctct);
+#ifdef LEGACY_CONF
   ct_aply.expand_objects(*config);
+#else
+  ct_aply.expand_objects(pb_config);
+#endif
   ct_aply.resolve_object(ctct, err);
 
+#ifdef LEGACY_CONF
   configuration::host hst{new_configuration_host("localhost", "admin")};
+#else
+  configuration::Host hst{new_pb_configuration_host("localhost", "admin")};
+#endif
   configuration::applier::host hst_aply;
   hst_aply.add_object(hst);
 
+#ifdef LEGACY_CONF
   configuration::service svc{
       new_configuration_service("localhost", "check_icmp", "admin")};
+#else
+  configuration::Service svc{
+      new_pb_configuration_service("localhost", "check_icmp", "admin")};
+#endif
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
   hst_aply.resolve_object(hst, err);
   svc_aply.resolve_object(svc, err);
-  data_point_fifo::update_fifo_limit(std::numeric_limits<time_t>::max(), 10);
 }
 
 void open_telemetry_test::TearDown() {
   deinit_config_state();
+}
+
+TEST_F(open_telemetry_test, data_available) {
+  auto instance = open_telemetry::load("/tmp/otel_conf.json", g_io_context,
+                                       spdlog::default_logger());
+
+  std::shared_ptr<commands::otel_connector> conn =
+      commands::otel_connector::create(
+          "otel_conn",
+          "--processor=nagios_telegraf --extractor=attributes "
+          "--host_path=resource_metrics.scope_metrics.data.data_points."
+          "attributes."
+          "host "
+          "--service_path=resource_metrics.scope_metrics.data.data_points."
+          "attributes.service",
+          nullptr);
+  conn->register_host_serv("localhost", "check_icmp");
+
+  metric_request_ptr request =
+      std::make_shared<::opentelemetry::proto::collector::metrics::v1::
+                           ExportMetricsServiceRequest>();
+  ::google::protobuf::util::JsonStringToMessage(telegraf_example,
+                                                request.get());
+  instance->on_metric(request);
+  command_manager::instance().execute();
+
+  bool checked = false;
+  checks::checker::instance().inspect_reap_partial(
+      [&checked](const std::deque<check_result::pointer>& queue) {
+        ASSERT_FALSE(queue.empty());
+        check_result::pointer res = *queue.rbegin();
+        ASSERT_EQ(res->get_start_time().tv_sec, 1707744430);
+        ASSERT_EQ(res->get_finish_time().tv_sec, 1707744430);
+        ASSERT_TRUE(res->get_exited_ok());
+        ASSERT_EQ(res->get_return_code(), 0);
+        ASSERT_EQ(
+            res->get_output(),
+            "OK|pl=0%;0:40;0:80;; rta=0.022ms;0:200;0:500;0; rtmax=0.071ms;;;; "
+            "rtmin=0.008ms;;;;");
+        checked = true;
+      });
+
+  ASSERT_TRUE(checked);
 }

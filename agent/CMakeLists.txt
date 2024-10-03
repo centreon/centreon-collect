@@ -98,18 +98,43 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 
+set( SRC_COMMON
+  ${SRC_DIR}/agent.grpc.pb.cc
+  ${SRC_DIR}/agent.pb.cc
+  ${SRC_DIR}/bireactor.cc
+  ${SRC_DIR}/check.cc
+  ${SRC_DIR}/check_exec.cc
+  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
+  ${SRC_DIR}/scheduler.cc
+  ${SRC_DIR}/streaming_client.cc
+  ${SRC_DIR}/streaming_server.cc
+)
+
+set( SRC_WINDOWS
+  ${SRC_DIR}/config_win.cc
+)
+
+set( SRC_LINUX
+  ${SRC_DIR}/config.cc
+)
+
+configure_file("${INCLUDE_DIR}/version.hh.in"
+               "${INCLUDE_DIR}/version.hh")
+
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(SRC ${SRC_COMMON} ${SRC_LINUX})
+else()
+  set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+endif()
+
+
 add_library(centagent_lib STATIC
-    ${SRC_DIR}/agent.grpc.pb.cc 
-    ${SRC_DIR}/agent.pb.cc 
-    ${SRC_DIR}/check.cc
-    ${SRC_DIR}/check_exec.cc
-    ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
-    ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
-    ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
-    ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
-    ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
-    ${SRC_DIR}/config.cc
-    ${SRC_DIR}/scheduler.cc
+  ${SRC}
 )
 
 include_directories(
@@ -117,33 +142,45 @@ include_directories(
   ${SRC_DIR} 
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc
 )
 
 target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
 
 SET(CENTREON_AGENT centagent)
 
-add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
 
-target_link_libraries(
-  ${CENTREON_AGENT} PRIVATE
-  -L${PROTOBUF_LIB_DIR}
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-  centagent_lib
-  centreon_common
-  centreon_grpc
-  centreon_process
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options
-  fmt::fmt)
+  target_link_libraries(
+    ${CENTREON_AGENT} PRIVATE
+    -L${PROTOBUF_LIB_DIR}
+    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    centagent_lib
+    centreon_common
+    centreon_grpc
+    centreon_process
+    -L${Boost_LIBRARY_DIR_RELEASE}
+    boost_program_options
+    fmt::fmt
+    stdc++fs)
+else()
+  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc)
+
+  target_link_libraries(
+    ${CENTREON_AGENT} PRIVATE
+    centagent_lib
+    centreon_common
+    centreon_grpc
+    centreon_process
+    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    absl::any absl::log absl::base absl::bits
+    Boost::program_options
+    fmt::fmt)
+endif()
+
 
 target_precompile_headers(${CENTREON_AGENT}  REUSE_FROM centagent_lib)
-
-target_include_directories(${CENTREON_AGENT} PRIVATE 
-  ${INCLUDE_DIR} 
-  ${SRC_DIR} 
-  ${CMAKE_SOURCE_DIR}/common/inc
-)
 
 set(AGENT_VAR_LOG_DIR
     "${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/centreon-monitoring-agent")

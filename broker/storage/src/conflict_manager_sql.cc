@@ -84,18 +84,6 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
                    conn);
   _add_action(conn, actions::servicegroups);
 
-  /* Remove host dependencies. */
-  _logger_sql->debug(
-      "conflict_manager: remove host dependencies (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "DELETE hhd FROM hosts_hosts_dependencies AS hhd INNER JOIN hosts as "
-      "h ON hhd.host_id=h.host_id OR hhd.dependent_host_id=h.host_id WHERE "
-      "h.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_host_dependencies, conn);
-  _add_action(conn, actions::host_dependencies);
-
   /* Remove host parents. */
   _logger_sql->debug("conflict_manager: remove host parents (instance_id: {})",
                      instance_id);
@@ -106,23 +94,6 @@ void conflict_manager::_clean_tables(uint32_t instance_id) {
       instance_id);
   _mysql.run_query(query, database::mysql_error::clean_host_parents, conn);
   _add_action(conn, actions::host_parents);
-
-  /* Remove service dependencies. */
-  _logger_sql->debug(
-      "conflict_manager: remove service dependencies (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "DELETE ssd FROM services_services_dependencies AS ssd"
-      " INNER JOIN services as s"
-      " ON ssd.service_id=s.service_id OR "
-      "ssd.dependent_service_id=s.service_id"
-      " INNER JOIN hosts as h"
-      " ON s.host_id=h.host_id"
-      " WHERE h.instance_id={}",
-      instance_id);
-  _mysql.run_query(query, database::mysql_error::clean_service_dependencies,
-                   conn);
-  _add_action(conn, actions::service_dependencies);
 
   /* Remove list of modules. */
   _logger_sql->debug("SQL: remove list of modules (instance_id: {})",
@@ -400,8 +371,7 @@ void conflict_manager::_process_comment(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
   _finish_action(-1, actions::hosts | actions::instances |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies | actions::comments);
+                         actions::host_parents | actions::comments);
 
   // Cast object.
   neb::comment const& cmmnt{*static_cast<neb::comment const*>(d.get())};
@@ -592,8 +562,7 @@ void conflict_manager::_process_host_check(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
   _finish_action(-1, actions::instances | actions::downtimes |
-                         actions::comments | actions::host_dependencies |
-                         actions::host_parents | actions::service_dependencies);
+                         actions::comments | actions::host_parents);
 
   // Cast object.
   neb::host_check const& hc = *static_cast<neb::host_check const*>(d.get());
@@ -642,60 +611,6 @@ void conflict_manager::_process_host_check(
         "SQL: not processing host check event (host: {}, command: {}, check "
         "type: {}, next check: {}, now: {})",
         hc.host_id, hc.command_line, hc.check_type, hc.next_check, now);
-  *std::get<2>(t) = true;
-}
-
-/**
- *  Process a host dependency event.
- *
- *  @param[in] e Uncasted host dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_host_dependency(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-  int32_t conn = special_conn::host_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::comments | actions::downtimes |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  neb::host_dependency const& hd =
-      *static_cast<neb::host_dependency const*>(d.get());
-
-  // Insert/Update.
-  if (hd.enabled) {
-    _logger_sql->info("SQL: enabling host dependency of {} on {}",
-                      hd.dependent_host_id, hd.host_id);
-
-    // Prepare queries.
-    if (!_host_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("host_id");
-      unique.insert("dependent_host_id");
-      query_preparator qp(neb::host_dependency::static_type(), unique);
-      _host_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
-
-    // Process object.
-    _host_dependency_insupdate << hd;
-    _mysql.run_statement(_host_dependency_insupdate,
-                         database::mysql_error::store_host_dependency, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
-  // Delete.
-  else {
-    _logger_sql->info("SQL: removing host dependency of {} on {}",
-                      hd.dependent_host_id, hd.host_id);
-    std::string query(fmt::format(
-        "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
-        " AND host_id={}",
-        hd.dependent_host_id, hd.host_id));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::host_dependencies);
-  }
   *std::get<2>(t) = true;
 }
 
@@ -843,9 +758,8 @@ void conflict_manager::_process_host(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
   _finish_action(-1, actions::instances | actions::hostgroups |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::custom_variables | actions::downtimes |
-                         actions::comments | actions::service_dependencies);
+                         actions::host_parents | actions::custom_variables |
+                         actions::downtimes | actions::comments);
   neb::host& h = *static_cast<neb::host*>(d.get());
 
   // Log message.
@@ -900,8 +814,7 @@ void conflict_manager::_process_host_parent(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
   int32_t conn = special_conn::host_parent % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_dependencies |
-                         actions::comments | actions::downtimes);
+  _finish_action(-1, actions::hosts | actions::comments | actions::downtimes);
 
   neb::host_parent const& hp(*static_cast<neb::host_parent const*>(d.get()));
 
@@ -958,8 +871,7 @@ void conflict_manager::_process_host_status(
   auto& d = std::get<0>(t);
   _finish_action(-1, actions::instances | actions::downtimes |
                          actions::comments | actions::custom_variables |
-                         actions::hostgroups | actions::host_dependencies |
-                         actions::host_parents);
+                         actions::hostgroups | actions::host_parents);
 
   // Processed object.
   neb::host_status const& hs(*static_cast<neb::host_status const*>(d.get()));
@@ -1017,8 +929,7 @@ void conflict_manager::_process_instance(
   _finish_action(-1, actions::hosts | actions::acknowledgements |
                          actions::modules | actions::downtimes |
                          actions::comments | actions::servicegroups |
-                         actions::hostgroups | actions::service_dependencies |
-                         actions::host_dependencies);
+                         actions::hostgroups);
 
   // Log message.
   _logger_sql->info(
@@ -1147,9 +1058,8 @@ void conflict_manager::_process_log(
 void conflict_manager::_process_service_check(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
-  _finish_action(-1, actions::downtimes | actions::comments |
-                         actions::host_dependencies | actions::host_parents |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::downtimes | actions::comments | actions::host_parents);
 
   // Cast object.
   neb::service_check const& sc(
@@ -1208,67 +1118,6 @@ void conflict_manager::_process_service_check(
         "command: {}, check_type: {}, next_check: {}, now: {})",
         sc.host_id, sc.service_id, sc.command_line, sc.check_type,
         sc.next_check, now);
-  *std::get<2>(t) = true;
-}
-
-/**
- *  Process a service dependency event.
- *
- *  @param[in] e Uncasted service dependency.
- *
- * @return The number of events that can be acknowledged.
- */
-void conflict_manager::_process_service_dependency(
-    std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
-  auto& d = std::get<0>(t);
-  int32_t conn = special_conn::service_dependency % _mysql.connections_count();
-  _finish_action(-1, actions::hosts | actions::host_parents |
-                         actions::downtimes | actions::comments |
-                         actions::host_dependencies |
-                         actions::service_dependencies);
-
-  // Cast object.
-  neb::service_dependency const& sd(
-      *static_cast<neb::service_dependency const*>(d.get()));
-
-  // Insert/Update.
-  if (sd.enabled) {
-    _logger_sql->info(
-        "SQL: enabling service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id);
-
-    // Prepare queries.
-    if (!_service_dependency_insupdate.prepared()) {
-      query_preparator::event_unique unique;
-      unique.insert("dependent_host_id");
-      unique.insert("dependent_service_id");
-      unique.insert("host_id");
-      unique.insert("service_id");
-      query_preparator qp(neb::service_dependency::static_type(), unique);
-      _service_dependency_insupdate = qp.prepare_insert_or_update(_mysql);
-    }
-
-    // Process object.
-    _service_dependency_insupdate << sd;
-    _mysql.run_statement(_service_dependency_insupdate,
-                         database::mysql_error::store_service_dependency, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
-  // Delete.
-  else {
-    _logger_sql->info(
-        "SQL: removing service dependency of ({}, {}) on ({}, {})",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id);
-    std::string query(fmt::format(
-        "DELETE FROM serivces_services_dependencies WHERE dependent_host_id={} "
-        "AND dependent_service_id={} AND host_id={} AND service_id={}",
-        sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
-        sd.service_id));
-    _mysql.run_query(query, database::mysql_error::empty, conn);
-    _add_action(conn, actions::service_dependencies);
-  }
   *std::get<2>(t) = true;
 }
 
@@ -1419,9 +1268,8 @@ void conflict_manager::_process_service_group_member(
 void conflict_manager::_process_service(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
 
   // Processed object.
   const neb::service& s(*static_cast<neb::service const*>(d.get()));
@@ -1472,9 +1320,8 @@ void conflict_manager::_process_service(
 void conflict_manager::_process_service_status(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t) {
   auto& d = std::get<0>(t);
-  _finish_action(-1, actions::host_parents | actions::comments |
-                         actions::downtimes | actions::host_dependencies |
-                         actions::service_dependencies);
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
   // Processed object.
   neb::service_status const& ss{
       *static_cast<neb::service_status const*>(d.get())};
@@ -1771,8 +1618,7 @@ void conflict_manager::_update_downtimes() {
   _logger_sql->debug("sql: update downtimes");
   int32_t conn = special_conn::downtime % _mysql.connections_count();
   _finish_action(-1, actions::hosts | actions::instances | actions::downtimes |
-                         actions::host_parents | actions::host_dependencies |
-                         actions::service_dependencies);
+                         actions::host_parents);
   if (!_downtimes_queue.empty()) {
     auto it = _downtimes_queue.begin();
     std::ostringstream oss;

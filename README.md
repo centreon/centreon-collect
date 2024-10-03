@@ -157,6 +157,15 @@ make -Cbuild install
 
 These two variables are very important if you want to recompile the project later.
 
+#### Windows compilation
+A small part of the project (centreon-monitoring-agent in agent folder) is Windows compatible.
+In order to compile it, you need at least msbuild tools and git.
+Then you have to:
+* Start a x64 command tool console
+* Execute centreon_cmake.bat. It first installs vcpkg in your home directory and then tells you to set two environment variables VCPKG_ROOT and PATH. Be careful, the next time you will start x64 command tool console, it will set VCPKG_ROOT to wrong value and you will need to set it again.
+* Then install agent\conf\agent.reg in the registry and modify parameters such as server, certificates or logging.
+
+
 ### Other distributions
 
 If you are on another distribution, then follow the steps below.

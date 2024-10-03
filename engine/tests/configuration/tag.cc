@@ -19,7 +19,6 @@
 
 #include "common/engine_legacy_conf/tag.hh"
 #include <gtest/gtest.h>
-
 #include "common/engine_legacy_conf/object.hh"
 #include "helper.hh"
 

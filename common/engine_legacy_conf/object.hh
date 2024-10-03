@@ -23,6 +23,10 @@
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
 
+#ifndef LEGACY_CONF
+#error This file should not be included.
+#endif
+
 namespace com::centreon::engine {
 
 namespace configuration {

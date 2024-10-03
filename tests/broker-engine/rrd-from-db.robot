@@ -115,8 +115,19 @@ BRRDRBDB1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3
+    # We need 3 indexes to rebuild
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+            Ctn Schedule Forced Svc Check    host_1    service_3
+        END
+	Sleep    1s
+    END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
@@ -139,7 +150,7 @@ BRRDRBDB1
         ${result}    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild for metric ${m} contained alternatively the metric ID and 0. The expected average is metric_id / 2 = ${value}.
     END
 
 BRRDRBUDB1
@@ -163,12 +174,24 @@ BRRDRBUDB1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3
+    # We need 3 indexes to rebuild
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+            Ctn Schedule Forced Svc Check    host_1    service_3
+        END
+	Sleep    1s
+    END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Ctn Reload Broker
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
@@ -186,7 +209,7 @@ BRRDRBUDB1
         ${result}    Ctn Compare Rrd Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild for metric ${m} contained alternatively the metric ID and 0. The expected average is metric_id / 2 = ${value}.
     END
 
 BRRDUPLICATE
@@ -209,12 +232,23 @@ BRRDUPLICATE
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    # We get 3 indexes to rebuild
-    ${index}    Ctn Get Indexes To Rebuild    3    2
-    ${duplicates}    Ctn Add Duplicate Metrics
+    # We need 3 indexes to rebuild
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Svc Check    host_1    service_1
+            Ctn Schedule Forced Svc Check    host_1    service_2
+            Ctn Schedule Forced Svc Check    host_1    service_3
+        END
+	Sleep    1s
+    END
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
+    ${duplicates}    Ctn Add Duplicate Metrics    ${metrics}
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
-    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
     Ctn Reload Broker
 

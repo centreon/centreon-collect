@@ -38,6 +38,7 @@
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -156,10 +157,10 @@ void stream::_unified_sql_process_pb_service_status(
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
-        pd.resize_name(misc::string::adjust_size_utf8(
+        pd.resize_name(common::adjust_size_utf8(
             pd.name(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_metric_name)));
-        pd.resize_unit(misc::string::adjust_size_utf8(
+        pd.resize_unit(common::adjust_size_utf8(
             pd.unit(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_unit_name)));
 
@@ -460,10 +461,10 @@ void stream::_unified_sql_process_service_status(
     if (!_index_data_insert.prepared())
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
-    fmt::string_view hv(misc::string::truncate(
+    fmt::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(misc::string::truncate(
+    fmt::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));
@@ -533,10 +534,10 @@ void stream::_unified_sql_process_service_status(
       std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
-        pd.resize_name(misc::string::adjust_size_utf8(
+        pd.resize_name(common::adjust_size_utf8(
             pd.name(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_metric_name)));
-        pd.resize_unit(misc::string::adjust_size_utf8(
+        pd.resize_unit(common::adjust_size_utf8(
             pd.unit(), get_centreon_storage_metrics_col_size(
                            centreon_storage_metrics_unit_name)));
 
@@ -816,9 +817,8 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     try {
       if (_bulk_prepared_statement) {
-        _finish_action(-1, actions::host_parents | actions::comments |
-                               actions::downtimes | actions::host_dependencies |
-                               actions::service_dependencies);
+        _finish_action(
+            -1, actions::host_parents | actions::comments | actions::downtimes);
         if (_store_in_hosts_services) {
           if (_hscr_bind) {
             SPDLOG_LOGGER_TRACE(
@@ -961,9 +961,7 @@ void stream::_check_queues(boost::system::error_code ec) {
           SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new downtimes inserted",
                               _downtimes->row_count());
           _finish_action(-1, actions::hosts | actions::instances |
-                                 actions::downtimes | actions::host_parents |
-                                 actions::host_dependencies |
-                                 actions::service_dependencies);
+                                 actions::downtimes | actions::host_parents);
           int32_t conn = special_conn::downtime % _mysql.connections_count();
           _downtimes->execute(_mysql, database::mysql_error::store_downtime,
                               conn);
@@ -1116,6 +1114,6 @@ void stream::_check_rebuild_index() {
     auto& obj = rg->mut_obj();
     for (auto& i : index_to_rebuild)
       obj.add_index_ids(i);
-    _rebuilder.rebuild_graphs(rg);
+    _rebuilder.rebuild_graphs(rg, _logger_sql);
   }
 }

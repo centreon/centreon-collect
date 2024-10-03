@@ -1,20 +1,22 @@
 /**
- * Copyright 2024 Centreon
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
- */
+* Copyright 1999-2010 Ethan Galstad
+* Copyright 2011-2024 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
+*/
 
 #include "com/centreon/engine/checks/checker.hh"
 
@@ -37,12 +39,6 @@ using namespace com::centreon::engine::checks;
 
 checker* checker::_instance = nullptr;
 static constexpr time_t max_check_reaper_time = 30;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Get instance of the checker singleton.
@@ -397,7 +393,6 @@ void checker::finished(commands::result const& res) noexcept {
   result->set_exited_ok(res.exit_status == process::normal ||
                         res.exit_status == process::timeout);
   result->set_output(res.output);
-  result->set_command_id(res.command_id);
 
   // Queue check result.
   lock.lock();
@@ -519,10 +514,17 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval start_cmd;
   timeval end_cmd{0, 0};
   gettimeofday(&start_cmd, nullptr);
+#ifdef LEGACY_CONF
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
                         NEBATTR_NONE, start_cmd, end_cmd, 0,
                         config->host_check_timeout(), false, 0,
                         tmp_processed_cmd, nullptr, nullptr);
+#else
+  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
+                        NEBATTR_NONE, start_cmd, end_cmd, 0,
+                        pb_config.host_check_timeout(), false, 0,
+                        tmp_processed_cmd, nullptr, nullptr);
+#endif
 
   commands::result res;
 
@@ -550,7 +552,11 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   } else {
     // Run command.
     try {
+#ifdef LEGACY_CONF
       cmd->run(processed_cmd, *macros, config->host_check_timeout(), res);
+#else
+      cmd->run(processed_cmd, *macros, pb_config.host_check_timeout(), res);
+#endif
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");
 
@@ -575,28 +581,41 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   memset(&end_cmd, 0, sizeof(end_time));
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
+#ifdef LEGACY_CONF
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
                         start_cmd, end_cmd, execution_time,
                         config->host_check_timeout(),
                         res.exit_status == process::timeout, res.exit_code,
                         tmp_processed_cmd, res.output.c_str(), nullptr);
+#else
+  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
+                        start_cmd, end_cmd, execution_time,
+                        pb_config.host_check_timeout(),
+                        res.exit_status == process::timeout, res.exit_code,
+                        tmp_processed_cmd, res.output.c_str(), nullptr);
+#endif
 
   // Cleanup.
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
+#ifdef LEGACY_CONF
+uint32_t host_check_timeout = config->host_check_timeout();
+#else
+uint32_t host_check_timeout = pb_config.host_check_timeout();
+#endif
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
-                             config->host_check_timeout());
+                             host_check_timeout);
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host check command '" << processed_cmd << "' for host '"
-        << hst->name() << "' timed out after " << config->host_check_timeout()
+        << hst->name() << "' timed out after " << host_check_timeout
         << " seconds";
     SPDLOG_LOGGER_WARN(
         runtime_logger,
         "Warning: Host check command '{}' for host '{}' timed out after {} "
         "seconds",
-        processed_cmd, hst->name(), config->host_check_timeout());
+        processed_cmd, hst->name(), host_check_timeout);
   }
 
   // Update values.

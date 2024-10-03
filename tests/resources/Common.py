@@ -214,7 +214,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs
     c = ""
     kwargs['regex'] = False
 
-    while time.time() < limit:
+    while time.time() <= limit:
         ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
@@ -1028,7 +1028,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
 
 def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
     """
-    ctn_check_host_output_resource_status_with_timeout
+    ctn_check_service_output_resource_status_with_timeout
 
     check if resource checks infos of an host have been updated
 
@@ -1071,7 +1071,19 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
 
 
 
-def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
+def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
+    """
+    ctl_check_host_check_with_timeout
+
+    Checks that the last_check is after the start timestamp.
+
+    Args:
+        hostname: the host concerned by the check
+        start: a timestamp that should be approximatively the date of the check.
+        timeout: A timeout.
+
+    Returns: True on success.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1085,12 +1097,13 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT command_line FROM hosts WHERE name='{hostname}'")
+                    f"SELECT last_check FROM resources WHERE name='{hostname}'")
                 result = cursor.fetchall()
-                if len(result) > 0:
+                if len(result) > 0 and len(result[0]) > 0 and result[0]['last_check'] is not None:
                     logger.console(
-                        f"command_line={result[0]['command_line']} ")
-                    if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
+                        f"last_check={result[0]['last_check']} ")
+                    last_check = int(result[0]['last_check'])
+                    if last_check > start:
                         return True
         time.sleep(1)
     return False
@@ -1128,6 +1141,9 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
                         f"last_check={result[0]['last_check']} state={result[0]['state']} output={result[0]['output']} ")
                     if result[0]['last_check'] is not None and result[0]['last_check'] >= min_last_check and output in result[0]['output'] and result[0]['state'] == state:
                         return True
+                    else:
+                        logger.console(
+                                f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
         time.sleep(1)
     return False
 
@@ -1460,6 +1476,7 @@ def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, va
                     "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
@@ -1635,56 +1652,6 @@ def ctn_check_types_in_resources(lst: list):
                             f"Value {t} not found in result of query 'select distinct type from resources'")
                         return False
                 return True
-    return False
-
-
-def ctn_check_host_dependencies(dep_host_id, host_id, dep_period, inherits_parent, notif_fail_opts, exec_fail_opts, timeout=TIMEOUT):
-    limit = time.time() + timeout
-    logger.console(
-        f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     autocommit=True,
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()
-                logger.console(result)
-                cursor.execute(
-                    f"SELECT count(*) FROM hosts_hosts_dependencies WHERE dependent_host_id={dep_host_id} AND host_id={host_id} AND dependency_period='{dep_period}' AND inherits_parent={inherits_parent} AND notification_failure_options='{notif_fail_opts}' AND execution_failure_options='{exec_fail_opts}'")
-                result = cursor.fetchall()
-                logger.console(result)
-                if len(result) > 0 and int(result[0]['count(*)']) > 0:
-                    return True
-                time.sleep(2)
-    return False
-
-
-def ctn_check_no_host_dependencies(timeout=TIMEOUT):
-    limit = time.time() + timeout
-    logger.console("SELECT count(*) FROM hosts_hosts_dependencies")
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     autocommit=True,
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT count(*) FROM hosts_hosts_dependencies")
-                result = cursor.fetchall()
-                if len(result) > 0 and int(result[0]['count(*)']) == 0:
-                    return True
     return False
 
 

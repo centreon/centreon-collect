@@ -45,21 +45,3 @@ void host_serv_list::remove(const std::string& host,
     }
   }
 }
-
-/**
- * @brief test if a host serv pair is contained in list
- *
- * @param host
- * @param service_description
- * @return true found
- * @return false  not found
- */
-bool host_serv_list::contains(const std::string& host,
-                              const std::string& service_description) const {
-  absl::ReaderMutexLock l(&_data_m);
-  auto host_search = _data.find(host);
-  if (host_search != _data.end()) {
-    return host_search->second.contains(service_description);
-  }
-  return false;
-}

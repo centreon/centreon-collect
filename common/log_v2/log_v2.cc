@@ -21,12 +21,12 @@
 #include <absl/container/flat_hash_set.h>
 #include <grpc/impl/codegen/log.h>
 #include <spdlog/common.h>
-#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
+#include "centreon_file_sink.hh"
 
 #include <atomic>
 #include <initializer_list>
@@ -37,7 +37,7 @@ using namespace spdlog;
 
 log_v2* log_v2::_instance = nullptr;
 
-const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
+constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> logger_name{
     "core",
     "config",
     "bam",
@@ -67,7 +67,7 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "comments",
     "macros",
     "runtime",
-    "otel"};
+    "otl"};
 
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
@@ -200,8 +200,8 @@ void log_v2::set_flush_interval(uint32_t second_flush_interval) {
  */
 log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
   uint32_t retval;
-  for (retval = 0; retval < _logger_name.size(); retval++) {
-    if (_logger_name[retval] == name)
+  for (retval = 0; retval < logger_name.size(); retval++) {
+    if (logger_name[retval] == name)
       return static_cast<logger_id>(retval);
   }
   return LOGGER_SIZE;
@@ -227,7 +227,7 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
         my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
             _file_path, _current_max_size, 99);
       else
-        my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+        my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
     } break;
     case config::logger_type::LOGGER_SYSLOG:
       my_sink = std::make_shared<sinks::syslog_sink_mt>(_log_name, 0, 0, true);
@@ -239,7 +239,8 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
 
   for (int32_t id = 0; id < LOGGER_SIZE; id++) {
     std::shared_ptr<spdlog::logger> logger;
-    logger = std::make_shared<spdlog::logger>(_logger_name[id], my_sink);
+    logger = std::make_shared<spdlog::logger>(
+        std::string(logger_name[id].data(), logger_name[id].size()), my_sink);
     if (_log_pid) {
       if (_log_source)
         logger->set_pattern(
@@ -252,7 +253,10 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
       else
         logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
     }
-    logger->set_level(level::level_enum::info);
+    if (id > 1)
+      logger->set_level(level::level_enum::err);
+    else
+      logger->set_level(level::level_enum::info);
     spdlog::register_logger(logger);
     _loggers[id] = std::move(logger);
 
@@ -299,7 +303,7 @@ void log_v2::apply(const config& log_conf) {
           my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
               _file_path, log_conf.max_size(), 99);
         else
-          my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+          my_sink = std::make_shared<sinks::centreon_file_sink_mt>(_file_path);
       } break;
       case config::logger_type::LOGGER_SYSLOG:
         my_sink =
@@ -314,7 +318,7 @@ void log_v2::apply(const config& log_conf) {
       std::vector<spdlog::sink_ptr> sinks;
 
       /* Little hack to include the broker sink to engine loggers. */
-      auto& name = _logger_name[id];
+      auto& name = logger_name[id];
       if (log_conf.loggers_with_custom_sinks().contains(name))
         sinks = log_conf.custom_sinks();
 
@@ -359,7 +363,7 @@ void log_v2::apply(const config& log_conf) {
   spdlog::flush_every(_flush_interval);
   /* This is for all loggers, a slave will overwrite the master configuration */
   for (int32_t id = 0; id < LOGGER_SIZE; id++) {
-    auto& name = _logger_name[id];
+    auto& name = logger_name[id];
     if (log_conf.loggers().contains(name)) {
       auto logger = _loggers[id];
       level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
@@ -369,6 +373,13 @@ void log_v2::apply(const config& log_conf) {
       else
         logger->flush_on(lvl);
     }
+  }
+
+  for (auto& s : _loggers[0]->sinks()) {
+    spdlog::sinks::centreon_file_sink_mt* file_sink =
+        dynamic_cast<spdlog::sinks::centreon_file_sink_mt*>(s.get());
+    if (file_sink)
+      file_sink->reopen();
   }
 }
 
@@ -380,10 +391,10 @@ void log_v2::apply(const config& log_conf) {
  * @return a boolean.
  */
 bool log_v2::contains_logger(std::string_view logger) const {
-  absl::flat_hash_set<std::string> loggers;
-  for (auto& n : _logger_name)
-    loggers.insert(n);
-  return loggers.contains(logger);
+  for (auto& n : logger_name)
+    if (n == logger)
+      return true;
+  return false;
 }
 
 /**

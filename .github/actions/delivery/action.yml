@@ -7,7 +7,7 @@ inputs:
   distrib:
     description: "The distribution used for packaging"
     required: true
-  version:
+  major_version:
     description: "Centreon packaged major version"
     required: true
   cache_key:
@@ -60,7 +60,7 @@ runs:
         FILES="*.${{ env.extfile }}"
 
         # DEBUG
-        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
         echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
         echo "[DEBUG] - module_name: ${{ inputs.module_name }}"
         echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
@@ -68,7 +68,7 @@ runs:
         echo "[DEBUG] - stability: ${{ inputs.stability }}"
 
         # Make sure all required inputs are NOT empty
-        if [[ -z "${{ inputs.module_name }}" || -z "${{ inputs.distrib }}" || -z ${{ inputs.stability }} || -z ${{ inputs.version }} || -z ${{ inputs.release_cloud }} || -z ${{ inputs.release_type }} ]]; then
+        if [[ -z "${{ inputs.module_name }}" || -z "${{ inputs.distrib }}" || -z ${{ inputs.stability }} || -z ${{ inputs.major_version }} || -z ${{ inputs.release_cloud }} || -z ${{ inputs.release_type }} ]]; then
           echo "Some mandatory inputs are empty, please check the logs."
           exit 1
         fi
@@ -96,19 +96,19 @@ runs:
         if [[ ${{ inputs.release_cloud }} -eq 1 && ( ${{ inputs.release_type }} == "hotfix" || ${{ inputs.release_type }} == "release" ) ]]; then
           echo "[DEBUG] : Release cloud + ${{ inputs.release_type }}, using rpm-standard-internal."
           ROOT_REPO_PATHS="rpm-standard-internal"
-          UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/$ARCH/${{ inputs.module_name }}/"
+          UPLOAD_REPO_PATH="${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/$ARCH/${{ inputs.module_name }}/"
 
         # CLOUD + NOT HOTFIX OR CLOUD + NOT RELEASE + REPO STANDARD INTERNAL
         elif [[ ${{ inputs.release_cloud }} -eq 1 && ( ${{ inputs.release_type }} != "hotfix" && ${{ inputs.release_type }} != "release" ) ]]; then
           echo "[DEBUG] : Release cloud + NOT ${{ inputs.release_type }}, using rpm-standard-internal."
           ROOT_REPO_PATHS="rpm-standard-internal"
-          UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/$ARCH/${{ inputs.module_name }}/"
+          UPLOAD_REPO_PATH="${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/$ARCH/${{ inputs.module_name }}/"
 
         # NON-CLOUD + (HOTFIX OR RELEASE) + REPO STANDARD
         elif [[ ${{ inputs.release_cloud }} -eq 0 ]]; then
           echo "[DEBUG] : NOT Release cloud + ${{ inputs.release_type }}, using rpm-standard."
           ROOT_REPO_PATHS="rpm-standard"
-          UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/"
+          UPLOAD_REPO_PATH="${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/"
 
         #  NOT VALID, DO NOT DELIVER
         else
@@ -125,7 +125,7 @@ runs:
               elif [ "${{ inputs.stability }}" == "testing" ]; then
                 jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --sync-deletes="$ROOT_REPO_PATH/$UPLOAD_REPO_PATH" --flat
               else
-                jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="$ROOT_REPO_PATH/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
+                jf rt upload "$ARCH/*.rpm" "$ROOT_REPO_PATH/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="$ROOT_REPO_PATH/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
               fi
             fi
           done
@@ -138,7 +138,7 @@ runs:
         FILES="*.${{ env.extfile }}"
 
         # DEBUG
-        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
         echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
         echo "[DEBUG] - module_name: ${{ inputs.module_name }}"
         echo "[DEBUG] - release_cloud: ${{ inputs.release_cloud }}"
@@ -146,7 +146,7 @@ runs:
         echo "[DEBUG] - stability: ${{ inputs.stability }}"
 
         # Make sure all required inputs are NOT empty
-        if [[ -z "${{ inputs.module_name }}" || -z "${{ inputs.distrib }}" || -z ${{ inputs.stability }} || -z ${{ inputs.version }} || -z ${{ inputs.release_cloud }} || -z ${{ inputs.release_type }} ]]; then
+        if [[ -z "${{ inputs.module_name }}" || -z "${{ inputs.distrib }}" || -z ${{ inputs.stability }} || -z ${{ inputs.major_version }} || -z ${{ inputs.release_cloud }} || -z ${{ inputs.release_type }} ]]; then
           echo "Some mandatory inputs are empty, please check the logs."
           exit 1
         fi
@@ -154,16 +154,16 @@ runs:
         for FILE in $FILES; do
           echo "[DEBUG] - File: $FILE"
 
-          VERSION=${{ inputs.version }}
+          VERSION=${{ inputs.major_version }}
           DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
           ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
 
-          echo "[DEBUG] - Version: $VERSION"
+          echo "[DEBUG] - Major version: $VERSION"
 
           if [[ "${{ inputs.distrib }}" == "jammy" ]]; then
-            ROOT_REPO_PATH="ubuntu-standard-${{ inputs.version }}-${{ inputs.stability }}"
+            ROOT_REPO_PATH="ubuntu-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
           else
-            ROOT_REPO_PATH="apt-standard-${{ inputs.version }}-${{ inputs.stability }}"
+            ROOT_REPO_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
           fi
 
           jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"

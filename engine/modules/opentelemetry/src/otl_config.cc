@@ -47,16 +47,6 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "description": "true if we log otl grpc object to json format",
             "type": "boolean"
         },
-        "second_fifo_expiry": {
-            "description:": "lifetime of data points in fifos",
-            "type": "integer",
-            "min": 30
-        },
-        "max_fifo_size": {
-            "description:": "max number of data points in fifos",
-            "type": "integer",
-            "min": 1
-        },
         "otel_server": {
             "description": "otel grpc config",
             "type": "object"
@@ -98,8 +88,6 @@ otl_config::otl_config(const std::string_view& file_path,
   file_content.validate(validator);
   _max_length_grpc_log = file_content.get_unsigned("max_length_grpc_log", 400);
   _json_grpc_log = file_content.get_bool("grpc_json_log", false);
-  _second_fifo_expiry = file_content.get_unsigned("second_fifo_expiry", 600);
-  _max_fifo_size = file_content.get_unsigned("max_fifo_size", 5);
   if (file_content.has_member("otel_server")) {
     try {
       _grpc_conf =
@@ -158,9 +146,7 @@ bool otl_config::operator==(const otl_config& right) const {
   }
   bool ret = *_grpc_conf == *right._grpc_conf &&
              _max_length_grpc_log == right._max_length_grpc_log &&
-             _json_grpc_log == right._json_grpc_log &&
-             _second_fifo_expiry == right._second_fifo_expiry &&
-             _max_fifo_size == right._max_fifo_size;
+             _json_grpc_log == right._json_grpc_log;
 
   if (!ret) {
     return false;

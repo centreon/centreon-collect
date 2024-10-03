@@ -17,8 +17,13 @@
  */
 
 #include "com/centreon/engine/configuration/extended_conf.hh"
+#include <google/protobuf/util/json_util.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/state.hh"
+#else
+#include "common/engine_conf/state_helper.hh"
+#endif
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
@@ -77,6 +82,7 @@ void extended_conf::reload() {
   }
 }
 
+#ifdef LEGACY_CONF
 /**
  * @brief reload all optional configuration files if needed
  * Then these configuration content are applied to dest
@@ -89,3 +95,36 @@ void extended_conf::update_state(state& dest) {
     dest.apply_extended_conf(conf_file->_path, conf_file->_content);
   }
 }
+#else
+/**
+ * @brief reload all optional configuration files if needed
+ * Then these configuration content are applied to dest
+ *
+ * @param dest
+ */
+void extended_conf::update_state(State* pb_config) {
+  for (auto& conf_file : _confs) {
+    conf_file->reload();
+    std::ifstream f(conf_file->_path, std::ios::in);
+    std::string content;
+    if (f) {
+      f.seekg(0, std::ios::end);
+      content.resize(f.tellg());
+      f.seekg(0, std::ios::beg);
+      f.read(&content[0], content.size());
+      f.close();
+      State new_conf;
+      google::protobuf::util::JsonParseOptions options;
+      options.ignore_unknown_fields = false;
+      options.case_insensitive_enum_parsing = true;
+      google::protobuf::util::JsonStringToMessage(content, &new_conf);
+      pb_config->MergeFrom(new_conf);
+    } else {
+      SPDLOG_LOGGER_ERROR(
+          conf_file->_logger,
+          "extended_conf::extended_conf : fail to read json content '{}': {}",
+          conf_file->_path, strerror(errno));
+    }
+  }
+}
+#endif

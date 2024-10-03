@@ -36,8 +36,6 @@
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
-#include "com/centreon/engine/modules/opentelemetry/data_point_fifo_container.hh"
-
 #include "com/centreon/engine/modules/opentelemetry/otl_check_result_builder.hh"
 
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_check_result_builder.hh"
@@ -363,45 +361,11 @@ static const char* agent_exemple = R"(
 
 class otl_agent_check_result_builder_test : public TestEngine {
  protected:
-  std::shared_ptr<check_result_builder_config> _builder_config;
-  data_point_fifo_container _fifos;
+  absl::flat_hash_map<std::string /*service name*/, metric_to_datapoints>
+      _received;
 
  public:
   otl_agent_check_result_builder_test() {
-    if (service::services.find({"test_host", "test_svc_builder_2"}) ==
-        service::services.end()) {
-      init_config_state();
-      config->contacts().clear();
-      configuration::error_cnt err;
-
-      configuration::applier::contact ct_aply;
-      configuration::contact ctct{new_configuration_contact("admin", true)};
-      ct_aply.add_object(ctct);
-      ct_aply.expand_objects(*config);
-      ct_aply.resolve_object(ctct, err);
-
-      configuration::host hst{
-          new_configuration_host("test_host", "admin", 457)};
-      configuration::applier::host hst_aply;
-      hst_aply.add_object(hst);
-
-      configuration::service svc{new_configuration_service(
-          "test_host", "test_svc_builder", "admin", 458)};
-      configuration::applier::service svc_aply;
-      svc_aply.add_object(svc);
-      configuration::service svc2{new_configuration_service(
-          "test_host", "test_svc_builder_2", "admin", 459)};
-      svc_aply.add_object(svc2);
-
-      hst_aply.resolve_object(hst, err);
-      svc_aply.resolve_object(svc, err);
-      svc_aply.resolve_object(svc2, err);
-    }
-
-    _builder_config =
-        otl_check_result_builder::create_check_result_builder_config(
-            "--processor=centreon_agent");
-
     metric_request_ptr request =
         std::make_shared< ::opentelemetry::proto::collector::metrics::v1::
                               ExportMetricsServiceRequest>();
@@ -411,35 +375,29 @@ class otl_agent_check_result_builder_test : public TestEngine {
     otl_data_point::extract_data_points(
         request, [&](const otl_data_point& data_pt) {
           std::string service_name;
-          for (const auto attrib : data_pt.get_resource().attributes()) {
+          for (const auto& attrib : data_pt.get_resource().attributes()) {
             if (attrib.key() == "service.name") {
               service_name = attrib.value().string_value();
               break;
             }
           }
-          _fifos.add_data_point("test_host", service_name,
-                                data_pt.get_metric().name(), data_pt);
+          _received[service_name][data_pt.get_metric().name()].insert(data_pt);
         });
   }
 };
 
 TEST_F(otl_agent_check_result_builder_test, test_svc_builder) {
   auto check_result_builder = otl_check_result_builder::create(
-      "", _builder_config, 1789, *host::hosts.find("test_host")->second,
-      service::services.find({"test_host", "test_svc_builder"})->second.get(),
-      std::chrono::system_clock::time_point(), [&](const commands::result&) {},
-      spdlog::default_logger());
+      "--processor=centreon_agent", spdlog::default_logger());
 
-  commands::result res;
-  bool success =
-      check_result_builder->sync_build_result_from_metrics(_fifos, res);
+  check_result res;
+  bool success = check_result_builder->build_result_from_metrics(
+      _received["test_svc_builder"], res);
 
   ASSERT_TRUE(success);
-  ASSERT_EQ(res.exit_code, 0);
-  ASSERT_EQ(res.exit_status, com::centreon::process::normal);
-  ASSERT_EQ(res.command_id, 1789);
-  ASSERT_EQ(res.start_time.to_useconds(), 1718345061381922153 / 1000);
-  ASSERT_EQ(res.end_time.to_useconds(), 1718345061381922153 / 1000);
+  ASSERT_EQ(res.get_return_code(), 0);
+  ASSERT_EQ(res.get_start_time().tv_sec, 1718345061381922153 / 1000000000);
+  ASSERT_EQ(res.get_finish_time().tv_sec, 1718345061381922153 / 1000000000);
 
   auto compare_to_excepted = [](const std::string& to_cmp) -> bool {
     return to_cmp ==
@@ -450,26 +408,21 @@ TEST_F(otl_agent_check_result_builder_test, test_svc_builder) {
                "metric=12;0:50;0:75;;";
   };
 
-  ASSERT_PRED1(compare_to_excepted, res.output);
+  ASSERT_PRED1(compare_to_excepted, res.get_output());
 }
 
 TEST_F(otl_agent_check_result_builder_test, test_svc_builder_2) {
   auto check_result_builder = otl_check_result_builder::create(
-      "", _builder_config, 1789, *host::hosts.find("test_host")->second,
-      service::services.find({"test_host", "test_svc_builder_2"})->second.get(),
-      std::chrono::system_clock::time_point(), [&](const commands::result&) {},
-      spdlog::default_logger());
+      "--processor=centreon_agent", spdlog::default_logger());
 
-  commands::result res;
-  bool success =
-      check_result_builder->sync_build_result_from_metrics(_fifos, res);
+  check_result res;
+  bool success = check_result_builder->build_result_from_metrics(
+      _received["test_svc_builder_2"], res);
 
   ASSERT_TRUE(success);
-  ASSERT_EQ(res.exit_code, 0);
-  ASSERT_EQ(res.exit_status, com::centreon::process::normal);
-  ASSERT_EQ(res.command_id, 1789);
-  ASSERT_EQ(res.start_time.to_useconds(), 1718345061713456225 / 1000);
-  ASSERT_EQ(res.end_time.to_useconds(), 1718345061713456225 / 1000);
+  ASSERT_EQ(res.get_return_code(), 0);
+  ASSERT_EQ(res.get_start_time().tv_sec, 1718345061713456225 / 1000000000);
+  ASSERT_EQ(res.get_finish_time().tv_sec, 1718345061713456225 / 1000000000);
 
   auto compare_to_excepted = [](const std::string& to_cmp) -> bool {
     return to_cmp ==
@@ -480,5 +433,5 @@ TEST_F(otl_agent_check_result_builder_test, test_svc_builder_2) {
                "metric=12;@0:50;@~:75;;";
   };
 
-  ASSERT_PRED1(compare_to_excepted, res.output);
+  ASSERT_PRED1(compare_to_excepted, res.get_output());
 }

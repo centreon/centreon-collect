@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/flat_hash_set.h>
 #include <cmath>
 
 #include "perfdata.hh"
@@ -203,6 +204,8 @@ std::list<perfdata> perfdata::parse_perfdata(
     uint32_t service_id,
     const char* str,
     const std::shared_ptr<spdlog::logger>& logger) {
+  absl::flat_hash_set<std::string_view> metric_name;
+  std::string_view current_name;
   std::list<perfdata> retval;
   auto id = [host_id, service_id] {
     if (host_id || service_id)
@@ -280,6 +283,15 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     if (end - s + 1 > 0) {
       p._name.assign(s, end - s + 1);
+      current_name = std::string_view(s, end - s + 1);
+
+      if (metric_name.contains(current_name)) {
+        logger->warn(
+            "storage: The metric '{}' appears several times in the output "
+            "\"{}\": you will lose any new occurence of this metric",
+            p.name(), str);
+        error = true;
+      }
     } else {
       logger->error("In service {}, metric name empty before '{}...'", id(),
                     fmt::string_view(s, 10));
@@ -363,7 +375,8 @@ std::list<perfdata> perfdata::parse_perfdata(
         p.max());
 
     // Append to list.
-    retval.emplace_back(std::move(p));
+    metric_name.insert(current_name);
+    retval.push_back(std::move(p));
 
     // Skip whitespaces.
     while (isspace(*tmp))

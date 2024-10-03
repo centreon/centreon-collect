@@ -5,6 +5,7 @@
 * [Pool](#Pool)
 * [Grpc](#Grpc)
 * [Process](#Process)
+* [Engine configuration](#Engineconfiguration)
 
 
 ## Pool
@@ -116,3 +117,32 @@ class process_wait : public process {
 
 ```
 
+### Asio bug work around
+There is an issue in io_context::notify_fork. Internally, ctx.notify_fork calls epoll_reactor::notify_fork which locks registered_descriptors_mutex_. An issue occurs when registered_descriptors_mutex_ is locked by another thread at fork timepoint. 
+In such a case, child process starts with registered_descriptors_mutex_ already locked and both child and parent process will hang.
+
+## Engine configuration
+
+Here is the new Engine configuration library. It is a full rewrite of the legacy Engine configuration library that you can find now in the `engine_legacy_conf` directory. This new one library uses protobuf messages to store the configuration. We have tried to keep the objects structures as Protobuf was able to do.
+
+A new parser has been implemented. It works differently from the previous one as the goal is to traduce the legacy cfg format to protobuf. The parser is in the `engine_conf/parser.cc` file, functions are almost the same as in the legacy parser but they use a lot the Protobuf reflection.
+
+A cfg file defines objects, each one has fields that are given by key/value.
+
+Configuration objects have default values whereas Protobuf messages have fixed default values, 0 for numbers, empty strings for strings, empty array for arrays, etc.
+
+To allow custom default values in our messages, each one has a helper class associated to it. For example, the Contact message has a contact_helper class associated. To define them it is simple:
+```
+// To define a contact with the structure of Protobuf Contact
+configuration::Contact ctc;
+// Now we initialize the helper
+configuration::contact_helper ctc_hlp(&ctc);
+```
+Once the helper is defined, all the default values in the message are initialized.
+The helper provides also a hook method, this is needed because in the cfg files some fields can have several key names, and also some enum types can be defined from strings, or pair of strings or anything else. So to allow weird things with object as cfg files allow, we have the hook function.
+The `hook()` function takes the key and the value as arguments and returns a boolean True if the hook has been correctly applied.
+
+Three steps are done while a cfg file is parsed. For each key,
+* we firstly try to read it from the `hook`.
+* on failure, we try the `set` method that only uses the Protobuf reflection.
+* on failure, we try to read the key as a custom variable, and here there is another way to parse it (the idea is very similar to the legacy parser).

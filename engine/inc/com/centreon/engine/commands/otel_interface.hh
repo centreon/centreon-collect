@@ -22,6 +22,10 @@
 #include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
+namespace com::centreon::engine::modules::opentelemetry {
+class metric_to_datapoints;
+}
+
 namespace com::centreon::engine::commands::otel {
 
 /**
@@ -66,13 +70,33 @@ class host_serv_list {
                           const std::string& service_description);
   void remove(const std::string& host, const std::string& service_description);
 
-  bool contains(const std::string& host,
-                const std::string& service_description) const;
+  template <class string_type>
+  bool contains(const string_type& host,
+                const string_type& service_description) const;
 
   template <typename host_set, typename service_set>
   host_serv_metric match(const host_set& hosts,
                          const service_set& services) const;
 };
+
+/**
+ * @brief test if a host serv pair is contained in list
+ *
+ * @param host
+ * @param service_description
+ * @return true found
+ * @return false  not found
+ */
+template <class string_type>
+bool host_serv_list::contains(const string_type& host,
+                              const string_type& service_description) const {
+  absl::ReaderMutexLock l(&_data_m);
+  auto host_search = _data.find(host);
+  if (host_search != _data.end()) {
+    return host_search->second.contains(service_description);
+  }
+  return false;
+}
 
 template <typename host_set, typename service_set>
 host_serv_metric host_serv_list::match(const host_set& hosts,
@@ -111,12 +135,14 @@ class host_serv_extractor {
   virtual ~host_serv_extractor() = default;
 };
 
-class check_result_builder_config {
+class otl_check_result_builder_base {
  public:
-  virtual ~check_result_builder_config() = default;
+  virtual ~otl_check_result_builder_base() = default;
+  virtual void process_data_pts(
+      const std::string_view& host,
+      const std::string_view& serv,
+      const modules::opentelemetry::metric_to_datapoints& data_pts) = 0;
 };
-
-using result_callback = std::function<void(const result&)>;
 
 class open_telemetry_base;
 
@@ -139,17 +165,8 @@ class open_telemetry_base
       const std::string& cmdline,
       const host_serv_list::pointer& host_serv_list) = 0;
 
-  virtual std::shared_ptr<check_result_builder_config>
-  create_check_result_builder_config(const std::string& cmd_line) = 0;
-
-  virtual bool check(
-      const std::string& processed_cmd,
-      const std::shared_ptr<check_result_builder_config>& conv_conf,
-      uint64_t command_id,
-      nagios_macros& macros,
-      uint32_t timeout,
-      commands::result& res,
-      result_callback&& handler) = 0;
+  virtual std::shared_ptr<otl_check_result_builder_base>
+  create_check_result_builder(const std::string& cmdline) = 0;
 };
 
 };  // namespace com::centreon::engine::commands::otel

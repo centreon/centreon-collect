@@ -92,25 +92,13 @@ namespace com::centreon::engine::modules::opentelemetry::telegraf {
  *
  */
 class nagios_check_result_builder : public otl_check_result_builder {
- protected:
-  bool _build_result_from_metrics(metric_name_to_fifo& fifos,
-                                  commands::result& res) override;
-
  public:
   nagios_check_result_builder(const std::string& cmd_line,
-                              uint64_t command_id,
-                              const host& host,
-                              const service* service,
-                              std::chrono::system_clock::time_point timeout,
-                              commands::otel::result_callback&& handler,
                               const std::shared_ptr<spdlog::logger>& logger)
-      : otl_check_result_builder(cmd_line,
-                                 command_id,
-                                 host,
-                                 service,
-                                 timeout,
-                                 std::move(handler),
-                                 logger) {}
+      : otl_check_result_builder(cmd_line, logger) {}
+
+  bool build_result_from_metrics(const metric_to_datapoints& data_pts,
+                                 check_result& res) override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::telegraf

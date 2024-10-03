@@ -23,7 +23,7 @@ EBNHG1
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -51,7 +51,7 @@ EBNHGU1
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -80,7 +80,7 @@ EBNHGU2
     Ctn Config BBDO3    3
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Sleep    3s
@@ -110,7 +110,7 @@ EBNHGU3
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
     Ctn Add Host Group    ${1}    ${1}    ["host_21", "host_22", "host_23"]
     Ctn Add Host Group    ${2}    ${1}    ["host_31", "host_32", "host_33"]
@@ -121,7 +121,7 @@ EBNHGU3
     Ctn Reload Engine
 
     ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    12    30
-    Should Be True    ${result}    We should have 12 hosts members of host 1.
+    Should Be True    ${result}    We should have 12 hosts members in the hostgroup 1.
 
     Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
 
@@ -129,7 +129,7 @@ EBNHGU3
     Ctn Reload Broker
     Ctn Reload Engine
     ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    9    30
-    Should Be True    ${result}    We should have 12 hosts members of host 1.
+    Should Be True    ${result}    We should have 9 hosts members in the hostgroup 1.
 
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
@@ -144,7 +144,7 @@ EBNHG4
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
@@ -183,6 +183,7 @@ EBNHGU4_${test_label}
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
@@ -202,10 +203,13 @@ EBNHGU4_${test_label}
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
-    Sleep    3s
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Broker
     Ctn Reload Engine
 
@@ -242,7 +246,7 @@ EBNHGU4_${test_label}
 
     Ctn Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
-    Sleep    10s
+    Sleep    3s
     Ctn Reload Engine
     Ctn Reload Broker
 
@@ -289,14 +293,17 @@ EBNHGU4_${test_label}
     END
     Should Be Equal As Strings    ${output}    ()    hostgroup_test not deleted
 
-    Sleep    2s
-    # clear lua file
-    # this part of test is disable because group erasure is desactivated in macrocache.cc
-    # it will be reactivated when global cache will be implemented
-    # Create File    /tmp/lua-engine.log
-    # Sleep    2s
-    # ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name 1
-    # Should Be True    len("""${grep_result}""") < 10    hostgroup 1 still exist
+    # Waiting to observe no host group.
+    FOR    ${index}    IN RANGE    60
+        Create File    /tmp/lua-engine.log
+        Sleep    1s
+        ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name
+        IF    len("""${grep_result}""") > 0    BREAK
+    END
+    Sleep    10s
+    # Do we still have no host group?
+    ${grep_result}    Grep File    /tmp/lua-engine.log    host_group_name:
+    Should Be True    len("""${grep_result}""") == 0    The hostgroup 1 still exists
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3

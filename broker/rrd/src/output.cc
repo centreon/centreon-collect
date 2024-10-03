@@ -348,15 +348,21 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
           }
           std::string value;
-          if (s.state() == 0)
-            value = "100";
-          else if (s.state() == 1)
-            value = "75";
-          else if (s.state() == 2)
-            value = "0";
-          else
-            value = "";
-          _backend.update(s.time(), value);
+          switch (s.state()) {
+            case 0:
+              value = "100";
+              break;
+            case 1:
+              value = "75";
+              break;
+            case 2:
+              value = "0";
+              break;
+            default:
+              value = "U";
+              break;
+          }
+	  _backend.update(s.time(), value);
         } else
           // Cache value.
           it->second.push_back(d);
@@ -387,15 +393,21 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             _backend.open(status_path, e->rrd_len, e->time - 1, interval);
           }
           std::string value;
-          if (e->state == 0)
-            value = "100";
-          else if (e->state == 1)
-            value = "75";
-          else if (e->state == 2)
-            value = "0";
-          else
-            value = "";
-          _backend.update(e->time, value);
+          switch (e->state) {
+            case 0:
+              value = "100";
+              break;
+            case 1:
+              value = "75";
+              break;
+            case 2:
+              value = "0";
+              break;
+            default:
+              value = "U";
+              break;
+          }
+	  _backend.update(e->time, value);
         } else
           // Cache value.
           it->second.push_back(d);

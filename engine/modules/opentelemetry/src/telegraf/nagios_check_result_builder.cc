@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "data_point_fifo_container.hh"
 #include "otl_check_result_builder.hh"
 
 #include "telegraf/nagios_check_result_builder.hh"
@@ -153,47 +152,58 @@ static std::string_view get_nagios_telegraf_suffix(
 }
 
 /**
- * @brief
+ * @brief fill a check_result from otel datas
  *
- * @param fifos fifos indexed by metric_name such as check_icmp_critical_gt,
- * check_icmp_state
- * @return com::centreon::engine::commands::result
+ * @param data_pts
+ * @param res
+ * @return true if res is filled
+ * @return false
  */
-bool nagios_check_result_builder::_build_result_from_metrics(
-    metric_name_to_fifo& fifos,
-    commands::result& res) {
+bool nagios_check_result_builder::build_result_from_metrics(
+    const metric_to_datapoints& data_pts,
+    check_result& res) {
   // first we search last state timestamp
   uint64_t last_time = 0;
 
-  for (auto& metric_to_fifo : fifos) {
-    if (get_nagios_telegraf_suffix(metric_to_fifo.first) == "state") {
-      auto& fifo = metric_to_fifo.second.get_fifo();
-      if (!fifo.empty()) {
-        const auto& last_sample = *fifo.rbegin();
-        last_time = last_sample.get_nano_timestamp();
-        res.exit_code = last_sample.get_value();
-        metric_to_fifo.second.clean_oldest(last_time);
+  for (const auto& metric_to_data_pts : data_pts) {
+    if (get_nagios_telegraf_suffix(metric_to_data_pts.first) == "state") {
+      const auto& last_sample = metric_to_data_pts.second.rbegin();
+      last_time = last_sample->get_nano_timestamp();
+      res.set_return_code(last_sample->get_value());
+
+      res.set_finish_time(
+          {.tv_sec = static_cast<long>(last_time / 1000000000),
+           .tv_usec = static_cast<long>((last_time / 1000) % 1000000)});
+
+      if (last_sample->get_start_nano_timestamp() > 0) {
+        res.set_start_time(
+            {.tv_sec = static_cast<long>(
+                 last_sample->get_start_nano_timestamp() / 1000000000),
+             .tv_usec = static_cast<long>(
+                 (last_sample->get_start_nano_timestamp() / 1000) % 1000000)});
+      } else {
+        res.set_start_time(res.get_finish_time());
       }
       break;
     }
   }
+
   if (!last_time) {
     return false;
   }
-  res.command_id = get_command_id();
-  res.exit_status = process::normal;
-  res.end_time = res.start_time = last_time / 1000000000;
 
   // construct perfdata list by perfdata name
   std::map<std::string, detail::perf_data> perfs;
 
-  for (auto& metric_to_fifo : fifos) {
-    std::string_view suffix = get_nagios_telegraf_suffix(metric_to_fifo.first);
-    const data_point_fifo::container& data_points =
-        metric_to_fifo.second.get_fifo();
+  for (const auto& metric_to_data_pts : data_pts) {
+    std::string_view suffix =
+        get_nagios_telegraf_suffix(metric_to_data_pts.first);
+    if (suffix == "state") {
+      continue;
+    }
     // we scan all data points for that metric (example check_icmp_critical_gt
     // can contain a data point for pl and another for rta)
-    auto data_pt_search = data_points.equal_range(last_time);
+    auto data_pt_search = metric_to_data_pts.second.equal_range(last_time);
     for (; data_pt_search.first != data_pt_search.second;
          ++data_pt_search.first) {
       const auto attributes = data_pt_search.first->get_data_point_attributes();
@@ -218,49 +228,53 @@ bool nagios_check_result_builder::_build_result_from_metrics(
                                  _logger);
       }
     }
-    metric_to_fifo.second.clean_oldest(last_time);
   }
 
-  data_point_fifo_container::clean_empty_fifos(fifos);
+  std::string output;
 
   // then format all in a string with format:
   // 'label'=value[UOM];[warn];[crit];[min];[max]
-  if (res.exit_code >= 0 && res.exit_code < 4) {
-    res.output = state_str[res.exit_code];
+  if (res.get_return_code() >= 0 && res.get_return_code() < 4) {
+    output = state_str[res.get_return_code()];
   }
-  res.output.push_back('|');
+  output.push_back('|');
   for (const auto& perf : perfs) {
     if (perf.second.val) {
-      absl::StrAppend(&res.output, perf.first, "=", *perf.second.val,
+      absl::StrAppend(&output, perf.first, "=", *perf.second.val,
                       perf.second.unit, ";");
       if (perf.second.warning_le) {
-        absl::StrAppend(&res.output, "@", *perf.second.warning_le, ":",
+        absl::StrAppend(&output, "@", *perf.second.warning_le, ":",
                         *perf.second.warning_ge);
 
       } else if (perf.second.warning_lt) {
-        absl::StrAppend(&res.output, *perf.second.warning_lt, ":",
+        absl::StrAppend(&output, *perf.second.warning_lt, ":",
                         *perf.second.warning_gt);
       }
-      res.output.push_back(';');
+      output.push_back(';');
       if (perf.second.critical_le) {
-        absl::StrAppend(&res.output, "@", *perf.second.critical_le, ":",
+        absl::StrAppend(&output, "@", *perf.second.critical_le, ":",
                         *perf.second.critical_ge);
       } else if (perf.second.critical_lt) {
-        absl::StrAppend(&res.output, *perf.second.critical_lt, ":",
+        absl::StrAppend(&output, *perf.second.critical_lt, ":",
                         *perf.second.critical_gt);
       }
-      res.output.push_back(';');
+      output.push_back(';');
       if (perf.second.min) {
-        absl::StrAppend(&res.output, *perf.second.min);
+        absl::StrAppend(&output, *perf.second.min);
       }
-      res.output.push_back(';');
+      output.push_back(';');
       if (perf.second.max) {
-        absl::StrAppend(&res.output, *perf.second.max);
+        absl::StrAppend(&output, *perf.second.max);
       }
-      res.output.push_back(' ');
+      output.push_back(' ');
     }
   }
   // remove last space
-  res.output.pop_back();
+  if (*output.rbegin() == ' ') {
+    output.pop_back();
+  }
+
+  res.set_output(output);
+
   return true;
 }

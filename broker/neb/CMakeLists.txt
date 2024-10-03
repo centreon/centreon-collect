@@ -31,13 +31,11 @@ set(NEB_SOURCES
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
     ${SRC_DIR}/custom_variable_status.cc
-    ${SRC_DIR}/dependency.cc
     ${SRC_DIR}/downtime.cc
     ${SRC_DIR}/group.cc
     ${SRC_DIR}/group_member.cc
     ${SRC_DIR}/host.cc
     ${SRC_DIR}/host_check.cc
-    ${SRC_DIR}/host_dependency.cc
     ${SRC_DIR}/host_group.cc
     ${SRC_DIR}/host_group_member.cc
     ${SRC_DIR}/host_parent.cc
@@ -51,7 +49,6 @@ set(NEB_SOURCES
     ${SRC_DIR}/responsive_instance.cc
     ${SRC_DIR}/service.cc
     ${SRC_DIR}/service_check.cc
-    ${SRC_DIR}/service_dependency.cc
     ${SRC_DIR}/service_group.cc
     ${SRC_DIR}/service_group_member.cc
     ${SRC_DIR}/service_status.cc
@@ -61,14 +58,12 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/comment.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable.hh
     ${INC_DIR}/com/centreon/broker/neb/custom_variable_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/downtime.hh
     ${INC_DIR}/com/centreon/broker/neb/events.hh
     ${INC_DIR}/com/centreon/broker/neb/group.hh
     ${INC_DIR}/com/centreon/broker/neb/group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host.hh
     ${INC_DIR}/com/centreon/broker/neb/host_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group.hh
     ${INC_DIR}/com/centreon/broker/neb/host_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/host_parent.hh
@@ -83,7 +78,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
     ${INC_DIR}/com/centreon/broker/neb/service.hh
     ${INC_DIR}/com/centreon/broker/neb/service_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_dependency.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group.hh
     ${INC_DIR}/com/centreon/broker/neb/service_group_member.hh
     ${INC_DIR}/com/centreon/broker/neb/service_status.hh
@@ -160,12 +154,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     "-Wl,--whole-archive"
     rokerbase
     multiplexing
-    "-Wl,--no-whole-archive"
-    nlohmann_json::nlohmann_json
-    spdlog::spdlog)
+    "-Wl,--no-whole-archive")
 else()
-  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase"
-                        nlohmann_json::nlohmann_json spdlog::spdlog)
+  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
@@ -183,7 +174,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc
       ${TEST_DIR}/host_check.cc
-      ${TEST_DIR}/host_dependency.cc
       ${TEST_DIR}/host_parent.cc
       ${TEST_DIR}/host_status.cc
       ${TEST_DIR}/instance.cc
@@ -193,7 +183,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/randomize.hh
       ${TEST_DIR}/service.cc
       ${TEST_DIR}/service_check.cc
-      ${TEST_DIR}/service_dependency.cc
       ${TEST_DIR}/service_status.cc
       ${TEST_DIR}/set_log_data.cc
       PARENT_SCOPE)

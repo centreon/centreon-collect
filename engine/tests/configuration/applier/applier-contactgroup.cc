@@ -22,7 +22,9 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/contactgroup.hh"
+#ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/contact.hh"
+#endif
 #include "helper.hh"
 
 using namespace com::centreon;

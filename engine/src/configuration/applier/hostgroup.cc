@@ -29,25 +29,7 @@
 
 using namespace com::centreon::engine::configuration;
 
-/**
- *  Default constructor.
- */
-applier::hostgroup::hostgroup() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::hostgroup::hostgroup(applier::hostgroup const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::hostgroup::~hostgroup() throw() {}
-
+#ifdef LEGACY_CONF
 /**
  *  Add new hostgroup.
  *
@@ -79,7 +61,38 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Notify event broker.
   broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
 }
+#else
+/**
+ *  Add new hostgroup.
+ *
+ *  @param[in] obj  The new hostgroup to add into the monitoring engine.
+ */
+void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
+  // Logging.
+  config_logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
+  // Add host group to the global configuration state.
+  auto* new_obj = pb_config.add_hostgroups();
+  new_obj->CopyFrom(obj);
+
+  // Create host group.
+  auto hg = std::make_shared<com::centreon::engine::hostgroup>(
+      obj.hostgroup_id(), obj.hostgroup_name(), obj.alias(), obj.notes(),
+      obj.notes_url(), obj.action_url());
+
+  // Add new items to the configuration state.
+  engine::hostgroup::hostgroups.insert({hg->get_group_name(), hg});
+
+  // Notify event broker.
+  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
+
+  // Apply resolved hosts on hostgroup.
+  for (auto& h : obj.members().data())
+    hg->members.insert({h, nullptr});
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Expand all host groups.
  *
@@ -99,7 +112,17 @@ void applier::hostgroup::expand_objects(configuration::state& s) {
        it != end; ++it)
     s.hostgroups().insert(it->second);
 }
+#else
+/**
+ *  Expand all host groups.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::hostgroup::expand_objects(configuration::State& s
+                                        [[maybe_unused]]) {}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Modified hostgroup.
  *
@@ -156,7 +179,57 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Notify event broker.
   broker_group(NEBTYPE_HOSTGROUP_UPDATE, it_obj->second.get());
 }
+#else
+/**
+ *  Modified hostgroup.
+ *
+ *  @param[in] obj  The new hostgroup to modify into the monitoring
+ *                  engine.
+ */
+void applier::hostgroup::modify_object(
+    configuration::Hostgroup* old_obj,
+    const configuration::Hostgroup& new_obj) {
+  // Logging.
+  config_logger->debug("Modifying hostgroup '{}'", old_obj->hostgroup_name());
 
+  // Find host group object.
+  hostgroup_map::iterator it_obj =
+      engine::hostgroup::hostgroups.find(old_obj->hostgroup_name());
+  if (it_obj == engine::hostgroup::hostgroups.end())
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing host group object '{}'",
+        old_obj->hostgroup_name());
+
+  it_obj->second->set_action_url(new_obj.action_url());
+  it_obj->second->set_alias(new_obj.alias());
+  it_obj->second->set_notes(new_obj.notes());
+  it_obj->second->set_notes_url(new_obj.notes_url());
+  it_obj->second->set_id(new_obj.hostgroup_id());
+
+  // Were members modified ?
+  if (!MessageDifferencer::Equals(new_obj.members(), old_obj->members())) {
+    // Delete all old host group members.
+    for (host_map_unsafe::iterator it(it_obj->second->members.begin()),
+         end(it_obj->second->members.end());
+         it != end; ++it) {
+      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second,
+                          it_obj->second.get());
+    }
+    it_obj->second->members.clear();
+
+    for (auto it = new_obj.members().data().begin(),
+              end = new_obj.members().data().end();
+         it != end; ++it)
+      it_obj->second->members.insert({*it, nullptr});
+  }
+
+  old_obj->CopyFrom(new_obj);
+  // Notify event broker.
+  broker_group(NEBTYPE_HOSTGROUP_UPDATE, it_obj->second.get());
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Remove old hostgroup.
  *
@@ -184,7 +257,37 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
   // Remove host group from the global configuration set.
   config->hostgroups().erase(obj);
 }
+#else
+/**
+ *  Remove old hostgroup.
+ *
+ *  @param[in] obj  The new hostgroup to remove from the monitoring
+ *                  engine.
+ */
+void applier::hostgroup::remove_object(ssize_t idx) {
+  const Hostgroup& obj = pb_config.hostgroups(idx);
+  // Logging.
+  config_logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
+  // Find host group.
+  hostgroup_map::iterator it =
+      engine::hostgroup::hostgroups.find(obj.hostgroup_name());
+  if (it != engine::hostgroup::hostgroups.end()) {
+    engine::hostgroup* grp(it->second.get());
+
+    // Notify event broker.
+    broker_group(NEBTYPE_HOSTGROUP_DELETE, grp);
+
+    // Erase host group object (will effectively delete the object).
+    engine::hostgroup::hostgroups.erase(it);
+  }
+
+  // Remove host group from the global configuration set.
+  pb_config.mutable_hostgroups()->DeleteSubrange(idx, 1);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Resolve a host group.
  *
@@ -206,7 +309,30 @@ void applier::hostgroup::resolve_object(configuration::hostgroup const& obj,
   // Resolve host group.
   it->second->resolve(err.config_warnings, err.config_errors);
 }
+#else
+/**
+ *  Resolve a host group.
+ *
+ *  @param[in] obj  Object to resolved.
+ */
+void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj,
+                                        error_cnt& err) {
+  // Logging.
+  config_logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
+  // Find host group.
+  hostgroup_map::iterator it =
+      engine::hostgroup::hostgroups.find(obj.hostgroup_name());
+  if (it == engine::hostgroup::hostgroups.end())
+    throw engine_error() << fmt::format(
+        "Cannot resolve non-existing host group '{}'", obj.hostgroup_name());
+
+  // Resolve host group.
+  it->second->resolve(err.config_warnings, err.config_errors);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Resolve members of a host group.
  *
@@ -231,3 +357,4 @@ void applier::hostgroup::_resolve_members(configuration::state& s
     resolved_obj = obj;
   }
 }
+#endif

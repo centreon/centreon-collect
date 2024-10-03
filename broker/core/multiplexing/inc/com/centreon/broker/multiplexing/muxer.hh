@@ -51,6 +51,14 @@ namespace com::centreon::broker::multiplexing {
  *  @see engine
  */
 class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
+ public:
+  class data_handler {
+   public:
+    virtual ~data_handler() = default;
+    virtual uint32_t on_events(
+        const std::vector<std::shared_ptr<io::data>>& events) = 0;
+  };
+
  private:
   static uint32_t _event_queue_max_size;
 
@@ -63,7 +71,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::string _write_filters_str;
   const bool _persistent;
 
-  std::function<uint32_t(const std::vector<std::shared_ptr<io::data>>&)> _data_handler;
+  std::shared_ptr<data_handler> _data_handler;
   std::atomic_bool _reader_running = false;
 
   /** Events are stacked into _events or into _file. Because several threads
@@ -139,9 +147,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void set_write_filter(const muxer_filter& w_filter);
   void clear_read_handler();
   void unsubscribe();
-  void set_action_on_new_data(
-      std::function<uint32_t(std::vector<std::shared_ptr<io::data>>)>&&
-          data_handler) ABSL_LOCKS_EXCLUDED(_events_m);
+  void set_action_on_new_data(const std::shared_ptr<data_handler>& handler)
+      ABSL_LOCKS_EXCLUDED(_events_m);
   void clear_action_on_new_data() ABSL_LOCKS_EXCLUDED(_events_m);
 };
 

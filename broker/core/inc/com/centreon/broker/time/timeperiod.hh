@@ -97,7 +97,7 @@ class timeperiod {
   bool set_timerange(std::string const& timerange_text, int day);
   std::list<timerange> const& get_timeranges_by_day(int day) const throw();
 
-  std::string const& get_timezone() const throw();
+  std::string const& get_timezone() const noexcept;
   void set_timezone(std::string const& tz);
 
   bool is_valid(time_t preferred_time) const;
@@ -120,6 +120,6 @@ class timeperiod {
 };
 }  // namespace time
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CORE_TIME_TIMEPERIOD_HH

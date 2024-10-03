@@ -1,5 +1,6 @@
 /**
 * Copyright 2011-2013 Merethis
+* Copyright 2014-2024 Centreon
 *
 * This file is part of Centreon Engine.
 *
@@ -77,7 +78,7 @@ void applier::comment::_add_host_comment(
 }
 
 /**
- *  Add serivce comment.
+ *  Add service comment.
  *
  *  @param[in] obj The comment to add into the service.
  */

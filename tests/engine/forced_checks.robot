@@ -327,15 +327,10 @@ E_HOST_DOWN_DISABLE_SERVICE_CHECKS
     Ctn Clear Retention
     ${start}    Get Current Date
 
-    ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker  only_central=${True}
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     FOR    ${i}    IN RANGE    ${4}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
@@ -344,17 +339,17 @@ E_HOST_DOWN_DISABLE_SERVICE_CHECKS
     ${result}    Ctn Check Host Status    host_1    1    1    False  30
     Should Be True    ${result}    host_1 should be down/hard
 
-    #after some time services should be in hard state
+    # After some time services should be in hard state
     FOR  ${index}  IN RANGE  ${19}
         ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    3    30  HARD
         Should Be True    ${result}    service_${index+1} should be UNKNOWN hard        
     END
 
-    #host_1 check returns UP
+    # host_1 check returns UP
     Ctn Set Command Status   checkh1  0
     Ctn Process Host Check Result    host_1    0    host_1 UP
 
-    #after some time services should be in ok hard state
+    # After some time services should be in ok hard state
     FOR  ${index}  IN RANGE  ${19}
         Ctn Process Service Check Result  host_1  service_${index+1}  0  output
     END

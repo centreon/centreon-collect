@@ -246,6 +246,58 @@ TEST_F(PerfdataParser, Simple2) {
   ASSERT_TRUE(expected == *it);
 }
 
+TEST_F(PerfdataParser, SeveralIdenticalMetrics) {
+  // Parse perfdata.
+  std::list<common::perfdata> list{common::perfdata::parse_perfdata(
+      0, 0, "'et'=18.00%;15:;10:;0;100 other=15 et=13.00%", _logger)};
+
+  // Assertions.
+  ASSERT_EQ(list.size(), 2u);
+  std::list<perfdata>::const_iterator it = list.begin();
+  perfdata expected;
+  expected.name("et");
+  expected.value_type(perfdata::gauge);
+  expected.value(18.0);
+  expected.unit("%");
+  expected.warning(std::numeric_limits<double>::infinity());
+  expected.warning_low(15.0);
+  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical_low(10.0);
+  expected.min(0.0);
+  expected.max(100.0);
+  ASSERT_TRUE(expected == *it);
+  ++it;
+  ASSERT_EQ(it->name(), std::string_view("other"));
+  ASSERT_EQ(it->value(), 15);
+  ASSERT_EQ(it->value_type(), perfdata::gauge);
+}
+
+TEST_F(PerfdataParser, ComplexSeveralIdenticalMetrics) {
+  // Parse perfdata.
+  std::list<common::perfdata> list{common::perfdata::parse_perfdata(
+      0, 0, "'d[foo]'=18.00%;15:;10:;0;100 other=15 a[foo]=13.00%", _logger)};
+
+  // Assertions.
+  ASSERT_EQ(list.size(), 2u);
+  std::list<perfdata>::const_iterator it = list.begin();
+  perfdata expected;
+  expected.name("foo");
+  expected.value_type(perfdata::derive);
+  expected.value(18.0);
+  expected.unit("%");
+  expected.warning(std::numeric_limits<double>::infinity());
+  expected.warning_low(15.0);
+  expected.critical(std::numeric_limits<double>::infinity());
+  expected.critical_low(10.0);
+  expected.min(0.0);
+  expected.max(100.0);
+  ASSERT_TRUE(expected == *it);
+  ++it;
+  ASSERT_EQ(it->name(), std::string_view("other"));
+  ASSERT_EQ(it->value(), 15);
+  ASSERT_EQ(it->value_type(), perfdata::gauge);
+}
+
 TEST_F(PerfdataParser, Complex1) {
   // Parse perfdata.
   std::list<perfdata> list{perfdata::parse_perfdata(

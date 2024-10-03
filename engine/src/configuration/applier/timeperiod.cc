@@ -31,6 +31,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
+#ifdef LEGACY_CONF
 /**
  *  Add new time period.
  *
@@ -73,7 +74,39 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   }
   _add_exclusions(obj.exclude(), tp.get());
 }
+#else
+/**
+ * @brief Add new time period.
+ *
+ *  @param[in] obj  The new time period to add in the monitoring engine.
+ */
+void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
+  // Logging.
+  config_logger->debug("Creating new time period '{}'.", obj.timeperiod_name());
 
+  if (obj.timeperiod_name().empty() || obj.alias().empty()) {
+    throw engine_error() << fmt::format(
+        "Could not register time period '{}' (alias '{}'): timeperiod name and "
+        "alias must not be empty",
+        obj.timeperiod_name(), obj.alias());
+  }
+
+  // Add time period to the global configuration set.
+  configuration::Timeperiod* c_tp = pb_config.add_timeperiods();
+  c_tp->CopyFrom(obj);
+
+  // Create time period.
+  auto tp = std::make_shared<engine::timeperiod>(obj);
+  engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
+
+  // Notify event broker.
+  timeval tv(get_broker_timestamp(nullptr));
+  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_ADD, NEBFLAG_NONE,
+                                  NEBATTR_NONE, tp.get(), CMD_NONE, &tv);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  @brief Expand time period.
  *
@@ -85,7 +118,20 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
 void applier::timeperiod::expand_objects(configuration::state& s) {
   (void)s;
 }
+#else
+/**
+ *  @brief Expand time period.
+ *
+ *  Time period objects do not need expansion. Therefore this method
+ *  does nothing.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::timeperiod::expand_objects(configuration::State& s
+                                         [[maybe_unused]]) {}
+#endif
 
+#ifdef LEGACY_CONF
 /**
  *  Modify time period.
  *
@@ -159,7 +205,67 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE,
                                   NEBATTR_NONE, tp, CMD_NONE, &tv);
 }
+#else
+/**
+ *  Modify time period.
+ *
+ *  @param[in] obj  The time period to modify in the monitoring engine.
+ */
+void applier::timeperiod::modify_object(
+    configuration::Timeperiod* to_modify,
+    const configuration::Timeperiod& new_obj) {
+  // Logging.
+  config_logger->debug("Modifying time period '{}'.",
+                       to_modify->timeperiod_name());
 
+  // Find time period object.
+  timeperiod_map::iterator it_obj =
+      engine::timeperiod::timeperiods.find(to_modify->timeperiod_name());
+  if (it_obj == engine::timeperiod::timeperiods.end() || !it_obj->second)
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing time period object '{}'",
+        to_modify->timeperiod_name());
+
+  engine::timeperiod* tp(it_obj->second.get());
+
+  // Modify properties.
+  if (to_modify->alias() != new_obj.alias()) {
+    tp->set_alias(new_obj.alias().empty() ? new_obj.timeperiod_name()
+                                          : new_obj.alias());
+    to_modify->set_alias(new_obj.alias());
+  }
+
+  // Time ranges modified ?
+  if (!MessageDifferencer::Equals(to_modify->timeranges(),
+                                  new_obj.timeranges())) {
+    tp->set_days(new_obj.timeranges());
+    to_modify->mutable_timeranges()->CopyFrom(new_obj.timeranges());
+  }
+
+  // Exceptions modified ?
+  if (!MessageDifferencer::Equals(to_modify->exceptions(),
+                                  new_obj.exceptions())) {
+    tp->set_exceptions(new_obj.exceptions());
+    to_modify->mutable_exceptions()->CopyFrom(new_obj.exceptions());
+  }
+
+  // Exclusions modified ?
+  if (!MessageDifferencer::Equals(to_modify->exclude(), new_obj.exclude())) {
+    // Delete old exclusions.
+    tp->get_exclusions().clear();
+    // Create new exclusions.
+    tp->set_exclusions(new_obj.exclude());
+    to_modify->mutable_exclude()->CopyFrom(new_obj.exclude());
+  }
+
+  // Notify event broker.
+  timeval tv(get_broker_timestamp(nullptr));
+  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE,
+                                  NEBATTR_NONE, tp, CMD_NONE, &tv);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Remove old time period.
  *
@@ -187,7 +293,32 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Remove time period from the global configuration set.
   config->timeperiods().erase(obj);
 }
+#else
+void applier::timeperiod::remove_object(ssize_t idx) {
+  /* obj is the object to remove */
+  auto& obj = pb_config.timeperiods()[idx];
+  config_logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
+  // Find time period.
+  timeperiod_map::iterator it =
+      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  if (it != engine::timeperiod::timeperiods.end() && it->second) {
+    // Notify event broker.
+    timeval tv(get_broker_timestamp(nullptr));
+    broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_DELETE, NEBFLAG_NONE,
+                                    NEBATTR_NONE, it->second.get(), CMD_NONE,
+                                    &tv);
+
+    // Erase time period (will effectively delete the object).
+    engine::timeperiod::timeperiods.erase(it);
+  }
+
+  // Remove time period from the global configuration set.
+  pb_config.mutable_timeperiods()->DeleteSubrange(idx, 1);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  @brief Resolve a time period object.
  *
@@ -212,7 +343,33 @@ void applier::timeperiod::resolve_object(configuration::timeperiod const& obj,
   // Resolve time period.
   it->second->resolve(err.config_warnings, err.config_errors);
 }
+#else
+/**
+ *  @brief Resolve a time period object.
+ *
+ *  This method does nothing because a time period object does not rely
+ *  on any external object.
+ *
+ *  @param[in] obj Unused.
+ */
+void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
+                                         error_cnt& err) {
+  // Logging.
+  config_logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
+  // Find time period.
+  timeperiod_map::iterator it =
+      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  if (engine::timeperiod::timeperiods.end() == it || !it->second)
+    throw engine_error() << "Cannot resolve non-existing "
+                         << "time period '" << obj.timeperiod_name() << "'";
+
+  // Resolve time period.
+  it->second->resolve(err.config_warnings, err.config_errors);
+}
+#endif
+
+#ifdef LEGACY_CONF
 /**
  *  Add exclusions to a time period.
  *
@@ -226,3 +383,4 @@ void applier::timeperiod::_add_exclusions(
        it != end; ++it)
     tp->get_exclusions().insert({*it, nullptr});
 }
+#endif

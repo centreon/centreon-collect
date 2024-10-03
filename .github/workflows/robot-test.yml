@@ -50,17 +50,17 @@ jobs:
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Login to Registry
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
       - name: Login to Proxy Registry
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
           username: ${{ secrets.registry_username }}
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: List features
         id: list-features
@@ -111,19 +111,19 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
 
       - name: Restore image
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
       - name: Restore packages
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
@@ -134,32 +134,31 @@ jobs:
           docker load --input /tmp/${{ inputs.image }}
 
       - name: Test ${{ matrix.feature }}
-        run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
-          -v $(pwd):/test_collect  \
-          --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-          --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-          --env AWS_BUCKET=centreon-collect-robot-report \
-          --workdir /test_collect \
-          ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
-          ./.github/scripts/collect-test-robot.sh \
-          ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
-
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-
-      - name: Generate Xray Token
-        id: generate-xray-token
         run: |
-          token_response=$(curl -H "Content-Type: application/json" -X POST --data "{\"client_id\": \"${{ secrets.XRAY_CLIENT_ID }}\", \"client_secret\": \"${{ secrets.XRAY_CLIENT_SECRET }}\"}" "https://xray.cloud.getxray.app/api/v1/authenticate")
-          xray_token=$(echo "$token_response" | sed -n 's/.*"\(.*\)".*/\1/p')
-          echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
-        shell: bash
+          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+            -v $(pwd):/test_collect  \
+            --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+            --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+            --env AWS_BUCKET=centreon-collect-robot-report \
+            --workdir /test_collect \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+            ./.github/scripts/collect-test-robot.sh \
+            ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
 
-      - name: Send report to xrays
-        run: |
-          curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
+      # - name: Generate Xray Token
+      #   id: generate-xray-token
+      #   run: |
+      #     token_response=$(curl -H "Content-Type: application/json" -X POST --data "{\"client_id\": \"${{ secrets.XRAY_CLIENT_ID }}\", \"client_secret\": \"${{ secrets.XRAY_CLIENT_SECRET }}\"}" "https://xray.cloud.getxray.app/api/v1/authenticate")
+      #     xray_token=$(echo "$token_response" | sed -n 's/.*"\(.*\)".*/\1/p')
+      #     echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
+      #   shell: bash
+
+      # - name: Send report to xrays
+      #   run: |
+      #     curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
 
       - name: Move reports
         if: ${{ failure() }}
@@ -183,7 +182,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -195,17 +194,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Download Artifacts
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           pattern: reports-${{inputs.test_group_name}}-*
           path: reports
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
@@ -244,15 +243,15 @@ jobs:
         shell: bash
 
         # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         if: ${{ inputs.distrib  == 'el7'}}
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         if: ${{ inputs.distrib != 'el7' }}
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - run: |
           pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
@@ -261,7 +260,7 @@ jobs:
         shell: bash
 
       - name: Send report to commit
-        uses: joonvena/robotframework-reporter-action@f99583edc5902bd73a61df5c37d1321bc38890ca # v2.4
+        uses: joonvena/robotframework-reporter-action@229b6d4248b20be6e54f4fc32c7414130d1bf200 # v2.5
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports

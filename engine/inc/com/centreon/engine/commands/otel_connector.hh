@@ -31,8 +31,7 @@ namespace com::centreon::engine::commands {
  * open telemetry request run command line configure converter who converts
  * data_points to result
  */
-class otel_connector : public command,
-                       public std::enable_shared_from_this<otel_connector> {
+class otel_connector : public command {
   otel::host_serv_list::pointer _host_serv_list;
 
  public:
@@ -43,16 +42,17 @@ class otel_connector : public command,
   static otel_connector_container _commands;
 
   std::shared_ptr<otel::host_serv_extractor> _extractor;
-  std::shared_ptr<otel::check_result_builder_config> _conv_conf;
+  std::shared_ptr<otel::otl_check_result_builder_base> _check_result_builder;
 
   std::shared_ptr<spdlog::logger> _logger;
 
   void init();
 
  public:
-  static void create(const std::string& connector_name,
-                     const std::string& cmd_line,
-                     commands::command_listener* listener);
+  static std::shared_ptr<otel_connector> create(
+      const std::string& connector_name,
+      const std::string& cmd_line,
+      commands::command_listener* listener);
 
   static bool remove(const std::string& connector_name);
 
@@ -61,6 +61,10 @@ class otel_connector : public command,
 
   static std::shared_ptr<otel_connector> get_otel_connector(
       const std::string& connector_name);
+
+  static std::shared_ptr<otel_connector> get_otel_connector_from_host_serv(
+      const std::string_view& host,
+      const std::string_view& serv);
 
   static void clear();
 
@@ -75,6 +79,11 @@ class otel_connector : public command,
                  commands::command_listener* listener);
 
   void update(const std::string& cmd_line);
+
+  void process_data_pts(
+      const std::string_view& host,
+      const std::string_view& serv,
+      const modules::opentelemetry::metric_to_datapoints& data_pts);
 
   virtual uint64_t run(const std::string& processed_cmd,
                        nagios_macros& macros,

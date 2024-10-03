@@ -20,7 +20,7 @@
 #define CENTREON_AGENT_CHECK_EXEC_HH
 
 #include "check.hh"
-#include "com/centreon/common/process.hh"
+#include "com/centreon/common/process/process.hh"
 
 namespace com::centreon::agent {
 
@@ -37,7 +37,7 @@ namespace detail {
  * ensure that completion is called for the right process and not for the
  * previous one
  */
-class process : public common::process {
+class process : public common::process<false> {
   bool _process_ended;
   bool _stdout_eof;
   std::string _stdout;
@@ -54,9 +54,11 @@ class process : public common::process {
 
   void start(unsigned running_index);
 
-  void kill() { common::process::kill(); }
+  void kill() { common::process<false>::kill(); }
 
-  int get_exit_status() const { return common::process::get_exit_status(); }
+  int get_exit_status() const {
+    return common::process<false>::get_exit_status();
+  }
 
   const std::string& get_stdout() const { return _stdout; }
 

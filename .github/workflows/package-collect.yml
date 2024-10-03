@@ -3,7 +3,10 @@ name: Centreon collect packaging
 on:
   workflow_call:
     inputs:
-      version:
+      major_version:
+        required: true
+        type: string
+      minor_version:
         required: true
         type: string
       img_version:
@@ -80,7 +83,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Install sccache
         run: |
@@ -91,13 +94,13 @@ jobs:
             dnf install -y wget
           fi
           if [ "${{ matrix.arch }}" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.7.4-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.7.4-x86_64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
           elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.7.4/sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.7.4-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.7.4-aarch64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.8.1-aarch64-unknown-linux-musl/sccache /usr/bin/
           fi
           ${SCCACHE_PATH} --start-server
 
@@ -107,7 +110,7 @@ jobs:
           cd selinux
           for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
             cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
+            sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
             cd -
           done
@@ -159,6 +162,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DLEGACY_ENGINE=ON \
                   -S .
 
           ninja -Cbuild
@@ -189,7 +193,7 @@ jobs:
                "build/connectors/ssh/centreon_connector_ssh"
                "build/ccc/ccc"
                "build/agent/centagent")
-          for file in ${exe[@]}; do
+          for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
@@ -202,7 +206,8 @@ jobs:
           nfpm_file_pattern: "packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          version: ${{ inputs.version }}
+          major_version: ${{ inputs.major_version }}
+          minor_version: ${{ inputs.minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
@@ -219,7 +224,7 @@ jobs:
       # set condition to true if artifacts are needed
       - if: ${{ false }}
         name: Upload package artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
           path: ./*.${{ matrix.package_extension}}
