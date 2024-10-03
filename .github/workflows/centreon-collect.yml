@@ -413,12 +413,12 @@ jobs:
 
   promote:
     needs: [get-version]
-    if: |
-      github.event_name != 'workflow_dispatch' &&
-      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+    # if: |
+    #   github.event_name != 'workflow_dispatch' &&
+    #   contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
