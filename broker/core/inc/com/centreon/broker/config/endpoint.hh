@@ -43,16 +43,6 @@ class endpoint {
   const io_type _type;
 
  public:
-  endpoint() = delete;
-  endpoint(io_type way);
-  endpoint(const endpoint& other);
-  ~endpoint() noexcept = default;
-  endpoint& operator=(const endpoint& other);
-  bool operator==(const endpoint& other) const;
-  bool operator!=(const endpoint& other) const;
-  bool operator<(const endpoint& other) const;
-
-  io_type get_io_type() const { return _type; }
   time_t buffering_timeout;
   std::list<std::string> failovers;
   std::string name;
@@ -64,6 +54,17 @@ class endpoint {
   std::set<std::string> write_filters;
   bool cache_enabled;
   nlohmann::json cfg;
+
+  endpoint() = delete;
+  endpoint(io_type way);
+  endpoint(const endpoint& other);
+  ~endpoint() noexcept = default;
+  endpoint& operator=(const endpoint& other);
+  bool operator==(const endpoint& other) const;
+  bool operator!=(const endpoint& other) const;
+  bool operator<(const endpoint& other) const;
+
+  io_type get_io_type() const { return _type; }
 };
 }  // namespace com::centreon::broker::config
 

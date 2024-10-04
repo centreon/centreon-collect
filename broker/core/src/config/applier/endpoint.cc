@@ -21,15 +21,8 @@
 #include <cassert>
 
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/persistent_cache.hh"
-#include "com/centreon/broker/processing/acceptor.hh"
-#include "com/centreon/broker/processing/endpoint.hh"
 #include "com/centreon/broker/processing/failover.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

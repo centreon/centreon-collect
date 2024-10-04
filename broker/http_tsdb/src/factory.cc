@@ -19,7 +19,6 @@
 
 #include "com/centreon/broker/http_tsdb/factory.hh"
 
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -42,7 +41,7 @@ factory::factory(const std::string& name,
  */
 std::string factory::find_param(config::endpoint const& cfg,
                                 std::string const& key) const {
-  std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
+  auto it = cfg.params.find(key);
   if (cfg.params.end() == it)
     throw msg_fmt("{}: no '{}' defined for endpoint '{}'", _name, key,
                   cfg.name);
@@ -143,8 +142,7 @@ void factory::create_conf(const config::endpoint& cfg,
   std::string addr(find_param(cfg, "db_host"));
 
   std::string target = "/write";
-  std::map<std::string, std::string>::const_iterator it{
-      cfg.params.find("http_target")};
+  auto it = cfg.params.find("http_target");
   if (it != cfg.params.end()) {
     target = it->second;
   }
