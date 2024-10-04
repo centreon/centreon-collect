@@ -319,7 +319,7 @@ void applier::host::modify_object(configuration::host const& obj) {
   else
     it_obj->second->set_alias(obj.host_name());
   it_obj->second->set_address(obj.address());
-  if (obj.check_period().empty())
+  if (!obj.check_period().empty())
     it_obj->second->set_check_period(obj.check_period());
   it_obj->second->set_initial_state(
       static_cast<engine::host::host_state>(obj.initial_state()));
@@ -371,6 +371,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                                 configuration::host::unreachable
                                             ? notifier::unreachable
                                             : notifier::none);
+  it_obj->second->set_stalk_on(notifier::none);
   it_obj->second->add_stalk_on(obj.stalking_options() & configuration::host::up
                                    ? notifier::up
                                    : notifier::none);
@@ -411,6 +412,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                               config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       obj.recovery_notification_delay());
+  it_obj->second->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
@@ -548,7 +550,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   else
     h->set_alias(new_obj.host_name());
   h->set_address(new_obj.address());
-  if (new_obj.check_period().empty())
+  if (!new_obj.check_period().empty())
     h->set_check_period(new_obj.check_period());
   h->set_initial_state(
       static_cast<engine::host::host_state>(new_obj.initial_state()));
@@ -596,6 +598,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
                                    action_hst_unreachable
                                ? notifier::unreachable
                                : notifier::none);
+  h->set_stalk_on(notifier::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_up ? notifier::up
                                                              : notifier::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_down
@@ -632,6 +635,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_config.interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  h->set_icon_id(new_obj.icon_id());
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {

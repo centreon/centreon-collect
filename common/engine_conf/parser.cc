@@ -778,6 +778,9 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     lst->add_data(v);
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
+              } else {
+                refl->MutableMessage(msg, f)->CopyFrom(
+                    refl->GetMessage(*tmpl, f));
               }
               msg_helper->set_changed(f->index());
             } break;
