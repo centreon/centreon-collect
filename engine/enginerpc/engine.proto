@@ -470,8 +470,12 @@ message EngineHost {
   bool contains_circular_path = 109;
   string timezone = 110;
   uint64 icon_id = 111;
-  string group_name = 112;
-  repeated string custom_variables = 113;
+  repeated string group_name = 112;
+  int32 acknowledgement_timeout = 113;
+  uint32 severity_level = 114;
+  uint64 severity_id = 115;
+  repeated string tag = 116;
+  repeated string custom_variables = 117;
 }
 
 message ContactIdentifier {

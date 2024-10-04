@@ -22,8 +22,6 @@
 
 #include <boost/asio.hpp>
 
-namespace asio = boost::asio;
-
 #include <absl/strings/str_join.h>
 
 #include <spdlog/common.h>
@@ -55,18 +53,16 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
-#include "com/centreon/engine/statistics.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::string;
 
@@ -410,8 +406,23 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_icon_id(selectedhost->get_icon_id());
 
     // locals
-    hostgroup* hg{selectedhost->get_parent_groups().front()};
-    host->set_group_name(hg ? hg->get_group_name() : "");
+    for (const auto& hg : selectedhost->get_parent_groups())
+      if (hg)
+        host->add_group_name(hg->get_group_name());
+
+    host->set_acknowledgement_timeout(selectedhost->acknowledgement_timeout());
+
+    const auto& host_severity = selectedhost->get_severity();
+
+    if (host_severity) {
+      host->set_severity_level(host_severity->level());
+      host->set_severity_id(host_severity->id());
+    }
+
+    if (!selectedhost->tags().empty())
+      for (const auto& tag : selectedhost->tags())
+        host->add_tag(fmt::format("id:{},name:{},type:{}", tag->id(),
+                                  tag->name(), static_cast<int>(tag->type())));
 
     for (const auto& cv : selectedhost->custom_variables)
       host->add_custom_variables(fmt::format(
