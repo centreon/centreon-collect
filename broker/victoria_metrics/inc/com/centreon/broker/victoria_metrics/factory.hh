@@ -41,6 +41,7 @@ class factory : public http_tsdb::factory {
   factory& operator=(factory const& other) = delete;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
       bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache) const override;
 };

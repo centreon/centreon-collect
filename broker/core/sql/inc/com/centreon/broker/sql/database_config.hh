@@ -73,7 +73,7 @@ class database_config {
                   bool check_replication = true,
                   int connections_count = 1,
                   unsigned max_commit_delay = 5);
-  database_config(const config::endpoint& cfg);
+  database_config(config::endpoint const& cfg);
   database_config(const database_config& other);
   ~database_config() noexcept = default;
   database_config& operator=(database_config const& other);

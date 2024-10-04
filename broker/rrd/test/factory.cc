@@ -45,7 +45,7 @@ TEST(RRDFactory, Exception) {
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(RRDFactory, Simple) {
@@ -55,26 +55,26 @@ TEST(RRDFactory, Simple) {
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
 
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["path"] = "/tmp/";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["port"] = "/tmp/test";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["port"] = "4242";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["cache_size"] = "dsasd";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["cache_size"] = "50";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["metrics_path"] = "toto";
-  ASSERT_THROW(fact->new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact->new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["status_path"] = "toto";
-  ASSERT_NO_THROW(delete fact->new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact->new_endpoint(cfg, {}, is_acceptor, cache));
   cfg.params["write_metrics"] = "false";
   cfg.params["write_status"] = "false";
   cfg.params["ignore_update_errors"] = "false";
   cfg.params["path"] = "";
-  ASSERT_NO_THROW(delete fact->new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact->new_endpoint(cfg, {}, is_acceptor, cache));
 }
 
 TEST(RRDFactory, Output) {
@@ -92,8 +92,8 @@ TEST(RRDFactory, Output) {
   cfg.params["write_status"] = "false";
   cfg.params["ignore_update_errors"] = "false";
   cfg.params["path"] = "";
-  rrd::connector* con{
-      static_cast<rrd::connector*>(fact.new_endpoint(cfg, is_acceptor, cache))};
+  rrd::connector* con{static_cast<rrd::connector*>(
+      fact.new_endpoint(cfg, {}, is_acceptor, cache))};
 
   auto out = con->open();
 

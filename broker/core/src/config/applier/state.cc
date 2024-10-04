@@ -141,7 +141,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   com::centreon::broker::config::state st{s};
 
   // Apply input and output configuration.
-  endpoint::instance().apply(st.endpoints());
+  endpoint::instance().apply(st.endpoints(), st.params());
 
   // Create instance broadcast event.
   auto ib{std::make_shared<instance_broadcast>()};

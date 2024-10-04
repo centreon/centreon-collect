@@ -53,11 +53,14 @@ class factory {
    */
   virtual bool has_endpoint(config::endpoint& cfg, io::extension* ext) = 0;
   virtual endpoint* new_endpoint(
-      config::endpoint& cfg, bool& is_acceptor,
+      config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
+      bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache =
           std::shared_ptr<persistent_cache>()) const = 0;
   virtual std::shared_ptr<stream> new_stream(
-      std::shared_ptr<stream> substream, bool is_acceptor,
+      std::shared_ptr<stream> substream,
+      bool is_acceptor,
       const std::unordered_map<std::string, std::string>& options);
 
   static bool direct_grpc_serialized(const config::endpoint& cfg);

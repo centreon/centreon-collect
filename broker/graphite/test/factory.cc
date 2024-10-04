@@ -42,17 +42,17 @@ TEST(graphiteFactory, MissingParams) {
   std::shared_ptr<persistent_cache> cache;
   bool is_acceptor;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["db_host"] = "host";
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
   cfg.params["db_port"] = "toto";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), std::exception);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), std::exception);
   cfg.params["db_port"] = "1234";
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
   cfg.params["queries_per_transaction"] = "toto";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), std::exception);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), std::exception);
   cfg.params["queries_per_transaction"] = "1234";
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
   cfg.params["metric_naming"] = "centreon.metrics.$METRICID$";
-  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, is_acceptor, cache));
+  ASSERT_NO_THROW(delete fact.new_endpoint(cfg, {}, is_acceptor, cache));
 }
