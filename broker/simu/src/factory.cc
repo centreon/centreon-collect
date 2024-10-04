@@ -70,10 +70,11 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  *
  *  @return New endpoint.
  */
-io::endpoint* factory::new_endpoint(config::endpoint& cfg,
-                                    bool& is_acceptor,
-                                    std::shared_ptr<persistent_cache> cache
-                                    __attribute__((unused))) const {
+io::endpoint* factory::new_endpoint(
+    config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
+    bool& is_acceptor,
+    std::shared_ptr<persistent_cache> cache __attribute__((unused))) const {
   std::map<std::string, misc::variant> conf_map;
   std::string err;
 

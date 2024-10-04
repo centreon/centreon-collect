@@ -116,10 +116,11 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  *
  *  @return New endpoint object.
  */
-io::endpoint* factory::new_endpoint(config::endpoint& cfg,
-                                    bool& is_acceptor [[maybe_unused]],
-                                    std::shared_ptr<persistent_cache> cache
-                                    [[maybe_unused]]) const {
+io::endpoint* factory::new_endpoint(
+    config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
+    bool& is_acceptor [[maybe_unused]],
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Get compression level.
   int level{-1};
   auto it = cfg.params.find("compression_level");
