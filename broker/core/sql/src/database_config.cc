@@ -100,13 +100,12 @@ database_config::database_config(const std::string& type,
  *
  *  @param[in] cfg  Endpoint configuration.
  */
-database_config::database_config(config::endpoint const& cfg)
+database_config::database_config(const config::endpoint& cfg)
     : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
-  std::map<std::string, std::string>::const_iterator it, end;
-  end = cfg.params.end();
+  auto end = cfg.params.end();
 
   // db_type
-  it = cfg.params.find("db_type");
+  auto it = cfg.params.find("db_type");
   if (it != end)
     _type = it->second;
   else
@@ -233,18 +232,13 @@ database_config::database_config(database_config const& other) {
 }
 
 /**
- *  Destructor.
- */
-database_config::~database_config() {}
-
-/**
  *  Assignment operator.
  *
  *  @param[in] other  Object to copy.
  *
  *  @return This object.
  */
-database_config& database_config::operator=(database_config const& other) {
+database_config& database_config::operator=(const database_config& other) {
   if (this != &other)
     _internal_copy(other);
   return *this;

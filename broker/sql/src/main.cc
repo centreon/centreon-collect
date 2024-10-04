@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/sql/factory.hh"
-#include "com/centreon/broker/sql/stream.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

@@ -62,8 +62,7 @@ void broker_module_init(void const* arg) {
     // Check that stats are enabled.
     config::state const& base_cfg(*static_cast<config::state const*>(arg));
     bool loaded(false);
-    std::map<std::string, std::string>::const_iterator it(
-        base_cfg.params().find("stats"));
+    auto it = base_cfg.params().find("stats");
     if (it != base_cfg.params().end()) {
       try {
         // Parse configuration.
