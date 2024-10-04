@@ -102,7 +102,7 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Find unified_sql DB parameters.
-  database_config dbcfg(cfg);
+  database_config dbcfg(cfg, global_params);
 
   // Store or not in data_bin.
   bool store_in_data_bin(true);

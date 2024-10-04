@@ -95,8 +95,8 @@ io::endpoint* factory::new_endpoint(
             .get(log_v2::CORE)
             ->error(
                 "storage: the interval field should contain a string "
-                "containing a "
-                "number. We use the default value in replacement 60.");
+                "containing a number. We use the default value in replacement "
+                "60.");
       }
     }
     if (!interval_length)
@@ -104,7 +104,7 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Find storage DB parameters.
-  database_config dbcfg(cfg);
+  database_config dbcfg(cfg, global_params);
 
   // Store or not in data_bin.
   bool store_in_data_bin{true};
