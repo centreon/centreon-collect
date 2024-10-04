@@ -150,10 +150,11 @@ class fact : public io::factory {
   }
 
   io::endpoint* new_endpoint(
-      config::endpoint& cfg __attribute__((__unused__)),
+      config::endpoint& cfg [[maybe_unused]],
+      const std::map<std::string, std::string>& global_params,
       bool& is_acceptor,
-      __attribute__((__unused__)) std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const override {
+      std::shared_ptr<persistent_cache> cache
+      [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {
     endp* p{new endp()};
     is_acceptor = true;
     return p;
@@ -241,7 +242,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   io::protocols::instance().reg("CentreonRetention", test, 1, 7);
   io::protocols::instance().reg("CentreonSecondaryFailover1", test, 1, 7);
   io::protocols::instance().reg("CentreonSecondaryFailover2", test, 1, 7);
-  config::applier::endpoint::instance().apply(s.endpoints());
+  config::applier::endpoint::instance().apply(s.endpoints(), {});
 
   // Remove temporary file.
   ::remove(config_file.c_str());
