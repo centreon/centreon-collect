@@ -37,7 +37,7 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return Property value.
  */
-static std::string const& find_param(config::endpoint const& cfg,
+static const std::string& find_param(const config::endpoint& cfg,
                                      std::string const& key) {
   auto it = cfg.params.find(key);
   if (cfg.params.end() == it)
@@ -102,7 +102,7 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Find unified_sql DB parameters.
-  database_config dbcfg(cfg);
+  database_config dbcfg(cfg, global_params);
 
   // Store or not in data_bin.
   bool store_in_data_bin(true);

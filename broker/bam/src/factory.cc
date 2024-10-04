@@ -58,11 +58,11 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   // Find DB parameters.
-  database_config db_cfg(cfg);
+  database_config db_cfg(cfg, global_params);
 
   // Is it a BAM or BAM-BI output ?
   bool is_bam_bi{absl::EqualsIgnoreCase(cfg.type, "bam_bi")};
@@ -70,8 +70,7 @@ io::endpoint* factory::new_endpoint(
   // External command file.
   std::string ext_cmd_file;
   if (!is_bam_bi) {
-    std::map<std::string, std::string>::const_iterator it =
-        cfg.params.find("command_file");
+    auto it = cfg.params.find("command_file");
     if (it == cfg.params.end() || it->second.empty())
       throw msg_fmt("BAM: command_file parameter not set");
     ext_cmd_file = it->second;
@@ -80,8 +79,7 @@ io::endpoint* factory::new_endpoint(
   // Storage database name.
   std::string storage_db_name;
   {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("storage_db_name"));
+    auto it = cfg.params.find("storage_db_name");
     if (it != cfg.params.end())
       storage_db_name = it->second;
   }
