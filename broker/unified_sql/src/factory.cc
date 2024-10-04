@@ -37,7 +37,7 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return Property value.
  */
-static std::string const& find_param(config::endpoint const& cfg,
+static const std::string& find_param(const config::endpoint& cfg,
                                      std::string const& key) {
   auto it = cfg.params.find(key);
   if (cfg.params.end() == it)

@@ -151,7 +151,7 @@ class fact : public io::factory {
 
   io::endpoint* new_endpoint(
       config::endpoint& cfg [[maybe_unused]],
-      const std::map<std::string, std::string>& global_params,
+      const std::map<std::string, std::string>& global_params [[maybe_unused]],
       bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache
       [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {

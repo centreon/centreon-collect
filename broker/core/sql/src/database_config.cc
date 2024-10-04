@@ -100,8 +100,10 @@ database_config::database_config(const std::string& type,
  *
  *  @param[in] cfg  Endpoint configuration.
  */
-database_config::database_config(const config::endpoint& cfg)
-    : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
+database_config::database_config(
+    const config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params)
+    : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR} {
   auto end = cfg.params.end();
 
   // db_type
@@ -227,7 +229,7 @@ database_config::database_config(const config::endpoint& cfg)
  *
  *  @param[in] other  Object to copy.
  */
-database_config::database_config(database_config const& other) {
+database_config::database_config(const database_config& other) {
   _internal_copy(other);
 }
 
@@ -274,8 +276,8 @@ bool database_config::operator==(database_config const& other) const {
             _host, other._host);
       else if (_socket != other._socket)
         logger->debug(
-            "database configurations do not match because of their sockets: {} "
-            "!= {}",
+            "database configurations do not match because of their sockets: "
+            "{} != {}",
             _socket, other._socket);
       else if (_port != other._port)
         logger->debug(
@@ -289,8 +291,8 @@ bool database_config::operator==(database_config const& other) const {
             _user, other._user);
       else if (_password != other._password)
         logger->debug(
-            "database configurations do not match because of their passwords: "
-            "{} != {}",
+            "database configurations do not match because of their "
+            "passwords: {} != {}",
             _password, other._password);
       else if (_name != other._name)
         logger->debug(
@@ -299,13 +301,13 @@ bool database_config::operator==(database_config const& other) const {
             _name, other._name);
       else if (_queries_per_transaction != other._queries_per_transaction)
         logger->debug(
-            "database configurations do not match because of their queries per "
-            "transactions: {} != {}",
+            "database configurations do not match because of their queries "
+            "per transactions: {} != {}",
             _queries_per_transaction, other._queries_per_transaction);
       else if (_connections_count != other._connections_count)
         logger->debug(
-            "database configurations do not match because of their connections "
-            "counts: {} != {}",
+            "database configurations do not match because of their "
+            "connections counts: {} != {}",
             _connections_count, other._connections_count);
       else if (_max_commit_delay != other._max_commit_delay)
         logger->debug(

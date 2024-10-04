@@ -55,7 +55,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Find path to the file.
