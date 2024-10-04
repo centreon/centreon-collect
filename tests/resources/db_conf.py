@@ -1,23 +1,45 @@
 #!/usr/bin/python3
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 
 
-BuiltIn().import_resource('db_variables.resource')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
-DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
-DB_USER_ROOT = BuiltIn().get_variable_value("${DBUserRoot}")
-DB_PASS_ROOT = BuiltIn().get_variable_value("${DBPassRoot}")
-DB_USER = BuiltIn().get_variable_value("${DBUser}")
-DB_PASS = BuiltIn().get_variable_value("${DBPass}")
-DB_HOST = BuiltIn().get_variable_value("${DBHost}")
-DB_PORT = BuiltIn().get_variable_value("${DBPort}")
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 
-CONF_DIR = ETC_ROOT + "/centreon-engine"
-ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+def import_robot_resources():
+    global DB_NAME_STORAGE, DB_NAME_CONF, DB_USER_ROOT, DB_PASS_ROOT, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, CONF_DIR, ENGINE_HOME
+    try:
+        BuiltIn().import_resource('db_variables.resource')
+        DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+        DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+        DB_USER_ROOT = BuiltIn().get_variable_value("${DBUserRoot}")
+        DB_PASS_ROOT = BuiltIn().get_variable_value("${DBPassRoot}")
+        DB_USER = BuiltIn().get_variable_value("${DBUser}")
+        DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+        DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+        DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 
+        CONF_DIR = ETC_ROOT + "/centreon-engine"
+        ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+
+DB_NAME_STORAGE = ""
+DB_NAME_CONF = ""
+DB_USER_ROOT = ""
+DB_PASS_ROOT = ""
+DB_USER = ""
+DB_PASS = ""
+DB_HOST = ""
+DB_PORT = ""
+VAR_ROOT = ""
+ETC_ROOT = ""
+
+CONF_DIR = ""
+ENGINE_HOME = ""
+
+import_robot_resources()
 
 class DbConf:
     def __init__(self, engine):

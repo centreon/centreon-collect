@@ -33,24 +33,39 @@ import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
 
 
+def import_robot_resources():
+    global DB_NAME_STORAGE, VAR_ROOT, ETC_ROOT, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT
+    try:
+        BuiltIn().import_resource('db_variables.resource')
+        DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+        DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+        DB_USER = BuiltIn().get_variable_value("${DBUser}")
+        DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+        DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+        DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+
+DB_NAME_STORAGE = ""
+DB_NAME_CONF = ""
+DB_USER = ""
+DB_PASS = ""
+DB_HOST = ""
+DB_PORT = ""
+VAR_ROOT = ""
+ETC_ROOT = ""
+
+import_robot_resources()
 TIMEOUT = 30
-
-BuiltIn().import_resource('db_variables.resource')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
-DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
-DB_USER = BuiltIn().get_variable_value("${DBUser}")
-DB_PASS = BuiltIn().get_variable_value("${DBPass}")
-DB_HOST = BuiltIn().get_variable_value("${DBHost}")
-DB_PORT = BuiltIn().get_variable_value("${DBPort}")
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
-
 
 def ctn_parse_tests_params():
     params = os.environ.get("TESTS_PARAMS")

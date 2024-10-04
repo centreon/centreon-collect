@@ -24,6 +24,7 @@ import grpc
 import math
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.json_format import MessageToDict
 import engine_pb2
 import engine_pb2_grpc
 import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2
@@ -35,7 +36,7 @@ import datetime
 from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 import db_conf
 import random
 import shutil
@@ -50,12 +51,24 @@ sys.path.append('.')
 
 
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
-CONF_DIR = ETC_ROOT + "/centreon-engine"
-ENGINE_HOME = f"{VAR_ROOT}/lib/centreon-engine"
-TIMEOUT = 30
 
+def import_robot_resources():
+    global VAR_ROOT, ETC_ROOT, CONF_DIR, ENGINE_HOME
+    try:
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+        CONF_DIR = ETC_ROOT + "/centreon-engine"
+        ENGINE_HOME = f"{VAR_ROOT}/lib/centreon-engine"
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+
+VAR_ROOT = ""
+ETC_ROOT = ""
+CONF_DIR = ""
+ENGINE_HOME = ""
+TIMEOUT = 30
+import_robot_resources()
 
 class EngineInstance:
     def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20):
@@ -3718,5 +3731,55 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
             return stub.Export(request)
         except:
             logger.console("gRPC server not ready")
+
+def ctn_get_host_info_grpc(id:int):
+    """
+    Retrieve host information via a gRPC call.
+
+    Args:
+        id: The identifier of the host to retrieve.
+
+    Returns:
+        A dictionary containing the host information, if successfully retrieved.
+    """
+    if id is not None:
+        limit = time.time() + 30
+        while time.time() < limit:
+            time.sleep(1)
+            with grpc.insecure_channel("127.0.0.1:50001") as channel:
+                stub = engine_pb2_grpc.EngineStub(channel)
+                request = engine_pb2.HostIdentifier(id=id)
+                try:
+                    host = stub.GetHost(request)
+                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                    return host_dict
+                except Exception as e:
+                    logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_check_key_value_existence(data_list, key, value):
+    """
+    Check if a specific key-value pair exists in a list of data strings.
+
+    Args:
+        data_list: List of strings.
+        key: The key to look for.
+        value: The value to match.
+
+    Returns:
+        True if the key-value pair exists in the data list, otherwise False.
+    """
+    for item in data_list:
+        # Split the string by comma and trim spaces
+        properties = [prop.strip() for prop in item.split(',')]
+        # Create a dict to store key-value
+        item_dict = {}
+        for prop in properties:
+            k, v = prop.split(':')
+            item_dict[k.strip()] = v.strip()     
+        # Check if key and value exist in the dict
+        if item_dict.get('key') == key and item_dict.get('value') == value:
+            return True
+    return False  
 
 
