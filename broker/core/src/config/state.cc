@@ -369,7 +369,7 @@ std::map<std::string, std::string>& state::params() noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string> const& state::params() const noexcept {
+const std::map<std::string, std::string>& state::params() const noexcept {
   return _params;
 }
 

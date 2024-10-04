@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 Centreon
+ * Copyright 2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,10 +44,11 @@ bool factory::has_endpoint(config::endpoint& cfg,
  *
  *  @return Acceptor matching configuration.
  */
-io::endpoint* factory::new_endpoint(config::endpoint& cfg,
-                                    bool& is_acceptor,
-                                    std::shared_ptr<persistent_cache> cache
-                                    [[maybe_unused]]) const {
+io::endpoint* factory::new_endpoint(
+    config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
+    bool& is_acceptor,
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Generate opener.
   std::auto_ptr<io::endpoint> s;
   if (cfg.type == "generator_receiver")

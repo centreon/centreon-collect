@@ -56,7 +56,7 @@ io::endpoint* factory::new_endpoint(
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Database configuration.
-  database_config dbcfg(cfg);
+  database_config dbcfg(cfg, global_params);
 
   // Cleanup check interval.
   uint32_t cleanup_check_interval = 0;
