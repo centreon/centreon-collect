@@ -18,7 +18,7 @@
  */
 #include <gtest/gtest.h>
 #include <cstdlib>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/io/file_stream.hh"
 
@@ -196,7 +196,7 @@ TEST(ClibIO, FileStreamRead) {
     try {
       tmp_file_stream.read(NULL, 1);
       retval = 1;
-    } catch (exceptions::basic const& e) {
+    } catch (const exceptions::msg_fmt& e) {
       (void)e;
     }
     // Real read.
@@ -253,7 +253,7 @@ TEST(ClibIO, FileStreamWrite) {
   tmp_file_stream.open(tmp_file_name, "w");
 
   // NULL write.
-  ASSERT_THROW(tmp_file_stream.write(NULL, 1), exceptions::basic);
+  ASSERT_THROW(tmp_file_stream.write(NULL, 1), exceptions::msg_fmt);
 
   // Real write.
   char const* data("some data");

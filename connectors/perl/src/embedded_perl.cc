@@ -1,25 +1,25 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/checks/check.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include <perl.h>
 
@@ -96,8 +96,8 @@ pid_t embedded_perl::run(std::string const& cmd,
                          const shared_io_context& io_context) {
   // Check arguments.
   if (!fds)
-    throw basic_error() << "cannot run Perl script without "
-                           "fetching process' descriptors";
+    throw exceptions::msg_fmt(
+        "cannot run Perl script without fetching process' descriptors");
 
   // Extract arguments.
   size_t pos(cmd.find(' '));
@@ -126,12 +126,12 @@ pid_t embedded_perl::run(std::string const& cmd,
       argv[2] = nullptr;
       if (call_argv("Embed::Persistent::eval_file", G_EVAL | G_SCALAR,
                     (char**)argv) != 1)
-        throw basic_error() << "could not compile Perl script " << file;
+        throw exceptions::msg_fmt("could not compile Perl script {}", file);
     }
     SPAGAIN;
     handle = POPs;
     if (SvTRUE(ERRSV))
-      throw basic_error() << "Embedded Perl error: " << SvPV_nolen(ERRSV);
+      throw exceptions::msg_fmt("Embedded Perl error: {}", SvPV_nolen(ERRSV));
 
     // Insert in parsed file list.
     _parsed.insert(std::make_pair(file, handle));
@@ -146,12 +146,12 @@ pid_t embedded_perl::run(std::string const& cmd,
   int out_pipe[2];
   if (pipe(in_pipe)) {
     char const* msg(strerror(errno));
-    throw basic_error() << msg;
+    throw exceptions::msg_fmt("{}", msg);
   } else if (pipe(err_pipe)) {
     char const* msg(strerror(errno));
     close(in_pipe[0]);
     close(in_pipe[1]);
-    throw basic_error() << msg;
+    throw exceptions::msg_fmt("{}", msg);
   }
   if (pipe(out_pipe)) {
     char const* msg(strerror(errno));
@@ -159,7 +159,7 @@ pid_t embedded_perl::run(std::string const& cmd,
     close(in_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw exceptions::msg_fmt("{}", msg);
   }
 
   io_context->notify_fork(asio::io_context::fork_prepare);
@@ -245,7 +245,7 @@ pid_t embedded_perl::run(std::string const& cmd,
     close(out_pipe[1]);
     close(err_pipe[0]);
     close(err_pipe[1]);
-    throw basic_error() << msg;
+    throw exceptions::msg_fmt("{}", msg);
   }
 
   return child;
@@ -288,7 +288,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int argc,
     int script_fd(mkstemp(script_path));
     if (script_fd < 0) {
       char const* msg(strerror(errno));
-      throw basic_error() << "could not create temporary file: " << msg;
+      throw exceptions::msg_fmt("could not create temporary file: {}", msg);
     }
     log::core()->info("temporary script path is {}", script_path);
 
@@ -309,7 +309,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int argc,
           char const* msg(strerror(errno));
           close(script_fd);
           unlink(script_path);
-          throw basic_error() << "could not write embedded script: " << msg;
+          throw exceptions::msg_fmt("could not write embedded script: {}", msg);
         }
         len -= wb;
         data += wb;
@@ -324,7 +324,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int argc,
 
   if (!(my_perl = perl_alloc())) {
     log::core()->error("could not allocate Perl interpreter");
-    throw basic_error() << "could not allocate Perl interpreter";
+    throw exceptions::msg_fmt("could not allocate Perl interpreter");
   }
   perl_construct(my_perl);
   PL_origalen = 1;
@@ -337,7 +337,7 @@ embedded_perl::embedded_perl([[maybe_unused]] int argc,
   if (perl_parse(my_perl, &xs_init, sizeof(embedding) / sizeof(*embedding),
                  (char**)embedding, nullptr)) {
     log::core()->error("could not parse embedded Perl script");
-    throw basic_error() << "could not parse embedded Perl script";
+    throw exceptions::msg_fmt("could not parse embedded Perl script");
   }
   PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
   perl_run(my_perl);

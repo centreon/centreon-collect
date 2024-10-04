@@ -19,8 +19,6 @@
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
-#include <fstream>
-#include "common/engine_conf/file_info.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "state_helper.hh"
 // #include "host.hh"

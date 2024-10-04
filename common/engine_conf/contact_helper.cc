@@ -126,6 +126,7 @@ bool contact_helper::insert_customvariable(std::string_view key,
     return false;
 
   key.remove_prefix(1);
+
   Contact* obj = static_cast<Contact*>(mut_obj());
   auto* cvs = obj->mutable_customvariables();
   for (auto& c : *cvs) {

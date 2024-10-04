@@ -18,6 +18,22 @@ on:
         required: true
         default: false
         type: boolean
+      legacy_engine:
+        description: 'Compile Engine with legacy configuration library'
+        required: true
+        default: true
+        type: boolean
+      packages_in_artifact:
+        description: 'Save packages in artifacts'
+        required: true
+        default: false
+        type: boolean
+      unit_tests:
+        description: 'Execute the unit tests'
+        required: true
+        default: true
+        type: boolean
+
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -76,7 +92,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - run: |
           gh workflow run robot-nightly.yml -r "dev-24.04.x"
@@ -110,12 +126,12 @@ jobs:
 
   unit-test:
     needs: [get-version]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ github.event.inputs.unit_tests == 'true' && ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, debian-bullseye, debian-bookworm]
+        distrib: [alma8, alma9, debian-bookworm]
 
     runs-on: [self-hosted, collect]
 
@@ -125,6 +141,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine == 'true' && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
@@ -136,7 +153,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Install sccache
         run: |
@@ -195,6 +212,7 @@ jobs:
                   -DWITH_MODULE_SIMU=On \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DLEGACY_ENGINE=${LEGACY_ENGINE} \
                   -S .
 
           ninja -Cbuild
@@ -223,6 +241,36 @@ jobs:
   package:
     needs: [get-version]
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: centreon-collect-alma8
+            distrib: el8
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-alma9
+            distrib: el9
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bookworm
+            distrib: bookworm
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-ubuntu-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bookworm-arm64
+            distrib: bookworm
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
+
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-version.outputs.major_version }}
@@ -231,6 +279,13 @@ jobs:
       release: ${{ needs.get-version.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-version.outputs.stability }}
+      legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
+      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
+      image: ${{ matrix.image }}
+      distrib: ${{ matrix.distrib }}
+      package_extension: ${{ matrix.package_extension }}
+      runner: ${{ matrix.runner }}
+      arch: ${{ matrix.arch }}
     secrets: inherit
 
   robot-test:
@@ -258,13 +313,6 @@ jobs:
             arch: amd64
             database_type: mysql
             test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
             tests_params: '{}'
           - distrib: bookworm
             image: centreon-collect-debian-bookworm-arm64-test
@@ -322,7 +370,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: centreon-collect
 
@@ -357,7 +405,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
@@ -383,10 +431,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
             arch: amd64
           - distrib: jammy
@@ -396,7 +440,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
@@ -411,21 +455,20 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
-    needs: [get-version]
+    needs: [get-version, deliver-rpm, deliver-deb]
     if: |
-      github.event_name != 'workflow_dispatch' &&
-      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable

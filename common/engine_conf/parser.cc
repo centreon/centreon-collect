@@ -17,8 +17,9 @@
  *
  */
 #include "parser.hh"
+#include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/directory_entry.hh"
+#include "common/engine_conf/state.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 #include "anomalydetection_helper.hh"
@@ -42,7 +43,6 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::io;
 
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
@@ -259,9 +259,9 @@ void parser::_parse_object_definitions(const std::string& path,
             pb_map_object& tmpl = _pb_templates[otype];
             auto it = tmpl.find(obj.name());
             if (it != tmpl.end())
-              throw msg_fmt("Parsing of '{}' failed {}: {} already exists",
-                            type, "file_info" /*_get_file_info(obj.get()) */,
-                            obj.name());
+              throw msg_fmt(
+                  "Parsing of '{}' failed in cfg file: {} already exists", type,
+                  obj.name());
             if (!obj.register_())
               tmpl[obj.name()] = std::move(msg);
             else {
@@ -642,7 +642,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
       }
 
       if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
-          !msg_helper->changed(f->number())) {
+          !msg_helper->changed(f->index())) {
         if (f->is_repeated()) {
           switch (f->cpp_type()) {
             case FieldDescriptor::CPPTYPE_STRING: {
@@ -664,6 +664,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (!found)
                   refl->AddString(msg, f, s);
               }
+              msg_helper->set_changed(f->index());
             } break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               size_t count = refl->FieldSize(*tmpl, f);
@@ -675,15 +676,31 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 for (size_t k = 0; k < count_msg; ++k) {
                   const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
                   const Descriptor* d1 = m1.GetDescriptor();
-                  if (d && d1 && d->name() == "PairUint64_32" &&
-                      d1->name() == "PairUint64_32") {
-                    const PairUint64_32& p =
-                        static_cast<const PairUint64_32&>(m);
-                    const PairUint64_32& p1 =
-                        static_cast<const PairUint64_32&>(m1);
-                    if (p.first() == p1.first() && p.second() == p1.second()) {
-                      found = true;
-                      break;
+                  if (d && d1) {
+                    if (d->name() == "PairUint64_32" &&
+                        d1->name() == "PairUint64_32") {
+                      const PairUint64_32& p =
+                          static_cast<const PairUint64_32&>(m);
+                      const PairUint64_32& p1 =
+                          static_cast<const PairUint64_32&>(m1);
+                      if (p.first() == p1.first() &&
+                          p.second() == p1.second()) {
+                        found = true;
+                        break;
+                      }
+                    } else if (d->name() == "CustomVariable" &&
+                               d1->name() == "CustomVariable") {
+                      const CustomVariable& cv =
+                          static_cast<const CustomVariable&>(m);
+                      const CustomVariable& cv1 =
+                          static_cast<const CustomVariable&>(m1);
+                      if (cv.name() == cv1.name()) {
+                        _logger->info("same name");
+                        found = true;
+                        break;
+                      }
+                    } else {
+                      assert("not good at all" == nullptr);
                     }
                   }
                 }
@@ -692,6 +709,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   new_m->CopyFrom(m);
                 }
               }
+              msg_helper->set_changed(f->index());
             } break;
             default:
               _logger->error(
@@ -704,21 +722,27 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
           switch (f->cpp_type()) {
             case FieldDescriptor::CPPTYPE_STRING:
               refl->SetString(msg, f, refl->GetString(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_BOOL:
               refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_INT32:
               refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_UINT32:
               refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_UINT64:
               refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_ENUM:
               refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
+              msg_helper->set_changed(f->index());
               break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               Message* m = refl->MutableMessage(msg, f);
@@ -755,6 +779,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
               }
+              msg_helper->set_changed(f->index());
             } break;
 
             default:

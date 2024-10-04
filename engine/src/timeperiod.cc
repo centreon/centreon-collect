@@ -134,13 +134,14 @@ void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
 
   auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
     for (auto& r : obj_daterange) {
-//      std::list<timerange> tr;
-//      for (auto& t : r.timerange())
-//        tr.emplace_back(t.range_start(), t.range_end());
-      exceptions[idx].emplace_back(
-          static_cast<daterange::type_range>(r.type()), r.syear(), r.smon(),
-          r.smday(), r.swday(), r.swday_offset(), r.eyear(), r.emon(),
-          r.emday(), r.ewday(), r.ewday_offset(), r.skip_interval(), r.timerange());
+      //      std::list<timerange> tr;
+      //      for (auto& t : r.timerange())
+      //        tr.emplace_back(t.range_start(), t.range_end());
+      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
+                                   r.syear(), r.smon(), r.smday(), r.swday(),
+                                   r.swday_offset(), r.eyear(), r.emon(),
+                                   r.emday(), r.ewday(), r.ewday_offset(),
+                                   r.skip_interval(), r.timerange());
     }
   };
 
@@ -172,7 +173,7 @@ bool timeperiod::operator==(timeperiod const& obj) noexcept {
   if (_name == obj._name && _alias == obj._alias &&
       (_exclusions.size() == obj._exclusions.size() &&
        std::equal(_exclusions.begin(), _exclusions.end(),
-                  obj._exclusions.begin()))) {
+                  obj._exclusions.begin(), obj._exclusions.end()))) {
     for (uint32_t i{0}; i < exceptions.size(); ++i)
       if (exceptions[i] != obj.exceptions[i])
         return false;

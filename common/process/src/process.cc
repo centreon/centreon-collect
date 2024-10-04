@@ -144,9 +144,11 @@ using namespace com::centreon::common;
  * @param cmd_line cmd line split (the first element is the path of the
  * executable)
  */
-process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string_view& cmd_line)
+template <bool use_mutex>
+process<use_mutex>::process(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
 #ifdef _WINDOWS
   auto split_res = boost::program_options::split_winmain(std::string(cmd_line));
@@ -174,9 +176,10 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
  * @param enable_stdin On Windows set it to false if you doesn't want to write
  * on child stdin
  */
-void process::start_process(bool enable_stdin) {
+template <bool use_mutex>
+void process<use_mutex>::start_process(bool enable_stdin) {
   SPDLOG_LOGGER_DEBUG(_logger, "start process: {}", _exe_path);
-  absl::MutexLock l(&_protect);
+  detail::lock<use_mutex> l(&_protect);
   _stdin_write_queue.clear();
   _write_pending = false;
 
@@ -190,7 +193,7 @@ void process::start_process(bool enable_stdin) {
     _proc->proc.async_wait(
         [me = shared_from_this(), current = _proc](
             const boost::system::error_code& err, int raw_exit_status) {
-          absl::MutexLock l(&me->_protect);
+          detail::lock<use_mutex> l(&me->_protect);
           if (current != me->_proc) {
             return;
           }
@@ -210,8 +213,9 @@ void process::start_process(bool enable_stdin) {
  * @param err
  * @param raw_exit_status end status of the process
  */
-void process::on_process_end(const boost::system::error_code& err,
-                             int raw_exit_status) {
+template <bool use_mutex>
+void process<use_mutex>::on_process_end(const boost::system::error_code& err,
+                                        int raw_exit_status) {
   if (err) {
     SPDLOG_LOGGER_ERROR(_logger, "fail async_wait of {}: {}", _exe_path,
                         err.message());
@@ -227,8 +231,9 @@ void process::on_process_end(const boost::system::error_code& err,
  * @brief kill child process
  *
  */
-void process::kill() {
-  absl::MutexLock l(&_protect);
+template <bool use_mutex>
+void process<use_mutex>::kill() {
+  detail::lock<use_mutex> l(&_protect);
   if (_proc) {
     SPDLOG_LOGGER_INFO(_logger, "kill process");
     boost::system::error_code err;
@@ -246,8 +251,9 @@ void process::kill() {
  *
  * @param data
  */
-void process::stdin_write(const std::shared_ptr<std::string>& data) {
-  absl::MutexLock l(&_protect);
+template <bool use_mutex>
+void process<use_mutex>::stdin_write(const std::shared_ptr<std::string>& data) {
+  detail::lock<use_mutex> l(&_protect);
   stdin_write_no_lock(data);
 }
 
@@ -257,7 +263,9 @@ void process::stdin_write(const std::shared_ptr<std::string>& data) {
  *
  * @param data
  */
-void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
+template <bool use_mutex>
+void process<use_mutex>::stdin_write_no_lock(
+    const std::shared_ptr<std::string>& data) {
   if (!_proc) {
     SPDLOG_LOGGER_ERROR(_logger, "stdin_write process {} not started",
                         _exe_path);
@@ -272,7 +280,7 @@ void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
           asio::buffer(*data),
           [me = shared_from_this(), caller = _proc, data](
               const boost::system::error_code& err, size_t nb_written) {
-            absl::MutexLock l(&me->_protect);
+            detail::lock<use_mutex> l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -294,7 +302,8 @@ void process::stdin_write_no_lock(const std::shared_ptr<std::string>& data) {
  *
  * @param err
  */
-void process::on_stdin_write(const boost::system::error_code& err) {
+template <bool use_mutex>
+void process<use_mutex>::on_stdin_write(const boost::system::error_code& err) {
   _write_pending = false;
 
   if (err) {
@@ -321,14 +330,15 @@ void process::on_stdin_write(const boost::system::error_code& err) {
  * @brief asynchronous read from child process stdout
  *
  */
-void process::stdout_read() {
+template <bool use_mutex>
+void process<use_mutex>::stdout_read() {
   if (_proc) {
     try {
       _proc->stdout_pipe.async_read_some(
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
-            absl::MutexLock l(&me->_protect);
+            detail::lock<use_mutex> l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -336,7 +346,7 @@ void process::stdout_read() {
           });
     } catch (const std::exception& e) {
       _io_context->post([me = shared_from_this(), caller = _proc]() {
-        absl::MutexLock l(&me->_protect);
+        detail::lock<use_mutex> l(&me->_protect);
         me->on_stdout_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }
@@ -351,8 +361,9 @@ void process::stdout_read() {
  * @param err
  * @param nb_read
  */
-void process::on_stdout_read(const boost::system::error_code& err,
-                             size_t nb_read) {
+template <bool use_mutex>
+void process<use_mutex>::on_stdout_read(const boost::system::error_code& err,
+                                        size_t nb_read) {
   if (err) {
     if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stdout of process {}: {}",
@@ -372,14 +383,15 @@ void process::on_stdout_read(const boost::system::error_code& err,
  * @brief asynchronous read from child process stderr
  *
  */
-void process::stderr_read() {
+template <bool use_mutex>
+void process<use_mutex>::stderr_read() {
   if (_proc) {
     try {
       _proc->stderr_pipe.async_read_some(
           asio::buffer(_stderr_read_buffer),
           [me = shared_from_this(), caller = _proc](
               const boost::system::error_code& err, size_t nb_read) {
-            absl::MutexLock l(&me->_protect);
+            detail::lock<use_mutex> l(&me->_protect);
             if (caller != me->_proc) {
               return;
             }
@@ -387,7 +399,7 @@ void process::stderr_read() {
           });
     } catch (const std::exception& e) {
       _io_context->post([me = shared_from_this(), caller = _proc]() {
-        absl::MutexLock l(&me->_protect);
+        detail::lock<use_mutex> l(&me->_protect);
         me->on_stderr_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }
@@ -402,8 +414,9 @@ void process::stderr_read() {
  * @param err
  * @param nb_read
  */
-void process::on_stderr_read(const boost::system::error_code& err,
-                             size_t nb_read) {
+template <bool use_mutex>
+void process<use_mutex>::on_stderr_read(const boost::system::error_code& err,
+                                        size_t nb_read) {
   if (err) {
     if (err == asio::error::eof || err == asio::error::broken_pipe) {
       SPDLOG_LOGGER_DEBUG(_logger, "fail read from stderr of process {}: {}",
@@ -418,3 +431,11 @@ void process::on_stderr_read(const boost::system::error_code& err,
     stderr_read();
   }
 }
+
+namespace com::centreon::common {
+
+template class process<true>;
+
+template class process<false>;
+
+}  // namespace com::centreon::common
