@@ -18,31 +18,22 @@
  */
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
-#include <com/centreon/broker/stats/worker.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
-#include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/builder.hh"
-#include "com/centreon/broker/stats/center.hh"
-#include "com/centreon/common/pool.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-
 
 class StatsTest : public ::testing::Test {
  public:

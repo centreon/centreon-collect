@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2015,2017 Centreon
+ * Copyright 2011-2015,2017-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/storage/connector.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -40,20 +39,11 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 static std::string const& find_param(config::endpoint const& cfg,
                                      std::string const& key) {
-  std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
+  auto it = cfg.params.find(key);
   if (cfg.params.end() == it)
-    throw msg_fmt(
-        "storage: no '{}"
-        "' defined for endpoint '{}'",
-        key, cfg.name);
+    throw msg_fmt("storage: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
 }
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Check if a configuration match the storage layer.
@@ -78,12 +68,10 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  *
  *  @return Endpoint matching the given configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
-  (void)cache;
-
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache> cache
+                                    [[maybe_unused]]) const {
   // Find RRD length.
   uint32_t rrd_length;
   if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
@@ -96,10 +84,9 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Find interval length if set.
-  uint32_t interval_length{0};
+  uint32_t interval_length = 0;
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("interval")};
+    auto it = cfg.params.find("interval");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
@@ -121,8 +108,7 @@ io::endpoint* factory::new_endpoint(
   // Store or not in data_bin.
   bool store_in_data_bin{true};
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("store_in_data_bin")};
+    auto it = cfg.params.find("store_in_data_bin");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
         log_v2::instance()
