@@ -16,9 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 
-#include "bbdo/neb.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -31,7 +29,6 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
