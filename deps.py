@@ -22,9 +22,11 @@ import re
 import os
 import json
 import sys
+from collections import defaultdict
 
 ESC = '\x1b'
 YELLOW = ESC + '[1;33m'
+CYAN = ESC + '[1;36m'
 GREEN = ESC + '[1;32m'
 RESET = ESC + '[0m'
 
@@ -43,6 +45,77 @@ parser.add_argument('--compile-commands', '-c', type=str, default="compile_comma
 parser.add_argument('--explain', '-e', action='store_true', default=False,
                     help='Explain what header to remove from the file.')
 args = parser.parse_args()
+
+
+# Graph class to represent a directed graph
+class Graph:
+    def __init__(self):
+        self.graph = defaultdict(list)
+
+    # Method to add an edge between two nodes u and v (strings)
+    def add_edge(self, u, v):
+        self.graph[u].append(v)
+
+    # Method to find all paths from source to destination
+    def find_all_paths(self, source, destination):
+        paths = []
+        current_path = []
+
+        # Check for a direct path (single edge path)
+        if destination in self.graph[source]:
+            paths.append([source, destination])
+
+        # Find all other paths using DFS
+        self.dfs(source, destination, current_path, paths)
+
+        return paths
+
+    # Recursive DFS function to explore paths
+    def dfs(self, current_node, destination, current_path, paths):
+        # Add the current node to the current path
+        current_path.append(current_node)
+
+        # If we reach the destination node, store the current path
+        if current_node == destination and len(current_path) > 2:  # Ensure this is not the single-edge path
+            paths.append(list(current_path))
+        else:
+            # Otherwise, explore all neighbors of the current node
+            for neighbor in self.graph[current_node]:
+                if neighbor not in current_path:  # Avoid immediate cycles
+                    self.dfs(neighbor, destination, current_path, paths)
+
+        # Backtrack: remove the current node from the path before returning
+        current_path.pop()
+
+    # Method to check if at least two paths exist from source to destination
+    def find_paths_with_at_least_two(self, source, destination):
+        all_paths = self.find_all_paths(source, destination)
+
+        # Return paths only if there are at least two
+        if len(all_paths) >= 2:
+            return all_paths
+        else:
+            return None
+
+    # Method to find all node pairs with at least two paths
+    def find_all_pairs_with_at_least_two_paths(self):
+        result = {}
+        destinations = set()
+        # We get all the leafs.
+        for v in self.graph.values():
+            destinations.update(v)
+        nodes = set(self.graph.keys())  # All the nodes except leafs.
+        destinations.update(nodes) # And the union of them.
+        # Iterate through all pairs of nodes in the graph
+        for source in nodes:
+            for destination in destinations:
+                if source != destination:
+                    paths = self.find_paths_with_at_least_two(source, destination)
+                    if paths:
+                        for path in paths:
+                            if len(path) == 2:
+                                result[(source, destination)] = paths
+        return result
 
 
 def parse_command(entry):
@@ -159,23 +232,14 @@ def build_recursive_headers_explain(parent, includes, headers, precomp_headers, 
     if level == args.depth:
         full_precomp_headers = build_full_headers(includes, precomp_headers)
         for pair in full_precomp_headers:
-            if pair[0] not in output:
-                output[pair[0]] = []
-            output[pair[0]].append((parent[0], "main"))
+            output.add_edge(parent[0], pair[0])
 
     level -= 1
     full_headers = build_full_headers(includes, headers)
     for pair in full_headers:
-        if level == args.depth - 1:
-            if pair[0] not in output:
-                output[pair[0]] = []
-            output[pair[0]].append((parent[0], "main"))
-        else:
-            if pair[0] not in output:
-                output[pair[0]] = []
-            output[pair[0]].append((parent[0], ""))
+        output.add_edge(parent[0], pair[0])
         new_headers = get_headers(pair[0])
-        if not pair[0].startswith("/usr/include") and "vcpkg" not in pair[0]:
+        if not pair[0].startswith("/usr/include") and "vcpkg" not in pair[0] and ".pb." not in pair[0]:
             build_recursive_headers_explain(
                 pair, includes, new_headers, [], level, output)
 
@@ -240,7 +304,7 @@ if not args.explain:
 else:
     for full_name in filename:
         print(f"Analyzing '{full_name[0]}'")
-        output = {}
+        output = Graph()
         for entry in new_js:
             # A little hack so that if we specify no file, they are all analyzed.
             if entry["file"] == full_name[0]:
@@ -255,27 +319,9 @@ else:
                 build_recursive_headers_explain(
                     full_name, includes, headers, precomp_headers, args.depth, output)
 
-                for o in output:
-                    if len(output[o]) == 1:
-                        del output[o]
-                print(output)
-                #selected = [o for o in output if o[2]]
-                #complement = [o for o in output if not o[2]]
-                #to_remove = []
-                #for o in selected:
-                #    for oo in complement:
-                #        if oo[1] == o[1]:
-                #            to_remove.append(oo)
-                #            break
-                #if len(to_remove) > 0:
-                #    print(
-                #        f"In file {YELLOW}{full_name[1]}{RESET}, there are includes coming from others headers:")
-                #    print("-from precomp header:")
-                #    for o in to_remove:
-                #        if o[3]:
-                #            print(f"  * {GREEN}{o[0]}{RESET}")
-                #    print("-from others headers:")
-                #    for o in to_remove:
-                #        if not o[3]:
-                #            print(f"  * {GREEN}{o[0]}{RESET}")
+                result = output.find_all_pairs_with_at_least_two_paths()
+                if result:
+                    print(f"{GREEN}{full_name[0]}{RESET}:")
+                    for (source, destination), paths in result.items():
+                        print(f"  * {YELLOW}{destination}{RESET} can be removed from {CYAN}{source}{RESET}.")
                 break

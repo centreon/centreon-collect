@@ -19,11 +19,7 @@
 #ifndef CCB_NEB_CUSTOM_VARIABLE_HH
 #define CCB_NEB_CUSTOM_VARIABLE_HH
 
-#include "com/centreon/broker/io/event_info.hh"
-#include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/neb/custom_variable_status.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 

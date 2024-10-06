@@ -18,19 +18,11 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
-#include <cassert>
-#include <cstring>
 
-#include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
-#include "com/centreon/broker/sql/mysql_result.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
