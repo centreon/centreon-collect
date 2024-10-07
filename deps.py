@@ -44,6 +44,8 @@ parser.add_argument('--compile-commands', '-c', type=str, default="compile_comma
                     help='Specify the depth to look up headers.')
 parser.add_argument('--explain', '-e', action='store_true', default=False,
                     help='Explain what header to remove from the file.')
+parser.add_argument('--fix', '-f', action='store_true', default=False,
+                    help='Removed headers that seems not needed (this action is dangerous).')
 args = parser.parse_args()
 
 
@@ -244,6 +246,21 @@ def build_recursive_headers_explain(parent, includes, headers, precomp_headers, 
                 pair, includes, new_headers, [], level, output)
 
 
+def remove_header_from_file(header, filename):
+    print(f"  * {YELLOW}{header}{RESET} removed from {CYAN}{filename}{RESET}.")
+    r = re.compile(r"^#include\s*[\"<](.*)[\">]")
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    with open(filename, "w") as f:
+        for l in lines:
+            ls = l.strip()
+            if l.startswith("#include"):
+                m = r.match(ls)
+                if m and header.endswith(m.group(1)):
+                    continue
+            f.write(l)
+
+
 if not os.path.isfile(args.compile_commands):
     print("the compile_commands.json file must be provided, by default deps looks for it in the current path, otherwise you can provide it with the -c option.", file=sys.stderr)
     sys.exit(1)
@@ -321,7 +338,11 @@ else:
 
                 result = output.find_all_pairs_with_at_least_two_paths()
                 if result:
-                    print(f"{GREEN}{full_name[0]}{RESET}:")
-                    for (source, destination), paths in result.items():
-                        print(f"  * {YELLOW}{destination}{RESET} can be removed from {CYAN}{source}{RESET}.")
+                    if args.fix:
+                        for (source, destination), paths in result.items():
+                            remove_header_from_file(destination, source)
+                    else:
+                        print(f"{GREEN}{full_name[0]}{RESET}:")
+                        for (source, destination), paths in result.items():
+                            print(f"  * {YELLOW}{destination}{RESET} can be removed from {CYAN}{source}{RESET}.")
                 break
