@@ -29,7 +29,6 @@ Legacycmd with ${communication_mode} communication
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
-        ...    pull
         
 *** Keywords ***
 Legacycmd Teardown
