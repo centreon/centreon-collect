@@ -16,32 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CA_PRECOMP_HH
-#define CA_PRECOMP_HH
+#ifndef CENTREON_AGENT_CHECK_CPU_HH
+#define CENTREON_AGENT_CHECK_CPU_HH
 
-#include <deque>
-#include <iostream>
-#include <list>
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <fmt/chrono.h>
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
-
-#include <absl/base/thread_annotations.h>
-#include <absl/strings/str_split.h>
-#include <absl/synchronization/mutex.h>
-
-#include <boost/asio.hpp>
-
-namespace asio = boost::asio;
-
-#include <boost/algorithm/string.hpp>
-#include <boost/process/v2.hpp>
-#include <boost/program_options.hpp>
-
-#include <rapidjson/document.h>
+namespace com::centreon::agent {}
 
 #endif

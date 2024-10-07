@@ -97,9 +97,17 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/proto/agent.proto
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(NATIVE_DIR "native_linux")
+else()
+  set(NATIVE_DIR "native_windows")
+endif()
 
+set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
+set(NATIVE_SRC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/src")
 
 set( SRC_COMMON
+  ${NATIVE_SRC}/check_cpu.cc
   ${SRC_DIR}/agent.grpc.pb.cc
   ${SRC_DIR}/agent.pb.cc
   ${SRC_DIR}/bireactor.cc
@@ -142,7 +150,8 @@ add_library(centagent_lib STATIC
 )
 
 include_directories(
-  ${INCLUDE_DIR} 
+  ${INCLUDE_DIR}
+  ${NATIVE_INC} 
   ${SRC_DIR} 
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
