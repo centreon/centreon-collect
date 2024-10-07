@@ -17,7 +17,6 @@
  *
  */
 #include "parser.hh"
-#include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/log_v2/log_v2.hh"
@@ -791,4 +790,54 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
       }
     }
   }
+}
+
+/**
+ * @brief Compute the hash of a directory content.
+ *
+ * @param dir_path The directory to parse.
+ *
+ * @return a size_t hash.
+ */
+std::string parser::hash_directory(const std::filesystem::path& dir_path) {
+  std::list<std::filesystem::path> files;
+
+  /* Recursively parse the directory */
+  for (const auto& entry :
+       std::filesystem::recursive_directory_iterator(dir_path)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+      files.push_back(entry.path());
+  }
+
+  files.sort();
+
+  EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+  EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+
+  for (auto& f : files) {
+    const std::string& fname = std::filesystem::relative(f, dir_path).string();
+    EVP_DigestUpdate(mdctx, fname.data(), fname.size());
+    std::string content = read_file_content(f);
+    EVP_DigestUpdate(mdctx, content.data(), content.size());
+  }
+
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  unsigned int size;
+  EVP_DigestFinal_ex(mdctx, hash, &size);
+  EVP_MD_CTX_free(mdctx);
+
+  std::string retval;
+  retval.reserve(SHA256_DIGEST_LENGTH * 2);
+  auto digit = [](unsigned char d) -> char {
+    if (d < 10)
+      return '0' + d;
+    else
+      return 'a' + (d - 10);
+  };
+
+  for (auto h : hash) {
+    retval.push_back(digit(h >> 4));
+    retval.push_back(digit(h & 0xf));
+  }
+  return retval;
 }
