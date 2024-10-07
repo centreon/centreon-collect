@@ -136,7 +136,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -144,9 +144,6 @@ jobs:
           - package_extension: rpm
             image: gorgone-testing-alma9
             distrib: el9
-          - package_extension: deb
-            image: gorgone-testing-bullseye
-            distrib: bullseye
           - package_extension: deb
             image: gorgone-testing-jammy
             distrib: jammy
