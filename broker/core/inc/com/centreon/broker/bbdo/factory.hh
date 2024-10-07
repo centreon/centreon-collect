@@ -19,7 +19,6 @@
 #ifndef CCB_BBDO_FACTORY_HH
 #define CCB_BBDO_FACTORY_HH
 
-#include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
 namespace com::centreon::broker::bbdo {

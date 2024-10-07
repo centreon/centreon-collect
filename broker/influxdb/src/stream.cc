@@ -17,10 +17,7 @@
  */
 
 #include "com/centreon/broker/influxdb/stream.hh"
-#include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/influxdb/influxdb.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "common/log_v2/log_v2.hh"
