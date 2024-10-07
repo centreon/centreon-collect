@@ -128,7 +128,7 @@ curl --request POST "https://hostname:8443/api/centreon/autodiscovery/hosts" \
         \"commands\": [
             {
                 \"action\": \"COMMAND\",
-                \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --job-id=14\"
+                \"command_line\": \"/usr/share/centreon/bin/run_save_discovered_host --job-id=14\"
             }
         ]
     }
@@ -177,7 +177,7 @@ curl --request POST "https://hostname:8443/api/centreon/autodiscovery/hosts" \
         \"commands\": [
             {
                 \"action\": \"COMMAND\",
-                \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --job-id=14\"
+                \"command_line\": \"/usr/share/centreon/bin/run_save_discovered_host --job-id=14\"
             }
         ]
     }
