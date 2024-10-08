@@ -178,8 +178,6 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
-          - distrib: jammy
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -209,7 +207,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources

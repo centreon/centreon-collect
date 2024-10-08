@@ -166,8 +166,7 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
-          - distrib: jammy
-            arch: amd64
+
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
