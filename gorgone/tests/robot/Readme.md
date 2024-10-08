@@ -48,7 +48,7 @@ cd /centreon-collect/
 ### Execute all tests
 Launch robot tests with parameters to connect to the db and use the local gorgone binary : 
 ```
-robot -v 'gorgone_binary:/centreon-collect/gorgone/gorgoned' -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests
+robot --loglevel TRACE -v 'gorgone_binary:/centreon-collect/gorgone/gorgoned' -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests
 ```
 
 ### Filter tests by tags
@@ -76,5 +76,3 @@ Maybe you installed an old version of centreon-gorgone which don't have all the 
 ```
 apt install -y lib-rrds-perl lib-mojo-ioloop-signal-perl
 ```
-
-You can add trace to robot with `--loglevel TRACE`, and check the log.html robot add in your current folder for the detail of robot execution.
