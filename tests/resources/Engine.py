@@ -3740,7 +3740,7 @@ def ctn_get_host_info_grpc(id:int):
         id: The identifier of the host to retrieve.
 
     Returns:
-        A dictionary containing the host information, if successfully retrieved.
+        A dictionary containing the host informations, if successfully retrieved.
     """
     if id is not None:
         limit = time.time() + 30

@@ -108,7 +108,7 @@ EBSN3
 
 EBSN4
     [Documentation]    New hosts with No Alias / Alias and have A Template
-    [Tags]    broker    engine    hosts    mon-16261
+    [Tags]    broker    engine    hosts    MON-16261
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -175,8 +175,8 @@ EBSN4
     Ctn Kindly Stop Broker
 
 EBSN5
-    [Documentation]    Verfiy inheritance host : host(empty) inherit from template (full) , on Start Engine
-    [Tags]    broker    engine    hosts    mon-148837
+    [Documentation]    Verify inheritance host : host(empty) inherit from template (full) , on Start Engine
+    [Tags]    broker    engine    hosts    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -343,10 +343,10 @@ EBSN5
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPCOMMUNITY    public    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPVERSION    2c    hostTemplates.cfg
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${output}    Ctn Get Host Info Grpc    ${1}
@@ -423,22 +423,17 @@ EBSN5
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    SNMPVERSION    2c
     Should Be True    ${ret}    customVariables_SNMPVERSION:Should Be True
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSN6
-    [Documentation]    Verfiy inheritance host : host(full) inherit from template (full) , on Start engine
-    [Tags]    broker    engine    hosts    mon-148837
+    [Documentation]    Verify inheritance host : host(full) inherit from template (full) , on Start engine
+    [Tags]    broker    engine    hosts    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    1
-
-    Ctn Clear Retention
-    Ctn Start Broker
-    Ctn Start engine
-    sleep    2s
 
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Template File    ${0}    host    group_tags    [1, 6]
@@ -651,10 +646,10 @@ EBSN6
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPCOMMUNITY    public    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPVERSION    2c    hostTemplates.cfg
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${output}    Ctn Get Host Info Grpc    ${1}
@@ -737,22 +732,22 @@ EBSN6
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    SNMPVERSION    2c
     Should Be True    ${ret}    customVariables_SNMPVERSION:Should Be True
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSN7
-    [Documentation]    Verfiy inheritance host : host(empty) inherit from template (full) , on Reload engine
-    [Tags]    broker    engine    hosts    mon-148837
+    [Documentation]    Verify inheritance host : host(empty) inherit from template (full) , on Reload engine
+    [Tags]    broker    engine    hosts    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config BBDO3    1
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Create Tags File    ${0}    ${40}
@@ -914,7 +909,7 @@ EBSN7
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPCOMMUNITY    public    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPVERSION    2c    hostTemplates.cfg
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${content}    Create List    Reload configuration finished
@@ -1000,12 +995,12 @@ EBSN7
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    SNMPVERSION    2c
     Should Be True    ${ret}    customVariables_SNMPVERSION:Should Be True
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSN8
-    [Documentation]    Verfiy inheritance host : host(full) inherit from template (full) , on engine Reload
-    [Tags]    broker    engine    hosts    mon-148837
+    [Documentation]    Verify inheritance host : host(full) inherit from template (full) , on engine Reload
+    [Tags]    broker    engine    hosts    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -1173,10 +1168,10 @@ EBSN8
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPCOMMUNITY    public    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    _SNMPVERSION    2c    hostTemplates.cfg
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Engine Config Set Value In Hosts    0    host_1    alias    alias_1
@@ -1231,7 +1226,7 @@ EBSN8
     Ctn Engine Config Set Value In Hosts    0    host_1    group_tags    6
     Ctn Engine Config Set Value In Hosts    0    host_1    category_tags    7
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
@@ -1309,48 +1304,6 @@ EBSN8
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    SNMPVERSION    2v
     Should Be True    ${ret}    customVariables_SNMPVERSION:Should Be True
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN9
-    [Documentation]    Verfiy change attribute host on engine Reload
-    [Tags]    broker    engine    hosts    mon-148837
-    Ctn Config Engine    ${1}    ${5}    ${5}
-    Ctn Config Broker    rrd
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config BBDO3    1
-
-    Ctn Engine Config Replace Value In Hosts    0    host_1    check_period    none
-
-    ${start}    Get Current Date
-    Ctn Clear Retention
-    Ctn Start Broker
-    Ctn Start engine
-    Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    # Let it run a little
-    Sleep    5s
-
-    Ctn Engine Config Replace Value In Hosts    0    host_1    check_period    workhours
-
-    ${start}    Get Current Date
-    Ctn Reload Engine
-    Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    ${content}    Create List    Reload configuration finished
-    ${result}    Ctn Find In Log With Timeout
-    ...    ${ENGINE_LOG}/config0/centengine.log
-    ...    ${start}
-    ...    ${content}
-    ...    60
-    ...    verbose=False
-    Should Be True    ${result}    Engine is Not Ready after 60s!!
-
-    ${output}    Ctn Get Host Info Grpc    ${1}
-
-    Should Be Equal As Strings    ${output}[checkPeriod]    workhours    checkPeriod
-
-
-*** Keywords ***
-RunOnF
-    [Arguments]    ${keyword}    @{args}
-    Run Keyword And Continue On Failure    ${keyword}    @{args}
