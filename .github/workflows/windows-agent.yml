@@ -73,6 +73,10 @@ jobs:
           cd build_windows
           tests/ut_agent
 
+      - name: Installer test
+        run: .github/scripts/agent_installer_test.ps1
+        shell: powershell
+
       - name: Upload package artifacts
         if: |
           inputs.installer_in_artifact == true

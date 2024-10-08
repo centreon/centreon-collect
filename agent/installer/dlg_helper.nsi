@@ -20,8 +20,6 @@
 
 !insertmacro REMatches
 
-#Match to windows file path C:\tutu yoyo1234 titi\fgdfgdg.rt
-!define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\.]+\s+)*[\w\.]+)+)+$'
 
 /***************************************************************************************
                                      setup dialogbox
@@ -214,7 +212,7 @@ Function log_dlg_onNext
         WriteRegDWORD HKLM ${CMA_REG_KEY} "log_max_files" $0
     ${Else}
         ${StrCase} $0 $0 "L"
-        WriteRegStr HKLM ${CMA_REG_KEY} "log_type" $0
+        WriteRegStr HKLM ${CMA_REG_KEY} "log_type" "event-log"
     ${EndIf}
 
     Pop $0
