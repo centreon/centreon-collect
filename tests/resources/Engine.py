@@ -859,7 +859,7 @@ def ctn_engine_config_add_value(idx: int, key: str, value: str):
         f.write(f"{key}={value}")
 
 
-def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str,file :str= "services.cfg"):
     """
     Set a parameter in the services.cfg.
 
@@ -869,11 +869,15 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         key (str): The key whose value needs to change.
         value (str): The new value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
+        
+    if file =="serviceTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
 
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
@@ -881,6 +885,39 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
+def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, file: str = 'services.cfg'):
+    """
+    Delete a parameter in the services.cfg for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): service description of the services to modify.
+        key (str): the parameter that will be deleted.
+        file (str): The file to modify, default value 'service.cfg'
+    """
+    
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file =="serviceTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            print("here" + lines[i])
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    break
+            break
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """
@@ -3757,6 +3794,33 @@ def ctn_get_host_info_grpc(id:int):
                     logger.console(f"gRPC server not ready {e}")
     return {}
 
+def ctn_get_service_info_grpc(id_h:int,id_s:int):
+    """
+    Retrieve service information via a gRPC call.
+
+    Args:
+        id_h: The identifier of the host to retrieve.
+        id_s: The identifier of the service to retrieve.
+
+    Returns:
+        A dictionary containing the service informations, if successfully retrieved.
+    """
+    if id_h is not None and id_s is not None:
+        limit = time.time() + 30
+        while time.time() < limit:
+            time.sleep(1)
+            with grpc.insecure_channel("127.0.0.1:50001") as channel:
+                stub = engine_pb2_grpc.EngineStub(channel)
+                identifier = engine_pb2.IdIdentifier(host_id=id_h,service_id=id_s)
+                request = engine_pb2.ServiceIdentifier(ids = identifier)
+                try:
+                    host = stub.GetService(request)
+                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                    return host_dict
+                except Exception as e:
+                    logger.console(f"gRPC server not ready {e}")
+    return {}
+        
 def ctn_check_key_value_existence(data_list, key, value):
     """
     Check if a specific key-value pair exists in a list of data strings.
@@ -3780,6 +3844,5 @@ def ctn_check_key_value_existence(data_list, key, value):
         # Check if key and value exist in the dict
         if item_dict.get('key') == key and item_dict.get('value') == value:
             return True
-    return False  
-
+    return False
 
