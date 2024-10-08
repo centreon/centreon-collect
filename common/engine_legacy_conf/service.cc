@@ -705,6 +705,7 @@ void service::merge(object const& obj) {
   service const& tmpl(static_cast<service const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
+  MRG_OPTION(_initial_state);
   MRG_DEFAULT(_action_url);
   MRG_IMPORTANT(_check_command);
   MRG_OPTION(_checks_active);

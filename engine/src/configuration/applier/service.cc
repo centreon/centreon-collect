@@ -450,7 +450,7 @@ void applier::service::modify_object(configuration::service const& obj) {
       static_cast<double>(obj.notification_interval()));
   s->set_first_notification_delay(
       static_cast<double>(obj.first_notification_delay()));
-
+  s->set_stalk_on(configuration::service::none);
   s->add_stalk_on(obj.stalking_options() & configuration::service::ok
                       ? notifier::ok
                       : notifier::none);
@@ -512,6 +512,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   s->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  config->interval_length());
   s->set_recovery_notification_delay(obj.recovery_notification_delay());
+  s->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
@@ -658,7 +659,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
       static_cast<double>(new_obj.notification_interval()));
   s->set_first_notification_delay(
       static_cast<double>(new_obj.first_notification_delay()));
-
+  s->set_stalk_on(notifier::none);
   s->add_stalk_on(new_obj.stalking_options() & action_svc_ok ? notifier::ok
                                                              : notifier::none);
   s->add_stalk_on(new_obj.stalking_options() & action_svc_warning
@@ -717,6 +718,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_config.interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  s->set_icon_id(new_obj.icon_id());
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {

@@ -90,6 +90,9 @@ bool service_helper::hook(std::string_view key, const std::string_view& value) {
         return false;
     }
     obj->set_flap_detection_options(options);
+    set_changed(Service::descriptor()
+                    ->FindFieldByName("flap_detection_options")
+                    ->index());
     return true;
   } else if (key == "initial_state") {
     ServiceStatus initial_state;
@@ -104,11 +107,16 @@ bool service_helper::hook(std::string_view key, const std::string_view& value) {
     else
       return false;
     obj->set_initial_state(initial_state);
+    set_changed(
+        Service::descriptor()->FindFieldByName("initial_state")->index());
     return true;
   } else if (key == "notification_options") {
     uint16_t options(action_svc_none);
     if (fill_service_notification_options(&options, value)) {
       obj->set_notification_options(options);
+      set_changed(Service::descriptor()
+                      ->FindFieldByName("notification_options")
+                      ->index());
       return true;
     } else
       return false;
@@ -136,6 +144,8 @@ bool service_helper::hook(std::string_view key, const std::string_view& value) {
       else
         return false;
     }
+    set_changed(
+        Service::descriptor()->FindFieldByName("stalking_options")->index());
     obj->set_stalking_options(options);
     return true;
   } else if (key == "category_tags") {
