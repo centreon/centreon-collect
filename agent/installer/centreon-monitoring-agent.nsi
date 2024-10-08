@@ -27,6 +27,10 @@ Unicode false
 !define SERVICE_NAME ${APPNAME}
 
 !define CMA_REG_KEY "SOFTWARE\${COMPANYNAME}\${APPNAME}"
+
+#Match to windows file path C:\tutu yoyo1234 titi\fgdfgdg.rt
+!define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\.]+\s+)*[\w\.]+)+)+$$'
+
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
 !define NSCLIENT_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
@@ -58,11 +62,24 @@ ${Using:StrFunc} StrCase
 #let it after dialog boxes
 !include "dlg_helper.nsi"
 
+!include "silent.nsi"
+
+OutFile "centreon-monitoring-agent.exe"
 Name "Centreon Monitoring Agent ${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
 Icon "resources/logo_centreon.ico"
 LicenseData "resources/license.txt"
 RequestExecutionLevel admin
-AllowRootDirInstall true
+;AllowRootDirInstall true
+
+VIProductVersion "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
+VIFileVersion "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
+VIAddVersionKey "FileVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
+VIAddVersionKey "LegalCopyright" "2024 Centreon"
+VIAddVersionKey "FileDescription" "Centreon Monitoring Agent Installer"
+VIAddVersionKey "ProductName" "Centreon Monitoring Agent"
+VIAddVersionKey "CompanyName" "Centreon"
+VIAddVersionKey "ProductVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
+
 
 InstallDir "$PROGRAMFILES64\${COMPANYNAME}\${APPNAME}"
 !define PLUGINS_DIR "$PROGRAMFILES64\${COMPANYNAME}\Plugins"
@@ -73,7 +90,7 @@ Var plugins_url
 
 
 
-!macro VerifyUserIsAdmin
+!macro verify_user_is_admin
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights
@@ -83,10 +100,6 @@ ${If} $0 != "admin" ;Require admin rights
 ${EndIf}
 !macroend
  
-function .onInit
-	setShellVarContext all
-	!insertmacro VerifyUserIsAdmin
-functionEnd
  
 
 /**
@@ -153,11 +166,16 @@ FunctionEnd
 /**
   * @brief this section download plugings from the asset of the last centreon-nsclient-build release
 */
-Section "Plugins"
-  Call get_plugins_url
-  CreateDirectory ${PLUGINS_DIR}
-  DetailPrint "download plugins from $plugins_url"
-  inetc::get /caption "plugins"  /banner "Downloading plugins..." "$plugins_url" "${PLUGINS_DIR}/centreon_plugins.exe"
+Section "Plugins" PluginsInstSection
+    Call get_plugins_url
+    CreateDirectory ${PLUGINS_DIR}
+    DetailPrint "download plugins from $plugins_url"
+    inetc::get /caption "plugins"  /banner "Downloading plugins..." "$plugins_url" "${PLUGINS_DIR}/centreon_plugins.exe"
+    ${If} ${Silent}
+        System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+        System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+        FileWrite $0 "Centreon plugins installed$\n"
+    ${EndIf}
 SectionEnd
 
 
@@ -207,7 +225,49 @@ Section "Centreon Monitoring Agent"  CMAInstSection
     IntFmt $0 "0x%08X" $0
     WriteRegDWORD HKLM "${UNINSTALL_KEY}" "EstimatedSize" "$0"
 
+    ${If} ${Silent}
+        System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+        System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+        FileWrite $0 "Centreon monitoring agent installed and started$\n"
+    ${EndIf}
 SectionEnd
+
+
+/**
+  * @brief function called on install
+*/
+function .onInit
+	setShellVarContext all
+
+    ${If} ${Silent}
+        SetErrorLevel 0
+        ${GetParameters} $cmdline_parameters
+        Strcpy $1 "--install_cma        Set this flag if you want to install centreon monitoring agent$\n\
+--install_plugins    Set this flag if you want to install centreon plugins$\n"
+        Call show_help
+        Call show_version
+        Call silent_verify_admin
+
+        Call installer_parse_cmd_line
+
+        ${If} $silent_install_cma == 1
+            Call cmd_line_to_registry
+            SectionSetFlags ${CMAInstSection} ${SF_SELECTED}
+        ${Else}
+            SectionSetFlags ${CMAInstSection} 0
+        ${EndIf}
+
+        ${If} $silent_install_plugins == 1
+            SectionSetFlags ${PluginsInstSection} ${SF_SELECTED}
+        ${Else}
+            SectionSetFlags ${PluginsInstSection} 0
+        ${EndIf}
+
+    ${Else}
+    	!insertmacro verify_user_is_admin
+    ${EndIf}
+
+functionEnd
 
 /**
   * @brief show cma setup dialogbox ig user has choosen to install cma
@@ -240,7 +300,7 @@ FunctionEnd
 /**
   * @brief uninstall section
 */
-Section "uninstall"
+Section "uninstall" UninstallSection
     SetRegView 64
     # the only way to delete a service without reboot
     ExecWait 'net stop ${SERVICE_NAME}'
@@ -272,14 +332,36 @@ SectionEnd
 function un.onInit
 	SetShellVarContext all
 
-	!insertmacro VerifyUserIsAdmin
- 
-	MessageBox MB_YESNO "Do you want to remove the Centreon plugins for the agents?" IDNO no_plugins_remove
-		rmDir ${PLUGINS_DIR}
-	no_plugins_remove:
+    ${If} ${Silent}
+        SetErrorLevel 0
+        Call un.show_uninstaller_help
+        Call un.show_version
+        Call un.silent_verify_admin
 
-	MessageBox MB_YESNO "Do you want to remove the Centreon Monitoring Agent?" IDYES no_cma_remove
-        Abort
-	no_cma_remove:
+        ClearErrors
+        ${GetOptions} $cmdline_parameters "--uninstall_plugins" $0
+        ${IfNot} ${Errors}
+            rmDir /r ${PLUGINS_DIR}
+        ${EndIf}
 
+        ClearErrors
+        ${GetOptions} $cmdline_parameters "--uninstall_cma" $0
+        ${IfNot} ${Errors}
+            SectionSetFlags ${UninstallSection} ${SF_SELECTED}
+        ${Else}
+            SectionSetFlags ${UninstallSection} 0
+        ${EndIf}
+
+    ${Else}
+        !insertmacro verify_user_is_admin
+    
+        MessageBox MB_YESNO "Do you want to remove the Centreon plugins for the agents?" IDNO no_plugins_remove
+        rmDir /r ${PLUGINS_DIR}
+        no_plugins_remove:
+
+        MessageBox MB_YESNO "Do you want to remove the Centreon Monitoring Agent?" IDYES no_cma_remove
+            Abort
+        no_cma_remove:
+
+    ${EndIf}
 functionEnd

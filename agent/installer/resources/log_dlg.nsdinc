@@ -87,7 +87,7 @@ Function fnc_log_dlg_Create
   ${NSD_CreateDropList} 111u 2u 80u 13u ""
   Pop $hCtl_log_dlg_log_type
   ${NSD_OnChange} $hCtl_log_dlg_log_type on_log_type_changed
-  ${NSD_CB_AddString} $hCtl_log_dlg_log_type "EventLog"
+  ${NSD_CB_AddString} $hCtl_log_dlg_log_type "Event-log"
   ${NSD_CB_AddString} $hCtl_log_dlg_log_type "File"
   
   ; === log_level (type: DropList) ===
