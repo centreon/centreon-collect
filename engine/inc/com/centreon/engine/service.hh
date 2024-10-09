@@ -217,7 +217,7 @@ class service : public notifier {
                   double low_threshold);
   void enable_flap_detection();
   void disable_flap_detection();
-  void update_status() override;
+  void update_status(uint32_t status_attributes = STATUS_ALL) override;
   void update_adaptive_data();
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,

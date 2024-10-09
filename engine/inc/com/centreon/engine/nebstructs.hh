@@ -22,7 +22,6 @@
 #define CCE_NEBSTRUCTS_HH
 
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
 /* Acknowledgement structure. */
@@ -187,6 +186,7 @@ typedef struct nebstruct_host_check_struct {
 typedef struct nebstruct_host_status_struct {
   int type;
   void* object_ptr;
+  uint32_t attributes;
 } nebstruct_host_status_data;
 
 /* Log data structure. */
@@ -248,6 +248,7 @@ typedef struct nebstruct_service_check_struct {
 typedef struct nebstruct_service_status_struct {
   int type;
   void* object_ptr;
+  uint32_t attributes;
 } nebstruct_service_status_data;
 
 typedef struct nebstruct_bench_struct {

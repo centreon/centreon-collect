@@ -206,7 +206,7 @@ void notifier::set_last_problem_id(unsigned long last_problem_id) noexcept {
 }
 
 /**
- * @brief Set the current notification number and update the notifier status.
+ * @brief Set the current notification number and send this update to Broker.
  *
  * @param num The notification number.
  */
@@ -218,7 +218,7 @@ void notifier::set_notification_number(int num) {
   _notification_number = num;
 
   /* update the status log with the notifier info */
-  update_status();
+  update_status(STATUS_NOTIFICATION_NUMBER);
 }
 
 bool notifier::_is_notification_viable_normal(reason_type type

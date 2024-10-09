@@ -2,7 +2,7 @@
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2013 Merethis
- * Copyright 2013-2022 Centreon
+ * Copyright 2013-2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -373,7 +373,7 @@ void loop::_dispatching() {
             else
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
-                           (temp_service->check_interval() * interval_length)));
+                           temp_service->check_interval() * interval_length));
           }
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);

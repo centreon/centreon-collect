@@ -24,6 +24,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -845,7 +846,7 @@ void service::check_for_expired_acknowledgement() {
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
-        update_status();
+        update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
   }
@@ -3166,10 +3167,13 @@ void service::disable_flap_detection() {
 }
 
 /**
- * @brief Updates service status info. Send data to event broker.
+ * @brief Updates the status of the service partially.
+ *
+ * @param status_attributes A bits field based on status_attribute enum (default
+ * value: STATUS_ALL).
  */
-void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
+void service::update_status(uint32_t status_attributes) {
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, status_attributes);
 }
 
 /**
