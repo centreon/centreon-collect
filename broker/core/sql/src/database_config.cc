@@ -208,7 +208,7 @@ database_config::database_config(
     _password = vault.decrypt(_password);
     _config_logger->info("Database password get from Vault configuration");
   } catch (const std::exception& e) {
-    const std::string_view password_prefix("secret::hashicorp_vault::");
+    constexpr std::string_view password_prefix("secret::hashicorp_vault::");
     std::string_view password_header(_password.data(), password_prefix.size());
     if (password_header == password_prefix)
       _config_logger->error("No usable Vault configuration: {}", e.what());

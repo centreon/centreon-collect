@@ -17,8 +17,6 @@
  */
 #ifndef CCC_VAULT_VAULT_ACCESS_HH
 #define CCC_VAULT_VAULT_ACCESS_HH
-#include <cstdint>
-#include <memory>
 #include "com/centreon/common/http/http_client.hh"
 #include "common/crypto/aes256.hh"
 
