@@ -18,6 +18,7 @@ BWVC1
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     ${content}    Create List    The env file could not be open
@@ -35,6 +36,7 @@ BWVC2
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
 
     ${env_file}    Catenate    SEPARATOR=\n
     ...    no sense
@@ -80,6 +82,7 @@ BWVC4
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
 
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
@@ -110,6 +113,7 @@ BWVC5
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
 
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
@@ -145,6 +149,7 @@ BWVC6
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
 
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
