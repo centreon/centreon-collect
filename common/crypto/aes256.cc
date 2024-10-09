@@ -29,9 +29,14 @@
 namespace com::centreon::common::crypto {
 
 /**
- * @brief The aes256 constructor. Th
+ * @brief The aes256 constructor. This class is used to encrypt and decrypt
+ * data using the AES256 algorithm. Two keys are provided to the constructor.
+ * The first key is used to encrypt the data and the second key is used to
+ * generate a hash of the encrypted data. This hash is used to check The
+ * integrity of the data.
  *
- * @param second_key
+ * @param first_key The first key used to encrypt the data.
+ * @param second_key The second key used to generate the hash of the encrypted.
  */
 aes256::aes256(const std::string& first_key, const std::string& second_key)
     : _first_key{base64_decode(first_key)},
@@ -43,6 +48,13 @@ aes256::aes256(const std::string& first_key, const std::string& second_key)
   assert(!_second_key.empty());
 }
 
+/**
+ * @brief Encrypt the input string using the AES256 algorithm.
+ *
+ * @param input The string to encrypt.
+ *
+ * @return The encrypted string.
+ */
 std::string aes256::encrypt(const std::string& input) {
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
 
@@ -110,6 +122,13 @@ std::string aes256::encrypt(const std::string& input) {
   return base64_encode(result);
 }
 
+/**
+ * @brief Decrypt the input string using the AES256 algorithm.
+ *
+ * @param input The string to decrypt.
+ *
+ * @return The decrypted string.
+ */
 std::string aes256::decrypt(const std::string& input) {
   std::string mix = base64_decode(input);
 

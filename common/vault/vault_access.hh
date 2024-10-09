@@ -17,10 +17,9 @@
  */
 #ifndef CCC_VAULT_VAULT_ACCESS_HH
 #define CCC_VAULT_VAULT_ACCESS_HH
-#include "com/centreon/common/http/http_client.hh"
 #include <cstdint>
 #include <memory>
-#include <string>
+#include "com/centreon/common/http/http_client.hh"
 #include "common/crypto/aes256.hh"
 
 using com::centreon::common::crypto::aes256;
@@ -54,14 +53,14 @@ class vault_access {
   std::string _token;
 
   void _decrypt_role_and_secret();
+  void _set_vault_informations(const std::string& vault_file);
+  void _set_env_informations(const std::string& env_file);
 
  public:
   vault_access(const std::string& env_file,
                const std::string& vault_file,
                bool verify_peer,
                const std::shared_ptr<spdlog::logger>& logger);
-  void set_vault_informations(const std::string& vault_file);
-  void set_env_informations(const std::string& env_file);
   std::string decrypt(const std::string& encrypted);
 };
 }  // namespace com::centreon::common::vault

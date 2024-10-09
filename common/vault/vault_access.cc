@@ -20,7 +20,6 @@
 #include <absl/strings/str_split.h>
 #include <exception>
 #include <nlohmann/json.hpp>
-#include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -29,19 +28,32 @@ using namespace com::centreon::common::http;
 using namespace com::centreon::common::vault;
 using com::centreon::common::crypto::aes256;
 
+/**
+ * @brief Construct a new vault_access object. the constructor needs the path to
+ * the env file and the path to the vault file. The vault file should contain
+ * the following keys: 'salt', 'role_id', 'secret_id', 'url', 'port',
+ * 'root_path'. The env file should contain the key 'APP_SECRET'.
+ * The parameter verify_peer is used to verify the certificate of the vault
+ * server.
+ *
+ * @param env_file The path to the env file.
+ * @param vault_file The path to the vault file.
+ * @param verify_peer A boolean to verify the certificate of the vault server.
+ * @param logger The logger.
+ */
 vault_access::vault_access(const std::string& env_file,
                            const std::string& vault_file,
                            bool verify_peer,
                            const std::shared_ptr<spdlog::logger>& logger)
     : _logger{logger} {
   if (env_file.empty())
-    set_env_informations("/usr/share/centreon/.env");
+    _set_env_informations("/usr/share/centreon/.env");
   else
-    set_env_informations(env_file);
+    _set_env_informations(env_file);
 
   if (_app_secret.empty())
     throw exceptions::msg_fmt("No APP_SECRET provided.");
-  set_vault_informations(vault_file);
+  _set_vault_informations(vault_file);
 
   _aes_encryptor = std::make_unique<aes256>(_app_secret, _salt);
 
@@ -75,7 +87,13 @@ vault_access::vault_access(const std::string& env_file,
   }
 }
 
-void vault_access::set_vault_informations(const std::string& vault_file) {
+/**
+ * @brief Read the vaul file and set its informations in the object. Throw an
+ * exception if the file could not be open or if the file is malformed.
+ *
+ * @param vault_file The path to the vault file.
+ */
+void vault_access::_set_vault_informations(const std::string& vault_file) {
   std::ifstream ifs(vault_file);
   nlohmann::json vault_configuration = nlohmann::json::parse(ifs);
   if (vault_configuration.contains("salt") &&
@@ -97,7 +115,13 @@ void vault_access::set_vault_informations(const std::string& vault_file) {
         vault_file);
 }
 
-void vault_access::set_env_informations(const std::string& env_file) {
+/**
+ * @brief Read the env file and set the APP_SECRET in the object. Throw an
+ * exception if the file could not be open.
+ *
+ * @param env_file The path to the env file.
+ */
+void vault_access::_set_env_informations(const std::string& env_file) {
   std::ifstream ifs(env_file);
   if (ifs.is_open()) {
     std::string line;
@@ -112,6 +136,14 @@ void vault_access::set_env_informations(const std::string& env_file) {
     throw exceptions::msg_fmt("The env file could not be open");
 }
 
+/**
+ * @brief Decrypt the input string using the AES256 algorithm. Throw an
+ * exception if the input string is not stored in the vault.
+ *
+ * @param encrypted The string to decrypt.
+ *
+ * @return The decrypted string.
+ */
 std::string vault_access::decrypt(const std::string& encrypted) {
   std::string_view head = encrypted;
   if (head.substr(0, 25) != "secret::hashicorp_vault::") {

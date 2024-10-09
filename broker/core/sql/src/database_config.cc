@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/sql/database_config.hh"
 #include <absl/strings/ascii.h>
-#include <fmt/format.h>
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/exceptions/config.hh"
@@ -209,7 +208,10 @@ database_config::database_config(
     _password = vault.decrypt(_password);
     _config_logger->info("Database password get from Vault configuration");
   } catch (const std::exception& e) {
-    _config_logger->info("No usable Vault configuration: {}", e.what());
+    const std::string_view password_prefix("secret::hashicorp_vault::");
+    std::string_view password_header(_password.data(), password_prefix.size());
+    if (password_header == password_prefix)
+      _config_logger->error("No usable Vault configuration: {}", e.what());
   }
 
   // db_name
