@@ -17,8 +17,10 @@
  *
  */
 #include "common/engine_conf/host_helper.hh"
+#include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 #ifdef LEGACY_CONF
 #error host_helper should not be compiled in this context.
@@ -87,6 +89,8 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
     uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_notification_options(options);
+      set_changed(
+          obj->descriptor()->FindFieldByName("notification_options")->index());
       return true;
     } else
       return false;
@@ -141,6 +145,112 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
       }
     }
     return ret;
+  } else if (key == "coords_3d") {
+    std::vector<std::string_view> coords_list{absl::StrSplit(value, ',')};
+
+    if (coords_list.size() != 3)
+      return false;
+
+    double value;
+    if (absl::SimpleAtod(coords_list[0], &value))
+      obj->mutable_coords_3d()->set_x(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[1], &value))
+      obj->mutable_coords_3d()->set_y(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[2], &value))
+      obj->mutable_coords_3d()->set_z(value);
+    else
+      return false;
+
+    set_changed(obj->descriptor()->FindFieldByName("coords_3d")->index());
+
+    return true;
+  } else if (key == "coords_2d") {
+    std::vector<std::string_view> coords_list{absl::StrSplit(value, ',')};
+
+    if (coords_list.size() != 2)
+      return false;
+
+    double value;
+    if (absl::SimpleAtod(coords_list[0], &value))
+      obj->mutable_coords_2d()->set_x(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[1], &value))
+      obj->mutable_coords_2d()->set_y(value);
+    else
+      return false;
+
+    set_changed(obj->descriptor()->FindFieldByName("coords_2d")->index());
+
+    return true;
+  } else if (key == "stalking_options") {
+    uint8_t options(action_hst_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      std::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "o" || v == "up")
+        options |= action_hst_up;
+      else if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
+      else if (v == "n" || v == "none")
+        options = action_hst_none;
+      else if (v == "a" || v == "all")
+        options = action_hst_up | action_hst_down | action_hst_unreachable;
+      else
+        return false;
+    }
+    obj->set_stalking_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("stalking_options")->index());
+
+    return true;
+  } else if (key == "flap_detection_options") {
+    uint8_t options(action_hst_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto& val : values) {
+      auto v = absl::StripAsciiWhitespace(val);
+      if (v == "o" || v == "up")
+        options |= action_hst_up;
+      else if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
+      else if (v == "n" || v == "none")
+        options = action_hst_none;
+      else if (v == "a" || v == "all")
+        options = action_hst_up | action_hst_down | action_hst_unreachable;
+      else
+        return false;
+    }
+    obj->set_flap_detection_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("flap_detection_options")->index());
+
+    return true;
+  } else if (key == "initial_state") {
+    HostStatus initial_state;
+    std::string_view v = absl::StripAsciiWhitespace(value);
+    if (v == "o" || v == "up")
+      initial_state = state_up;
+    else if (v == "d" || v == "down")
+      initial_state = state_down;
+    else if (v == "u" || v == "unreachable")
+      initial_state = state_unreachable;
+    else
+      return false;
+    obj->set_initial_state(initial_state);
+    set_changed(obj->descriptor()->FindFieldByName("initial_state")->index());
+
+    return true;
   }
   return false;
 }

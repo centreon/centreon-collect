@@ -453,6 +453,7 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_action_url);
   MRG_DEFAULT(_address);
   MRG_DEFAULT(_alias);
+  MRG_OPTION(_initial_state);
   MRG_OPTION(_checks_active);
   MRG_OPTION(_checks_passive);
   MRG_DEFAULT(_check_command);

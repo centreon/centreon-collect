@@ -63,8 +63,6 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-
-using namespace com::centreon::engine::string;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::string;
 
@@ -408,8 +406,23 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_icon_id(selectedhost->get_icon_id());
 
     // locals
-    hostgroup* hg{selectedhost->get_parent_groups().front()};
-    host->set_group_name(hg ? hg->get_group_name() : "");
+    for (const auto& hg : selectedhost->get_parent_groups())
+      if (hg)
+        host->add_group_name(hg->get_group_name());
+
+    host->set_acknowledgement_timeout(selectedhost->acknowledgement_timeout());
+
+    const auto& host_severity = selectedhost->get_severity();
+
+    if (host_severity) {
+      host->set_severity_level(host_severity->level());
+      host->set_severity_id(host_severity->id());
+    }
+
+    if (!selectedhost->tags().empty())
+      for (const auto& tag : selectedhost->tags())
+        host->add_tag(fmt::format("id:{},name:{},type:{}", tag->id(),
+                                  tag->name(), static_cast<int>(tag->type())));
 
     for (const auto& cv : selectedhost->custom_variables)
       host->add_custom_variables(fmt::format(
