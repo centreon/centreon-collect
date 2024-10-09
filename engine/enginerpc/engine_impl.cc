@@ -495,24 +495,215 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
                                      const ServiceIdentifier* request,
                                      EngineService* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, service = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::service> selectedservice;
-        std::tie(selectedservice, err) = get_serv(*request);
-        if (!err.empty()) {
-          return 1;
-        }
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           service = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::service> selectedservice;
+    std::tie(selectedservice, err) = get_serv(*request);
+    if (!err.empty()) {
+      return 1;
+    }
 
-        /* recovering service's information */
-        service->set_host_id(selectedservice->host_id());
-        service->set_service_id(selectedservice->service_id());
-        service->set_host_name(selectedservice->get_hostname());
-        service->set_description(selectedservice->description());
-        service->set_check_period(selectedservice->check_period());
-        service->set_current_state(static_cast<EngineService::State>(
-            selectedservice->get_current_state()));
-        return 0;
-      });
+    /* recovering service's information */
+    service->set_host_id(selectedservice->host_id());
+    service->set_service_id(selectedservice->service_id());
+    service->set_host_name(selectedservice->get_hostname());
+    service->set_description(selectedservice->description());
+    service->set_check_period(selectedservice->check_period());
+    service->set_current_state(static_cast<EngineService::State>(
+        selectedservice->get_current_state()));
+    service->set_display_name(selectedservice->get_display_name());
+    service->set_check_command(selectedservice->check_command());
+    service->set_event_handler(selectedservice->event_handler());
+    service->set_initial_state(static_cast<EngineService::State>(
+        selectedservice->get_initial_state()));
+    service->set_check_interval(selectedservice->check_interval());
+    service->set_retry_interval(selectedservice->retry_interval());
+    service->set_max_check_attempts(selectedservice->max_check_attempts());
+    service->set_acknowledgement_timeout(
+        selectedservice->acknowledgement_timeout());
+
+    if (!selectedservice->get_contactgroups().empty())
+      for (const auto& [key, _] : selectedservice->get_contactgroups())
+        service->add_contactgroups(key);
+
+    if (!selectedservice->contacts().empty())
+      for (const auto& [key, _] : selectedservice->contacts())
+        service->add_contacts(key);
+
+    if (!selectedservice->get_parent_groups().empty())
+      for (const auto& grp : selectedservice->get_parent_groups())
+        if (grp)
+          service->add_servicegroups(grp->get_group_name());
+
+    service->set_notification_interval(
+        selectedservice->get_notification_interval());
+    service->set_first_notification_delay(
+        selectedservice->get_first_notification_delay());
+    service->set_recovery_notification_delay(
+        selectedservice->get_recovery_notification_delay());
+    service->set_notify_on_unknown(
+        selectedservice->get_notify_on(notifier::unknown));
+    service->set_notify_on_warning(
+        selectedservice->get_notify_on(notifier::warning));
+    service->set_notify_on_critical(
+        selectedservice->get_notify_on(notifier::critical));
+    service->set_notify_on_ok(selectedservice->get_notify_on(notifier::ok));
+    service->set_notify_on_flappingstart(
+        selectedservice->get_notify_on(notifier::flappingstart));
+    service->set_notify_on_flappingstop(
+        selectedservice->get_notify_on(notifier::flappingstop));
+    service->set_notify_on_flappingdisabled(
+        selectedservice->get_notify_on(notifier::flappingdisabled));
+    service->set_notify_on_downtime(
+        selectedservice->get_notify_on(notifier::downtime));
+    service->set_stalk_on_ok(selectedservice->get_stalk_on(notifier::ok));
+    service->set_stalk_on_warning(
+        selectedservice->get_stalk_on(notifier::warning));
+    service->set_stalk_on_unknown(
+        selectedservice->get_stalk_on(notifier::unknown));
+    service->set_stalk_on_critical(
+        selectedservice->get_stalk_on(notifier::critical));
+    service->set_is_volatile(selectedservice->get_is_volatile());
+    service->set_notification_period(selectedservice->notification_period());
+    service->set_flap_detection_enabled(
+        selectedservice->flap_detection_enabled());
+    service->set_low_flap_threshold(selectedservice->get_low_flap_threshold());
+    service->set_high_flap_threshold(
+        selectedservice->get_high_flap_threshold());
+    service->set_flap_detection_on_ok(
+        selectedservice->get_flap_detection_on(notifier::ok));
+    service->set_flap_detection_on_warning(
+        selectedservice->get_flap_detection_on(notifier::warning));
+    service->set_flap_detection_on_unknown(
+        selectedservice->get_flap_detection_on(notifier::unknown));
+    service->set_flap_detection_on_critical(
+        selectedservice->get_flap_detection_on(notifier::critical));
+    service->set_process_performance_data(
+        selectedservice->get_process_performance_data());
+    service->set_check_freshness_enabled(
+        selectedservice->check_freshness_enabled());
+    service->set_freshness_threshold(
+        selectedservice->get_freshness_threshold());
+    service->set_passive_checks_enabled(
+        selectedservice->passive_checks_enabled());
+    service->set_event_handler_enabled(
+        selectedservice->event_handler_enabled());
+    service->set_active_checks_enabled(
+        selectedservice->active_checks_enabled());
+    service->set_retain_status_information(
+        selectedservice->get_retain_status_information());
+    service->set_retain_nonstatus_information(
+        selectedservice->get_retain_nonstatus_information());
+    service->set_notifications_enabled(
+        selectedservice->get_notifications_enabled());
+    service->set_obsess_over(selectedservice->obsess_over());
+    service->set_notes(selectedservice->get_notes());
+    service->set_notes_url(selectedservice->get_notes_url());
+    service->set_action_url(selectedservice->get_action_url());
+    service->set_icon_image(selectedservice->get_icon_image());
+    service->set_icon_image_alt(selectedservice->get_icon_image_alt());
+    service->set_acknowledgement(static_cast<EngineService::AckType>(
+        selectedservice->get_acknowledgement()));
+    service->set_host_problem_at_last_check(
+        selectedservice->get_host_problem_at_last_check());
+    service->set_check_type(static_cast<EngineService::CheckType>(
+        selectedservice->get_check_type()));
+    service->set_last_state(
+        static_cast<EngineService::State>(selectedservice->get_last_state()));
+    service->set_last_hard_state(static_cast<EngineService::State>(
+        selectedservice->get_last_hard_state()));
+    service->set_plugin_output(selectedservice->get_plugin_output());
+    service->set_long_plugin_output(selectedservice->get_long_plugin_output());
+    service->set_perf_data(selectedservice->get_perf_data());
+    service->set_state_type(
+        static_cast<EngineService::State>(selectedservice->get_state_type()));
+    service->set_next_check(string::ctime(selectedservice->get_next_check()));
+    service->set_should_be_scheduled(
+        selectedservice->get_should_be_scheduled());
+    service->set_last_check(string::ctime(selectedservice->get_last_check()));
+    service->set_current_attempt(selectedservice->get_current_attempt());
+    service->set_current_event_id(selectedservice->get_current_event_id());
+    service->set_last_event_id(selectedservice->get_last_event_id());
+    service->set_current_problem_id(selectedservice->get_current_problem_id());
+    service->set_last_problem_id(selectedservice->get_last_problem_id());
+    service->set_last_notification(
+        string::ctime(selectedservice->get_last_notification()));
+    service->set_next_notification(
+        string::ctime(selectedservice->get_next_notification()));
+    service->set_no_more_notifications(
+        selectedservice->get_no_more_notifications());
+    service->set_last_state_change(
+        string::ctime(selectedservice->get_last_state_change()));
+    service->set_last_hard_state_change(
+        string::ctime(selectedservice->get_last_hard_state_change()));
+    service->set_last_time_ok(
+        string::ctime(selectedservice->get_last_time_ok()));
+    service->set_last_time_warning(
+        string::ctime(selectedservice->get_last_time_warning()));
+    service->set_last_time_unknown(
+        string::ctime(selectedservice->get_last_time_unknown()));
+    service->set_last_time_critical(
+        string::ctime(selectedservice->get_last_time_critical()));
+    service->set_has_been_checked(selectedservice->has_been_checked());
+    service->set_is_being_freshened(selectedservice->get_is_being_freshened());
+    service->set_notified_on_unknown(
+        selectedservice->get_notified_on(notifier::unknown));
+    service->set_notified_on_warning(
+        selectedservice->get_notified_on(notifier::warning));
+    service->set_notified_on_critical(
+        selectedservice->get_notified_on(notifier::critical));
+    service->set_notification_number(
+        selectedservice->get_notification_number());
+    service->set_current_notification_id(
+        selectedservice->get_current_notification_id());
+    service->set_latency(selectedservice->get_latency());
+    service->set_execution_time(selectedservice->get_execution_time());
+    service->set_is_executing(selectedservice->get_is_executing());
+    service->set_check_options(selectedservice->get_check_options());
+    service->set_scheduled_downtime_depth(
+        selectedservice->get_scheduled_downtime_depth());
+    service->set_pending_flex_downtime(
+        selectedservice->get_pending_flex_downtime());
+    service->set_state_history(fmt::format(
+        "[{}]", fmt::join(selectedservice->get_state_history(), ", ")));
+    service->set_state_history_index(
+        selectedservice->get_state_history_index());
+    service->set_is_flapping(selectedservice->get_is_flapping());
+    service->set_flapping_comment_id(
+        selectedservice->get_flapping_comment_id());
+    service->set_percent_state_change(
+        selectedservice->get_percent_state_change());
+    service->set_modified_attributes(
+        selectedservice->get_modified_attributes());
+    service->set_host_ptr(selectedservice->get_host_ptr()
+                              ? selectedservice->get_host_ptr()->name()
+                              : "");
+    service->set_event_handler_args(selectedservice->get_event_handler_args());
+    service->set_check_command_args(selectedservice->get_check_command_args());
+    service->set_timezone(selectedservice->get_timezone());
+    service->set_icon_id(selectedservice->get_icon_id());
+
+    const auto& service_severity = selectedservice->get_severity();
+
+    if (service_severity) {
+      service->set_severity_level(service_severity->level());
+      service->set_severity_id(service_severity->id());
+    }
+
+    if (!selectedservice->tags().empty())
+      for (const auto& tag : selectedservice->tags())
+        service->add_tag(fmt::format("id:{},name:{},type:{}", tag->id(),
+                                     tag->name(),
+                                     static_cast<int>(tag->type())));
+
+    for (auto const& cv : selectedservice->custom_variables)
+      service->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", cv.first,
+          cv.second.value(), cv.second.is_sent(),
+          cv.second.has_been_modified()));
+
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
