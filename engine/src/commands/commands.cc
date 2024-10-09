@@ -1,6 +1,6 @@
 /**
  * Copyright 1999-2008           Ethan Galstad
- * Copyright 2011-2013,2015-2022 Centreon
+ * Copyright 2011-2013,2015-2024 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -27,6 +27,7 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/comment.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
@@ -2678,7 +2679,7 @@ void acknowledge_host_problem(host* hst,
                 notifier::notification_option_none);
 
   /* update the status log with the host info */
-  hst->update_status();
+  hst->update_status(STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(
@@ -2719,7 +2720,7 @@ void acknowledge_service_problem(service* svc,
                 notifier::notification_option_none);
 
   /* update the status log with the service info */
-  svc->update_status();
+  svc->update_status(STATUS_ACKNOWLEDGEMENT);
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(
@@ -2735,7 +2736,7 @@ void remove_host_acknowledgement(host* hst) {
   hst->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the host info */
-  hst->update_status();
+  hst->update_status(STATUS_ACKNOWLEDGEMENT);
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_host_acknowledgement_comments(hst);
@@ -2747,7 +2748,7 @@ void remove_service_acknowledgement(service* svc) {
   svc->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the service info */
-  svc->update_status();
+  svc->update_status(STATUS_ACKNOWLEDGEMENT);
 
   /* remove any non-persistant comments associated with the ack */
   comment::delete_service_acknowledgement_comments(svc);

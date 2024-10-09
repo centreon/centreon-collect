@@ -173,7 +173,6 @@ class notifier : public checkable {
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
                               bool no_update_status_now) = 0;
-  virtual void update_status() = 0;
 
   /**
    * @brief Update the status of the notifier partially. attributes is a bits
@@ -181,7 +180,7 @@ class notifier : public checkable {
    *
    * @param attributes A bits field based on enum status_attribute.
    */
-  virtual void update_status(uint32_t attributes) = 0;
+  virtual void update_status(uint32_t attributes = STATUS_ALL) = 0;
   int notify(reason_type type,
              std::string const& not_author,
              std::string const& not_data,

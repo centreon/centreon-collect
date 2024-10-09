@@ -163,8 +163,11 @@ message Service {
 message AdaptiveServiceStatus {
   uint64 host_id = 1;
   uint64 service_id = 2;
-  optional int32 scheduled_downtime_depth = 3;
-  optional AckType acknowledgement_type = 4;
+  ServiceType type = 3;
+  uint64 internal_id = 4;
+  optional int32 scheduled_downtime_depth = 5;
+  optional AckType acknowledgement_type = 6;
+  optional int32 notification_number = 7;
 }
 
 /**
@@ -426,6 +429,7 @@ message AdaptiveHostStatus {
   uint64 host_id = 1;
   optional int32 scheduled_downtime_depth = 2;
   optional AckType acknowledgement_type = 3;
+  optional int32 notification_number = 4;
 }
 /**
  * @brief Message used to send adaptive host configuration. When only one

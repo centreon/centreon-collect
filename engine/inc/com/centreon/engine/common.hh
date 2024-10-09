@@ -1,24 +1,23 @@
-/*
-** Copyright 1999-2009      Ethan Galstad
-** Copyright 2009-2011      Nagios Core Development Team and Community
-*Contributors
-** Copyright 2011-2013,2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009      Ethan Galstad
+ * Copyright 2009-2011      Nagios Core Development Team and Community
+ * Contributors Copyright 2011-2013,2016, 2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_COMMON_HH
 #define CCE_COMMON_HH
@@ -323,6 +322,8 @@ enum modattr {
 enum status_attribute {
   STATUS_NONE = 0,
   STATUS_DOWNTIME_DEPTH = 1 << 0,
+  STATUS_NOTIFICATION_NUMBER = 1 << 1,
+  STATUS_ACKNOWLEDGEMENT = 1 << 2,
   STATUS_ALL = ~0u,
 };
 
