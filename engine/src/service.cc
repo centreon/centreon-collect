@@ -3172,7 +3172,16 @@ void service::disable_flap_detection() {
  * @brief Updates service status info. Send data to event broker.
  */
 void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, STATUS_ALL);
+}
+
+/**
+ * @brief Updates the status of the service partially.
+ *
+ * @param status_attributes A bits field based on status_attribute enum.
+ */
+void service::update_status(uint32_t status_attributes) {
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, status_attributes);
 }
 
 /**

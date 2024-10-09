@@ -2321,7 +2321,16 @@ void host::clear_flap(double percent_change,
  * @brief Updates host status info. Data are sent to event broker.
  */
 void host::update_status() {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this);
+  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this, STATUS_ALL);
+}
+
+/**
+ * @brief Updates host status info. Data are sent to event broker.
+ *
+ * @param attributes A bits field based on status_attribute enum.
+ */
+void host::update_status(uint32_t attributes) {
+  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this, attributes);
 }
 
 /**

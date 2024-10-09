@@ -174,6 +174,14 @@ class notifier : public checkable {
                               uint32_t options,
                               bool no_update_status_now) = 0;
   virtual void update_status() = 0;
+
+  /**
+   * @brief Update the status of the notifier partially. attributes is a bits
+   * field based on enum status_attribute specifying what has to be updated.
+   *
+   * @param attributes A bits field based on enum status_attribute.
+   */
+  virtual void update_status(uint32_t attributes) = 0;
   int notify(reason_type type,
              std::string const& not_author,
              std::string const& not_data,
