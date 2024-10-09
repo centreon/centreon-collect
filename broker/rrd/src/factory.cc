@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/rrd/factory.hh"
 
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/rrd/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -40,7 +39,7 @@ static std::string find_param(config::endpoint const& cfg,
                               std::string const& key,
                               bool thrw = true,
                               std::string const& def = "") {
-  std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
+  auto it = cfg.params.find(key);
   if (cfg.params.end() == it) {
     if (thrw)
       throw msg_fmt(
@@ -77,10 +76,10 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
-  (void)cache;
-
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   auto logger = log_v2::instance().get(log_v2::RRD);
 
   // Local socket path.
@@ -95,8 +94,7 @@ io::endpoint* factory::new_endpoint(
   // Get rrd creator cache size.
   uint32_t cache_size = 16;
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("cache_size")};
+    auto it = cfg.params.find("cache_size");
     if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &cache_size)) {
       throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
     }
@@ -124,8 +122,7 @@ io::endpoint* factory::new_endpoint(
   // Should status be written ?
   bool write_status;
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("write_status")};
+    auto it = cfg.params.find("write_status");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_status)) {
         log_v2::instance()
@@ -150,8 +147,7 @@ io::endpoint* factory::new_endpoint(
   // Ignore update errors (2.4.0-compatible behavior).
   bool ignore_update_errors;
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("ignore_update_errors")};
+    auto it = cfg.params.find("ignore_update_errors");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &ignore_update_errors)) {
         logger->error(

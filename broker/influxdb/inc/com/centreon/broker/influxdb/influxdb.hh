@@ -19,11 +19,8 @@
 #ifndef CCB_INFLUXDB_INFLUXDB_HH
 #define CCB_INFLUXDB_INFLUXDB_HH
 
-#include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
-#include "com/centreon/broker/influxdb/macro_cache.hh"
 
 namespace com::centreon::broker::influxdb {
 /**

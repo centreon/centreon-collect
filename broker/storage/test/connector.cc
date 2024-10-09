@@ -36,16 +36,16 @@ TEST(StorageFactory, Factory) {
 
   storage::factory factory;
 
-  ASSERT_THROW(factory.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["length"] = "42";
-  ASSERT_THROW(factory.new_endpoint(cfg, is_acceptor, cache),
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache),
                exceptions::config);
   cfg.params["db_type"] = "mysql";
   cfg.params["db_name"] = "centreon";
   ASSERT_FALSE(factory.has_endpoint(cfg, nullptr));
   cfg.type = "storage";
   storage::connector* endp = static_cast<storage::connector*>(
-      factory.new_endpoint(cfg, is_acceptor, cache));
+      factory.new_endpoint(cfg, {}, is_acceptor, cache));
 
   storage::connector con;
   con.connect_to(dbcfg, 60, 300, true);
@@ -66,9 +66,9 @@ TEST(StorageFactory, FactoryWithFullConf) {
 
   storage::factory factory;
 
-  ASSERT_THROW(factory.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
   cfg.params["length"] = "42";
-  ASSERT_THROW(factory.new_endpoint(cfg, is_acceptor, cache),
+  ASSERT_THROW(factory.new_endpoint(cfg, {}, is_acceptor, cache),
                exceptions::config);
   cfg.params["db_type"] = "mysql";
   cfg.params["db_name"] = "centreon";
@@ -78,7 +78,7 @@ TEST(StorageFactory, FactoryWithFullConf) {
   ASSERT_FALSE(factory.has_endpoint(cfg, nullptr));
   cfg.type = "storage";
   storage::connector* endp = static_cast<storage::connector*>(
-      factory.new_endpoint(cfg, is_acceptor, cache));
+      factory.new_endpoint(cfg, {}, is_acceptor, cache));
 
   storage::connector con;
   con.connect_to(dbcfg, 43, 44, false);

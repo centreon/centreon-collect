@@ -41,6 +41,24 @@ class endpoint;
  * queries_per_transaction and category can share the same connection
  */
 class database_config {
+  std::string _type;
+  std::string _host;
+  std::string _socket;
+  unsigned short _port;
+  std::string _user;
+  std::string _password;
+  std::string _name;
+  int _queries_per_transaction;
+  bool _check_replication;
+  int _connections_count;
+  unsigned _max_commit_delay;
+  unsigned _category;
+  // where mariadb will find extension such as caching_sha2_password.so
+  std::string _extension_directory;
+  std::shared_ptr<spdlog::logger> _config_logger;
+
+  void _internal_copy(database_config const& other);
+
  public:
   enum category { SHARED = 0, DATA_BIN_LOGS = 1 };
 
@@ -56,9 +74,10 @@ class database_config {
                   bool check_replication = true,
                   int connections_count = 1,
                   unsigned max_commit_delay = 5);
-  database_config(config::endpoint const& cfg);
-  database_config(database_config const& other);
-  ~database_config();
+  database_config(config::endpoint const& cfg,
+                  const std::map<std::string, std::string>& global_params);
+  database_config(const database_config& other);
+  ~database_config() noexcept = default;
   database_config& operator=(database_config const& other);
   bool operator==(database_config const& other) const;
   bool operator!=(const database_config& other) const;
@@ -95,24 +114,6 @@ class database_config {
   }
 
   database_config auto_commit_conf() const;
-
- private:
-  void _internal_copy(database_config const& other);
-
-  std::string _type;
-  std::string _host;
-  std::string _socket;
-  unsigned short _port;
-  std::string _user;
-  std::string _password;
-  std::string _name;
-  int _queries_per_transaction;
-  bool _check_replication;
-  int _connections_count;
-  unsigned _max_commit_delay;
-  unsigned _category;
-  // where mariadb will find extension such as caching_sha2_password.so
-  std::string _extension_directory;
 };
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);

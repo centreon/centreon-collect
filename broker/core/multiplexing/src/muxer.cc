@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
 #include <cassert>
@@ -28,7 +27,6 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"

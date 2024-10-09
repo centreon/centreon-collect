@@ -58,11 +58,14 @@ class endpoint {
   void _discard();
   processing::failover* _create_failover(
       config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
       std::shared_ptr<multiplexing::muxer> mux,
       std::shared_ptr<io::endpoint> endp,
       std::list<config::endpoint>& l);
-  std::shared_ptr<io::endpoint> _create_endpoint(config::endpoint& cfg,
-                                                 bool& is_acceptor);
+  std::shared_ptr<io::endpoint> _create_endpoint(
+      config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
+      bool& is_acceptor);
   void _diff_endpoints(
       std::map<config::endpoint, processing::endpoint*> const& current,
       std::list<config::endpoint> const& new_endpoints,
@@ -74,7 +77,8 @@ class endpoint {
 
   endpoint& operator=(const endpoint&) = delete;
   endpoint(const endpoint&) = delete;
-  void apply(std::list<config::endpoint> const& endpoints);
+  void apply(std::list<config::endpoint> const& endpoints,
+             const std::map<std::string, std::string>& global_params);
   iterator endpoints_begin();
   iterator endpoints_end();
   std::timed_mutex& endpoints_mutex();

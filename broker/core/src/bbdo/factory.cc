@@ -43,8 +43,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   /* Legacy case: 'protocol' is set in the object and should be equal to "bbdo"
    */
   bool bbdo_protocol_found = false;
-  std::map<std::string, std::string>::const_iterator it{
-      cfg.params.find("protocol")};
+  auto it = cfg.params.find("protocol");
   bbdo_protocol_found = (it != cfg.params.end() && it->second == "bbdo");
 
   /* New case: with bbdo_client and bbdo_server, bbdo is automatic. */
@@ -74,18 +73,16 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
-  (void)cache;
-
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Return value.
   std::unique_ptr<io::endpoint> retval;
 
   auto logger = log_v2::instance().get(log_v2::CORE);
-  std::map<std::string, std::string>::const_iterator it;
   // Coarse endpoint ?
   bool coarse = false;
-  it = cfg.params.find("coarse");
+  auto it = cfg.params.find("coarse");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &coarse)) {
       logger->error(

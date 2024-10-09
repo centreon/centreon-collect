@@ -54,6 +54,8 @@ dnf install -y cmake \
     libssh2-devel \
     libcurl-devel \
     zlib-devel \
+    perl-HTTP-Daemon-SSL.noarch \
+    perl-JSON \
     sudo
 
 dnf update libarchive

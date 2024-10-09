@@ -205,9 +205,10 @@ def ctn_extract_date_from_log(line: str):
         return None
 
 
-#  When you use Get Current Date with exclude_millis=True
-#  it rounds result to nearest lower or upper second
 def ctn_get_round_current_date():
+    """
+    Returns the current date round to the nearest lower second as a timestamp.
+    """
     return int(time.time())
 
 
