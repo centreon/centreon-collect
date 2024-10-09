@@ -18,17 +18,16 @@
 
 #include "com/centreon/broker/neb/callbacks.hh"
 
+#include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <unistd.h>
+#include <string_view>
 
-#include "bbdo/neb.pb.h"
-#include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
+#include "com/centreon/engine/common.hh"
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/neb/callback.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -37,7 +36,6 @@
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostgroup.hh"
@@ -46,8 +44,6 @@
 #include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/tag.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -2139,6 +2135,14 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
       hst.set_host_id(eh->host_id());
       hst.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
     }
+    if (hsd->attributes & STATUS_NOTIFICATION_NUMBER) {
+      hst.set_host_id(eh->host_id());
+      hst.set_notification_number(eh->get_notification_number());
+    }
+    if (hsd->attributes & STATUS_ACKNOWLEDGEMENT) {
+      hst.set_host_id(eh->host_id());
+      hst.set_acknowledgement_type(eh->get_acknowledgement());
+    }
     gl_publisher.write(h);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
@@ -2149,11 +2153,7 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
       SPDLOG_LOGGER_ERROR(neb_logger, "could not find ID of host '{}'",
                           eh->name());
 
-    if (eh->problem_has_been_acknowledged())
-      hscr.set_acknowledgement_type(eh->get_acknowledgement());
-    else
-      hscr.set_acknowledgement_type(AckType::NONE);
-
+    hscr.set_acknowledgement_type(eh->get_acknowledgement());
     hscr.set_check_type(
         static_cast<HostStatus_CheckType>(eh->get_check_type()));
     hscr.set_check_attempt(eh->get_current_attempt());
@@ -2871,6 +2871,50 @@ int neb::callback_service(int callback_type, void* data) {
   return 0;
 }
 
+template <typename SrvStatus>
+static void fill_service_type(SrvStatus& ss,
+                              const com::centreon::engine::service* es) {
+  switch (es->get_service_type()) {
+    case com::centreon::engine::service_type::METASERVICE: {
+      ss.set_type(METASERVICE);
+      uint64_t iid;
+      if (absl::SimpleAtoi(es->description().c_str() + 5, &iid))
+        ss.set_internal_id(iid);
+      else {
+        SPDLOG_LOGGER_ERROR(
+            neb_logger,
+            "callbacks: service ('{}', '{}') looks like a meta-service but "
+            "its name is malformed",
+            es->get_hostname(), es->description());
+      }
+    } break;
+    case com::centreon::engine::service_type::BA: {
+      ss.set_type(BA);
+      uint64_t iid;
+      if (absl::SimpleAtoi(es->description().c_str() + 3, &iid))
+        ss.set_internal_id(iid);
+      else {
+        SPDLOG_LOGGER_ERROR(
+            neb_logger,
+            "callbacks: service ('{}', '{}') looks like a business-activity "
+            "but its name is malformed",
+            es->get_hostname(), es->description());
+      }
+    } break;
+    case com::centreon::engine::service_type::ANOMALY_DETECTION:
+      ss.set_type(ANOMALY_DETECTION);
+      {
+        auto ad =
+            static_cast<const com::centreon::engine::anomalydetection*>(es);
+        ss.set_internal_id(ad->get_internal_id());
+      }
+      break;
+    default:
+      ss.set_type(SERVICE);
+      break;
+  }
+}
+
 /**
  *  @brief Function that process protobuf service data.
  *
@@ -3034,55 +3078,9 @@ int neb::callback_pb_service(int callback_type [[maybe_unused]], void* data) {
     if (!es->description().empty())
       srv.set_description(common::check_string_utf8(es->description()));
 
+    fill_service_type(srv, es);
     if (!es->get_hostname().empty()) {
       std::string name{common::check_string_utf8(es->get_hostname())};
-      switch (es->get_service_type()) {
-        case com::centreon::engine::service_type::METASERVICE: {
-          srv.set_type(METASERVICE);
-          uint64_t iid = 0;
-          for (auto c = srv.description().begin() + 5;
-               c != srv.description().end(); ++c) {
-            if (!isdigit(*c)) {
-              SPDLOG_LOGGER_ERROR(
-                  neb_logger,
-                  "callbacks: service ('{}', '{}') looks like a meta-service "
-                  "but its name is malformed",
-                  name, srv.description());
-              break;
-            }
-            iid = 10 * iid + (*c - '0');
-          }
-          srv.set_internal_id(iid);
-        } break;
-        case com::centreon::engine::service_type::BA: {
-          srv.set_type(BA);
-          uint64_t iid = 0;
-          for (auto c = srv.description().begin() + 3;
-               c != srv.description().end(); ++c) {
-            if (!isdigit(*c)) {
-              SPDLOG_LOGGER_ERROR(
-                  neb_logger,
-                  "callbacks: service ('{}', '{}') looks like a "
-                  "business-activity but its name is malformed",
-                  name, srv.description());
-              break;
-            }
-            iid = 10 * iid + (*c - '0');
-          }
-          srv.set_internal_id(iid);
-        } break;
-        case com::centreon::engine::service_type::ANOMALY_DETECTION:
-          srv.set_type(ANOMALY_DETECTION);
-          {
-            auto ad =
-                static_cast<const com::centreon::engine::anomalydetection*>(es);
-            srv.set_internal_id(ad->get_internal_id());
-          }
-          break;
-        default:
-          srv.set_type(SERVICE);
-          break;
-      }
       *srv.mutable_host_name() = std::move(name);
     }
     if (!es->get_icon_image().empty())
@@ -3440,16 +3438,28 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   if (ds->attributes != STATUS_ALL) {
     auto as = std::make_shared<neb::pb_adaptive_service_status>();
     AdaptiveServiceStatus& asscr = as.get()->mut_obj();
+    fill_service_type(asscr, es);
     if (ds->attributes & STATUS_DOWNTIME_DEPTH) {
       asscr.set_host_id(es->host_id());
       asscr.set_service_id(es->service_id());
       asscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
+    }
+    if (ds->attributes & STATUS_NOTIFICATION_NUMBER) {
+      asscr.set_host_id(es->host_id());
+      asscr.set_service_id(es->service_id());
+      asscr.set_notification_number(es->get_notification_number());
+    }
+    if (ds->attributes & STATUS_ACKNOWLEDGEMENT) {
+      asscr.set_host_id(es->host_id());
+      asscr.set_service_id(es->service_id());
+      asscr.set_acknowledgement_type(es->get_acknowledgement());
     }
     gl_publisher.write(as);
   } else {
     auto s{std::make_shared<neb::pb_service_status>()};
     ServiceStatus& sscr = s.get()->mut_obj();
 
+    fill_service_type(sscr, es);
     sscr.set_host_id(es->host_id());
     sscr.set_service_id(es->service_id());
     if (es->host_id() == 0 || es->service_id() == 0)
@@ -3457,10 +3467,7 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
                           "could not find ID of service ('{}', '{}')",
                           es->get_hostname(), es->description());
 
-    if (es->problem_has_been_acknowledged())
-      sscr.set_acknowledgement_type(es->get_acknowledgement());
-    else
-      sscr.set_acknowledgement_type(AckType::NONE);
+    sscr.set_acknowledgement_type(es->get_acknowledgement());
 
     sscr.set_check_type(
         static_cast<ServiceStatus_CheckType>(es->get_check_type()));
@@ -3508,45 +3515,6 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
                                : engine::notifier::hard));
     sscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
 
-    if (!es->get_hostname().empty()) {
-      if (strncmp(es->get_hostname().c_str(), "_Module_Meta", 13) == 0) {
-        if (strncmp(es->description().c_str(), "meta_", 5) == 0) {
-          sscr.set_type(METASERVICE);
-          uint64_t iid = 0;
-          for (auto c = es->description().begin() + 5;
-               c != es->description().end(); ++c) {
-            if (!isdigit(*c)) {
-              SPDLOG_LOGGER_ERROR(
-                  neb_logger,
-                  "callbacks: service ('{}', '{}') looks like a meta-service "
-                  "but its name is malformed",
-                  es->get_hostname(), es->description());
-              break;
-            }
-            iid = 10 * iid + (*c - '0');
-          }
-          sscr.set_internal_id(iid);
-        }
-      } else if (strncmp(es->get_hostname().c_str(), "_Module_BAM", 11) == 0) {
-        if (strncmp(es->description().c_str(), "ba_", 3) == 0) {
-          sscr.set_type(BA);
-          uint64_t iid = 0;
-          for (auto c = es->description().begin() + 3;
-               c != es->description().end(); ++c) {
-            if (!isdigit(*c)) {
-              SPDLOG_LOGGER_ERROR(
-                  neb_logger,
-                  "callbacks: service ('{}', '{}') looks like a "
-                  "business-activity but its name is malformed",
-                  es->get_hostname(), es->description());
-              break;
-            }
-            iid = 10 * iid + (*c - '0');
-          }
-          sscr.set_internal_id(iid);
-        }
-      }
-    }
     // Send event(s).
     gl_publisher.write(s);
 
