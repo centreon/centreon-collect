@@ -59,6 +59,9 @@ set(VCPKG_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
 include(GNUInstallDirs)
 
 option(WITH_TESTING "Build unit tests." OFF)
+option(WITH_BUILD_AGENT_INSTALLER "Build agent windows installer." OFF)
+option(WITH_BUILD_AGENT_MODIFIER  "Build agent windows config update program (not needed if WITH_BUILD_INSTALLER=ON)." OFF)
+
 
 set(protobuf_MODULE_COMPATIBLE True)
 
