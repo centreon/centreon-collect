@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSN10
+EBSN5
     [Documentation]    Verify inheritance service : Service(empty) inherit from template (full) , on Start Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -69,7 +69,6 @@ EBSN10
 ...    action_url    template_action_url
 ...    icon_image    template_icon_image
 ...    icon_image_alt    template_icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    4
 ...    check_interval    2
 ...    retry_interval    1
@@ -129,7 +128,7 @@ EBSN10
     Should Be Equal As Strings    ${output}[actionUrl]    template_action_url    actionUrl
     Should Be Equal As Strings    ${output}[iconImage]    template_icon_image    iconImage
     Should Be Equal As Strings    ${output}[iconImageAlt]    template_icon_image_alt    iconImageAlt
-    Should Be Equal As Strings    ${output}[initialState]    WARNING    initialState
+    Should Be Equal As Strings    ${output}[initialState]    OK    initialState should take default value "OK"
     Should Be Equal As Numbers    ${output}[maxCheckAttempts]    4    maxCheckAttempts
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval
@@ -180,7 +179,7 @@ EBSN10
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN11
+EBSN6
     [Documentation]    Verify inheritance service : Service(full) inherit from template (full) , on Start Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -238,7 +237,6 @@ EBSN11
 ...    action_url    action_url
 ...    icon_image    icon_image
 ...    icon_image_alt    icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    4
 ...    check_interval    2
 ...    retry_interval    1
@@ -292,7 +290,6 @@ EBSN11
 ...    action_url    template_action_url
 ...    icon_image    template_icon_image
 ...    icon_image_alt    template_icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    2
 ...    check_interval    1
 ...    retry_interval    2
@@ -352,7 +349,7 @@ EBSN11
     Should Be Equal As Strings    ${output}[actionUrl]    action_url    actionUrl
     Should Be Equal As Strings    ${output}[iconImage]    icon_image    iconImage
     Should Be Equal As Strings    ${output}[iconImageAlt]    icon_image_alt    iconImageAlt
-    Should Be Equal As Strings    ${output}[initialState]    WARNING    initialState
+    Should Be Equal As Strings    ${output}[initialState]    OK    initialState should take default value "OK"
     Should Be Equal As Numbers    ${output}[maxCheckAttempts]    4    maxCheckAttempts
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval
@@ -403,7 +400,7 @@ EBSN11
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN12
+EBSN7
     [Documentation]    Verify inheritance service : Service(empty) inherit from template (full) , on Reload Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -468,7 +465,6 @@ EBSN12
 ...    action_url    template_action_url
 ...    icon_image    template_icon_image
 ...    icon_image_alt    template_icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    4
 ...    check_interval    2
 ...    retry_interval    1
@@ -533,7 +529,7 @@ EBSN12
     Should Be Equal As Strings    ${output}[actionUrl]    template_action_url    actionUrl
     Should Be Equal As Strings    ${output}[iconImage]    template_icon_image    iconImage
     Should Be Equal As Strings    ${output}[iconImageAlt]    template_icon_image_alt    iconImageAlt
-    Should Be Equal As Strings    ${output}[initialState]    WARNING    initialState
+    Should Be Equal As Strings    ${output}[initialState]    OK    initialState should take default value "OK"
     Should Be Equal As Numbers    ${output}[maxCheckAttempts]    4    maxCheckAttempts
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval
@@ -584,7 +580,7 @@ EBSN12
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN13
+EBSN8
     [Documentation]    Verify inheritance service : Service(full) inherit from template (full) , on Reload Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -648,7 +644,6 @@ EBSN13
 ...    action_url    action_url
 ...    icon_image    icon_image
 ...    icon_image_alt    icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    4
 ...    check_interval    2
 ...    retry_interval    1
@@ -702,7 +697,6 @@ EBSN13
 ...    action_url    template_action_url
 ...    icon_image    template_icon_image
 ...    icon_image_alt    template_icon_image_alt
-...    initial_state    warning
 ...    max_check_attempts    2
 ...    check_interval    1
 ...    retry_interval    2
@@ -768,7 +762,7 @@ EBSN13
     Should Be Equal As Strings    ${output}[actionUrl]    action_url    actionUrl
     Should Be Equal As Strings    ${output}[iconImage]    icon_image    iconImage
     Should Be Equal As Strings    ${output}[iconImageAlt]    icon_image_alt    iconImageAlt
-    Should Be Equal As Strings    ${output}[initialState]    WARNING    initialState
+    Should Be Equal As Strings    ${output}[initialState]    OK    initialState should take default value "OK"
     Should Be Equal As Numbers    ${output}[maxCheckAttempts]    4    maxCheckAttempts
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval

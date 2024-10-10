@@ -236,21 +236,6 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
         obj->descriptor()->FindFieldByName("flap_detection_options")->index());
 
     return true;
-  } else if (key == "initial_state") {
-    HostStatus initial_state;
-    std::string_view v = absl::StripAsciiWhitespace(value);
-    if (v == "o" || v == "up")
-      initial_state = state_up;
-    else if (v == "d" || v == "down")
-      initial_state = state_down;
-    else if (v == "u" || v == "unreachable")
-      initial_state = state_unreachable;
-    else
-      return false;
-    obj->set_initial_state(initial_state);
-    set_changed(obj->descriptor()->FindFieldByName("initial_state")->index());
-
-    return true;
   }
   return false;
 }

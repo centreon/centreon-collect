@@ -57,7 +57,6 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"action_url", SETTER(std::string const&, _set_action_url)},
     {"icon_image", SETTER(std::string const&, _set_icon_image)},
     {"icon_image_alt", SETTER(std::string const&, _set_icon_image_alt)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
     {"max_check_attempts", SETTER(unsigned int, _set_max_check_attempts)},
     {"check_interval", SETTER(unsigned int, _set_check_interval)},
     {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
@@ -705,7 +704,6 @@ void service::merge(object const& obj) {
   service const& tmpl(static_cast<service const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
-  MRG_OPTION(_initial_state);
   MRG_DEFAULT(_action_url);
   MRG_IMPORTANT(_check_command);
   MRG_OPTION(_checks_active);

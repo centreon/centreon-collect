@@ -56,7 +56,6 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"vrml_image", SETTER(std::string const&, _set_vrml_image)},
     {"gd2_image", SETTER(std::string const&, _set_statusmap_image)},
     {"statusmap_image", SETTER(std::string const&, _set_statusmap_image)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
     {"check_interval", SETTER(unsigned int, _set_check_interval)},
     {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
     {"retry_interval", SETTER(unsigned int, _set_retry_interval)},
@@ -453,7 +452,6 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_action_url);
   MRG_DEFAULT(_address);
   MRG_DEFAULT(_alias);
-  MRG_OPTION(_initial_state);
   MRG_OPTION(_checks_active);
   MRG_OPTION(_checks_passive);
   MRG_DEFAULT(_check_command);
