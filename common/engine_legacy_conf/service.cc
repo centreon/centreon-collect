@@ -57,7 +57,6 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"action_url", SETTER(std::string const&, _set_action_url)},
     {"icon_image", SETTER(std::string const&, _set_icon_image)},
     {"icon_image_alt", SETTER(std::string const&, _set_icon_image_alt)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
     {"max_check_attempts", SETTER(unsigned int, _set_max_check_attempts)},
     {"check_interval", SETTER(unsigned int, _set_check_interval)},
     {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
