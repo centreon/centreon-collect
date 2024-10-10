@@ -1,27 +1,28 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/ipolicy.hh"
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::connector::perl::orders;
+using com::centreon::exceptions::msg_fmt;
 
 parser::parser(
     const shared_io_context& io_context,
@@ -54,9 +55,8 @@ void parser::execute(const std::string& cmd) {
   char* ptr(nullptr);
   unsigned long long cmd_id(strtoull(cmd.c_str(), &ptr, 10));
   if (!cmd_id || *ptr)
-    throw basic_error() << "invalid execution request received:"
-                           " bad command ID ("
-                        << cmd.c_str() << ")";
+    throw msg_fmt("invalid execution request received: bad command ID ({})",
+                  cmd);
   size_t pos = end + 1;
   // Find timeout value.
   end = cmd.find('\0', pos);
@@ -64,17 +64,15 @@ void parser::execute(const std::string& cmd) {
   time_point ts_timeout = system_clock::now() + std::chrono::seconds(timeout);
 
   if (*ptr)
-    throw basic_error() << "invalid execution request received:"
-                           " bad timeout ("
-                        << cmd.c_str() + pos << ")";
+    throw msg_fmt("invalid execution request received: bad timeout ({})",
+                  cmd.c_str() + pos);
   pos = end + 1;
   // Find start time.
   end = cmd.find('\0', pos);
   strtoull(cmd.c_str() + pos, &ptr, 10);
   if (*ptr)
-    throw basic_error() << "invalid execution request received:"
-                           " bad start time ("
-                        << cmd.c_str() + pos << ")";
+    throw msg_fmt("invalid execution request received: bad start time ({})",
+                  cmd.c_str() + pos);
   pos = end + 1;
   // Find command to execute.
   end = cmd.find('\0', pos);

@@ -1,5 +1,5 @@
 /*
-** Copyright 2022 Centreon
+** Copyright 2024 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -48,10 +48,13 @@ class client {
   std::unique_ptr<grpc::GenericStub> _stub;
   type _server;
   bool _color_enabled;
+  bool _always_print_primitive_fields;
   grpc::CompletionQueue _cq;
 
  public:
-  client(std::shared_ptr<grpc::Channel> channel, bool color_enabled = true);
+  client(std::shared_ptr<grpc::Channel> channel,
+         bool color_enabled = true,
+         bool _always_print_primitive_fields = false);
   std::list<std::string> methods() const;
   std::string call(const std::string& cmd, const std::string& args);
   std::string info_method(const std::string& cmd) const;

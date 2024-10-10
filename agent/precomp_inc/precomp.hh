@@ -42,4 +42,6 @@ namespace asio = boost::asio;
 #include <boost/process/v2.hpp>
 #include <boost/program_options.hpp>
 
+#include <rapidjson/document.h>
+
 #endif

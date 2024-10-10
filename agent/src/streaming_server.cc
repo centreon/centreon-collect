@@ -83,7 +83,7 @@ void server_reactor::_start() {
           parent->write(request);
         }
       },
-      check_exec::load);
+      scheduler::default_check_builder);
 
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =

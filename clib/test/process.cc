@@ -22,7 +22,7 @@
 #include <future>
 #include <iostream>
 #include "com/centreon/clib.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 

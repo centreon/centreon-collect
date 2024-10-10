@@ -1,20 +1,20 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
@@ -31,10 +31,13 @@
 using namespace nlohmann;
 using namespace com::centreon::ccc;
 
-static struct option long_options[] = {
-    {"version", no_argument, 0, 'v'},    {"help", no_argument, 0, 'h'},
-    {"port", required_argument, 0, 'p'}, {"list", no_argument, 0, 'l'},
-    {"nocolor", no_argument, 0, 'n'},    {0, 0, 0, 0}};
+static struct option long_options[] = {{"version", no_argument, 0, 'v'},
+                                       {"help", no_argument, 0, 'h'},
+                                       {"port", required_argument, 0, 'p'},
+                                       {"list", no_argument, 0, 'l'},
+                                       {"nocolor", no_argument, 0, 'n'},
+                                       {"full", no_argument, 0, 'F'},
+                                       {0, 0, 0, 0}};
 
 static void usage(bool color_enabled) {
   std::cout << color<color_method>(color_enabled)
@@ -56,6 +59,8 @@ static void usage(bool color_enabled) {
                "    Displays the available methods.\n"
                "  -n, --nocolor\n"
                "    Outputs are displayed with the current color.\n"
+               "  -F, --full\n"
+               "    Forces display of fields containing default values.\n"
                "\n"
             << color<color_method>(color_enabled)
             << "Examples:" << color<color_reset>(color_enabled)
@@ -73,8 +78,9 @@ int main(int argc, char** argv) {
   bool list = false;
   bool help = false;
   bool color_enabled = true;
+  bool always_print_primitive_fields = false;
 
-  while ((opt = getopt_long(argc, argv, "vhnp:l", long_options,
+  while ((opt = getopt_long(argc, argv, "vhnp:lF", long_options,
                             &option_index)) != -1) {
     switch (opt) {
       case 'v':
@@ -97,6 +103,9 @@ int main(int argc, char** argv) {
       case 'l':
         list = true;
         break;
+      case 'F':
+        always_print_primitive_fields = true;
+        break;
       default:
         std::cerr << "Unrecognized argument '" << opt << "'" << std::endl;
         exit(3);
@@ -118,7 +127,7 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
 
   try {
-    client clt(channel, color_enabled);
+    client clt(channel, color_enabled, always_print_primitive_fields);
     if (help) {
       std::string message{clt.info_method(argv[optind])};
       std::cout << "Input message for this function:\n" << message << std::endl;

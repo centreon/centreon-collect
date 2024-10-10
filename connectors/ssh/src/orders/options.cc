@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifdef _WIN32
 #include <windows.h>
@@ -28,10 +28,11 @@
 #include <cstdlib>
 #include "absl/strings/numbers.h"
 #include "com/centreon/connector/ssh/orders/options.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/misc/command_line.hh"
 
 using namespace com::centreon::connector::orders;
+using com::centreon::exceptions::msg_fmt;
 
 static char const* optstr = "1246a:C:E:fhH:i:l:n:o:O:p:qs:S:t:vV";
 static struct option optlong[] = {
@@ -221,12 +222,13 @@ void options::parse(std::string const& cmdline) {
       {
         unsigned int temp;
         if (!absl::SimpleAtoi(optarg, &temp)) {
-          throw basic_error() << "the argument '" << optarg
-                              << "' must be an unsigned short integer";
+          throw msg_fmt("the argument '{}' must be an unsigned short integer",
+                        optarg);
         }
         if (temp > 65535) {
-          throw basic_error() << "the argument '" << optarg
-                              << "' must be an integer between 0 and 65535";
+          throw msg_fmt(
+              "the argument '{}' must be an integer between 0 and 65535",
+              optarg);
         }
         _port = temp;
       } break;
@@ -240,7 +242,7 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '1':  // Enable SSH v1.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw msg_fmt("'{}' option is not supported", c);
         break;
 
       case '2':  // Enable SSH v2.
@@ -251,13 +253,12 @@ void options::parse(std::string const& cmdline) {
         if (!optarg)
           _skip_stderr = 0;
         else if (!absl::SimpleAtoi(optarg, &_skip_stderr)) {
-          throw basic_error()
-              << "the argument '" << optarg << "' must be an integer";
+          throw msg_fmt("the argument '{}' must be an integer", optarg);
         }
         break;
 
       case 'f':  // Fork ssh.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw msg_fmt("'{}' option is not supported", c);
         break;
 
       case 'i':  // Set Identity file.
@@ -265,34 +266,24 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'n':  // Host name for monitoring engine.
-        throw basic_error() << "'" << c << "' option is not supported";
-        break;
-
       case 'o':  // Set ssh-option.
-        throw basic_error() << "'" << c << "' option is not supported";
-        break;
-
       case 'O':  // Set output file.
-        throw basic_error() << "'" << c << "' option is not supported";
-        break;
-
       case 's':  // Services.
-        throw basic_error() << "'" << c << "' option is not supported";
+        throw msg_fmt("'{}' option is not supported", c);
         break;
 
       case 'S':  // Skip stdout.
         if (!optarg)
           _skip_stdout = 0;
         else if (!absl::SimpleAtoi(optarg, &_skip_stdout)) {
-          throw basic_error()
-              << "the argument '" << optarg << "' must be an integer";
+          throw msg_fmt("the argument '{}' must be an integer", optarg);
         }
         break;
 
       case 't':  // Set timeout.
         if (!absl::SimpleAtoi(optarg, &_timeout)) {
-          throw basic_error()
-              << "the argument '" << optarg << "' must be an unsigned integer";
+          throw msg_fmt("the argument '{}' must be an unsigned integer",
+                        optarg);
         }
         break;
 
@@ -304,10 +295,10 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case '?':  // Missing argument.
-        throw basic_error() << "option '" << c << "' requires an argument";
+        throw msg_fmt("option '{}' requires an argument", c);
 
       default:  // Unknown argument.
-        throw basic_error() << "unrecognized option '" << c << "'";
+        throw msg_fmt("unrecognized option '{}'", c);
     }
   }
   if (_user.empty())
@@ -342,7 +333,7 @@ std::string options::_get_user_name() {
   passwd* pwd(getpwuid(getuid()));
   if (!pwd || !pwd->pw_name) {
     char const* msg(strerror(errno));
-    throw basic_error() << "cannot get current user name: " << msg;
+    throw msg_fmt("cannot get current user name: {}", msg);
   }
   return pwd->pw_name;
 }

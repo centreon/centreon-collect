@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NSISpcre", "NSISpcre.vcproj", "{CE8CB3BC-A91C-4240-84B9-76FC5BC2B257}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dftables", "dftables\dftables.vcproj", "{28A109A2-C14B-4428-A6E3-6AB0CD7FDF17}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{CE8CB3BC-A91C-4240-84B9-76FC5BC2B257}.Debug.ActiveCfg = Debug|Win32
+		{CE8CB3BC-A91C-4240-84B9-76FC5BC2B257}.Debug.Build.0 = Debug|Win32
+		{CE8CB3BC-A91C-4240-84B9-76FC5BC2B257}.Release.ActiveCfg = Release|Win32
+		{CE8CB3BC-A91C-4240-84B9-76FC5BC2B257}.Release.Build.0 = Release|Win32
+		{28A109A2-C14B-4428-A6E3-6AB0CD7FDF17}.Debug.ActiveCfg = Debug|Win32
+		{28A109A2-C14B-4428-A6E3-6AB0CD7FDF17}.Debug.Build.0 = Debug|Win32
+		{28A109A2-C14B-4428-A6E3-6AB0CD7FDF17}.Release.ActiveCfg = Release|Win32
+		{28A109A2-C14B-4428-A6E3-6AB0CD7FDF17}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

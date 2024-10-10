@@ -119,7 +119,7 @@ void streaming_client::_start() {
           parent->_send(request);
         }
       },
-      check_exec::load);
+      scheduler::default_check_builder);
   _create_reactor();
 }
 

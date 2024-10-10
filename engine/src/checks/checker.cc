@@ -1,22 +1,22 @@
 /**
-* Copyright 1999-2010 Ethan Galstad
-* Copyright 2011-2024 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/checks/checker.hh"
 
@@ -31,7 +31,6 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::logging;
@@ -600,9 +599,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // If the command timed out.
 #ifdef LEGACY_CONF
-uint32_t host_check_timeout = config->host_check_timeout();
+  uint32_t host_check_timeout = config->host_check_timeout();
 #else
-uint32_t host_check_timeout = pb_config.host_check_timeout();
+  uint32_t host_check_timeout = pb_config.host_check_timeout();
 #endif
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",

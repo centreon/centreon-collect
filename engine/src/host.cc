@@ -43,7 +43,6 @@
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1878,8 +1877,6 @@ int host::run_async_check(int check_options,
         // Run command.
         get_check_command_ptr()->run(processed_cmd, *macros, host_check_timeout,
                                      check_result_info);
-      } catch (com::centreon::exceptions::interruption const& e) {
-        retry = true;
       } catch (std::exception const& e) {
         // Update check result.
         run_failure("(Execute command failed)");

@@ -17,7 +17,10 @@
  */
 
 #include "scheduler.hh"
+#include "check_exec.hh"
+#include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
 
@@ -188,9 +191,9 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
         _check_queue.emplace(check_to_schedule);
         next += check_interval;
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(_logger,
-                            "service: {}  command:{} won't be scheduled",
-                            serv.service_description(), serv.command_name());
+        SPDLOG_LOGGER_ERROR(
+            _logger, "service: {}  command:{} won't be scheduled cause: {}",
+            serv.service_description(), serv.command_name(), e.what());
       }
     }
   }
@@ -489,4 +492,47 @@ void scheduler::_add_exemplar(
   auto attrib = exemplar->add_filtered_attributes();
   attrib->set_key(label);
   exemplar->set_as_int(value);
+}
+
+/**
+ * @brief build a check object from command lline
+ *
+ * @param io_context
+ * @param logger logger that will be used by the check
+ * @param start_expected timepoint of first check
+ * @param service
+ * @param cmd_name
+ * @param cmd_line
+ * @param conf conf given by engine
+ * @param handler handler that will be called on check completion
+ * @return std::shared_ptr<check>
+ */
+std::shared_ptr<check> scheduler::default_check_builder(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point start_expected,
+    const std::string& service,
+    const std::string& cmd_name,
+    const std::string& cmd_line,
+    const engine_to_agent_request_ptr& conf,
+    check::completion_handler&& handler) {
+  using namespace std::literals;
+  // test native checks where cmd_lin is a json
+  try {
+    rapidjson::Document native_check_info =
+        common::rapidjson_helper::read_from_string(cmd_line);
+    common::rapidjson_helper native_params(native_check_info);
+    std::string_view check_type = native_params.get_string("check");
+    const rapidjson::Value& args = native_params.get_member("args");
+
+    if (check_type == "cpu"sv) {
+    } else {
+      throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
+                                cmd_line);
+    }
+
+  } catch (const std::exception&) {
+    return check_exec::load(io_context, logger, start_expected, service,
+                            cmd_name, cmd_line, conf, std::move(handler));
+  }
 }

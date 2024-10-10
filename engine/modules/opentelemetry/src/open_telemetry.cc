@@ -182,7 +182,7 @@ void open_telemetry::_create_telegraf_conf_server(
         std::chrono::seconds(10), std::chrono::seconds(30),
         std::chrono::seconds(300), 30, std::chrono::seconds(10), 0,
         std::chrono::hours(1), 1, asio::ssl::context::tlsv12,
-        telegraf_conf->get_certificate_path(), telegraf_conf->get_key_path());
+        telegraf_conf->get_public_cert(), telegraf_conf->get_private_key());
 
     if (telegraf_conf->is_crypted()) {
       _telegraf_conf_server = http::server::load(
