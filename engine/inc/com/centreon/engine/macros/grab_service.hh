@@ -22,7 +22,6 @@
 #define CCE_MACROS_GRAB_SERVICE_HH
 
 #include "com/centreon/engine/macros/defines.hh"
-#include "com/centreon/engine/service.hh"
 
 #ifdef __cplusplus
 extern "C" {

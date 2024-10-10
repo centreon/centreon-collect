@@ -23,14 +23,12 @@
 #include <unistd.h>
 #include <string_view>
 
-#include "com/centreon/engine/common.hh"
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
@@ -38,12 +36,8 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
-#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
-#include "com/centreon/engine/tag.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;

@@ -17,14 +17,11 @@
  *
  */
 
-#include "com/centreon/engine/service.hh"
 
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -32,11 +29,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"

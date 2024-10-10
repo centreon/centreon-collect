@@ -17,7 +17,6 @@
  */
 
 #include <absl/strings/str_split.h>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <absl/strings/str_split.h>
@@ -30,11 +29,7 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

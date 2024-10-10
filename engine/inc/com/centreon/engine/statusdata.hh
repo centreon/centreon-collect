@@ -22,7 +22,6 @@
 #define CCE_STATUSDATA_HH
 
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 #ifdef __cplusplus
 extern "C" {

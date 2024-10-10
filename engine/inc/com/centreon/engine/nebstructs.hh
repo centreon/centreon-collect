@@ -22,7 +22,6 @@
 #define CCE_NEBSTRUCTS_HH
 
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/service.hh"
 
 /* Acknowledgement structure. */
 typedef struct nebstruct_acknowledgement_struct {

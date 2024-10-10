@@ -27,40 +27,24 @@
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/spdlog.h>
 
-#include <rapidjson/document.h>
 
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
-#include "com/centreon/engine/host.hh"
 
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
-#include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;

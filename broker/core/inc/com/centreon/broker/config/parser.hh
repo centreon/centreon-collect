@@ -21,7 +21,6 @@
 
 #include <absl/types/optional.h>
 
-#include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
