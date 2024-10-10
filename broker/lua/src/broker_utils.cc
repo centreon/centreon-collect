@@ -24,7 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "com/centreon/broker/config/applier/state.hh"
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
@@ -775,6 +775,30 @@ static int l_broker_stat(lua_State* L) {
   }
 }
 
+static void md5_message(const unsigned char* message,
+                        size_t message_len,
+                        unsigned char** digest,
+                        unsigned int* digest_len) {
+  EVP_MD_CTX* mdctx;
+  if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
+    log_v2::lua()->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+  }
+  if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
+    log_v2::lua()->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
+  }
+  if (1 != EVP_DigestUpdate(mdctx, message, message_len)) {
+    log_v2::lua()->error("lua: fail to call MD5 (EVP_DigestUpdate call)");
+  }
+  if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
+      nullptr) {
+    log_v2::lua()->error("lua: fail to call MD5 (OPENSSL_malloc call)");
+  }
+  if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
+    log_v2::lua()->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
+  }
+  EVP_MD_CTX_free(mdctx);
+}
+
 static int l_broker_md5(lua_State* L) {
   auto digit = [](unsigned char d) -> char {
     if (d < 10)
@@ -785,11 +809,12 @@ static int l_broker_md5(lua_State* L) {
   size_t len;
   const unsigned char* str =
       reinterpret_cast<const unsigned char*>(lua_tolstring(L, -1, &len));
-  unsigned char md5[MD5_DIGEST_LENGTH];
-  MD5(str, len, md5);
-  char result[2 * MD5_DIGEST_LENGTH + 1];
+  unsigned char* md5;
+  uint32_t md5_len;
+  md5_message(str, len, &md5, &md5_len);
+  char result[2 * md5_len + 1];
   char* tmp = result;
-  for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
+  for (uint32_t i = 0; i < md5_len; i++) {
     *tmp = digit(md5[i] >> 4);
     ++tmp;
     *tmp = digit(md5[i] & 0xf);
@@ -797,6 +822,7 @@ static int l_broker_md5(lua_State* L) {
   }
   *tmp = 0;
   lua_pushstring(L, result);
+  OPENSSL_free(md5);
   return 1;
 }
 
