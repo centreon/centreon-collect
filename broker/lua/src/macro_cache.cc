@@ -19,14 +19,12 @@
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/str_split.h>
-#include <memory>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "common/log_v2/log_v2.hh"
-#include "neb.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

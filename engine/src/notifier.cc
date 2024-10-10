@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/notifier.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -30,7 +29,6 @@
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "com/centreon/engine/utils.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;

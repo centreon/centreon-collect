@@ -25,7 +25,6 @@
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 /* Event broker options. */
 #define BROKER_NOTHING 0

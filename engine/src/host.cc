@@ -16,13 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/host.hh"
 #include <cassert>
 
 #include <fmt/chrono.h>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -32,15 +30,12 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
-#include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"

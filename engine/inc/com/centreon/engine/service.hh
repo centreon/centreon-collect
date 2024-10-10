@@ -20,7 +20,6 @@
 #define CCE_SERVICE_HH
 
 #include "com/centreon/engine/check_result.hh"
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/hash.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/notifier.hh"
