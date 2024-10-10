@@ -771,6 +771,8 @@ void macro_cache::_process_pb_adaptive_host_status(
     hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
   if (obj.has_acknowledgement_type())
     hst.set_acknowledgement_type(obj.acknowledgement_type());
+  if (obj.has_notification_number())
+    hst.set_notification_number(obj.notification_number());
 }
 
 /**

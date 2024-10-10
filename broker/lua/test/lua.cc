@@ -34,6 +34,7 @@
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -4835,4 +4836,46 @@ TEST_F(LuaTest, WithBadFilter2) {
   auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
   ASSERT_FALSE(bb->has_filter());
   RemoveFile(filename);
+}
+
+// When a host is stored in the cache and an AdaptiveHostStatus is written
+// Then the host in cache is updated.
+TEST_F(LuaTest, AdaptiveHostCacheTest) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/neb/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::host>()};
+  hst->host_id = 1;
+  hst->host_name = "centreon";
+  hst->check_command = "echo 'John Doe'";
+  hst->alias = "alias-centreon";
+  hst->address = "4.3.2.1";
+  _cache->write(hst);
+
+  auto ahoststatus = std::make_shared<neb::pb_adaptive_host_status>();
+  auto& obj = ahoststatus->mut_obj();
+  obj.set_host_id(1);
+  obj.set_scheduled_downtime_depth(2);
+  _cache->write(ahoststatus);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'alias ' .. hst.alias .. ' address ' .. "
+               "hst.address .. ' name ' .. hst.name .. ' "
+               "scheduled_downtime_depth ' .. hst.scheduled_downtime_depth)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon "
+                     "scheduled_downtime_depth 2"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
 }

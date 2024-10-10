@@ -316,17 +316,6 @@ enum modattr {
   MODATTR_ALL = ~0u,
 };
 
-/* Status attributes. Used as argument in the notifier::update_status(). If None
- * all the service_status is generated, otherwise we only send fields specified
- * in the argument. */
-enum status_attribute {
-  STATUS_NONE = 0,
-  STATUS_DOWNTIME_DEPTH = 1 << 0,
-  STATUS_NOTIFICATION_NUMBER = 1 << 1,
-  STATUS_ACKNOWLEDGEMENT = 1 << 2,
-  STATUS_ALL = ~0u,
-};
-
 /* Default values. */
 #define DEFAULT_ORPHAN_CHECK_INTERVAL \
   60 /* Seconds between checks for orphaned hosts and services. */

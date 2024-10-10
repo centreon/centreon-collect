@@ -469,7 +469,7 @@ int host_downtime::handle() {
 
     /* update the status data */
     /* Because of the notification the status is sent with CHECK_RESULT level */
-    it_hst->second->update_status(STATUS_DOWNTIME_DEPTH);
+    it_hst->second->update_status(host::STATUS_DOWNTIME_DEPTH);
 
     /* schedule an event */
     if (!is_fixed())

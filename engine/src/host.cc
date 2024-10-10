@@ -24,6 +24,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -2341,7 +2342,7 @@ void host::check_for_expired_acknowledgement() {
         SPDLOG_LOGGER_INFO(events_logger,
                            "Acknowledgement of host '{}' just expired", name());
         set_acknowledgement(AckType::NONE);
-        update_status();
+        update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
   }
@@ -2858,7 +2859,8 @@ void host::enable_flap_detection() {
   check_for_flapping(false, false, true);
 
   /* update host status */
-  update_status();
+  /* FIXME DBO: seems not necessary */
+  // update_status();
 }
 
 /*

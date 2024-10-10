@@ -2128,18 +2128,18 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
       static_cast<nebstruct_host_status_data*>(data);
   const engine::host* eh = static_cast<engine::host*>(hsd->object_ptr);
 
-  if (hsd->attributes != STATUS_ALL) {
+  if (hsd->attributes != engine::host::STATUS_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host_status>()};
     AdaptiveHostStatus& hst = h.get()->mut_obj();
-    if (hsd->attributes & STATUS_DOWNTIME_DEPTH) {
+    if (hsd->attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
       hst.set_host_id(eh->host_id());
       hst.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
     }
-    if (hsd->attributes & STATUS_NOTIFICATION_NUMBER) {
+    if (hsd->attributes & engine::host::STATUS_NOTIFICATION_NUMBER) {
       hst.set_host_id(eh->host_id());
       hst.set_notification_number(eh->get_notification_number());
     }
-    if (hsd->attributes & STATUS_ACKNOWLEDGEMENT) {
+    if (hsd->attributes & engine::host::STATUS_ACKNOWLEDGEMENT) {
       hst.set_host_id(eh->host_id());
       hst.set_acknowledgement_type(eh->get_acknowledgement());
     }
@@ -3435,21 +3435,21 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
                     static_cast<uint32_t>(es->get_current_state()),
                     static_cast<uint32_t>(es->get_check_type()));
 
-  if (ds->attributes != STATUS_ALL) {
+  if (ds->attributes != engine::service::STATUS_ALL) {
     auto as = std::make_shared<neb::pb_adaptive_service_status>();
     AdaptiveServiceStatus& asscr = as.get()->mut_obj();
     fill_service_type(asscr, es);
-    if (ds->attributes & STATUS_DOWNTIME_DEPTH) {
+    if (ds->attributes & engine::service::STATUS_DOWNTIME_DEPTH) {
       asscr.set_host_id(es->host_id());
       asscr.set_service_id(es->service_id());
       asscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
     }
-    if (ds->attributes & STATUS_NOTIFICATION_NUMBER) {
+    if (ds->attributes & engine::service::STATUS_NOTIFICATION_NUMBER) {
       asscr.set_host_id(es->host_id());
       asscr.set_service_id(es->service_id());
       asscr.set_notification_number(es->get_notification_number());
     }
-    if (ds->attributes & STATUS_ACKNOWLEDGEMENT) {
+    if (ds->attributes & engine::service::STATUS_ACKNOWLEDGEMENT) {
       asscr.set_host_id(es->host_id());
       asscr.set_service_id(es->service_id());
       asscr.set_acknowledgement_type(es->get_acknowledgement());
