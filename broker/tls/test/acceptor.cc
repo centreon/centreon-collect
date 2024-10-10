@@ -19,10 +19,8 @@
 
 #include "com/centreon/broker/tcp/acceptor.hh"
 
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/buffer.hh"
@@ -34,7 +32,6 @@
 #include "com/centreon/broker/tls/connector.hh"
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/broker/tls/stream.hh"
-#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -178,7 +175,7 @@ TEST_F(TlsTest, AnonTlsStreamContinuous) {
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
-    char str[20];
+    char str[24];
     int i = 0;
 
     /* This is not representative of a real stream. Here we have to call write
