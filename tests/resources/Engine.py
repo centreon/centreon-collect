@@ -873,7 +873,7 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
         
-    if file =="serviceTemplates.cfg":
+    if file == "serviceTemplates.cfg":
         r = re.compile(r"^\s*name\s+" + desc + "\s*$")
     else:
         r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
@@ -901,7 +901,7 @@ def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, fil
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    if file =="serviceTemplates.cfg":
+    if file == "serviceTemplates.cfg":
         r = re.compile(r"^\s*name\s+" + desc + "\s*$")
     else:
         r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
@@ -3805,20 +3805,19 @@ def ctn_get_service_info_grpc(id_h:int,id_s:int):
     Returns:
         A dictionary containing the service informations, if successfully retrieved.
     """
-    if id_h is not None and id_s is not None:
-        limit = time.time() + 30
-        while time.time() < limit:
-            time.sleep(1)
-            with grpc.insecure_channel("127.0.0.1:50001") as channel:
-                stub = engine_pb2_grpc.EngineStub(channel)
-                identifier = engine_pb2.IdIdentifier(host_id=id_h,service_id=id_s)
-                request = engine_pb2.ServiceIdentifier(ids = identifier)
-                try:
-                    host = stub.GetService(request)
-                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
-                    return host_dict
-                except Exception as e:
-                    logger.console(f"gRPC server not ready {e}")
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.IdIdentifier(host_id=id_h,service_id=id_s)
+            request = engine_pb2.ServiceIdentifier(ids = identifier)
+            try:
+                host = stub.GetService(request)
+                host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                return host_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
     return {}
         
 def ctn_check_key_value_existence(data_list, key, value):
