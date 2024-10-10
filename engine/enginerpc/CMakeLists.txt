@@ -66,7 +66,7 @@ add_library(
   # Headers.
   "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-add_dependencies(${ENGINERPC} centreon_common)
+add_dependencies(${ENGINERPC} centreon_common engine_rpc)
 
 target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
 
