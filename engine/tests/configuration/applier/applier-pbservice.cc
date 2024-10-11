@@ -310,16 +310,15 @@ TEST_F(ApplierService, PbServicesFlapOptionsAll) {
 }
 
 // Given a service configuration,
-// When the initial_state value is set to unknown,
-// Then it is well recorded with unknown.
+// the initial_state value is set to default value "ok",
 // When the initial_state value is set to whatever
 // Then the parse method returns false.
 TEST_F(ApplierService, PbServicesInitialState) {
   configuration::Service csvc;
   configuration::service_helper csvc_hlp(&csvc);
   csvc_hlp.hook("initial_state", "u");
-  ASSERT_EQ(csvc.initial_state(), engine::service::state_unknown);
-  ASSERT_FALSE(csvc_hlp.hook("initial_state", "g"));
+  ASSERT_EQ(csvc.initial_state(), engine::service::state_ok);
+  ASSERT_FALSE(csvc_hlp.hook("initial_state", "u"));
 }
 
 // Given a service configuration,
