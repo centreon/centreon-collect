@@ -660,6 +660,11 @@ message EngineService {
   repeated string tag = 109;
   string timezone = 110;
   uint64 icon_id = 111;
+  uint64 internal_id = 112;
+  string metric_name = 113;
+  string thresholds_file = 114;
+  double sensitivity = 115;
+  uint64 dependent_service_id = 116;
 }
 
 message EngineComment {
