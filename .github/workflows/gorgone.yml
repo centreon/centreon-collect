@@ -130,118 +130,118 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
           stability: ${{ needs.get-version.outputs.stability }}
 
-  # test-gorgone:
-  #   needs: [get-version, package]
+  test-gorgone:
+    needs: [get-version, package]
 
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       distrib: [el8, el9, bookworm, jammy]
-  #       include:
-  #         - package_extension: rpm
-  #           image: gorgone-testing-alma8
-  #           distrib: el8
-  #         - package_extension: rpm
-  #           image: gorgone-testing-alma9
-  #           distrib: el9
-  #         - package_extension: deb
-  #           image: gorgone-testing-jammy
-  #           distrib: jammy
-  #         - package_extension: deb
-  #           image: gorgone-testing-bookworm
-  #           distrib: bookworm
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [el8, el9, bookworm, jammy]
+        include:
+          - package_extension: rpm
+            image: gorgone-testing-alma8
+            distrib: el8
+          - package_extension: rpm
+            image: gorgone-testing-alma9
+            distrib: el9
+          - package_extension: deb
+            image: gorgone-testing-jammy
+            distrib: jammy
+          - package_extension: deb
+            image: gorgone-testing-bookworm
+            distrib: bookworm
 
-  #   runs-on: ubuntu-22.04
-  #   container:
-  #     image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
-  #     credentials:
-  #       username: ${{ secrets.DOCKER_REGISTRY_ID }}
-  #       password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  #   services:
-  #     mariadb:
-  #       image: mariadb:latest
-  #       ports:
-  #         - 3306
-  #       env:
-  #         MYSQL_USER: centreon
-  #         MYSQL_PASSWORD: password
-  #         MYSQL_ROOT_PASSWORD: password
+    services:
+      mariadb:
+        image: mariadb:latest
+        ports:
+          - 3306
+        env:
+          MYSQL_USER: centreon
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: password
 
-  #   steps:
-  #     - name: Get linked branch of centreon repository
-  #       id: centreon_repo_linked_branch
-  #       run: |
-  #         CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-version.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-version.outputs.major_version }}.x" || echo develop)
+    steps:
+      - name: Get linked branch of centreon repository
+        id: centreon_repo_linked_branch
+        run: |
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-version.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-version.outputs.major_version }}.x" || echo develop)
 
-  #         GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
-  #         if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-  #           CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
-  #         fi
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+          fi
 
-  #         echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
-  #       shell: bash
+          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+        shell: bash
 
-  #     - name: Checkout sources
-  #       uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+      - name: Checkout sources
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
-  #     - name: Checkout sources
-  #       uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
-  #       with:
-  #         repository: centreon/centreon
-  #         path: centreon
-  #         ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
-  #         sparse-checkout: |
-  #           centreon/www/install/createTables.sql
-  #           centreon/www/install/createTablesCentstorage.sql
+      - name: Checkout sources
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        with:
+          repository: centreon/centreon
+          path: centreon
+          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+          sparse-checkout: |
+            centreon/www/install/createTables.sql
+            centreon/www/install/createTablesCentstorage.sql
 
-  #     - name: get cached gorgone package
-  #       uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-  #       with:
-  #         path: ./*.${{ matrix.package_extension }}
-  #         key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
-  #         fail-on-cache-miss: true
+      - name: get cached gorgone package
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: ./*.${{ matrix.package_extension }}
+          key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+          fail-on-cache-miss: true
 
-  #     - name: Parse distrib name
-  #       id: parse-distrib
-  #       uses: ./.github/actions/parse-distrib
-  #       with:
-  #         distrib: ${{ matrix.distrib }}
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
 
-  #     - name: Install gorgone from just built package
-  #       shell: bash
-  #       run: |
-  #         if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-  #           apt update
-  #           apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}*
-  #         else
-  #           dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}*
-  #           # in el8 at least, there is a package for the configuration and a package for the actual code.
-  #           # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
-  #         fi
+      - name: Install gorgone from just built package
+        shell: bash
+        run: |
+          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+            apt update
+            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+          else
+            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+            # in el8 at least, there is a package for the configuration and a package for the actual code.
+            # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
+          fi
 
-  #     - name: Create databases
-  #       run: |
-  #         mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
-  #         mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
-  #         mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-  #         mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-  #         mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
-  #         mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
+      - name: Create databases
+        run: |
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
-  #     - name: Run tests
-  #       run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests
+      - name: Run tests
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests
 
-  #     - name: Upload gorgone and robot debug artifacts
-  #       if: failure()
-  #       uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
-  #       with:
-  #         name: gorgone-debug-${{ matrix.distrib }}
-  #         path: |
-  #           log.html
-  #           /var/log/centreon-gorgone
-  #           /etc/centreon-gorgone
-  #         retention-days: 1
+      - name: Upload gorgone and robot debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: gorgone-debug-${{ matrix.distrib }}
+          path: |
+            log.html
+            /var/log/centreon-gorgone
+            /etc/centreon-gorgone
+          retention-days: 1
 
   deliver-sources:
     runs-on: [self-hosted, common]

@@ -27,6 +27,7 @@ action module with ${communication_mode} communcation mode
     [Documentation]    test action on distant node, no whitelist configured
     @{process_list}    Create List    ${communication_mode}_gorgone_central    ${communication_mode}_gorgone_poller_2
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Run    rm /tmp/actionLogs
 
     @{central_config}    Create List    ${ROOT_CONFIG}actions.yaml
     @{poller_config}    Create List     ${ROOT_CONFIG}actions.yaml
@@ -65,11 +66,10 @@ action module with ${communication_mode} communcation mode
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query_sync}    date=${start_date}    timeout=10
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file: ${logs_poller}
 
-    Run    rm /tmp/actionLogs
-
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pull
 
 *** Keywords ***
 Test Sync Action Module
