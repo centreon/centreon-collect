@@ -16,6 +16,7 @@ on:
   pull_request:
     paths:
       - agent/**
+      - common/**
       - custom-triplets/**
       - CMakeLists.txt
       - CMakeListsWindows.txt
@@ -28,6 +29,7 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - agent/**
+      - common/**
       - custom-triplets/**
       - CMakeLists.txt
       - CMakeListsWindows.txt
@@ -59,7 +61,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Compile Agent
+      - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
         shell: powershell
 
@@ -72,6 +74,77 @@ jobs:
         run: |
           cd build_windows
           tests/ut_agent
+
+      - name: Sign agent
+        if: |
+          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        uses: azure/trusted-signing-action@v0.4.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net/
+          trusted-signing-account-name: Centreon-signature-RD
+          certificate-profile-name: Cert-Signature-RD
+          files-folder: build_windows\agent\Release
+          files-folder-filter: centagent.exe
+          files-folder-recurse: false
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Build modifier
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_MODIFIER=On  -Bbuild_windows
+          cmake --build build_windows --config Release
+
+      - name: Sign modifier
+        if: |
+          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        uses: azure/trusted-signing-action@v0.4.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net/
+          trusted-signing-account-name: Centreon-signature-RD
+          certificate-profile-name: Cert-Signature-RD
+          files-folder: agent\installer
+          files-folder-filter: centreon-monitoring-agent-modify.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Build installer
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=On  -Bbuild_windows
+          cmake --build build_windows --config Release
+
+      - name: Sign installer
+        if: |
+          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        uses: azure/trusted-signing-action@v0.4.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net/
+          trusted-signing-account-name: Centreon-signature-RD
+          certificate-profile-name: Cert-Signature-RD
+          files-folder: agent\installer
+          files-folder-filter: centreon-monitoring-agent.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
 
       - name: Installer test
         run: .github/scripts/agent_installer_test.ps1
