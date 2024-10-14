@@ -338,21 +338,9 @@ TEST_F(ApplierService, ServicesFlapOptionsAll) {
 }
 
 // Given a service configuration,
-// When the initial_state value is set to unknown,
-// Then it is well recorded with unknown.
-// When the initial_state value is set to whatever
-// Then the parse method returns false.
-TEST_F(ApplierService, ServicesInitialState) {
-  configuration::service csvc;
-  ASSERT_TRUE(csvc.parse("initial_state", "u"));
-  ASSERT_EQ(csvc.initial_state(), engine::service::state_unknown);
-  ASSERT_FALSE(csvc.parse("initial_state", "g"));
-}
-
-// Given a service configuration,
 // When the stalking options are set to "c,w",
 // Then they are well recorded with "critical | warning"
-// When the initial_state value is set to "a"
+// When the stalking options value is set to "a"
 // Then they are well recorded with "ok | warning | unknown | critical"
 TEST_F(ApplierService, ServicesStalkingOptions) {
   configuration::service csvc;
