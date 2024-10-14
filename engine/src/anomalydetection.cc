@@ -347,7 +347,6 @@ const anomalydetection::pointer_set& anomalydetection::get_anomaly(
  *                                          metric thresholds.
  *  @param[in] status_change                Should we follow the thresholds file
  *                                          to determine status.
- *  @param[in] initial_state                Initial service state.
  *  @param[in] max_attempts                 Max check attempts.
  *  @param[in] accept_passive_checks        Does this service accept
  *                                          check result submission ?
@@ -424,7 +423,6 @@ anomalydetection::anomalydetection(uint64_t host_id,
                                    bool status_change,
                                    bool checks_enabled,
                                    bool accept_passive_checks,
-                                   enum service::service_state initial_state,
                                    uint32_t check_interval,
                                    uint32_t retry_interval,
                                    uint32_t notification_interval,
@@ -456,7 +454,6 @@ anomalydetection::anomalydetection(uint64_t host_id,
               "",
               checks_enabled,
               accept_passive_checks,
-              initial_state,
               check_interval,
               retry_interval,
               notification_interval,
@@ -515,7 +512,6 @@ anomalydetection::~anomalydetection() {
  *  @param[in] thresholds_file,             fullname to the thresholds file.
  *  @param[in] status_change,               should we follow the thresholds file
  *                                          to determine status.
- *  @param[in] initial_state                Initial service state.
  *  @param[in] max_attempts                 Max check attempts.
  *  @param[in] accept_passive_checks        Does this service accept
  *                                          check result submission ?
@@ -591,7 +587,6 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     std::string const& metric_name,
     std::string const& thresholds_file,
     bool status_change,
-    com::centreon::engine::service::service_state initial_state,
     int max_attempts,
     double check_interval,
     double retry_interval,
@@ -761,14 +756,14 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       host_id, service_id, host_name, description,
       display_name.empty() ? description : display_name, internal_id,
       dependent_service, metric_name, thresholds_file, status_change,
-      checks_enabled, accept_passive_checks, initial_state, check_interval,
-      retry_interval, notification_interval, max_attempts,
-      first_notification_delay, recovery_notification_delay,
-      notification_period, notifications_enabled, is_volatile, event_handler,
-      event_handler_enabled, notes, notes_url, action_url, icon_image,
-      icon_image_alt, flap_detection_enabled, low_flap_threshold,
-      high_flap_threshold, check_freshness, freshness_threshold,
-      obsess_over_service, timezone, icon_id, sensitivity)};
+      checks_enabled, accept_passive_checks, check_interval, retry_interval,
+      notification_interval, max_attempts, first_notification_delay,
+      recovery_notification_delay, notification_period, notifications_enabled,
+      is_volatile, event_handler, event_handler_enabled, notes, notes_url,
+      action_url, icon_image, icon_image_alt, flap_detection_enabled,
+      low_flap_threshold, high_flap_threshold, check_freshness,
+      freshness_threshold, obsess_over_service, timezone, icon_id,
+      sensitivity)};
   try {
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);

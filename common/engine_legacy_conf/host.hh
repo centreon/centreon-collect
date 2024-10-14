@@ -86,7 +86,6 @@ class host : public object {
   std::string const& host_name() const noexcept;
   std::string const& icon_image() const noexcept;
   std::string const& icon_image_alt() const noexcept;
-  unsigned int initial_state() const noexcept;
   unsigned int low_flap_threshold() const noexcept;
   unsigned int max_check_attempts() const noexcept;
   std::string const& notes() const noexcept;
@@ -142,7 +141,6 @@ class host : public object {
   bool _set_hostgroups(std::string const& value);
   bool _set_icon_image(std::string const& value);
   bool _set_icon_image_alt(std::string const& value);
-  bool _set_initial_state(std::string const& value);
   bool _set_low_flap_threshold(unsigned int value);
   bool _set_max_check_attempts(unsigned int value);
   bool _set_notes(std::string const& value);
@@ -195,7 +193,6 @@ class host : public object {
   std::string _host_name;
   std::string _icon_image;
   std::string _icon_image_alt;
-  uint32_t _initial_state;
   opt<unsigned int> _low_flap_threshold;
   opt<unsigned int> _max_check_attempts;
   std::string _notes;

@@ -65,7 +65,6 @@ host_id_map host::hosts_by_id;
  *  @param[in] alias                         Host alias.
  *  @param[in] address                       Host address.
  *  @param[in] check_period                  Check period.
- *  @param[in] initial_state                 Initial host state.
  *  @param[in] check_interval                Normal check interval.
  *  @param[in] retry_interval                Retry check interval.
  *  @param[in] max_attempts                  Max check attempts.
@@ -140,7 +139,6 @@ host::host(uint64_t host_id,
            const std::string& alias,
            const std::string& address,
            const std::string& check_period,
-           enum host::host_state initial_state,
            uint32_t check_interval,
            uint32_t retry_interval,
            int max_attempts,
@@ -255,10 +253,10 @@ host::host(uint64_t host_id,
       _total_service_check_interval{0},
       _circular_path_checked{false},
       _contains_circular_path{false},
-      _last_state{initial_state},
-      _last_hard_state{initial_state},
-      _current_state{initial_state},
-      _initial_state{initial_state} {
+      _initial_state{state_up},
+      _last_state{_initial_state},
+      _last_hard_state{_initial_state},
+      _current_state{_initial_state} {
   // Make sure we have the data we need.
   if (name.empty() || address.empty()) {
     engine_logger(log_config_error, basic)
@@ -288,7 +286,7 @@ host::host(uint64_t host_id,
   // Duplicate string vars.
   _alias = !alias.empty() ? alias : name;
 
-  set_current_attempt(initial_state == host::state_up ? 1 : max_attempts);
+  set_current_attempt(1);
   set_modified_attributes(MODATTR_NONE);
   set_state_type(hard);
 

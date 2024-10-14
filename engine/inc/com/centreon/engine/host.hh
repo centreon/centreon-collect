@@ -50,7 +50,6 @@ class host : public notifier {
        std::string const& alias,
        std::string const& address,
        std::string const& check_period,
-       enum host::host_state initial_state,
        uint32_t check_interval,
        uint32_t retry_interval,
        int max_attempts,
@@ -288,10 +287,11 @@ class host : public notifier {
   int _circular_path_checked;
   bool _contains_circular_path;
 
+  enum host_state _initial_state;
   enum host_state _last_state;
   enum host_state _last_hard_state;
   enum host_state _current_state;
-  enum host_state _initial_state;
+
   std::list<hostgroup*> _hostgroups;
 };
 

@@ -65,7 +65,6 @@ void applier::service::add_object(configuration::service const& obj) {
   engine::service* svc{add_service(
       obj.host_id(), obj.service_id(), obj.host_name(),
       obj.service_description(), obj.display_name(), obj.check_period(),
-      static_cast<engine::service::service_state>(obj.initial_state()),
       obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
       obj.notification_interval(), obj.first_notification_delay(),
       obj.recovery_notification_delay(), obj.notification_period(),
@@ -206,7 +205,6 @@ void applier::service::add_object(const configuration::Service& obj) {
   engine::service* svc{add_service(
       obj.host_id(), obj.service_id(), obj.host_name(),
       obj.service_description(), obj.display_name(), obj.check_period(),
-      static_cast<engine::service::service_state>(obj.initial_state()),
       obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
       obj.notification_interval(), obj.first_notification_delay(),
       obj.recovery_notification_delay(), obj.notification_period(),
@@ -419,8 +417,6 @@ void applier::service::modify_object(configuration::service const& obj) {
       s->set_check_command(obj.check_command());
   s->set_event_handler(obj.event_handler());
   s->set_event_handler_enabled(obj.event_handler_enabled());
-  s->set_initial_state(
-      static_cast<engine::service::service_state>(obj.initial_state()));
   s->set_check_interval(obj.check_interval());
   s->set_retry_interval(obj.retry_interval());
   s->set_max_attempts(obj.max_check_attempts());
@@ -633,8 +629,6 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_check_command(new_obj.check_command());
   s->set_event_handler(new_obj.event_handler());
   s->set_event_handler_enabled(new_obj.event_handler_enabled());
-  s->set_initial_state(
-      static_cast<engine::service::service_state>(new_obj.initial_state()));
   s->set_check_interval(new_obj.check_interval());
   s->set_retry_interval(new_obj.retry_interval());
   s->set_max_attempts(new_obj.max_check_attempts());
