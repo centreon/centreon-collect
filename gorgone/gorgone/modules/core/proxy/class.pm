@@ -465,9 +465,6 @@ sub event {
 
     my $socket;
     if (defined($options{channel})) {
-        if (defined($self->{clients}->{ $options{channel} })) {
-            $self->{logger}->writeLogDebug("[proxy] event channel $options{channel} delete: $self->{clients}->{ $options{channel} }->{delete} com_read_internal: $self->{clients}->{ $options{channel} }->{com_read_internal}");
-        }
         return if (defined($self->{clients}->{ $options{channel} })
                    && ( $self->{clients}->{ $options{channel} }->{com_read_internal} == 0
                         || $self->{clients}->{ $options{channel} }->{delete} == 1)

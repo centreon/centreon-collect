@@ -232,6 +232,26 @@ sub execute_cmd {
     if ($options{cmd} eq 'SENDCFGFILE') {
         my $cache_dir = (defined($connector->{config}->{cache_dir}) && $connector->{config}->{cache_dir} ne '') ?
             $connector->{config}->{cache_dir} : '/var/cache/centreon';
+        # send vmware config
+        $self->send_internal_action({
+            action => 'REMOTECOPY',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    source => $cache_dir . '/config/vmware/' . $options{target} . '/centreon_vmware.json',
+                    destination => '/etc/centreon/centreon_vmware.json',
+                    cache_dir => $cache_dir,
+                    owner => 'centreon-gorgone', # gorgoned run under centreon-gorgone user. On linux only root can change the ownership of a file.
+                    group => 'centreon',
+                    metadata => {
+                        centcore_proxy => 1,
+                        centcore_cmd => 'SENDCFGFILE'
+                    }
+                }
+            }
+        });
         # engine
         $self->send_internal_action({
             action => 'REMOTECOPY',
@@ -342,6 +362,23 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERESTART') {
+        # restart centreon_vwmare
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                    metadata => {
+                        centcore_proxy => 1,
+                        centcore_cmd => 'ENGINERESTART'
+                    }
+                }
+            }
+        });
+        # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
             action => 'ACTIONENGINE',
@@ -360,6 +397,23 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RESTART') {
+        # restart centreon_vwmare
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                    metadata => {
+                        centcore_proxy => 1,
+                        centcore_cmd => 'ENGINERESTART'
+                    }
+                }
+            }
+        });
+        # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
             action => 'COMMAND',
@@ -379,6 +433,22 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERELOAD') {
+        # restart centreon_vwmare
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                    metadata => {
+                        centcore_proxy => 1,
+                        centcore_cmd => 'ENGINERESTART'
+                    }
+                }
+            }
+        });
         my $cmd = $self->{pollers}->{ $options{target} }->{engine_reload_command};
         $self->send_internal_action({
             action => 'ACTIONENGINE',
@@ -397,6 +467,22 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RELOAD') {
+        # restart centreon_vwmare
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                    metadata => {
+                        centcore_proxy => 1,
+                        centcore_cmd => 'ENGINERESTART'
+                    }
+                }
+            }
+        });
         my $cmd = $self->{pollers}->{$options{target}}->{engine_reload_command};
         $self->send_internal_action({
             action => 'COMMAND',
@@ -534,6 +620,8 @@ sub execute_cmd {
                 ]
             }
         });
+    } else{
+        $self->{logger}->writeLogError('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
     }
 
     return 0;
