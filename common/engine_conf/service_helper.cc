@@ -229,7 +229,6 @@ void service_helper::_init() {
                                   action_svc_unknown | action_svc_critical);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(ServiceStatus::state_ok);
   obj->set_is_volatile(false);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
