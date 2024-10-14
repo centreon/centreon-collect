@@ -191,7 +191,9 @@ else()
     Boost::program_options
     fmt::fmt)
 
-    add_subdirectory(installer)
+    if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
+      add_subdirectory(installer)
+    endif()
 
 endif()
 

@@ -51,14 +51,17 @@ add_custom_command(
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
   COMMAND ${MKNSIS} "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.nsi")
 
+add_custom_target("centreon-monitoring-agent-modifier" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe")
 
 #final installer
 add_custom_command(
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi" "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe" ${COMMON_INSTALLERS_FILES}
+  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi" "centreon-monitoring-agent-modifier" ${COMMON_INSTALLERS_FILES}
   COMMENT "--------- Generating cma configuration installer --------"
   OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
   COMMAND ${MKNSIS} "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi")
 
-add_custom_target("centreon-monitoring-agent-installer" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
+if (WITH_BUILD_AGENT_INSTALLER)
+  add_custom_target("centreon-monitoring-agent-installer" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
+endif()
 
