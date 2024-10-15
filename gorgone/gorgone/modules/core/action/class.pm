@@ -550,7 +550,7 @@ sub action_command {
 
 sub action_processcopy {
     my ($self, %options) = @_;
-    
+    my $dest_filename = $options{data}->{content}->{destination};
     if (!defined($options{data}->{content}) || $options{data}->{content} eq '') {
         $self->send_log(
             code => GORGONE_ACTION_FINISH_KO,
@@ -566,7 +566,10 @@ sub action_processcopy {
         my $fh;
         if (!sysopen($fh, $cache_file, O_RDWR|O_APPEND|O_CREAT, 0660)) {
             # no need to insert too many logs
-            return -1 if (defined($self->{process_copy_files_error}->{$cache_file}));
+            if (defined($self->{process_copy_files_error}->{$cache_file})) {
+                $self->{logger}->writeLogError("Error trying to add data to file $cache_file !");
+                return -1
+            }
             $self->{process_copy_files_error}->{$cache_file} = 1;
             $self->send_log(
                 code => GORGONE_ACTION_FINISH_KO,
@@ -595,19 +598,19 @@ sub action_processcopy {
                 message => 'process copy inprogress',
             }
         );
-        $self->{logger}->writeLogInfo("[action] Copy processing - Received chunk for '" . $options{data}->{content}->{destination} . "'");
+        $self->{logger}->writeLogInfo("[action] Copy processing - Received chunk for '" . $dest_filename . "'");
         return 0;
     } elsif ($options{data}->{content}->{status} eq 'end' && defined($options{data}->{content}->{md5})) {
         delete $self->{process_copy_files_error}->{$cache_file} if (defined($self->{process_copy_files_error}->{$cache_file}));
         my $local_md5_hex = file_md5_hex($cache_file);
         if (defined($local_md5_hex) && $options{data}->{content}->{md5} eq $local_md5_hex) {
             if ($options{data}->{content}->{type} eq "archive") {
-                if (! -d $options{data}->{content}->{destination}) {
-                    make_path($options{data}->{content}->{destination});
+                if (! -d $dest_filename) {
+                    make_path($dest_filename);
                 }
 
                 my $tar = Archive::Tar->new();
-                $tar->setcwd($options{data}->{content}->{destination});
+                $tar->setcwd($dest_filename);
                 unless ($tar->read($cache_file, undef, { extract => 1 })) {
                     my $tar_error = $tar->error();
                     $self->send_log(
@@ -619,11 +622,28 @@ sub action_processcopy {
                     $self->{logger}->writeLogError("[action] Copy processing - Untar failed: $tar_error");
                     return -1;
                 }
-            } elsif ($options{data}->{content}->{type} eq 'regular') {
-                copy($cache_file, $options{data}->{content}->{destination});
+            }
+            elsif ($options{data}->{content}->{type} eq 'regular') {
+                my $copy_status = copy($cache_file, $dest_filename);
+                if ($copy_status != 1){
+                    $self->send_log(
+                        code => GORGONE_ACTION_FINISH_KO,
+                        token => $options{token},
+                        logging => $options{data}->{logging},
+                        data => { message => "Can't copy file to $dest_filename, $!" }
+                    );
+                    $self->{logger}->writeLogError("[action] Copy processing - Can't copy file to $dest_filename, $!");
+                    return -1
+                }
+
                 my $uid = getpwnam($options{data}->{content}->{owner});
                 my $gid = getgrnam($options{data}->{content}->{group});
-                chown($uid, $gid, $options{data}->{content}->{destination});
+                my $chown_status = chown($uid, $gid, $dest_filename);
+
+                # this should be logged but not quiting the sub, as most of the time it will fail, as we can't change ownership as centreon-gorgone user.
+                if ($chown_status == 0) {
+                    $self->{logger}->writeLogError("[action] Copy processing - can't change permission of file $dest_filename: $!");
+                }
             }
         } else {
             $self->send_log(
@@ -636,7 +656,6 @@ sub action_processcopy {
             return -1;
         }
     }
-
     unlink($cache_file);
 
     $self->send_log(
@@ -647,7 +666,7 @@ sub action_processcopy {
             message => "process copy finished successfully",
         }
     );
-    $self->{logger}->writeLogInfo("[action] Copy processing - Copy to '" . $options{data}->{content}->{destination} . "' finished successfully");
+    $self->{logger}->writeLogInfo("[action] Copy processing - Copy to '" . $dest_filename . "' finished successfully");
     return 0;
 }
 
