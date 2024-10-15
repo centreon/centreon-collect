@@ -486,6 +486,35 @@ message EngineContact {
   string name = 1;
   string alias = 2;
   string email = 3;
+  repeated string contact_groups = 4;
+  string pager = 5;
+  string host_notification_period = 6;
+  repeated string host_notification_commands = 7;
+  string service_notification_period = 8;
+  repeated string service_notification_commands = 9;
+  bool host_notification_on_up = 10;
+  bool host_notification_on_down = 11;
+  bool host_notification_on_unreachable = 12;
+  bool host_notification_on_flappingstart = 13;
+  bool host_notification_on_flappingstop = 14;
+  bool host_notification_on_flappingdisabled = 15;
+  bool host_notification_on_downtime = 16;
+  bool service_notification_on_ok = 17;
+  bool service_notification_on_warning = 18;
+  bool service_notification_on_critical = 19;
+  bool service_notification_on_unknown = 20;
+  bool service_notification_on_flappingstart = 21;
+  bool service_notification_on_flappingstop = 22;
+  bool service_notification_on_flappingdisabled = 23;
+  bool service_notification_on_downtime = 24;
+  bool host_notifications_enabled = 25;
+  bool service_notifications_enabled = 26;
+  bool can_submit_commands = 27;
+  bool retain_status_information = 28;
+  bool retain_nonstatus_information = 29;
+  string timezone = 30;
+  repeated string addresses = 31;
+  repeated string custom_variables = 32;
 }
 
 message NameIdentifier {
