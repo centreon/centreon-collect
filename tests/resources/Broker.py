@@ -1741,6 +1741,46 @@ def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout
     return None
 
 
+def ctn_compare_metrics_of_service(service_id: int, metrics: list, timeout: int = 60):
+    """
+    check if the metrics of a service contains the list passed in param
+
+    Warning:
+        A service is identified by a host ID and a service ID. This function should be used with caution.
+
+    Args:
+        service_id (int): The ID of the service.
+        metrics (str): expected metrics.
+        timeout (int, optional): Defaults to 60.
+
+    Returns:
+        A list of metric IDs or None if no metric found.
+    """
+
+    limit = time.time() + timeout
+
+    select_request = f"SELECT metric_name FROM metrics JOIN index_data ON index_id=id WHERE service_id={service_id}"
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                metric_in_db = [r['metric_name'] for r in result]
+                if set(metrics).issubset(set(metric_in_db)):
+                    return True
+                time.sleep(10)
+    logger.console(f"no metric found for service_id={service_id}")
+    return False
+
+
+
 def ctn_get_not_existing_metrics(count: int):
     """
     Return a list of metrics that does not exist.
