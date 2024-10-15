@@ -305,6 +305,7 @@ Ctn Save Logs
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     Copy Files    ${BROKER_LOG}/*    ${failDir}
+    Copy Files    ${BROKER_LIB}/*    ${failDir}
     Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0

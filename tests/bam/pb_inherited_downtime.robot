@@ -164,7 +164,8 @@ BEBAMIGNDTU1
     ...    the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
-    Ctn Clear Retention
+    # Why do I need to clear the cache file?
+    # Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
