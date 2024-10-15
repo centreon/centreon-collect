@@ -1123,7 +1123,7 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         """)
 
 
-def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str,file :str= "contacts.cfg"):
     """
     Modify a parameter in the contacts.cfg for the Engine config idx.
 
@@ -1132,12 +1132,16 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
         desc (str): Contact name
         key (str): The parameter whose value must change.
         value (str): The new value to set.
+        file (str): The file to modify, default value 'contacts.cfg'
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
+    if file == "contactTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
 
-    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, f"    {key}              {value}\n")
@@ -1146,6 +1150,39 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
+def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, file: str = 'contacts.cfg'):
+    """
+    Delete a parameter in the contact.cfg or file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): service description of the services to modify.
+        key (str): the parameter that will be deleted.
+        file (str): The file to modify, default value 'contact.cfg'
+    """
+    
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "contactTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            print("here" + lines[i])
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    break
+            break
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     """
@@ -2857,6 +2894,26 @@ def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
         ff.writelines(lines)
 
+def ctn_add_template_to_contact(poller: int, tmpl: str, c_lst):
+    """
+    Add a contact template to contact.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tmpl (str): The name of the template to add.
+        c_lst (list): A list of contact name.
+    """
+    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*contact_name\s*(\S+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None and m.group(1) in c_lst:
+            lines.insert(
+                i + 1, f"    use                     {tmpl}\n")
+
+    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "w") as ff:
+        ff.writelines(lines)
 
 def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     """
@@ -3816,6 +3873,30 @@ def ctn_get_service_info_grpc(id_h:int,id_s:int):
                 host = stub.GetService(request)
                 host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
                 return host_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_contact_info_grpc(name:str):
+    """
+    Retrieve contact information via a gRPC call.
+
+    Args:
+        name: The name of the contact to retrieve.
+
+    Returns:
+        A dictionary containing the contact information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.ContactIdentifier(name=name)
+            try:
+                contact = stub.GetContact(request)
+                contact_dict = MessageToDict(contact, always_print_fields_with_no_presence=True)
+                return contact_dict
             except Exception as e:
                 logger.console(f"gRPC server not ready {e}")
     return {}
