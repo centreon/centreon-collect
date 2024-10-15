@@ -57,7 +57,6 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"action_url", SETTER(std::string const&, _set_action_url)},
     {"icon_image", SETTER(std::string const&, _set_icon_image)},
     {"icon_image_alt", SETTER(std::string const&, _set_icon_image_alt)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
     {"max_check_attempts", SETTER(unsigned int, _set_max_check_attempts)},
     {"check_interval", SETTER(unsigned int, _set_check_interval)},
     {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
@@ -111,7 +110,6 @@ static unsigned short const default_flap_detection_options(service::ok |
                                                            service::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(broker::Service_State_OK);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -145,7 +143,6 @@ service::service()
       _flap_detection_options(default_flap_detection_options),
       _freshness_threshold(default_freshness_threshold),
       _high_flap_threshold(default_high_flap_threshold),
-      _initial_state(default_initial_state),
       _is_volatile(default_is_volatile),
       _low_flap_threshold(default_low_flap_threshold),
       _max_check_attempts(default_max_check_attempts),
@@ -194,7 +191,6 @@ service::service(service const& other)
       _host_name(other._host_name),
       _icon_image(other._icon_image),
       _icon_image_alt(other._icon_image_alt),
-      _initial_state(other._initial_state),
       _is_volatile(other._is_volatile),
       _low_flap_threshold(other._low_flap_threshold),
       _max_check_attempts(other._max_check_attempts),
@@ -253,7 +249,6 @@ service& service::operator=(service const& other) {
     _host_name = other._host_name;
     _icon_image = other._icon_image;
     _icon_image_alt = other._icon_image_alt;
-    _initial_state = other._initial_state;
     _is_volatile = other._is_volatile;
     _low_flap_threshold = other._low_flap_threshold;
     _max_check_attempts = other._max_check_attempts;
@@ -412,11 +407,6 @@ bool service::operator==(service const& other) const noexcept {
   if (_icon_image_alt != other._icon_image_alt) {
     _logger->debug(
         "configuration::service::equality => icon_image_alt don't match");
-    return false;
-  }
-  if (_initial_state != other._initial_state) {
-    _logger->debug(
-        "configuration::service::equality => initial_state don't match");
     return false;
   }
   if (_is_volatile != other._is_volatile) {
@@ -618,8 +608,6 @@ bool service::operator<(service const& other) const noexcept {
     return _icon_image < other._icon_image;
   else if (_icon_image_alt != other._icon_image_alt)
     return _icon_image_alt < other._icon_image_alt;
-  else if (_initial_state != other._initial_state)
-    return _initial_state < other._initial_state;
   else if (_is_volatile != other._is_volatile)
     return _is_volatile < other._is_volatile;
   else if (_low_flap_threshold != other._low_flap_threshold)
@@ -1028,15 +1016,6 @@ std::string const& service::icon_image() const noexcept {
  */
 std::string const& service::icon_image_alt() const noexcept {
   return _icon_image_alt;
-}
-
-/**
- *  Get initial_state.
- *
- *  @return The initial_state.
- */
-unsigned int service::initial_state() const noexcept {
-  return _initial_state;
 }
 
 /**
@@ -1585,29 +1564,6 @@ bool service::_set_icon_image(std::string const& value) {
  */
 bool service::_set_icon_image_alt(std::string const& value) {
   _icon_image_alt = value;
-  return true;
-}
-
-/**
- *  Set initial_state value.
- *
- *  @param[in] value The new initial_state value.
- *
- *  @return True on success, otherwise false.
- */
-bool service::_set_initial_state(std::string const& value) {
-  std::string_view data(value);
-  data = absl::StripAsciiWhitespace(data);
-  if (data == "o" || data == "ok")
-    _initial_state = broker::Service_State_OK;
-  else if (data == "w" || data == "warning")
-    _initial_state = broker::Service_State_WARNING;
-  else if (data == "u" || data == "unknown")
-    _initial_state = broker::Service_State_UNKNOWN;
-  else if (data == "c" || data == "critical")
-    _initial_state = broker::Service_State_CRITICAL;
-  else
-    return false;
   return true;
 }
 

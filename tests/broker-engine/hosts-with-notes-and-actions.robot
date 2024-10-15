@@ -284,7 +284,6 @@ EBSN5
     ...    statusmap_image
     ...    template_statusmap_image
     ...    hostTemplates.cfg
-    Ctn Engine Config Set Value In Hosts    0    host_template_1    initial_state    down    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    check_interval    2    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    retry_interval    1    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts
@@ -370,7 +369,7 @@ EBSN5
     Should Be Equal As Strings    ${output}[iconImageAlt]    template_icon_image_alt    iconImageAlt
     Should Be Equal As Strings    ${output}[vrmlImage]    template_vrml_image    vrmlImage
     Should Be Equal As Strings    ${output}[statusmapImage]    template_gd2_image    statusmapImage
-    Should Be Equal As Strings    ${output}[initialState]    DOWN    initialState
+    Should Be Equal As Strings    ${output}[initialState]    UP    initialState should take default value "UP"
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval
     Should Be Equal As Numbers    ${output}[recoveryNotificationDelay]    1    recoveryNotificationDelay
@@ -486,7 +485,6 @@ EBSN6
     Ctn Engine Config Set Value In Hosts    0    host_1    vrml_image    vrml_image
     Ctn Engine Config Set Value In Hosts    0    host_1    gd2_image    gd2_image
     Ctn Engine Config Set Value In Hosts    0    host_1    statusmap_image    statusmap_image
-    Ctn Engine Config Set Value In Hosts    0    host_1    initial_state    down
     Ctn Engine Config Set Value In Hosts    0    host_1    check_interval    3
     Ctn Engine Config Set Value In Hosts    0    host_1    retry_interval    2
     Ctn Engine Config Set Value In Hosts    0    host_1    recovery_notification_delay    2
@@ -587,7 +585,6 @@ EBSN6
     ...    statusmap_image
     ...    template_statusmap_image
     ...    hostTemplates.cfg
-    Ctn Engine Config Set Value In Hosts    0    host_template_1    initial_state    down    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    check_interval    2    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    retry_interval    1    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts
@@ -673,7 +670,7 @@ EBSN6
     Should Be Equal As Strings    ${output}[iconImageAlt]    icon_image_alt    iconImageAlt
     Should Be Equal As Strings    ${output}[vrmlImage]    vrml_image    vrmlImage
     Should Be Equal As Strings    ${output}[statusmapImage]    gd2_image    statusmapImage
-    Should Be Equal As Strings    ${output}[initialState]    DOWN    initialState
+    Should Be Equal As Strings    ${output}[initialState]    UP    initialState should take default value "UP"
     Should Be Equal As Numbers    ${output}[checkInterval]    3    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    2.0    retryInterval
     Should Be Equal As Numbers    ${output}[recoveryNotificationDelay]    2    recoveryNotificationDelay
@@ -850,7 +847,6 @@ EBSN7
     ...    statusmap_image
     ...    template_statusmap_image
     ...    hostTemplates.cfg
-    Ctn Engine Config Set Value In Hosts    0    host_template_1    initial_state    up    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    check_interval    2    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    retry_interval    1    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts
@@ -942,7 +938,7 @@ EBSN7
     Should Be Equal As Strings    ${output}[iconImageAlt]    template_icon_image_alt    iconImageAlt
     Should Be Equal As Strings    ${output}[vrmlImage]    template_vrml_image    vrmlImage
     Should Be Equal As Strings    ${output}[statusmapImage]    template_gd2_image    statusmapImage
-    Should Be Equal As Strings    ${output}[initialState]    UP    initialState
+    Should Be Equal As Strings    ${output}[initialState]    UP    initialState should take default value "UP"
     Should Be Equal As Numbers    ${output}[checkInterval]    2    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    1.0    retryInterval
     Should Be Equal As Numbers    ${output}[recoveryNotificationDelay]    1    recoveryNotificationDelay
@@ -1109,7 +1105,6 @@ EBSN8
     ...    statusmap_image
     ...    template_statusmap_image
     ...    hostTemplates.cfg
-    Ctn Engine Config Set Value In Hosts    0    host_template_1    initial_state    up    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    check_interval    2    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    retry_interval    1    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts
@@ -1192,7 +1187,6 @@ EBSN8
     Ctn Engine Config Set Value In Hosts    0    host_1    vrml_image    vrml_image
     Ctn Engine Config Set Value In Hosts    0    host_1    gd2_image    gd2_image
     Ctn Engine Config Set Value In Hosts    0    host_1    statusmap_image    statusmap_image
-    Ctn Engine Config Set Value In Hosts    0    host_1    initial_state    down
     Ctn Engine Config Set Value In Hosts    0    host_1    check_interval    3
     Ctn Engine Config Set Value In Hosts    0    host_1    retry_interval    2
     Ctn Engine Config Set Value In Hosts    0    host_1    recovery_notification_delay    2
@@ -1251,7 +1245,7 @@ EBSN8
     Should Be Equal As Strings    ${output}[iconImageAlt]    icon_image_alt    iconImageAlt
     Should Be Equal As Strings    ${output}[vrmlImage]    vrml_image    vrmlImage
     Should Be Equal As Strings    ${output}[statusmapImage]    gd2_image    statusmapImage
-    Should Be Equal As Strings    ${output}[initialState]    DOWN    initialState
+    Should Be Equal As Strings    ${output}[initialState]    UP    initialState should take default value "UP"
     Should Be Equal As Numbers    ${output}[checkInterval]    3    checkInterval
     Should Be Equal As Numbers    ${output}[retryInterval]    2.0    retryInterval
     Should Be Equal As Numbers    ${output}[recoveryNotificationDelay]    2    recoveryNotificationDelay
@@ -1306,4 +1300,3 @@ EBSN8
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-

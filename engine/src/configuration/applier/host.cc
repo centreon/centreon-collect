@@ -58,9 +58,8 @@ void applier::host::add_object(const configuration::host& obj) {
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
       obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
-      obj.address(), obj.check_period(),
-      static_cast<engine::host::host_state>(obj.initial_state()),
-      obj.check_interval(), obj.retry_interval(), obj.max_check_attempts(),
+      obj.address(), obj.check_period(), obj.check_interval(),
+      obj.retry_interval(), obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & configuration::host::up),
       static_cast<bool>(obj.notification_options() & configuration::host::down),
       static_cast<bool>(obj.notification_options() &
@@ -183,9 +182,8 @@ void applier::host::add_object(const configuration::Host& obj) {
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
       obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
-      obj.address(), obj.check_period(),
-      static_cast<engine::host::host_state>(obj.initial_state()),
-      obj.check_interval(), obj.retry_interval(), obj.max_check_attempts(),
+      obj.address(), obj.check_period(), obj.check_interval(),
+      obj.retry_interval(), obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & action_hst_up),
       static_cast<bool>(obj.notification_options() & action_hst_down),
       static_cast<bool>(obj.notification_options() & action_hst_unreachable),
@@ -321,8 +319,6 @@ void applier::host::modify_object(configuration::host const& obj) {
   it_obj->second->set_address(obj.address());
   if (!obj.check_period().empty())
     it_obj->second->set_check_period(obj.check_period());
-  it_obj->second->set_initial_state(
-      static_cast<engine::host::host_state>(obj.initial_state()));
   it_obj->second->set_check_interval(static_cast<double>(obj.check_interval()));
   it_obj->second->set_retry_interval(static_cast<double>(obj.retry_interval()));
   it_obj->second->set_max_attempts(static_cast<int>(obj.max_check_attempts()));
@@ -552,8 +548,6 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_address(new_obj.address());
   if (!new_obj.check_period().empty())
     h->set_check_period(new_obj.check_period());
-  h->set_initial_state(
-      static_cast<engine::host::host_state>(new_obj.initial_state()));
   h->set_check_interval(static_cast<double>(new_obj.check_interval()));
   h->set_retry_interval(static_cast<double>(new_obj.retry_interval()));
   h->set_max_attempts(static_cast<int>(new_obj.max_check_attempts()));

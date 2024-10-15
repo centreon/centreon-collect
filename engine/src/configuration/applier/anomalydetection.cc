@@ -62,11 +62,10 @@ void applier::anomalydetection::add_object(
       obj.host_id(), obj.service_id(), obj.host_name(),
       obj.service_description(), obj.display_name(), obj.internal_id(),
       obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
-      obj.status_change(),
-      static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
-      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
-      obj.notification_interval(), obj.first_notification_delay(),
-      obj.recovery_notification_delay(), obj.notification_period(),
+      obj.status_change(), obj.max_check_attempts(), obj.check_interval(),
+      obj.retry_interval(), obj.notification_interval(),
+      obj.first_notification_delay(), obj.recovery_notification_delay(),
+      obj.notification_period(),
       static_cast<bool>(obj.notification_options() &
                         configuration::anomalydetection::ok),
       static_cast<bool>(obj.notification_options() &
@@ -179,11 +178,10 @@ void applier::anomalydetection::add_object(
       obj.host_id(), obj.service_id(), obj.host_name(),
       obj.service_description(), obj.display_name(), obj.internal_id(),
       obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
-      obj.status_change(),
-      static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
-      obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
-      obj.notification_interval(), obj.first_notification_delay(),
-      obj.recovery_notification_delay(), obj.notification_period(),
+      obj.status_change(), obj.max_check_attempts(), obj.check_interval(),
+      obj.retry_interval(), obj.notification_interval(),
+      obj.first_notification_delay(), obj.recovery_notification_delay(),
+      obj.notification_period(),
       static_cast<bool>(obj.notification_options() & action_svc_ok),
       static_cast<bool>(obj.notification_options() & action_svc_unknown),
       static_cast<bool>(obj.notification_options() & action_svc_warning),
@@ -357,8 +355,6 @@ void applier::anomalydetection::modify_object(
   s->set_thresholds_file(obj.thresholds_file());
   s->set_event_handler(obj.event_handler());
   s->set_event_handler_enabled(obj.event_handler_enabled());
-  s->set_initial_state(static_cast<engine::anomalydetection::service_state>(
-      obj.initial_state()));
   s->set_check_interval(obj.check_interval());
   s->set_retry_interval(obj.retry_interval());
   s->set_max_attempts(obj.max_check_attempts());
@@ -550,8 +546,6 @@ void applier::anomalydetection::modify_object(
   s->set_thresholds_file(new_obj.thresholds_file());
   s->set_event_handler(new_obj.event_handler());
   s->set_event_handler_enabled(new_obj.event_handler_enabled());
-  s->set_initial_state(static_cast<engine::anomalydetection::service_state>(
-      new_obj.initial_state()));
   s->set_check_interval(new_obj.check_interval());
   s->set_retry_interval(new_obj.retry_interval());
   s->set_max_attempts(new_obj.max_check_attempts());

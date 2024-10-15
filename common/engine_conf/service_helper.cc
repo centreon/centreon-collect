@@ -90,25 +90,17 @@ bool service_helper::hook(std::string_view key, const std::string_view& value) {
         return false;
     }
     obj->set_flap_detection_options(options);
-    return true;
-  } else if (key == "initial_state") {
-    ServiceStatus initial_state;
-    if (value == "o" || value == "ok")
-      initial_state = ServiceStatus::state_ok;
-    else if (value == "w" || value == "warning")
-      initial_state = ServiceStatus::state_warning;
-    else if (value == "u" || value == "unknown")
-      initial_state = ServiceStatus::state_unknown;
-    else if (value == "c" || value == "critical")
-      initial_state = ServiceStatus::state_critical;
-    else
-      return false;
-    obj->set_initial_state(initial_state);
+    set_changed(Service::descriptor()
+                    ->FindFieldByName("flap_detection_options")
+                    ->index());
     return true;
   } else if (key == "notification_options") {
     uint16_t options(action_svc_none);
     if (fill_service_notification_options(&options, value)) {
       obj->set_notification_options(options);
+      set_changed(Service::descriptor()
+                      ->FindFieldByName("notification_options")
+                      ->index());
       return true;
     } else
       return false;
@@ -136,6 +128,8 @@ bool service_helper::hook(std::string_view key, const std::string_view& value) {
       else
         return false;
     }
+    set_changed(
+        Service::descriptor()->FindFieldByName("stalking_options")->index());
     obj->set_stalking_options(options);
     return true;
   } else if (key == "category_tags") {
@@ -235,7 +229,6 @@ void service_helper::_init() {
                                   action_svc_unknown | action_svc_critical);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(ServiceStatus::state_ok);
   obj->set_is_volatile(false);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);

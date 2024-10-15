@@ -310,19 +310,6 @@ TEST_F(ApplierService, PbServicesFlapOptionsAll) {
 }
 
 // Given a service configuration,
-// When the initial_state value is set to unknown,
-// Then it is well recorded with unknown.
-// When the initial_state value is set to whatever
-// Then the parse method returns false.
-TEST_F(ApplierService, PbServicesInitialState) {
-  configuration::Service csvc;
-  configuration::service_helper csvc_hlp(&csvc);
-  csvc_hlp.hook("initial_state", "u");
-  ASSERT_EQ(csvc.initial_state(), engine::service::state_unknown);
-  ASSERT_FALSE(csvc_hlp.hook("initial_state", "g"));
-}
-
-// Given a service configuration,
 // When the stalking options are set to "c,w",
 // Then they are well recorded with "critical | warning"
 // When the initial_state value is set to "a"
