@@ -434,6 +434,10 @@ def ctn_kill_engine():
 
 
 def ctn_clear_retention():
+    """
+    Clear all retention files, from retention.dat, to *.cache.* files.
+    """
+
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")

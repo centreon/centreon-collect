@@ -166,6 +166,8 @@ BEBAMIGNDTU1
     Ctn Clear Commands Status
     # Why do I need to clear the cache file?
     # Ctn Clear Retention
+    Ctn Clear Cache
+
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
