@@ -39,6 +39,11 @@ class state {
     uint32_t sql_slowest_queries_count = false;
   };
 
+  struct peer {
+    std::string name;
+    time_t connected_since;
+  };
+
  private:
   std::string _cache_dir;
   uint32_t _poller_id;
@@ -50,8 +55,8 @@ class state {
 
   static stats _stats_conf;
 
-  absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
-  mutable std::mutex _connected_pollers_m;
+  absl::flat_hash_map<uint64_t, peer> _connected_peers;
+  mutable std::mutex _connected_peers_m;
 
   state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
@@ -72,11 +77,12 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
-  void add_poller(uint64_t poller_id, const std::string& poller_name);
-  void remove_poller(uint64_t poller_id);
+  void add_peer(uint64_t poller_id, const std::string& poller_name);
+  void remove_peer(uint64_t poller_id);
   bool has_connection_from_poller(uint64_t poller_id) const;
   static stats& mut_stats_conf();
   static const stats& stats_conf();
+  std::vector<std::pair<uint64_t, peer>> connected_peers() const;
 };
 }  // namespace applier
 }  // namespace config
