@@ -20,7 +20,6 @@
 #define CCB_BBDO_STOP_HH
 
 #include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
