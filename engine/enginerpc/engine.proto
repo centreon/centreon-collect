@@ -665,6 +665,14 @@ message EngineService {
   string thresholds_file = 114;
   double sensitivity = 115;
   uint64 dependent_service_id = 116;
+  enum ServiceType {
+    NONE_TYPE = 0;
+    SERVICE = 1;
+    METASERVICE = 3;
+    BA = 4;
+    ANOMALY_DETECTION = 5;
+  }
+  ServiceType service_type = 117;
 }
 
 message EngineComment {

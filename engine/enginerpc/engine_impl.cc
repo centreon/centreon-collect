@@ -765,6 +765,9 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
           cv.second.value(), cv.second.is_sent(),
           cv.second.has_been_modified()));
 
+    service->set_service_type(static_cast<EngineService::ServiceType>(
+        selectedservice->get_service_type() + 1));
+
     // if anomaly detection , set the anomaly detection fields
     if (selectedservice->get_service_type() ==
         service_type::ANOMALY_DETECTION) {
