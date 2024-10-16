@@ -20,7 +20,6 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -255,19 +254,23 @@ const config::applier::state::stats& state::stats_conf() {
  * @param poller_id The id of the poller (an id by host)
  * @param poller_name The name of the poller
  */
-void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+void state::add_peer(uint64_t poller_id, const std::string& poller_name) {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end()) {
+  auto found = _connected_peers.find(poller_id);
+  if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
-    _connected_pollers[poller_id] = poller_name;
+    _connected_peers[poller_id] = {
+        .name = poller_name,
+        .connected_since = time(nullptr),
+    };
   } else {
     logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it "
         "with '{}'",
-        _connected_pollers[poller_id], poller_id, poller_name);
-    found->second = poller_name;
+        _connected_peers[poller_id].name, poller_id, poller_name);
+    found->second.name = poller_name;
+    found->second.connected_since = time(nullptr);
   }
 }
 
@@ -276,16 +279,16 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
  *
  * @param poller_id The id of the poller to remove.
  */
-void state::remove_poller(uint64_t poller_id) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+void state::remove_peer(uint64_t poller_id) {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end())
+  auto found = _connected_peers.find(poller_id);
+  if (found == _connected_peers.end())
     logger->warn("There is currently no poller {} connected", poller_id);
   else {
     logger->info("Poller '{}' with id {} just disconnected",
-                 _connected_pollers[poller_id], poller_id);
-    _connected_pollers.erase(found);
+                 _connected_peers[poller_id].name, poller_id);
+    _connected_peers.erase(found);
   }
 }
 
@@ -295,6 +298,19 @@ void state::remove_poller(uint64_t poller_id) {
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
-  return _connected_pollers.contains(poller_id);
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  return _connected_peers.contains(poller_id);
+}
+
+/**
+ * @brief Get the list of connected pollers.
+ *
+ * @return A vector of pairs containing the poller id and the poller name.
+ */
+std::vector<std::pair<uint64_t, state::peer>> state::connected_peers() const {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  std::vector<std::pair<uint64_t, peer>> retval;
+  for (auto& [id, name] : _connected_peers)
+    retval.emplace_back(id, name);
+  return retval;
 }

@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/broker/broker_impl.hh"
+#include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
@@ -430,4 +431,18 @@ grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
   } catch (const std::exception& e) {
     return grpc::Status(grpc::INVALID_ARGUMENT, grpc::string(e.what()));
   }
+}
+
+grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
+                                   [[maybe_unused]],
+                                   const ::google::protobuf::Empty* request
+                                   [[maybe_unused]],
+                                   PeerList* response) {
+  for (auto& p : config::applier::state::instance().connected_peers()) {
+    auto peer = response->add_peers();
+    peer->set_id(p.first);
+    peer->set_name(p.second.name);
+    peer->mutable_connected_since()->set_seconds(p.second.connected_since);
+  }
+  return grpc::Status::OK;
 }

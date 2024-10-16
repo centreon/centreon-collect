@@ -28,9 +28,8 @@
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
+// #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -627,7 +626,7 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  config::applier::state::instance().remove_poller(_poller_id);
+  config::applier::state::instance().remove_peer(_poller_id);
   return retval;
 }
 
@@ -943,7 +942,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_poller(_poller_id, _poller_name);
+  config::applier::state::instance().add_peer(_poller_id, _poller_name);
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 
