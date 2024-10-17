@@ -34,7 +34,7 @@ if(LEGACY_ENGINE)
     "${INC_DIR}/utils.hh")
   set_property(TARGET "externalcmd" PROPERTY PREFIX "")
   target_precompile_headers(externalcmd PRIVATE precomp_inc/precomp.hh)
-  add_dependencies(externalcmd centreon_clib pb_neb_lib)
+  add_dependencies(externalcmd centreon_clib pb_neb_lib pb_common_lib)
   target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
   # Install rule.
@@ -55,7 +55,7 @@ else()
   set_property(TARGET "externalcmd" PROPERTY PREFIX "")
   target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
-  add_dependencies(externalcmd centreon_clib pb_neb_lib)
+  add_dependencies(externalcmd centreon_clib pb_neb_lib pb_common_lib)
   target_link_libraries(externalcmd centreon_clib spdlog::spdlog)
 
   install(
