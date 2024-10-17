@@ -64,15 +64,15 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 else()
   # we need not many things to just compile centreon-monitoring-agent
   # (centagent)
-  set(SOURCES 
+  set(SOURCES
       ${SRC_DIR}/perfdata.cc
       ${SRC_DIR}/rapidjson_helper.cc
       ${SRC_DIR}/utf8.cc)
 endif()
 
 # Include directories.
-include_directories("${INCLUDE_DIR}" ${HTTP_INCLUDE_DIR} ${VCPKG_INCLUDE_DIR}
-                    ${PROCESS_INCLUDE_DIR})
+include_directories(${INCLUDE_DIR} ${HTTP_INCLUDE_DIR} ${VCPKG_INCLUDE_DIR}
+  ${PROCESS_INCLUDE_DIR})
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_library(centreon_common STATIC ${SOURCES})
