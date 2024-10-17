@@ -27,41 +27,24 @@
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/spdlog.h>
 
-#include <rapidjson/document.h>
 
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
-#include "com/centreon/engine/host.hh"
 
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
-#include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/servicegroup.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
@@ -1228,7 +1211,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     /* set the acknowledgement flag */
     temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_host_acknowledgement_comments(temp_host.get());
     return 0;
@@ -1268,7 +1251,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     /* set the acknowledgement flag */
     temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_service_acknowledgement_comments(temp_service.get());
     return 0;
@@ -1324,7 +1307,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
                         request->ack_data(),
                         notifier::notification_option_none);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
         comment::host, comment::acknowledgment, temp_host->host_id(), 0,
@@ -1387,7 +1370,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
                            request->ack_author(), request->ack_data(),
                            notifier::notification_option_none);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
 
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
@@ -2201,7 +2184,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
     const DowntimeCriterias* request,
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
-  auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::list<service_downtime*> dtlist;
     /* iterate through all current downtime(s) */
     for (auto it = downtimes::downtime_manager::instance()
@@ -2786,8 +2769,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         /* modify the check interval */
         temp_host->set_check_interval(request->dval());
         attr = MODATTR_NORMAL_CHECK_INTERVAL;
-        temp_host->set_modified_attributes(
-            temp_host->get_modified_attributes() | attr);
+        temp_host->add_modified_attributes(attr);
 
         /* schedule a host check if previous interval was 0 (checks were not
          * regularly scheduled) */

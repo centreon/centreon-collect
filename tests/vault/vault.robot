@@ -12,7 +12,7 @@ Test Teardown       Ctn Save Logs If Failed
 *** Test Cases ***
 BWVC1
     [Documentation]    Broker is tuned with a wrong vault configuration and the env file doesn't exist.
-    [Tags]    broker    engine    MON-116610
+    [Tags]    broker    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
@@ -30,7 +30,7 @@ BWVC1
 BWVC2
     [Documentation]    Broker is tuned with a wrong vault configuration and the env file exists
     ...    with a wrong content.
-    [Tags]    broker    engine    MON-116610
+    [Tags]    broker    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config BBDO3    0

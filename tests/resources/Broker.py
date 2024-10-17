@@ -1327,7 +1327,7 @@ def ctn_broker_config_log(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
+        filename = f"central-{name}.json"
     else:
         filename = "central-rrd.json"
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
