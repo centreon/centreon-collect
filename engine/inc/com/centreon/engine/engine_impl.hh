@@ -262,5 +262,5 @@ class engine_impl final : public Engine::Service {
                          google::protobuf::Empty* response) override;
 };
 
-}
+}  // namespace com::centreon::engine
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */

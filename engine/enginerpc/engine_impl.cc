@@ -28,7 +28,6 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
 
@@ -567,7 +566,6 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
     if (!err.empty()) {
       return 1;
     }
-
     /* recovering service's information */
     service->set_host_id(selectedservice->host_id());
     service->set_service_id(selectedservice->service_id());
@@ -766,6 +764,24 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
           "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", cv.first,
           cv.second.value(), cv.second.is_sent(),
           cv.second.has_been_modified()));
+
+    service->set_service_type(static_cast<EngineService::ServiceType>(
+        selectedservice->get_service_type() + 1));
+
+    // if anomaly detection , set the anomaly detection fields
+    if (selectedservice->get_service_type() ==
+        service_type::ANOMALY_DETECTION) {
+      auto selectedanomaly =
+          std::static_pointer_cast<com::centreon::engine::anomalydetection>(
+              selectedservice);
+
+      service->set_internal_id(selectedanomaly->get_internal_id());
+      service->set_metric_name(selectedanomaly->get_metric_name());
+      service->set_thresholds_file(selectedanomaly->get_thresholds_file());
+      service->set_sensitivity(selectedanomaly->get_sensitivity());
+      service->set_dependent_service_id(
+          selectedanomaly->get_dependent_service()->service_id());
+    }
 
     return 0;
   });
