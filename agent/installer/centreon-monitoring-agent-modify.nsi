@@ -28,6 +28,10 @@ Unicode false
 
 !define CMA_REG_KEY "SOFTWARE\${COMPANYNAME}\${APPNAME}"
 
+#Match to windows file path C:\tutu yoyo1234 titi\fgdfgdg.rt
+!define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\.]+\s+)*[\w\.]+)+)+$$'
+
+
 !include "LogicLib.nsh"
 !include "nsDialogs.nsh"
 !include "mui.nsh"
@@ -52,35 +56,34 @@ ${NSISCONF_3}!addplugindir /x86-ansi "nsis_pcre"
 !include "resources\log_dlg.nsdinc"
 #let it after dialog boxes
 !include "dlg_helper.nsi"
+!include "silent.nsi"
 
 Name "Centreon Monitoring Agent ${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
 Icon "resources/logo_centreon.ico"
 RequestExecutionLevel admin
-AllowRootDirInstall true
 
+VIProductVersion "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
+VIFileVersion "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
+VIAddVersionKey "FileVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}"
+VIAddVersionKey "LegalCopyright" "2024 Centreon"
+VIAddVersionKey "FileDescription" "Centreon Monitoring Agent Config modifier"
+VIAddVersionKey "ProductName" "Centreon Monitoring Agent"
+VIAddVersionKey "CompanyName" "Centreon"
+VIAddVersionKey "ProductVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD}.0"
 
 
 !macro VerifyUserIsAdmin
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights
-        messageBox mb_iconstop "Administrator rights required!"
-        setErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
-        quit
+    messageBox mb_iconstop "Administrator rights required!"
+    setErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
+    quit
 ${EndIf}
 !macroend
  
-function .onInit
-	setShellVarContext all
-	!insertmacro VerifyUserIsAdmin
-functionEnd
 
-/**
-  * @brief at the end of the installer, we stop and start cma
-*/
-Function encryption_next_and_restart_centagent
-    Call encryption_dlg_onNext
-
+Function restart_cma
     !insertmacro SERVICE "stop" "${SERVICE_NAME}" ""
 
     ;wait for service stop
@@ -97,9 +100,40 @@ Function encryption_next_and_restart_centagent
         Sleep 500
     ${Loop}
     ; even if service is stopped, process can be stopping so we wait a little more
-    Sleep 500
+    Sleep 1000
 
     !insertmacro SERVICE "start" "${SERVICE_NAME}" ""
+FunctionEnd
+
+
+Function .onInit
+    setShellVarContext all
+    ${If} ${Silent}
+        SetErrorLevel 0
+        ${GetParameters} $cmdline_parameters
+        StrCpy $1 "--no_reverse         Set this flag if you want to disable Poller-initiated connection$\n\
+--no_encryption      Set this flag if you want to disable encryption $\n"
+        Call show_help
+        call show_version
+        Call silent_verify_admin
+        Call silent_update_conf
+
+        Call restart_cma
+        System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+        System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+        FileWrite $0 "Centreon monitoring agent configured and restarted$\n"
+        Quit
+    ${Else}
+        !insertmacro VerifyUserIsAdmin
+    ${EndIf}
+FunctionEnd
+
+/**
+  * @brief at the end of the installer, we stop and start cma
+*/
+Function encryption_next_and_restart_centagent
+    Call encryption_dlg_onNext
+    Call restart_cma
     MessageBox MB_OK "The Centreon Monitoring Agent has now restarted"
     Quit
 FunctionEnd

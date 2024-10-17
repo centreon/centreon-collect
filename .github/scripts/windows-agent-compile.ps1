@@ -32,8 +32,9 @@ $writer = [System.IO.StreamWriter]::new($stringAsStream)
 $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
+$vcpkg_release = "2024.09.30"
 $vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
-$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash
+$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash + "-" + $vcpkg_release
 $file_name_extension = "${file_name}.7z"
 
 #try to get compiled dependenciesfrom s3
@@ -46,7 +47,7 @@ if ( $? -ne $true ) {
     Write-Host "#######################################################################################################################"
 
     Write-Host "install vcpkg"
-    git clone --depth 1 -b 2024.07.12 https://github.com/microsoft/vcpkg.git
+    git clone --depth 1 -b $vcpkg_release https://github.com/microsoft/vcpkg.git
     cd vcpkg
     bootstrap-vcpkg.bat
     cd $current_dir
@@ -73,7 +74,7 @@ else {
 cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
 
 
-Write-Host "------------- build agent and installer ---------------"
+Write-Host "------------- build agent only ---------------"
 
 cmake --build build_windows --config Release
 

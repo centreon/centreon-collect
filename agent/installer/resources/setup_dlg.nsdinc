@@ -70,7 +70,7 @@ Function fnc_cma_Create
   ${NSD_OnClick} $hCtl_cma_reverse reverse_onClick
   
   ; === Label15 (type: Label) ===
-  ${NSD_CreateLabel} 8u 3u 84u 12u "Host name in Centron:"
+  ${NSD_CreateLabel} 8u 3u 84u 12u "Host name in Centreon:"
   Pop $hCtl_cma_Label15
   
   ; CreateFunctionCustomScript
