@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "process_stat.proto";
+import "common.proto";
 
 package com.centreon.broker;
 
@@ -106,6 +107,7 @@ message Peer {
   uint32 id = 1;
   string name = 2;
   google.protobuf.Timestamp connected_since = 3;
+  common.PeerType type = 4;
 }
 
 message AesMessage {

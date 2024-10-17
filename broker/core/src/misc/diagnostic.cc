@@ -21,9 +21,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/misc/filesystem.hh"
+// #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
+// #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -197,7 +197,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     }
 
     // Parse configuration file.
-    config::parser parsr;
+    config::parser parsr(common::BROKER);
     config::state conf;
     try {
       _logger->info("diagnostic: reading configuration file.");

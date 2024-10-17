@@ -73,9 +73,13 @@ class request_test : public http_tsdb::request {
     SPDLOG_LOGGER_TRACE(_logger, "delete request {}", _request_id);
   }
 
-  void add_metric(const storage::pb_metric& metric) override { ++_nb_metric; }
+  void add_metric(const storage::pb_metric& metric [[maybe_unused]]) override {
+    ++_nb_metric;
+  }
 
-  void add_status(const storage::pb_status& status) override { ++_nb_status; }
+  void add_status(const storage::pb_status& status [[maybe_unused]]) override {
+    ++_nb_status;
+  }
 
   unsigned get_request_id() const { return _request_id; }
 

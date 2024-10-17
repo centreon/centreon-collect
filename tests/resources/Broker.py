@@ -37,7 +37,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
 
 TIMEOUT = 30
@@ -2976,7 +2976,7 @@ def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
     return str(res)
 
 
-def aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
+def ctn_aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
     """
     Send a gRPC command to aes encrypt a content
 
@@ -3010,7 +3010,7 @@ def aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
     return encoded.str_arg
 
 
-def aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
+def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
     """
     Send a gRPC command to aes decrypt a content
 
@@ -3042,3 +3042,22 @@ def aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
                 logger.console("gRPC server not ready")
 
     return encoded.str_arg
+
+def ctn_get_peers(port, timeout=TIMEOUT):
+    """
+    Get the list of peers from the broker.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetPeers(empty_pb2.Empty())
+                return MessageToDict(res, including_default_value_fields=True)
+            except:
+                logger.console("gRPC server not ready")

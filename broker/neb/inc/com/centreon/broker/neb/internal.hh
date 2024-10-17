@@ -33,9 +33,6 @@ namespace neb {
 // Forward declaration.
 class acknowledgement;
 
-// Configuration file.
-extern std::string gl_configuration_file;
-
 // Sender object.
 extern multiplexing::publisher gl_publisher;
 

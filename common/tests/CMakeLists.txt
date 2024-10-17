@@ -17,10 +17,8 @@
 #
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_executable(
-    ut_common
+  set(SOURCES
     crypto/base64.cc
-    engine_conf/parser.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -30,6 +28,14 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
+    )
+
+  if(NOT LEGACY_ENGINE)
+    set(SOURCES ${SOURCES} engine_conf/parser.cc)
+  endif()
+  add_executable(
+    ut_common
+    ${SOURCES}
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
@@ -75,7 +81,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_process
             -L${Boost_LIBRARY_DIR_RELEASE}
             boost_program_options
-	    engine_conf
             re2::re2
             log_v2
             OpenSSL::SSL
@@ -90,6 +95,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             absl::bits
             fmt::fmt
             pthread)
+  if (NOT LEGACY_ENGINE)
+    target_link_libraries(ut_common PRIVATE engine_conf)
+  endif()
 
   add_dependencies(ut_common centreon_common centreon_http)
 

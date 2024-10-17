@@ -22,10 +22,10 @@
 
 #include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
-#include <streambuf>
 
 #include "com/centreon/broker/exceptions/deprecated.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
+#include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -76,6 +76,14 @@ static bool get_conf(std::pair<std::string const, json> const& obj,
   }
   return false;
 }
+
+/**
+ * @brief Broker configuration parser.
+ *
+ * @param type This argument represents the type of the peer whose configuration
+ *        we read (UNKNOWN, BROKER, ENGINE, MAP).
+ */
+parser::parser(common::PeerType type) : _peer_type(type) {}
 
 /**
  * @brief Check if the json object elem contains an entry with the given key.
@@ -263,6 +271,13 @@ state parser::parse(std::string const& file) {
           if (!misc::filesystem::readable(retval.cache_directory()))
             throw msg_fmt("The cache directory '{}' is not accessible",
                           retval.cache_directory());
+        } else if (get_conf<state>(
+                       {it.key(), it.value()}, "cache_config_directory", retval,
+                       &state::set_config_cache_dir, &json::is_string)) {
+          if (!misc::filesystem::readable(retval.config_cache_dir()))
+            throw msg_fmt(
+                "The cache configuration directory '{}' is not accessible",
+                retval.config_cache_dir());
         } else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
                                         retval, &state::pool_size,
                                         &json::is_number, &json::get<int>))

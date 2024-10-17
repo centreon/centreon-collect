@@ -40,7 +40,7 @@ class SimuGenericTest : public ::testing::Test {
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::LUA);
     try {
-      config::applier::init(0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }

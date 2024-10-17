@@ -143,8 +143,9 @@ int nebmodule_init(int flags, const char* args, void* handle) {
                 vm);
       po::notify(vm);
 
+      std::string configuration_file;
       if (vm.count("config_file"))
-        neb::gl_configuration_file = vm["config_file"].as<std::string>();
+        configuration_file = vm["config_file"].as<std::string>();
       else
         throw msg_fmt("main: no configuration file provided");
 
@@ -156,18 +157,17 @@ int nebmodule_init(int flags, const char* args, void* handle) {
         throw msg_fmt("main: no Engine configuration directory provided");
 
       // Try configuration parsing.
-      com::centreon::broker::config::parser p;
-      com::centreon::broker::config::state s{
-          p.parse(neb::gl_configuration_file)};
+      com::centreon::broker::config::parser p(com::centreon::common::ENGINE);
+      com::centreon::broker::config::state s{p.parse(configuration_file)};
 
-      com::centreon::broker::config::applier::state::instance()
-          .set_engine_config_dir(engine_conf_dir);
+      s.set_engine_config_dir(engine_conf_dir);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
        * centengine */
       s.mut_log_conf().allow_only_atomic_changes(true);
-      com::centreon::broker::config::applier::init(s);
+      com::centreon::broker::config::applier::init(
+          com::centreon::common::ENGINE, s);
       try {
         log_v2::instance().apply(s.log_conf());
       } catch (const std::exception& e) {

@@ -28,6 +28,6 @@ using namespace com::centreon::broker;
  */
 TEST(init, init) {
   // First object.
-  config::applier::init(0, "test", 0);
+  config::applier::init(com::centreon::common::BROKER, 0, "test", 0);
   ASSERT_NO_THROW(config::applier::deinit());
 }
