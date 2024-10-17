@@ -31,6 +31,48 @@ using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
 
 /**
+ * @brief nagios status values
+ *
+ */
+enum e_status : unsigned { ok = 0, warning = 1, critical = 2, unknown = 3 };
+
+/**
+ * @brief in order to have a non derive scheduling, we use this class to iterate
+ * time to time in case of we want to schedule an event every 30s for example
+ *
+ */
+class time_step {
+  const time_point _start_point;
+  const duration _step;
+  uint64_t _step_index = 0;
+
+ public:
+  time_step(duration step)
+      : _start_point(std::chrono::system_clock::now()), _step(step) {}
+
+  /**
+   * @brief increment time of one duration (one step)
+   *
+   * @return time_step&
+   */
+  time_step& operator++() {
+    ++_step_index;
+    return *this;
+  }
+
+  /**
+   * @brief set _step_index to the first step after now
+   *
+   */
+  void increment_to_after_now() {
+    time_point now = std::chrono::system_clock::now();
+    _step_index = (now - _start_point) / _step + 1;
+  }
+
+  time_point value() { return _start_point + _step_index * _step; }
+};
+
+/**
  * @brief base class for check
  * start_expected is set by scheduler and increased by check_period on each
  * check
@@ -79,6 +121,8 @@ class check : public std::enable_shared_from_this<check> {
   virtual void _timeout_timer_handler(const boost::system::error_code& err,
                                       unsigned start_check_index);
 
+  bool _start_check(const duration& timeout);
+
  public:
   using pointer = std::shared_ptr<check>;
 
@@ -117,7 +161,7 @@ class check : public std::enable_shared_from_this<check> {
                      const std::list<com::centreon::common::perfdata>& perfdata,
                      const std::list<std::string>& outputs);
 
-  virtual void start_check(const duration& timeout);
+  virtual void start_check(const duration& timeout) = 0;
 };
 
 }  // namespace com::centreon::agent
