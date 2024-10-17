@@ -40,7 +40,7 @@ class StatsTest : public ::testing::Test {
   void SetUp() override {
     stats::center::load();
     mysql_manager::load();
-    config::applier::state::load();
+    config::applier::state::load(com::centreon::common::PeerType::BROKER);
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
@@ -232,7 +232,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s;
   ASSERT_NO_THROW(s = p.parse(config_file));
 

@@ -735,20 +735,26 @@ void anomalydetection::check_validity(error_cnt& err) const {
   if (_service_description.empty())
     throw msg_fmt(
         "Service has no description (property 'service_description')");
-  if (_host_name.empty())
+  if (_host_name.empty()) {
+    err.config_errors++;
     throw msg_fmt(
         "Service '{}' is not attached to any host (property 'host_name')",
         _service_description);
-  if (_metric_name.empty())
+  }
+  if (_metric_name.empty()) {
+    err.config_errors++;
     throw msg_fmt(
         "Anomaly detection service '{}' has no metric name specified (property "
         "'metric_name')",
         _service_description);
-  if (_thresholds_file.empty())
+  }
+  if (_thresholds_file.empty()) {
+    err.config_errors++;
     throw msg_fmt(
         "Anomaly detection service '{}' has no thresholds file specified "
         "(property 'thresholds_file')",
         _service_description);
+  }
 }
 
 /**

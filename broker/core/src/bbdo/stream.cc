@@ -25,6 +25,7 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/config/applier/state.hh"
+// #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -750,14 +751,20 @@ void stream::negotiate(stream::negotiation_type neg) {
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_peer_type(config::applier::state::instance().peer_type());
+      if (!config::applier::state::instance().engine_config_dir().empty())
+        obj.set_extended_negotiation(true);
+      else if (!config::applier::state::instance().config_cache_dir().empty())
+        obj.set_extended_negotiation(true);
+      else
+        obj.set_extended_negotiation(false);
       _write(welcome);
     }
   }
@@ -794,6 +801,9 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   std::string peer_extensions;
+  common::PeerType peer_type = common::UNKNOWN;
+  bool extended_negotiation = false;
+
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
@@ -861,14 +871,25 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      if (!config::applier::state::instance().engine_config_dir().empty()) {
+        obj.set_peer_type(common::ENGINE);
+        obj.set_extended_negotiation(true);
+      } else if (!config::applier::state::instance()
+                      .config_cache_dir()
+                      .empty()) {
+        obj.set_peer_type(common::BROKER);
+        obj.set_extended_negotiation(true);
+      } else {
+        obj.set_peer_type(common::UNKNOWN);
+        obj.set_extended_negotiation(false);
+      }
 
       _write(welcome);
       _substream->flush();
@@ -876,6 +897,10 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = w->obj().extensions();
     _poller_id = w->obj().poller_id();
     _poller_name = w->obj().poller_name();
+
+    peer_type = w->obj().peer_type();
+    if (peer_type != common::UNKNOWN)
+      extended_negotiation = true;
   }
 
   // Negotiation.
@@ -942,7 +967,8 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_peer(_poller_id, _poller_name);
+  config::applier::state::instance().add_peer(_poller_id, _poller_name,
+                                              peer_type, extended_negotiation);
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 

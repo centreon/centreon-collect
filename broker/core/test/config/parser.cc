@@ -101,7 +101,7 @@ TEST(parser, endpoint) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.
@@ -200,7 +200,7 @@ TEST(parser, global) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), std::exception);
 }
 
@@ -241,7 +241,7 @@ TEST(parser, log) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.
@@ -298,7 +298,7 @@ TEST(parser, logBadFilename) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), msg_fmt);
 
   // Remove temporary file.
@@ -349,7 +349,7 @@ TEST(parser, logDefaultDir) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.
@@ -399,7 +399,7 @@ TEST(parser, logBadMaxSize) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), msg_fmt);
 
   // Remove temporary file.
@@ -446,7 +446,7 @@ TEST(parser, logBadLoggers) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), msg_fmt);
 
   // Remove temporary file.
@@ -493,7 +493,7 @@ TEST(parser, logBadLogger) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), msg_fmt);
 
   // Remove temporary file.
@@ -539,7 +539,7 @@ TEST(parser, logWithNullLoggers) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_NO_THROW(p.parse(config_file));
 
   // Remove temporary file.
@@ -699,7 +699,7 @@ TEST(parser, unifiedSql) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   auto retval = p.parse(config_file);
   ASSERT_EQ(retval.get_bbdo_version().major_v, 3u);
   ASSERT_EQ(retval.get_bbdo_version().minor_v, 1u);
@@ -878,7 +878,7 @@ TEST(parser, unifiedSqlVsStorageSql) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), std::exception);
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -925,7 +925,7 @@ TEST(parser, grpc_full) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.
@@ -986,7 +986,7 @@ TEST(parser, grpc_in_error) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), std::exception);
 
   // Remove temporary file.
@@ -1071,7 +1071,7 @@ TEST(parser, flush_period) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   ASSERT_THROW(p.parse(config_file), std::exception);
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -1157,7 +1157,7 @@ TEST(parser, boolean1) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.
@@ -1247,7 +1247,7 @@ TEST(parser, boolean2) {
   fclose(file_stream);
 
   // Parse.
-  config::parser p;
+  config::parser p(com::centreon::common::BROKER);
   config::state s{p.parse(config_file)};
 
   // Remove temporary file.

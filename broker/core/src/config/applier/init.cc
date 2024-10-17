@@ -58,7 +58,8 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @param n_thread number of threads in the pool.
  * @param name The broker name to give to this cbd instance.
  */
-void config::applier::init(size_t n_thread,
+void config::applier::init(const common::PeerType peer_type,
+                           size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
   /* Load singletons.
@@ -75,7 +76,7 @@ void config::applier::init(size_t n_thread,
   com::centreon::common::pool::set_pool_size(n_thread);
   stats::center::load();
   mysql_manager::load();
-  config::applier::state::load();
+  config::applier::state::load(peer_type);
   file::disk_accessor::load(event_queues_total_size);
   io::protocols::load();
   io::events::load();
@@ -111,6 +112,8 @@ void config::applier::deinit() {
  *
  * @param conf The configuration used to initialize the all.
  */
-void config::applier::init(const config::state& conf) {
-  init(conf.pool_size(), conf.broker_name(), conf.event_queues_total_size());
+void config::applier::init(const common::PeerType peer_type,
+                           const config::state& conf) {
+  init(peer_type, conf.pool_size(), conf.broker_name(),
+       conf.event_queues_total_size());
 }

@@ -72,7 +72,7 @@ class StatusEntryTest : public ::testing::Test {
   void SetUp() override {
     io::data::broker_id = 0;
     try {
-      config::applier::init(0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
