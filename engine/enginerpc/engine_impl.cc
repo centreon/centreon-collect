@@ -439,23 +439,104 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
                                      const ContactIdentifier* request,
                                      EngineContact* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, contact = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::contact> selectedcontact;
-        /* get the contact by his name */
-        auto itcontactname = contact::contacts.find(request->name());
-        if (itcontactname != contact::contacts.end())
-          selectedcontact = itcontactname->second;
-        else {
-          err = fmt::format("could not find contact '{}'", request->name());
-          return 1;
-        }
-        /* recovering contact's information */
-        contact->set_name(selectedcontact->get_name());
-        contact->set_alias(selectedcontact->get_alias());
-        contact->set_email(selectedcontact->get_email());
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           contact = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+    /* get the contact by his name */
+    auto itcontactname = contact::contacts.find(request->name());
+    if (itcontactname != contact::contacts.end())
+      selectedcontact = itcontactname->second;
+    else {
+      err = fmt::format("could not find contact '{}'", request->name());
+      return 1;
+    }
+    /* recovering contact's information */
+    contact->set_name(selectedcontact->get_name());
+    contact->set_alias(selectedcontact->get_alias());
+    contact->set_email(selectedcontact->get_email());
+
+    if (!selectedcontact->get_parent_groups().empty())
+      for (const auto& [key, _] : selectedcontact->get_parent_groups())
+        contact->add_contact_groups(key);
+
+    contact->set_pager(selectedcontact->get_pager());
+    contact->set_host_notification_period(
+        selectedcontact->get_host_notification_period());
+
+    if (!selectedcontact->get_host_notification_commands().empty()) {
+      for (const auto& cmd : selectedcontact->get_host_notification_commands())
+        contact->add_host_notification_commands(cmd->get_name());
+    }
+    contact->set_service_notification_period(
+        selectedcontact->get_service_notification_period());
+
+    if (!selectedcontact->get_service_notification_commands().empty()) {
+      for (const auto& cmd :
+           selectedcontact->get_service_notification_commands())
+        contact->add_service_notification_commands(cmd->get_name());
+    }
+
+    contact->set_host_notification_on_up(
+        selectedcontact->notify_on(notifier::host_notification, notifier::up));
+    contact->set_host_notification_on_down(selectedcontact->notify_on(
+        notifier::host_notification, notifier::down));
+    contact->set_host_notification_on_unreachable(selectedcontact->notify_on(
+        notifier::host_notification, notifier::unreachable));
+    contact->set_host_notification_on_flappingstart(selectedcontact->notify_on(
+        notifier::host_notification, notifier::flappingstart));
+    contact->set_host_notification_on_flappingstop(selectedcontact->notify_on(
+        notifier::host_notification, notifier::flappingstop));
+    contact->set_host_notification_on_flappingdisabled(
+        selectedcontact->notify_on(notifier::host_notification,
+                                   notifier::flappingdisabled));
+    contact->set_host_notification_on_downtime(selectedcontact->notify_on(
+        notifier::host_notification, notifier::downtime));
+
+    contact->set_service_notification_on_ok(selectedcontact->notify_on(
+        notifier::service_notification, notifier::ok));
+    contact->set_service_notification_on_warning(selectedcontact->notify_on(
+        notifier::service_notification, notifier::warning));
+    contact->set_service_notification_on_unknown(selectedcontact->notify_on(
+        notifier::service_notification, notifier::unknown));
+    contact->set_service_notification_on_critical(selectedcontact->notify_on(
+        notifier::service_notification, notifier::critical));
+    contact->set_service_notification_on_flappingstart(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingstart));
+    contact->set_service_notification_on_flappingstop(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingstop));
+    contact->set_service_notification_on_flappingdisabled(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingdisabled));
+    contact->set_service_notification_on_downtime(selectedcontact->notify_on(
+        notifier::service_notification, notifier::downtime));
+
+    contact->set_host_notifications_enabled(
+        selectedcontact->get_host_notifications_enabled());
+    contact->set_service_notifications_enabled(
+        selectedcontact->get_service_notifications_enabled());
+    contact->set_can_submit_commands(
+        selectedcontact->get_can_submit_commands());
+    contact->set_retain_status_information(
+        selectedcontact->get_retain_status_information());
+    contact->set_retain_nonstatus_information(
+        selectedcontact->get_retain_nonstatus_information());
+    contact->set_timezone(selectedcontact->get_timezone());
+
+    if (!selectedcontact->get_addresses().empty())
+      for (const auto& addr : selectedcontact->get_addresses())
+        contact->add_addresses(addr);
+
+    for (const auto& [key, custom_variable] :
+         selectedcontact->get_custom_variables())
+      contact->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", key,
+          custom_variable.value(), custom_variable.is_sent(),
+          custom_variable.has_been_modified()));
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
   if (result.get() == 0)

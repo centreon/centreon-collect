@@ -72,7 +72,7 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
     obj->set_host_name(std::string(value));
     set_changed(obj->descriptor()->FindFieldByName("host_name")->index());
     if (obj->alias().empty()) {
-      obj->set_alias(std::string(value));
+      obj->set_alias(obj->host_name());
       set_changed(obj->descriptor()->FindFieldByName("alias")->index());
     }
     return true;

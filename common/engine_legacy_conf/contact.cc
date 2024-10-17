@@ -557,6 +557,10 @@ bool contact::_set_contactgroups(std::string const& value) {
  */
 bool contact::_set_contact_name(std::string const& value) {
   _contact_name = value;
+  // if alias is empty we take the contact name, better than taking template
+  // alias
+  if (_alias.empty())
+    _alias = value;
   return true;
 }
 

@@ -51,11 +51,21 @@ bool contact_helper::hook(std::string_view key, const std::string_view& value) {
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
-
-  if (key == "host_notification_options") {
+  if (key == "contact_name") {
+    obj->set_contact_name(std::string(value));
+    set_changed(obj->descriptor()->FindFieldByName("contact_name")->index());
+    if (obj->alias().empty()) {
+      obj->set_alias(obj->contact_name());
+      set_changed(obj->descriptor()->FindFieldByName("alias")->index());
+    }
+    return true;
+  } else if (key == "host_notification_options") {
     uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_host_notification_options(options);
+      set_changed(obj->descriptor()
+                      ->FindFieldByName("host_notification_options")
+                      ->index());
       return true;
     } else
       return false;
@@ -63,6 +73,9 @@ bool contact_helper::hook(std::string_view key, const std::string_view& value) {
     uint16_t options = action_svc_none;
     if (fill_service_notification_options(&options, value)) {
       obj->set_service_notification_options(options);
+      set_changed(obj->descriptor()
+                      ->FindFieldByName("service_notification_options")
+                      ->index());
       return true;
     } else
       return false;
@@ -74,6 +87,10 @@ bool contact_helper::hook(std::string_view key, const std::string_view& value) {
     return true;
   } else if (key == "service_notification_commands") {
     fill_string_group(obj->mutable_service_notification_commands(), value);
+    return true;
+  } else if (key.compare(0, 7, "address") == 0) {
+    obj->add_address(value.data(), value.size());
+    set_changed(obj->descriptor()->FindFieldByName("address")->index());
     return true;
   }
   return false;

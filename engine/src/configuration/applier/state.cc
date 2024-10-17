@@ -1894,9 +1894,10 @@ void applier::state::_processing(configuration::state& new_cfg,
     _apply<configuration::contact, applier::contact>(diff_contacts, err);
     _apply<configuration::contactgroup, applier::contactgroup>(
         diff_contactgroups, err);
+
+    _resolve<configuration::contact, applier::contact>(config->contacts(), err);
     _resolve<configuration::contactgroup, applier::contactgroup>(
         config->contactgroups(), err);
-    _resolve<configuration::contact, applier::contact>(config->contacts(), err);
 
     // Apply severities.
     _apply<configuration::severity, applier::severity>(diff_severities, err);
@@ -2317,10 +2318,10 @@ void applier::state::_processing(configuration::State& new_cfg,
                                                                   err);
     _apply<configuration::Contactgroup, std::string, applier::contactgroup>(
         diff_contactgroups, err);
-    _resolve<configuration::Contactgroup, applier::contactgroup>(
-        pb_config.contactgroups(), err);
     _resolve<configuration::Contact, applier::contact>(pb_config.contacts(),
                                                        err);
+    _resolve<configuration::Contactgroup, applier::contactgroup>(
+        pb_config.contactgroups(), err);
 
     // Apply severities.
     _apply<configuration::Severity, std::pair<uint64_t, uint32_t>,
