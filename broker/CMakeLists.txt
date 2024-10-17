@@ -117,7 +117,7 @@ add_custom_command(
     ${SRC_DIR}/broker.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
+add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
