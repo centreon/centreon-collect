@@ -53,7 +53,7 @@ message BaStatus {
 message BaEvent {
   uint32 ba_id = 1;
   double first_level = 2;
-  int64 end_time = 3;
+  uint64 end_time = 3;
   bool in_downtime = 4;
   uint64 start_time = 5;
   State status = 6;

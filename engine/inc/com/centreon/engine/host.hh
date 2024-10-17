@@ -128,7 +128,7 @@ class host : public notifier {
   void clear_flap(double percent_change,
                   double high_threshold,
                   double low_threshold);
-  void update_status() override;
+  void update_status(uint32_t attributes = STATUS_ALL) override;
   void update_adaptive_data();
   void check_for_expired_acknowledgement();
   //  bool               check_notification_viability(reason_type type,

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -468,7 +468,7 @@ int host_downtime::handle() {
 
     /* update the status data */
     /* Because of the notification the status is sent with CHECK_RESULT level */
-    it_hst->second->update_status();
+    it_hst->second->update_status(host::STATUS_DOWNTIME_DEPTH);
 
     /* schedule an event */
     if (!is_fixed())
