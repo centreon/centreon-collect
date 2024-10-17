@@ -44,8 +44,9 @@ engine_cfg::engine_cfg(std::string const& additional,
                        bool auto_delete)
     : _auto_delete(auto_delete) {
   // Create directory.
-  _directory = tmpnam(NULL);
-  ::mkdir(_directory.c_str(), 0777);
+  char temp_dir[] = "/tmp/centengine.XXXXXX";
+  _directory = mkdtemp(temp_dir);
+  chmod(_directory.c_str(), 0777);
 
   // Write object files.
   std::string object_file(_directory);

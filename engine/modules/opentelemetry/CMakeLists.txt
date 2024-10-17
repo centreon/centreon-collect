@@ -96,6 +96,7 @@ target_link_libraries(opentelemetry
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
   pb_neb_lib
+  pb_common_lib
   engine_rpc)
 
 target_include_directories(opentelemetry PRIVATE
