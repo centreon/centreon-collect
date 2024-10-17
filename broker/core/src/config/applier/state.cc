@@ -22,6 +22,7 @@
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -44,8 +45,10 @@ state::stats state::_stats_conf;
 /**
  *  Default constructor.
  */
-state::state(const std::shared_ptr<spdlog::logger>& logger)
-    : _poller_id(0),
+state::state(common::PeerType peer_type,
+             const std::shared_ptr<spdlog::logger>& logger)
+    : _peer_type{peer_type},
+      _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
       _modules{logger} {}
@@ -74,6 +77,8 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
           "Configuration check error: bbdo versions >= 3.0.0 need the "
           "unified_sql module to be configured.");
     }
+    // Engine configuration directory (for cbmod).
+    set_engine_config_dir(s.engine_config_dir());
   }
 
   // Sanity checks.
@@ -117,9 +122,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     _cache_dir.append(PREFIX_VAR);
   _cache_dir.append("/");
   _cache_dir.append(s.broker_name());
-
-  // Engine configuration directory (for cbmod).
-  _engine_config_dir = s.engine_config_dir();
 
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
@@ -189,9 +191,9 @@ state& state::instance() {
 /**
  *  Load singleton.
  */
-void state::load() {
+void state::load(common::PeerType peer_type) {
   if (!gl_state)
-    gl_state = new state(log_v2::instance().get(log_v2::CONFIG));
+    gl_state = new state(peer_type, log_v2::instance().get(log_v2::CONFIG));
 }
 
 /**
@@ -257,24 +259,24 @@ const config::applier::state::stats& state::stats_conf() {
  * @param poller_id The id of the poller (an id by host)
  * @param poller_name The name of the poller
  */
-void state::add_peer(uint64_t poller_id, const std::string& poller_name) {
+void state::add_peer(uint64_t poller_id,
+                     const std::string& poller_name,
+                     common::PeerType peer_type,
+                     bool extended_negotiation) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_peers.find(poller_id);
+  peer p{poller_id, poller_name, time(nullptr), peer_type,
+         extended_negotiation};
+  auto found = _connected_peers.find(p);
   if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
-    _connected_peers[poller_id] = {
-        .name = poller_name,
-        .connected_since = time(nullptr),
-    };
   } else {
     logger->warn(
-        "Poller '{}' with id {} already known as connected. Replacing it "
-        "with '{}'",
-        _connected_peers[poller_id].name, poller_id, poller_name);
-    found->second.name = poller_name;
-    found->second.connected_since = time(nullptr);
+        "Poller '{}' with id {} already known as connected. Replacing it.",
+        poller_name, poller_id);
+    _connected_peers.erase(found);
   }
+  _connected_peers.insert(std::move(p));
 }
 
 /**
@@ -285,14 +287,14 @@ void state::add_peer(uint64_t poller_id, const std::string& poller_name) {
 void state::remove_peer(uint64_t poller_id) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_peers.find(poller_id);
-  if (found == _connected_peers.end())
-    logger->warn("There is currently no poller {} connected", poller_id);
-  else {
-    logger->info("Poller '{}' with id {} just disconnected",
-                 _connected_peers[poller_id].name, poller_id);
-    _connected_peers.erase(found);
+  for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it) {
+    if (it->poller_id == poller_id) {
+      logger->info("Poller '{}' with id {} disconnected", it->name, poller_id);
+      _connected_peers.erase(it);
+      return;
+    }
   }
+  logger->warn("There is currently no poller {} connected", poller_id);
 }
 
 /**
@@ -302,7 +304,10 @@ void state::remove_peer(uint64_t poller_id) {
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
-  return _connected_peers.contains(poller_id);
+  for (auto& p : _connected_peers)
+    if (p.poller_id == poller_id && p.peer_type == common::ENGINE)
+      return true;
+  return false;
 }
 
 /**
@@ -310,11 +315,11 @@ bool state::has_connection_from_poller(uint64_t poller_id) const {
  *
  * @return A vector of pairs containing the poller id and the poller name.
  */
-std::vector<std::pair<uint64_t, state::peer>> state::connected_peers() const {
+std::vector<state::peer> state::connected_peers() const {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
-  std::vector<std::pair<uint64_t, peer>> retval;
-  for (auto& [id, name] : _connected_peers)
-    retval.emplace_back(id, name);
+  std::vector<peer> retval;
+  for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
+    retval.push_back(*it);
   return retval;
 }
 
@@ -335,4 +340,33 @@ const std::filesystem::path& state::engine_config_dir() const noexcept {
 void state::set_engine_config_dir(
     const std::filesystem::path& dir) {
   _engine_config_dir = dir;
+}
+
+/**
+ * @brief Get the configuration cache directory used by php to write
+ * pollers' configurations.
+ *
+ * @return The configuration cache directory.
+ */
+const std::filesystem::path& state::config_cache_dir() const noexcept {
+  return _config_cache_dir;
+}
+
+/**
+ * @brief Set the configuration cache directory.
+ *
+ * @param engine_conf_dir The configuration cache directory.
+ */
+void state::set_config_cache_dir(
+    const std::filesystem::path& config_cache_dir) {
+  _config_cache_dir = config_cache_dir;
+}
+
+/**
+ * @brief Get the type of peer this state is defined for.
+ *
+ * @return A PeerType enum.
+ */
+com::centreon::common::PeerType state::peer_type() const {
+  return _peer_type;
 }

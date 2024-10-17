@@ -815,7 +815,7 @@ def ctn_get_engines_count():
         return engine.instances
 
 
-def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False, disambiguous: bool = False):
     """
     Set a value in the centengine.cfg
 
@@ -825,6 +825,8 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
         value (str): the new value to set.
         force (bool, optional): Defaults to False. If the key doesn't exist in the configuration, and force is set to
         true, the key will be added to the file.
+        disambiguous (bool, optional): Defaults to False. If the key appears several times in the file and we want to
+        match only one, it is interesting to enable this option, it will try to also compare values.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     with open(filename, "r") as f:
@@ -833,8 +835,16 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
     replaced = False
     for i in range(len(lines)):
         if lines[i].startswith(key + "="):
-            lines[i] = "{}={}\n".format(key, value)
-            replaced = True
+            if disambiguous:
+                tmp_value = value.split(" ")[0]
+                if lines[i].startswith(key + "=" + tmp_value):
+                    lines[i] = f"{key}={value}\n"
+                    replaced = True
+                    break
+            else:
+                lines[i] = "{}={}\n".format(key, value)
+                replaced = True
+                break
 
     if not replaced and force:
         lines.append("{}={}\n".format(key, value))

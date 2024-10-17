@@ -490,3 +490,31 @@ void state::set_engine_config_dir(const std::string& dir) {
 const std::string& state::engine_config_dir() const noexcept {
   return _engine_config_dir;
 }
+
+/**
+ * @brief Set the directory containing the cache configuration of the pollers.
+ *
+ * @param config_cache_dir The directory name
+ */
+void state::set_config_cache_dir(const std::string& config_cache_dir) {
+  _config_cache_dir = config_cache_dir;
+}
+
+/**
+ * @brief Get the directory containing the cache configuration of the pollers.
+ *
+ * @return The directory name
+ */
+const std::string& state::config_cache_dir() const noexcept {
+  return _config_cache_dir;
+}
+
+/**
+ * @brief Get the peer type this configuration is for. Essntially, we have three
+ * types available BROKER, ENGINE, MAP, and UNKNWOWN is available by default.
+ *
+ * @return the peer type.
+ */
+com::centreon::common::PeerType state::peer_type() const noexcept {
+  return _peer_type;
+}

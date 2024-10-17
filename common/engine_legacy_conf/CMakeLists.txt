@@ -44,7 +44,7 @@ if(LEGACY_ENGINE)
     tag.cc
     timeperiod.cc)
 
-  add_dependencies(engine_legacy_conf pb_neb_lib pb_bam_lib)
+  add_dependencies(engine_legacy_conf pb_neb_lib pb_common_lib pb_bam_lib pb_bam_state_lib)
   include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
   target_precompile_headers(engine_legacy_conf PRIVATE

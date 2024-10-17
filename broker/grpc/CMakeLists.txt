@@ -50,9 +50,11 @@ target_link_libraries(
   centreon_grpc
   "-Wl,--whole-archive"
   pb_neb_lib
+  pb_common_lib
   pb_storage_lib
   pb_bbdo_lib
   pb_bam_lib
+  pb_bam_state_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
   pb_rebuild_message_lib

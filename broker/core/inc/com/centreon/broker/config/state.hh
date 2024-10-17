@@ -21,6 +21,7 @@
 
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
+#include "common.pb.h"
 #include "common/log_v2/config.hh"
 
 namespace com::centreon::broker::config {
@@ -34,6 +35,7 @@ namespace com::centreon::broker::config {
  *  along with object definitions.
  */
 class state {
+  const common::PeerType _peer_type = common::UNKNOWN;
   int _broker_id;
   uint16_t _rpc_port;
   std::string _listen_address;
@@ -51,9 +53,13 @@ class state {
   int _poller_id;
   std::string _poller_name;
   size_t _pool_size;
+
   /* The directory where the engine configuration files are stored. This file
    * has a sense only for the cbmod (usual value: /etc/centreon-engine) */
   std::string _engine_config_dir;
+
+  /* The directory where php writes the pollers configurations. */
+  std::string _config_cache_dir;
 
   common::log_v2::config _log_conf;
 
@@ -133,10 +139,13 @@ class state {
   const std::string& poller_name() const noexcept;
   void set_engine_config_dir(const std::string& dir);
   const std::string& engine_config_dir() const noexcept;
+  void set_config_cache_dir(const std::string& config_cache_dir);
+  const std::string& config_cache_dir() const noexcept;
   common::log_v2::config& mut_log_conf();
   const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
+  common::PeerType peer_type() const noexcept;
 };
 }  // namespace com::centreon::broker::config
 

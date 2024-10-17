@@ -44,12 +44,12 @@ ESS5
     [Tags]    engine    start-stop    MON-15671
     Ctn Config Engine    ${1}
     Ctn Config Broker    module    ${1}
-    Ctn Engine Config Set Value    ${1}    broker_module    /usr/lib64/nagios/cbmod.so -c /etc/centreon-broker/central-module.json -e /etc/centreon-engine
-    Repeat Keyword    1 times    Ctn Start Stop Instances    2s
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /etc/centreon-broker/central-module0.json -e /etc/centreon-engine    disambiguous=True
+    Repeat Keyword    3 times    Ctn Start Stop Instances    2s
 
 *** Keywords ***
 Ctn Start Stop Instances
     [Arguments]    ${interval}
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    ${interval}
-    Ctn Stop engine
+    Ctn Stop Engine

@@ -21,11 +21,9 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "common.pb.h"
 
-namespace com::centreon::broker {
-
-namespace config {
-namespace applier {
+namespace com::centreon::broker::config::applier {
 /**
  *  @class state state.hh "com/centreon/broker/config/applier/state.hh"
  *  @brief Apply a configuration.
@@ -40,11 +38,51 @@ class state {
   };
 
   struct peer {
+    uint64_t poller_id;
     std::string name;
     time_t connected_since;
+    common::PeerType peer_type;
+    bool extended_negotiation;
+
+    peer(uint64_t poller_id,
+         const std::string& name,
+         time_t connected_since,
+         common::PeerType peer_type,
+         bool extended_negotiation)
+        : poller_id{poller_id},
+          name{name},
+          connected_since{connected_since},
+          peer_type{peer_type},
+          extended_negotiation{extended_negotiation} {}
+    peer(const peer& other)
+        : poller_id{other.poller_id},
+          name{other.name},
+          connected_since{other.connected_since},
+          peer_type{other.peer_type},
+          extended_negotiation{other.extended_negotiation} {}
+    peer(peer&& other)
+        : poller_id{other.poller_id},
+          name{std::move(other.name)},
+          connected_since{std::move(other.connected_since)},
+          peer_type{other.peer_type},
+          extended_negotiation{other.extended_negotiation} {}
+    /* The connected_since information is not used in the comparison otherwise
+     * we would have difficulties to compare the peers. */
+    bool operator==(const peer& other) const {
+      return poller_id == other.poller_id && name == other.name &&
+             peer_type == other.peer_type &&
+             extended_negotiation == other.extended_negotiation;
+    }
+
+    template <typename H>
+    friend H AbslHashValue(H h, const peer& p) {
+      return H::combine(std::move(h), p.poller_id, p.name, p.peer_type,
+                        p.extended_negotiation);
+    }
   };
 
  private:
+  const common::PeerType _peer_type;
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
@@ -55,19 +93,24 @@ class state {
   /* In a cbmod configuration, this string contains the directory containing
    * the Engine configuration. */
   std::filesystem::path _engine_config_dir;
+
+  /* In a Broker configuration, this object contains the configuration cache
+   * directory used by php. We can find there all the pollers configurations. */
+  std::filesystem::path _config_cache_dir;
   modules _modules;
 
   static stats _stats_conf;
 
-  absl::flat_hash_map<uint64_t, peer> _connected_peers;
+  absl::flat_hash_set<peer> _connected_peers;
   mutable std::mutex _connected_peers_m;
 
-  state(const std::shared_ptr<spdlog::logger>& logger);
+  state(common::PeerType peer_type,
+        const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
 
  public:
   static state& instance();
-  static void load();
+  static void load(common::PeerType peer_type);
   static void unload();
   static bool loaded();
 
@@ -82,17 +125,20 @@ class state {
   const std::string& poller_name() const noexcept;
   const std::filesystem::path& engine_config_dir() const noexcept;
   void set_engine_config_dir(const std::filesystem::path& dir);
+  const std::filesystem::path& config_cache_dir() const noexcept;
+  void set_config_cache_dir(const std::filesystem::path& engine_conf_dir);
   modules& get_modules();
-  void add_peer(uint64_t poller_id, const std::string& poller_name);
+  void add_peer(uint64_t poller_id,
+                const std::string& poller_name,
+                common::PeerType peer_type,
+                bool extended_negotiation);
   void remove_peer(uint64_t poller_id);
   bool has_connection_from_poller(uint64_t poller_id) const;
   static stats& mut_stats_conf();
   static const stats& stats_conf();
-  std::vector<std::pair<uint64_t, peer>> connected_peers() const;
+  std::vector<peer> connected_peers() const;
+  common::PeerType peer_type() const;
 };
-}  // namespace applier
-}  // namespace config
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::config::applier
 
 #endif  // !CCB_CONFIG_APPLIER_STATE_HH
