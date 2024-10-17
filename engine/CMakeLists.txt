@@ -494,7 +494,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 if(LEGACY_ENGINE)
   add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
+  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib pb_common_lib)
 
   target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
@@ -555,7 +555,7 @@ install(
   COMPONENT "runtime")
 else()
   add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib)
+  add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib pb_common_lib)
 
   target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 

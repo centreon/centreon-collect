@@ -19,11 +19,12 @@
  */
 
 #include "com/centreon/engine/broker/loader.hh"
+#include <filesystem>
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/io/directory_entry.hh"
+#include "com/centreon/io/file_entry.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
@@ -92,8 +93,15 @@ loader& loader::instance() {
  */
 unsigned int loader::load_directory(std::string const& dir) {
   // Get directory entries.
-  io::directory_entry directory(dir);
-  std::list<io::file_entry> const& files(directory.entry_list("*.so"));
+
+  std::filesystem::path directory(dir);
+  std::list<io::file_entry> files;
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".so") {
+      io::file_entry file(entry.path().string());
+      files.push_back(file);
+    }
+  }
 
   // Sort by file name.
   std::multimap<std::string, io::file_entry> sort_files;
@@ -103,10 +111,10 @@ unsigned int loader::load_directory(std::string const& dir) {
     sort_files.insert(std::make_pair(it->file_name(), *it));
 
   // Load modules.
-  unsigned int loaded(0);
+  unsigned int loaded = 0;
   for (std::multimap<std::string, io::file_entry>::const_iterator
-           it(sort_files.begin()),
-       end(sort_files.end());
+           it = sort_files.begin(),
+           end = sort_files.end();
        it != end; ++it) {
     io::file_entry const& f(it->second);
     std::string config_file(dir + "/" + f.base_name() + ".cfg");
