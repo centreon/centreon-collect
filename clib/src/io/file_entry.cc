@@ -92,9 +92,9 @@ bool file_entry::operator!=(file_entry const& right) const noexcept {
 }
 
 /**
- *  Get the file name without extention.
+ *  Get the file name without extension.
  *
- *  @return The file name without extention.
+ *  @return The file name without extension.
  */
 std::string file_entry::base_name() const {
   std::string name;

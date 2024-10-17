@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <cstdlib>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/directory_entry.hh"
+#include "com/centreon/io/file_entry.hh"
 #include "com/centreon/io/file_stream.hh"
 
 unsigned int const DATA_SIZE = 42;
@@ -32,38 +32,6 @@ static void create_fake_file(std::string const& path) {
     fs.open(path, "w");
     fs.close();
   }
-}
-
-TEST(ClibIO, DirEntryCopy) {
-  io::directory_entry e1(".");
-  io::directory_entry e2(e1);
-  ASSERT_EQ(e1, e2);
-
-  io::directory_entry e3 = e1;
-  ASSERT_EQ(e1, e3);
-}
-
-TEST(ClibIO, DirCtorDefault) {
-  io::directory_entry entry(NULL);
-  ASSERT_TRUE(entry.entry().path().empty());
-  io::directory_entry entry2(".");
-  ASSERT_FALSE(entry2.entry().path().empty());
-}
-
-TEST(ClibIO, DirCurrentPath) {
-  std::string path(io::directory_entry::current_path());
-  ASSERT_FALSE(path.empty());
-}
-
-TEST(ClibIO, DirFilter) {
-  io::directory_entry entry(".");
-  std::list<io::file_entry> lst_all(entry.entry_list());
-  std::list<io::file_entry> lst_point(entry.entry_list(".*"));
-  std::list<io::file_entry> lst_de(entry.entry_list("io_directory_entry*"));
-
-  ASSERT_GE(lst_all.size(), lst_point.size() + lst_de.size());
-  ASSERT_GE(lst_point.size(), 2u);
-  ASSERT_LT(lst_de.size(), 2u);
 }
 
 TEST(ClibIO, FileEntryCopy) {
@@ -151,24 +119,24 @@ TEST(ClibIO, FileEntrySize) {
 }
 
 TEST(ClibIO, FileStreamCreateExistsRemove) {
-  char* path(io::file_stream::temp_path());
+  std::string path(io::file_stream::temp_path());
 
   // Remove old file.
-  io::file_stream::remove(path);
+  io::file_stream::remove(path.c_str());
 
   // File must not exists.
-  ASSERT_FALSE(io::file_stream::exists(path));
+  ASSERT_FALSE(io::file_stream::exists(path.c_str()));
 
   // Create file.
   {
     io::file_stream fs;
-    fs.open(path, "w");
+    fs.open(path.c_str(), "w");
     fs.close();
   }
 
-  ASSERT_TRUE(io::file_stream::exists(path));
-  ASSERT_TRUE(io::file_stream::remove(path));
-  ASSERT_FALSE(io::file_stream::exists(path));
+  ASSERT_TRUE(io::file_stream::exists(path.c_str()));
+  ASSERT_TRUE(io::file_stream::remove(path.c_str()));
+  ASSERT_FALSE(io::file_stream::exists(path.c_str()));
 }
 
 TEST(ClibIO, FileStreamCtorDefault) {
@@ -177,11 +145,11 @@ TEST(ClibIO, FileStreamCtorDefault) {
 }
 
 TEST(ClibIO, FileStreamRead) {
-  char const* tmp_file_name(io::file_stream::temp_path());
+  std::string tmp_file_name(io::file_stream::temp_path());
 
   // Open temporary file.
   io::file_stream tmp_file_stream;
-  tmp_file_stream.open(tmp_file_name, "w");
+  tmp_file_stream.open(tmp_file_name.c_str(), "w");
 
   // Return value.
   int retval(0);
@@ -202,7 +170,7 @@ TEST(ClibIO, FileStreamRead) {
     // Real read.
     char buffer[1024];
     tmp_file_stream.close();
-    tmp_file_stream.open(tmp_file_name, "r");
+    tmp_file_stream.open(tmp_file_name.c_str(), "r");
     ASSERT_FALSE(tmp_file_stream.read(buffer, sizeof(buffer)) == 0);
   }
   ASSERT_EQ(retval, 0);
@@ -246,11 +214,11 @@ TEST(ClibIO, FileStreamRename) {
 
 TEST(ClibIO, FileStreamWrite) {
   // Generate temporary file name.
-  char const* tmp_file_name(io::file_stream::temp_path());
+  std::string tmp_file_name(io::file_stream::temp_path());
 
   // Open temporary file.
   io::file_stream tmp_file_stream;
-  tmp_file_stream.open(tmp_file_name, "w");
+  tmp_file_stream.open(tmp_file_name.c_str(), "w");
 
   // NULL write.
   ASSERT_THROW(tmp_file_stream.write(NULL, 1), exceptions::msg_fmt);

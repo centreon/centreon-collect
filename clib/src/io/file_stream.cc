@@ -48,7 +48,7 @@ file_stream::file_stream(FILE* stream, bool auto_close)
 /**
  *  Destructor.
  */
-file_stream::~file_stream() throw() {
+file_stream::~file_stream() noexcept {
   close();
 }
 
@@ -290,11 +290,12 @@ unsigned long file_stream::size() {
  *
  *  @return Temporary name.
  */
-char* file_stream::temp_path() {
-  char* ret(::tmpnam(static_cast<char*>(NULL)));
+std::string file_stream::temp_path() {
+  std::string tmp_path("/tmp/centreon_clib.XXXXXX");
+  char* ret = ::mkdtemp(tmp_path.data());
   if (!ret)
     throw msg_fmt("could not generate temporary file name");
-  return ret;
+  return tmp_path;
 }
 
 /**

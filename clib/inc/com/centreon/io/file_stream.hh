@@ -35,7 +35,7 @@ namespace io {
 class file_stream : public handle {
  public:
   file_stream(FILE* stream = NULL, bool auto_close = false);
-  ~file_stream() throw();
+  ~file_stream() noexcept;
   void close();
   static void copy(char const* src, char const* dst);
   static void copy(std::string const& src, std::string const& dst);
@@ -52,7 +52,7 @@ class file_stream : public handle {
   static bool rename(std::string const& old_filename,
                      std::string const& new_filename);
   unsigned long size();
-  static char* temp_path();
+  static std::string temp_path();
   unsigned long write(void const* data, unsigned long size);
 
  private:
@@ -64,6 +64,6 @@ class file_stream : public handle {
 };
 }  // namespace io
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_IO_FILE_STREAM_HH

@@ -24,9 +24,8 @@ set(INC_DIR "${INC_DIR}/io")
 set(
   SOURCES
   ${SOURCES}
-  "${SRC_DIR}/directory_entry.cc"
-  "${SRC_DIR}/file_entry.cc"
-  "${SRC_DIR}/file_stream.cc"
+  ${SRC_DIR}/file_entry.cc
+  ${SRC_DIR}/file_stream.cc
   PARENT_SCOPE
 )
 
@@ -34,8 +33,7 @@ set(
 set(
   HEADERS
   ${HEADERS}
-  "${INC_DIR}/directory_entry.hh"
-  "${INC_DIR}/file_entry.hh"
-  "${INC_DIR}/file_stream.hh"
+  ${INC_DIR}/file_entry.hh
+  ${INC_DIR}/file_stream.hh
   PARENT_SCOPE
 )
