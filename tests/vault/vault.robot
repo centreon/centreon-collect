@@ -16,7 +16,7 @@ BWVC1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    0
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
@@ -33,7 +33,7 @@ BWVC2
     [Tags]    broker    engine    MON-116610
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    0
     Ctn Broker Config Add Item    central    vault_configuration    /tmp/wrong_file
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
