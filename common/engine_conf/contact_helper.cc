@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/contact_helper.hh"
-#include <string>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -56,7 +55,7 @@ bool contact_helper::hook(std::string_view key, const std::string_view& value) {
     obj->set_contact_name(std::string(value));
     set_changed(obj->descriptor()->FindFieldByName("contact_name")->index());
     if (obj->alias().empty()) {
-      obj->set_alias(std::string(value));
+      obj->set_alias(obj->contact_name());
       set_changed(obj->descriptor()->FindFieldByName("alias")->index());
     }
     return true;
