@@ -1139,6 +1139,8 @@ void macro_cache::_process_pb_adaptive_service_status(
     svc.set_acknowledgement_type(obj.acknowledgement_type());
   if (obj.has_scheduled_downtime_depth())
     svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  if (obj.has_notification_number())
+    svc.set_notification_number(obj.notification_number());
 }
 
 void macro_cache::_process_pb_service_status(

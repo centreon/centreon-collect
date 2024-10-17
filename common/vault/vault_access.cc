@@ -18,7 +18,6 @@
 #include "common/vault/vault_access.hh"
 #include <absl/strings/ascii.h>
 #include <absl/strings/str_split.h>
-#include <exception>
 #include <nlohmann/json.hpp>
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"

@@ -21,7 +21,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <unistd.h>
-#include <string_view>
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -3076,12 +3075,12 @@ int neb::callback_pb_service(int callback_type [[maybe_unused]], void* data) {
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
     if (!es->description().empty())
       srv.set_description(common::check_string_utf8(es->description()));
-
-    fill_service_type(srv, es);
     if (!es->get_hostname().empty()) {
       std::string name{common::check_string_utf8(es->get_hostname())};
       *srv.mutable_host_name() = std::move(name);
     }
+    fill_service_type(srv, es);
+
     if (!es->get_icon_image().empty())
       *srv.mutable_icon_image() =
           common::check_string_utf8(es->get_icon_image());
