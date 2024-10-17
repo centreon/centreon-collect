@@ -18,8 +18,6 @@
 
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -437,11 +435,13 @@ class stream : public io::stream {
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_service_in_resources(const Service& s, int32_t conn);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_pb_log(const std::shared_ptr<io::data>& d);

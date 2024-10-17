@@ -24,7 +24,6 @@
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
 #include "com/centreon/engine/macros/clear_service.hh"
 #include "com/centreon/engine/macros/clear_servicegroup.hh"
-#include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/macros/grab_value.hh"

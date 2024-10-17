@@ -19,7 +19,6 @@
 #ifndef CC_LOGGING_TEMP_LOGGER_HH
 #define CC_LOGGING_TEMP_LOGGER_HH
 
-#include <string>
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/misc/stringifier.hh"
 
