@@ -22,20 +22,20 @@
 #include <pdhmsg.h>
 
 #include "check_cpu.hh"
-#include "native_check_cpu_base.cc"
+#include "native_check_base.cc"
 
 #include "com/centreon/common/rapidjson_helper.hh"
 
 #pragma comment(lib, "pdh.lib")
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_cpu_detail;
+using namespace com::centreon::agent::native_check_detail;
 
 /**************************************************************************
       Kernel measure method
 ***************************************************************************/
 
-namespace com::centreon::agent::check_cpu_detail {
+namespace com::centreon::agent::native_check_detail {
 
 // ntdll.dll handle
 static HMODULE _ntdll = nullptr;
@@ -50,7 +50,7 @@ static NtQuerySystemInformationPtr _nt_query_system_information = nullptr;
 
 constexpr ULONG SystemProcessorPerformanceInformationClass = 8;
 
-}  // namespace com::centreon::agent::check_cpu_detail
+}  // namespace com::centreon::agent::native_check_detail
 
 /**
  * @brief Construct a kernel_per_cpu_time object from a
@@ -121,8 +121,7 @@ kernel_cpu_time_snapshot::kernel_cpu_time_snapshot(unsigned nb_core) {
   for (unsigned i = 0; i < nb_core; ++i) {
     _data[i] = kernel_per_cpu_time(buffer[i]);
   }
-  per_cpu_time_base<e_proc_stat_index::nb_field>& total =
-      _data[average_cpu_index];
+  per_cpu_values<e_proc_stat_index::nb_field>& total = _data[average_cpu_index];
   for (auto to_add_iter = _data.begin();
        to_add_iter != _data.end() && to_add_iter->first != average_cpu_index;
        ++to_add_iter) {
@@ -136,14 +135,14 @@ kernel_cpu_time_snapshot::kernel_cpu_time_snapshot(unsigned nb_core) {
  * @param output
  */
 void kernel_cpu_time_snapshot::dump(std::string* output) const {
-  cpu_time_snapshot<e_proc_stat_index::nb_field>::dump(output);
+  values_snapshot<e_proc_stat_index::nb_field>::dump(output);
 }
 
 /**************************************************************************
       Pdh measure method
 ***************************************************************************/
 
-namespace com::centreon::agent::check_cpu_detail {
+namespace com::centreon::agent::native_check_detail {
 struct pdh_counters {
   HQUERY query;
   HCOUNTER user;
@@ -156,7 +155,7 @@ struct pdh_counters {
 
   ~pdh_counters();
 };
-}  // namespace com::centreon::agent::check_cpu_detail
+}  // namespace com::centreon::agent::native_check_detail
 
 pdh_counters::pdh_counters() : query(nullptr) {
   if (PdhOpenQuery(nullptr, 0, &query) != ERROR_SUCCESS) {
@@ -308,7 +307,8 @@ pdh_cpu_time_snapshot::pdh_cpu_time_snapshot(unsigned nb_core,
 /**************************************************************************
             Check cpu
 ***************************************************************************/
-using windows_cpu_to_status = cpu_to_status<e_proc_stat_index::nb_field>;
+using windows_cpu_to_status =
+    per_cpu_values_to_status<e_proc_stat_index::nb_field>;
 
 using cpu_to_status_constructor =
     std::function<windows_cpu_to_status(double /*threshold*/)>;
@@ -397,7 +397,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler)
-    : native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field>(
+    : native_check_base<native_check_detail::e_proc_stat_index::nb_field>(
           io_context,
           logger,
           first_start_expected,
@@ -420,7 +420,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
         const rapidjson::Value& val = member_iter->value;
         if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
             val.IsUint64()) {
-          check_cpu_detail::cpu_to_status cpu_checker =
+          native_check_detail::per_cpu_values_to_status cpu_checker =
               cpu_to_status_search->second(member_iter->value.GetDouble() /
                                            100);
           _cpu_to_status.emplace(
@@ -432,7 +432,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           auto to_conv = val.GetString();
           double dval;
           if (absl::SimpleAtod(to_conv, &dval)) {
-            check_cpu_detail::cpu_to_status cpu_checker =
+            native_check_detail::per_cpu_values_to_status cpu_checker =
                 cpu_to_status_search->second(dval / 100);
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
@@ -477,13 +477,13 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
 check_cpu::~check_cpu() {}
 
 std::unique_ptr<
-    check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
+    native_check_detail::values_snapshot<e_proc_stat_index::nb_field>>
 check_cpu::get_cpu_time_snapshot(bool first_measure) {
   if (_use_nt_query_system_information) {
-    return std::make_unique<check_cpu_detail::kernel_cpu_time_snapshot>(
+    return std::make_unique<native_check_detail::kernel_cpu_time_snapshot>(
         _nb_core);
   } else {
-    return std::make_unique<check_cpu_detail::pdh_cpu_time_snapshot>(
+    return std::make_unique<native_check_detail::pdh_cpu_time_snapshot>(
         _nb_core, *_pdh_counters, first_measure);
   }
 }
@@ -507,10 +507,10 @@ constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
  * @return e_status plugin out status
  */
 e_status check_cpu::compute(
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+    const native_check_detail::values_snapshot<
+        native_check_detail::e_proc_stat_index::nb_field>& first_measure,
+    const native_check_detail::values_snapshot<
+        native_check_detail::e_proc_stat_index::nb_field>& second_measure,
     std::string* output,
     std::list<common::perfdata>* perfs) {
   output->reserve(256 * _nb_core);

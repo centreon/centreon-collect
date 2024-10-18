@@ -16,11 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "native_check_cpu_base.hh"
+#include "native_check_base.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_cpu_detail;
+using namespace com::centreon::agent::native_check_detail;
 
 /**
  * @brief Construct a new per cpu time base<nb metric>::per cpu time base object
@@ -28,7 +28,7 @@ using namespace com::centreon::agent::check_cpu_detail;
  * @tparam nb_metric
  */
 template <unsigned nb_metric>
-per_cpu_time_base<nb_metric>::per_cpu_time_base() {
+per_cpu_values<nb_metric>::per_cpu_values() {
   _metrics.fill(0);
 }
 
@@ -41,9 +41,9 @@ per_cpu_time_base<nb_metric>::per_cpu_time_base() {
  * @param output output string
  */
 template <unsigned nb_metric>
-void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
-                                        const std::string_view metric_label[],
-                                        std::string* output) const {
+void per_cpu_values<nb_metric>::dump(const unsigned& cpu_index,
+                                     const std::string_view metric_label[],
+                                     std::string* output) const {
   if (cpu_index == average_cpu_index) {
     *output += fmt::format("CPU(s) average Usage: {:.2f}%",
                            (static_cast<double>(_total_used) / _total) * 100);
@@ -65,7 +65,7 @@ void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
  * @param output
  */
 template <unsigned nb_metric>
-void per_cpu_time_base<nb_metric>::dump_values(std::string* output) const {
+void per_cpu_values<nb_metric>::dump_values(std::string* output) const {
   for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
     absl::StrAppend(output, " ", _metrics[field_index]);
   }
@@ -74,14 +74,14 @@ void per_cpu_time_base<nb_metric>::dump_values(std::string* output) const {
 }
 
 /**
- * @brief subtract a per_cpu_time_base from this
+ * @brief subtract a per_cpu_values from this
  *
  * @tparam nb_metric
  * @param to_subtract
  */
 template <unsigned nb_metric>
-void per_cpu_time_base<nb_metric>::subtract(
-    const per_cpu_time_base<nb_metric>& to_subtract) {
+void per_cpu_values<nb_metric>::subtract(
+    const per_cpu_values<nb_metric>& to_subtract) {
   typename std::array<uint64_t, nb_metric>::iterator dest = _metrics.begin();
   typename std::array<uint64_t, nb_metric>::const_iterator src =
       to_subtract._metrics.begin();
@@ -93,13 +93,13 @@ void per_cpu_time_base<nb_metric>::subtract(
 }
 
 /**
- * @brief add a per_cpu_time_base to this
+ * @brief add a per_cpu_values to this
  *
  * @tparam nb_metric
  * @param to_add
  */
 template <unsigned nb_metric>
-void per_cpu_time_base<nb_metric>::add(const per_cpu_time_base& to_add) {
+void per_cpu_values<nb_metric>::add(const per_cpu_values& to_add) {
   typename std::array<uint64_t, nb_metric>::iterator dest = _metrics.begin();
   typename std::array<uint64_t, nb_metric>::const_iterator src =
       to_add._metrics.begin();
@@ -115,12 +115,12 @@ void per_cpu_time_base<nb_metric>::add(const per_cpu_time_base& to_add) {
  *
  * @tparam nb_metric
  * @param to_subtract
- * @return index_to_cpu<nb_metric>
+ * @return cpu_to_values_map<nb_metric>
  */
 template <unsigned nb_metric>
-index_to_cpu<nb_metric> cpu_time_snapshot<nb_metric>::subtract(
-    const cpu_time_snapshot& to_subtract) const {
-  index_to_cpu<nb_metric> result;
+cpu_to_values_map<nb_metric> values_snapshot<nb_metric>::subtract(
+    const values_snapshot& to_subtract) const {
+  cpu_to_values_map<nb_metric> result;
   // in case of pdh, first measure is empty, so we use only second sample
   if (to_subtract._data.empty()) {
     return _data;
@@ -130,7 +130,7 @@ index_to_cpu<nb_metric> cpu_time_snapshot<nb_metric>::subtract(
     if (right_it == to_subtract._data.end()) {
       continue;
     }
-    per_cpu_time_base<nb_metric>& res = result[left_it.first];
+    per_cpu_values<nb_metric>& res = result[left_it.first];
     res = left_it.second;
     res.subtract(right_it->second);
   }
@@ -145,7 +145,7 @@ index_to_cpu<nb_metric> cpu_time_snapshot<nb_metric>::subtract(
  * @param output
  */
 template <unsigned nb_metric>
-void cpu_time_snapshot<nb_metric>::dump(std::string* output) const {
+void values_snapshot<nb_metric>::dump(std::string* output) const {
   output->reserve(output->size() + _data.size() * 256);
   for (const auto& cpu : _data) {
     output->push_back(cpu.first + '0');
@@ -169,11 +169,12 @@ void cpu_time_snapshot<nb_metric>::dump(std::string* output) const {
  * @param per_cpu_status out: status per cpu index
  */
 template <unsigned nb_metric>
-void cpu_to_status<nb_metric>::compute_status(
-    const index_to_cpu<nb_metric>& to_test,
+void per_cpu_values_to_status<nb_metric>::compute_status(
+    const cpu_to_values_map<nb_metric>& to_test,
     boost::container::flat_map<unsigned, e_status>* per_cpu_status) const {
   auto check_threshold =
-      [&, this](const typename index_to_cpu<nb_metric>::value_type& values) {
+      [&,
+       this](const typename cpu_to_values_map<nb_metric>::value_type& values) {
         double val = _data_index >= nb_metric
                          ? values.second.get_proportional_used()
                          : values.second.get_proportional_value(_data_index);
@@ -203,7 +204,7 @@ void cpu_to_status<nb_metric>::compute_status(
 }
 
 /**
- * @brief Construct a new check native_check_cpu cpu object
+ * @brief Construct a new check native_check_base cpu object
  *
  * @param io_context
  * @param logger
@@ -218,7 +219,7 @@ void cpu_to_status<nb_metric>::compute_status(
  * @param handler called at measure completion
  */
 template <unsigned nb_metric>
-native_check_cpu<nb_metric>::native_check_cpu(
+native_check_base<nb_metric>::native_check_base(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
@@ -255,13 +256,13 @@ native_check_cpu<nb_metric>::native_check_cpu(
  * @param timeout
  */
 template <unsigned nb_metric>
-void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
+void native_check_base<nb_metric>::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
 
   try {
-    std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
+    std::unique_ptr<native_check_detail::values_snapshot<nb_metric>> begin =
         get_cpu_time_snapshot(true);
 
     time_point end_measure = std::chrono::system_clock::now() + timeout;
@@ -307,10 +308,10 @@ constexpr std::array<std::string_view, 4> _sz_status = {
  * @param first_measure first snapshot to compare
  */
 template <unsigned nb_metric>
-void native_check_cpu<nb_metric>::_measure_timer_handler(
+void native_check_base<nb_metric>::_measure_timer_handler(
     const boost::system::error_code& err,
     unsigned start_check_index,
-    std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>>&&
+    std::unique_ptr<native_check_detail::values_snapshot<nb_metric>>&&
         first_measure) {
   if (err) {
     return;
@@ -319,7 +320,7 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
   std::string output;
   std::list<common::perfdata> perfs;
 
-  std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> new_measure =
+  std::unique_ptr<native_check_detail::values_snapshot<nb_metric>> new_measure =
       get_cpu_time_snapshot(false);
 
   e_status worst = compute(*first_measure, *new_measure, &output, &perfs);
@@ -338,14 +339,14 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
  * @return e_status plugin out status
  */
 template <unsigned nb_metric>
-e_status native_check_cpu<nb_metric>::_compute(
-    const check_cpu_detail::cpu_time_snapshot<nb_metric>& first_measure,
-    const check_cpu_detail::cpu_time_snapshot<nb_metric>& second_measure,
+e_status native_check_base<nb_metric>::_compute(
+    const native_check_detail::values_snapshot<nb_metric>& first_measure,
+    const native_check_detail::values_snapshot<nb_metric>& second_measure,
     const std::string_view summary_labels[],
     const std::string_view perfdata_labels[],
     std::string* output,
     std::list<common::perfdata>* perfs) {
-  index_to_cpu<nb_metric> delta = second_measure.subtract(first_measure);
+  cpu_to_values_map<nb_metric> delta = second_measure.subtract(first_measure);
 
   // we need to know per cpu status to provide no ok cpu details
   boost::container::flat_map<unsigned, e_status> by_proc_status;
@@ -362,7 +363,7 @@ e_status native_check_cpu<nb_metric>::_compute(
   }
 
   if (worst == e_status::ok) {  // all is ok
-    auto average_data = delta.find(check_cpu_detail::average_cpu_index);
+    auto average_data = delta.find(native_check_detail::average_cpu_index);
     if (average_data != delta.end()) {
       *output = fmt::format("OK: CPU(s) average usage is {:.2f}%",
                             average_data->second.get_proportional_used() * 100);
@@ -388,18 +389,18 @@ e_status native_check_cpu<nb_metric>::_compute(
   auto fill_perfdata = [&, this](
                            const std::string_view& label, unsigned index,
                            unsigned cpu_index,
-                           const per_cpu_time_base<nb_metric>& per_cpu_data) {
+                           const per_cpu_values<nb_metric>& per_cpu_data) {
     double val = index >= nb_metric
                      ? per_cpu_data.get_proportional_used()
                      : per_cpu_data.get_proportional_value(index);
-    bool is_average = cpu_index == check_cpu_detail::average_cpu_index;
+    bool is_average = cpu_index == native_check_detail::average_cpu_index;
     common::perfdata to_add;
     to_add.name(label);
     to_add.unit("%");
     to_add.min(0);
     to_add.max(100);
     to_add.value(val * 100);
-    // we search cpu_to_status to get warning and critical thresholds
+    // we search per_cpu_values_to_status to get warning and critical thresholds
     // warning
     auto cpu_to_status_search = _cpu_to_status.find(
         std::make_tuple(index, is_average, e_status::warning));
@@ -421,7 +422,7 @@ e_status native_check_cpu<nb_metric>::_compute(
     for (const auto& by_core : delta) {
       std::string cpu_name;
       const char* suffix;
-      if (by_core.first != check_cpu_detail::average_cpu_index) {
+      if (by_core.first != native_check_detail::average_cpu_index) {
         absl::StrAppend(&cpu_name, by_core.first, "~");
         suffix = "#core.cpu.utilization.percentage";
       } else {
@@ -438,7 +439,7 @@ e_status native_check_cpu<nb_metric>::_compute(
   } else {
     for (const auto& by_core : delta) {
       std::string cpu_name;
-      if (by_core.first != check_cpu_detail::average_cpu_index) {
+      if (by_core.first != native_check_detail::average_cpu_index) {
         absl::StrAppend(&cpu_name, by_core.first,
                         "#core.cpu.utilization.percentage");
       } else {

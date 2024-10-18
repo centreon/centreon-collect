@@ -19,11 +19,11 @@
 #ifndef CENTREON_AGENT_CHECK_CPU_HH
 #define CENTREON_AGENT_CHECK_CPU_HH
 
-#include "native_check_cpu_base.hh"
+#include "native_check_base.hh"
 
 namespace com::centreon::agent {
 
-namespace check_cpu_detail {
+namespace native_check_detail {
 enum e_proc_stat_index { user = 0, system, idle, interrupt, dpc, nb_field };
 
 /**As winternl.h may be included, we define our own
@@ -41,8 +41,7 @@ struct M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION {
  * @brief this class contains all counter for one core contained in a
  * M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION structure
  */
-class kernel_per_cpu_time
-    : public per_cpu_time_base<e_proc_stat_index::nb_field> {
+class kernel_per_cpu_time : public per_cpu_values<e_proc_stat_index::nb_field> {
  public:
   kernel_per_cpu_time() = default;
 
@@ -62,7 +61,7 @@ microsoft
   *
   */
 class kernel_cpu_time_snapshot
-    : public cpu_time_snapshot<e_proc_stat_index::nb_field> {
+    : public values_snapshot<e_proc_stat_index::nb_field> {
  public:
   kernel_cpu_time_snapshot(unsigned nb_core);
 
@@ -84,8 +83,7 @@ kernel_cpu_time_snapshot::kernel_cpu_time_snapshot(
     _data[cpu_index] = kernel_per_cpu_time(*it);
   }
 
-  per_cpu_time_base<e_proc_stat_index::nb_field>& total =
-      _data[average_cpu_index];
+  per_cpu_values<e_proc_stat_index::nb_field>& total = _data[average_cpu_index];
   for (auto to_add_iter = _data.begin();
        to_add_iter != _data.end() && to_add_iter->first != average_cpu_index;
        ++to_add_iter) {
@@ -100,27 +98,27 @@ struct pdh_counters;
  *
  */
 class pdh_cpu_time_snapshot
-    : public cpu_time_snapshot<e_proc_stat_index::nb_field> {
+    : public values_snapshot<e_proc_stat_index::nb_field> {
  public:
   pdh_cpu_time_snapshot(unsigned nb_core,
                         const pdh_counters& counters,
                         bool first_measure);
 };
 
-}  // namespace check_cpu_detail
+}  // namespace native_check_detail
 
 /**
  * @brief native windows check cpu
  *
  */
-class check_cpu
-    : public native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field> {
+class check_cpu : public native_check_base<
+                      native_check_detail::e_proc_stat_index::nb_field> {
   // this check can collect metrics in two manners, the first one is to use the
   // unofficial NtQuerySystemInformation, the second one is to use the official
   // Performance Data Helper
   bool _use_nt_query_system_information = true;
 
-  std::unique_ptr<check_cpu_detail::pdh_counters> _pdh_counters;
+  std::unique_ptr<native_check_detail::pdh_counters> _pdh_counters;
 
  public:
   check_cpu(const std::shared_ptr<asio::io_context>& io_context,
@@ -142,15 +140,15 @@ class check_cpu
     return std::static_pointer_cast<check_cpu>(check::shared_from_this());
   }
 
-  std::unique_ptr<check_cpu_detail::cpu_time_snapshot<
-      check_cpu_detail::e_proc_stat_index::nb_field>>
+  std::unique_ptr<native_check_detail::values_snapshot<
+      native_check_detail::e_proc_stat_index::nb_field>>
   check_cpu::get_cpu_time_snapshot(bool first_measure) override;
 
   e_status compute(
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+      const native_check_detail::values_snapshot<
+          native_check_detail::e_proc_stat_index::nb_field>& first_measure,
+      const native_check_detail::values_snapshot<
+          native_check_detail::e_proc_stat_index::nb_field>& second_measure,
       std::string* output,
       std::list<common::perfdata>* perfs) override;
 };

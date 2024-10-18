@@ -18,10 +18,10 @@
 
 #include "check_cpu.hh"
 
-#include "native_check_cpu_base.cc"
+#include "native_check_base.cc"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_cpu_detail;
+using namespace com::centreon::agent::native_check_detail;
 
 /**
  * @brief Construct a new per cpu time::per cpu time object
@@ -38,7 +38,7 @@ per_cpu_time::per_cpu_time(const std::string_view& line) {
     throw std::invalid_argument("no cpu");
   }
   if (!absl::SimpleAtoi(field_iter->substr(3), &_cpu_index)) {
-    _cpu_index = check_cpu_detail::average_cpu_index;
+    _cpu_index = native_check_detail::average_cpu_index;
   }
 
   auto to_fill = _metrics.begin();
@@ -88,7 +88,8 @@ proc_stat_file::proc_stat_file(const char* proc_file, size_t nb_to_reserve) {
   }
 }
 
-using linux_cpu_to_status = cpu_to_status<e_proc_stat_index::nb_field>;
+using linux_cpu_to_status =
+    per_cpu_values_to_status<e_proc_stat_index::nb_field>;
 
 using cpu_to_status_constructor =
     std::function<linux_cpu_to_status(double /*threshold*/)>;
@@ -180,7 +181,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler)
-    : native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field>(
+    : native_check_base<native_check_detail::e_proc_stat_index::nb_field>(
           io_context,
           logger,
           first_start_expected,
@@ -203,7 +204,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
         const rapidjson::Value& val = member_iter->value;
         if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
             val.IsUint64()) {
-          check_cpu_detail::cpu_to_status cpu_checker =
+          native_check_detail::per_cpu_values_to_status cpu_checker =
               cpu_to_status_search->second(member_iter->value.GetDouble() /
                                            100);
           _cpu_to_status.emplace(
@@ -215,7 +216,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           auto to_conv = val.GetString();
           double dval;
           if (absl::SimpleAtod(to_conv, &dval)) {
-            check_cpu_detail::cpu_to_status cpu_checker =
+            native_check_detail::per_cpu_values_to_status cpu_checker =
                 cpu_to_status_search->second(dval / 100);
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
@@ -243,9 +244,9 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
 }
 
 std::unique_ptr<
-    check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
+    native_check_detail::values_snapshot<e_proc_stat_index::nb_field>>
 check_cpu::get_cpu_time_snapshot([[maybe_unused]] bool first_measure) {
-  return std::make_unique<check_cpu_detail::proc_stat_file>(_nb_core);
+  return std::make_unique<native_check_detail::proc_stat_file>(_nb_core);
 }
 
 constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
@@ -270,10 +271,10 @@ constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
  * @return e_status plugin out status
  */
 e_status check_cpu::compute(
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+    const native_check_detail::values_snapshot<
+        native_check_detail::e_proc_stat_index::nb_field>& first_measure,
+    const native_check_detail::values_snapshot<
+        native_check_detail::e_proc_stat_index::nb_field>& second_measure,
     std::string* output,
     std::list<common::perfdata>* perfs) {
   output->reserve(256 * _nb_core);

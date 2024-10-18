@@ -16,14 +16,14 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
-#define CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
+#ifndef CENTREON_AGENT_NATIVE_CHECK_BASE_HH
+#define CENTREON_AGENT_NATIVE_CHECK_BASE_HH
 
 #include "check.hh"
 
 namespace com::centreon::agent {
 
-namespace check_cpu_detail {
+namespace native_check_detail {
 // all data is indexed by processor number, this fake index points to cpus
 // average
 constexpr unsigned average_cpu_index = std::numeric_limits<unsigned>::max();
@@ -34,14 +34,14 @@ constexpr unsigned average_cpu_index = std::numeric_limits<unsigned>::max();
  * @tparam nb_metric number of metrics given by the kernel
  */
 template <unsigned nb_metric>
-class per_cpu_time_base {
+class per_cpu_values {
  protected:
   std::array<uint64_t, nb_metric> _metrics;
   uint64_t _total_used = 0;
   uint64_t _total = 0;
 
  public:
-  per_cpu_time_base();
+  per_cpu_values();
 
   double get_proportional_value(unsigned data_index) const {
     if (!_total || data_index >= nb_metric) {
@@ -108,50 +108,56 @@ class per_cpu_time_base {
 
   void dump_values(std::string* output) const;
 
-  void subtract(const per_cpu_time_base& to_subtract);
+  void subtract(const per_cpu_values& to_subtract);
 
-  void add(const per_cpu_time_base& to_add);
+  void add(const per_cpu_values& to_add);
 };
 
-template <unsigned nb_metric>
-using index_to_cpu =
-    boost::container::flat_map<unsigned, per_cpu_time_base<nb_metric>>;
-
 /**
- * @brief contains one per_cpu_time_base per core and a total one
+ * @brief contains one per_cpu_values per core
  *
  * @tparam nb_metric number of metrics given by the kernel
  */
 template <unsigned nb_metric>
-class cpu_time_snapshot {
+using cpu_to_values_map =
+    boost::container::flat_map<unsigned, per_cpu_values<nb_metric>>;
+
+/**
+ * @brief contains one per_cpu_values per core and a total one
+ *
+ * @tparam nb_metric number of metrics given by the kernel
+ */
+template <unsigned nb_metric>
+class values_snapshot {
  protected:
-  index_to_cpu<nb_metric> _data;
+  cpu_to_values_map<nb_metric> _data;
 
  public:
-  index_to_cpu<nb_metric> subtract(const cpu_time_snapshot& to_subtract) const;
+  cpu_to_values_map<nb_metric> subtract(
+      const values_snapshot& to_subtract) const;
 
-  const index_to_cpu<nb_metric>& get_values() const { return _data; }
+  const cpu_to_values_map<nb_metric>& get_values() const { return _data; }
 
   void dump(std::string* output) const;
 };
 
 /**
- * @brief this little class compare cpu usages values to threshold and set
+ * @brief this little class compare values to threshold and set
  * plugin status
  *
  */
 template <unsigned nb_metric>
-class cpu_to_status {
+class per_cpu_values_to_status {
   e_status _status;
   unsigned _data_index;
   bool _average;
   double _threshold;
 
  public:
-  cpu_to_status(e_status status,
-                unsigned data_index,
-                bool average,
-                double threshold)
+  per_cpu_values_to_status(e_status status,
+                           unsigned data_index,
+                           bool average,
+                           double threshold)
       : _status(status),
         _data_index(data_index),
         _average(average),
@@ -164,11 +170,11 @@ class cpu_to_status {
   e_status get_status() const { return _status; }
 
   void compute_status(
-      const index_to_cpu<nb_metric>& to_test,
+      const cpu_to_values_map<nb_metric>& to_test,
       boost::container::flat_map<unsigned, e_status>* per_cpu_status) const;
 };
 
-}  // namespace check_cpu_detail
+}  // namespace native_check_detail
 
 /**
  * @brief native cpu check base class
@@ -176,12 +182,12 @@ class cpu_to_status {
  * @tparam nb_metric
  */
 template <unsigned nb_metric>
-class native_check_cpu : public check {
+class native_check_base : public check {
  protected:
   unsigned _nb_core;
 
   /**
-   * @brief key used to store cpu_to_status
+   * @brief key used to store per_cpu_values_to_status
    * @tparam 1 index (user, system, iowait.... and idle for all except idle)
    * @tparam 2 true if average, false if per core
    * @tparam 3 e_status warning or critical
@@ -189,8 +195,9 @@ class native_check_cpu : public check {
    */
   using cpu_to_status_key = std::tuple<unsigned, bool, e_status>;
 
-  boost::container::flat_map<cpu_to_status_key,
-                             check_cpu_detail::cpu_to_status<nb_metric>>
+  boost::container::flat_map<
+      cpu_to_status_key,
+      native_check_detail::per_cpu_values_to_status<nb_metric>>
       _cpu_to_status;
 
   bool _cpu_detailed;
@@ -200,44 +207,44 @@ class native_check_cpu : public check {
   void _measure_timer_handler(
       const boost::system::error_code& err,
       unsigned start_check_index,
-      std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>>&&
+      std::unique_ptr<native_check_detail::values_snapshot<nb_metric>>&&
           first_measure);
 
   e_status _compute(
-      const check_cpu_detail::cpu_time_snapshot<nb_metric>& first_measure,
-      const check_cpu_detail::cpu_time_snapshot<nb_metric>& second_measure,
+      const native_check_detail::values_snapshot<nb_metric>& first_measure,
+      const native_check_detail::values_snapshot<nb_metric>& second_measure,
       const std::string_view summary_labels[],
       const std::string_view perfdata_labels[],
       std::string* output,
       std::list<common::perfdata>* perfs);
 
  public:
-  native_check_cpu(const std::shared_ptr<asio::io_context>& io_context,
-                   const std::shared_ptr<spdlog::logger>& logger,
-                   time_point first_start_expected,
-                   duration check_interval,
-                   const std::string& serv,
-                   const std::string& cmd_name,
-                   const std::string& cmd_line,
-                   const rapidjson::Value& args,
-                   const engine_to_agent_request_ptr& cnf,
-                   check::completion_handler&& handler);
+  native_check_base(const std::shared_ptr<asio::io_context>& io_context,
+                    const std::shared_ptr<spdlog::logger>& logger,
+                    time_point first_start_expected,
+                    duration check_interval,
+                    const std::string& serv,
+                    const std::string& cmd_name,
+                    const std::string& cmd_line,
+                    const rapidjson::Value& args,
+                    const engine_to_agent_request_ptr& cnf,
+                    check::completion_handler&& handler);
 
-  virtual ~native_check_cpu() = default;
+  virtual ~native_check_base() = default;
 
-  std::shared_ptr<native_check_cpu<nb_metric>> shared_from_this() {
-    return std::static_pointer_cast<native_check_cpu<nb_metric>>(
+  std::shared_ptr<native_check_base<nb_metric>> shared_from_this() {
+    return std::static_pointer_cast<native_check_base<nb_metric>>(
         check::shared_from_this());
   }
 
-  virtual std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>>
+  virtual std::unique_ptr<native_check_detail::values_snapshot<nb_metric>>
   get_cpu_time_snapshot(bool first_measure) = 0;
 
   void start_check(const duration& timeout) override;
 
   virtual e_status compute(
-      const check_cpu_detail::cpu_time_snapshot<nb_metric>& first_measure,
-      const check_cpu_detail::cpu_time_snapshot<nb_metric>& second_measure,
+      const native_check_detail::values_snapshot<nb_metric>& first_measure,
+      const native_check_detail::values_snapshot<nb_metric>& second_measure,
       std::string* output,
       std::list<common::perfdata>* perfs) = 0;
 };

@@ -19,10 +19,10 @@
 #ifndef CENTREON_AGENT_CHECK_CPU_HH
 #define CENTREON_AGENT_CHECK_CPU_HH
 
-#include "native_check_cpu_base.hh"
+#include "native_check_base.hh"
 namespace com::centreon::agent {
 
-namespace check_cpu_detail {
+namespace native_check_detail {
 
 enum e_proc_stat_index {
   user = 0,
@@ -45,7 +45,7 @@ enum e_proc_stat_index {
  * of all cpus
  *
  */
-class per_cpu_time : public per_cpu_time_base<nb_field> {
+class per_cpu_time : public per_cpu_values<nb_field> {
   unsigned _cpu_index = 0;
 
  public:
@@ -58,7 +58,7 @@ class per_cpu_time : public per_cpu_time_base<nb_field> {
  * @brief datas of /proc/stat
  *
  */
-class proc_stat_file : public cpu_time_snapshot<nb_field> {
+class proc_stat_file : public values_snapshot<nb_field> {
  public:
   proc_stat_file(size_t nb_to_reserve)
       : proc_stat_file("/proc/stat", nb_to_reserve) {}
@@ -66,7 +66,7 @@ class proc_stat_file : public cpu_time_snapshot<nb_field> {
   proc_stat_file(const char* proc_file, size_t nb_to_reserve);
 };
 
-};  // namespace check_cpu_detail
+};  // namespace native_check_detail
 
 /**
  * @brief native linux check_cpu
@@ -74,8 +74,8 @@ class proc_stat_file : public cpu_time_snapshot<nb_field> {
  * when a check starts, we read last measure and passed it to completion_handler
  * If we not have yet done a measure, we wait to timeout to calculate cpu usage
  */
-class check_cpu
-    : public native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field> {
+class check_cpu : public native_check_base<
+                      native_check_detail::e_proc_stat_index::nb_field> {
  public:
   check_cpu(const std::shared_ptr<asio::io_context>& io_context,
             const std::shared_ptr<spdlog::logger>& logger,
@@ -94,15 +94,15 @@ class check_cpu
     return std::static_pointer_cast<check_cpu>(check::shared_from_this());
   }
 
-  std::unique_ptr<check_cpu_detail::cpu_time_snapshot<
-      check_cpu_detail::e_proc_stat_index::nb_field>>
+  std::unique_ptr<native_check_detail::values_snapshot<
+      native_check_detail::e_proc_stat_index::nb_field>>
   get_cpu_time_snapshot(bool first_measure) override;
 
   e_status compute(
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+      const native_check_detail::values_snapshot<
+          native_check_detail::e_proc_stat_index::nb_field>& first_measure,
+      const native_check_detail::values_snapshot<
+          native_check_detail::e_proc_stat_index::nb_field>& second_measure,
       std::string* output,
       std::list<common::perfdata>* perfs) override;
 };

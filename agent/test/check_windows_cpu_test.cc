@@ -27,35 +27,38 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 using namespace com::centreon::agent;
 
 TEST(native_check_cpu_windows, construct) {
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info;
+  native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info;
   info.IdleTime.QuadPart = 60;
   info.KernelTime.QuadPart = 70;
   info.UserTime.QuadPart = 25;
   info.DpcTime.QuadPart = 1;
   info.InterruptTime.QuadPart = 5;
-  check_cpu_detail::kernel_per_cpu_time k(info);
-  ASSERT_EQ(k.get_proportional_value(check_cpu_detail::e_proc_stat_index::user),
-            0.25);
+  native_check_detail::kernel_per_cpu_time k(info);
   ASSERT_EQ(
-      k.get_proportional_value(check_cpu_detail::e_proc_stat_index::system),
+      k.get_proportional_value(native_check_detail::e_proc_stat_index::user),
+      0.25);
+  ASSERT_EQ(
+      k.get_proportional_value(native_check_detail::e_proc_stat_index::system),
       0.1);
-  ASSERT_EQ(k.get_proportional_value(check_cpu_detail::e_proc_stat_index::idle),
-            0.6);
   ASSERT_EQ(
-      k.get_proportional_value(check_cpu_detail::e_proc_stat_index::interrupt),
-      0.05);
-  ASSERT_EQ(k.get_proportional_value(check_cpu_detail::e_proc_stat_index::dpc),
-            0.01);
+      k.get_proportional_value(native_check_detail::e_proc_stat_index::idle),
+      0.6);
+  ASSERT_EQ(k.get_proportional_value(
+                native_check_detail::e_proc_stat_index::interrupt),
+            0.05);
+  ASSERT_EQ(
+      k.get_proportional_value(native_check_detail::e_proc_stat_index::dpc),
+      0.01);
   ASSERT_EQ(k.get_proportional_used(), 0.4);
 }
 
-constexpr check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info[2] =
-    {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
+constexpr native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
+    info[2] = {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
 
 TEST(native_check_cpu_windows, output_no_threshold) {
-  check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
+  native_check_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -68,7 +71,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
   info2[1].DpcTime.QuadPart = 0;
   info2[1].InterruptTime.QuadPart = 5;
 
-  check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
+  native_check_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -113,9 +116,9 @@ TEST(native_check_cpu_windows, output_no_threshold) {
 }
 
 TEST(native_check_cpu_windows, output_no_threshold_detailed) {
-  check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
+  native_check_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -128,7 +131,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
   info2[1].DpcTime.QuadPart = 0;
   info2[1].InterruptTime.QuadPart = 5;
 
-  check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
+  native_check_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -207,9 +210,9 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
 }
 
 TEST(native_check_cpu_windows, output_threshold) {
-  check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
+  native_check_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -222,7 +225,7 @@ TEST(native_check_cpu_windows, output_threshold) {
   info2[1].DpcTime.QuadPart = 0;
   info2[1].InterruptTime.QuadPart = 5;
 
-  check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
+  native_check_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -280,9 +283,9 @@ TEST(native_check_cpu_windows, output_threshold) {
 }
 
 TEST(native_check_cpu_windows, output_threshold_detailed) {
-  check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
+  native_check_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  native_check_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -295,7 +298,7 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
   info2[1].DpcTime.QuadPart = 0;
   info2[1].InterruptTime.QuadPart = 5;
 
-  check_cpu_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
+  native_check_detail::kernel_cpu_time_snapshot second(info2, info2 + 2);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;

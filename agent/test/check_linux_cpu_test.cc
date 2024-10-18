@@ -47,7 +47,7 @@ TEST(proc_stat_file_test, read_sample) {
   std::ofstream f(test_file_path);
   f.write(proc_sample, strlen(proc_sample));
 
-  check_cpu_detail::proc_stat_file to_compare(test_file_path, 4);
+  native_check_detail::proc_stat_file to_compare(test_file_path, 4);
 
   for (const auto& by_cpu : to_compare.get_values()) {
     switch (by_cpu.first) {
@@ -56,35 +56,36 @@ TEST(proc_stat_file_test, read_sample) {
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_used(),
                          (6017174.0 - 4497394.0) / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::user),
+                             native_check_detail::e_proc_stat_index::user),
                          1089609.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::nice),
+                             native_check_detail::e_proc_stat_index::nice),
                          6082.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::system),
+                             native_check_detail::e_proc_stat_index::system),
                          396906.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::idle),
+                             native_check_detail::e_proc_stat_index::idle),
                          4497394.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::iowait),
+                             native_check_detail::e_proc_stat_index::iowait),
                          15269.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::irq),
+                             native_check_detail::e_proc_stat_index::irq),
                          0);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::soft_irq),
+                             native_check_detail::e_proc_stat_index::soft_irq),
                          11914.0 / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::steal),
+                             native_check_detail::e_proc_stat_index::steal),
                          0);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::guest),
+                             native_check_detail::e_proc_stat_index::guest),
                          0);
-        ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::guest_nice),
-                         0);
+        ASSERT_DOUBLE_EQ(
+            by_cpu.second.get_proportional_value(
+                native_check_detail::e_proc_stat_index::guest_nice),
+            0);
         break;
       case 1:
         ASSERT_EQ(by_cpu.second.get_total(), 6025465);
@@ -95,10 +96,10 @@ TEST(proc_stat_file_test, read_sample) {
       case 3:
         ASSERT_EQ(by_cpu.second.get_total(), 6025489);
         break;
-      case check_cpu_detail::average_cpu_index:
+      case native_check_detail::average_cpu_index:
         ASSERT_EQ(by_cpu.second.get_total(), 24099337);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::system),
+                             native_check_detail::e_proc_stat_index::system),
                          1560174.0 / 24099337);
         break;
       default:
@@ -137,9 +138,9 @@ TEST(proc_stat_file_test, no_threshold) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
@@ -184,11 +185,11 @@ TEST(proc_stat_file_test, no_threshold) {
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
       ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
-      ASSERT_NEAR(
-          perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
-              100,
-          0.01);
+      ASSERT_NEAR(perf.value(),
+                  delta[native_check_detail::average_cpu_index]
+                          .get_proportional_used() *
+                      100,
+                  0.01);
     } else {
       FAIL() << "unexpected perfdata name:" << perf.name();
     }
@@ -196,7 +197,7 @@ TEST(proc_stat_file_test, no_threshold) {
 }
 
 constexpr std::array<unsigned, 5> proc_index = {
-    0, 1, 2, 3, check_cpu_detail::average_cpu_index};
+    0, 1, 2, 3, native_check_detail::average_cpu_index};
 
 TEST(proc_stat_file_test, no_threshold_detailed) {
   constexpr const char* test_file_path = "/tmp/proc_stat_test";
@@ -212,9 +213,9 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
@@ -252,7 +253,7 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
     ASSERT_EQ(perf.unit(), "%");
     ASSERT_EQ(perf.value_type(), com::centreon::common::perfdata::gauge);
 
-    unsigned cpu_index = check_cpu_detail::average_cpu_index;
+    unsigned cpu_index = native_check_detail::average_cpu_index;
     std::string counter_type;
     if (std::isdigit(perf.name()[0])) {
       cpu_index = perf.name()[0] - '0';
@@ -264,61 +265,61 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
     if (counter_type == "user") {
       ASSERT_NEAR(perf.value(),
                   (cpu_data.get_proportional_value(
-                       check_cpu_detail::e_proc_stat_index::user) *
+                       native_check_detail::e_proc_stat_index::user) *
                    100),
                   0.01);
     } else if (counter_type == "nice") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::nice) *
+                      native_check_detail::e_proc_stat_index::nice) *
                       100,
                   0.01);
     } else if (counter_type == "system") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::system) *
+                      native_check_detail::e_proc_stat_index::system) *
                       100,
                   0.01);
     } else if (counter_type == "idle") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::idle) *
+                      native_check_detail::e_proc_stat_index::idle) *
                       100,
                   0.01);
     } else if (counter_type == "iowait") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::iowait) *
+                      native_check_detail::e_proc_stat_index::iowait) *
                       100,
                   0.01);
     } else if (counter_type == "interrupt") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::irq) *
+                      native_check_detail::e_proc_stat_index::irq) *
                       100,
                   0.01);
     } else if (counter_type == "softirq") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::soft_irq) *
+                      native_check_detail::e_proc_stat_index::soft_irq) *
                       100,
                   0.01);
     } else if (counter_type == "steal") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::steal) *
+                      native_check_detail::e_proc_stat_index::steal) *
                       100,
                   0.01);
     } else if (counter_type == "guest") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::guest) *
+                      native_check_detail::e_proc_stat_index::guest) *
                       100,
                   0.01);
     } else if (counter_type == "guestnice") {
       ASSERT_NEAR(perf.value(),
                   cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::guest_nice) *
+                      native_check_detail::e_proc_stat_index::guest_nice) *
                       100,
                   0.01);
     } else if (counter_type == "used") {
@@ -343,9 +344,9 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
@@ -399,11 +400,11 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
       ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
-      ASSERT_NEAR(
-          perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
-              100,
-          0.01);
+      ASSERT_NEAR(perf.value(),
+                  delta[native_check_detail::average_cpu_index]
+                          .get_proportional_used() *
+                      100,
+                  0.01);
     } else {
       FAIL() << "unexpected perfdata name:" << perf.name();
     }
@@ -424,9 +425,9 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
@@ -483,9 +484,9 @@ TEST(proc_stat_file_test, threshold_detailed) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
@@ -557,9 +558,9 @@ TEST(proc_stat_file_test, threshold_detailed2) {
     f.write(proc_sample_2, strlen(proc_sample_2));
   }
 
-  check_cpu_detail::proc_stat_file first_measure(test_file_path, 4);
+  native_check_detail::proc_stat_file first_measure(test_file_path, 4);
 
-  check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
+  native_check_detail::proc_stat_file second_measure(test_file_path2, 4);
 
   auto delta = second_measure.subtract(first_measure);
 
