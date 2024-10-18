@@ -244,7 +244,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
 
 std::unique_ptr<
     check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
-check_cpu::get_cpu_time_snapshot() {
+check_cpu::get_cpu_time_snapshot([[maybe_unused]] bool first_measure) {
   return std::make_unique<check_cpu_detail::proc_stat_file>(_nb_core);
 }
 

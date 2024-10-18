@@ -79,5 +79,10 @@ grpc_client_base::grpc_client_base(
     creds = ::grpc::InsecureChannelCredentials();
   }
 
+  if (conf->get_second_max_reconnect_backoff() > 0) {
+    args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS,
+                conf->get_second_max_reconnect_backoff() * 1000);
+  }
+
   _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
 }
