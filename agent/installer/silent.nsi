@@ -47,7 +47,7 @@ Function show_help
         FileWrite $0 "usage: centreon-monitoring-agent.exe args$\n"
         FileWrite $0 "This installer works into mode:$\n"
         FileWrite $0 "  - Without argument: interactive windows UI$\n"
-        FileWrite $0 "  - Silent mode with the /S flag$\n"
+        FileWrite $0 "  - Silent mode with the /S flag in first position, before others arguments$\n"
         FileWrite $0 "Silent mode arguments:$\n"
         ${If} $1 != ""
             FileWrite $0 "$1$\n"
