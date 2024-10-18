@@ -68,7 +68,7 @@ TEST(check_exec_test, echo) {
 }
 
 TEST(check_exec_test, timeout) {
-  command_line = SLEEP_PATH " 5";
+  command_line = SLEEP_PATH " 120";
   int status;
   std::list<std::string> outputs;
   std::condition_variable cond;
@@ -85,13 +85,29 @@ TEST(check_exec_test, timeout) {
       });
   check->start_check(std::chrono::seconds(1));
 
+  int pid = check->get_pid();
+
   std::mutex mut;
   std::unique_lock l(mut);
   cond.wait(l);
   ASSERT_NE(status, 0);
   ASSERT_EQ(outputs.size(), 1);
 
-  ASSERT_EQ(*outputs.begin(), "Timeout at execution of " SLEEP_PATH " 5");
+  ASSERT_EQ(*outputs.begin(), "Timeout at execution of " SLEEP_PATH " 120");
+  ASSERT_GT(pid, 0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+#ifdef _WINDOWS
+  auto process_handle =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  ASSERT_NE(process_handle, nullptr);
+  DWORD exit_code;
+  ASSERT_EQ(GetExitCodeProcess(process_handle, &exit_code), TRUE);
+  ASSERT_NE(exit_code, STILL_ACTIVE);
+  CloseHandle(process_handle);
+#else
+  ASSERT_EQ(kill(pid, 0), -1);
+#endif
 }
 
 TEST(check_exec_test, bad_command) {

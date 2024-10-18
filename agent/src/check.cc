@@ -113,6 +113,7 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_ERROR(_logger, "check timeout for service {} cmd: {}",
                         _service, _command_name);
+    this->_on_timeout();
     on_completion(start_check_index, 3 /*unknown*/,
                   std::list<com::centreon::common::perfdata>(),
                   {"Timeout at execution of " + _command_line});
