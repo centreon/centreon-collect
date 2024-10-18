@@ -122,6 +122,7 @@ void per_cpu_time::dump(std::string* output) const {
 
 void com::centreon::agent::check_cpu_detail::dump(const index_to_cpu& cpus,
                                                   std::string* output) {
+  output->reserve(output->length() + cpus.size() * 256);
   for (const auto& cpu : cpus) {
     cpu.second.dump(output);
     output->push_back('\n');

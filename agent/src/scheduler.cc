@@ -207,9 +207,9 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     }
   }
 
-  _start_waiting_check();
-
   _conf = conf;
+
+  _start_waiting_check();
 }
 
 /**

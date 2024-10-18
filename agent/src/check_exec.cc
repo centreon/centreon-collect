@@ -228,23 +228,24 @@ void check_exec::start_check(const duration& timeout) {
 }
 
 /**
+ * @brief get process id of the check (only used by tests)
+ *
+ * @return int
+ */
+int check_exec::get_pid() const {
+  if (!_process) {
+    return 0;
+  }
+  return _process->get_pid();
+}
+/**
  * @brief process is killed in case of timeout and handler is called
  *
  * @param err
  * @param start_check_index
  */
-void check_exec::_timeout_timer_handler(const boost::system::error_code& err,
-                                        unsigned start_check_index) {
-  if (err) {
-    return;
-  }
-  if (start_check_index == _get_running_check_index()) {
-    _process->kill();
-    check::_timeout_timer_handler(err, start_check_index);
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "start_check_index={}, running_index={}",
-                        start_check_index, _get_running_check_index());
-  }
+void check_exec::_on_timeout() {
+  _process->kill();
 }
 
 /**

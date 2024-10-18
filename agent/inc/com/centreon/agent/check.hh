@@ -144,6 +144,8 @@ class check : public std::enable_shared_from_this<check> {
 
   bool _start_check(const duration& timeout);
 
+  virtual void _on_timeout(){};
+
  public:
   using pointer = std::shared_ptr<check>;
 
