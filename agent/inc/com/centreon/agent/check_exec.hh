@@ -92,7 +92,8 @@ class check_exec : public check {
  public:
   check_exec(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
-             time_point exp,
+             time_point first_start_expected,
+             duration check_interval,
              const std::string& serv,
              const std::string& cmd_name,
              const std::string& cmd_line,
@@ -102,7 +103,8 @@ class check_exec : public check {
   static std::shared_ptr<check_exec> load(
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
-      time_point exp,
+      time_point first_start_expected,
+      duration check_interval,
       const std::string& serv,
       const std::string& cmd_name,
       const std::string& cmd_line,
