@@ -537,11 +537,24 @@ BESS6
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
-    Ctn Broker Config Set Value    central    cache_config_dir	  /tmp/var/lib/centreon/config
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Create Directory    ${VarRoot}/lib/centreon/config
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
+
+    # While we not get two peers connected, we recheck the peers list
+    ${count}	Set Variable    0
+    FOR    ${idx}    IN RANGE    0    20
+        ${result}    Ctn Get Peers    51001
+	${count}    Evaluate    len(${result['peers']})
+	IF    ${count} == 2
+	    BREAK
+	END
+	Sleep    1s
+    END
+    Should Be Equal As Integers    ${count}    2    Two peers should be connected to the central broker.
 
     ${result}    Ctn Get Peers    51001
     # We define a variable to count the number of peers found
@@ -551,12 +564,14 @@ BESS6
         ${count}    Evaluate    ${count} + 1
         Should Be Equal As Strings    ${peer['name']}    Poller0    Poller name should be Poller0
         Should Be Equal As Integers    ${peer['id']}    1    On the poller instance, Poller id should be 1
+	Should Be True    "type" in ${peer}    Poller type should be defined as ENGINE.
         Should Be Equal As Strings    ${peer['type']}    ENGINE    Poller type should be ENGINE
       ELSE IF    "${peer['name']}" == "Central"
         ${count}    Evaluate    ${count} + 1
         Should Be Equal As Strings    ${peer['name']}    Central    Central name should be Central
         Should Be Equal As Integers    ${peer['id']}    1    On the central instance, Central id should be 1
-	Should Be Equal As Strings    ${peer['type']}    UNKNOWN    Central type should be ENGINE
+	Should Be True    "type" in ${peer}    Poller type should be defined as BROKER.
+        Should Be Equal As Strings    ${peer['type']}    BROKER    Central type should be BROKER
       ELSE
         Fail    Peer '${peer['name']}' name should not be found
       END
@@ -568,7 +583,6 @@ BESS6
     Log To Console    ${result}
     Should Be Equal As Strings    ${result['peers'][0]['name']}    Central    From the RRD cbd, peer name should be Central
     Should Be Equal As Integers    ${result['peers'][0]['id']}    1    From the RRD cbd, peer id should be 1
-    Should Be Equal As Strings    ${result['peers'][0]['type']}    UNKNOWN    From the RRD cbd, peer type should be BROKER because it is the central cbd instance.
+    Should Be Equal As Strings    ${result['peers'][0]['type']}    BROKER    From the RRD cbd, peer type should be BROKER because it is the central cbd instance.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-

@@ -3058,6 +3058,8 @@ def ctn_get_peers(port, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
                 res = stub.GetPeers(empty_pb2.Empty())
-                return MessageToDict(res, including_default_value_fields=True)
+                return MessageToDict(res)
+                #return MessageToDict(res, including_default_value_fields=True)
             except:
                 logger.console("gRPC server not ready")
+
