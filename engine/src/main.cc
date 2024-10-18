@@ -67,7 +67,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
 #ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/parser.hh"

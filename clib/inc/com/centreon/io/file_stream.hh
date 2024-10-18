@@ -1,20 +1,20 @@
-/*
-** Copyright 2012-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2012-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_IO_FILE_STREAM_HH
 #define CC_IO_FILE_STREAM_HH
@@ -23,9 +23,8 @@
 #include <string>
 #include "com/centreon/handle.hh"
 
-namespace com::centreon {
+namespace com::centreon::io {
 
-namespace io {
 /**
  *  @class file_stream file_stream.hh "com/centreon/io/file_stream.hh"
  *  @brief Wrapper of libc's FILE streams.
@@ -35,7 +34,7 @@ namespace io {
 class file_stream : public handle {
  public:
   file_stream(FILE* stream = NULL, bool auto_close = false);
-  ~file_stream() throw();
+  ~file_stream() noexcept;
   void close();
   static void copy(char const* src, char const* dst);
   static void copy(std::string const& src, std::string const& dst);
@@ -62,8 +61,6 @@ class file_stream : public handle {
   bool _auto_close;
   FILE* _stream;
 };
-}  // namespace io
-
-}
+}  // namespace com::centreon::io
 
 #endif  // !CC_IO_FILE_STREAM_HH
