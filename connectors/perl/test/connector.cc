@@ -364,7 +364,7 @@ class TestConnector : public testing::Test {
     return p.read_std_out(std::chrono::seconds(5));
   }
 
-  static void _write_file(char const* filename,
+  static void _write_file(const char* filename,
                           char const* content,
                           unsigned int size = 0) {
     // Check size.
@@ -372,7 +372,7 @@ class TestConnector : public testing::Test {
       size = strlen(content);
 
     // Open file.
-    FILE* f(fopen(filename, "w"));
+    FILE* f = fopen(filename, "w");
     if (!f)
       throw msg_fmt("could not open file {}", filename);
 
@@ -404,8 +404,8 @@ TEST_F(TestConnector, EofOnStdin) {
 
 TEST_F(TestConnector, ExecuteModuleLoading) {
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
-  _write_file(script_path.c_str(),
+  const char* script_path = com::centreon::io::file_stream::temp_path();
+  _write_file(script_path,
               "#!/usr/bin/perl\n"
               "\n"
               "use Sys::Hostname;\n"
@@ -432,7 +432,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
-  remove(script_path.c_str());
+  remove(script_path);
 
   ASSERT_EQ(retval, 0);
   std::string expected(result, result + sizeof(result) - 1);
@@ -648,9 +648,9 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
 
 TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   // Write Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  const char* script_path(com::centreon::io::file_stream::temp_path());
   _write_file(
-      script_path.c_str(),
+      script_path,
       "#!/usr/bin/perl\n"
       "\n"
       "print \"$Centreon::Test::company is $Centreon::Test::attribute\\n\";\n"
@@ -678,7 +678,7 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
-  remove(script_path.c_str());
+  remove(script_path);
 
   ASSERT_EQ(retval, 0);
   std::string expected(result, result + sizeof(result) - 1);

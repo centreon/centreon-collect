@@ -29,12 +29,6 @@
 using namespace com::centreon::io;
 using com::centreon::exceptions::msg_fmt;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Constructor.
  *
@@ -48,7 +42,7 @@ file_stream::file_stream(FILE* stream, bool auto_close)
 /**
  *  Destructor.
  */
-file_stream::~file_stream() throw() {
+file_stream::~file_stream() noexcept {
   close();
 }
 
@@ -291,7 +285,7 @@ unsigned long file_stream::size() {
  *  @return Temporary name.
  */
 char* file_stream::temp_path() {
-  char* ret(::tmpnam(static_cast<char*>(NULL)));
+  char* ret = ::tmpnam(static_cast<char*>(nullptr));
   if (!ret)
     throw msg_fmt("could not generate temporary file name");
   return ret;
