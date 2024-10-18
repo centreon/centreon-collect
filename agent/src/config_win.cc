@@ -103,7 +103,7 @@ config::config(const std::string& registry_key) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = get_bool("reverse_connection");
+  _reverse_connection = get_bool("reversed_grpc_streaming");
 
   RegCloseKey(h_key);
 }

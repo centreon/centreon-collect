@@ -31,6 +31,8 @@ using namespace com::centreon::agent;
 void scheduler::_start() {
   _init_export_request();
   _next_send_time_point = std::chrono::system_clock::now();
+  _check_time_step =
+      time_step(_next_send_time_point, std::chrono::milliseconds(100));
   update(_conf);
   _start_send_timer();
   _start_check_timer();
@@ -97,11 +99,13 @@ scheduler::default_config() {
  *
  */
 void scheduler::_start_check_timer() {
-  if (_check_queue.empty() ||
+  if (_waiting_check_queue.empty() ||
       _active_check >= _conf->config().max_concurrent_checks()) {
-    _check_timer.expires_from_now(std::chrono::milliseconds(100));
+    _check_time_step.increment_to_after_now();
+    _check_timer.expires_at(_check_time_step.value());
   } else {
-    _check_timer.expires_at((*_check_queue.begin())->get_start_expected());
+    _check_timer.expires_at(
+        (*_waiting_check_queue.begin())->get_start_expected());
   }
   _check_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
@@ -129,13 +133,14 @@ void scheduler::_check_timer_handler(const boost::system::error_code& err) {
  */
 void scheduler::_start_waiting_check() {
   time_point now = std::chrono::system_clock::now();
-  if (!_check_queue.empty()) {
-    for (check_queue::iterator to_check = _check_queue.begin();
-         !_check_queue.empty() && to_check != _check_queue.end() &&
+  if (!_waiting_check_queue.empty()) {
+    for (check_queue::iterator to_check = _waiting_check_queue.begin();
+         !_waiting_check_queue.empty() &&
+         to_check != _waiting_check_queue.end() &&
          (*to_check)->get_start_expected() <= now &&
          _active_check < _conf->config().max_concurrent_checks();) {
       _start_check(*to_check);
-      to_check = _check_queue.erase(to_check);
+      to_check = _waiting_check_queue.erase(to_check);
     }
   }
 }
@@ -149,7 +154,7 @@ void scheduler::_start_waiting_check() {
  * @param conf
  */
 void scheduler::update(const engine_to_agent_request_ptr& conf) {
-  _check_queue.clear();
+  _waiting_check_queue.clear();
   _active_check = 0;
   size_t nb_check = conf->config().services().size();
 
@@ -163,11 +168,13 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                      conf->config().check_interval());
 
   if (nb_check > 0) {
-    duration check_interval =
+    duration time_between_check =
         std::chrono::microseconds(conf->config().check_interval() * 1000000) /
         nb_check;
 
     time_point next = std::chrono::system_clock::now();
+    _check_time_step = time_step(next, time_between_check);
+    auto last_inserted_iter = _waiting_check_queue.end();
     for (const auto& serv : conf->config().services()) {
       if (_logger->level() == spdlog::level::trace) {
         SPDLOG_LOGGER_TRACE(
@@ -180,16 +187,18 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       }
       try {
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, serv.service_description(),
-            serv.command_name(), serv.command_line(), conf,
+            _io_context, _logger, next, time_between_check,
+            serv.service_description(), serv.command_name(),
+            serv.command_line(), conf,
             [me = shared_from_this()](
                 const std::shared_ptr<check>& check, unsigned status,
                 const std::list<com::centreon::common::perfdata>& perfdata,
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             });
-        _check_queue.emplace(check_to_schedule);
-        next += check_interval;
+        last_inserted_iter = _waiting_check_queue.emplace_hint(
+            last_inserted_iter, check_to_schedule);
+        next += time_between_check;
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(
             _logger, "service: {}  command:{} won't be scheduled cause: {}",
@@ -199,6 +208,8 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
+
+  _start_waiting_check();
 }
 
 /**
@@ -249,13 +260,19 @@ void scheduler::_check_handler(
   --_active_check;
 
   if (_alive) {
-    // repush for next check
-    check->add_duration_to_start_expected(
-        std::chrono::seconds(_conf->config().check_interval()));
+    time_point min_next_start =
+        check->get_start_expected() +
+        std::chrono::seconds(_conf->config().check_interval());
+    time_point now = std::chrono::system_clock::now();
+    if (min_next_start < now)
+      min_next_start = now;
 
-    _check_queue.insert(check);
-    // we have decreased _active_check, so we can launch another check
-    _start_waiting_check();
+    // repush for next check and search a free start slot in queue
+    check->increment_start_expected_to_after_min_timepoint(min_next_start);
+    while (!_waiting_check_queue.insert(check).second) {
+      // slot yet reserved => try next
+      check->add_check_interval_to_start_expected();
+    }
   }
 }
 
@@ -435,6 +452,11 @@ void scheduler::_add_metric_to_scope(
       attrib_type->set_key("auto");
       break;
     }
+    case com::centreon::common::perfdata::gauge: {
+      auto attrib_type = data_point->add_attributes();
+      attrib_type->set_key("gauge");
+      break;
+    }
   }
   if (perf.critical() <= std::numeric_limits<double>::max()) {
     _add_exemplar(perf.critical_mode() ? "crit_ge" : "crit_gt", perf.critical(),
@@ -510,7 +532,8 @@ void scheduler::_add_exemplar(
 std::shared_ptr<check> scheduler::default_check_builder(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
-    time_point start_expected,
+    time_point first_start_expected,
+    duration check_interval,
     const std::string& service,
     const std::string& cmd_name,
     const std::string& cmd_line,
@@ -535,9 +558,9 @@ std::shared_ptr<check> scheduler::default_check_builder(
                               cmd_line);
 #else
     if (check_type == "cpu_percentage"sv) {
-      return std::make_shared<check_cpu>(io_context, logger, start_expected,
-                                         service, cmd_name, cmd_line, *args,
-                                         conf, std::move(handler));
+      return std::make_shared<check_cpu>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler));
     } else {
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
                                 cmd_line);
@@ -545,7 +568,8 @@ std::shared_ptr<check> scheduler::default_check_builder(
 #endif
 
   } catch (const std::exception&) {
-    return check_exec::load(io_context, logger, start_expected, service,
-                            cmd_name, cmd_line, conf, std::move(handler));
+    return check_exec::load(io_context, logger, first_start_expected,
+                            check_interval, service, cmd_name, cmd_line, conf,
+                            std::move(handler));
   }
 }

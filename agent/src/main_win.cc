@@ -227,6 +227,10 @@ int main(int argc, char* argv[]) {
     return _main(false);
   }
 
+  SPDLOG_INFO(
+      "centagent.exe will start in service mode, if you launch it from command "
+      "line, use --standalone flag");
+
   SERVICE_TABLE_ENTRY DispatchTable[] = {
       {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
 
