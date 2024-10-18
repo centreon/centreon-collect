@@ -2064,7 +2064,8 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   unsigned data_index;
 
   for (data_index = 0; data_index < 1000000; ++data_index) {
-    row to_insert = {.name = fmt::format("name_{}", data_index),
+    row to_insert = {.id = 0,
+                     .name = fmt::format("name_{}", data_index),
                      .value = double(data_index) / 10,
                      .t = char(data_index),
                      .e = std::string(1, 'a' + data_index % 3),

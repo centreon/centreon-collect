@@ -122,10 +122,10 @@ to_agent_connector::to_agent_connector(
     const std::shared_ptr<spdlog::logger>& logger)
     : common::grpc::grpc_client_base(agent_endpoint_conf, logger),
       _io_context(io_context),
-      _conf(agent_conf),
       _metric_handler(handler),
+      _conf(agent_conf),
       _alive(true) {
-  _stub = std::move(agent::ReversedAgentService::NewStub(_channel));
+  _stub = agent::ReversedAgentService::NewStub(_channel);
 }
 
 /**

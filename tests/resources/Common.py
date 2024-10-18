@@ -643,6 +643,8 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
                         return True
                     elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
                         return True
+                    else:
+                        return True
         time.sleep(1)
     return False
 
