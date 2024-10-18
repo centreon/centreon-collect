@@ -509,12 +509,13 @@ const std::string& state::config_cache_dir() const noexcept {
   return _config_cache_dir;
 }
 
-/**
- * @brief Get the peer type this configuration is for. Essntially, we have three
- * types available BROKER, ENGINE, MAP, and UNKNWOWN is available by default.
- *
- * @return the peer type.
- */
-com::centreon::common::PeerType state::peer_type() const noexcept {
-  return _peer_type;
-}
+///**
+// * @brief Get the peer type this configuration is for. Essntially, we have
+// three
+// * types available BROKER, ENGINE, MAP, and UNKNWOWN is available by default.
+// *
+// * @return the peer type.
+// */
+// com::centreon::common::PeerType state::peer_type() const noexcept {
+//  return _peer_type;
+//}

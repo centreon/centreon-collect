@@ -878,18 +878,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
       obj.set_poller_name(config::applier::state::instance().poller_name());
-      if (!config::applier::state::instance().engine_config_dir().empty()) {
-        obj.set_peer_type(common::ENGINE);
+      obj.set_peer_type(config::applier::state::instance().peer_type());
+      if (!config::applier::state::instance().engine_config_dir().empty())
         obj.set_extended_negotiation(true);
-      } else if (!config::applier::state::instance()
-                      .config_cache_dir()
-                      .empty()) {
-        obj.set_peer_type(common::BROKER);
+      else if (!config::applier::state::instance().config_cache_dir().empty())
         obj.set_extended_negotiation(true);
-      } else {
-        obj.set_peer_type(common::UNKNOWN);
+      else
         obj.set_extended_negotiation(false);
-      }
 
       _write(welcome);
       _substream->flush();
@@ -1158,11 +1153,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       uint32_t dest_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 12));
       uint16_t expected = misc::crc16_ccitt(pack + 2, BBDO_HEADER_SIZE - 2);
 
-      SPDLOG_LOGGER_TRACE(
-          _logger,
-          "Reading: header eventID {} sourceID {} destID {} checksum {:x} and "
-          "expected {:x}",
-          event_id, source_id, dest_id, chksum, expected);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "Reading: header eventID {} sourceID {} destID {} "
+                          "checksum {:x} and "
+                          "expected {:x}",
+                          event_id, source_id, dest_id, chksum, expected);
 
       if (expected != chksum) {
         // The packet is corrupted.
@@ -1235,11 +1230,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "There are still {} long BBDO packets that cannot be sent, this "
-              "maybe be due to a corrupted retention file.",
-              _buffer.size());
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "There are still {} long BBDO packets that "
+                              "cannot be sent, this "
+                              "maybe be due to a corrupted retention file.",
+                              _buffer.size());
           /* In case of too many long events stored in memory, we purge the
            * oldest ones. */
           while (_buffer.size() > 3) {
@@ -1289,7 +1284,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         if (_buffer.size() > 1) {
           SPDLOG_LOGGER_ERROR(
               _logger,
-              "There are {} long BBDO packets waiting for their missing parts "
+              "There are {} long BBDO packets waiting for their missing "
+              "parts "
               "in memory, this may be due to a corrupted retention file.",
               _buffer.size());
           /* In case of too many long events stored in memory, we purge the
@@ -1313,12 +1309,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 /**
  * @brief Fill the internal _packet vector until it reaches the given size. It
  * may be bigger. The deadline is the limit time after that an exception is
- * thrown. Even if an exception is thrown the vector may begin to be fill, it is
- * just not finished, and so no data are lost. Received packets are BBDO packets
- * or maybe pieces of BBDO packets, so we keep vectors as is because usually a
- * vector should just represent a packet.
- * In case of event serialized only by grpc stream, we store it in
- * _grpc_serialized_queue
+ * thrown. Even if an exception is thrown the vector may begin to be fill, it
+ * is just not finished, and so no data are lost. Received packets are BBDO
+ * packets or maybe pieces of BBDO packets, so we keep vectors as is because
+ * usually a vector should just represent a packet. In case of event
+ * serialized only by grpc stream, we store it in _grpc_serialized_queue
  *
  * @param size The wanted final size
  * @param deadline A time_t.

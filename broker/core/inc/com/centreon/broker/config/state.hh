@@ -35,7 +35,7 @@ namespace com::centreon::broker::config {
  *  along with object definitions.
  */
 class state {
-  const common::PeerType _peer_type = common::UNKNOWN;
+  //  const common::PeerType _peer_type = common::UNKNOWN;
   int _broker_id;
   uint16_t _rpc_port;
   std::string _listen_address;
@@ -145,7 +145,7 @@ class state {
   const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
-  common::PeerType peer_type() const noexcept;
+  //  common::PeerType peer_type() const noexcept;
 };
 }  // namespace com::centreon::broker::config
 
