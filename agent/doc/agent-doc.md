@@ -108,3 +108,10 @@ Example of perfdatas in cpu-detailed mode:
 * 1~interrupt#core.cpu.utilization.percentage
 * iowait#cpu.utilization.percentage
 * used#cpu.utilization.percentage
+
+### native_check_cpu (windows version)
+metrics aren't the same as linux version. We collect user, idle, kernel , interrupt and dpc times.
+
+There are two methods, you can use internal microsoft function NtQuerySystemInformation. Yes Microsoft says that they can change signature or data format at any moment, but it's quite stable for many years. A trick, idle time is included un kernel time, so we subtract first from the second. Dpc time is yet included in interrupt time, so we don't sum it to calculate total time.
+The second one relies on performance data counters (pdh API), it gives us percentage despite that sum of percentage is not quite 100%. That's why the default method is the first one.
+The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
