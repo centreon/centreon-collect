@@ -25,7 +25,9 @@ using namespace com::centreon::agent;
  *
  * @param io_context
  * @param logger
- * @param exp
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
  * @param serv
  * @param command_name
  * @param cmd_line
@@ -34,13 +36,14 @@ using namespace com::centreon::agent;
  */
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
-             time_point exp,
+             time_point first_start_expected,
+             duration check_interval,
              const std::string& serv,
              const std::string& command_name,
              const std::string& cmd_line,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler)
-    : _start_expected(exp),
+    : _start_expected(first_start_expected, check_interval),
       _service(serv),
       _command_name(command_name),
       _command_line(cmd_line),
@@ -49,15 +52,6 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _logger(logger),
       _time_out_timer(*io_context),
       _completion_handler(handler) {}
-
-/**
- * @brief scheduler uses this method to increase start_expected
- *
- * @param to_add
- */
-void check::add_duration_to_start_expected(const duration& to_add) {
-  _start_expected += to_add;
-}
 
 /**
  * @brief start timeout timer and init some flags used by timeout and completion
@@ -85,9 +79,6 @@ bool check::_start_check(const duration& timeout) {
         });
     return false;
   }
-  // we refresh start expected in order that next call will occur at now + check
-  // period
-  _start_expected = std::chrono::system_clock::now();
   _running_check = true;
   _start_timeout_timer(timeout);
   SPDLOG_LOGGER_TRACE(_logger, "start check for service {}", _service);
@@ -122,6 +113,7 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_ERROR(_logger, "check timeout for service {} cmd: {}",
                         _service, _command_name);
+    this->_on_timeout();
     on_completion(start_check_index, 3 /*unknown*/,
                   std::list<com::centreon::common::perfdata>(),
                   {"Timeout at execution of " + _command_line});
