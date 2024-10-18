@@ -17,10 +17,10 @@
  */
 
 #include "scheduler.hh"
+#include "check_cpu.hh"
 #include "check_exec.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
 
@@ -523,13 +523,26 @@ std::shared_ptr<check> scheduler::default_check_builder(
         common::rapidjson_helper::read_from_string(cmd_line);
     common::rapidjson_helper native_params(native_check_info);
     std::string_view check_type = native_params.get_string("check");
-    const rapidjson::Value& args = native_params.get_member("args");
-
-    if (check_type == "cpu"sv) {
+    const rapidjson::Value* args;
+    if (native_params.has_member("args")) {
+      args = &native_params.get_member("args");
+    } else {
+      static const rapidjson::Value no_arg;
+      args = &no_arg;
+    }
+#ifdef _WINDOWS
+    throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
+                              cmd_line);
+#else
+    if (check_type == "cpu_percentage"sv) {
+      return std::make_shared<check_cpu>(io_context, logger, start_expected,
+                                         service, cmd_name, cmd_line, *args,
+                                         conf, std::move(handler));
     } else {
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
                                 cmd_line);
     }
+#endif
 
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, start_expected, service,

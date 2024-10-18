@@ -62,7 +62,9 @@ class tempo_check : public check {
       SPDLOG_INFO("start tempo check");
       check_starts.emplace_back(this, std::chrono::system_clock::now());
     }
-    check::start_check(timeout);
+    if (!_start_check(timeout)) {
+      return;
+    }
     _completion_timer.expires_from_now(_completion_delay);
     _completion_timer.async_wait([me = shared_from_this(), this,
                                   check_running_index =
@@ -405,7 +407,9 @@ class concurent_check : public check {
         _completion_delay(completion_delay) {}
 
   void start_check(const duration& timeout) override {
-    check::start_check(timeout);
+    if (!_start_check(timeout)) {
+      return;
+    }
     active_checks.insert(this);
     if (active_checks.size() > max_active_check) {
       max_active_check = active_checks.size();

@@ -60,11 +60,21 @@ void check::add_duration_to_start_expected(const duration& to_add) {
 }
 
 /**
- * @brief start a asynchronous check
+ * @brief start timeout timer and init some flags used by timeout and completion
+ * must be called first by daughter check class
+ * @code {.c++}
+ * void my_check::start_check(const duration & timeout) {
+ *    if (!_start_check(timeout))
+ *       return;
+ *    ....do job....
+ * }
+ * @endcode
+ *
  *
  * @param timeout
+ * @return true if check can be done, false otherwise
  */
-void check::start_check(const duration& timeout) {
+bool check::_start_check(const duration& timeout) {
   if (_running_check) {
     SPDLOG_LOGGER_ERROR(_logger, "check for service {} is already running",
                         _service);
@@ -73,7 +83,7 @@ void check::start_check(const duration& timeout) {
           to_call(me, 3, std::list<com::centreon::common::perfdata>(),
                   {"a check is already running"});
         });
-    return;
+    return false;
   }
   // we refresh start expected in order that next call will occur at now + check
   // period
@@ -81,6 +91,7 @@ void check::start_check(const duration& timeout) {
   _running_check = true;
   _start_timeout_timer(timeout);
   SPDLOG_LOGGER_TRACE(_logger, "start check for service {}", _service);
+  return true;
 }
 
 /**

@@ -185,7 +185,9 @@ void check_exec::_init() {
  * @param timeout
  */
 void check_exec::start_check(const duration& timeout) {
-  check::start_check(timeout);
+  if (!check::_start_check(timeout)) {
+    return;
+  }
   if (!_process) {
     _io_context->post([me = check::shared_from_this(),
                        start_check_index = _get_running_check_index()]() {
