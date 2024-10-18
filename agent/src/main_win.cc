@@ -15,6 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
+#include <windows.h>
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -27,6 +28,8 @@
 
 using namespace com::centreon::agent;
 
+#define SERVICE_NAME "CentreonMonitoringAgent"
+
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
@@ -37,6 +40,26 @@ static std::shared_ptr<streaming_server> _streaming_server;
 
 static asio::signal_set _signals(*g_io_context, SIGTERM, SIGINT);
 
+/**
+ * @brief shutdown network connections and stop asio service
+ *
+ */
+static void stop_process() {
+  if (_streaming_client) {
+    _streaming_client->shutdown();
+  }
+  if (_streaming_server) {
+    _streaming_server->shutdown();
+  }
+  g_io_context->post([]() { g_io_context->stop(); });
+}
+
+/**
+ * @brief called on Ctrl+C
+ *
+ * @param error
+ * @param signal_number
+ */
 static void signal_handler(const boost::system::error_code& error,
                            int signal_number) {
   if (!error) {
@@ -44,19 +67,19 @@ static void signal_handler(const boost::system::error_code& error,
       case SIGINT:
       case SIGTERM:
         SPDLOG_LOGGER_INFO(g_logger, "SIGTERM or SIGINT received");
-        if (_streaming_client) {
-          _streaming_client->shutdown();
-        }
-        if (_streaming_server) {
-          _streaming_server->shutdown();
-        }
-        g_io_context->post([]() { g_io_context->stop(); });
+        stop_process();
         return;
     }
     _signals.async_wait(signal_handler);
   }
 }
 
+/**
+ * @brief load file in a std::string
+ *
+ * @param file_path file path
+ * @return std::string file content
+ */
 static std::string read_file(const std::string& file_path) {
   if (file_path.empty()) {
     return {};
@@ -75,8 +98,15 @@ static std::string read_file(const std::string& file_path) {
   return "";
 }
 
-int main(int argc, char* argv[]) {
-  const char* registry_path = "SOFTWARE\\Centreon\\CentreonMonitoringAgent";
+/**
+ * @brief this program can be started in two ways
+ * from command line: main function
+ * from service manager: SvcMain function
+ *
+ * @return int exit status returned to command line (0 success)
+ */
+int _main(bool service_start) {
+  const char* registry_path = "SOFTWARE\\Centreon\\" SERVICE_NAME;
 
   std::unique_ptr<config> conf;
   try {
@@ -87,13 +117,16 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  SPDLOG_INFO("centreon-monitoring-agent start");
+  if (service_start)
+    SPDLOG_INFO("centreon-monitoring-agent service start");
+  else
+    SPDLOG_INFO("centreon-monitoring-agent start");
 
   const std::string logger_name = "centreon-monitoring-agent";
 
   auto create_event_logger = []() {
-    auto sink = std::make_shared<spdlog::sinks::win_eventlog_sink_mt>(
-        "CentreonMonitoringAgent");
+    auto sink =
+        std::make_shared<spdlog::sinks::win_eventlog_sink_mt>(SERVICE_NAME);
     g_logger = std::make_shared<spdlog::logger>("", sink);
   };
 
@@ -169,4 +202,127 @@ int main(int argc, char* argv[]) {
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 
   return 0;
+}
+
+/**************************************************************************************
+                    service part
+**************************************************************************************/
+
+static SERVICE_STATUS gSvcStatus;
+static SERVICE_STATUS_HANDLE gSvcStatusHandle;
+static HANDLE ghSvcStopEvent = NULL;
+void WINAPI SvcMain(DWORD, LPTSTR*);
+
+/**
+ * @brief main used when program is launched on command line
+ * if program is sued with --standalone flag, it does not register in service
+ * manager
+ *
+ * @param argc not used
+ * @param argv not used
+ * @return int program status
+ */
+int main(int argc, char* argv[]) {
+  if (argc > 1 && !lstrcmpi(argv[1], "--standalone")) {
+    return _main(false);
+  }
+
+  SERVICE_TABLE_ENTRY DispatchTable[] = {
+      {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
+
+  // This call returns when the service has stopped.
+  // The process should simply terminate when the call returns.
+  StartServiceCtrlDispatcher(DispatchTable);
+
+  return 0;
+}
+
+/**
+ * @brief Sets the current service status and reports it to the service manager.
+ *
+ * @param dwCurrentState The current state (see SERVICE_STATUS)
+ * @param dwWin32ExitCode The system error code
+ * @param dwWaitHint Estimated time for pending operation in milliseconds
+ */
+void report_svc_status(DWORD dwCurrentState,
+                       DWORD dwWin32ExitCode,
+                       DWORD dwWaitHint) {
+  static DWORD dwCheckPoint = 1;
+
+  // Fill in the SERVICE_STATUS structure.
+
+  gSvcStatus.dwCurrentState = dwCurrentState;
+  gSvcStatus.dwWin32ExitCode = dwWin32ExitCode;
+  gSvcStatus.dwWaitHint = dwWaitHint;
+
+  if (dwCurrentState == SERVICE_START_PENDING)
+    gSvcStatus.dwControlsAccepted = 0;
+  else
+    gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+
+  if ((dwCurrentState == SERVICE_RUNNING) ||
+      (dwCurrentState == SERVICE_STOPPED))
+    gSvcStatus.dwCheckPoint = 0;
+  else
+    gSvcStatus.dwCheckPoint = dwCheckPoint++;
+
+  // Report the status of the service to the SCM.
+  SetServiceStatus(gSvcStatusHandle, &gSvcStatus);
+}
+
+/**
+ * @brief function called by service manager
+ *
+ * @param dwCtrl -control code sent by service manager
+ */
+void WINAPI SvcCtrlHandler(DWORD dwCtrl) {
+  // Handle the requested control code.
+
+  SPDLOG_LOGGER_INFO(g_logger, "SvcCtrlHandler {}", dwCtrl);
+
+  switch (dwCtrl) {
+    case SERVICE_CONTROL_STOP:
+      report_svc_status(SERVICE_STOP_PENDING, NO_ERROR, 0);
+
+      SPDLOG_LOGGER_INFO(g_logger, "SERVICE_CONTROL_STOP received");
+      stop_process();
+
+      report_svc_status(gSvcStatus.dwCurrentState, NO_ERROR, 0);
+
+      return;
+
+    case SERVICE_CONTROL_INTERROGATE:
+      break;
+
+    default:
+      break;
+  }
+}
+
+/**
+ * @brief main called by service manager
+ *
+ */
+void WINAPI SvcMain(DWORD, LPTSTR*) {
+  gSvcStatusHandle = RegisterServiceCtrlHandler(SERVICE_NAME, SvcCtrlHandler);
+
+  if (!gSvcStatusHandle) {
+    SPDLOG_LOGGER_CRITICAL(g_logger, "fail to RegisterServiceCtrlHandler");
+    return;
+  }
+
+  // These SERVICE_STATUS members remain as set here
+
+  gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+  gSvcStatus.dwServiceSpecificExitCode = 0;
+
+  // Report initial status to the SCM
+
+  report_svc_status(SERVICE_START_PENDING, NO_ERROR, 3000);
+
+  report_svc_status(SERVICE_RUNNING, NO_ERROR, 0);
+
+  _main(true);
+
+  report_svc_status(SERVICE_STOPPED, NO_ERROR, 0);
 }

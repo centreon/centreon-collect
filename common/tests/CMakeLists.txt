@@ -33,6 +33,7 @@ else()
   add_executable(ut_common
     perfdata_test.cc
     process_test.cc
+    rapidjson_helper_test.cc
     test_main_win.cc
     utf8_test.cc
     ${TESTS_SOURCES})

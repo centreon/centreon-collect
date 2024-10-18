@@ -1,29 +1,29 @@
 /**
-* Copyright 2011-2014 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2014 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/logging/file.hh"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/misc/stringifier.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::logging;
+using com::centreon::exceptions::msg_fmt;
 
 /**
  *  Default constructor.
@@ -119,24 +119,22 @@ void file::log(uint64_t types,
   (void)verbose;
   (void)size;
 
-  misc::stringifier header;
-  _build_header(header);
+  std::string header = _build_header();
 
   // Split msg by line.
-  misc::stringifier buffer;
+  std::string buffer;
   uint32_t i(0);
   uint32_t last(0);
   while (msg[i]) {
     if (msg[i] == '\n') {
-      buffer << header;
-      buffer.append(msg + last, i - last) << "\n";
+      buffer +=
+          fmt::format("{}{}\n", header, std::string(msg + last, i - last));
       last = i + 1;
     }
     ++i;
   }
   if (last != i) {
-    buffer << header;
-    buffer.append(msg + last, i - last) << "\n";
+    buffer += fmt::format("{}{}\n", header, std::string(msg + last, i - last));
   }
 
   std::lock_guard<std::recursive_mutex> lock(_lock);
@@ -169,8 +167,7 @@ void file::open() {
     return;
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw msg_fmt("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 
   return;
@@ -191,8 +188,7 @@ void file::reopen() {
   } while (ret == -1 && errno == EINTR);
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw msg_fmt("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 
   return;
@@ -213,7 +209,6 @@ void file::_max_size_reached() {
   remove(_path.c_str());
 
   if (!(_out = fopen(_path.c_str(), "a")))
-    throw(basic_error() << "failed to open file '" << _path
-                        << "': " << strerror(errno));
+    throw msg_fmt("failed to open file '{}': {}", _path, strerror(errno));
   _size = ftell(_out);
 }

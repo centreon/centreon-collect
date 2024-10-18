@@ -190,8 +190,8 @@ An example of configuration:
             "http_server" : {
                 "port": 1443,
                 "encryption": true,
-                "certificate_path": "server.crt",
-                "key_path": "server.key"
+                "public_cert": "server.crt",
+                "private_key": "server.key"
             },
             "engine_otel_endpoint": "172.17.0.1:4317",
             "check_interval":60

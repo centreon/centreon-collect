@@ -64,7 +64,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 else()
   # we need not many things to just compile centreon-monitoring-agent
   # (centagent)
-  set(SOURCES ${SRC_DIR}/perfdata.cc ${SRC_DIR}/utf8.cc)
+  set(SOURCES 
+      ${SRC_DIR}/perfdata.cc
+      ${SRC_DIR}/rapidjson_helper.cc
+      ${SRC_DIR}/utf8.cc)
 endif()
 
 # Include directories.

@@ -1,20 +1,20 @@
 /**
-* Copyright 2012-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/io/directory_entry.hh"
 #include <dirent.h>
@@ -22,9 +22,10 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::io;
+using com::centreon::exceptions::msg_fmt;
 
 /**
  *  Constructor.
@@ -96,7 +97,7 @@ directory_entry::~directory_entry() noexcept {}
 std::string directory_entry::current_path() {
   char* buffer(getcwd(NULL, 0));
   if (!buffer)
-    throw(basic_error() << "current path failed");
+    throw msg_fmt("current path failed");
   std::string path(buffer);
   free(buffer);
   return path;
@@ -126,7 +127,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   DIR* dir(opendir(_entry.path().c_str()));
   if (!dir) {
     char const* msg(strerror(errno));
-    throw(basic_error() << "open directory failed: " << msg);
+    throw msg_fmt("open directory failed: {}", msg);
   }
 
   dirent entry;
@@ -134,7 +135,7 @@ std::list<file_entry> const& directory_entry::entry_list(
   while (true) {
     if (readdir_r(dir, &entry, &result)) {
       closedir(dir);
-      throw(basic_error() << "parse directory failed");
+      throw msg_fmt("parse directory failed");
     }
     if (!result)
       break;

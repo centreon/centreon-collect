@@ -1,33 +1,34 @@
 /**
-* Copyright 2012-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/process.hh"
 #include "test/connector/binary.hh"
 
 #define LOG_FILE "/tmp/toto"
 
 using namespace com::centreon;
+using com::centreon::exceptions::msg_fmt;
 
 #define CMD1      \
   "2\0"           \
@@ -110,25 +111,24 @@ int main() {
 
   try {
     if (retval)
-      throw(basic_error() << "invalid return code: " << retval);
+      throw msg_fmt("invalid return code: {}", retval);
     if (output.size() != (sizeof(RESULT) - 1) ||
         memcmp(output.c_str(), RESULT, sizeof(RESULT) - 1))
-      throw(basic_error() << "invalid output: size=" << output.size()
-                          << ", output=" << replace_null(output));
+      throw msg_fmt("invalid output: size={}, output={}", output.size(),
+                    replace_null(output));
 
     std::string line;
     std::ifstream file(LOG_FILE);
     if (file.is_open()) {
       getline(file, line);
-      if (line.find(
-              "[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
-              " starting") == std::string::npos)
-        throw(basic_error()
-              << "bad content: the first line does not start with 'Centreon "
-                 "SSH Connector " CENTREON_CONNECTOR_VERSION " starting'");
+      if (line.find("[info] Centreon SSH Connector " CENTREON_CONNECTOR_VERSION
+                    " starting") == std::string::npos)
+        throw msg_fmt(
+            "bad content: the first line does not start with 'Centreon "
+            "SSH Connector " CENTREON_CONNECTOR_VERSION " starting'");
       file.close();
     } else {
-      throw(basic_error() << "the file " LOG_FILE " has not been created.");
+      throw msg_fmt("the file " LOG_FILE " has not been created.");
     }
   } catch (std::exception const& e) {
     retval = 1;

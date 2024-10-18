@@ -27,9 +27,10 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::engine;
+using com::centreon::exceptions::msg_fmt;
 
 #define STATUS_NO_DATA 0
 #define STATUS_INFO_DATA 1
@@ -324,22 +325,19 @@ int main(int argc, char* argv[]) {
       if (stats_file) {
         if (read_stats_file() == ERROR) {
           char const* msg(strerror(errno));
-          throw(basic_error()
-                << "Error reading stats file '" << stats_file << "': " << msg);
+          throw msg_fmt("Error reading stats file '{}': {}", stats_file, msg);
         }
       }
       // Else read the normal status file.
       else {
         // Read main config file.
         if (read_config_file() == ERROR)
-          throw(basic_error()
-                << "Error processing config file '" << main_config_file);
+          throw msg_fmt("Error processing config file '{}'", main_config_file);
 
         // Read status file.
         if (read_status_file() == ERROR) {
           char const* msg(strerror(errno));
-          throw(basic_error() << "Error reading status file '" << status_file
-                              << "': " << msg);
+          throw msg_fmt("Error reading status file '{}': {}", status_file, msg);
         }
       }
 
