@@ -1,30 +1,31 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/logging/engine.hh"
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/logging/backend.hh"
 
 using namespace com::centreon::logging;
+using com::centreon::exceptions::msg_fmt;
 
 /**
  *  Get the logger engine singleton.
@@ -49,11 +50,11 @@ unsigned long engine::add(backend* obj,
                           unsigned long long types,
                           unsigned int verbose) {
   if (!obj)
-    throw(basic_error() << "add backend on the logging engine "
-                           "failed: bad argument (null pointer)");
+    throw msg_fmt(
+        "add backend on the logging engine failed: bad argument (null "
+        "pointer)");
   if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-    throw(basic_error() << "add backend on the logging engine "
-                           "failed: invalid verbose");
+    throw msg_fmt("add backend on the logging engine failed: invalid verbose");
 
   std::unique_ptr<backend_info> info(new backend_info);
   info->obj = obj;
@@ -125,8 +126,9 @@ bool engine::remove(unsigned long id) {
  */
 unsigned int engine::remove(backend* obj) {
   if (!obj)
-    throw(basic_error() << "remove backend on the logging engine "
-                           "failed:bad argument (null pointer)");
+    throw msg_fmt(
+        "remove backend on the logging engine failed:bad argument (null "
+        "pointer)");
 
   // Lock engine.
   std::lock_guard<std::recursive_mutex> lock(_mtx);

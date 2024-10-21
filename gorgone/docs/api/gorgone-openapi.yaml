@@ -1035,7 +1035,7 @@ components:
                   command_line:
                     type: string
                     description: "Command line to execute"
-                    example: "/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --job-id=14"
+                    example: "/usr/share/centreon/bin/run_save_discovered_host --job-id=14"
       required:
         - job_id
         - target

@@ -37,7 +37,7 @@ $file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash
 $file_name_extension = "${file_name}.7z"
 
 #try to get compiled dependenciesfrom s3
-Write-Host "try to download compiled dependencies from s3: $file_name_extension $file_name_extension"
+Write-Host "try to download compiled dependencies from s3: $file_name_extension"
 aws --quiet s3 cp s3://centreon-collect-robot-report/$file_name_extension $file_name_extension
 if ( $? -ne $true ) {
     #no => generate
@@ -72,7 +72,8 @@ else {
 
 cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
 
-Write-Host "build agent and tests"
+
+Write-Host "------------- build agent and installer ---------------"
 
 cmake --build build_windows --config Release
 

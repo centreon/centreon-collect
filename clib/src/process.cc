@@ -1,20 +1,20 @@
 /**
-* Copyright 2012-2013,2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013,2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <sstream>
 
@@ -31,12 +31,13 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "com/centreon/exceptions/interruption.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/misc/command_line.hh"
 #include "com/centreon/process_listener.hh"
 #include "com/centreon/process_manager.hh"
 
 using namespace com::centreon;
+using com::centreon::exceptions::msg_fmt;
 
 // environ is not declared on *BSD.
 extern char** environ;
@@ -105,8 +106,8 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
 
   // Check if process already running.
   if (_is_running())
-    throw basic_error() << "process " << _process
-                        << " is already started and has not been waited";
+    throw msg_fmt("process {} is already started and has not been waited",
+                  _process);
 
   // Reset variable.
   _buffer_err.clear();
@@ -453,10 +454,10 @@ unsigned int process::write(void const* data, unsigned int size) {
   if (wb < 0) {
     char const* msg(strerror(errno));
     if (errno == EINTR)
-      throw interruption_error() << msg;
-    throw basic_error() << "could not write '"
-                        << to_string(static_cast<const char*>(data), size)
-                        << "' on process " << my_process << "'s input: " << msg;
+      throw msg_fmt("{}", msg);
+    throw msg_fmt("could not write '{}' on process {}'s input: {}",
+                  to_string(static_cast<const char*>(data), size), my_process,
+                  msg);
   }
   return wb;
 }
@@ -500,33 +501,29 @@ pid_t process::_create_process_with_setpgid(char* const* args, char** env) {
   posix_spawnattr_t attr;
   int ret = posix_spawnattr_init(&attr);
   if (ret)
-    throw basic_error() << "cannot initialize spawn attributes: "
-                        << strerror(ret);
+    throw msg_fmt("cannot initialize spawn attributes: {}", strerror(ret));
   ret = posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
   if (ret) {
     posix_spawnattr_destroy(&attr);
-    throw basic_error() << "cannot set spawn flag: " << strerror(ret);
+    throw msg_fmt("cannot set spawn flag: {}", strerror(ret));
   }
   ret = posix_spawnattr_setpgroup(&attr, 0);
   if (ret) {
     posix_spawnattr_destroy(&attr);
-    throw basic_error()
-        << "cannot set process group ID of to-be-spawned process: "
-        << strerror(ret);
+    throw msg_fmt("cannot set process group ID of to-be-spawned process: {}",
+                  strerror(ret));
   }
   if (posix_spawnp(&pid, args[0], NULL, &attr, args, env)) {
     char const* msg(strerror(errno));
     posix_spawnattr_destroy(&attr);
-    throw basic_error() << "could not create process '" << args[0]
-                        << "': " << msg;
+    throw msg_fmt("could not create process '{}': {}", args[0], msg);
   }
   posix_spawnattr_destroy(&attr);
 #else
   pid = fork();
   if (pid == static_cast<pid_t>(-1)) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not create process '" << args[0]
-                        << "': " << msg;
+    throw msg_fmt("could not create process '{}': {}", args[0], msg);
   }
 
   // Child execution.
@@ -546,15 +543,13 @@ pid_t process::_create_process_without_setpgid(char* const* args, char** env) {
 #ifdef HAVE_SPAWN_H
   if (posix_spawnp(&pid, args[0], NULL, NULL, args, env)) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not create process '" << args[0]
-                        << "': " << msg;
+    throw msg_fmt("could not create process '{}': {}", args[0], msg);
   }
 #else
   pid = vfork();
   if (pid == static_cast<pid_t>(-1)) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not create process '" << args[0]
-                        << "': " << msg;
+    throw msg_fmt("could not create process '{}': {}", args[0], msg);
   }
 
   // Child execution.
@@ -576,7 +571,7 @@ void process::_dev_null(int fd, int flags) {
   int newfd(::open("/dev/null", flags));
   if (newfd < 0) {
     char const* msg(strerror(errno));
-    throw basic_error() << "could not open /dev/null: " << msg;
+    throw msg_fmt("could not open /dev/null: {}", msg);
   }
   try {
     _dup2(newfd, fd);
@@ -600,7 +595,7 @@ int process::_dup(int oldfd) {
     if (errno == EINTR)
       continue;
     char const* msg(strerror(errno));
-    throw basic_error() << "could not duplicate FD: " << msg;
+    throw msg_fmt("could not duplicate FD: {}", msg);
   }
   return newfd;
 }
@@ -616,7 +611,7 @@ void process::_dup2(int oldfd, int newfd) {
     if (errno == EINTR)
       continue;
     char const* msg(strerror(errno));
-    throw basic_error() << "could not duplicate FD: " << msg;
+    throw msg_fmt("could not duplicate FD: {}", msg);
   }
 }
 
@@ -629,8 +624,7 @@ void process::_kill(int sig) {
   if (_process && _process != static_cast<pid_t>(-1)) {
     if (::kill(_process, sig) != 0) {
       char const* msg(strerror(errno));
-      throw basic_error() << "could not terminate process " << _process << ": "
-                          << msg;
+      throw msg_fmt("could not terminate process {}: {}", _process, msg);
     }
   }
 }
@@ -643,7 +637,7 @@ void process::_kill(int sig) {
 void process::_pipe(int fds[2]) {
   if (pipe(fds) != 0) {
     char const* msg(strerror(errno));
-    throw basic_error() << "pipe creation failed: " << msg;
+    throw msg_fmt("pipe creation failed: {}", msg);
   }
 }
 
@@ -655,9 +649,8 @@ ssize_t process::do_read(int fd) {
   if (size == -1) {
     char const* msg(strerror(errno));
     if (errno == EINTR)
-      throw interruption_error() << msg;
-    throw basic_error() << "could not read from process " << _process << ": "
-                        << msg;
+      throw msg_fmt("{}", msg);
+    throw msg_fmt("could not read from process {}: {}", _process, msg);
   }
   if (size == 0)
     return 0;
@@ -698,13 +691,12 @@ void process::_set_cloexec(int fd) {
     if (errno == EINTR)
       continue;
     char const* msg(strerror(errno));
-    throw basic_error() << "Could not get file descriptor flags: " << msg;
+    throw msg_fmt("Could not get file descriptor flags: {}", msg);
   }
   while (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
     if (errno == EINTR)
       continue;
-    throw basic_error() << "Could not set close-on-exec flag: "
-                        << strerror(errno);
+    throw msg_fmt("Could not set close-on-exec flag: {}", strerror(errno));
   }
 }
 

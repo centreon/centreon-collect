@@ -143,7 +143,6 @@ include_directories("${INCLUDE_DIR}")
 
 # Add subdirectories.
 add_subdirectory(src/clib)
-add_subdirectory(src/exceptions)
 add_subdirectory(src/logging)
 add_subdirectory(src/misc)
 add_subdirectory(src/io)
@@ -154,7 +153,7 @@ endif()
 # Create shared library.
 add_library(centreon_clib SHARED ${SOURCES} ${HEADERS})
 # Link target with required libraries.
-target_link_libraries(centreon_clib ${LIB_THREAD} ${LIB_RT} ${LIB_DL})
+target_link_libraries(centreon_clib ${LIB_THREAD} ${LIB_RT} ${LIB_DL} fmt::fmt)
 # Set output name for the shared library.
 set_target_properties(centreon_clib PROPERTIES OUTPUT_NAME centreon_clib)
 # Install shared library.

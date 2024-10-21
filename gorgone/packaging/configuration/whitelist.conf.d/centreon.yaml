@@ -1,6 +1,6 @@
 # Configuration brought by Centreon Gorgone package.
 # SHOULD NOT BE EDITED! CREATE YOUR OWN FILE IN WHITELIST.CONF.D DIRECTORY!
-- ^sudo\s+(/bin/|/usr/bin/)?systemctl\s+(reload|restart)\s+(centengine|centreontrapd|cbd)\s*$
+- ^sudo\s+(/bin/|/usr/bin/)?systemctl\s+(reload|restart)\s+(centengine|centreontrapd|cbd|centreon_vmware)(\.service)?\s*$
 - ^(sudo\s+)?(/usr/bin/)?service\s+(centengine|centreontrapd|cbd|cbd-sql)\s+(reload|restart)\s*$
 - ^/usr/sbin/centenginestats\s+-c\s+/etc/centreon-engine/+centengine\.cfg\s*$
 - ^cat\s+/var/lib/centreon-engine/+[a-zA-Z0-9\-]+-stats\.json\s*$
@@ -9,7 +9,7 @@
 - ^/usr/bin/php -q /usr/share/centreon/cron/centreon-helios\.php >> /var/log/centreon-helios\.log 2>&1\s*$
 - ^centreon
 - ^mkdir
-- ^/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host
+- ^/usr/share/centreon/(www/modules/centreon-autodiscovery-server/script|bin)/run_save_discovered_host
 - ^/usr/share/centreon/bin/centreon -u \"centreon-gorgone\" -p \S+ -w -o CentreonWorker -a processQueue$
 - ^/usr/bin/php (-q )?/usr/share/centreon/cron/[\w,\s.-]+ >> /var/log/centreon-gorgone/[\w,\s.-]+\s+2>&1$
 - ^/usr/bin/php -q /usr/share/centreon/www/modules/centreon-bi-server/tools/purgeArchivesFiles\.php >> /var/log/centreon-gorgone/centreon-bi-archive-retention\.log 2>&1$

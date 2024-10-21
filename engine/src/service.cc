@@ -42,7 +42,6 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -2827,8 +2826,7 @@ int service::run_async_check_local(int check_options,
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "run id={} {} for service {} host {}", id,
                             processed_cmd, _service_id, _hostname);
-      } catch (com::centreon::exceptions::interruption const& e) {
-        retry = true;
+
       } catch (std::exception const& e) {
         run_failure("(Execute command failed)");
 

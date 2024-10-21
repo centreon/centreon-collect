@@ -30,7 +30,6 @@
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/exceptions/interruption.hh"
 
 using namespace com::centreon::engine;
 

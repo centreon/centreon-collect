@@ -6,6 +6,13 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      installer_in_artifact:
+        description: 'Save installer and binary in artifacts'
+        required: true
+        default: false
+        type: boolean
+
   pull_request:
     paths:
       - agent/**
@@ -40,6 +47,15 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     steps:
+      - uses: jfrog/setup-jfrog-cli@26da2259ee7690e63b5410d7451b2938d08ce1f9 # v4.0.0
+        env:
+          JF_URL: https://centreon.jfrog.io
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      # in order to have the same checksum between windows-agent and windows-agent-robot-test
+      - name: No crlf conversion
+        run: git config --system core.autocrlf false
+
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -57,27 +73,63 @@ jobs:
           cd build_windows
           tests/ut_agent
 
-      - name: Zip agent
-        run: |
-          $files_to_compress = "agent\conf\centagent.reg", "build_windows\agent\Release\centagent.exe"
-          Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
-
-      - name: Save agent package in cache
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
-        with:
-          path: centreon-monitoring-agent.zip
-          key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
-          enableCrossOsArchive: ${{ true }}
+      - name: Installer test
+        run: .github/scripts/agent_installer_test.ps1
+        shell: powershell
 
       - name: Upload package artifacts
         if: |
-          github.event_name != 'workflow_dispatch' &&
-          contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
-          ! cancelled() &&
-          ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled')
+          inputs.installer_in_artifact == true
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: packages-centreon-monitoring-agent-windows
-          path: centreon-monitoring-agent.zip
-          retention-days: 1
+          path: agent\installer\centreon-monitoring-agent.exe
+
+      - name: Deliver
+        if: |
+          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled')
+        run: |
+          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-version.outputs.major_version }}"
+          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-version.outputs.minor_version }}"
+
+          $VERSION = "${{ needs.get-version.outputs.version }}"
+          $MODULE_NAME = "monitoring-agent-$VERSION"
+          $STABILITY = "${{ needs.get-version.outputs.stability }}"
+
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+
+          $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
+
+          Copy-Item -Path "agent\installer\centreon-monitoring-agent.exe" -Destination "${VERSION_EXE}"
+          Write-Host "[DEBUG] deliver testing to - Target path: ${TARGET_PATH}"
+          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+
+
+      - name: Promote testing to stable
+        if: |
+          needs.get-version.outputs.stability == 'stable' && github.event_name != 'workflow_dispatch' && ! cancelled()
+        run: |
+          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-version.outputs.major_version }}"
+          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-version.outputs.minor_version }}"
+
+          $VERSION= "${{ needs.get-version.outputs.version }}"
+          $MODULE_NAME= "monitoring-agent-${{ needs.get-version.outputs.version }}"
+          $STABILITY= "${{ needs.get-version.outputs.stability }}"
+
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/testing/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+
+          $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
+
+          Write-Host "[DEBUG] promote to stable from: ${SRC_PATH}${VERSION_EXE}"
+
+          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat
+
+          Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
+
+          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+
+        shell: powershell

@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -69,9 +69,6 @@ jobs:
           - package_extension: rpm
             image: packaging-nfpm-alma9
             distrib: el9
-          - package_extension: deb
-            image: packaging-nfpm-bullseye
-            distrib: bullseye
           - package_extension: deb
             image: packaging-nfpm-bookworm
             distrib: bookworm
@@ -139,7 +136,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -147,9 +144,6 @@ jobs:
           - package_extension: rpm
             image: gorgone-testing-alma9
             distrib: el9
-          - package_extension: deb
-            image: gorgone-testing-bullseye
-            distrib: bullseye
           - package_extension: deb
             image: gorgone-testing-jammy
             distrib: jammy
@@ -189,10 +183,10 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: centreon/centreon
           path: centreon
@@ -208,14 +202,20 @@ jobs:
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
           fail-on-cache-miss: true
 
-      - name: Install gorgogne from just built package
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
+      - name: Install gorgone from just built package
         shell: bash
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*${{ matrix.distrib }}*
+            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}*
           else
-            dnf install -y ./centreon-gorgone*${{ matrix.distrib }}* ./centreon-gorgone-centreon-config*${{ matrix.distrib }}*
+            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}*
             # in el8 at least, there is a package for the configuration and a package for the actual code.
             # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
           fi
@@ -294,7 +294,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bullseye, bookworm, jammy]
+        distrib: [bookworm]
 
     steps:
       - name: Checkout sources
@@ -313,12 +313,16 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
-    needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    needs: [get-version, deliver-rpm, deliver-deb]
+    if: |
+      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources

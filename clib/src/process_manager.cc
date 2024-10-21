@@ -1,20 +1,20 @@
 /**
-* Copyright 2012-2013, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2012-2013, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/process_manager.hh"
 #include <sys/wait.h>
@@ -24,7 +24,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/process_listener.hh"
 
@@ -190,7 +190,7 @@ void process_manager::_close_stream(int fd) noexcept {
     _update = true;
     std::unordered_map<int, process*>::iterator it(_processes_fd.find(fd));
     if (it == _processes_fd.end())
-      throw basic_error() << "invalid fd: not found in processes fd list";
+      throw exceptions::msg_fmt("invalid fd: not found in processes fd list");
 
     process* p = it->second;
     _processes_fd.erase(it);
@@ -258,7 +258,7 @@ uint32_t process_manager::_read_stream(int fd) noexcept {
       auto it = _processes_fd.find(fd);
       if (it == _processes_fd.end()) {
         _update = true;
-        throw basic_error() << "invalid fd: not found in processes fd list";
+        throw exceptions::msg_fmt("invalid fd: not found in processes fd list");
       }
       p = it->second;
     }
@@ -307,7 +307,7 @@ void process_manager::_run() {
           ret = 0;
         else {
           const char* msg = strerror(errno);
-          throw basic_error() << "poll failed: " << msg;
+          throw exceptions::msg_fmt("poll failed: {}", msg);
         }
       }
       for (uint32_t i = 0, checked = 0;

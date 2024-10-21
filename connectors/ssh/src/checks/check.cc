@@ -17,12 +17,13 @@
  */
 
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "com/centreon/connector/ssh/checks/check.hh"
 #include "com/centreon/connector/ssh/sessions/session.hh"
 
 using namespace com::centreon::connector::ssh::checks;
+using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::connector::ssh::checks {
 std::ostream& operator<<(std::ostream& os, const check& chk) {
@@ -134,7 +135,7 @@ void check::_process() {
       _close();
     } break;
     default:
-      throw basic_error() << "channel requested to run at invalid step";
+      throw msg_fmt("channel requested to run at invalid step");
   }
 }
 

@@ -21,8 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/exceptions/basic.hh"
-
 using namespace com::centreon;
 using namespace com::centreon::connector;
 
