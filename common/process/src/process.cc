@@ -18,6 +18,7 @@
 
 #include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <iostream>
 
 #include "com/centreon/common/process/process.hh"
 
@@ -165,6 +166,21 @@ process<use_mutex>::process(
   for (; field_iter != split_res.end(); ++field_iter) {
     _args.emplace_back(*field_iter);
   }
+}
+
+/**
+ * @brief returns pid of process, -1 otherwise
+ *
+ * @tparam use_mutex
+ * @return int
+ */
+template <bool use_mutex>
+int process<use_mutex>::get_pid() {
+  detail::lock<use_mutex> l(&_protect);
+  if (_proc) {
+    return _proc->proc.id();
+  }
+  return -1;
 }
 
 /**

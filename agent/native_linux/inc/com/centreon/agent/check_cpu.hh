@@ -185,7 +185,8 @@ class check_cpu : public check {
  public:
   check_cpu(const std::shared_ptr<asio::io_context>& io_context,
             const std::shared_ptr<spdlog::logger>& logger,
-            time_point exp,
+            time_point first_start_expected,
+            duration check_interval,
             const std::string& serv,
             const std::string& cmd_name,
             const std::string& cmd_line,

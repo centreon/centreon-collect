@@ -153,7 +153,7 @@ TEST(proc_stat_file_test, no_threshold) {
   rapidjson::Document check_args;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
@@ -248,7 +248,7 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
   rapidjson::Document check_args = R"({"cpu-detailed":true})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
@@ -382,7 +382,7 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
       R"({"warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
@@ -478,7 +478,7 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
       R"({"warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
@@ -535,7 +535,7 @@ TEST(proc_stat_file_test, threshold_detailed) {
       R"({"cpu-detailed":true, "warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
@@ -607,7 +607,7 @@ TEST(proc_stat_file_test, threshold_detailed2) {
       R"({"cpu-detailed":"true",  "warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,

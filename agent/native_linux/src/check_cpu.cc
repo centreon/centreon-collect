@@ -48,13 +48,20 @@ per_cpu_time::per_cpu_time(const std::string_view& line) {
     if (!absl::SimpleAtoi(*field_iter, &counter)) {
       throw std::invalid_argument("not a number");
     }
+    // On some OS we may have more fields than user to guest_nice, we have to
+    // take them into account only for total compute
     if (to_fill < end) {
       *to_fill = counter;
     }
     _total += counter;
   }
+
+  // On some OS, we might have fewer fields than expected, so we initialize
+  // the remaining fields
   for (; to_fill < end; ++to_fill)
     *to_fill = 0;
+
+  // Calculate the 'used' CPU time by subtracting idle time from total time
   _data[e_proc_stat_index::used] = _total - _data[e_proc_stat_index::idle];
 }
 
@@ -115,6 +122,7 @@ void per_cpu_time::dump(std::string* output) const {
 
 void com::centreon::agent::check_cpu_detail::dump(const index_to_cpu& cpus,
                                                   std::string* output) {
+  output->reserve(output->length() + cpus.size() * 256);
   for (const auto& cpu : cpus) {
     cpu.second.dump(output);
     output->push_back('\n');
@@ -191,6 +199,7 @@ void cpu_to_status::compute_status(
     double val = values.second.get_proportional_value(_data_index);
     if (val > _threshold) {
       auto& to_update = (*per_cpu_status)[values.first];
+      // if ok (=0) and _status is warning (=1) or critical(=2), we update
       if (_status > to_update) {
         to_update = _status;
       }
@@ -280,7 +289,9 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
  *
  * @param io_context
  * @param logger
- * @param exp first start check (used by scheduler)
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
  * @param serv service
  * @param cmd_name
  * @param cmd_line
@@ -290,7 +301,8 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
  */
 check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
-                     time_point exp,
+                     time_point first_start_expected,
+                     duration check_interval,
                      const std::string& serv,
                      const std::string& cmd_name,
                      const std::string& cmd_line,
@@ -299,7 +311,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      check::completion_handler&& handler)
     : check(io_context,
             logger,
-            exp,
+            first_start_expected,
+            check_interval,
             serv,
             cmd_name,
             cmd_line,
