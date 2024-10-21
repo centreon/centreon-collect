@@ -57,6 +57,9 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
+  grpc::Status GetHostGroup(grpc::ServerContext* context,
+                            const HostGroupIdentifier*,
+                            EngineHostGroup*) override;
   grpc::Status AddHostComment(grpc::ServerContext* context,
                               const EngineComment* request,
                               CommandSuccess* response) override;
