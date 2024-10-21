@@ -32,6 +32,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-dll",
+      "platform": "windows"
+    },
+    {
       "name": "boost-container",
       "platform": "linux"
     },
