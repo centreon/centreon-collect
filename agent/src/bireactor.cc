@@ -42,11 +42,11 @@ bireactor<bireactor_class>::bireactor(
     const std::string_view& class_name,
     const std::string& peer)
     : _write_pending(false),
-      _alive(true),
       _class_name(class_name),
       _peer(peer),
       _io_context(io_context),
-      _logger(logger) {
+      _logger(logger),
+      _alive(true) {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p} peer:{}", _class_name,
                       static_cast<const void*>(this), _peer);
 }

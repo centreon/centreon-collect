@@ -734,11 +734,12 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
   *delimiter = '\0';
   ++delimiter;
   char* output(strchr(delimiter, ';'));
+  char empty[1] = {'\0'};
   if (output) {
     *output = '\0';
     ++output;
   } else
-    output = "";
+    output = empty;
   int return_code(strtol(delimiter, nullptr, 0));
 
   // replace \\n with \n

@@ -398,4 +398,4 @@ void open_telemetry::on_metric(const metric_request_ptr& metrics) {
  * @param unknown
  */
 void open_telemetry::_forward_to_broker(
-    const std::vector<otl_data_point>& unknown) {}
+    [[maybe_unused]] const std::vector<otl_data_point>& unknown) {}

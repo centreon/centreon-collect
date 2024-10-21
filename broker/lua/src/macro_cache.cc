@@ -1011,12 +1011,11 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
     std::string_view long_output = s->output;
     std::vector<std::string_view> output =
         absl::StrSplit(long_output, absl::MaxSplits('\n', 2));
-    switch (output.size()) {
-      case 2:
+    if (!output.empty()) {
+      current_service.set_output(std::string(output[0]));
+      if (output.size() > 1) {
         current_service.set_long_output(std::string(output[1]));
-      case 1:
-        current_service.set_output(std::string(output[0]));
-        break;
+      }
     }
     current_service.set_passive_checks(s->passive_checks_enabled);
     current_service.set_percent_state_change(s->percent_state_change);
