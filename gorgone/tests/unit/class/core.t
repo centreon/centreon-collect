@@ -10,6 +10,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../../";
 use gorgone::class::script;
 use gorgone::class::core;
+use centreon::common::centreonvault;
 
 sub create_data_set {
     my $set = {};
@@ -17,6 +18,15 @@ sub create_data_set {
     chdir($FindBin::Bin);
     $set->{logger} = gorgone::class::logger->new();
     $set->{logger}->severity('debug');
+    $set->{vault} = mock 'centreon::common::centreonvault'; # is from Test2::Tools::Mock, included by Test2::V0
+    $set->{vault}->override('get_secret' => sub {
+        if ($_[1] eq 'secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse') {
+            return 'VaultSentASecret';
+        }
+       return $_[1];
+    }, 'new' => sub {
+        return bless({}, 'centreon::common::centreonvault');
+    });
 
     return $set;
 }
@@ -26,6 +36,7 @@ sub test_configuration_read {
     # let's make a simple object and try to industryalize the yaml read configuration.
     my $gorgone        = gorgone::class::core->new();
     $gorgone->{logger} = $set->{logger};
+    $gorgone->{vault} = centreon::common::centreonvault->new();
 
     my $tests_cases = [
         {
@@ -37,7 +48,7 @@ sub test_configuration_read {
                 FalseVal => 'false',
                 vault  => {
                     badFormat     => 'secret::hashicorp::thereIsOnlyOneColon',
-                    correctFormat => 'secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse'},
+                    correctFormat => 'VaultSentASecret'},
 
             } } },
             msg  => 'simple configuration without recursion'
@@ -71,6 +82,7 @@ sub test_yaml_get_include {
     my $set = shift;
     my $gorgone        = gorgone::class::core->new();
     $gorgone->{logger} = $set->{logger};
+    #$gorgone->{vault} = centreon::common::centreonvault->new();
     my @result = $gorgone->yaml_get_include('include' => '*.yaml',
           'current_dir' => './config_examples/include_other_files',
           'filter' => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)');
@@ -84,7 +96,6 @@ sub test_yaml_get_include {
 }
 sub main {
     my $set = create_data_set();
-    ok(1);
     test_yaml_get_include($set);
     test_configuration_read($set);
 

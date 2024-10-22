@@ -163,8 +163,14 @@ sub init {
         $self->{logger}->writeLogError("[core] can't find config file '$self->{config_file}'");
         exit(1);
     }
+    # before loading the config, we need to load initialize vault.
+    # Gorgone don't know how to reload for now, but once it will be done, we will need to retry the vault connexion if it failed when starting, and read again the configuration
+    $self->{vault_file} = defined($self->{vault_file}) ? $self->{vault_file} : '/var/lib/centreon/vault/vault.json';
+    $self->{vault} = centreon::common::vault->new(logger => $self->{logger},  'config_file' =>  $self->{vault_file});
+
     $self->{config} = $self->yaml_load_config(
-        file => $self->{config_file},
+        file   => $self->{config_file},
+        # the filter is used to remove anything from the configuration not related to gorgone or centreon
         filter => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)'
     );
 
