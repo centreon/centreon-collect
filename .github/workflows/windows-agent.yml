@@ -173,7 +173,7 @@ jobs:
           Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.major_version }}"
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
 
-          $VERSION = "${{ needs.get-environment.outputs.version }}"
+          $VERSION = "${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
           $MODULE_NAME = "monitoring-agent-$VERSION"
           $STABILITY = "${{ needs.get-environment.outputs.stability }}"
 
@@ -193,8 +193,8 @@ jobs:
           Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.major_version }}"
           Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
 
-          $VERSION= "${{ needs.get-environment.outputs.version }}"
-          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.version }}"
+          $VERSION= "${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
+          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
           $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
