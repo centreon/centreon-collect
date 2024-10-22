@@ -56,6 +56,7 @@ sub new {
     $self->{logger} = gorgone::class::logger->new();
     $self->{options} = {
         'config=s'    => \$self->{config_file},
+        'vault=s'     => \$self->{vault_config_file},
         'logfile=s'   => \$self->{log_file},
         'severity=s'  => \$self->{severity},
         'flushoutput' => \$self->{flushoutput},
@@ -184,7 +185,6 @@ sub yaml_get_include {
 # yaml_parse_config: recursive function to parse yaml content and honor the inclusion of other files and vault password decryption.
 # depending on the type of the yaml object, it will call itself recursively.
 # config: yaml object as perl reference (hash, array, scalar, hash of hash...). $YAML::XS::LoadBlessed should be set to 1 to transform !include in blessed reference.
-# vault: vault object to decrypt password.
 # current_dir: current directory to resolve relative path of !include directive.
 # filter: a string to eval to filter the yaml content. you can for exemple return only children of a node.
 # ariane: Ariadne's thread to know where we are in the yaml content. It is used by the filter. example : 'configuration##gorgone##gorgonecore##'
@@ -250,14 +250,23 @@ sub yaml_parse_config {
         } else {
             ${$options{config}} = 'false';
         }
+
+    } elsif (ref(${$options{config}}) eq '') {
+        # this is a scalar value, we check if this is a vault path to replace it.
+        if ($self->{vault} and $self->{vault}->can('get_secret')) {
+            ${$options{config}} = $self->{vault}->get_secret( ${$options{config}});
+        }
+    } else {
+        $self->{logger}->writeLogError("config - unknown type of data: " . ref(${$options{config}}));
     }
 }
 
 # yaml_load_config: entry point for yaml parsing.
 # can be called by yaml_parse_config if there is !include in the yaml, and will call yaml_parse_config to parse the content of the file.
 # file: filename to parse. The file can contain !include directive to include other files.
-# ariane: is a string to eval to filter the yaml content. you can for exemple return only children of a node named configuration with this filter :
+# filter: is a string to eval to filter the yaml content. you can for exemple return only children of a node named configuration with this filter :
 #        '$ariane eq "configuration##"'
+# arianne: Ariadne's thread to know where we are in the yaml content. It is used by the filter. example : 'configuration##gorgone##gorgonecore##'
 sub yaml_load_config {
     my ($self, %options) = @_;
 
