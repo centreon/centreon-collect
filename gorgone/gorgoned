@@ -46,6 +46,10 @@ gorgoned [options]
 
 Specify the path to the yaml configuration file (default: '').
 
+=item B<--vault>
+
+Specify the path to the vault json configuration file (default: '/var/lib/centreon/vault/vault.json').
+
 =item B<--help>
 
 Print a brief help message and exits.
