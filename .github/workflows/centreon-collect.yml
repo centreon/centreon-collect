@@ -103,20 +103,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
   veracode-analysis:
-    needs: [get-version]
+    needs: [get-environment]
     if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
     uses: ./.github/workflows/veracode-analysis.yml
     with:
       module_name: centreon-collect
-      major_version: ${{ needs.get-version.outputs.major_version }}
-      minor_version: ${{ needs.get-version.outputs.minor_version }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
+      major_version: ${{ needs.get-environment.outputs.major_version }}
+      minor_version: ${{ needs.get-environment.outputs.minor_version }}
+      img_version: ${{ needs.get-environment.outputs.img_version }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
@@ -125,8 +125,8 @@ jobs:
       docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
   unit-test:
-    needs: [get-version]
-    if: ${{ github.event.inputs.unit_tests == 'true' && ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-environment]
+    if: ${{ github.event.inputs.unit_tests == 'true' && ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
 
     strategy:
       fail-fast: false
@@ -144,7 +144,7 @@ jobs:
       LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine == 'true' && 'ON' || 'OFF' }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-environment.outputs.img_version }}
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -239,8 +239,8 @@ jobs:
         shell: bash
 
   package:
-    needs: [get-version]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    needs: [get-environment]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
     strategy:
       fail-fast: false
       matrix:
@@ -273,12 +273,12 @@ jobs:
 
     uses: ./.github/workflows/package-collect.yml
     with:
-      major_version: ${{ needs.get-version.outputs.major_version }}
-      minor_version: ${{ needs.get-version.outputs.minor_version }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
-      release: ${{ needs.get-version.outputs.release }}
+      major_version: ${{ needs.get-environment.outputs.major_version }}
+      minor_version: ${{ needs.get-environment.outputs.minor_version }}
+      img_version: ${{ needs.get-environment.outputs.img_version }}
+      release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
-      stability: ${{ needs.get-version.outputs.stability }}
+      stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
@@ -289,7 +289,7 @@ jobs:
     secrets: inherit
 
   robot-test:
-    needs: [get-version, package]
+    needs: [get-environment, package]
     if: |
       (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true')) &&
       ! cancelled() &&
@@ -343,8 +343,8 @@ jobs:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
       image: ${{ matrix.image }}
-      image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
-      image_version: ${{ needs.get-version.outputs.img_version }}
+      image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
+      image_version: ${{ needs.get-environment.outputs.img_version }}
       package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ${{ matrix.database_type }}
@@ -360,10 +360,10 @@ jobs:
 
   deliver-sources:
     runs-on: [self-hosted, common]
-    needs: [get-version, package]
+    needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
-      contains(fromJson('["stable"]'), needs.get-version.outputs.stability) &&
+      contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -380,18 +380,17 @@ jobs:
           bucket_directory: centreon-collect
           module_directory: centreon-collect
           module_name: centreon-collect
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
     if: |
-      contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    needs: [get-version, robot-test]
-    environment: ${{ needs.get-version.outputs.environment }}
+    needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -412,21 +411,20 @@ jobs:
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
     if: |
-      contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    needs: [get-version, robot-test]
-    environment: ${{ needs.get-version.outputs.environment }}
+    needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -447,17 +445,17 @@ jobs:
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote:
-    needs: [get-version, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
-      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -476,8 +474,8 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          stability: ${{ needs.get-version.outputs.stability }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}

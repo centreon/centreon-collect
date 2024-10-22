@@ -32,7 +32,7 @@ on:
 jobs:
   routing:
     name: Check before analysis
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
       skip_analysis: ${{ steps.routing-mode.outputs.skip_analysis }}
@@ -169,7 +169,7 @@ jobs:
     name: Sandbox scan
     needs: [routing, build]
     if: needs.routing.outputs.development_stage != 'Development'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Promote latest scan
