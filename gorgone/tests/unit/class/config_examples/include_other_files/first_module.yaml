@@ -1,0 +1,3 @@
+gorgone:
+  gorgonecore:
+    global_variable: "value"

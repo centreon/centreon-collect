@@ -1,0 +1,4 @@
+---
+name: config.yaml
+description: simple configuration exemple without other file include.
+configuration: !include ./first_module.yaml
