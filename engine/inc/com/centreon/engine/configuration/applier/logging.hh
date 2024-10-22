@@ -75,7 +75,7 @@ class logging {
   void _del_stderr();
 
   com::centreon::logging::file* _debug;
-  int64_t _debug_level;
+  uint64_t _debug_level;
   unsigned long _debug_max_size;
   unsigned int _debug_verbosity;
   com::centreon::logging::file* _log;

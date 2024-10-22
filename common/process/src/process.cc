@@ -16,8 +16,13 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#include <boost/process/v2/stdio.hpp>
+#include <iostream>
 
 #include "com/centreon/common/process/process.hh"
 
@@ -26,6 +31,7 @@
 #endif
 
 #include <boost/process/v2/process.hpp>
+#pragma GCC diagnostic pop
 
 namespace proc = boost::process::v2;
 
@@ -165,6 +171,21 @@ process<use_mutex>::process(
   for (; field_iter != split_res.end(); ++field_iter) {
     _args.emplace_back(*field_iter);
   }
+}
+
+/**
+ * @brief returns pid of process, -1 otherwise
+ *
+ * @tparam use_mutex
+ * @return int
+ */
+template <bool use_mutex>
+int process<use_mutex>::get_pid() {
+  detail::lock<use_mutex> l(&_protect);
+  if (_proc) {
+    return _proc->proc.id();
+  }
+  return -1;
 }
 
 /**

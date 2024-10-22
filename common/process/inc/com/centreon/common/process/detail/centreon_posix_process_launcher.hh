@@ -69,7 +69,7 @@ struct centreon_posix_default_launcher {
   template <typename ExecutionContext, typename Args, typename... Inits>
   auto operator()(
       ExecutionContext& context,
-      error_code& ec,
+      [[maybe_unused]] error_code& ec,
       const typename std::enable_if<
           std::is_convertible<
               ExecutionContext&,

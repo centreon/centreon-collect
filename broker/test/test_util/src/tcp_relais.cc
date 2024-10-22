@@ -205,7 +205,7 @@ void incomming_outgoing::on_recv(const boost::system::error_code& err,
 }
 
 void incomming_outgoing::on_sent(const boost::system::error_code& err,
-                                 tcp::socket& sock) {
+                                 [[maybe_unused]] tcp::socket& sock) {
   if (err) {
     on_error();
     return;

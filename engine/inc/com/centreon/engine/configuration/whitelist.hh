@@ -105,6 +105,8 @@ whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end)
                          "whitelist directory found, but no restrictions, "
                          "all commands are accepted");
       break;
+    default:
+      break;
   }
 }
 

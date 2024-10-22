@@ -62,8 +62,8 @@ agent_impl<bireactor_class>::agent_impl(
       _class_name(class_name),
       _conf(conf),
       _metric_handler(handler),
-      _logger(logger),
       _write_pending(false),
+      _logger(logger),
       _alive(true) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
