@@ -19,6 +19,7 @@
 #ifndef CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
 #define CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
 
+#include <cstdint>
 #include "check.hh"
 
 namespace com::centreon::agent {
@@ -50,6 +51,8 @@ class per_cpu_time_base {
     return (static_cast<double>(_total_used)) / _total;
   }
 
+  uint64_t get_total() const { return _total; }
+
   void dump(const unsigned& cpu_index,
             const std::string_view metric_label[],
             std::string* output) const;
@@ -68,6 +71,8 @@ class cpu_time_snapshot {
 
  public:
   index_to_cpu<nb_metric> subtract(const cpu_time_snapshot& to_subtract) const;
+
+  const index_to_cpu<nb_metric>& get_values() const { return _data; }
 };
 
 /**

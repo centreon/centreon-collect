@@ -39,8 +39,6 @@ void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
     *output +=
         fmt::format("{:.2f}%", get_proportional_value(field_index) * 100);
   }
-  *output += ", Usage";
-  *output += fmt::format("{:.2f}%", get_proportional_used() * 100);
 }
 
 template <unsigned nb_metric>
@@ -141,9 +139,12 @@ native_check_cpu<nb_metric>::native_check_cpu(
             std::move(handler)),
 
       _nb_core(std::thread::hardware_concurrency()),
+      _cpu_detailed(false),
       _measure_timer(*io_context) {
-  com::centreon::common::rapidjson_helper arg(args);
-  _cpu_detailed = arg.get_bool("detailed", false);
+  if (args.IsObject()) {
+    com::centreon::common::rapidjson_helper arg(args);
+    _cpu_detailed = arg.get_bool("cpu-detailed", false);
+  }
 }
 
 /**
@@ -282,7 +283,7 @@ e_status native_check_cpu<nb_metric>::_compute(
                            const std::string_view& label, unsigned index,
                            unsigned cpu_index,
                            const per_cpu_time_base<nb_metric>& per_cpu_data) {
-    double val = cpu_index >= nb_metric
+    double val = index >= nb_metric
                      ? per_cpu_data.get_proportional_used()
                      : per_cpu_data.get_proportional_value(index);
     bool is_average = cpu_index == check_cpu_detail::average_cpu_index;
@@ -324,7 +325,7 @@ e_status native_check_cpu<nb_metric>::_compute(
         fill_perfdata((cpu_name + perfdata_labels[stat_ind].data()) + suffix,
                       stat_ind, by_core.first, by_core.second);
       }
-      fill_perfdata((cpu_name + "used") + suffix, nb_metric + 1, by_core.first,
+      fill_perfdata((cpu_name + "used") + suffix, nb_metric, by_core.first,
                     by_core.second);
     }
 

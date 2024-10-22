@@ -43,9 +43,7 @@ per_cpu_time::per_cpu_time(const std::string_view& line) {
 
   auto to_fill = _metrics.begin();
   auto end = _metrics.end();
-  unsigned metric_index = 0;
-  for (++field_iter; field_iter != split_res.end();
-       ++field_iter, ++to_fill, ++metric_index) {
+  for (++field_iter; field_iter != split_res.end(); ++field_iter, ++to_fill) {
     unsigned counter;
     if (!absl::SimpleAtoi(*field_iter, &counter)) {
       throw std::invalid_argument("not a number");
@@ -278,6 +276,8 @@ e_status check_cpu::compute(
         check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
     std::string* output,
     std::list<common::perfdata>* perfs) {
+  output->reserve(256 * _nb_core);
+
   return _compute(first_measure, second_measure, _sz_summary_labels.data(),
                   _sz_perfdata_name.data(), output, perfs);
 }

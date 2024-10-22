@@ -47,7 +47,6 @@ enum e_proc_stat_index {
  */
 class per_cpu_time : public per_cpu_time_base<nb_field> {
   unsigned _cpu_index = 0;
-  unsigned _total = 0;
 
  public:
   per_cpu_time(const std::string_view& line);
