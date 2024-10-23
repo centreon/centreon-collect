@@ -55,6 +55,7 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::seconds(1),
               serv,
               command_name,
               command_line,
@@ -79,7 +80,8 @@ TEST(check_test, timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {
@@ -116,7 +118,8 @@ TEST(check_test, no_timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {
