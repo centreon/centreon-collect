@@ -195,12 +195,13 @@ void http_connection::connect(connect_callback_type&& callback) {
         [me = shared_from_this(), cb = std::move(callback)](
             const boost::beast::error_code& err) { me->on_connect(err, cb); });
   else
-    _socket.async_connect(_conf->get_endpoints_list(),
-                          [me = shared_from_this(), cb = std::move(callback)](
-                              const boost::beast::error_code& err,
-                              const asio::ip::tcp::endpoint& endpoint) {
-                            me->on_connect(err, cb);
-                          });
+    _socket.async_connect(
+        _conf->get_endpoints_list(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const boost::beast::error_code& err,
+            [[maybe_unused]] const asio::ip::tcp::endpoint& endpoint) {
+          me->on_connect(err, cb);
+        });
 }
 
 /**

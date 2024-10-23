@@ -112,7 +112,7 @@ class received_protobuf : public io::protobuf<T, Typ> {
 
   T& mut_obj() override { return *((*_received).*_mutable_access)(); }
 
-  void set_obj(T&& obj) override {
+  void set_obj([[maybe_unused]] T&& obj) override {
     throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
                                              static_cast<const char*>(typeid(*this).name()));
   }

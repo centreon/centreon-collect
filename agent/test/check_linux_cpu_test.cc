@@ -56,8 +56,7 @@ TEST(proc_stat_file_test, read_sample) {
     switch (by_cpu.first) {
       case 0:
         ASSERT_EQ(by_cpu.second.get_total(), 6017174);
-        ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::used),
+        ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_used(),
                          (6017174.0 - 4497394.0) / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
                              check_cpu_detail::e_proc_stat_index::user),
@@ -145,7 +144,7 @@ TEST(proc_stat_file_test, no_threshold) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -153,11 +152,13 @@ TEST(proc_stat_file_test, no_threshold) {
   rapidjson::Document check_args;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -165,8 +166,6 @@ TEST(proc_stat_file_test, no_threshold) {
   ASSERT_EQ(output, "OK: CPU(s) average usage is 24.08%");
 
   ASSERT_EQ(perfs.size(), 5);
-
-  constexpr float nan_to_cmp = NAN;
 
   for (const auto& perf : perfs) {
     ASSERT_TRUE(std::isnan(perf.critical_low()));
@@ -180,34 +179,17 @@ TEST(proc_stat_file_test, no_threshold) {
     ASSERT_EQ(perf.unit(), "%");
     ASSERT_EQ(perf.value_type(), com::centreon::common::perfdata::gauge);
     if (perf.name() == "0#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[0].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[0].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "1#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[1].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[1].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "2#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[2].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[2].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[3].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
       ASSERT_NEAR(
           perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_value(
-              check_cpu_detail::e_proc_stat_index::used) *
+          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
               100,
           0.01);
     } else {
@@ -237,22 +219,22 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
-
-  static const char* conf_doc = R"({"cpu-detailed":true})";
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args = R"({"cpu-detailed":true})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -343,11 +325,7 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
                       100,
                   0.01);
     } else if (counter_type == "used") {
-      ASSERT_NEAR(perf.value(),
-                  cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), cpu_data.get_proportional_used() * 100, 0.01);
     } else {
       FAIL() << "unexpected perfdata name:" << perf.name();
     }
@@ -372,7 +350,7 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -382,11 +360,13 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
       R"({"warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -414,34 +394,17 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
     ASSERT_EQ(perf.unit(), "%");
     ASSERT_EQ(perf.value_type(), com::centreon::common::perfdata::gauge);
     if (perf.name() == "0#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[0].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[0].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "1#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[1].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[1].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "2#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[2].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[2].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[3].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
       ASSERT_NEAR(
           perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_value(
-              check_cpu_detail::e_proc_stat_index::used) *
+          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
               100,
           0.01);
     } else {
@@ -468,7 +431,7 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -478,11 +441,13 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
       R"({"warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -525,7 +490,7 @@ TEST(proc_stat_file_test, threshold_detailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -535,11 +500,13 @@ TEST(proc_stat_file_test, threshold_detailed) {
       R"({"cpu-detailed":true, "warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -597,7 +564,7 @@ TEST(proc_stat_file_test, threshold_detailed2) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -607,11 +574,13 @@ TEST(proc_stat_file_test, threshold_detailed2) {
       R"({"cpu-detailed":"true",  "warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, "serv", "cmd_name",
+      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
       "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
