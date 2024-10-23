@@ -1184,6 +1184,86 @@ def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, fil
     with open(filename, "w") as f:
         f.writelines(lines)
 
+def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value: str, file: str):
+    """
+    Modify a parameter in the file.cfg for the Engine config idx.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        desc (str): The description of the section to modify in.
+        key (str): The parameter to be added.
+        value (str): The new value to set.
+        file (str): The file to modify, can be any *.cfg file.
+
+    Example:
+    ctn_engine_config_set_key_value_in_cfg(idx=0, desc='hostgroup_1', key='alias', value='alias_1', file='hostgroups.cfg')
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    found = False
+    if file == "hostgroups.cfg":
+        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            found = True
+            break
+    
+    if not found:
+        logger.console(f'\n\033[91mFailed : Cannot add the line  {key} : {value} to {desc} in {file}\033[0m')
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
+    """
+    Delete a parameter in the file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): The description of the section to delete in.
+        key (str): The parameter that will be deleted.
+        file (str): The file to delete the key from.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "hostgroups.cfg":
+        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+        if file[-13:] == "Templates.cfg":
+            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    found = True
+                    break
+            break
+
+    if not found:
+        logger.console(f'\n\033[91mFailed : Cannot delete the line  with the key : {key} to {desc} in {file}\033[0m')
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
 def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     """
     Replace a value in the escalations.cfg for the config idx
@@ -3900,7 +3980,31 @@ def ctn_get_contact_info_grpc(name:str):
             except Exception as e:
                 logger.console(f"gRPC server not ready {e}")
     return {}
-        
+
+def ctn_get_hostgroup_info_grpc(name:str):
+    """
+    Retrieve host group information via a gRPC call.
+
+    Args:
+        name: The name of the host group to retrieve.
+
+    Returns:
+        A dictionary containing the host group information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.HostGroupIdentifier(name=name)
+            try:
+                hg = stub.GetHostGroup(request)
+                hg_dict = MessageToDict(hg, always_print_fields_with_no_presence=True)
+                return hg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+      
 def ctn_check_key_value_existence(data_list, key, value):
     """
     Check if a specific key-value pair exists in a list of data strings.
