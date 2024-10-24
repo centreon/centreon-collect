@@ -24,7 +24,7 @@ on:
 
 jobs:
   test-image-to-cache:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -61,7 +61,7 @@ jobs:
 
   robot-test-list:
     needs: [test-image-to-cache]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
 
@@ -77,7 +77,7 @@ jobs:
 
   robot-test-run:
     needs: [robot-test-list]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.full_name }}
       credentials:
@@ -125,7 +125,7 @@ jobs:
   robot-test-report:
     needs: [robot-test-run]
     if: ${{ failure() }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
