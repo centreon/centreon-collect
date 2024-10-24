@@ -796,6 +796,56 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
 }
 
 /**
+ * @brief Return hostgroup informations.
+ *
+ * @param context gRPC context
+ * @param request hostgroup's identifier (it can be a hostgroupename or
+ * hostgroupid)
+ * @param response The filled fields
+ *
+ *@return Status::OK
+ */
+grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
+                                       [[maybe_unused]],
+                                       const HostGroupIdentifier* request,
+                                       EngineHostGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, hostgroup = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::hostgroup> selectedhostgroup;
+        auto ithostgroup = hostgroup::hostgroups.find(request->name());
+        if (ithostgroup != hostgroup::hostgroups.end())
+          selectedhostgroup = ithostgroup->second;
+        else {
+          err = fmt::format("could not find hostgroup '{}'", request->name());
+          return 1;
+        }
+
+        hostgroup->set_id(selectedhostgroup->get_id());
+        hostgroup->set_name(selectedhostgroup->get_group_name());
+        hostgroup->set_alias(selectedhostgroup->get_alias());
+
+        if (!selectedhostgroup->members.empty())
+          for (const auto& [key, _] : selectedhostgroup->members)
+            hostgroup->add_members(key);
+
+        hostgroup->set_notes(selectedhostgroup->get_notes());
+        hostgroup->set_notes_url(selectedhostgroup->get_notes_url());
+        hostgroup->set_action_url(selectedhostgroup->get_action_url());
+
+        return 0;
+      });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
  * @brief Return the total number of hosts.
  *
  * @param context gRPC context

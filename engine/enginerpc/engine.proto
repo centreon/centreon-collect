@@ -35,6 +35,7 @@ service Engine {
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
   rpc GetContact(ContactIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
+  rpc GetHostGroup(HostGroupIdentifier) returns (EngineHostGroup) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -673,6 +674,20 @@ message EngineService {
     ANOMALY_DETECTION = 5;
   }
   ServiceType service_type = 117;
+}
+
+message HostGroupIdentifier {
+    string name = 1;
+}
+
+message EngineHostGroup {
+  uint32 id = 1;
+  string name = 2;
+  string alias = 3;
+  repeated string members = 4;
+  string notes = 5;
+  string notes_url = 6;
+  string action_url = 7;
 }
 
 message EngineComment {
