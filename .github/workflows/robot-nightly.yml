@@ -154,7 +154,7 @@ jobs:
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
-          release_cloud: ${{ needs.get-environment.outputs.release_cloud }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-environment.outputs.stability) }}
@@ -187,4 +187,4 @@ jobs:
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
-          release_cloud: ${{ needs.get-environment.outputs.release_cloud }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
