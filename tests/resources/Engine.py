@@ -1204,6 +1204,8 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
     found = False
     if file == "hostgroups.cfg":
         r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
     else:
@@ -1238,6 +1240,8 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
 
     if file == "hostgroups.cfg":
         r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
         if file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
@@ -4004,7 +4008,31 @@ def ctn_get_hostgroup_info_grpc(name:str):
             except Exception as e:
                 logger.console(f"gRPC server not ready {e}")
     return {}
-      
+
+def ctn_get_servicegroup_info_grpc(name:str):
+    """
+    Retrieve service group information via a gRPC call.
+
+    Args:
+        name: The name of the service group to retrieve.
+
+    Returns:
+        A dictionary containing the service group information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.ServiceGroupIdentifier(name=name)
+            try:
+                sg = stub.GetServiceGroup(request)
+                sg_dict = MessageToDict(sg, always_print_fields_with_no_presence=True)
+                return sg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
 def ctn_check_key_value_existence(data_list, key, value):
     """
     Check if a specific key-value pair exists in a list of data strings.
