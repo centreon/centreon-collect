@@ -958,7 +958,7 @@ grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
  * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetTag(grpc::ServerContext* context [[maybe_unused]],
-                                 const TagIdentifier* request,
+                                 const IdOrTypeIdentifier* request,
                                  EngineTag* response) {
   std::string err;
   auto fn = std::packaged_task<int(void)>([&err, request,
@@ -979,6 +979,53 @@ grpc::Status engine_impl::GetTag(grpc::ServerContext* context [[maybe_unused]],
 
     return 0;
   });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Severity informations.
+ *
+ * @param context gRPC context
+ * @param request Severity's identifier (by Severity id and type)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Severity is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetSeverity(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const IdOrTypeIdentifier* request,
+                                      EngineSeverity* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, severity = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::severity> selectedseverity;
+        auto itseverity = severity::severities.find(
+            std::make_pair(request->id(), request->type()));
+        if (itseverity != severity::severities.end())
+          selectedseverity = itseverity->second;
+        else {
+          err = fmt::format("could not find tag id:'{}', type:'{}' ",
+                            request->id(), request->type());
+          return 1;
+        }
+
+        severity->set_name(selectedseverity->name());
+        severity->set_id(selectedseverity->id());
+        severity->set_type(static_cast<EngineSeverity::SeverityType>(
+            selectedseverity->type() + 1));
+        severity->set_level(selectedseverity->level());
+        severity->set_icon_id(selectedseverity->icon_id());
+
+        return 0;
+      });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));

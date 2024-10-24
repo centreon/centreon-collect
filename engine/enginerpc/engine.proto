@@ -38,11 +38,12 @@ service Engine {
   rpc GetHostGroup(NameIdentifier) returns (EngineHostGroup) {}
   rpc GetServiceGroup(NameIdentifier) returns (EngineServiceGroup) {}
   rpc GetContactGroup(NameIdentifier) returns (EngineContactGroup) {}
+  rpc GetTag(IdOrTypeIdentifier) returns (EngineTag) {}
+  rpc GetSeverity(IdOrTypeIdentifier) returns (EngineSeverity) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
-  rpc GetTag(TagIdentifier) returns (EngineTag) {}
   rpc GetContactGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetHostGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceDependenciesCount(google.protobuf.Empty)
@@ -705,7 +706,7 @@ message EngineContactGroup {
   repeated string members = 3;
 }
 
-message TagIdentifier {
+message IdOrTypeIdentifier {
   uint64 id = 1;
   uint32 type = 2;
 }
@@ -720,6 +721,19 @@ message EngineTag {
   uint64 id = 1;
   TagType type = 2;
   string name = 3;
+}
+
+message EngineSeverity {
+  enum SeverityType {
+    NONE = 0;
+    SERVICE = 1;
+    HOST = 2;
+  }
+  uint64 id = 1;
+  uint32 level = 2;
+  uint64 icon_id = 3;
+  string name = 4;
+  SeverityType type = 5;
 }
 
 message EngineComment {
