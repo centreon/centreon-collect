@@ -47,7 +47,7 @@ on:
 
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -84,7 +84,7 @@ jobs:
 
   robot-test-list:
     needs: [test-image-to-cache]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
 
@@ -100,7 +100,7 @@ jobs:
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -191,7 +191,7 @@ jobs:
   robot-test-report:
     needs: [robot-test]
     if: ${{ failure() }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
