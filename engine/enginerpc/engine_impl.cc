@@ -942,6 +942,47 @@ grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
 }
 
 /**
+ * @brief Return Tag informations.
+ *
+ * @param context gRPC context
+ * @param request Tag's identifier (by Tag id and type)
+ * @param response The filled fields
+ *
+ *@return Status::OK
+ */
+grpc::Status engine_impl::GetTag(grpc::ServerContext* context [[maybe_unused]],
+                                 const TagIdentifier* request,
+                                 EngineTag* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           tag = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::tag> selectedtag;
+    auto ittag = tag::tags.find(std::make_pair(request->id(), request->type()));
+    if (ittag != tag::tags.end())
+      selectedtag = ittag->second;
+    else {
+      err = fmt::format("could not find tag id:'{}', type:'{}' ", request->id(),
+                        request->type());
+      return 1;
+    }
+
+    tag->set_name(selectedtag->name());
+    tag->set_id(selectedtag->id());
+    tag->set_type(static_cast<EngineTag::TagType>(selectedtag->type()));
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
  * @brief Return the total number of hosts.
  *
  * @param context gRPC context
