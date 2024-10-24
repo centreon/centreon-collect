@@ -36,6 +36,7 @@ service Engine {
   rpc GetContact(ContactIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
   rpc GetHostGroup(HostGroupIdentifier) returns (EngineHostGroup) {}
+  rpc GetServiceGroup(ServiceGroupIdentifier) returns (EngineServiceGroup) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -688,6 +689,20 @@ message EngineHostGroup {
   string notes = 5;
   string notes_url = 6;
   string action_url = 7;
+}
+
+message ServiceGroupIdentifier {
+  string name = 1;
+}
+
+message EngineServiceGroup {
+  uint64 id = 1;
+  string name = 2;
+  string alias = 3;
+  string notes = 4;
+  string notes_url = 5;
+  string action_url = 6;
+  repeated string members = 7;
 }
 
 message EngineComment {

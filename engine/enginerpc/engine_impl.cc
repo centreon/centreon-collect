@@ -846,6 +846,57 @@ grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
 }
 
 /**
+ * @brief Return ServiceGroup informations.
+ *
+ * @param context gRPC context
+ * @param request ServiceGroup's identifier (by ServiceGroup name)
+ * @param response The filled fields
+ *
+ *@return Status::OK
+ */
+grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const ServiceGroupIdentifier* request,
+                                          EngineServiceGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           servicegroup =
+                                               response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::servicegroup> selectedservicegroup;
+    auto itservicegroup = servicegroup::servicegroups.find(request->name());
+    if (itservicegroup != servicegroup::servicegroups.end())
+      selectedservicegroup = itservicegroup->second;
+    else {
+      err = fmt::format("could not find servicegroup '{}'", request->name());
+      return 1;
+    }
+    servicegroup->set_id(selectedservicegroup->get_id());
+    servicegroup->set_name(selectedservicegroup->get_group_name());
+    servicegroup->set_alias(selectedservicegroup->get_alias());
+
+    servicegroup->set_notes(selectedservicegroup->get_notes());
+    servicegroup->set_notes_url(selectedservicegroup->get_notes_url());
+    servicegroup->set_action_url(selectedservicegroup->get_action_url());
+
+    if (!selectedservicegroup->members.empty()) {
+      for (const auto& [host_serv_pair, _] : selectedservicegroup->members) {
+        servicegroup->add_members(
+            fmt::format("{},{}", host_serv_pair.first, host_serv_pair.second));
+      }
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
  * @brief Return the total number of hosts.
  *
  * @param context gRPC context
