@@ -526,6 +526,10 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
     _resolve_template(_pb_helper[&he],
                       _pb_templates[message_helper::hostescalation]);
 
+  for (Hostgroup& hg : *pb_config->mutable_hostgroups())
+    _resolve_template(_pb_helper[&hg],
+                      _pb_templates[message_helper::hostgroup]);
+
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
 
