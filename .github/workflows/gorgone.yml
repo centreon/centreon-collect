@@ -16,7 +16,6 @@ on:
       - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
   push:
@@ -29,7 +28,6 @@ on:
       - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
 
