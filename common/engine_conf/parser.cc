@@ -530,6 +530,10 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
     _resolve_template(_pb_helper[&hg],
                       _pb_templates[message_helper::hostgroup]);
 
+  for (Servicegroup& sg : *pb_config->mutable_servicegroups())
+    _resolve_template(_pb_helper[&sg],
+                      _pb_templates[message_helper::servicegroup]);
+
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
 
@@ -782,6 +786,25 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     lst->add_data(v);
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
+              } else if (d && d->name() == "PairStringSet") {
+                PairStringSet* orig_pair =
+                    static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
+                PairStringSet* pair =
+                    static_cast<PairStringSet*>(refl->MutableMessage(msg, f));
+                if (pair->additive()) {
+                  for (auto& v : orig_pair->data()) {
+                    bool found = false;
+                    for (auto& s : *pair->mutable_data()) {
+                      if (s.first() == v.first() && s.second() == v.second()) {
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (!found)
+                      pair->add_data()->CopyFrom(v);
+                  }
+                } else if (pair->data().empty())
+                  *pair->mutable_data() = orig_pair->data();
               } else {
                 refl->MutableMessage(msg, f)->CopyFrom(
                     refl->GetMessage(*tmpl, f));
