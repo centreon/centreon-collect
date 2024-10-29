@@ -214,9 +214,9 @@ jobs:
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*.rpm centreon-broker centreon-engine-daemon
+            apt install -y ./centreon-gorgone*.deb centreon-broker centreon-engine-daemon
           else
-            dnf install -y ./centreon-gorgone*.deb centreon-broker centreon-engine-daemon
+            dnf install -y ./centreon-gorgone*.rpm centreon-broker centreon-engine-daemon
           fi
 
       - name: Create databases
