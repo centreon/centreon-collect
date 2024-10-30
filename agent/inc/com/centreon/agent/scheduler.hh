@@ -151,6 +151,16 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   void stop();
 
+  static std::shared_ptr<check> default_check_builder(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point start_expected,
+      const std::string& service,
+      const std::string& cmd_name,
+      const std::string& cmd_line,
+      const engine_to_agent_request_ptr& conf,
+      check::completion_handler&& handler);
+
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;
   }

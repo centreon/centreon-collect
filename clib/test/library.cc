@@ -19,7 +19,7 @@
 #include "com/centreon/library.hh"
 #include <gtest/gtest.h>
 #include <iostream>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::exceptions;
@@ -28,17 +28,17 @@ void load_library_success() {
   // create library object.
   library lib("./tests/libshared_testing_library.so");
   if (lib.is_loaded())
-    throw(basic_error() << "constructor failed");
+    throw msg_fmt("constructor failed");
 
   // load library.
   lib.load();
   if (!lib.is_loaded())
-    throw(basic_error() << "load failed");
+    throw msg_fmt("load failed");
 
   // unload library.
   lib.unload();
   if (lib.is_loaded())
-    throw(basic_error() << "unload failed");
+    throw msg_fmt("unload failed");
 }
 
 void load_library_failed() {
@@ -46,8 +46,8 @@ void load_library_failed() {
     // create library object.
     library lib("libnot_found.so");
     lib.load();
-    throw(basic_error() << "load failed: lib dosn't exist");
-  } catch (std::exception const& e) {
+    throw msg_fmt("load failed: lib dosn't exist");
+  } catch (const std::exception& e) {
     (void)e;
   }
 }

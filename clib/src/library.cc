@@ -1,24 +1,24 @@
 /**
-* Copyright 2011-2013 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/library.hh"
 #include <cstdlib>
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 
@@ -63,7 +63,7 @@ void library::load() {
   if (_handle)
     return;
   if (!(_handle = dlopen(_filename.c_str(), RTLD_LAZY | RTLD_GLOBAL)))
-    throw basic_error() << "load library failed: " << dlerror();
+    throw exceptions::msg_fmt("load library failed: {}", dlerror());
 }
 
 /**
@@ -75,14 +75,14 @@ void library::load() {
  */
 void* library::resolve(char const* symbol) {
   if (!_handle)
-    throw basic_error() << "could not find symbol '" << symbol
-                        << "': library not loaded";
+    throw exceptions::msg_fmt("could not find symbol '{}': library not loaded",
+                              symbol);
   dlerror();
   void* sym(dlsym(_handle, symbol));
   if (!sym) {
     char const* msg(dlerror());
-    throw basic_error() << "could not find symbol '" << symbol
-                        << "': " << (msg ? msg : "unknown error");
+    throw exceptions::msg_fmt("could not find symbol '{}': {}", symbol,
+                              (msg ? msg : "unknown error"));
   }
   return sym;
 }
@@ -128,6 +128,6 @@ void library::unload() {
   if (!_handle)
     return;
   if (dlclose(_handle))
-    throw basic_error() << "unload library failed: " << dlerror();
+    throw exceptions::msg_fmt("unload library failed: {}", dlerror());
   _handle = nullptr;
 }
