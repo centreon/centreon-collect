@@ -152,7 +152,7 @@ jobs:
               GITHUB_RELEASE_CLOUD=1
               echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
               ;;
-            [2-9][0-9].[0-9][0-9].x)
+            [2-9][0-9].[0-9][0-9].x | 24.10.x-tun)
               echo "release=1" >> $GITHUB_OUTPUT
               echo "release_type=$GITHUB_RELEASE_TYPE" >> $GITHUB_OUTPUT
               ;;
@@ -217,7 +217,7 @@ jobs:
               STABILITY="testing"
               ENV="testing"
               ;;
-            master | [2-9][0-9].[0-9][0-9].x)
+            master | [2-9][0-9].[0-9][0-9].x | 24.10.x-tun)
               STABILITY="stable"
               ENV="production"
               ;;
