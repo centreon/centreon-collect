@@ -53,9 +53,11 @@ overrides:
   rpm:
     depends:
       - centreon-gorgone = ${VERSION}-${RELEASE}${DIST}
+      - centreon-common
   deb:
     depends:
       - centreon-gorgone (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-common
     replaces:
       - centreon-gorgone (<< 24.10.0)
 
