@@ -1967,7 +1967,7 @@ def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -1988,7 +1988,7 @@ def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -2102,7 +2102,7 @@ def ctn_disable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -2123,7 +2123,7 @@ def ctn_enable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -2146,7 +2146,7 @@ def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: 
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
-                names=engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
+                names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}\n"
@@ -3926,7 +3926,7 @@ def ctn_get_host_info_grpc(id:int):
             time.sleep(1)
             with grpc.insecure_channel("127.0.0.1:50001") as channel:
                 stub = engine_pb2_grpc.EngineStub(channel)
-                request = engine_pb2.HostIdentifier(id=id)
+                request = engine_pb2.NameOrIdIdentifier(id=id)
                 try:
                     host = stub.GetHost(request)
                     host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
@@ -3951,7 +3951,7 @@ def ctn_get_service_info_grpc(id_h:int,id_s:int):
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            identifier = engine_pb2.IdIdentifier(host_id=id_h,service_id=id_s)
+            identifier = engine_pb2.PairIdsIdentifier(host_id=id_h,service_id=id_s)
             request = engine_pb2.ServiceIdentifier(ids = identifier)
             try:
                 host = stub.GetService(request)
@@ -3976,7 +3976,7 @@ def ctn_get_contact_info_grpc(name:str):
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            request = engine_pb2.ContactIdentifier(name=name)
+            request = engine_pb2.NameIdentifier(name=name)
             try:
                 contact = stub.GetContact(request)
                 contact_dict = MessageToDict(contact, always_print_fields_with_no_presence=True)
@@ -4000,7 +4000,7 @@ def ctn_get_hostgroup_info_grpc(name:str):
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            request = engine_pb2.HostGroupIdentifier(name=name)
+            request = engine_pb2.NameIdentifier(name=name)
             try:
                 hg = stub.GetHostGroup(request)
                 hg_dict = MessageToDict(hg, always_print_fields_with_no_presence=True)
@@ -4024,7 +4024,7 @@ def ctn_get_servicegroup_info_grpc(name:str):
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            request = engine_pb2.ServiceGroupIdentifier(name=name)
+            request = engine_pb2.NameIdentifier(name=name)
             try:
                 sg = stub.GetServiceGroup(request)
                 sg_dict = MessageToDict(sg, always_print_fields_with_no_presence=True)

@@ -32,11 +32,11 @@ service Engine {
       returns (com.centreon.common.pb_process_stat) {}
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(GenericString) returns (Stats) {}
-  rpc GetHost(HostIdentifier) returns (EngineHost) {}
-  rpc GetContact(ContactIdentifier) returns (EngineContact) {}
+  rpc GetHost(NameOrIdIdentifier) returns (EngineHost) {}
+  rpc GetContact(NameIdentifier) returns (EngineContact) {}
   rpc GetService(ServiceIdentifier) returns (EngineService) {}
-  rpc GetHostGroup(HostGroupIdentifier) returns (EngineHostGroup) {}
-  rpc GetServiceGroup(ServiceGroupIdentifier) returns (EngineServiceGroup) {}
+  rpc GetHostGroup(NameIdentifier) returns (EngineHostGroup) {}
+  rpc GetServiceGroup(NameIdentifier) returns (EngineServiceGroup) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -52,9 +52,9 @@ service Engine {
   rpc AddHostComment(EngineComment) returns (CommandSuccess) {}
   rpc AddServiceComment(EngineComment) returns (CommandSuccess) {}
   rpc DeleteComment(GenericValue) returns (CommandSuccess) {}
-  rpc DeleteAllHostComments(HostIdentifier) returns (CommandSuccess) {}
+  rpc DeleteAllHostComments(NameOrIdIdentifier) returns (CommandSuccess) {}
   rpc DeleteAllServiceComments(ServiceIdentifier) returns (CommandSuccess) {}
-  rpc RemoveHostAcknowledgement(HostIdentifier) returns (CommandSuccess) {}
+  rpc RemoveHostAcknowledgement(NameOrIdIdentifier) returns (CommandSuccess) {}
   rpc RemoveServiceAcknowledgement(ServiceIdentifier) returns (CommandSuccess) {
   }
   rpc AcknowledgementHostProblem(EngineAcknowledgement)
@@ -110,12 +110,12 @@ service Engine {
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {
+  rpc EnableHostAndChildNotifications(NameOrIdIdentifier) returns (CommandSuccess) {
   }
-  rpc DisableHostAndChildNotifications(HostIdentifier)
+  rpc DisableHostAndChildNotifications(NameOrIdIdentifier)
       returns (CommandSuccess) {}
-  rpc DisableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
-  rpc EnableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc DisableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {}
+  rpc EnableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {}
   rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
@@ -339,7 +339,7 @@ message ThresholdsFile {
   string filename = 1;
 }
 
-message HostIdentifier {
+message NameOrIdIdentifier {
   oneof identifier {
     string name = 1;
     uint32 id = 2;
@@ -480,7 +480,7 @@ message EngineHost {
   repeated string custom_variables = 117;
 }
 
-message ContactIdentifier {
+message NameIdentifier {
   string name = 1;
 }
 
@@ -519,20 +519,20 @@ message EngineContact {
   repeated string custom_variables = 32;
 }
 
-message NameIdentifier {
+message PairNamesIdentifier {
   string host_name = 1;
   string service_name = 2;
 }
 
-message IdIdentifier {
+message PairIdsIdentifier {
   uint32 host_id = 1;
   uint32 service_id = 2;
 }
 
 message ServiceIdentifier {
   oneof identifier {
-    NameIdentifier names = 1;
-    IdIdentifier ids = 2;
+    PairNamesIdentifier names = 1;
+    PairIdsIdentifier ids = 2;
   }
 }
 
@@ -677,10 +677,6 @@ message EngineService {
   ServiceType service_type = 117;
 }
 
-message HostGroupIdentifier {
-    string name = 1;
-}
-
 message EngineHostGroup {
   uint32 id = 1;
   string name = 2;
@@ -689,10 +685,6 @@ message EngineHostGroup {
   string notes = 5;
   string notes_url = 6;
   string action_url = 7;
-}
-
-message ServiceGroupIdentifier {
-  string name = 1;
 }
 
 message EngineServiceGroup {
@@ -724,8 +716,8 @@ message HostDelayIdentifier {
 
 message ServiceDelayIdentifier {
   oneof identifier {
-    NameIdentifier names = 1;
-    IdIdentifier ids = 2;
+    PairNamesIdentifier names = 1;
+    PairIdsIdentifier ids = 2;
   }
   uint32 delay_time = 3;
 }
