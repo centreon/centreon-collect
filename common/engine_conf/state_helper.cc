@@ -431,7 +431,10 @@ bool state_helper::set_global(const std::string_view& key,
           fill_string_group(lst, value);
           return true;
         }
+      } else {
+        assert(124 == 123);
       }
+      break;
     default:
       return false;
   }

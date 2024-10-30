@@ -1795,6 +1795,7 @@ void reporting_stream::_dimension_dispatch(
     case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension_ba_timeperiod_relation(data);
+      break;
     case bam::pb_dimension_ba_timeperiod_relation::static_type():
       _process_pb_dimension_ba_timeperiod_relation(data);
       break;

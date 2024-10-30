@@ -431,7 +431,10 @@ bool message_helper::set(const std::string_view& key,
           set_changed(f->index());
           return true;
         }
+      } else {
+        assert(22 == 23);
       }
+      break;
     case FieldDescriptor::TYPE_ENUM: {
       auto* v = f->enum_type()->FindValueByName(
           std::string(value.data(), value.size()));

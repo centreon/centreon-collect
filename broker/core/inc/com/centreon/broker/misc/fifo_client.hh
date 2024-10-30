@@ -19,7 +19,6 @@
 #ifndef _CCB_MISC_FIFO_CLIENT_HH
 #define _CCB_MISC_FIFO_CLIENT_HH
 
-
 namespace com::centreon::broker {
 
 namespace misc {
@@ -56,8 +55,6 @@ class fifo_client {
    */
   int write(const std::string& buffer) {
     int retval = 0;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough="
     switch (_step) {
       case step::OPEN:
         _fd = open(_filename.c_str(), O_WRONLY | O_NONBLOCK);
@@ -70,6 +67,7 @@ class fifo_client {
           // No break here, we continue with write
           _step = step::WRITE;
         }
+        [[fallthrough]];
       case step::WRITE:
         if (::write(_fd, buffer.c_str(), buffer.size()) !=
             static_cast<ssize_t>(buffer.size())) {
@@ -81,12 +79,11 @@ class fifo_client {
         } else
           retval = 0;
     }
-#pragma GCC diagnostic pop
     return retval;
   }
 };
 }  // namespace misc
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !_CCB_MISC_FIFO_CLIENT */
