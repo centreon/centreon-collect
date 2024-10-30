@@ -186,9 +186,9 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
-    needs: [get-version, deliver-rpm, deliver-deb]
+    needs: [get-version]
     if: |
-      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -209,6 +209,6 @@ jobs:
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.major_version }}
           stability: ${{ needs.get-version.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          github_ref_name: 24.10.x
+          release_type: release
+          release_cloud: 0
