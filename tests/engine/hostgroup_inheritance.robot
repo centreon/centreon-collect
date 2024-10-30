@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       Centreon Broker and Engine Verify hostgroup inheritance.
+Documentation       Centreon Engine verify hostgroups inheritance.
 
 Resource            ../resources/import.resource
 
@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSN5
+EHGI0
     [Documentation]    Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Start Engine
     [Tags]    engine    hostgroup    MON-151323
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -42,10 +42,10 @@ EBSN5
 
     # Operation in hostgroupTemplates
     ${config_values}    Create Dictionary
-...    members    host_2
-...    notes    note_tmpl
-...    notes_url    note_url_tmpl
-...    action_url    action_url_tmpl
+    ...    members    host_2
+    ...    notes    note_tmpl
+    ...    notes_url    note_url_tmpl
+    ...    action_url    action_url_tmpl
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_1    ${key}    ${value}    hostgroupTemplates.cfg
@@ -70,7 +70,7 @@ EBSN5
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN6
+EHGI1
     [Documentation]    Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Start Engine
     [Tags]    engine    hostgroup    MON-151323
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -98,9 +98,9 @@ EBSN6
 
     # Operation in hostgroup
     ${config_values}    Create Dictionary
-...    notes    note
-...    notes_url    note_url
-...    action_url    action_url
+    ...    notes    note
+    ...    notes_url    note_url
+    ...    action_url    action_url
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    ${key}    ${value}    hostgroups.cfg
@@ -108,10 +108,10 @@ EBSN6
 
     # Operation in hostgroupTemplates
     ${config_values}    Create Dictionary
-...    members    host_2
-...    notes    note_tmpl
-...    notes_url    note_url_tmpl
-...    action_url    action_url_tmpl
+    ...    members    host_2
+    ...    notes    note_tmpl
+    ...    notes_url    note_url_tmpl
+    ...    action_url    action_url_tmpl
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_1    ${key}    ${value}    hostgroupTemplates.cfg
@@ -136,7 +136,7 @@ EBSN6
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN7
+EHGI2
     [Documentation]    Verify hostgroup inheritance : hostgroup(empty) inherit from template (full) , on Reload Engine
     [Tags]    engine    hostgroup    MON-151323
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -174,10 +174,10 @@ EBSN7
 
     # Operation in hostgroupTemplates
     ${config_values}    Create Dictionary
-...    members    host_2
-...    notes    note_tmpl
-...    notes_url    note_url_tmpl
-...    action_url    action_url_tmpl
+    ...    members    host_2
+    ...    notes    note_tmpl
+    ...    notes_url    note_url_tmpl
+    ...    action_url    action_url_tmpl
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_1    ${key}    ${value}    hostgroupTemplates.cfg
@@ -208,7 +208,7 @@ EBSN7
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN8
+EHGI3
     [Documentation]    Verify hostgroup inheritance : hostgroup(full) inherit from template (full) , on Reload Engine
     [Tags]    engine    hostgroup    MON-151323
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -242,10 +242,10 @@ EBSN8
 
     # Operation in hostgroup
     ${config_values}    Create Dictionary
-...    members    host_3
-...    notes    note
-...    notes_url    note_url
-...    action_url    action_url
+    ...    members    host_3
+    ...    notes    note
+    ...    notes_url    note_url
+    ...    action_url    action_url
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    ${key}    ${value}    hostgroups.cfg
@@ -253,10 +253,10 @@ EBSN8
 
     # Operation in hostgroupTemplates
     ${config_values}    Create Dictionary
-...    members    host_2
-...    notes    note_tmpl
-...    notes_url    note_url_tmpl
-...    action_url    action_url_tmpl
+    ...    members    host_2
+    ...    notes    note_tmpl
+    ...    notes_url    note_url_tmpl
+    ...    action_url    action_url_tmpl
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    hostgroup_template_1    ${key}    ${value}    hostgroupTemplates.cfg
