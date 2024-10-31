@@ -51,8 +51,8 @@ jobs:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
       veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
-      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   package:
     needs: [get-version]
@@ -81,8 +81,8 @@ jobs:
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     name: package ${{ matrix.distrib }}
 
@@ -155,8 +155,8 @@ jobs:
   #   container:
   #     image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
   #     credentials:
-  #       username: ${{ secrets.DOCKER_REGISTRY_ID }}
-  #       password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #       username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+  #       password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   #   services:
   #     mariadb:

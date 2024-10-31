@@ -121,8 +121,8 @@ jobs:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
       veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
-      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   unit-test:
     needs: [get-version]
@@ -146,8 +146,8 @@ jobs:
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     name: unit test ${{ matrix.distrib }}
 
@@ -351,8 +351,8 @@ jobs:
       tests_params: ${{matrix.tests_params}}
       test_group_name: ${{matrix.test_group_name}}
     secrets:
-      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
