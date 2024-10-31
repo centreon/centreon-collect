@@ -725,28 +725,33 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
 
   // Get the host name.
-  char* host_name(args);
+  auto split = absl::StrSplit(args, ';');
+  auto split_it = split.begin();
+
+  if (split_it == split.end())
+    return ERROR;
 
   // Get the host check return code and output.
-  char* delimiter(strchr(host_name, ';'));
-  if (!delimiter)
-    return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* output(strchr(delimiter, ';'));
-  if (output) {
-    *output = '\0';
-    ++output;
-  } else
-    output = "";
-  int return_code(strtol(delimiter, nullptr, 0));
+  std::string host_name = std::string(*split_it);
 
-  // replace \\n with \n
-  string::unescape(output);
+  int return_code;
+  ++split_it;
+  if (!absl::SimpleAtoi(*split_it, &return_code))
+    return ERROR;
+
+  ++split_it;
+  std::string output;
+  if (split_it == split.end()) {
+    output = "";
+  } else {
+    output = split_it->data();
+    // replace \\n with \n
+    string::unescape(output);
+  }
 
   // Submit the check result.
-  return (
-      process_passive_host_check(check_time, host_name, return_code, output));
+  return (process_passive_host_check(check_time, host_name.c_str(), return_code,
+                                     output.c_str()));
 }
 
 /* process passive host check result */
