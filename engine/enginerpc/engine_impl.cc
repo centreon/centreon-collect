@@ -53,12 +53,12 @@ using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine {
 
-std::ostream& operator<<(std::ostream& str, const HostIdentifier& host_id) {
+std::ostream& operator<<(std::ostream& str, const NameOrIdIdentifier& host_id) {
   switch (host_id.identifier_case()) {
-    case HostIdentifier::kName:
+    case NameOrIdIdentifier::kName:
       str << "host name=" << host_id.name();
       break;
-    case HostIdentifier::kId:
+    case NameOrIdIdentifier::kId:
       str << "host id=" << host_id.id();
       break;
     default:
@@ -87,7 +87,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
 
 namespace fmt {
 template <>
-struct formatter<HostIdentifier> : ostream_formatter {};
+struct formatter<NameOrIdIdentifier> : ostream_formatter {};
 template <>
 struct formatter<ServiceIdentifier> : ostream_formatter {};
 
@@ -211,7 +211,7 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context
  *@return Status::OK
  */
 grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
-                                  const HostIdentifier* request
+                                  const NameOrIdIdentifier* request
                                   [[maybe_unused]],
                                   EngineHost* response) {
   std::string err;
@@ -435,7 +435,7 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
  **/
 grpc::Status engine_impl::GetContact(grpc::ServerContext* context
                                      [[maybe_unused]],
-                                     const ContactIdentifier* request,
+                                     const NameIdentifier* request,
                                      EngineContact* response) {
   std::string err;
   auto fn = std::packaged_task<int(void)>([&err, request,
@@ -807,7 +807,7 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
  */
 grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
                                        [[maybe_unused]],
-                                       const HostGroupIdentifier* request,
+                                       const NameIdentifier* request,
                                        EngineHostGroup* response) {
   std::string err;
   auto fn = std::packaged_task<int(void)>(
@@ -835,6 +835,57 @@ grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
 
         return 0;
       });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return ServiceGroup informations.
+ *
+ * @param context gRPC context
+ * @param request ServiceGroup's identifier (by ServiceGroup name)
+ * @param response The filled fields
+ *
+ *@return Status::OK
+ */
+grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const NameIdentifier* request,
+                                          EngineServiceGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           servicegroup =
+                                               response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::servicegroup> selectedservicegroup;
+    auto itservicegroup = servicegroup::servicegroups.find(request->name());
+    if (itservicegroup != servicegroup::servicegroups.end())
+      selectedservicegroup = itservicegroup->second;
+    else {
+      err = fmt::format("could not find servicegroup '{}'", request->name());
+      return 1;
+    }
+    servicegroup->set_id(selectedservicegroup->get_id());
+    servicegroup->set_name(selectedservicegroup->get_group_name());
+    servicegroup->set_alias(selectedservicegroup->get_alias());
+
+    servicegroup->set_notes(selectedservicegroup->get_notes());
+    servicegroup->set_notes_url(selectedservicegroup->get_notes_url());
+    servicegroup->set_action_url(selectedservicegroup->get_action_url());
+
+    if (!selectedservicegroup->members.empty()) {
+      for (const auto& [host_serv_pair, _] : selectedservicegroup->members) {
+        servicegroup->add_members(
+            fmt::format("{},{}", host_serv_pair.first, host_serv_pair.second));
+      }
+    }
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
@@ -1193,11 +1244,10 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
-                                                [[maybe_unused]],
-                                                const HostIdentifier* request,
-                                                CommandSuccess* response
-                                                [[maybe_unused]]) {
+grpc::Status engine_impl::DeleteAllHostComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const NameOrIdIdentifier* request,
+    CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
@@ -1264,7 +1314,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
  */
 grpc::Status engine_impl::RemoveHostAcknowledgement(
     grpc::ServerContext* context [[maybe_unused]],
-    const HostIdentifier* request,
+    const NameOrIdIdentifier* request,
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
@@ -2767,7 +2817,7 @@ grpc::Status engine_impl::DelayServiceNotification(
 
     switch (request->identifier_case()) {
       case ServiceDelayIdentifier::kNames: {
-        NameIdentifier names = request->names();
+        PairNamesIdentifier names = request->names();
         auto it =
             service::services.find({names.host_name(), names.service_name()});
         if (it != service::services.end())
@@ -2779,7 +2829,7 @@ grpc::Status engine_impl::DelayServiceNotification(
         }
       } break;
       case ServiceDelayIdentifier::kIds: {
-        IdIdentifier ids = request->ids();
+        PairIdsIdentifier ids = request->ids();
         auto it =
             service::services_by_id.find({ids.host_id(), ids.service_id()});
         if (it != service::services_by_id.end())
@@ -3581,7 +3631,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::EnableHostAndChildNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   commands::processing::wrapper_enable_host_and_child_notifications(
@@ -3591,7 +3641,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::DisableHostAndChildNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   commands::processing::wrapper_disable_host_and_child_notifications(
@@ -3601,7 +3651,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::DisableHostNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   disable_host_notifications(host_info.first.get());
@@ -3610,7 +3660,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::EnableHostNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   enable_host_notifications(host_info.first.get());
@@ -3697,10 +3747,10 @@ grpc::Status engine_impl::ShutdownProgram(
  */
 std::pair<std::shared_ptr<com::centreon::engine::host>, std::string>
 engine_impl::get_host(
-    const ::com::centreon::engine::HostIdentifier& host_info) {
+    const ::com::centreon::engine::NameOrIdIdentifier& host_info) {
   std::string err;
   switch (host_info.identifier_case()) {
-    case HostIdentifier::kName: {
+    case NameOrIdIdentifier::kName: {
       /* get the host */
       auto ithostname = host::hosts.find(host_info.name());
       if (ithostname != host::hosts.end())
@@ -3711,7 +3761,7 @@ engine_impl::get_host(
                               err);
       }
     } break;
-    case HostIdentifier::kId: {
+    case NameOrIdIdentifier::kId: {
       /* get the host */
       auto ithostid = host::hosts_by_id.find(host_info.id());
       if (ithostid != host::hosts_by_id.end())
@@ -3739,7 +3789,7 @@ engine_impl::get_serv(
   /* checking identifier sesrname (by names or by ids) */
   switch (serv_info.identifier_case()) {
     case ServiceIdentifier::kNames: {
-      const NameIdentifier& names = serv_info.names();
+      const PairNamesIdentifier& names = serv_info.names();
       /* get the service */
       auto itservicenames = service::services.find(
           std::make_pair(names.host_name(), names.service_name()));
@@ -3753,7 +3803,7 @@ engine_impl::get_serv(
       }
     } break;
     case ServiceIdentifier::kIds: {
-      const IdIdentifier& ids = serv_info.ids();
+      const PairIdsIdentifier& ids = serv_info.ids();
       /* get the service */
       auto itserviceids = service::services_by_id.find(
           std::make_pair(ids.host_id(), ids.service_id()));

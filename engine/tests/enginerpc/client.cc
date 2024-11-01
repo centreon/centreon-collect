@@ -56,7 +56,7 @@ class EngineRPCClient {
   }
 
   bool GetHostByHostName(std::string const& req, EngineHost* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_name(req);
 
@@ -70,7 +70,7 @@ class EngineRPCClient {
   }
 
   bool GetHostByHostId(uint32_t& req, EngineHost* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_id(req);
 
@@ -84,7 +84,7 @@ class EngineRPCClient {
   }
 
   bool GetContact(std::string const& req, EngineContact* response) {
-    ContactIdentifier request;
+    NameIdentifier request;
     grpc::ClientContext context;
     request.set_name(req);
 
@@ -333,7 +333,7 @@ class EngineRPCClient {
 
   bool DeleteAllHostCommentsByName(std::string const& req,
                                    CommandSuccess* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_name(req);
 
@@ -347,7 +347,7 @@ class EngineRPCClient {
   }
 
   bool DeleteAllHostCommentsById(uint32_t& req, CommandSuccess* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_id(req);
 
@@ -398,7 +398,7 @@ class EngineRPCClient {
 
   bool RemoveHostAcknowledgementByNames(std::string const& hostname,
                                         CommandSuccess* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_name(hostname);
     grpc::Status status =
@@ -412,7 +412,7 @@ class EngineRPCClient {
 
   bool RemoveHostAcknowledgementByIds(uint32_t& hostid,
                                       CommandSuccess* response) {
-    HostIdentifier request;
+    NameOrIdIdentifier request;
     grpc::ClientContext context;
     request.set_id(hostid);
 

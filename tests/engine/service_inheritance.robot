@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       Centreon Broker and Engine Creation of hosts with long action_url, notes and notes_url.
+Documentation       Centreon Engine verify services inheritance.
 
 Resource            ../resources/import.resource
 
@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSN5
+ESI0
     [Documentation]    Verify inheritance service : Service(empty) inherit from template (full) , on Start Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -19,14 +19,15 @@ EBSN5
     Ctn Config Broker    module
     Ctn Config BBDO3    1
     Ctn Clear Retention
-    # create files :
+
+    # Create files :
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Create Template File    ${0}    service    group_tags    [1, 5]
 
     Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
 
-    # add necessarily files :
+    # Add necessarily files :
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
@@ -34,12 +35,13 @@ EBSN5
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
-    # operation in contact group
+    # Operation in contact group
     Ctn Add Contact Group    ${0}    ${1}    ["John_Doe"]
     Ctn Add Contact Group    ${0}    ${2}    ["U1","U2"]
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    # operation in service group
+
+    # Operation in service group
     Ctn Add Service Group    ${0}    ${1}    ["service_2"]
 
     # Operation in services :
@@ -53,50 +55,50 @@ EBSN5
     Ctn Engine Config Delete Value In Service    0    service_1    passive_checks_enabled
     Ctn Engine Config Delete Value In Service    0    service_1    retry_interval
 
-    # Opreation in serviceTemplates
+    # Operation in serviceTemplates
     ${config_values}    Create Dictionary
-...    acknowledgement_timeout    10
-...    description    service_template_d_1
-...    service_groups    servicegroup_1
-...    check_command    checkh2
-...    check_period    workhours
-...    event_handler    command_notif
-...    notification_period    workhours
-...    contact_groups    contactgroup_1
-...    contacts    John_Doe
-...    notes    template_note
-...    notes_url    template_note_url
-...    action_url    template_action_url
-...    icon_image    template_icon_image
-...    icon_image_alt    template_icon_image_alt
-...    max_check_attempts    4
-...    check_interval    2
-...    retry_interval    1
-...    recovery_notification_delay    1
-...    active_checks_enabled    1
-...    passive_checks_enabled    1
-...    is_volatile    1
-...    obsess_over_service    1
-...    event_handler_enabled    1
-...    check_freshness    1
-...    freshness_threshold    123
-...    low_flap_threshold    83
-...    high_flap_threshold    126
-...    flap_detection_enabled    1
-...    flap_detection_options    all
-...    notification_options    all
-...    notifications_enabled    1
-...    notification_interval    6
-...    first_notification_delay    3
-...    stalking_options    all
-...    process_perf_data    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    severity_id    11
-...    category_tags    2
-...    icon_id    1
-...    _SNMPCOMMUNITY    public
+    ...    acknowledgement_timeout    10
+    ...    description    service_template_d_1
+    ...    service_groups    servicegroup_1
+    ...    check_command    checkh2
+    ...    check_period    workhours
+    ...    event_handler    command_notif
+    ...    notification_period    workhours
+    ...    contact_groups    contactgroup_1
+    ...    contacts    John_Doe
+    ...    notes    template_note
+    ...    notes_url    template_note_url
+    ...    action_url    template_action_url
+    ...    icon_image    template_icon_image
+    ...    icon_image_alt    template_icon_image_alt
+    ...    max_check_attempts    4
+    ...    check_interval    2
+    ...    retry_interval    1
+    ...    recovery_notification_delay    1
+    ...    active_checks_enabled    1
+    ...    passive_checks_enabled    1
+    ...    is_volatile    1
+    ...    obsess_over_service    1
+    ...    event_handler_enabled    1
+    ...    check_freshness    1
+    ...    freshness_threshold    123
+    ...    low_flap_threshold    83
+    ...    high_flap_threshold    126
+    ...    flap_detection_enabled    1
+    ...    flap_detection_options    all
+    ...    notification_options    all
+    ...    notifications_enabled    1
+    ...    notification_interval    6
+    ...    first_notification_delay    3
+    ...    stalking_options    all
+    ...    process_perf_data    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    severity_id    11
+    ...    category_tags    2
+    ...    icon_id    1
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Services
@@ -179,7 +181,7 @@ EBSN5
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN6
+ESI1
     [Documentation]    Verify inheritance service : Service(full) inherit from template (full) , on Start Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -188,14 +190,15 @@ EBSN6
     Ctn Config Broker    module
     Ctn Config BBDO3    1
     Ctn Clear Retention
-    # create files :
+
+    # Create files :
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Create Template File    ${0}    service    group_tags    [1, 5]
 
     Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
 
-    # add necessarily files :
+    # Add necessarily files :
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
@@ -203,12 +206,13 @@ EBSN6
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
-    # operation in contact group
+    # Operation in contact group
     Ctn Add Contact Group    ${0}    ${1}    ["John_Doe"]
     Ctn Add Contact Group    ${0}    ${2}    ["U1","U2"]
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    # operation in service group
+
+    # Operation in service group
     Ctn Add Service Group    ${0}    ${1}    ["service_2"]
     Ctn Add Service Group    ${0}    ${2}    ["service_3"]
 
@@ -224,47 +228,47 @@ EBSN6
     Ctn Engine Config Delete Value In Service    0    service_1    retry_interval
 
     ${config_values}    Create Dictionary
-...    acknowledgement_timeout    10
-...    service_groups    servicegroup_1
-...    check_command    checkh2
-...    check_period    workhours
-...    event_handler    command_notif
-...    notification_period    workhours
-...    contact_groups    contactgroup_1
-...    contacts    John_Doe
-...    notes    note
-...    notes_url    note_url
-...    action_url    action_url
-...    icon_image    icon_image
-...    icon_image_alt    icon_image_alt
-...    max_check_attempts    4
-...    check_interval    2
-...    retry_interval    1
-...    recovery_notification_delay    1
-...    active_checks_enabled    1
-...    passive_checks_enabled    1
-...    is_volatile    1
-...    obsess_over_service    1
-...    event_handler_enabled    1
-...    check_freshness    1
-...    freshness_threshold    123
-...    low_flap_threshold    83
-...    high_flap_threshold    126
-...    flap_detection_enabled    1
-...    flap_detection_options    all
-...    notification_options    all
-...    notifications_enabled    1
-...    notification_interval    6
-...    first_notification_delay    3
-...    stalking_options    all
-...    process_perf_data    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    severity_id    11
-...    category_tags    2
-...    icon_id    1
-...    _SNMPCOMMUNITY    public
+    ...    acknowledgement_timeout    10
+    ...    service_groups    servicegroup_1
+    ...    check_command    checkh2
+    ...    check_period    workhours
+    ...    event_handler    command_notif
+    ...    notification_period    workhours
+    ...    contact_groups    contactgroup_1
+    ...    contacts    John_Doe
+    ...    notes    note
+    ...    notes_url    note_url
+    ...    action_url    action_url
+    ...    icon_image    icon_image
+    ...    icon_image_alt    icon_image_alt
+    ...    max_check_attempts    4
+    ...    check_interval    2
+    ...    retry_interval    1
+    ...    recovery_notification_delay    1
+    ...    active_checks_enabled    1
+    ...    passive_checks_enabled    1
+    ...    is_volatile    1
+    ...    obsess_over_service    1
+    ...    event_handler_enabled    1
+    ...    check_freshness    1
+    ...    freshness_threshold    123
+    ...    low_flap_threshold    83
+    ...    high_flap_threshold    126
+    ...    flap_detection_enabled    1
+    ...    flap_detection_options    all
+    ...    notification_options    all
+    ...    notifications_enabled    1
+    ...    notification_interval    6
+    ...    first_notification_delay    3
+    ...    stalking_options    all
+    ...    process_perf_data    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    severity_id    11
+    ...    category_tags    2
+    ...    icon_id    1
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Services
@@ -275,49 +279,49 @@ EBSN6
         ...    services.cfg
     END
 
-    # Opreation in serviceTemplates
+    # Operation in serviceTemplates
     ${config_values_tmpl}    Create Dictionary
-...    acknowledgement_timeout    5
-...    service_groups    servicegroup_2
-...    check_command    checkh3
-...    check_period    none
-...    event_handler    checkh4
-...    notification_period    none
-...    contact_groups    contactgroup_2
-...    contacts    U1
-...    notes    template_note
-...    notes_url    template_note_url
-...    action_url    template_action_url
-...    icon_image    template_icon_image
-...    icon_image_alt    template_icon_image_alt
-...    max_check_attempts    2
-...    check_interval    1
-...    retry_interval    2
-...    recovery_notification_delay    2
-...    active_checks_enabled    0
-...    passive_checks_enabled    0
-...    is_volatile    0
-...    obsess_over_service    0
-...    event_handler_enabled    0
-...    check_freshness    0
-...    freshness_threshold    23
-...    low_flap_threshold    17
-...    high_flap_threshold    17
-...    flap_detection_enabled    0
-...    flap_detection_options    warning
-...    notification_options    warning
-...    notifications_enabled    0
-...    notification_interval    2
-...    first_notification_delay    1
-...    stalking_options    warning
-...    process_perf_data    0
-...    retain_status_information    0
-...    retain_nonstatus_information    0
-...    timezone    GMT+02
-...    severity_id    13
-...    category_tags    1
-...    icon_id    10
-...    _SNMPCOMMUNITY    private
+    ...    acknowledgement_timeout    5
+    ...    service_groups    servicegroup_2
+    ...    check_command    checkh3
+    ...    check_period    none
+    ...    event_handler    checkh4
+    ...    notification_period    none
+    ...    contact_groups    contactgroup_2
+    ...    contacts    U1
+    ...    notes    template_note
+    ...    notes_url    template_note_url
+    ...    action_url    template_action_url
+    ...    icon_image    template_icon_image
+    ...    icon_image_alt    template_icon_image_alt
+    ...    max_check_attempts    2
+    ...    check_interval    1
+    ...    retry_interval    2
+    ...    recovery_notification_delay    2
+    ...    active_checks_enabled    0
+    ...    passive_checks_enabled    0
+    ...    is_volatile    0
+    ...    obsess_over_service    0
+    ...    event_handler_enabled    0
+    ...    check_freshness    0
+    ...    freshness_threshold    23
+    ...    low_flap_threshold    17
+    ...    high_flap_threshold    17
+    ...    flap_detection_enabled    0
+    ...    flap_detection_options    warning
+    ...    notification_options    warning
+    ...    notifications_enabled    0
+    ...    notification_interval    2
+    ...    first_notification_delay    1
+    ...    stalking_options    warning
+    ...    process_perf_data    0
+    ...    retain_status_information    0
+    ...    retain_nonstatus_information    0
+    ...    timezone    GMT+02
+    ...    severity_id    13
+    ...    category_tags    1
+    ...    icon_id    10
+    ...    _SNMPCOMMUNITY    private
 
     FOR    ${key}    ${value}    IN    &{config_values_tmpl}
         Ctn Engine Config Set Value In Services
@@ -400,7 +404,7 @@ EBSN6
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN7
+ESI2
     [Documentation]    Verify inheritance service : Service(empty) inherit from template (full) , on Reload Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -409,14 +413,14 @@ EBSN7
     Ctn Config Broker    module
     Ctn Config BBDO3    1
 
-    # create files :
+    # Create files :
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Create Template File    ${0}    service    group_tags    [1, 5]
 
     Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
 
-    # add necessarily files :
+    # Add necessarily files :
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
@@ -424,12 +428,13 @@ EBSN7
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
-    # operation in contact group
+    # Operation in contact group
     Ctn Add Contact Group    ${0}    ${1}    ["John_Doe"]
     Ctn Add Contact Group    ${0}    ${2}    ["U1","U2"]
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    # operation in service group
+
+    # Operation in service group
     Ctn Add Service Group    ${0}    ${1}    ["service_2"]
 
     ${start}    Get Current Date
@@ -449,50 +454,50 @@ EBSN7
     Ctn Engine Config Delete Value In Service    0    service_1    passive_checks_enabled
     Ctn Engine Config Delete Value In Service    0    service_1    retry_interval
 
-    # Opreation in serviceTemplates
+    # Operation in serviceTemplates
     ${config_values}    Create Dictionary
-...    acknowledgement_timeout    10
-...    description    service_template_d_1
-...    service_groups    servicegroup_1
-...    check_command    checkh2
-...    check_period    workhours
-...    event_handler    command_notif
-...    notification_period    workhours
-...    contact_groups    contactgroup_1
-...    contacts    John_Doe
-...    notes    template_note
-...    notes_url    template_note_url
-...    action_url    template_action_url
-...    icon_image    template_icon_image
-...    icon_image_alt    template_icon_image_alt
-...    max_check_attempts    4
-...    check_interval    2
-...    retry_interval    1
-...    recovery_notification_delay    1
-...    active_checks_enabled    1
-...    passive_checks_enabled    1
-...    is_volatile    1
-...    obsess_over_service    1
-...    event_handler_enabled    1
-...    check_freshness    1
-...    freshness_threshold    123
-...    low_flap_threshold    83
-...    high_flap_threshold    126
-...    flap_detection_enabled    1
-...    flap_detection_options    all
-...    notification_options    all
-...    notifications_enabled    1
-...    notification_interval    6
-...    first_notification_delay    3
-...    stalking_options    all
-...    process_perf_data    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    severity_id    11
-...    category_tags    2
-...    icon_id    1
-...    _SNMPCOMMUNITY    public
+    ...    acknowledgement_timeout    10
+    ...    description    service_template_d_1
+    ...    service_groups    servicegroup_1
+    ...    check_command    checkh2
+    ...    check_period    workhours
+    ...    event_handler    command_notif
+    ...    notification_period    workhours
+    ...    contact_groups    contactgroup_1
+    ...    contacts    John_Doe
+    ...    notes    template_note
+    ...    notes_url    template_note_url
+    ...    action_url    template_action_url
+    ...    icon_image    template_icon_image
+    ...    icon_image_alt    template_icon_image_alt
+    ...    max_check_attempts    4
+    ...    check_interval    2
+    ...    retry_interval    1
+    ...    recovery_notification_delay    1
+    ...    active_checks_enabled    1
+    ...    passive_checks_enabled    1
+    ...    is_volatile    1
+    ...    obsess_over_service    1
+    ...    event_handler_enabled    1
+    ...    check_freshness    1
+    ...    freshness_threshold    123
+    ...    low_flap_threshold    83
+    ...    high_flap_threshold    126
+    ...    flap_detection_enabled    1
+    ...    flap_detection_options    all
+    ...    notification_options    all
+    ...    notifications_enabled    1
+    ...    notification_interval    6
+    ...    first_notification_delay    3
+    ...    stalking_options    all
+    ...    process_perf_data    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    severity_id    11
+    ...    category_tags    2
+    ...    icon_id    1
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Services
@@ -580,7 +585,7 @@ EBSN7
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN8
+ESI3
     [Documentation]    Verify inheritance service : Service(full) inherit from template (full) , on Reload Engine
     [Tags]    broker    engine    service    MON-148837
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -589,14 +594,14 @@ EBSN8
     Ctn Config Broker    module
     Ctn Config BBDO3    1
 
-    # create files :
+    # Create files :
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Severities File    ${0}    ${20}
     Ctn Create Template File    ${0}    service    group_tags    [1, 5]
 
     Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
 
-    # add necessarily files :
+    # Add necessarily files :
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
     Ctn Config Engine Add Cfg File    ${0}    serviceTemplates.cfg
@@ -604,12 +609,13 @@ EBSN8
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
-    # operation in contact group
+    # Operation in contact group
     Ctn Add Contact Group    ${0}    ${1}    ["John_Doe"]
     Ctn Add Contact Group    ${0}    ${2}    ["U1","U2"]
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
-    # operation in service group
+
+    # Operation in service group
     Ctn Add Service Group    ${0}    ${1}    ["service_2"]
     Ctn Add Service Group    ${0}    ${2}    ["service_3"]
 
@@ -631,47 +637,47 @@ EBSN8
     Ctn Engine Config Delete Value In Service    0    service_1    retry_interval
 
     ${config_values}    Create Dictionary
-...    acknowledgement_timeout    10
-...    service_groups    servicegroup_1
-...    check_command    checkh2
-...    check_period    workhours
-...    event_handler    command_notif
-...    notification_period    workhours
-...    contact_groups    contactgroup_1
-...    contacts    John_Doe
-...    notes    note
-...    notes_url    note_url
-...    action_url    action_url
-...    icon_image    icon_image
-...    icon_image_alt    icon_image_alt
-...    max_check_attempts    4
-...    check_interval    2
-...    retry_interval    1
-...    recovery_notification_delay    1
-...    active_checks_enabled    1
-...    passive_checks_enabled    1
-...    is_volatile    1
-...    obsess_over_service    1
-...    event_handler_enabled    1
-...    check_freshness    1
-...    freshness_threshold    123
-...    low_flap_threshold    83
-...    high_flap_threshold    126
-...    flap_detection_enabled    1
-...    flap_detection_options    all
-...    notification_options    all
-...    notifications_enabled    1
-...    notification_interval    6
-...    first_notification_delay    3
-...    stalking_options    all
-...    process_perf_data    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    severity_id    11
-...    category_tags    2
-...    icon_id    1
-...    _SNMPCOMMUNITY    public
+    ...    acknowledgement_timeout    10
+    ...    service_groups    servicegroup_1
+    ...    check_command    checkh2
+    ...    check_period    workhours
+    ...    event_handler    command_notif
+    ...    notification_period    workhours
+    ...    contact_groups    contactgroup_1
+    ...    contacts    John_Doe
+    ...    notes    note
+    ...    notes_url    note_url
+    ...    action_url    action_url
+    ...    icon_image    icon_image
+    ...    icon_image_alt    icon_image_alt
+    ...    max_check_attempts    4
+    ...    check_interval    2
+    ...    retry_interval    1
+    ...    recovery_notification_delay    1
+    ...    active_checks_enabled    1
+    ...    passive_checks_enabled    1
+    ...    is_volatile    1
+    ...    obsess_over_service    1
+    ...    event_handler_enabled    1
+    ...    check_freshness    1
+    ...    freshness_threshold    123
+    ...    low_flap_threshold    83
+    ...    high_flap_threshold    126
+    ...    flap_detection_enabled    1
+    ...    flap_detection_options    all
+    ...    notification_options    all
+    ...    notifications_enabled    1
+    ...    notification_interval    6
+    ...    first_notification_delay    3
+    ...    stalking_options    all
+    ...    process_perf_data    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    severity_id    11
+    ...    category_tags    2
+    ...    icon_id    1
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Services
@@ -682,49 +688,49 @@ EBSN8
         ...    services.cfg
     END
 
-    # Opreation in serviceTemplates
+    # Operation in serviceTemplates
     ${config_values_tmpl}    Create Dictionary
-...    acknowledgement_timeout    5
-...    service_groups    servicegroup_2
-...    check_command    checkh3
-...    check_period    none
-...    event_handler    checkh4
-...    notification_period    none
-...    contact_groups    contactgroup_2
-...    contacts    U1
-...    notes    template_note
-...    notes_url    template_note_url
-...    action_url    template_action_url
-...    icon_image    template_icon_image
-...    icon_image_alt    template_icon_image_alt
-...    max_check_attempts    2
-...    check_interval    1
-...    retry_interval    2
-...    recovery_notification_delay    2
-...    active_checks_enabled    0
-...    passive_checks_enabled    0
-...    is_volatile    0
-...    obsess_over_service    0
-...    event_handler_enabled    0
-...    check_freshness    0
-...    freshness_threshold    23
-...    low_flap_threshold    17
-...    high_flap_threshold    17
-...    flap_detection_enabled    0
-...    flap_detection_options    warning
-...    notification_options    warning
-...    notifications_enabled    0
-...    notification_interval    2
-...    first_notification_delay    1
-...    stalking_options    warning
-...    process_perf_data    0
-...    retain_status_information    0
-...    retain_nonstatus_information    0
-...    timezone    GMT+02
-...    severity_id    13
-...    category_tags    1
-...    icon_id    10
-...    _SNMPCOMMUNITY    private
+    ...    acknowledgement_timeout    5
+    ...    service_groups    servicegroup_2
+    ...    check_command    checkh3
+    ...    check_period    none
+    ...    event_handler    checkh4
+    ...    notification_period    none
+    ...    contact_groups    contactgroup_2
+    ...    contacts    U1
+    ...    notes    template_note
+    ...    notes_url    template_note_url
+    ...    action_url    template_action_url
+    ...    icon_image    template_icon_image
+    ...    icon_image_alt    template_icon_image_alt
+    ...    max_check_attempts    2
+    ...    check_interval    1
+    ...    retry_interval    2
+    ...    recovery_notification_delay    2
+    ...    active_checks_enabled    0
+    ...    passive_checks_enabled    0
+    ...    is_volatile    0
+    ...    obsess_over_service    0
+    ...    event_handler_enabled    0
+    ...    check_freshness    0
+    ...    freshness_threshold    23
+    ...    low_flap_threshold    17
+    ...    high_flap_threshold    17
+    ...    flap_detection_enabled    0
+    ...    flap_detection_options    warning
+    ...    notification_options    warning
+    ...    notifications_enabled    0
+    ...    notification_interval    2
+    ...    first_notification_delay    1
+    ...    stalking_options    warning
+    ...    process_perf_data    0
+    ...    retain_status_information    0
+    ...    retain_nonstatus_information    0
+    ...    timezone    GMT+02
+    ...    severity_id    13
+    ...    category_tags    1
+    ...    icon_id    10
+    ...    _SNMPCOMMUNITY    private
 
     FOR    ${key}    ${value}    IN    &{config_values_tmpl}
         Ctn Engine Config Set Value In Services

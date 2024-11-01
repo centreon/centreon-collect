@@ -49,17 +49,20 @@ class engine_impl final : public Engine::Service {
                                         const ::google::protobuf::Empty*,
                                         GenericValue*) override;
   grpc::Status GetHost(grpc::ServerContext* context,
-                       const HostIdentifier* request,
+                       const NameOrIdIdentifier* request,
                        EngineHost* response) override;
   grpc::Status GetContact(grpc::ServerContext* context,
-                          const ContactIdentifier* request,
+                          const NameIdentifier* request,
                           EngineContact* response) override;
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
   grpc::Status GetHostGroup(grpc::ServerContext* context,
-                            const HostGroupIdentifier*,
+                            const NameIdentifier*,
                             EngineHostGroup*) override;
+  grpc::Status GetServiceGroup(grpc::ServerContext* context,
+                               const NameIdentifier* request,
+                               EngineServiceGroup* response) override;
   grpc::Status AddHostComment(grpc::ServerContext* context,
                               const EngineComment* request,
                               CommandSuccess* response) override;
@@ -73,10 +76,10 @@ class engine_impl final : public Engine::Service {
                                         const ServiceIdentifier* request,
                                         CommandSuccess* response) override;
   grpc::Status DeleteAllHostComments(grpc::ServerContext* context,
-                                     const HostIdentifier* request,
+                                     const NameOrIdIdentifier* request,
                                      CommandSuccess* response) override;
   grpc::Status RemoveHostAcknowledgement(grpc::ServerContext* context,
-                                         const HostIdentifier* request,
+                                         const NameOrIdIdentifier* request,
                                          CommandSuccess* response) override;
   grpc::Status RemoveServiceAcknowledgement(grpc::ServerContext* context,
                                             const ServiceIdentifier* request,
@@ -197,21 +200,21 @@ class engine_impl final : public Engine::Service {
                                ::google::protobuf::Empty*) override;
   ::grpc::Status EnableHostAndChildNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
   ::grpc::Status DisableHostAndChildNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status DisableHostNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status EnableHostNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status DisableNotifications(
@@ -241,7 +244,7 @@ class engine_impl final : public Engine::Service {
 
   static std::pair<std::shared_ptr<com::centreon::engine::host>,
                    std::string /*error*/>
-  get_host(const ::com::centreon::engine::HostIdentifier& host_info);
+  get_host(const ::com::centreon::engine::NameOrIdIdentifier& host_info);
 
   static std::pair<std::shared_ptr<com::centreon::engine::service>,
                    std::string /*error*/>

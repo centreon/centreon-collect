@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       Centreon Broker and Engine Creation of hosts with long action_url, notes and notes_url.
+Documentation       Centreon Engine verify contacts inheritance.
 
 Resource            ../resources/import.resource
 
@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSN10
+ECI0
     [Documentation]    Verify contact inheritance : contact(empty) inherit from template (full) , on Start Engine
     [Tags]    engine    contact    MON-151074
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -31,7 +31,7 @@ EBSN10
     Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
 
-    # operation in contact group
+    # Operation in contact group
     Ctn Add Contact Group    ${0}    ${1}    ["U1"]
     Ctn Add Contact Group    ${0}    ${2}    ["U1","U2"]
 
@@ -51,30 +51,30 @@ EBSN10
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    active_checks_enabled    contactTemplates.cfg
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    passive_checks_enabled    contactTemplates.cfg
 
-    # Opreation in contactTemplates
+    # Operation in contactTemplates
     ${config_values}    Create Dictionary
-...    alias    contact_template_d_1
-...    contact_groups    contactgroup_1
-...    email    template@gmail.com
-...    pager    templatepager
-...    host_notification_period    workhours 
-...    host_notification_commands    command_notif
-...    service_notification_period    workhours
-...    service_notification_commands    command_notif
-...    host_notification_options    all
-...    service_notification_options    all
-...    host_notifications_enabled    1
-...    service_notifications_enabled    1
-...    can_submit_commands    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    address2    dummy_address_2
-...    address3    dummy_address_3
-...    address4    dummy_address_4
-...    address5    dummy_address_5
-...    address6    dummy_address_6
-...    _SNMPCOMMUNITY    public
+    ...    alias    contact_template_d_1
+    ...    contact_groups    contactgroup_1
+    ...    email    template@gmail.com
+    ...    pager    templatepager
+    ...    host_notification_period    workhours 
+    ...    host_notification_commands    command_notif
+    ...    service_notification_period    workhours
+    ...    service_notification_commands    command_notif
+    ...    host_notification_options    all
+    ...    service_notification_options    all
+    ...    host_notifications_enabled    1
+    ...    service_notifications_enabled    1
+    ...    can_submit_commands    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    address2    dummy_address_2
+    ...    address3    dummy_address_3
+    ...    address4    dummy_address_4
+    ...    address5    dummy_address_5
+    ...    address6    dummy_address_6
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Contacts    0    contact_template_1    ${key}    ${value}    contactTemplates.cfg
@@ -130,7 +130,7 @@ EBSN10
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN11
+ECI1
     [Documentation]    Verify contact inheritance : contact(full) inherit from template (full) , on Start Engine
     [Tags]    engine    contact    MON-151074
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -171,57 +171,57 @@ EBSN11
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    passive_checks_enabled    contactTemplates.cfg
 
     ${config_values}    Create Dictionary
-...    alias    John_Doe_alias
-...    contact_groups    contactgroup_1
-...    email    John_Doe@gmail.com
-...    pager    John_Doepager
-...    host_notification_period    workhours 
-...    host_notification_commands    command_notif
-...    service_notification_period    workhours
-...    service_notification_commands    command_notif
-...    host_notification_options    none
-...    service_notification_options    none
-...    host_notifications_enabled    1
-...    service_notifications_enabled    1
-...    can_submit_commands    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    address1    dummy_address_1
-...    address2    dummy_address_2
-...    address3    dummy_address_3
-...    address4    dummy_address_4
-...    address5    dummy_address_5
-...    address6    dummy_address_6
-...    _SNMPCOMMUNITY    public
+    ...    alias    John_Doe_alias
+    ...    contact_groups    contactgroup_1
+    ...    email    John_Doe@gmail.com
+    ...    pager    John_Doepager
+    ...    host_notification_period    workhours 
+    ...    host_notification_commands    command_notif
+    ...    service_notification_period    workhours
+    ...    service_notification_commands    command_notif
+    ...    host_notification_options    none
+    ...    service_notification_options    none
+    ...    host_notifications_enabled    1
+    ...    service_notifications_enabled    1
+    ...    can_submit_commands    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    address1    dummy_address_1
+    ...    address2    dummy_address_2
+    ...    address3    dummy_address_3
+    ...    address4    dummy_address_4
+    ...    address5    dummy_address_5
+    ...    address6    dummy_address_6
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Contacts    0    John_Doe    ${key}    ${value}
     END
      # Operation in contactTemplates
     ${config_values_tmp}    Create Dictionary
-...    alias    contact_template_d_1
-...    contact_groups    contactgroup_2
-...    email    template@gmail.com
-...    pager    templatepager
-...    host_notification_period    none 
-...    host_notification_commands    checkh1
-...    service_notification_period    none
-...    service_notification_commands    checkh1
-...    host_notification_options    all
-...    service_notification_options    all
-...    host_notifications_enabled    0
-...    service_notifications_enabled    0
-...    can_submit_commands    0
-...    retain_status_information    0
-...    retain_nonstatus_information    0
-...    timezone    GMT+01
-...    address2    template_address_2
-...    address3    template_address_3
-...    address4    template_address_4
-...    address5    template_address_5
-...    address6    template_address_6
-...    _key    value
+    ...    alias    contact_template_d_1
+    ...    contact_groups    contactgroup_2
+    ...    email    template@gmail.com
+    ...    pager    templatepager
+    ...    host_notification_period    none 
+    ...    host_notification_commands    checkh1
+    ...    service_notification_period    none
+    ...    service_notification_commands    checkh1
+    ...    host_notification_options    all
+    ...    service_notification_options    all
+    ...    host_notifications_enabled    0
+    ...    service_notifications_enabled    0
+    ...    can_submit_commands    0
+    ...    retain_status_information    0
+    ...    retain_nonstatus_information    0
+    ...    timezone    GMT+01
+    ...    address2    template_address_2
+    ...    address3    template_address_3
+    ...    address4    template_address_4
+    ...    address5    template_address_5
+    ...    address6    template_address_6
+    ...    _key    value
 
     FOR    ${key}    ${value}    IN    &{config_values_tmp}
         Ctn Engine Config Set Value In Contacts    0    contact_template_1    ${key}    ${value}    contactTemplates.cfg
@@ -279,7 +279,7 @@ EBSN11
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN12
+ECI2
     [Documentation]    Verify contact inheritance : contact(empty) inherit from template (full) , on Reload Engine
     [Tags]    engine    contact    MON-151074
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -332,30 +332,30 @@ EBSN12
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    active_checks_enabled    contactTemplates.cfg
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    passive_checks_enabled    contactTemplates.cfg
 
-    # Opreation in ContactTemplates
+    # Operation in ContactTemplates
     ${config_values}    Create Dictionary
-...    alias    contact_template_d_1
-...    contact_groups    contactgroup_1
-...    email    template@gmail.com
-...    pager    templatepager
-...    host_notification_period    workhours 
-...    host_notification_commands    command_notif
-...    service_notification_period    workhours
-...    service_notification_commands    command_notif
-...    host_notification_options    all
-...    service_notification_options    all
-...    host_notifications_enabled    1
-...    service_notifications_enabled    1
-...    can_submit_commands    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    address2    dummy_address_2
-...    address3    dummy_address_3
-...    address4    dummy_address_4
-...    address5    dummy_address_5
-...    address6    dummy_address_6
-...    _SNMPCOMMUNITY    public
+    ...    alias    contact_template_d_1
+    ...    contact_groups    contactgroup_1
+    ...    email    template@gmail.com
+    ...    pager    templatepager
+    ...    host_notification_period    workhours 
+    ...    host_notification_commands    command_notif
+    ...    service_notification_period    workhours
+    ...    service_notification_commands    command_notif
+    ...    host_notification_options    all
+    ...    service_notification_options    all
+    ...    host_notifications_enabled    1
+    ...    service_notifications_enabled    1
+    ...    can_submit_commands    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    address2    dummy_address_2
+    ...    address3    dummy_address_3
+    ...    address4    dummy_address_4
+    ...    address5    dummy_address_5
+    ...    address6    dummy_address_6
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Contacts    0    contact_template_1    ${key}    ${value}    contactTemplates.cfg
@@ -417,7 +417,7 @@ EBSN12
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN13
+ECI3
     [Documentation]    Verify contact inheritance : contact(full) inherit from template (full) , on Reload Engine
     [Tags]    engine    contact    MON-151074
     Ctn Config Engine    ${1}    ${5}    ${5}
@@ -472,58 +472,58 @@ EBSN13
     Ctn Engine Config Delete Value In Contact    0    contact_template_1    passive_checks_enabled    contactTemplates.cfg
 
     ${config_values}    Create Dictionary
-...    alias    John_Doe_alias
-...    contact_groups    contactgroup_1
-...    email    John_Doe@gmail.com
-...    pager    John_Doepager
-...    host_notification_period    workhours 
-...    host_notification_commands    command_notif
-...    service_notification_period    workhours
-...    service_notification_commands    command_notif
-...    host_notification_options    all
-...    service_notification_options    all
-...    host_notifications_enabled    1
-...    service_notifications_enabled    1
-...    can_submit_commands    1
-...    retain_status_information    1
-...    retain_nonstatus_information    1
-...    timezone    GMT+01
-...    address1    dummy_address_1
-...    address2    dummy_address_2
-...    address3    dummy_address_3
-...    address4    dummy_address_4
-...    address5    dummy_address_5
-...    address6    dummy_address_6
-...    _SNMPCOMMUNITY    public
+    ...    alias    John_Doe_alias
+    ...    contact_groups    contactgroup_1
+    ...    email    John_Doe@gmail.com
+    ...    pager    John_Doepager
+    ...    host_notification_period    workhours 
+    ...    host_notification_commands    command_notif
+    ...    service_notification_period    workhours
+    ...    service_notification_commands    command_notif
+    ...    host_notification_options    all
+    ...    service_notification_options    all
+    ...    host_notifications_enabled    1
+    ...    service_notifications_enabled    1
+    ...    can_submit_commands    1
+    ...    retain_status_information    1
+    ...    retain_nonstatus_information    1
+    ...    timezone    GMT+01
+    ...    address1    dummy_address_1
+    ...    address2    dummy_address_2
+    ...    address3    dummy_address_3
+    ...    address4    dummy_address_4
+    ...    address5    dummy_address_5
+    ...    address6    dummy_address_6
+    ...    _SNMPCOMMUNITY    public
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Value In Contacts    0    John_Doe    ${key}    ${value}
     END
 
-    # Opreation in contactTemplates
+    # Operation in contactTemplates
     ${config_values_tmp}    Create Dictionary
-...    alias    contact_template_d_1
-...    contact_groups    contactgroup_2
-...    email    template@gmail.com
-...    pager    templatepager
-...    host_notification_period    none 
-...    host_notification_commands    checkh1
-...    service_notification_period    none
-...    service_notification_commands    checkh1
-...    host_notification_options    none
-...    service_notification_options    none
-...    host_notifications_enabled    0
-...    service_notifications_enabled    0
-...    can_submit_commands    0
-...    retain_status_information    0
-...    retain_nonstatus_information    0
-...    timezone    GMT+01
-...    address2    template_address_2
-...    address3    template_address_3
-...    address4    template_address_4
-...    address5    template_address_5
-...    address6    template_address_6
-...    _key    value
+    ...    alias    contact_template_d_1
+    ...    contact_groups    contactgroup_2
+    ...    email    template@gmail.com
+    ...    pager    templatepager
+    ...    host_notification_period    none 
+    ...    host_notification_commands    checkh1
+    ...    service_notification_period    none
+    ...    service_notification_commands    checkh1
+    ...    host_notification_options    none
+    ...    service_notification_options    none
+    ...    host_notifications_enabled    0
+    ...    service_notifications_enabled    0
+    ...    can_submit_commands    0
+    ...    retain_status_information    0
+    ...    retain_nonstatus_information    0
+    ...    timezone    GMT+01
+    ...    address2    template_address_2
+    ...    address3    template_address_3
+    ...    address4    template_address_4
+    ...    address5    template_address_5
+    ...    address6    template_address_6
+    ...    _key    value
 
     FOR    ${key}    ${value}    IN    &{config_values_tmp}
         Ctn Engine Config Set Value In Contacts    0    contact_template_1    ${key}    ${value}    contactTemplates.cfg
