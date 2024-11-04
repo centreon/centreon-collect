@@ -19,12 +19,12 @@ on:
       - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
 
   dockerize:
-    needs: [get-version]
-    runs-on: ubuntu-22.04
+    needs: [get-environment]
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -46,6 +46,8 @@ jobs:
         with:
           file: .github/docker/Dockerfile.gorgone-testing-${{ matrix.distrib }}
           context: .
+          build-args: |
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-version.outputs.gorgone_docker_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-environment.outputs.gorgone_docker_version }}
