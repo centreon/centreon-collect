@@ -52,8 +52,8 @@ EBSN5
 
     # Operation in contactTemplates
     ${config_values}    Create Dictionary
-...    contactgroup_members    contactgroup_3
-...    members    U1
+    ...    contactgroup_members    contactgroup_3
+    ...    members    U1
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_template_1    ${key}    ${value}    contactgroupTemplates.cfg
@@ -98,7 +98,7 @@ EBSN6
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
 
-    # Add necessarily files :
+    # Add the necessarily files :
     Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
     Ctn Config Engine Add Cfg File    ${0}    contactgroupTemplates.cfg
@@ -114,15 +114,15 @@ EBSN6
 
     # Operation in contactTemplates
     ${config_values}    Create Dictionary
-...    contactgroup_members    contactgroup_2
+    ...    contactgroup_members    contactgroup_2
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_1    ${key}    ${value}    contactgroups.cfg
     END
 
     ${config_values_tmp}    Create Dictionary
-...    contactgroup_members    contactgroup_4
-...    members    U2
+    ...    contactgroup_members    contactgroup_4
+    ...    members    U2
 
     FOR    ${key}    ${value}    IN    &{config_values_tmp}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_template_1    ${key}    ${value}    contactgroupTemplates.cfg
@@ -195,8 +195,8 @@ EBSN7
 
     # Operation in contactTemplates
     ${config_values}    Create Dictionary
-...    contactgroup_members    contactgroup_3
-...    members    U1
+    ...    contactgroup_members    contactgroup_3
+    ...    members    U1
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_template_1    ${key}    ${value}    contactgroupTemplates.cfg
@@ -275,8 +275,8 @@ EBSN8
 
     # Operation in contactgroup
     ${config_values}    Create Dictionary
-...    contactgroup_members    contactgroup_3
-...    members    U1
+    ...    contactgroup_members    contactgroup_3
+    ...    members    U1
 
     FOR    ${key}    ${value}    IN    &{config_values}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_1    ${key}    ${value}    contactgroups.cfg
@@ -284,8 +284,8 @@ EBSN8
 
     # Operation in contactgroupTemplates
     ${config_values_tmp}    Create Dictionary
-...    contactgroup_members    contactgroup_4
-...    members    John_Doe
+    ...    contactgroup_members    contactgroup_4
+    ...    members    John_Doe
 
     FOR    ${key}    ${value}    IN    &{config_values_tmp}
         Ctn Engine Config Set Key Value In Cfg    0    contactgroup_template_1    ${key}    ${value}    contactgroupTemplates.cfg
