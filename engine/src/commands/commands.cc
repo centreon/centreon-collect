@@ -736,6 +736,10 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
 
   int return_code;
   ++split_it;
+
+  if (split_it == split.end())
+    return ERROR;
+
   if (!absl::SimpleAtoi(*split_it, &return_code))
     return ERROR;
 
@@ -750,8 +754,8 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
   }
 
   // Submit the check result.
-  return (process_passive_host_check(check_time, host_name.c_str(), return_code,
-                                     output.c_str()));
+  return process_passive_host_check(check_time, host_name.c_str(), return_code,
+                                    output.c_str());
 }
 
 /* process passive host check result */

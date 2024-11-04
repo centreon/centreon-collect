@@ -18,7 +18,7 @@
  */
 #include <gtest/gtest.h>
 
-int main(int argc, char* argv[], char** env [[maybe_unused]]) {
+int main(int argc, char* argv[]) {
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
 
