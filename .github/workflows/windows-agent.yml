@@ -34,13 +34,13 @@ on:
       - vcpkg.json
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
   build-and-test-agent:
-    needs: [get-version]
+    needs: [get-environment]
     runs-on: windows-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
@@ -87,19 +87,19 @@ jobs:
 
       - name: Deliver
         if: |
-          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
         run: |
-          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-version.outputs.major_version }}"
-          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-version.outputs.minor_version }}"
+          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.major_version }}"
+          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
 
-          $VERSION = "${{ needs.get-version.outputs.version }}"
+          $VERSION = "${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
           $MODULE_NAME = "monitoring-agent-$VERSION"
-          $STABILITY = "${{ needs.get-version.outputs.stability }}"
+          $STABILITY = "${{ needs.get-environment.outputs.stability }}"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -110,17 +110,17 @@ jobs:
 
       - name: Promote testing to stable
         if: |
-          needs.get-version.outputs.stability == 'stable' && github.event_name != 'workflow_dispatch' && ! cancelled()
+          needs.get-environment.outputs.stability == 'stable' && github.event_name != 'workflow_dispatch' && ! cancelled()
         run: |
-          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-version.outputs.major_version }}"
-          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-version.outputs.minor_version }}"
+          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.major_version }}"
+          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
 
-          $VERSION= "${{ needs.get-version.outputs.version }}"
-          $MODULE_NAME= "monitoring-agent-${{ needs.get-version.outputs.version }}"
-          $STABILITY= "${{ needs.get-version.outputs.stability }}"
+          $VERSION= "${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
+          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
+          $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/testing/$MODULE_NAME/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-version.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
