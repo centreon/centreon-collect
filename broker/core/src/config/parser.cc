@@ -278,6 +278,14 @@ state parser::parse(std::string const& file) {
             throw msg_fmt(
                 "The cache configuration directory '{}' is not accessible",
                 retval.config_cache_dir());
+        } else if (get_conf<state>({it.key(), it.value()},
+                                   "pollers_config_directory", retval,
+                                   &state::set_pollers_config_dir,
+                                   &json::is_string)) {
+          if (!misc::filesystem::readable(retval.pollers_config_dir()))
+            throw msg_fmt(
+                "The pollers configuration directory '{}' is not accessible",
+                retval.pollers_config_dir());
         } else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
                                         retval, &state::pool_size,
                                         &json::is_number, &json::get<int>))

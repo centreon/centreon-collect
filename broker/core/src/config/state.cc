@@ -509,13 +509,20 @@ const std::string& state::config_cache_dir() const noexcept {
   return _config_cache_dir;
 }
 
-///**
-// * @brief Get the peer type this configuration is for. Essntially, we have
-// three
-// * types available BROKER, ENGINE, MAP, and UNKNWOWN is available by default.
-// *
-// * @return the peer type.
-// */
-// com::centreon::common::PeerType state::peer_type() const noexcept {
-//  return _peer_type;
-//}
+/**
+ * @brief Set the directory containing the pollers configurations.
+ *
+ * @param pollers_config_dir The directory name
+ */
+void state::set_pollers_config_dir(const std::string& pollers_config_dir) {
+  _pollers_config_dir = pollers_config_dir;
+}
+
+/**
+ * @brief Get the directory containing the pollers configurations.
+ *
+ * @return The directory name
+ */
+const std::string& state::pollers_config_dir() const noexcept {
+  return _pollers_config_dir;
+}

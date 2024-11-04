@@ -434,12 +434,6 @@ static void send_pb_instance_configuration() {
   neb::gl_publisher.write(ic);
 }
 
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
-
 /**
  *  Send initial configuration to the global publisher.
  */
@@ -457,25 +451,24 @@ void neb::send_initial_configuration() {
   send_instance_configuration();
 }
 
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
-
 /**
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
-  SPDLOG_LOGGER_INFO(neb_logger, "init: send poller pb conf");
-  send_severity_list();
-  send_tag_list();
-  send_pb_host_list();
-  send_pb_service_list();
-  send_pb_custom_variables_list();
-  send_pb_downtimes_list();
-  send_pb_host_parents_list();
-  send_pb_host_group_list();
-  send_pb_service_group_list();
-  send_pb_instance_configuration();
+  if (config::applier::state::instance().broker_needs_update()) {
+    SPDLOG_LOGGER_INFO(neb_logger, "init: send poller pb conf");
+    send_severity_list();
+    send_tag_list();
+    send_pb_host_list();
+    send_pb_service_list();
+    send_pb_custom_variables_list();
+    send_pb_downtimes_list();
+    send_pb_host_parents_list();
+    send_pb_host_group_list();
+    send_pb_service_group_list();
+    send_pb_instance_configuration();
+  } else {
+    SPDLOG_LOGGER_INFO(neb_logger,
+                       "init: No need to send poller configuration");
+  }
 }

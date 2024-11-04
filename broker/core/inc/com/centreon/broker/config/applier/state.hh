@@ -43,6 +43,7 @@ class state {
     time_t connected_since;
     common::PeerType peer_type;
     bool extended_negotiation;
+    bool needs_update;
 
     peer(uint64_t poller_id,
          const std::string& name,
@@ -53,33 +54,20 @@ class state {
           name{name},
           connected_since{connected_since},
           peer_type{peer_type},
-          extended_negotiation{extended_negotiation} {}
-    peer(const peer& other)
-        : poller_id{other.poller_id},
-          name{other.name},
-          connected_since{other.connected_since},
-          peer_type{other.peer_type},
-          extended_negotiation{other.extended_negotiation} {}
-    peer(peer&& other)
-        : poller_id{other.poller_id},
-          name{std::move(other.name)},
-          connected_since{std::move(other.connected_since)},
-          peer_type{other.peer_type},
-          extended_negotiation{other.extended_negotiation} {}
-    /* The connected_since information is not used in the comparison otherwise
-     * we would have difficulties to compare the peers. */
-    bool operator==(const peer& other) const {
-      return poller_id == other.poller_id && name == other.name &&
-             peer_type == other.peer_type &&
-             extended_negotiation == other.extended_negotiation;
-    }
-
-    template <typename H>
-    friend H AbslHashValue(H h, const peer& p) {
-      return H::combine(std::move(h), p.poller_id, p.name, p.peer_type,
-                        p.extended_negotiation);
-    }
+          extended_negotiation{extended_negotiation},
+          needs_update{true} {}
+    peer()
+        : poller_id{0},
+          connected_since{0},
+          peer_type{common::ENGINE},
+          extended_negotiation{false},
+          needs_update{true} {}
   };
+
+  //  template <typename H>
+  //  friend H AbslHashValue(H h, const peer& p) {
+  //    return H::combine(std::move(h), p.poller_id, p.name, p.peer_type);
+  //  }
 
  private:
   const common::PeerType _peer_type;
@@ -97,11 +85,19 @@ class state {
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _config_cache_dir;
+
+  /* In a Broker configuration, this object contains the pollers configurations
+   * known by the Broker. These directories are copies from the
+   * _config_cache_dir and are copied once Broker has written them in the
+   * storage database. */
+  std::filesystem::path _pollers_config_dir;
+
   modules _modules;
 
   static stats _stats_conf;
 
-  absl::flat_hash_set<peer> _connected_peers;
+  absl::flat_hash_map<std::tuple<uint64_t, std::string, common::PeerType>, peer>
+      _connected_peers;
   mutable std::mutex _connected_peers_m;
 
   state(common::PeerType peer_type,
@@ -127,6 +123,8 @@ class state {
   void set_engine_config_dir(const std::filesystem::path& dir);
   const std::filesystem::path& config_cache_dir() const noexcept;
   void set_config_cache_dir(const std::filesystem::path& engine_conf_dir);
+  const std::filesystem::path& pollers_config_dir() const noexcept;
+  void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
   void add_peer(uint64_t poller_id,
                 const std::string& poller_name,
@@ -140,7 +138,15 @@ class state {
   static const stats& stats_conf();
   std::vector<peer> connected_peers() const;
   common::PeerType peer_type() const;
-  std::string get_engine_conf_from_cache();
+  std::string get_engine_conf_from_cache(uint64_t poller_id);
+  void set_broker_needs_update(uint64_t poller_id,
+                               const std::string& poller_name,
+                               common::PeerType peer_type,
+                               bool need_update);
+  bool broker_needs_update(uint64_t poller_id,
+                           const std::string& poller_name,
+                           common::PeerType peer_type) const;
+  bool broker_needs_update() const;
 };
 }  // namespace com::centreon::broker::config::applier
 

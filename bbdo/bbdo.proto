@@ -52,6 +52,8 @@ message Stop {
 message EngineConfiguration {
   uint64 poller_id = 1;
   string poller_name = 2;
-  string engine_config_version = 3;
+  string engine_config_version =
+      3;  // Engine uses this to send the conf version
+  bool need_update =
+      4;  // Broker uses this to tell Engine if an update is needed
 }
-

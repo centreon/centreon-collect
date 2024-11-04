@@ -732,3 +732,49 @@ BESS7
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+BESS8
+    [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
+    ...    are started with extended negociation.
+    ...    The connection is established for the first time, so Broker doesn't know
+    ...    it. So when it is time to send the Instance message, Engine sends also
+    ...    an EngineConfiguration message and then waits for the EngineConfiguration
+    ...    answered by the Broker.
+    ...    Since this is the first time, Engine should send its configuration as usual.
+    [Tags]    broker    engine    start-stop    MON-15671
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    rrd    bbdo    debug
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Create Directory    ${VarRoot}/lib/centreon/config
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    ${content}    Create List    BBDO: engine configuration sent to peer 'Central' with version
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
+
+    ${content}    Create List
+    ...    BBDO: received engine configuration from Engine peer 'Poller0'
+    ...    BBDO: engine configuration for 'Poller0' is outdated
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Broker received the configuration from Engine should be available in central.log. And this configuration should be outdated.
+
+    ${content}    Create List
+    ...    BBDO: engine configuration from peer 'Central' received as expected
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+

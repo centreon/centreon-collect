@@ -203,6 +203,8 @@ class stream : public io::stream {
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
+  bool check_poller_configuration(uint64_t poller_id,
+                                  const std::string& expected_version);
 };
 }  // namespace com::centreon::broker::bbdo
 

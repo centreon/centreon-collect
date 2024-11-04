@@ -80,6 +80,17 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     }
     // Engine configuration directory (for cbmod).
     set_engine_config_dir(s.engine_config_dir());
+
+    // Configuration cache directory (for php).
+    set_config_cache_dir(s.config_cache_dir());
+
+    // Pollers configuration directory (for Broker).
+    // If not provided in the configuration, use a default directory.
+    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
+      set_pollers_config_dir(std::filesystem::path(_cache_dir) /
+                             "pollers-configuration/");
+    else
+      set_pollers_config_dir(s.pollers_config_dir());
   }
 
   // Sanity checks.
@@ -266,9 +277,7 @@ void state::add_peer(uint64_t poller_id,
                      bool extended_negotiation) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  peer p{poller_id, poller_name, time(nullptr), peer_type,
-         extended_negotiation};
-  auto found = _connected_peers.find(p);
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
   if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
   } else {
@@ -277,7 +286,8 @@ void state::add_peer(uint64_t poller_id,
         poller_name, poller_id);
     _connected_peers.erase(found);
   }
-  _connected_peers.insert(std::move(p));
+  _connected_peers[{poller_id, poller_name, peer_type}] = peer{
+      poller_id, poller_name, time(nullptr), peer_type, extended_negotiation};
 }
 
 /**
@@ -290,18 +300,19 @@ void state::remove_peer(uint64_t poller_id,
                         common::PeerType peer_type) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it) {
-    if (it->poller_id == poller_id && it->peer_type == peer_type &&
-        it->name == poller_name) {
-      logger->info(
-          "Poller '{}' with id {} and of type '{}' disconnected", it->name,
-          poller_id,
-          common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
-      _connected_peers.erase(it);
-      return;
-    }
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end()) {
+    logger->info(
+        "Peer '{}' with id {} and type '{}' disconnected", poller_name,
+        poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
+    _connected_peers.erase(found);
+  } else {
+    logger->warn(
+        "Peer '{}' with id {} and type '{}' not found in connected peers",
+        poller_name, poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
   }
-  logger->warn("There is currently no poller {} connected", poller_id);
 }
 
 /**
@@ -312,7 +323,7 @@ void state::remove_peer(uint64_t poller_id,
 bool state::has_connection_from_poller(uint64_t poller_id) const {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   for (auto& p : _connected_peers)
-    if (p.poller_id == poller_id && p.peer_type == common::ENGINE)
+    if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
       return true;
   return false;
 }
@@ -326,7 +337,7 @@ std::vector<state::peer> state::connected_peers() const {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   std::vector<peer> retval;
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
-    retval.push_back(*it);
+    retval.push_back(it->second);
   return retval;
 }
 
@@ -370,6 +381,25 @@ void state::set_config_cache_dir(
 }
 
 /**
+ * @brief Get the pollers configurations directory.
+ *
+ * @return The pollers configurations directory.
+ */
+const std::filesystem::path& state::pollers_config_dir() const noexcept {
+  return _pollers_config_dir;
+}
+
+/**
+ * @brief Set the pollers configurations directory.
+ *
+ * @param pollers_config_dir The pollers configurations directory.
+ */
+void state::set_pollers_config_dir(
+    const std::filesystem::path& pollers_config_dir) {
+  _pollers_config_dir = pollers_config_dir;
+}
+
+/**
  * @brief Get the type of peer this state is defined for.
  *
  * @return A PeerType enum.
@@ -378,8 +408,63 @@ com::centreon::common::PeerType state::peer_type() const {
   return _peer_type;
 }
 
-std::string state::get_engine_conf_from_cache(uint64_t poller_id) {
-  std::filesystem::path poller_dir =
-      _config_cache_dir / fmt::to_string(poller_id);
-  return common::get_engine_conf_from_cache();
+// std::string state::get_engine_conf_from_cache(uint64_t poller_id) {
+//   std::filesystem::path poller_dir =
+//       _config_cache_dir / fmt::to_string(poller_id);
+//   return "";
+// }
+
+/**
+ * @brief Specify if a broker needs an update.
+ *
+ * @param poller_id The poller id.
+ * @param poller_name The poller name.
+ * @param peer_type The peer type.
+ * @param need_update true if the broker needs an update, false otherwise.
+ */
+void state::set_broker_needs_update(uint64_t poller_id,
+                                    const std::string& poller_name,
+                                    common::PeerType peer_type,
+                                    bool need_update) {
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end())
+    found->second.needs_update = need_update;
+  else {
+    auto logger = log_v2::instance().get(log_v2::CORE);
+    logger->warn(
+        "Poller '{}' with id {} and type '{}' not found in connected peers",
+        poller_name, poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
+  }
+}
+
+/**
+ * @brief Check if a broker needs an update.
+ *
+ * @param poller_id The poller id.
+ * @param poller_name The poller name.
+ * @param peer_type The peer type.
+ *
+ * @return true if the broker needs an update, false otherwise.
+ */
+bool state::broker_needs_update(uint64_t poller_id,
+                                const std::string& poller_name,
+                                common::PeerType peer_type) const {
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end())
+    return found->second.needs_update;
+  else
+    return false;
+}
+
+/**
+ * @brief Check if at least one broker needs an update.
+ *
+ * @return true if at least one broker needs an update, false otherwise.
+ */
+bool state::broker_needs_update() const {
+  for (auto& p : _connected_peers)
+    if (p.second.peer_type == common::BROKER && p.second.needs_update)
+      return true;
+  return false;
 }
