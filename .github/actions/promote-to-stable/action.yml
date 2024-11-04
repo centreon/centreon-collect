@@ -115,7 +115,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      if: ${{ inputs.is_cloud == 'false' && contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
       run: |
         set -eux
 

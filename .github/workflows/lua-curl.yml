@@ -71,8 +71,8 @@ jobs:
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.img_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -166,8 +166,7 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
-          - distrib: jammy
-            arch: amd64
+
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
