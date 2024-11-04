@@ -16,14 +16,13 @@
 # For more information : contact@centreon.com
 #
 
-# When we build from cache (CI), we don't use vcpkg cmaketool, so we tell to cmake where to find packages info
+# When we build from cache (CI), we do not use vcpkg cmaketool, so we tell to cmake where to find packages info
 if (BUILD_FROM_CACHE)
   LIST(APPEND CMAKE_PREFIX_PATH "build_windows/vcpkg_installed/x64-windows")
 endif()
 
-#in order to make fmt compile
+#In order to make fmt compile
 add_definitions("/utf-8")
-
 
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
