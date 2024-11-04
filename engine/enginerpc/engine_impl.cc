@@ -897,6 +897,51 @@ grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
 }
 
 /**
+ * @brief Return ContactGroup informations.
+ *
+ * @param context gRPC context
+ * @param request ContactGroup's identifier (by ContactGroup name)
+ * @param response The filled fields
+ *
+ *@return Status::OK
+ */
+grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const NameIdentifier* request,
+                                          EngineContactGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           contactgroup =
+                                               response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contactgroup> selectedcontactgroup;
+    auto itcontactgroup = contactgroup::contactgroups.find(request->name());
+    if (itcontactgroup != contactgroup::contactgroups.end())
+      selectedcontactgroup = itcontactgroup->second;
+    else {
+      err = fmt::format("could not find contactgroup '{}'", request->name());
+      return 1;
+    }
+
+    contactgroup->set_name(selectedcontactgroup->get_name());
+    contactgroup->set_alias(selectedcontactgroup->get_alias());
+
+    if (!selectedcontactgroup->get_members().empty())
+      for (const auto& [key, _] : selectedcontactgroup->get_members())
+        contactgroup->add_members(key);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
  * @brief Return the total number of hosts.
  *
  * @param context gRPC context
