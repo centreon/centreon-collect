@@ -47,3 +47,11 @@ message Ack {
 message Stop {
   uint64 poller_id = 1;
 }
+
+/* io::bbdo, bbdo::de_pb_engine_configuration, 52 */
+message EngineConfiguration {
+  uint64 poller_id = 1;
+  string poller_name = 2;
+  string engine_config_version = 3;
+}
+

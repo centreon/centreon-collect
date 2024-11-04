@@ -17,12 +17,12 @@
  *
  */
 #include "parser.hh"
+#include "anomalydetection_helper.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "command_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/log_v2/log_v2.hh"
-
-#include "anomalydetection_helper.hh"
-#include "command_helper.hh"
 #include "connector_helper.hh"
 #include "contact_helper.hh"
 #include "contactgroup_helper.hh"
@@ -49,28 +49,6 @@ using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
 using ::google::protobuf::Message;
 using ::google::protobuf::Reflection;
-
-/**
- * @brief Reads the content of a text file and returns it in an std::string.
- *
- * @param file_path The file to read.
- *
- * @return The content as an std::string.
- */
-static std::string read_file_content(const std::filesystem::path& file_path) {
-  std::ifstream in(file_path, std::ios::in);
-  std::string retval;
-  if (in) {
-    in.seekg(0, std::ios::end);
-    retval.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&retval[0], retval.size());
-    in.close();
-  } else
-    throw msg_fmt("Parsing of resource file failed: can't open file '{}': {}",
-                  file_path.string(), strerror(errno));
-  return retval;
-}
 
 /**
  *  Default constructor.
@@ -159,7 +137,7 @@ void parser::_parse_global_configuration(const std::string& path,
                                          State* pb_config) {
   _logger->info("Reading main configuration file '{}'.", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   pb_config->set_cfg_main(path);
   _current_line = 0;
@@ -209,7 +187,7 @@ void parser::_parse_object_definitions(const std::string& path,
                                        State* pb_config) {
   _logger->info("Processing object config file '{}'", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   auto tab{absl::StrSplit(content, '\n')};
   std::string ll;
@@ -463,7 +441,7 @@ void parser::_parse_object_definitions(const std::string& path,
 void parser::_parse_resource_file(const std::string& path, State* pb_config) {
   _logger->info("Reading resource file '{}'", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   auto tab{absl::StrSplit(content, '\n')};
   int current_line = 1;
@@ -820,54 +798,4 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
       }
     }
   }
-}
-
-/**
- * @brief Compute the hash of a directory content.
- *
- * @param dir_path The directory to parse.
- *
- * @return a size_t hash.
- */
-std::string parser::hash_directory(const std::filesystem::path& dir_path) {
-  std::list<std::filesystem::path> files;
-
-  /* Recursively parse the directory */
-  for (const auto& entry :
-       std::filesystem::recursive_directory_iterator(dir_path)) {
-    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
-      files.push_back(entry.path());
-  }
-
-  files.sort();
-
-  EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
-  EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
-
-  for (auto& f : files) {
-    const std::string& fname = std::filesystem::relative(f, dir_path).string();
-    EVP_DigestUpdate(mdctx, fname.data(), fname.size());
-    std::string content = read_file_content(f);
-    EVP_DigestUpdate(mdctx, content.data(), content.size());
-  }
-
-  unsigned char hash[SHA256_DIGEST_LENGTH];
-  unsigned int size;
-  EVP_DigestFinal_ex(mdctx, hash, &size);
-  EVP_MD_CTX_free(mdctx);
-
-  std::string retval;
-  retval.reserve(SHA256_DIGEST_LENGTH * 2);
-  auto digit = [](unsigned char d) -> char {
-    if (d < 10)
-      return '0' + d;
-    else
-      return 'a' + (d - 10);
-  };
-
-  for (auto h : hash) {
-    retval.push_back(digit(h >> 4));
-    retval.push_back(digit(h & 0xf));
-  }
-  return retval;
 }

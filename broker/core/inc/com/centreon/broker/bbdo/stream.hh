@@ -20,6 +20,7 @@
 #define CCB_BBDO_STREAM_HH
 
 #include "bbdo/bbdo/bbdo_version.hh"
+#include "bbdo/common.pb.h"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -160,8 +161,18 @@ class stream : public io::stream {
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
+  /* Name of the peer poller */
   std::string _poller_name;
+  /* ID of the peer poller */
   uint64_t _poller_id = 0u;
+  /* True if the peer supports extended negotiation */
+  bool _extended_negotiation = false;
+  /* Type of the peer */
+  common::PeerType _peer_type = common::UNKNOWN;
+  /* Currently, this is a hash of the Engine configuration directory. It's
+   * filled when neb::pb_instance is sent to Broker. */
+  std::string _config_version;
+
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,
                         uint32_t destination_id,

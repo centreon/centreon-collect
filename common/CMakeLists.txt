@@ -60,7 +60,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       ${SRC_DIR}/process_stat.pb.cc
       ${SRC_DIR}/process_stat.grpc.pb.cc
       ${SRC_DIR}/rapidjson_helper.cc
-      ${SRC_DIR}/utf8.cc)
+      ${SRC_DIR}/utf8.cc
+      ${SRC_DIR}/file.cc)
 else()
   # we need not many things to just compile centreon-monitoring-agent
   # (centagent)

@@ -132,12 +132,15 @@ class state {
                 const std::string& poller_name,
                 common::PeerType peer_type,
                 bool extended_negotiation);
-  void remove_peer(uint64_t poller_id);
+  void remove_peer(uint64_t poller_id,
+                   const std::string& poller_name,
+                   common::PeerType peer_type);
   bool has_connection_from_poller(uint64_t poller_id) const;
   static stats& mut_stats_conf();
   static const stats& stats_conf();
   std::vector<peer> connected_peers() const;
   common::PeerType peer_type() const;
+  std::string get_engine_conf_from_cache();
 };
 }  // namespace com::centreon::broker::config::applier
 

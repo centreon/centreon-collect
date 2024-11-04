@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include <fmt/format.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
@@ -284,12 +285,18 @@ void state::add_peer(uint64_t poller_id,
  *
  * @param poller_id The id of the poller to remove.
  */
-void state::remove_peer(uint64_t poller_id) {
+void state::remove_peer(uint64_t poller_id,
+                        const std::string& poller_name,
+                        common::PeerType peer_type) {
   std::lock_guard<std::mutex> lck(_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it) {
-    if (it->poller_id == poller_id) {
-      logger->info("Poller '{}' with id {} disconnected", it->name, poller_id);
+    if (it->poller_id == poller_id && it->peer_type == peer_type &&
+        it->name == poller_name) {
+      logger->info(
+          "Poller '{}' with id {} and of type '{}' disconnected", it->name,
+          poller_id,
+          common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
       _connected_peers.erase(it);
       return;
     }
@@ -369,4 +376,10 @@ void state::set_config_cache_dir(
  */
 com::centreon::common::PeerType state::peer_type() const {
   return _peer_type;
+}
+
+std::string state::get_engine_conf_from_cache(uint64_t poller_id) {
+  std::filesystem::path poller_dir =
+      _config_cache_dir / fmt::to_string(poller_id);
+  return common::get_engine_conf_from_cache();
 }

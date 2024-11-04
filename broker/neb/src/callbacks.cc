@@ -28,6 +28,7 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -2409,6 +2410,16 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_engine("Centreon Engine");
   inst.set_pid(getpid());
   inst.set_version(get_program_version());
+
+  // Here we are Engine. The idea is to know if broker is able to handle the
+  // evoluated negotiation. The goal is to send the hash of the configuration
+  // directory to the broker. But it would be great to know if Broker can do
+  // something with it.
+  // We have the peers list, but here events are sent in broadcast, so no
+  // specific destination. FIXME DBO: we should have a way to know if The
+  // broker is able to handle the new negotiation.
+  inst.set_engine_config_version(common::hash_directory(
+      config::applier::state::instance().engine_config_dir()));
 
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);

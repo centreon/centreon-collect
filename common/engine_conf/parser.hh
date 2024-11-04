@@ -95,8 +95,6 @@ class parser {
   parser& operator=(const parser&) = delete;
   ~parser() noexcept = default;
   void parse(const std::string& path, State* config, error_cnt& err);
-
-  static std::string hash_directory(const std::filesystem::path& dir_path);
 };
 }  // namespace com::centreon::engine::configuration
 

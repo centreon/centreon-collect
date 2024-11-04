@@ -424,7 +424,7 @@ message HostStatus {
  * @brief Message sent in BBDO 3.0.0 to update a host status partially
  * changed. For example, it is convenient for downtime changed.
  */
-/* io::neb, neb::de_pb_adaptive_host_status, 55 */
+/* io::neb, neb::de_pb_adaptive_host_status, 54 */
 message AdaptiveHostStatus {
   uint64 host_id = 1;
   optional int32 scheduled_downtime_depth = 2;
@@ -649,6 +649,7 @@ message Instance {
   int64 end_time = 7;
   int64 start_time = 8;
   string version = 9;
+  string engine_config_version = 10;
 }
 
 /* io::neb, neb::de_pb_responsive_instance, 19 */

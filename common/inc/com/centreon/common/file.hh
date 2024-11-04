@@ -1,11 +1,11 @@
 /**
- * Copyright 2024 Centreon (https://www.centreon.com/)
+ * Copyright 2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,15 +14,14 @@
  * limitations under the License.
  *
  * For more information : contact@centreon.com
- *
  */
-#include "common/engine_conf/parser.hh"
-#include <gtest/gtest.h>
+#ifndef CCCM_FILE_HH
+#define CCCM_FILE_HH
+#include <filesystem>
 
-using namespace com::centreon::engine::configuration;
+namespace com::centreon::common {
+std::string read_file_content(const std::filesystem::path& file_path);
+std::string hash_directory(const std::filesystem::path& dir_path);
+}  // namespace com::centreon::common
 
-class TestParser : public ::testing::Test {
- public:
-  //  void SetUp() override {}
-  void TearDown() override {}
-};
+#endif /* !CCCM_FILE_HH */

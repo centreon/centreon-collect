@@ -28,11 +28,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
+    file_test.cc
     )
 
-  if(NOT LEGACY_ENGINE)
-    set(SOURCES ${SOURCES} engine_conf/parser.cc)
-  endif()
   add_executable(
     ut_common
     ${SOURCES}

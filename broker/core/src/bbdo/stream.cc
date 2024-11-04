@@ -25,12 +25,13 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-// #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
-// #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/common/file.hh"
+#include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -627,7 +628,8 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  config::applier::state::instance().remove_peer(_poller_id);
+  config::applier::state::instance().remove_peer(_poller_id, _poller_name,
+                                                 _peer_type);
   return retval;
 }
 
@@ -801,8 +803,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   std::string peer_extensions;
-  common::PeerType peer_type = common::UNKNOWN;
-  bool extended_negotiation = false;
+  _extended_negotiation = false;
 
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
@@ -893,9 +894,9 @@ void stream::negotiate(stream::negotiation_type neg) {
     _poller_id = w->obj().poller_id();
     _poller_name = w->obj().poller_name();
 
-    peer_type = w->obj().peer_type();
-    if (peer_type != common::UNKNOWN)
-      extended_negotiation = true;
+    _peer_type = w->obj().peer_type();
+    if (_peer_type != common::UNKNOWN)
+      _extended_negotiation = true;
   }
 
   // Negotiation.
@@ -962,8 +963,8 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_peer(_poller_id, _poller_name,
-                                              peer_type, extended_negotiation);
+  config::applier::state::instance().add_peer(
+      _poller_id, _poller_name, _peer_type, _extended_negotiation);
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 
@@ -992,7 +993,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   d.reset();
 
   bool timed_out(!_read_any(d, deadline));
-  uint32_t event_id(!d ? 0 : d->type());
+  uint32_t event_id = !d ? 0 : d->type();
 
   while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     switch (event_id) {
@@ -1081,6 +1082,56 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
             std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
         multiplexing::publisher pblshr;
         pblshr.write(loc_stop);
+      } break;
+      case pb_engine_configuration::static_type(): {
+        const EngineConfiguration& ec =
+            std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+        if (config::applier::state::instance().peer_type() == common::BROKER &&
+            _peer_type == common::ENGINE) {
+          SPDLOG_LOGGER_INFO(
+              _logger,
+              "BBDO: received engine configuration from Engine peer '{}'",
+              ec.poller_name());
+          std::string engine_conf_version =
+              common::get_engine_conf_from_cache();
+          if (engine_conf_version == ec.engine_config_version()) {
+            SPDLOG_LOGGER_INFO(_logger,
+                               "BBDO: engine configuration is up to date");
+            auto engine_conf = std::make_shared<pb_engine_configuration>();
+            /* engine_conf is empty, no update */
+            multiplexing::publisher pblshr;
+            pblshr.write(engine_conf);
+          } else {
+            SPDLOG_LOGGER_INFO(_logger,
+                               "BBDO: engine configuration is outdated");
+            auto engine_conf = std::make_shared<pb_engine_configuration>();
+            /* engine_conf has a new version, it is sent to engine. And engine
+             * will send its configuration to broker. */
+            auto& obj = engine_conf->mut_obj();
+            obj.set_engine_config_version(engine_conf_version);
+            multiplexing::publisher pblshr;
+            pblshr.write(engine_conf);
+          }
+        } else if (config::applier::state::instance().peer_type() ==
+                       common::ENGINE &&
+                   _peer_type == common::BROKER) {
+          SPDLOG_LOGGER_INFO(
+              _logger,
+              "BBDO: received engine configuration from Broker peer '{}'",
+              _poller_name);
+          if (ec.engine_config_version().empty()) {
+            SPDLOG_LOGGER_INFO(
+                _logger,
+                "BBDO: received engine configuration is empty, no update");
+          } else {
+            SPDLOG_LOGGER_INFO(_logger,
+                               "BBDO: received engine configuration is '{}'",
+                               ec.engine_config_version());
+          }
+          config::applier::state::instance().broker_needs_update(
+              _poller_id, _poller_name, _peer_type,
+              !ec.engine_config_version().empty());
+        }
       } break;
       default:
         break;
@@ -1404,13 +1455,42 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
   if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
-    // Check if data exists.
+    if (d->type() == neb::pb_instance::static_type()) {
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "BBDO: instance event sent to {} - supports extended negotiation: {}",
+          _poller_name, _extended_negotiation);
+      /* We are an Engine since we emit an instance event and we have an engine
+       * config directory.
+       * If the Broker supports extended negotiation, we send also an engine
+       * configuration event. And then we'll wait for an answer from Broker. */
+      if (_extended_negotiation &&
+          !config::applier::state::instance().engine_config_dir().empty()) {
+        auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
+        auto& obj = engine_conf->mut_obj();
+        obj.set_poller_id(config::applier::state::instance().poller_id());
+        obj.set_poller_name(config::applier::state::instance().poller_name());
+
+        /* Time to fill the config version. */
+        _config_version = common::hash_directory(
+            config::applier::state::instance().engine_config_dir());
+        obj.set_engine_config_version(_config_version);
+        _logger->info(
+            "BBDO: engine configuration sent to peer {} with version {}",
+            _poller_name, _config_version);
+        _write(engine_conf);
+      }
+    }
+
     std::shared_ptr<io::raw> serialized(serialize(*d));
     if (serialized) {
       SPDLOG_LOGGER_TRACE(_logger,
-                          "BBDO: serialized event of type {} to {} bytes",
+                          "BBDO: serialized event of type {:x} to {} bytes",
                           d->type(), serialized->size());
       _substream->write(serialized);
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "BBDO: cannot serialize event of type {:x}",
+                          d->type());
     }
   } else
     _substream->write(d);
