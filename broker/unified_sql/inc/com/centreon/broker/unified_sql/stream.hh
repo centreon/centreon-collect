@@ -434,6 +434,7 @@ class stream : public io::stream {
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
+  void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);

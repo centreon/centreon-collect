@@ -1596,5 +1596,7 @@ bool stream::check_poller_configuration(uint64_t poller_id,
     return false;
   }
   std::string current = common::hash_directory(poller_dir);
+  config::applier::state::instance().set_engine_configuration(poller_id,
+                                                              current);
   return current == expected_version;
 }

@@ -82,6 +82,12 @@ class state {
    * the Engine configuration. */
   std::filesystem::path _engine_config_dir;
 
+  /* Currently, this is the poller configurations known by this instance of
+   * Broker. It is updated during neb::instance and
+   * bbdo::pb_engine_configuration messages. And it is used in unified_sql
+   * stream when the neb::pb_instance_configuration is handled. */
+  absl::flat_hash_map<uint64_t, std::string> _engine_configuration;
+
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _config_cache_dir;
@@ -147,6 +153,8 @@ class state {
                            const std::string& poller_name,
                            common::PeerType peer_type) const;
   bool broker_needs_update() const;
+  void set_engine_configuration(uint64_t poller_id, const std::string& conf);
+  std::string engine_configuration(uint64_t poller_id) const;
 };
 }  // namespace com::centreon::broker::config::applier
 

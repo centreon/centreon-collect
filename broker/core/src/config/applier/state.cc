@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include <fmt/format.h>
+#include <mutex>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
@@ -467,4 +468,15 @@ bool state::broker_needs_update() const {
     if (p.second.peer_type == common::BROKER && p.second.needs_update)
       return true;
   return false;
+}
+
+void state::set_engine_configuration(uint64_t poller_id,
+                                     const std::string& version) {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  _engine_configuration[poller_id] = version;
+}
+
+std::string state::engine_configuration(uint64_t poller_id) const {
+  std::lock_guard<std::mutex> lck(_connected_peers_m);
+  return _engine_configuration.at(poller_id);
 }

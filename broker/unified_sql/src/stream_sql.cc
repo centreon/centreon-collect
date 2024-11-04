@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+#include <bits/fs_fwd.h>
+#include <filesystem>
+#include <memory>
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -24,6 +27,7 @@
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 
@@ -1681,11 +1685,43 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ * @brief Process a Protobuf instance configuration. This event is sent once all
+ * the configuration is sent by Engine. Even if Engine doesn't need to send it,
+ * this event is sent so Broker can handle some configurations if needed.
+ *
+ * @param d Uncasted Protobuf instance configuration.
+ */
+void stream::_process_pb_instance_configuration(
+    const std::shared_ptr<io::data>& d) {
+  /* The configuration has just been updated, so we can get the configuration
+   * from the php cache directory and copy it into the broker cache engine
+   * configuration directory. */
+  std::shared_ptr<neb::pb_instance_configuration> ic =
+      std::static_pointer_cast<neb::pb_instance_configuration>(d);
+  auto obj = ic->obj();
+  std::string current_version =
+      config::applier::state::instance().engine_configuration(obj.poller_id());
+  std::filesystem::path cache_dir =
+      config::applier::state::instance().config_cache_dir() /
+      fmt::to_string(obj.poller_id());
+  std::string new_version = common::hash_directory(cache_dir);
+  if (new_version != current_version) {
+    std::filesystem::path poller_dir =
+        config::applier::state::instance().pollers_config_dir() /
+        fmt::to_string(obj.poller_id());
+    std::filesystem::copy(cache_dir, poller_dir,
+                          std::filesystem::copy_options::recursive);
+    config::applier::state::instance().set_engine_configuration(obj.poller_id(),
+                                                                new_version);
+    _logger_sql->info("SQL: Poller {} configuration updated in '{}'",
+                      obj.poller_id(), poller_dir.string());
+  }
+}
+
+/**
  *  Process a host status event.
  *
  *  @param[in] e Uncasted host status.
- *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
   if (!_store_in_hosts_services)

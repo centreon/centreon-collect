@@ -775,6 +775,11 @@ BESS8
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
 
+    ${content}    Create List
+    ...    init: sending poller configuration
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Engine should send its full configuration.
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
