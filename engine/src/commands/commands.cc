@@ -744,10 +744,9 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
 
   ++split_it;
-  std::string output;
-  if (split_it == split.end()) {
-    output = "";
-  } else {
+
+  std::string output = "";
+  if (split_it != split.end()) {
     output = split_it->data();
     // replace \\n with \n
     string::unescape(output);
