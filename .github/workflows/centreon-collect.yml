@@ -134,7 +134,6 @@ jobs:
         distrib: [alma8, alma9, debian-bookworm]
 
     runs-on: [self-hosted, collect]
-
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
