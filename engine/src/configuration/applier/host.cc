@@ -478,10 +478,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   if (obj.parents() != obj_old.parents()) {
     // Delete old parents.
     {
-      for (host_map_unsafe::iterator it(it_obj->second->parent_hosts.begin()),
-           end(it_obj->second->parent_hosts.end());
-           it != end; it++)
-        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
+      for (const auto& [_, sptr_host] : it_obj->second->parent_hosts)
+        broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
                              it_obj->second.get(), nullptr);
     }
     it_obj->second->parent_hosts.clear();
@@ -723,10 +721,9 @@ void applier::host::modify_object(configuration::Host* old_obj,
 
   if (parents_changed) {
     // Delete old parents.
-    for (auto it = h->parent_hosts.begin(), end = h->parent_hosts.end();
-         it != end; it++)
-      broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr, h.get(),
-                           nullptr);
+    for (const auto& [_, sptr_host] : h->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           h.get(), nullptr);
     h->parent_hosts.clear();
 
     // Create parents.
@@ -783,6 +780,11 @@ void applier::host::remove_object(configuration::host const& obj) {
     for (auto& it_h : it->second->get_parent_groups())
       it_h->members.erase(it->second->name());
 
+    // remove any relations
+    for (const auto& [_, sptr_host] : it->second->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           it->second.get(), nullptr);
+
     // Notify event broker.
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
@@ -829,6 +831,11 @@ void applier::host::remove_object(ssize_t idx) {
     for (auto& it_h : it->second->get_parent_groups())
       it_h->members.erase(it->second->name());
 
+    // remove any relations
+    for (const auto& [_, sptr_host] : it->second->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           it->second.get(), nullptr);
+
     // Notify event broker.
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
@@ -866,10 +873,8 @@ void applier::host::resolve_object(const configuration::host& obj,
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
   if (obj == *config->hosts().begin()) {
-    for (host_map::iterator it(engine::host::hosts.begin()),
-         end(engine::host::hosts.end());
-         it != end; ++it)
-      it->second->child_hosts.clear();
+    for (const auto& [_, sptr_host] : engine::host::hosts)
+      sptr_host->child_hosts.clear();
   }
 
   // Find host.
@@ -907,10 +912,8 @@ void applier::host::resolve_object(const configuration::Host& obj,
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
   if (&obj == &(*pb_config.hosts().begin())) {
-    for (host_map::iterator it(engine::host::hosts.begin()),
-         end(engine::host::hosts.end());
-         it != end; ++it)
-      it->second->child_hosts.clear();
+    for (const auto& [_, sptr_host] : engine::host::hosts)
+      sptr_host->child_hosts.clear();
   }
 
   // Find host.
