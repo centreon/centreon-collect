@@ -272,6 +272,7 @@ jobs:
             arch: arm64
 
     uses: ./.github/workflows/package-collect.yml
+
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
