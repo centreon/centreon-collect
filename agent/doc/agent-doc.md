@@ -22,8 +22,10 @@ We don't care about the duration of tests, we work with time points.
 In the previous example, the second check for the first service will be scheduled at 12:00:10 even if all other checks has not been yet started.
 
 In case of check duration is too long, we might exceed maximum of concurrent checks. In that case checks will be executed as soon one will be ended.
-This means that the second check may start later than the scheduled time point (12:00:10) if the other first checks are too long. The order of checks is always respected even in case of a bottleneck.
-For example, a check lambda has a start_expected to 12:00, because of bottleneck, it starts at 12:15. Next start_expected of check lambda will then be 12:15 + check_period.
+
+This means that the second check may start later than the scheduled time point (12:00:10) if the first checks take too long.
+
+When a check completes, it is inserted into _waiting_check_queue, and its start will be scheduled as soon as a slot in the queue is available (the queue is a set indexed by expected_start) minus old_start plus check_period.
 
 
 ## native checks
@@ -38,8 +40,6 @@ That method need 4 arguments:
 * status: plugins status equivalent. Values are 0:Ok, 1: warning, 2: critical, 3: unknown (https://nagios-plugins.org/doc/guidelines.html#AEN41)
 * perfdata: a list of com::centreon::common::perfdata objects
 * outputs: equivalent of plugins output as "CPU 54% OK"
-
-BEWARE, in some cases, we can have recursion, check::on_completion can call start_check
 
 A little example:
 ```c++
@@ -74,6 +74,7 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::seconds(1),
               serv,
               command_name,
               command_line,

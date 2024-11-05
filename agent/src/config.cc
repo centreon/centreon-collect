@@ -61,7 +61,7 @@ const std::string_view config::config_schema(R"(
             "description": "Name of the SSL certification authority",
             "type": "string"
         },
-        "reverse_connection": {
+        "reversed_grpc_streaming": {
             "description": "Set to true to make Engine connect to the agent. Requires the agent to be configured as a server. Default: false",
             "type": "boolean"
         },
@@ -144,5 +144,5 @@ config::config(const std::string& path) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = json_config.get_bool("reverse_connection", false);
+  _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
 }
