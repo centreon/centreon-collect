@@ -117,7 +117,7 @@ jobs:
       - name: Package
         uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "gorgone/packaging/*.yaml"
+          nfpm_file_pattern: "gorgone/packaging/*.yaml perl-libs/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -196,7 +196,7 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - name: get cached gorgone package
+      - name: get cached gorgone and perl-libs package
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ./*.${{ matrix.package_extension }}
@@ -214,9 +214,9 @@ jobs:
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*.deb
+            apt install -y ./centreon-gorgone*.deb ./centreon-perl-libs-common*.deb
           else
-            dnf install -y ./centreon-gorgone*.rpm
+            dnf install -y ./centreon-gorgone*.rpm ./centreon-perl-libs-common*.rpm
           fi
 
       - name: Create databases
