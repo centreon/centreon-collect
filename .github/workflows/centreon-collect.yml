@@ -271,6 +271,9 @@ jobs:
             runner: collect-arm64
             arch: arm64
 
+    env:
+      LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine != 'false' && 'ON' || 'OFF' }}
+
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -279,7 +282,7 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
-      legacy_engine: ${{ github.event.inputs.legacy_engine == 'true' }}
+      legacy_engine: ${{ env.LEGACY_ENGINE }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
