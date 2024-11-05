@@ -42,13 +42,21 @@ enum e_status : unsigned { ok = 0, warning = 1, critical = 2, unknown = 3 };
  *
  */
 class time_step {
-  const time_point _start_point;
-  const duration _step;
+  time_point _start_point;
+  duration _step;
   uint64_t _step_index = 0;
 
  public:
-  time_step(duration step)
-      : _start_point(std::chrono::system_clock::now()), _step(step) {}
+  /**
+   * @brief Construct a new time step object
+   *
+   * @param start_point this time_point is the first time_point of the sequence
+   * @param step value() will return start_point + step * step_index
+   */
+  time_step(time_point start_point, duration step)
+      : _start_point(start_point), _step(step) {}
+
+  time_step() : _start_point(), _step() {}
 
   /**
    * @brief increment time of one duration (one step)
@@ -61,15 +69,27 @@ class time_step {
   }
 
   /**
-   * @brief set _step_index to the first step after now
+   * @brief set _step_index to the first step after or equal to now
    *
    */
   void increment_to_after_now() {
     time_point now = std::chrono::system_clock::now();
-    _step_index = (now - _start_point) / _step + 1;
+    _step_index =
+        (now - _start_point + _step - std::chrono::microseconds(1)) / _step;
   }
 
-  time_point value() { return _start_point + _step_index * _step; }
+  /**
+   * @brief set _step_index to the first step after or equal to min_tp
+   *
+   */
+  void increment_to_after_min(time_point min_tp) {
+    _step_index =
+        (min_tp - _start_point + _step - std::chrono::microseconds(1)) / _step;
+  }
+
+  time_point value() const { return _start_point + _step_index * _step; }
+
+  uint64_t get_step_index() const { return _step_index; }
 };
 
 /**
@@ -88,8 +108,9 @@ class check : public std::enable_shared_from_this<check> {
 
  private:
   //_start_expected is set on construction on config receive
-  // it's updated on check_start and added of check_period on check completion
-  time_point _start_expected;
+  // it's updated on check_start and added of multiple of check_interval
+  // (check_period / nb_check) on check completion
+  time_step _start_expected;
   const std::string& _service;
   const std::string& _command_name;
   const std::string& _command_line;
@@ -123,12 +144,15 @@ class check : public std::enable_shared_from_this<check> {
 
   bool _start_check(const duration& timeout);
 
+  virtual void _on_timeout(){};
+
  public:
   using pointer = std::shared_ptr<check>;
 
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
-        time_point exp,
+        time_point first_start_expected,
+        duration check_interval,
         const std::string& serv,
         const std::string& command_name,
         const std::string& cmd_line,
@@ -140,13 +164,17 @@ class check : public std::enable_shared_from_this<check> {
   struct pointer_start_compare {
     bool operator()(const check::pointer& left,
                     const check::pointer& right) const {
-      return left->_start_expected < right->_start_expected;
+      return left->_start_expected.value() < right->_start_expected.value();
     }
   };
 
-  void add_duration_to_start_expected(const duration& to_add);
+  void increment_start_expected_to_after_min_timepoint(time_point min_tp) {
+    _start_expected.increment_to_after_min(min_tp);
+  }
 
-  time_point get_start_expected() const { return _start_expected; }
+  void add_check_interval_to_start_expected() { ++_start_expected; }
+
+  time_point get_start_expected() const { return _start_expected.value(); }
 
   const std::string& get_service() const { return _service; }
 

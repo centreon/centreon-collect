@@ -161,7 +161,9 @@ jobs:
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: packages-centreon-monitoring-agent-windows
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: |
+            agent\installer\centreon-monitoring-agent.exe
+            build_windows\agent\Release\centagent.exe
 
       - name: Deliver
         if: |
