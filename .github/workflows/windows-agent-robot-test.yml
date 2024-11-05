@@ -25,7 +25,7 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
-      legacy_engine: false
+      legacy_engine: ON
       packages_in_artifact: false
       image: centreon-collect-debian-bullseye
       distrib: bullseye
