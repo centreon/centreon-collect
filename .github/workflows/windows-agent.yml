@@ -59,7 +59,7 @@ jobs:
         run: git config --system core.autocrlf false
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
@@ -77,7 +77,7 @@ jobs:
 
       - name: Sign agent
         if: |
-          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
@@ -103,7 +103,7 @@ jobs:
 
       - name: Sign modifier
         if: |
-          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
@@ -128,7 +128,7 @@ jobs:
 
       - name: Sign installer
         if: |
-          contains(fromJson('["unstable", "testing"]'), needs.get-version.outputs.stability) &&
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
@@ -152,11 +152,18 @@ jobs:
 
       - name: Upload package artifacts
         if: |
-          inputs.installer_in_artifact == true
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+          inputs.installer_in_artifact == true ||
+          (github.event_name != 'workflow_dispatch' &&
+          contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+          ! cancelled() &&
+          ! contains(needs.*.result, 'failure') &&
+          ! contains(needs.*.result, 'cancelled'))
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: packages-centreon-monitoring-agent-windows
-          path: agent\installer\centreon-monitoring-agent.exe
+          path: |
+            agent\installer\centreon-monitoring-agent.exe
+            build_windows\agent\Release\centagent.exe
 
       - name: Deliver
         if: |
