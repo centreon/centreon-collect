@@ -1163,7 +1163,7 @@ void reporting_stream::_process_pb_ba_event(
         }
         // remove older events for BA
         for (auto it = m_events.begin(); it != m_events.end();) {
-          if (it->first < be.start_time())
+          if (it->first < static_cast<time_t>(be.start_time()))
             it = m_events.erase(it);
           else
             break;
@@ -1795,6 +1795,7 @@ void reporting_stream::_dimension_dispatch(
     case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension_ba_timeperiod_relation(data);
+      break;
     case bam::pb_dimension_ba_timeperiod_relation::static_type():
       _process_pb_dimension_ba_timeperiod_relation(data);
       break;

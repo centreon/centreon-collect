@@ -50,8 +50,8 @@ class vault_test : public ::testing::Test {
 };
 
 TEST_F(vault_test, httpsConnection) {
-  auto p = std::make_shared<process<false>>(g_io_context, _logger,
-                          "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
+  auto p = std::make_shared<process<false>>(
+      g_io_context, _logger, "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
   p->start_process(false);
 
   std::promise<std::string> promise;
@@ -84,16 +84,16 @@ TEST_F(vault_test, httpsConnection) {
                             "abababab-abab-abab-abab-abababababab");
   req->content_length(req->body().length());
   std::string resp;
-  client->send(
-      req, [logger = _logger, &promise](const boost::beast::error_code& err,
-                                        const std::string& detail,
-                                        const response_ptr& response) mutable {
-        logger->info("We are at the callback");
-        if (err)
-          logger->error("Error from http server: {}", err.message());
-        else
-          promise.set_value(response->body());
-      });
+  client->send(req, [logger = _logger, &promise](
+                        const boost::beast::error_code& err,
+                        const std::string& detail [[maybe_unused]],
+                        const response_ptr& response) mutable {
+    logger->info("We are at the callback");
+    if (err)
+      logger->error("Error from http server: {}", err.message());
+    else
+      promise.set_value(response->body());
+  });
   nlohmann::json js = nlohmann::json::parse(future.get());
   p->kill();
   ASSERT_EQ(js["auth"]["client_token"],

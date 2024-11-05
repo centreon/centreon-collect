@@ -1014,6 +1014,7 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
     switch (output.size()) {
       case 2:
         current_service.set_long_output(std::string(output[1]));
+        [[fallthrough]];
       case 1:
         current_service.set_output(std::string(output[0]));
         break;

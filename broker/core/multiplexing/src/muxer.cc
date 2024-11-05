@@ -323,7 +323,8 @@ void muxer::_execute_reader_if_needed() {
           if (to_call) {
             std::vector<std::shared_ptr<io::data>> to_fill;
             to_fill.reserve(_events_size);
-            bool still_events_to_read = read(to_fill, _events_size);
+            bool still_events_to_read [[maybe_unused]] =
+                read(to_fill, _events_size);
             uint32_t written = to_call->on_events(to_fill);
             if (written > 0)
               ack_events(written);

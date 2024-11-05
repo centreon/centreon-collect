@@ -13,7 +13,8 @@ struct centreon_process_stdio {
   boost::process::v2::detail::process_output_binding out;
   boost::process::v2::detail::process_error_binding err;
 
-  error_code on_exec_setup(centreon_posix_default_launcher& launcher,
+  error_code on_exec_setup(centreon_posix_default_launcher& launcher
+                           [[maybe_unused]],
                            const filesystem::path&,
                            const char* const*) {
     if (::dup2(in.fd, in.target) == -1)
@@ -69,7 +70,7 @@ struct centreon_posix_default_launcher {
   template <typename ExecutionContext, typename Args, typename... Inits>
   auto operator()(
       ExecutionContext& context,
-      error_code& ec,
+      error_code& ec [[maybe_unused]],
       const typename std::enable_if<
           std::is_convertible<
               ExecutionContext&,

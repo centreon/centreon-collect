@@ -191,7 +191,7 @@ void streaming_client::_send(const std::shared_ptr<MessageFromAgent>& request) {
  * @param request
  */
 void streaming_client::on_incomming_request(
-    const std::shared_ptr<client_reactor>& caller,
+    const std::shared_ptr<client_reactor>& caller [[maybe_unused]],
     const std::shared_ptr<MessageToAgent>& request) {
   // incoming request is used in main thread
   _io_context->post([request, sched = _sched]() { sched->update(request); });
