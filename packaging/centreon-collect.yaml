@@ -30,9 +30,6 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - dst: "/var/log/centreon-engine/retention.dat"
-    type: ghost
-
   - src: "files/empty_file"
     dst: "/var/log/centreon-engine/status.dat"
     file_info:
