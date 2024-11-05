@@ -44,6 +44,29 @@ void defer(const std::shared_ptr<asio::io_context>& io_context,
   });
 };
 
+/**
+ * @brief this function executes the handler action in delay
+ *
+ * @tparam handler_type
+ * @param io_context
+ * @param tp the time point when to execute handler
+ * @param handler job to do
+ */
+template <class handler_type>
+void defer(const std::shared_ptr<asio::io_context>& io_context,
+           const std::chrono::system_clock::time_point& tp,
+           handler_type&& handler) {
+  std::shared_ptr<asio::system_timer> timer(
+      std::make_shared<asio::system_timer>(*io_context));
+  timer->expires_at(tp);
+  timer->async_wait([io_context, timer, m_handler = std::move(handler)](
+                        const boost::system::error_code& err) {
+    if (!err) {
+      m_handler();
+    }
+  });
+};
+
 }  // namespace com::centreon::common
 
 #endif

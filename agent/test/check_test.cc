@@ -30,7 +30,9 @@ class dummy_check : public check {
 
  public:
   void start_check(const duration& timeout) override {
-    check::start_check(timeout);
+    if (!_start_check(timeout)) {
+      return;
+    }
     _command_timer.expires_from_now(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
@@ -53,6 +55,7 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::seconds(1),
               serv,
               command_name,
               command_line,
