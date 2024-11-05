@@ -11,7 +11,7 @@ RUN apt-get update && \
 ENV LANG=en_US.UTF-8
 
 # Add Centreon repositories and their public key
-RUN echo "deb https://packages.centreon.com/ubuntu-standard-24.05-testing/ jammy main" | tee -a /etc/apt/sources.list.d/centreon-testing.list && \
+RUN echo "deb https://packages.centreon.com/ubuntu-standard-24.09-testing/ jammy main" | tee -a /etc/apt/sources.list.d/centreon-testing.list && \
     echo "deb https://packages.centreon.com/ubuntu-plugins-testing/ jammy main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list && \
     wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
     apt-get update
