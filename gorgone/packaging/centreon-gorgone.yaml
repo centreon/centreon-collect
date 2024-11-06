@@ -156,6 +156,7 @@ scripts:
 overrides:
   rpm:
     depends:
+      - centreon-common
       - bzip2
       - perl-Libssh-Session >= 0.8
       - perl-CryptX
@@ -193,7 +194,8 @@ overrides:
       - perl(lib)
       - perl(Safe)
   deb:
-    depends:
+    depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
+      - centreon-common
       - libdatetime-perl
       - libtime-parsedate-perl
       - libtry-tiny-perl
