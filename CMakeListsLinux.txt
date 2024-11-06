@@ -39,7 +39,10 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 option(DEBUG_ROBOT OFF)
 
 if(LEGACY_ENGINE)
+  message(STATUS "Collect compilation with the legacy Engine configuration library.")
   add_definitions(-DLEGACY_CONF)
+else()
+  message(STATUS "Collect compilation with the Protobuf Engine configuration library.")
 endif()
 
 if(WITH_TSAN)
