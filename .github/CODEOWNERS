@@ -1,14 +1,15 @@
 *                              @centreon/owners-cpp
 
-.github/**                     @centreon/owners-pipelines
-packaging/**                   @centreon/owners-pipelines
-selinux/**                     @centreon/owners-pipelines
-
-tests/**                       @centreon/owners-robot-e2e
+*.pm                           @centreon/owners-perl
+*.pl                           @centreon/owners-perl
 
 gorgone/                       @centreon/owners-perl
 gorgone/docs/                  @centreon/owners-doc
 
+.github/**                     @centreon/owners-pipelines
+**/packaging/**                @centreon/owners-pipelines
+**/selinux/**                  @centreon/owners-pipelines
+
+tests/**                       @centreon/owners-robot-e2e
+
 gorgone/tests/robot/config/    @centreon/owners-perl
-*.pm                           @centreon/owners-perl
-*.pl                           @centreon/owners-perl
