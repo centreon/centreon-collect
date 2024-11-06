@@ -16,8 +16,13 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#include <boost/process/v2/stdio.hpp>
+#include <iostream>
 
 #include "com/centreon/common/process/process.hh"
 
@@ -26,6 +31,7 @@
 #endif
 
 #include <boost/process/v2/process.hpp>
+#pragma GCC diagnostic pop
 
 namespace proc = boost::process::v2;
 

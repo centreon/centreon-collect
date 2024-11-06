@@ -731,10 +731,10 @@ void connector::_recv_query_version(char const* data) {
   try {
     // Parse query version response to get major and minor
     // engine version supported by the connector.
-    int version[2];
+    unsigned version[2];
     char* endptr(nullptr);
     for (uint32_t i(0); i < 2; ++i) {
-      version[i] = strtol(data, &endptr, 10);
+      version[i] = strtoul(data, &endptr, 10);
       if (data == endptr)
         throw engine_error() << "Invalid version query: Bad format";
       data = endptr + 1;
