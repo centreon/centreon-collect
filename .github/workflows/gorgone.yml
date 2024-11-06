@@ -214,9 +214,11 @@ jobs:
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*.deb
+            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}*
           else
-            dnf install -y ./centreon-gorgone*.rpm
+            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+            # in el8 at least, there is a package for the configuration and a package for the actual code.
+            # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
           fi
 
       - name: Create databases
