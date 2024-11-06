@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -137,7 +137,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -293,7 +293,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, jammy]
+        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources
