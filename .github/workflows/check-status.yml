@@ -1,0 +1,105 @@
+name: check-status
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+      - hotfix-*
+      - release-*
+
+jobs:
+  check-status:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check workflow statuses and display token usage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "current rest api rate usage:"
+          curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/rate_limit | jq .rate
+          echo ""
+          echo ""
+          echo "current graphql rate usage:"
+          curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/rate_limit | jq .resources.graphql
+          echo ""
+          echo ""
+
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+        with:
+          script: |
+            await exec.exec("sleep 20s");
+
+            for (let i = 0; i < 120; i++) {
+              const failure = [];
+              const cancelled = [];
+              const pending = [];
+
+              const result = await github.rest.checks.listSuitesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: "${{ github.head_ref }}"
+              });
+              result.data.check_suites.forEach(({ app: { slug }, conclusion, id}) => {
+                if (slug === 'github-actions') {
+                  if (conclusion === 'failure' || conclusion === 'cancelled') {
+                    failure.push(id);
+                  } else if (conclusion === null) {
+                    pending.push(id);
+                  }
+                  console.log(`check suite ${id} => ${conclusion === null ? 'pending' : conclusion}`);
+                }
+              });
+
+              if (pending.length === 0) {
+                core.setFailed("Cannot get pull request check status");
+                return;
+              }
+
+              if (failure.length > 0) {
+                let failureMessage = '';
+                const failedCheckRuns = [];
+                for await (const suite_id of failure) {
+                  const resultCheckRuns = await github.rest.checks.listForSuite({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    check_suite_id: suite_id
+                  });
+
+                  resultCheckRuns.data.check_runs.forEach(({ conclusion, name, html_url }) => {
+                    if (conclusion === 'failure' || conclusion === 'cancelled') {
+                      failedCheckRuns.push(`<a href="${html_url}">${name} (${conclusion})</a>`);
+                    }
+                  });
+                }
+
+                core.summary.addRaw(`${failedCheckRuns.length} job(s) failed:`, true)
+                core.summary.addList(failedCheckRuns);
+                core.summary.write()
+
+                if (failedCheckRuns.length > 0) {
+                  core.setFailed(`${failedCheckRuns.length} job(s) failed`);
+                  return;
+                }
+              }
+
+              if (pending.length === 1) {
+                core.info("All workflows are ok");
+                return;
+              }
+
+              core.info(`${pending.length} workflows in progress`);
+
+              await exec.exec("sleep 30s");
+            }
+
+            core.setFailed("Timeout: some jobs are still in progress");
