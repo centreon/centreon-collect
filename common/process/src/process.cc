@@ -113,7 +113,7 @@ struct boost_process {
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args,
-                bool no_stdin)
+                bool no_stdin [[maybe_unused]])
       : stdout_pipe(io_context),
         stderr_pipe(io_context),
         stdin_pipe(io_context),
@@ -277,9 +277,9 @@ void process<use_mutex>::stdin_write_no_lock(
     try {
       _write_pending = true;
       _proc->stdin_pipe.async_write_some(
-          asio::buffer(*data),
-          [me = shared_from_this(), caller = _proc, data](
-              const boost::system::error_code& err, size_t nb_written) {
+          asio::buffer(*data), [me = shared_from_this(), caller = _proc, data](
+                                   const boost::system::error_code& err,
+                                   size_t nb_written [[maybe_unused]]) {
             detail::lock<use_mutex> l(&me->_protect);
             if (caller != me->_proc) {
               return;
