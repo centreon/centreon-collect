@@ -41,9 +41,15 @@ class state {
     uint64_t poller_id;
     std::string name;
     time_t connected_since;
+    /* Is it a broker, an engine, a map or an unknown peer? */
     common::PeerType peer_type;
+    /* Does the peer support extended negotiation? */
     bool extended_negotiation;
-    bool needs_update;
+    /* Does this peer need an update concerning the engine configuration? */
+    bool needs_update = true;
+    /* Is this peer ready to receive data? That is to say negociation and
+     * engine configurations exchanged. */
+    bool ready = false;
 
     peer(uint64_t poller_id,
          const std::string& name,
@@ -54,20 +60,13 @@ class state {
           name{name},
           connected_since{connected_since},
           peer_type{peer_type},
-          extended_negotiation{extended_negotiation},
-          needs_update{true} {}
+          extended_negotiation{extended_negotiation} {}
     peer()
         : poller_id{0},
           connected_since{0},
           peer_type{common::ENGINE},
-          extended_negotiation{false},
-          needs_update{true} {}
+          extended_negotiation{false} {}
   };
-
-  //  template <typename H>
-  //  friend H AbslHashValue(H h, const peer& p) {
-  //    return H::combine(std::move(h), p.poller_id, p.name, p.peer_type);
-  //  }
 
  private:
   const common::PeerType _peer_type;
@@ -86,7 +85,8 @@ class state {
    * Broker. It is updated during neb::instance and
    * bbdo::pb_engine_configuration messages. And it is used in unified_sql
    * stream when the neb::pb_instance_configuration is handled. */
-  absl::flat_hash_map<uint64_t, std::string> _engine_configuration;
+  absl::flat_hash_map<uint64_t, std::string> _engine_configuration
+      ABSL_GUARDED_BY(_connected_peers_m);
 
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
@@ -103,8 +103,8 @@ class state {
   static stats _stats_conf;
 
   absl::flat_hash_map<std::tuple<uint64_t, std::string, common::PeerType>, peer>
-      _connected_peers;
-  mutable std::mutex _connected_peers_m;
+      _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
+  mutable absl::Mutex _connected_peers_m;
 
   state(common::PeerType peer_type,
         const std::shared_ptr<spdlog::logger>& logger);

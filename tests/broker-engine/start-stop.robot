@@ -548,6 +548,9 @@ BESS6
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -635,7 +638,11 @@ BESS7
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -748,6 +755,7 @@ BESS8
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    bbdo    debug
@@ -755,7 +763,11 @@ BESS8
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -777,8 +789,101 @@ BESS8
 
     ${content}    Create List
     ...    init: sending poller configuration
+    ...    init: beginning host dump
+    ...    init: end of host dump
+    ...    init: beginning service dump
+    ...    init: end of services dump
+    ...    init: sending initial instance configuration loading event
+
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Engine should send its full configuration.
+
+    # Once the configuration is sent, Broker must copy the cache configuration
+    # from the php cache.
+    ${content}    Create List
+    ...    unified_sql: processing Pb instance configuration (poller 1)
+    ...    unified_sql: New engine configuration, broker directories updated
+    ...    Poller 1 configuration updated in '${VarRoot}/lib/centreon-broker/pollers-configuration/1'
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should update its poller configuration.
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BESS9
+    [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
+    ...    are started with extended negociation.
+    ...    The connection has already been established, so Broker knows
+    ...    it. Then when it is time to send the Instance message, Engine sends also
+    ...    an EngineConfiguration message and then waits for the EngineConfiguration
+    ...    answered by the Broker.
+    ...    Here, Broker already knows the configuration, Engine doesn't send it.
+    [Tags]    broker    engine    start-stop    MON-15671
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    rrd    bbdo    debug
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+
+    # We simulate that Broker already knows the configuration
+    Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config/pollers-configuration/1
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    ${content}    Create List    BBDO: engine configuration sent to peer 'Central' with version
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
+
+    ${content}    Create List
+    ...    BBDO: received engine configuration from Engine peer 'Poller0'
+    ...    BBDO: engine configuration for 'Poller0' is up to date
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Broker received the configuration from Engine should be available in central.log. And this configuration should be up to date.
+
+    ${content}    Create List
+    ...    BBDO: engine configuration from peer 'Central' received as expected
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
+
+    ${content}    Create List
+    ...    init: No need to send poller configuration
+    ...    init: sending initial instance configuration loading event
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Engine should send a partial configuration.
+
+    ${content}    Create List
+    ...    init: beginning host dump
+    ...    init: beginning service dump
+    ${result}    Ctn Find In Log    ${engineLog0}    ${start}    ${content}
+    Should Not Be True    ${result[0]}    Engine should not send its full configuration.
+
+    # Once the configuration is sent, Broker must copy the cache configuration
+    # from the php cache.
+    ${content}    Create List
+    ...    unified_sql: processing Pb instance configuration (poller 1)
+    ...    unified_sql: Engine configuration already known by Broker
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should update its poller configuration.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

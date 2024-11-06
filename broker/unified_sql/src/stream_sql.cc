@@ -1699,22 +1699,53 @@ void stream::_process_pb_instance_configuration(
   std::shared_ptr<neb::pb_instance_configuration> ic =
       std::static_pointer_cast<neb::pb_instance_configuration>(d);
   auto obj = ic->obj();
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: processing Pb instance configuration (poller {})",
+      obj.poller_id());
   std::string current_version =
       config::applier::state::instance().engine_configuration(obj.poller_id());
   std::filesystem::path cache_dir =
       config::applier::state::instance().config_cache_dir() /
       fmt::to_string(obj.poller_id());
+  if (!std::filesystem::exists(cache_dir)) {
+    _logger_sql->error(
+        "unified_sql: The cache directory that should contain the engine "
+        "configuration does not exist: '{}'",
+        cache_dir.string());
+    return;
+  }
   std::string new_version = common::hash_directory(cache_dir);
   if (new_version != current_version) {
+    _logger_sql->debug(
+        "unified_sql: New engine configuration, broker directories updated");
+    std::filesystem::path pollers_dir =
+        config::applier::state::instance().pollers_config_dir();
+    if (!std::filesystem::exists(pollers_dir)) {
+      _logger_sql->trace(
+          "unified_sql: Broker poller directory '{}' does not exist, creating "
+          "it",
+          cache_dir.string());
+      std::filesystem::create_directories(cache_dir);
+    }
     std::filesystem::path poller_dir =
         config::applier::state::instance().pollers_config_dir() /
         fmt::to_string(obj.poller_id());
+    if (!std::filesystem::is_empty(poller_dir)) {
+      _logger_sql->trace(
+          "unified_sql: Broker poller directory '{}' is not empty, cleaning it",
+          poller_dir.string());
+      std::filesystem::remove_all(poller_dir);
+    }
     std::filesystem::copy(cache_dir, poller_dir,
                           std::filesystem::copy_options::recursive);
     config::applier::state::instance().set_engine_configuration(obj.poller_id(),
                                                                 new_version);
     _logger_sql->info("SQL: Poller {} configuration updated in '{}'",
                       obj.poller_id(), poller_dir.string());
+  } else {
+    _logger_sql->debug(
+        "unified_sql: Engine configuration already known by Broker");
   }
 }
 
