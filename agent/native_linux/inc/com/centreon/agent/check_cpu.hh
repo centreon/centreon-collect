@@ -49,9 +49,9 @@ class per_cpu_time : public per_cpu_time_base<nb_field> {
   unsigned _cpu_index = 0;
 
  public:
+  per_cpu_time() = default;
   per_cpu_time(const std::string_view& line);
   unsigned get_cpu_index() const { return _cpu_index; }
-  per_cpu_time() {}
 };
 
 /**

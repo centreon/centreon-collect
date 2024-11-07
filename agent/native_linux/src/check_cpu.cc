@@ -23,6 +23,10 @@
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_cpu_detail;
 
+namespace com::centreon::agent::check_cpu_detail {
+template class per_cpu_time_base<e_proc_stat_index::nb_field>;
+}
+
 /**
  * @brief Construct a new per cpu time::per cpu time object
  * it parses a line like cpu0 2930565 15541 1250726 10453908 54490 0 27068 0 0 0
