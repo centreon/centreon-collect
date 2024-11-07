@@ -56,8 +56,7 @@ TEST(proc_stat_file_test, read_sample) {
     switch (by_cpu.first) {
       case 0:
         ASSERT_EQ(by_cpu.second.get_total(), 6017174);
-        ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
-                             check_cpu_detail::e_proc_stat_index::used),
+        ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_used(),
                          (6017174.0 - 4497394.0) / 6017174);
         ASSERT_DOUBLE_EQ(by_cpu.second.get_proportional_value(
                              check_cpu_detail::e_proc_stat_index::user),
@@ -145,7 +144,7 @@ TEST(proc_stat_file_test, no_threshold) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -180,34 +179,17 @@ TEST(proc_stat_file_test, no_threshold) {
     ASSERT_EQ(perf.unit(), "%");
     ASSERT_EQ(perf.value_type(), com::centreon::common::perfdata::gauge);
     if (perf.name() == "0#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[0].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[0].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "1#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[1].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[1].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "2#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[2].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[2].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[3].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
       ASSERT_NEAR(
           perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_value(
-              check_cpu_detail::e_proc_stat_index::used) *
+          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
               100,
           0.01);
     } else {
@@ -237,7 +219,7 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -343,11 +325,7 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
                       100,
                   0.01);
     } else if (counter_type == "used") {
-      ASSERT_NEAR(perf.value(),
-                  cpu_data.get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), cpu_data.get_proportional_used() * 100, 0.01);
     } else {
       FAIL() << "unexpected perfdata name:" << perf.name();
     }
@@ -372,7 +350,7 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -414,34 +392,17 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
     ASSERT_EQ(perf.unit(), "%");
     ASSERT_EQ(perf.value_type(), com::centreon::common::perfdata::gauge);
     if (perf.name() == "0#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[0].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[0].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "1#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[1].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[1].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "2#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[2].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[2].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "3#core.cpu.utilization.percentage") {
-      ASSERT_NEAR(perf.value(),
-                  delta[3].get_proportional_value(
-                      check_cpu_detail::e_proc_stat_index::used) *
-                      100,
-                  0.01);
+      ASSERT_NEAR(perf.value(), delta[3].get_proportional_used() * 100, 0.01);
     } else if (perf.name() == "cpu.utilization.percentage") {
       ASSERT_NEAR(
           perf.value(),
-          delta[check_cpu_detail::average_cpu_index].get_proportional_value(
-              check_cpu_detail::e_proc_stat_index::used) *
+          delta[check_cpu_detail::average_cpu_index].get_proportional_used() *
               100,
           0.01);
     } else {
@@ -468,7 +429,7 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -525,7 +486,7 @@ TEST(proc_stat_file_test, threshold_detailed) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -597,7 +558,7 @@ TEST(proc_stat_file_test, threshold_detailed2) {
 
   check_cpu_detail::proc_stat_file second_measure(test_file_path2, 4);
 
-  auto delta = second_measure - first_measure;
+  auto delta = second_measure.subtract(first_measure);
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
