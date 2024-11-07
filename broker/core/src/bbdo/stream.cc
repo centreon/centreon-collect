@@ -1545,6 +1545,9 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
                 ec.poller_id(), ec.poller_name(), common::BROKER, true);
           }
         }
+      } else {
+        /* Legacy negociation */
+        config::applier::state::instance().set_peers_ready();
       }
     }
 

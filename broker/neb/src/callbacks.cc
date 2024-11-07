@@ -2413,13 +2413,11 @@ int neb::callback_pb_process(int callback_type, void* data) {
 
   // Here we are Engine. The idea is to know if broker is able to handle the
   // evoluated negotiation. The goal is to send the hash of the configuration
-  // directory to the broker. But it would be great to know if Broker can do
-  // something with it.
-  // We have the peers list, but here events are sent in broadcast, so no
-  // specific destination. FIXME DBO: we should have a way to know if The
-  // broker is able to handle the new negotiation.
-  inst.set_engine_config_version(common::hash_directory(
-      config::applier::state::instance().engine_config_dir()));
+  // directory to the broker.
+  auto& engine_config = config::applier::state::instance().engine_config_dir();
+  if (!engine_config.empty() && std::filesystem::exists(engine_config))
+    inst.set_engine_config_version(common::hash_directory(
+        config::applier::state::instance().engine_config_dir()));
 
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);

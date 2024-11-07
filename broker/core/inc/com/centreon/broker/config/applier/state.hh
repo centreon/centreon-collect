@@ -135,20 +135,26 @@ class state {
   void add_peer(uint64_t poller_id,
                 const std::string& poller_name,
                 common::PeerType peer_type,
-                bool extended_negotiation);
+                bool extended_negotiation)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
-                   common::PeerType peer_type);
-  bool has_connection_from_poller(uint64_t poller_id) const;
+                   common::PeerType peer_type)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool has_connection_from_poller(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   static stats& mut_stats_conf();
   static const stats& stats_conf();
-  std::vector<peer> connected_peers() const;
+  std::vector<peer> connected_peers() const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   common::PeerType peer_type() const;
   std::string get_engine_conf_from_cache(uint64_t poller_id);
   void set_broker_needs_update(uint64_t poller_id,
                                const std::string& poller_name,
                                common::PeerType peer_type,
-                               bool need_update);
+                               bool need_update)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_peers_ready() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool broker_needs_update(uint64_t poller_id,
                            const std::string& poller_name,
                            common::PeerType peer_type) const;

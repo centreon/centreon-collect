@@ -128,7 +128,8 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Engine configuration directory (for cbmod).
-    set_engine_config_dir(s.engine_config_dir());
+    if (!s.engine_config_dir().empty())
+      set_engine_config_dir(s.engine_config_dir());
 
     // Configuration cache directory (for php).
     set_config_cache_dir(s.config_cache_dir());
@@ -361,8 +362,7 @@ const std::filesystem::path& state::engine_config_dir() const noexcept {
  *
  * @param engine_conf_dir The Engine configuration directory.
  */
-void state::set_engine_config_dir(
-    const std::filesystem::path& dir) {
+void state::set_engine_config_dir(const std::filesystem::path& dir) {
   _engine_config_dir = dir;
 }
 
@@ -439,6 +439,16 @@ void state::set_broker_needs_update(uint64_t poller_id,
         poller_name, poller_id,
         common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
   }
+}
+
+/**
+ * @brief Set all the connected peers as ready to receive data (no extended
+ * negociation available).
+ */
+void state::set_peers_ready() {
+  absl::MutexLock lck(&_connected_peers_m);
+  for (auto& p : _connected_peers)
+    p.second.ready = true;
 }
 
 /**

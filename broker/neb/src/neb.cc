@@ -130,8 +130,7 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       desc.add_options()  // list of options
           ("config_file,c", po::value<std::string>(),
            "set the module JSON configuration file")  // 1st option
-          ("engine_conf_dir,e",
-           po::value<std::string>()->default_value("/etc/centreon-engine"),
+          ("engine_conf_dir,e", po::value<std::string>(),
            "set the Engine configuration directory");  // 2nd option
       po::positional_options_description pos;
       // The first positional argument is interpreted as config_file, this is
@@ -153,8 +152,6 @@ int nebmodule_init(int flags, const char* args, void* handle) {
 
       if (vm.count("engine_conf_dir"))
         engine_conf_dir = vm["engine_conf_dir"].as<std::string>();
-      else
-        throw msg_fmt("main: no Engine configuration directory provided");
 
       // Try configuration parsing.
       com::centreon::broker::config::parser p(com::centreon::common::ENGINE);
