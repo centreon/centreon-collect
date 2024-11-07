@@ -472,3 +472,21 @@ const state::stats_exporter_conf& state::get_stats_exporter() const {
 state::stats_exporter_conf& state::mut_stats_exporter() {
   return _stats_exporter_conf;
 }
+
+/**
+ * @brief Set the directory containing the Engine configuration.
+ *
+ * @param engine_config_dir The directory containing the Engine configuration.
+ */
+void state::set_engine_config_dir(const std::string& dir) {
+  _engine_config_dir = dir;
+}
+
+/**
+ * @brief Get the directory containing the Engine configuration.
+ *
+ * @return The directory containing the Engine configuration.
+ */
+const std::string& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}

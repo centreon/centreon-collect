@@ -314,3 +314,22 @@ std::vector<std::pair<uint64_t, state::peer>> state::connected_peers() const {
     retval.emplace_back(id, name);
   return retval;
 }
+
+/**
+ * @brief Get the Engine configuration directory.
+ *
+ * @return The Engine configuration directory.
+ */
+const std::filesystem::path& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}
+
+/**
+ * @brief Set the Engine configuration directory.
+ *
+ * @param engine_conf_dir The Engine configuration directory.
+ */
+void state::set_engine_config_dir(
+    const std::filesystem::path& dir) {
+  _engine_config_dir = dir;
+}

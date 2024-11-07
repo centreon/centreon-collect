@@ -51,6 +51,10 @@ class state {
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
   size_t _pool_size;
+
+  /* In a cbmod configuration, this string contains the directory containing
+   * the Engine configuration. */
+  std::filesystem::path _engine_config_dir;
   modules _modules;
 
   static stats _stats_conf;
@@ -76,6 +80,8 @@ class state {
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
+  const std::filesystem::path& engine_config_dir() const noexcept;
+  void set_engine_config_dir(const std::filesystem::path& dir);
   modules& get_modules();
   void add_peer(uint64_t poller_id, const std::string& poller_name);
   void remove_peer(uint64_t poller_id);
