@@ -639,11 +639,11 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
-                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                    if state_type == 'ANY':
+                        return True
+                    elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
                         return True
                     elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
-                        return True
-                    else:
                         return True
         time.sleep(1)
     return False
