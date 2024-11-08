@@ -80,7 +80,7 @@ class bulk_bind {
   std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);
   void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
-  void lock() ABSL_LOCKS_EXCLUDED(_queue_m);
+  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 };
 }  // namespace com::centreon::broker::unified_sql

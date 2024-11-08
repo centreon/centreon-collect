@@ -17,8 +17,6 @@
  */
 
 #include <bits/fs_fwd.h>
-#include <filesystem>
-#include <memory>
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -1800,56 +1798,51 @@ void stream::_process_pb_instance_configuration(
           }
 
           if (_bulk_prepared_statement) {
-            {
-              for (const auto& h : state.hosts()) {
-                if (!_eh_bind->bind(0))
-                  _eh_bind->init_from_stmt(0);
-                auto* b = _eh_bind->bind(0).get();
-                b->set_value_as_u64(0, h.host_id());
-                b->next_row();
-              }
-              SPDLOG_LOGGER_TRACE(
-                  _logger_sql,
-                  "Check if some statements are ready, eh_bind connections "
-                  "count = {}",
-                  _eh_bind->connections_count());
-              if (_eh_bind->ready(0)) {
-                SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                    "Enabling {} hosts in hosts table",
-                                    _eh_bind->size(0));
-                // Setting the good bind to the stmt
-                _eh_bind->apply_to_stmt(0);
-                // Executing the stmt
-                _mysql.run_statement(
-                    *_eh_update, database::mysql_error::update_hosts_enabled,
-                    0);
-              }
+            for (const auto& h : state.hosts()) {
+              if (!_eh_bind->bind(0))
+                _eh_bind->init_from_stmt(0);
+              auto* b = _eh_bind->bind(0).get();
+              b->set_value_as_u64(0, h.host_id());
+              b->next_row();
             }
-            {
-              for (const auto& s : state.services()) {
-                if (!_es_bind->bind(0))
-                  _es_bind->init_from_stmt(0);
-                auto* b = _es_bind->bind(0).get();
-                b->set_value_as_u64(0, s.host_id());
-                b->set_value_as_u64(1, s.service_id());
-                b->next_row();
-              }
-              SPDLOG_LOGGER_TRACE(
-                  _logger_sql,
-                  "Check if some statements are ready, es_bind connections "
-                  "count = {}",
-                  _es_bind->connections_count());
-              if (_es_bind->ready(0)) {
-                SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                    "Enabling {} services in services table",
-                                    _es_bind->size(0));
-                // Setting the good bind to the stmt
-                _es_bind->apply_to_stmt(0);
-                // Executing the stmt
-                _mysql.run_statement(
-                    *_es_update, database::mysql_error::update_services_enabled,
-                    0);
-              }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, eh_bind connections "
+                "count = {}",
+                _eh_bind->connections_count());
+            if (_eh_bind->ready(0)) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} hosts in hosts table",
+                                  _eh_bind->size(0));
+              // Setting the good bind to the stmt
+              _eh_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_eh_update, database::mysql_error::update_hosts_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              if (!_es_bind->bind(0))
+                _es_bind->init_from_stmt(0);
+              auto* b = _es_bind->bind(0).get();
+              b->set_value_as_u64(0, s.host_id());
+              b->set_value_as_u64(1, s.service_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, es_bind connections "
+                "count = {}",
+                _es_bind->connections_count());
+            if (_es_bind->ready(0)) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} services in services table",
+                                  _es_bind->size(0));
+              // Setting the good bind to the stmt
+              _es_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_es_update, database::mysql_error::update_services_enabled,
+                  0);
             }
           } else {
             for (const auto& h : state.hosts()) {
@@ -1964,6 +1957,10 @@ void stream::_process_pb_instance_configuration(
           }
         }
       } catch (const std::exception& e) {
+        _logger_sql->error(
+            "unified_sql: error while parsing poller {} Engine configuration: "
+            "{}",
+            obj.poller_id(), e.what());
       }
     }
   }
