@@ -60,9 +60,10 @@ class bulk_bind {
   const uint32_t _interval;
   const uint32_t _max_size;
   database::mysql_bulk_stmt& _stmt;
-  mutable std::mutex _queue_m;
-  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind;
-  std::vector<std::time_t> _next_time;
+  mutable absl::Mutex _queue_m;
+  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind
+      ABSL_GUARDED_BY(_queue_m);
+  std::vector<std::time_t> _next_time ABSL_GUARDED_BY(_queue_m);
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
@@ -74,13 +75,13 @@ class bulk_bind {
   bulk_bind(const bulk_bind&) = delete;
   std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
   void apply_to_stmt(int32_t conn);
-  bool ready(int32_t conn);
+  bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t size(int32_t conn = -1) const;
   std::time_t next_time() const;
   std::size_t connections_count() const;
   void init_from_stmt(int32_t conn);
-  void lock();
-  void unlock();
+  void lock() ABSL_LOCKS_EXCLUDED(_queue_m);
+  void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

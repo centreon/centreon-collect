@@ -807,6 +807,9 @@ BESS8
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should update its poller configuration.
 
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    Should Be True    ${result}    Poller not visible in resources table
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -888,3 +891,50 @@ BESS9
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+BESS10
+    [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
+    ...    are started with extended negociation.
+    ...    A first start is made and then a second one.
+    ...    Since the connection has already been established, Broker knows
+    ...    it. And after the InstanceConfiguration message, Broker must
+    ...    enable the poller's resources by its own.
+    [Tags]    broker    engine    start-stop    MON-15671
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    rrd    core    error
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    rrd    bbdo    debug
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    # We simulate the php cache directory here
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # For the first connection, Engine still sends its configuration, so the
+    # resources table is well updated.
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    Should Be True    ${result}    Poller not visible in resources table (first connection)
+
+    Ctn Restart Engine
+
+    # For the second connection, Engine does not send its configuration, so the
+    # resources table is updated by broker alone.
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    Should Be True    ${result}    Poller not visible in resources table (second connection)
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

@@ -363,6 +363,26 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_update;
   std::unique_ptr<bulk_bind> _sscr_bind;
 
+  /* Statement and binding to enable hosts in the hosts table. One value is
+   * set at index 0 that is the host ID. */
+  std::unique_ptr<database::mysql_stmt_base> _eh_update;
+  std::unique_ptr<bulk_bind> _eh_bind;
+
+  /* Statement and binding to enable hosts in the resources table. One value
+   * is set at index 0 that is the host ID. */
+  std::unique_ptr<database::mysql_stmt_base> _ehr_update;
+  std::unique_ptr<bulk_bind> _ehr_bind;
+
+  /* Statement and binding to enable services in the services table. One value
+   * is set at index 0 that is the service ID. */
+  std::unique_ptr<database::mysql_stmt_base> _es_update;
+  std::unique_ptr<bulk_bind> _es_bind;
+
+  /* Statement and binding to enable services in the resources table. One value
+   * is set at index 0 that is the service ID. */
+  std::unique_ptr<database::mysql_stmt_base> _esr_update;
+  std::unique_ptr<bulk_bind> _esr_bind;
+
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
