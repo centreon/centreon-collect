@@ -19,7 +19,6 @@
 #ifndef CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
 #define CENTREON_AGENT_NATIVE_CHECK_CPU_BASE_HH
 
-#include <cstdint>
 #include "check.hh"
 
 namespace com::centreon::agent {
@@ -29,6 +28,11 @@ namespace check_cpu_detail {
 // average
 constexpr unsigned average_cpu_index = std::numeric_limits<unsigned>::max();
 
+/**
+ * @brief this class contains all counter for one core
+ *
+ * @tparam nb_metric number of metrics given by the kernel
+ */
 template <unsigned nb_metric>
 class per_cpu_time_base {
  protected:
@@ -37,6 +41,8 @@ class per_cpu_time_base {
   uint64_t _total = 0;
 
  public:
+  per_cpu_time_base();
+
   double get_proportional_value(unsigned data_index) const {
     if (!_total || data_index >= nb_metric) {
       return 0.0;
@@ -51,19 +57,71 @@ class per_cpu_time_base {
     return (static_cast<double>(_total_used)) / _total;
   }
 
+  /**
+   * @brief Set the metric object
+   *
+   * @param index index of the metric like user or cpu
+   * @param value
+   */
+  void set_metric(unsigned index, uint64_t value) {
+    if (index < nb_metric) {
+      _metrics[index] = value;
+    }
+  }
+
+  /**
+   * @brief Set the metric object and add value to the total
+   *
+   * @param index index of the metric like user or cpu
+   * @param value
+   */
+  void set_metric_total(unsigned index, uint64_t value) {
+    if (index < nb_metric) {
+      _metrics[index] = value;
+      _total += value;
+    }
+  }
+
+  /**
+   * @brief Set the metric object and add value to the total and total_used
+   *
+   * @param index index of the metric like user or cpu
+   * @param value
+   */
+  void set_metric_total_used(unsigned index, uint64_t value) {
+    if (index < nb_metric) {
+      _metrics[index] = value;
+      _total_used += value;
+      _total += value;
+    }
+  }
+
+  void set_total(uint64_t total) { _total = total; }
+
+  void set_total_used(uint64_t total_used) { _total_used = total_used; }
+
   uint64_t get_total() const { return _total; }
 
   void dump(const unsigned& cpu_index,
             const std::string_view metric_label[],
             std::string* output) const;
 
+  void dump_values(std::string* output) const;
+
   void subtract(const per_cpu_time_base& to_subtract);
+
+  void add(const per_cpu_time_base& to_add);
 };
 
 template <unsigned nb_metric>
 using index_to_cpu =
     boost::container::flat_map<unsigned, per_cpu_time_base<nb_metric>>;
 
+/**
+ * @brief contains one per_cpu_time_base per core and a total one
+ *
+ * @tparam nb_metric number of metrics given by the kernel
+ */
 template <unsigned nb_metric>
 class cpu_time_snapshot {
  protected:
@@ -73,6 +131,8 @@ class cpu_time_snapshot {
   index_to_cpu<nb_metric> subtract(const cpu_time_snapshot& to_subtract) const;
 
   const index_to_cpu<nb_metric>& get_values() const { return _data; }
+
+  void dump(std::string* output) const;
 };
 
 /**
@@ -110,6 +170,11 @@ class cpu_to_status {
 
 }  // namespace check_cpu_detail
 
+/**
+ * @brief native cpu check base class
+ *
+ * @tparam nb_metric
+ */
 template <unsigned nb_metric>
 class native_check_cpu : public check {
  protected:
@@ -166,7 +231,7 @@ class native_check_cpu : public check {
   }
 
   virtual std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>>
-  get_cpu_time_snapshot() = 0;
+  get_cpu_time_snapshot(bool first_measure) = 0;
 
   void start_check(const duration& timeout) override;
 

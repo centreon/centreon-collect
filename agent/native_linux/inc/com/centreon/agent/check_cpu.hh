@@ -96,7 +96,7 @@ class check_cpu
 
   std::unique_ptr<check_cpu_detail::cpu_time_snapshot<
       check_cpu_detail::e_proc_stat_index::nb_field>>
-  get_cpu_time_snapshot() override;
+  get_cpu_time_snapshot(bool first_measure) override;
 
   e_status compute(
       const check_cpu_detail::cpu_time_snapshot<

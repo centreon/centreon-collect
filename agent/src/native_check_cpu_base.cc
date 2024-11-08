@@ -22,6 +22,24 @@
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_cpu_detail;
 
+/**
+ * @brief Construct a new per cpu time base<nb metric>::per cpu time base object
+ * all values are set to zero
+ * @tparam nb_metric
+ */
+template <unsigned nb_metric>
+per_cpu_time_base<nb_metric>::per_cpu_time_base() {
+  _metrics.fill(0);
+}
+
+/**
+ * @brief dump all values into plugin output
+ *
+ * @tparam nb_metric
+ * @param cpu_index cpu index or average_cpu_index for all cpus
+ * @param metric_label label for each metric
+ * @param output output string
+ */
 template <unsigned nb_metric>
 void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
                                         const std::string_view metric_label[],
@@ -41,20 +59,72 @@ void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
   }
 }
 
+/**
+ * @brief used for debugging
+ *
+ * @param output
+ */
+template <unsigned nb_metric>
+void per_cpu_time_base<nb_metric>::dump_values(std::string* output) const {
+  for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
+    absl::StrAppend(output, " ", _metrics[field_index]);
+  }
+  absl::StrAppend(output, " used:", _total_used);
+  absl::StrAppend(output, " total:", _total);
+}
+
+/**
+ * @brief subtract a per_cpu_time_base from this
+ *
+ * @tparam nb_metric
+ * @param to_subtract
+ */
 template <unsigned nb_metric>
 void per_cpu_time_base<nb_metric>::subtract(
     const per_cpu_time_base<nb_metric>& to_subtract) {
-  for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
-    _metrics[field_index] -= to_subtract._metrics[field_index];
+  typename std::array<uint64_t, nb_metric>::iterator dest = _metrics.begin();
+  typename std::array<uint64_t, nb_metric>::const_iterator src =
+      to_subtract._metrics.begin();
+  for (; dest < _metrics.end(); ++dest, ++src) {
+    *dest -= *src;
   }
   _total_used -= to_subtract._total_used;
   _total -= to_subtract._total;
 }
 
+/**
+ * @brief add a per_cpu_time_base to this
+ *
+ * @tparam nb_metric
+ * @param to_add
+ */
+template <unsigned nb_metric>
+void per_cpu_time_base<nb_metric>::add(const per_cpu_time_base& to_add) {
+  typename std::array<uint64_t, nb_metric>::iterator dest = _metrics.begin();
+  typename std::array<uint64_t, nb_metric>::const_iterator src =
+      to_add._metrics.begin();
+  for (; dest < _metrics.end(); ++dest, ++src) {
+    *dest += *src;
+  }
+  _total_used += to_add._total_used;
+  _total += to_add._total;
+}
+
+/**
+ * @brief subtract a cpu snapshot from this
+ *
+ * @tparam nb_metric
+ * @param to_subtract
+ * @return index_to_cpu<nb_metric>
+ */
 template <unsigned nb_metric>
 index_to_cpu<nb_metric> cpu_time_snapshot<nb_metric>::subtract(
     const cpu_time_snapshot& to_subtract) const {
   index_to_cpu<nb_metric> result;
+  // in case of pdh, first measure is empty, so we use only second sample
+  if (to_subtract._data.empty()) {
+    return _data;
+  }
   for (const auto& left_it : _data) {
     const auto& right_it = to_subtract._data.find(left_it.first);
     if (right_it == to_subtract._data.end()) {
@@ -67,6 +137,37 @@ index_to_cpu<nb_metric> cpu_time_snapshot<nb_metric>::subtract(
   return result;
 }
 
+/**
+ * @brief used for debug, dump all values
+ *
+ * @tparam nb_metric
+ * @param cpus
+ * @param output
+ */
+template <unsigned nb_metric>
+void cpu_time_snapshot<nb_metric>::dump(std::string* output) const {
+  output->reserve(output->size() + _data.size() * 256);
+  for (const auto& cpu : _data) {
+    output->push_back(cpu.first + '0');
+    output->append(":{");
+    for (unsigned i = 0; i < nb_metric; ++i) {
+      absl::StrAppend(output, " ", cpu.second.get_proportional_value(i));
+    }
+    absl::StrAppend(output, " used:", cpu.second.get_proportional_used());
+    output->push_back('\n');
+    cpu.second.dump_values(output);
+
+    output->append("}\n");
+  }
+}
+
+/**
+ * @brief update status of each cpu or all cpus if metric > threshold
+ *
+ * @tparam nb_metric
+ * @param to_test metrics
+ * @param per_cpu_status out: status per cpu index
+ */
 template <unsigned nb_metric>
 void cpu_to_status<nb_metric>::compute_status(
     const index_to_cpu<nb_metric>& to_test,
@@ -159,37 +260,42 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
     return;
   }
 
-  std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
-      get_cpu_time_snapshot();
+  try {
+    std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
+        get_cpu_time_snapshot(true);
 
-  time_point end_measure = std::chrono::system_clock::now() + timeout;
-  time_point end_measure_period =
-      get_start_expected() +
-      std::chrono::seconds(get_conf()->config().check_interval());
+    time_point end_measure = std::chrono::system_clock::now() + timeout;
+    time_point end_measure_period =
+        get_start_expected() +
+        std::chrono::seconds(get_conf()->config().check_interval());
 
-  if (end_measure > end_measure_period) {
-    end_measure = end_measure_period;
+    if (end_measure > end_measure_period) {
+      end_measure = end_measure_period;
+    }
+
+    end_measure -= std::chrono::seconds(1);
+
+    _measure_timer.expires_at(end_measure);
+    _measure_timer.async_wait(
+        [me = shared_from_this(), first_measure = std::move(begin),
+         start_check_index = _get_running_check_index()](
+            const boost::system::error_code& err) mutable {
+          me->_measure_timer_handler(err, start_check_index,
+                                     std::move(first_measure));
+        });
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "{} fail to start check: {}",
+                        get_command_name(), e.what());
+    _io_context->post([me = shared_from_this(),
+                       start_check_index = _get_running_check_index(),
+                       err = e.what()] {
+      me->on_completion(start_check_index, e_status::unknown, {}, {err});
+    });
   }
-
-  end_measure -= std::chrono::seconds(1);
-
-  _measure_timer.expires_at(end_measure);
-  _measure_timer.async_wait([me = shared_from_this(),
-                             first_measure = std::move(begin),
-                             start_check_index = _get_running_check_index()](
-                                const boost::system::error_code& err) mutable {
-    me->_measure_timer_handler(err, start_check_index,
-                               std::move(first_measure));
-  });
 }
 
 constexpr std::array<std::string_view, 4> _sz_status = {
     "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
-
-// constexpr std::array<const char*, e_proc_stat_index::nb_field>
-//     _sz_measure_name = {"user",   "nice",      "system",  "idle",
-//                         "iowait", "interrupt", "softirq", "steal",
-//                         "guest",  "guestnice", "used"};
 
 /**
  * @brief called at measure timer expiration
@@ -214,7 +320,7 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
   std::list<common::perfdata> perfs;
 
   std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> new_measure =
-      get_cpu_time_snapshot();
+      get_cpu_time_snapshot(false);
 
   e_status worst = compute(*first_measure, *new_measure, &output, &perfs);
 

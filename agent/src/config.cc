@@ -89,6 +89,11 @@ const std::string_view config::config_schema(R"(
             "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
             "type": "integer",
             "min": 1
+        },
+        "second_max_reconnect_backoff": {
+            "description": "Maximum time between subsequent connection attempts, in seconds. Default: 60s",
+            "type": "integer",
+            "min": 0
         }
     },
     "required": [
@@ -145,4 +150,6 @@ config::config(const std::string& path) {
     _host = boost::asio::ip::host_name();
   }
   _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
+  _second_max_reconnect_backoff =
+      json_config.get_unsigned("second_max_reconnect_backoff", 60);
 }
