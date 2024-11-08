@@ -43,6 +43,7 @@ class config {
   std::string _ca_name;
   std::string _host;
   bool _reverse_connection;
+  unsigned _second_max_reconnect_backoff;
 
  public:
   config(const std::string& path);
@@ -63,6 +64,9 @@ class config {
   const std::string& get_ca_name() const { return _ca_name; }
   const std::string& get_host() const { return _host; }
   bool use_reverse_connection() const { return _reverse_connection; }
+  unsigned get_second_max_reconnect_backoff() const {
+    return _second_max_reconnect_backoff;
+  }
 };
 };  // namespace com::centreon::agent
 

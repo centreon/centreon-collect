@@ -17,10 +17,7 @@
  */
 
 #include <gtest/gtest.h>
-#include <array>
-#include <cctype>
 
-#include "check.hh"
 #include "check_cpu.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
