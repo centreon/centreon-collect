@@ -411,19 +411,17 @@ void command_manager::schedule_and_propagate_downtime(
     unsigned long triggered_by,
     unsigned long duration) {
   /* check all child hosts... */
-  for (host_map_unsafe::iterator it(temp_host->child_hosts.begin()),
-       end(temp_host->child_hosts.end());
-       it != end; ++it) {
-    if (it->second == nullptr)
+  for (const auto& [_, ptr_host] : temp_host->child_hosts) {
+    if (ptr_host == nullptr)
       continue;
     /* recurse... */
-    schedule_and_propagate_downtime(it->second, entry_time, author,
-                                    comment_data, start_time, end_time, fixed,
-                                    triggered_by, duration);
+    schedule_and_propagate_downtime(ptr_host, entry_time, author, comment_data,
+                                    start_time, end_time, fixed, triggered_by,
+                                    duration);
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
+        downtime::host_downtime, ptr_host->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }

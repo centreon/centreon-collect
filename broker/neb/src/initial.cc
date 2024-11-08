@@ -288,19 +288,15 @@ static void send_host_parents_list(neb_sender sender = neb::callback_relation) {
 
   try {
     // Loop through all hosts.
-    for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
-         end{com::centreon::engine::host::hosts.end()};
-         it != end; ++it) {
+    for (const auto& [_, sptr_host] : com::centreon::engine::host::hosts) {
       // Loop through all parents.
-      for (host_map_unsafe::iterator pit{it->second->parent_hosts.begin()},
-           pend{it->second->parent_hosts.end()};
-           pit != pend; ++pit) {
+      for (const auto& [_, sptr_host_parent] : sptr_host->parent_hosts) {
         // Fill callback struct.
         nebstruct_relation_data nsrd;
         memset(&nsrd, 0, sizeof(nsrd));
         nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.hst = pit->second;
-        nsrd.dep_hst = it->second.get();
+        nsrd.hst = sptr_host_parent.get();
+        nsrd.dep_hst = sptr_host.get();
 
         // Callback.
         sender(NEBTYPE_PARENT_ADD, &nsrd);
