@@ -63,7 +63,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",

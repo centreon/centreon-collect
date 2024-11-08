@@ -148,15 +148,11 @@ BEUTAG3
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
-    Sleep    1s
     ${start}    Get Current Date
     Ctn Start engine
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
@@ -190,6 +186,17 @@ BEUTAG4
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Resources Tags With Timeout    1    1    servicegroup    [4, 5]    60
+    IF    not ${result}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ${output}    Query    SELECT * FROM tags
+	Log To Console    tags content: ${output}
+        ${output}    Query    SELECT * FROM resources_tags
+	Log To Console    resources_tags content: ${output}
+        ${output}    Query    SELECT * FROM resources
+	Log To Console    resources content: ${output}
+        ${output}    Query    SELECT * FROM servicegroups
+	Log To Console    servicegroups content: ${output}
+    END
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag ids 4 and 5
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
     Should Be True    ${result}    Service (1, 3) should have servicegroup tag ids 4, 5
