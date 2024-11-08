@@ -3720,3 +3720,35 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
             logger.console("gRPC server not ready")
 
 
+def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
+    """
+    Delete a element in the file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        type (str): The type (host/service/...).
+        key (str): The parameter that will be deleted.
+        file (str): The file to delete the key from.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    
+    with open(filename, "r") as f:
+        content = f.read()
+
+    if type == "host":
+        pattern = rf"define host \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+    elif type == "service":
+        pattern = rf"define service \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+
+    # Use re.sub to remove the matched block
+    new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+    new_content = re.sub(r'\n\s*\n', '\n', new_content)
+
+    if content != new_content:
+        with open(filename, "w") as f:
+            f.write(new_content)
+    else:
+        logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
+
+    
+
