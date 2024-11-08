@@ -1,16 +1,15 @@
 ARG REGISTRY_URL=docker.io
-ARG CENTREON_VERSION
 
 FROM ${REGISTRY_URL}/almalinux:8
 
-ENV REPO_VERSION=${CENTREON_VERSION}
+ARG CENTREON_VERSION
 
 RUN bash -e <<EOF
 
 dnf install -y dnf-plugins-core zstd curl mariadb iproute procps lsof
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 dnf config-manager --set-enabled 'powertools'
-dnf -y config-manager --add-repo https://packages.centreon.com/rpm-standard/${REPO_VERSION}/el8/centreon-${REPO_VERSION}.repo
+dnf -y config-manager --add-repo https://packages.centreon.com/rpm-standard/${CENTREON_VERSION}/el8/centreon-${CENTREON_VERSION}.repo
 dnf -y clean all --enablerepo=*
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
