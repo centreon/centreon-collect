@@ -1,4 +1,9 @@
-FROM debian:bullseye
+ARG REGISTRY_URL=docker.io
+ARG CENTREON_VERSION
+
+FROM ${REGISTRY_URL}/debian:bullseye
+
+ENV REPO_VERSION=${CENTREON_VERSION}
 
 ENV DEBIAN_FRONTEND noninteractive
 # fix locale
@@ -18,7 +23,7 @@ localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 pip3 install robotframework robotframework-examples robotframework-databaselibrary \
 pymysql robotframework-requests robotframework-jsonlibrary
 
-lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-standard-24.11-unstable/ % main' | tee /etc/apt/sources.list.d/centreon.list
+lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-standard-${REPO_VERSION}-unstable/ % main' | tee /etc/apt/sources.list.d/centreon.list
 lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-plugins-stable/ % main' | tee /etc/apt/sources.list.d/centreon-plugins.list
 
 wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1

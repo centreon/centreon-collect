@@ -1,4 +1,9 @@
-FROM debian:bookworm
+ARG REGISTRY_URL=docker.io
+ARG CENTREON_VERSION
+
+FROM ${REGISTRY_URL}/debian:bookworm
+
+ENV REPO_VERSION=${CENTREON_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -19,7 +24,7 @@ robotframework robotframework-examples robotframework-databaselibrary \
 pymysql robotframework-requests robotframework-jsonlibrary
 
 # can't use \$() method it would be executed before the main script, and lsb_release would not be installed.
-lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-standard-24.11-unstable/ % main' | tee /etc/apt/sources.list.d/centreon.list
+lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-standard-${REPO_VERSION}-unstable/ % main' | tee /etc/apt/sources.list.d/centreon.list
 lsb_release -sc | xargs -I % sh  -c 'echo deb https://packages.centreon.com/apt-plugins-stable/ % main' | tee /etc/apt/sources.list.d/centreon-plugins.list
 
 wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
