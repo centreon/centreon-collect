@@ -80,6 +80,18 @@ void parser::parse(std::string const& path, State* pb_config, error_cnt& err) {
 
   // Apply template.
   _resolve_template(pb_config, err);
+  absl::flat_hash_map<std::string, uint64_t> hosts;
+
+  // host_id are set to services, configuration files do not provide the
+  // host_id.
+  for (const auto& h : pb_config->hosts()) {
+    hosts[h.host_name()] = h.host_id();
+  }
+  for (auto& s : *pb_config->mutable_services()) {
+    auto found = hosts.find(s.host_name());
+    if (found != hosts.end())
+      s.set_host_id(found->second);
+  }
 
   _cleanup(pb_config);
 }

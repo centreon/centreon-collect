@@ -1903,6 +1903,7 @@ void stream::_process_pb_instance_configuration(
               if (!_ehr_bind->bind(0))
                 _ehr_bind->init_from_stmt(0);
               auto* b = _ehr_bind->bind(0).get();
+              _logger_sql->debug("Enabling host_id: {}", h.host_id());
               b->set_value_as_u64(0, h.host_id());
               b->next_row();
             }
@@ -1911,20 +1912,21 @@ void stream::_process_pb_instance_configuration(
                 "Check if some statements are ready, ehr_bind connections "
                 "count = {}",
                 _ehr_bind->connections_count());
-            if (_ehr_bind->ready(0)) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} hosts in resources table",
-                                  _ehr_bind->size(0));
-              // Setting the good bind to the stmt
-              _ehr_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_ehr_update,
-                  database::mysql_error::update_hosts_resources_enabled, 0);
-            }
+
+            SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                "Enabling {} hosts in resources table",
+                                _ehr_bind->size(0));
+            // Setting the good bind to the stmt
+            _ehr_bind->apply_to_stmt(0);
+            // Executing the stmt
+            _mysql.run_statement(
+                *_ehr_update,
+                database::mysql_error::update_hosts_resources_enabled, 0);
             for (const auto& s : state.services()) {
               if (!_esr_bind->bind(0))
                 _esr_bind->init_from_stmt(0);
+              _logger_sql->debug("Enabling service ({}:{})", s.host_id(),
+                                 s.service_id());
               auto* b = _esr_bind->bind(0).get();
               b->set_value_as_u64(0, s.host_id());
               b->set_value_as_u64(1, s.service_id());
@@ -1935,17 +1937,16 @@ void stream::_process_pb_instance_configuration(
                 "Check if some statements are ready, esr_bind connections "
                 "count = {}",
                 _esr_bind->connections_count());
-            if (_esr_bind->ready(0)) {
-              SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                  "Enabling {} services in resources table",
-                                  _esr_bind->size(0));
-              // Setting the good bind to the stmt
-              _esr_bind->apply_to_stmt(0);
-              // Executing the stmt
-              _mysql.run_statement(
-                  *_esr_update,
-                  database::mysql_error::update_services_resources_enabled, 0);
-            }
+
+            SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                "Enabling {} services in resources table",
+                                _esr_bind->size(0));
+            // Setting the good bind to the stmt
+            _esr_bind->apply_to_stmt(0);
+            // Executing the stmt
+            _mysql.run_statement(
+                *_esr_update,
+                database::mysql_error::update_services_resources_enabled, 0);
           } else {
             for (const auto& h : state.hosts()) {
               _eh_update->bind_value_as_u64(0, h.host_id());

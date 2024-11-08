@@ -1690,7 +1690,7 @@ def ctn_get_service_index(host_id: int, service_id: int, timeout: int = 60):
                 my_id = [r['id'] for r in result]
                 if len(my_id) > 0:
                     logger.console(
-                            f"Index data {id} found for service {host_id}:{service_id}")
+                        f"Index data {id} found for service {host_id}:{service_id}")
                     return my_id[0]
                 time.sleep(2)
     logger.console(f"no index data found for service {host_id}:{service_id}")
@@ -1778,7 +1778,6 @@ def ctn_compare_metrics_of_service(service_id: int, metrics: list, timeout: int 
                 time.sleep(10)
     logger.console(f"no metric found for service_id={service_id}")
     return False
-
 
 
 def ctn_get_not_existing_metrics(count: int):
@@ -2082,14 +2081,16 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
                 start = dt - datetime.timedelta(days=nb_day)
                 start = int(start.timestamp())
-                logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
+                logger.console(
+                    f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
                 value = int(r['metric_id']) // 2
                 status_value = index_id % 3
                 cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                     r['metric_id'], start))
                 # We set the value to a constant on 180 days
                 now = int(now.timestamp())
-                logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                logger.console(
+                    f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
                 for i in range(start, now, 60 * 5):
                     if i == start:
                         logger.console(
@@ -2680,6 +2681,36 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resour
     return False
 
 
+def ctn_get_hosts_services_count(poller_id: int):
+    """
+    Get the number of hosts and services monitored by a poller.
+
+    Args:
+        poller_id: The poller ID.
+
+    Returns:
+        A tuple (number of hosts, number of services).
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id=0 AND enabled=1")
+            result = cursor.fetchone()
+            hosts = result['COUNT(*)']
+            cursor.execute(
+                f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id<>0 AND enabled=1")
+            result = cursor.fetchone()
+            services = result['COUNT(*)']
+            return (hosts, services)
+
+
 def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
     Get the log level of a given logger. The timeout is due to the way we ask
@@ -3047,6 +3078,7 @@ def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
 
     return encoded.str_arg
 
+
 def ctn_get_peers(port, timeout=TIMEOUT):
     """
     Get the list of peers from the broker.
@@ -3063,7 +3095,6 @@ def ctn_get_peers(port, timeout=TIMEOUT):
             try:
                 res = stub.GetPeers(empty_pb2.Empty())
                 return MessageToDict(res)
-                #return MessageToDict(res, including_default_value_fields=True)
+                # return MessageToDict(res, including_default_value_fields=True)
             except:
                 logger.console("gRPC server not ready")
-

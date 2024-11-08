@@ -929,6 +929,7 @@ BESS10
     ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller not visible in resources table (first connection)
 
+    ${hosts_services}    Ctn Get Hosts Services Count    1
     Ctn Restart Engine
 
     # For the second connection, Engine does not send its configuration, so the
@@ -936,5 +937,9 @@ BESS10
     ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller not visible in resources table (second connection)
 
+    Sleep    10s
+    ${new_hosts_services}    Ctn Get Hosts Services Count    1
+    Should Be Equal    ${hosts_services}    ${new_hosts_services}
+    ...    Hosts and services count should be the same before and after Engine restart
     Ctn Stop Engine
     Ctn Kindly Stop Broker

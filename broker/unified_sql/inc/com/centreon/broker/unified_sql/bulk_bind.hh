@@ -20,8 +20,7 @@
 
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 
-namespace com::centreon::broker {
-namespace unified_sql {
+namespace com::centreon::broker::unified_sql {
 /**
  * @class bulk_bind "com/centreon/broker/unified_sql/bulk_bind.hh"
  * @brief Container used for a multiline statement bind. It is threadsafe and
@@ -73,7 +72,8 @@ class bulk_bind {
             database::mysql_bulk_stmt& stmt,
             const std::shared_ptr<spdlog::logger>& logger);
   bulk_bind(const bulk_bind&) = delete;
-  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
   void apply_to_stmt(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
   bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
   std::size_t size(int32_t conn = -1) const ABSL_LOCKS_EXCLUDED(_queue_m);
@@ -83,7 +83,6 @@ class bulk_bind {
   void lock() ABSL_LOCKS_EXCLUDED(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 };
-}  // namespace unified_sql
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::unified_sql
 
 #endif /* !CCB_UNIFIED_SQL_BULK_BIND_HH */
