@@ -107,7 +107,7 @@ class grpc_config {
               const std::string& ca_name,
               bool compression,
               int second_keepalive_interval,
-              unsigned max_reconnect_backoff_ms)
+              unsigned second_max_reconnect_backoff)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -116,7 +116,7 @@ class grpc_config {
         _ca_name(ca_name),
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
-        _second_max_reconnect_backoff(max_reconnect_backoff_ms) {}
+        _second_max_reconnect_backoff(second_max_reconnect_backoff) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
