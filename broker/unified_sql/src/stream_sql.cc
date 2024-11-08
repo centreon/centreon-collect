@@ -1866,118 +1866,102 @@ void stream::_process_pb_instance_configuration(
             }
           }
         }
-        //        if (_store_in_resources) {
-        //          if (!_ehr_update) {
-        //            if (_bulk_prepared_statement) {
-        //              auto ehr = std::make_unique<database::mysql_bulk_stmt>(
-        //                  "UPDATE resources SET enabled=1 WHERE id=? AND
-        //                  parent_id=0");
-        //              _mysql.prepare_statement(*ehr);
-        //              _ehr_bind = std::make_unique<bulk_bind>(
-        //                  _dbcfg.get_connections_count(),
-        //                  dt_queue_timer_duration, _max_pending_queries, *ehr,
-        //                  _logger_sql);
-        //              _ehr_update = std::move(ehr);
-        //            } else {
-        //              _ehr_update = std::make_unique<database::mysql_stmt>(
-        //                  "UPDATE resources SET enabled=1 WHERE id=? AND
-        //                  parent_id=0");
-        //              _mysql.prepare_statement(*_ehr_update);
-        //            }
-        //          }
-        //          if (!_esr_update) {
-        //            if (_bulk_prepared_statement) {
-        //              auto esr = std::make_unique<database::mysql_bulk_stmt>(
-        //                  "UPDATE resources SET enabled=1 WHERE parent_id=?
-        //                  AND id=?");
-        //              _mysql.prepare_statement(*esr);
-        //              _esr_bind = std::make_unique<bulk_bind>(
-        //                  _dbcfg.get_connections_count(),
-        //                  dt_queue_timer_duration, _max_pending_queries, *esr,
-        //                  _logger_sql);
-        //              _esr_update = std::move(esr);
-        //            } else {
-        //              _esr_update = std::make_unique<database::mysql_stmt>(
-        //                  "UPDATE resources SET enabled=1 WHERE parent_id=?
-        //                  AND id=?");
-        //              _mysql.prepare_statement(*_esr_update);
-        //            }
-        //          }
-        //
-        //          if (_bulk_prepared_statement) {
-        //            {
-        //              std::lock_guard<bulk_bind> lck(*_ehr_bind);
-        //              for (const auto& h : state.hosts()) {
-        //                if (!_ehr_bind->bind(0))
-        //                  _ehr_bind->init_from_stmt(0);
-        //                auto* b = _ehr_bind->bind(0).get();
-        //                b->set_value_as_u64(0, h.host_id());
-        //                b->next_row();
-        //              }
-        //              SPDLOG_LOGGER_TRACE(
-        //                  _logger_sql,
-        //                  "Check if some statements are ready, ehr_bind
-        //                  connections " "count = {}",
-        //                  _ehr_bind->connections_count());
-        //              if (_ehr_bind->ready(0)) {
-        //                SPDLOG_LOGGER_DEBUG(_logger_sql,
-        //                                    "Enabling {} hosts in resources
-        //                                    table", _ehr_bind->size(0));
-        //                // Setting the good bind to the stmt
-        //                _ehr_bind->apply_to_stmt(0);
-        //                // Executing the stmt
-        //                _mysql.run_statement(
-        //                    *_ehr_update,
-        //                    database::mysql_error::update_hosts_resources_enabled,
-        //                    0);
-        //              }
-        //            }
-        //            {
-        //              std::lock_guard<bulk_bind> lck(*_esr_bind);
-        //              for (const auto& s : state.services()) {
-        //                if (!_esr_bind->bind(0))
-        //                  _esr_bind->init_from_stmt(0);
-        //                auto* b = _esr_bind->bind(0).get();
-        //                b->set_value_as_u64(0, s.host_id());
-        //                b->set_value_as_u64(1, s.service_id());
-        //                b->next_row();
-        //              }
-        //              SPDLOG_LOGGER_TRACE(
-        //                  _logger_sql,
-        //                  "Check if some statements are ready, esr_bind
-        //                  connections " "count = {}",
-        //                  _esr_bind->connections_count());
-        //              if (_esr_bind->ready(0)) {
-        //                SPDLOG_LOGGER_DEBUG(_logger_sql,
-        //                                    "Enabling {} services in resources
-        //                                    table", _esr_bind->size(0));
-        //                // Setting the good bind to the stmt
-        //                _esr_bind->apply_to_stmt(0);
-        //                // Executing the stmt
-        //                _mysql.run_statement(
-        //                    *_esr_update,
-        //                    database::mysql_error::update_services_resources_enabled,
-        //                    0);
-        //              }
-        //            }
-        //          } else {
-        //            for (const auto& h : state.hosts()) {
-        //              _eh_update->bind_value_as_u64(0, h.host_id());
-        //              _mysql.run_statement(
-        //                  *_eh_update,
-        //                  database::mysql_error::update_hosts_resources_enabled,
-        //                  0);
-        //            }
-        //            for (const auto& s : state.services()) {
-        //              _es_update->bind_value_as_u64(0, s.host_id());
-        //              _es_update->bind_value_as_u64(1, s.service_id());
-        //              _mysql.run_statement(
-        //                  *_es_update,
-        //                  database::mysql_error::update_services_resources_enabled,
-        //                  0);
-        //            }
-        //          }
-        //        }
+        if (_store_in_resources) {
+          if (!_ehr_update) {
+            if (_bulk_prepared_statement) {
+              auto ehr = std::make_unique<database::mysql_bulk_stmt>(
+                  "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0");
+              _mysql.prepare_statement(*ehr);
+              _ehr_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *ehr, _logger_sql);
+              _ehr_update = std::move(ehr);
+            } else {
+              _ehr_update = std::make_unique<database::mysql_stmt>(
+                  "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0");
+              _mysql.prepare_statement(*_ehr_update);
+            }
+          }
+          if (!_esr_update) {
+            if (_bulk_prepared_statement) {
+              auto esr = std::make_unique<database::mysql_bulk_stmt>(
+                  "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?");
+              _mysql.prepare_statement(*esr);
+              _esr_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *esr, _logger_sql);
+              _esr_update = std::move(esr);
+            } else {
+              _esr_update = std::make_unique<database::mysql_stmt>(
+                  "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?");
+              _mysql.prepare_statement(*_esr_update);
+            }
+          }
+
+          if (_bulk_prepared_statement) {
+            for (const auto& h : state.hosts()) {
+              if (!_ehr_bind->bind(0))
+                _ehr_bind->init_from_stmt(0);
+              auto* b = _ehr_bind->bind(0).get();
+              b->set_value_as_u64(0, h.host_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, ehr_bind connections "
+                "count = {}",
+                _ehr_bind->connections_count());
+            if (_ehr_bind->ready(0)) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} hosts in resources table",
+                                  _ehr_bind->size(0));
+              // Setting the good bind to the stmt
+              _ehr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_ehr_update,
+                  database::mysql_error::update_hosts_resources_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              if (!_esr_bind->bind(0))
+                _esr_bind->init_from_stmt(0);
+              auto* b = _esr_bind->bind(0).get();
+              b->set_value_as_u64(0, s.host_id());
+              b->set_value_as_u64(1, s.service_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, esr_bind connections "
+                "count = {}",
+                _esr_bind->connections_count());
+            if (_esr_bind->ready(0)) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} services in resources table",
+                                  _esr_bind->size(0));
+              // Setting the good bind to the stmt
+              _esr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_esr_update,
+                  database::mysql_error::update_services_resources_enabled, 0);
+            }
+          } else {
+            for (const auto& h : state.hosts()) {
+              _eh_update->bind_value_as_u64(0, h.host_id());
+              _mysql.run_statement(
+                  *_eh_update,
+                  database::mysql_error::update_hosts_resources_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              _es_update->bind_value_as_u64(0, s.host_id());
+              _es_update->bind_value_as_u64(1, s.service_id());
+              _mysql.run_statement(
+                  *_es_update,
+                  database::mysql_error::update_services_resources_enabled, 0);
+            }
+          }
+        }
       } catch (const std::exception& e) {
       }
     }

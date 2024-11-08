@@ -73,13 +73,13 @@ class bulk_bind {
             database::mysql_bulk_stmt& stmt,
             const std::shared_ptr<spdlog::logger>& logger);
   bulk_bind(const bulk_bind&) = delete;
-  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
-  void apply_to_stmt(int32_t conn);
+  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  void apply_to_stmt(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
   bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
-  std::size_t size(int32_t conn = -1) const;
-  std::time_t next_time() const;
-  std::size_t connections_count() const;
-  void init_from_stmt(int32_t conn);
+  std::size_t size(int32_t conn = -1) const ABSL_LOCKS_EXCLUDED(_queue_m);
+  std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
+  std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);
+  void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
   void lock() ABSL_LOCKS_EXCLUDED(_queue_m);
   void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 };
