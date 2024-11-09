@@ -90,4 +90,5 @@ target_link_libraries(
   absl::base
   absl::bits
   -L${PROTOBUF_LIB_DIR}
+  centreon_common
   protobuf)

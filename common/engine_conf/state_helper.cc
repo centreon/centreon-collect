@@ -492,4 +492,27 @@ bool state_helper::apply_extended_conf(
   }
   return retval;
 }
+
+/**
+ * @brief In Engine, the configuration::applier::state resolves many things on
+ * configuration objects. On Broker side, we don't have it yet. So this is why
+ * we have this helper to resolve some things on the State object, for example:
+ * - host_id on services
+ *
+ * @param pb_config
+ */
+void state_helper::resolve(State* pb_config) {
+  // In configuration files, host_id are not set to services. So we need to set
+  // them later.
+  absl::flat_hash_map<std::string, uint64_t> hosts;
+
+  for (const auto& h : pb_config->hosts()) {
+    hosts[h.host_name()] = h.host_id();
+  }
+  for (auto& s : *pb_config->mutable_services()) {
+    auto found = hosts.find(s.host_name());
+    if (found != hosts.end())
+      s.set_host_id(found->second);
+  }
+}
 }  // namespace com::centreon::engine::configuration
