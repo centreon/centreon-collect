@@ -19,7 +19,6 @@
 #ifndef CCB_CONFIG_ENDPOINT_HH
 #define CCB_CONFIG_ENDPOINT_HH
 
-#include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 

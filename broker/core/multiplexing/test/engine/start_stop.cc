@@ -33,7 +33,6 @@ const std::string MSG2("foo bar baz");
 const std::string MSG3("last message with qux");
 const std::string MSG4("no this is the last message");
 
-
 class StartStop : public testing::Test {
  public:
   void SetUp() override {

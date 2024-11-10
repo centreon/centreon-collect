@@ -22,10 +22,7 @@
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 
-namespace com::centreon::broker {
-
-namespace config {
-namespace applier {
+namespace com::centreon::broker::config::applier {
 /**
  *  @class state state.hh "com/centreon/broker/config/applier/state.hh"
  *  @brief Apply a configuration.
@@ -78,9 +75,6 @@ class state {
   static stats& mut_stats_conf();
   static const stats& stats_conf();
 };
-}  // namespace applier
-}  // namespace config
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::config::applier
 
 #endif  // !CCB_CONFIG_APPLIER_STATE_HH

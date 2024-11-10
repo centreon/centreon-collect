@@ -958,6 +958,140 @@ std::list<std::string> stream::get_running_config() {
 }
 
 /**
+ * @brief Handle a BBDO event. Events of category io::bbdo are the guardians of
+ * BBDO messages. These messages are used by the protocol itself and are always
+ * prioritized.
+ *
+ * @param d The event to handle.
+ */
+void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
+  switch (d->type()) {
+    case version_response::static_type(): {
+      auto version(std::static_pointer_cast<version_response>(d));
+      if (version->bbdo_major != _bbdo_version.major_v) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
+            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+        throw msg_fmt(
+            "BBDO: peer is using protocol version {}.{}.{} "
+            "whereas we're using protocol version {}.{}.{}",
+            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: peer is using protocol version {}.{}.{} , we're using "
+          "version "
+          "{}.{}.{}",
+          version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+
+      break;
+    }
+    case pb_welcome::static_type(): {
+      auto welcome(std::static_pointer_cast<pb_welcome>(d));
+      const auto& pb_version = welcome->obj().version();
+      if (pb_version.major() != _bbdo_version.major_v) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+        throw msg_fmt(
+            "BBDO: peer is using protocol version {}.{}.{} "
+            "whereas we're using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: peer is using protocol version {}.{}.{} , we're using "
+          "version "
+          "{}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      break;
+    }
+    case ack::static_type():
+      SPDLOG_LOGGER_INFO(
+          _logger, "BBDO: received acknowledgement for {} events",
+          std::static_pointer_cast<const ack>(d)->acknowledged_events);
+      acknowledge_events(
+          std::static_pointer_cast<const ack>(d)->acknowledged_events);
+      break;
+    case pb_ack::static_type():
+      SPDLOG_LOGGER_INFO(_logger,
+                         "BBDO: received pb acknowledgement for {} events",
+                         std::static_pointer_cast<const pb_ack>(d)
+                             ->obj()
+                             .acknowledged_events());
+      acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
+                             ->obj()
+                             .acknowledged_events());
+      break;
+    case stop::static_type():
+    case pb_stop::static_type(): {
+      SPDLOG_LOGGER_INFO(
+          _logger, "BBDO: received stop from peer with ID {}",
+          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
+      send_event_acknowledgement();
+      /* Now, we send a local::pb_stop to ask unified_sql to update the
+       * database since the poller is going away. */
+      auto loc_stop = std::make_shared<local::pb_stop>();
+      auto& obj = loc_stop->mut_obj();
+      obj.set_poller_id(
+          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
+      multiplexing::publisher pblshr;
+      pblshr.write(loc_stop);
+    } break;
+    default:
+      break;
+  }
+}
+
+/**
+ * @brief Wait for a BBDO event (category io::bbdo) of a specific type. While
+ * received events are of category io::bbdo, they are handled as usual, and when
+ * the expected event is received, it is returned. The expected event is not
+ * handled.
+ *
+ * @param expected_type The expected type of the event.
+ * @param d The event that was received with the expected type.
+ * @param deadline The deadline in seconds.
+ *
+ * @return true if the expected event was received before the deadline, false
+ * otherwise.
+ */
+bool stream::_wait_for_bbdo_event(uint32_t expected_type,
+                                  std::shared_ptr<io::data>& d,
+                                  time_t deadline) {
+  for (;;) {
+    bool timed_out = !_read_any(d, deadline);
+    uint32_t event_id = !d ? 0 : d->type();
+    if (timed_out || (event_id >> 16) != io::bbdo)
+      return false;
+
+    if (event_id == expected_type)
+      return true;
+
+    _handle_bbdo_event(d);
+
+    // Control messages.
+    SPDLOG_LOGGER_DEBUG(
+        _logger,
+        "BBDO: event with ID {} was a control message, launching recursive "
+        "read",
+        event_id);
+  }
+
+  return false;
+}
+
+/**
  *  Read data from stream.
  *
  *  @param[out] d         Next available event.
@@ -971,100 +1105,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   // Read event.
   d.reset();
 
-  bool timed_out(!_read_any(d, deadline));
-  uint32_t event_id(!d ? 0 : d->type());
+  bool timed_out = !_read_any(d, deadline);
+  uint32_t event_id = !d ? 0 : d->type();
 
-  while (!timed_out && ((event_id >> 16) == io::bbdo)) {
-    switch (event_id) {
-      case version_response::static_type(): {
-        auto version(std::static_pointer_cast<version_response>(d));
-        if (version->bbdo_major != _bbdo_version.major_v) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-              "using protocol version {}.{}.{}",
-              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-          throw msg_fmt(
-              "BBDO: peer is using protocol version {}.{}.{} "
-              "whereas we're using protocol version {}.{}.{}",
-              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-        }
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{} , we're using "
-            "version "
-            "{}.{}.{}",
-            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
-
-        break;
-      }
-      case pb_welcome::static_type(): {
-        auto welcome(std::static_pointer_cast<pb_welcome>(d));
-        const auto& pb_version = welcome->obj().version();
-        if (pb_version.major() != _bbdo_version.major_v) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-              "using protocol version {}.{}.{}",
-              pb_version.major(), pb_version.minor(), pb_version.patch(),
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-          throw msg_fmt(
-              "BBDO: peer is using protocol version {}.{}.{} "
-              "whereas we're using protocol version {}.{}.{}",
-              pb_version.major(), pb_version.minor(), pb_version.patch(),
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-        }
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{} , we're using "
-            "version "
-            "{}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
-        break;
-      }
-      case ack::static_type():
-        SPDLOG_LOGGER_INFO(
-            _logger, "BBDO: received acknowledgement for {} events",
-            std::static_pointer_cast<const ack>(d)->acknowledged_events);
-        acknowledge_events(
-            std::static_pointer_cast<const ack>(d)->acknowledged_events);
-        break;
-      case pb_ack::static_type():
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: received pb acknowledgement for {} events",
-                           std::static_pointer_cast<const pb_ack>(d)
-                               ->obj()
-                               .acknowledged_events());
-        acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
-                               ->obj()
-                               .acknowledged_events());
-        break;
-      case stop::static_type():
-      case pb_stop::static_type(): {
-        SPDLOG_LOGGER_INFO(
-            _logger, "BBDO: received stop from peer with ID {}",
-            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-        send_event_acknowledgement();
-        /* Now, we send a local::pb_stop to ask unified_sql to update the
-         * database since the poller is going away. */
-        auto loc_stop = std::make_shared<local::pb_stop>();
-        auto& obj = loc_stop->mut_obj();
-        obj.set_poller_id(
-            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-        multiplexing::publisher pblshr;
-        pblshr.write(loc_stop);
-      } break;
-      default:
-        break;
-    }
+  while (!timed_out && (event_id >> 16) == io::bbdo) {
+    _handle_bbdo_event(d);
 
     // Control messages.
     SPDLOG_LOGGER_DEBUG(
@@ -1388,9 +1433,12 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
     std::shared_ptr<io::raw> serialized(serialize(*d));
     if (serialized) {
       SPDLOG_LOGGER_TRACE(_logger,
-                          "BBDO: serialized event of type {} to {} bytes",
+                          "BBDO: serialized event of type {:x} to {} bytes",
                           d->type(), serialized->size());
       _substream->write(serialized);
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "BBDO: cannot serialize event of type {:x}",
+                          d->type());
     }
   } else
     _substream->write(d);

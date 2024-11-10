@@ -21,7 +21,6 @@
 
 #include <absl/types/optional.h>
 
-
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -36,7 +35,8 @@ namespace com::centreon::broker::config {
 class parser {
   void _get_generic_endpoint_configuration(const nlohmann::json& elem,
                                            endpoint& e);
-  void _parse_endpoint(const nlohmann::json& elem, endpoint& e,
+  void _parse_endpoint(const nlohmann::json& elem,
+                       endpoint& e,
                        std::string& module);
 
  public:

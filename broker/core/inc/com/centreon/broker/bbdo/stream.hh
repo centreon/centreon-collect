@@ -158,9 +158,15 @@ class stream : public io::stream {
 
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
+  void _handle_bbdo_event(const std::shared_ptr<io::data>& d);
+  bool _wait_for_bbdo_event(uint32_t expected_type,
+                            std::shared_ptr<io::data>& d,
+                            time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
+  /* Name of the peer poller */
   std::string _poller_name;
+  /* ID of the peer poller */
   uint64_t _poller_id = 0u;
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,
