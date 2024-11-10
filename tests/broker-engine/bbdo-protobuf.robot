@@ -222,10 +222,11 @@ BEPBINST_CONF
     Ctn Config Broker    central
     Ctn Config BBDO3    ${1}
     Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    core    trace
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List    muxer centreon-broker-master-rrd event of type 10036 pushed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30

@@ -187,9 +187,9 @@ BAEOK
     Ctn Broker Config Log    central    core    error
     Ctn Start Broker
 
-    ${encrypted}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    The content to encode
+    ${encrypted}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    The content to encode
     log to console    Encrypted: ${encrypted}
-    ${final}    Aes Decrypt    51001    ${AppSecret}    ${Salt}    ${encrypted}
+    ${final}    Ctn Aes Decrypt    51001    ${AppSecret}    ${Salt}    ${encrypted}
     log to console    Final: ${final}
     Should Be Equal    ${final}    The content to encode
     ...    AES Encrypting/Decrypting does not return the initial content.
@@ -204,10 +204,10 @@ BAEBS
     Ctn Broker Config Log    central    core    error
     Ctn Start Broker
 
-    ${encrypted}    Aes Encrypt    51001    AppSecret    Sé\èalt    The content to encrypt
+    ${encrypted}    Ctn Aes Encrypt    51001    AppSecret    Sé\èalt    The content to encrypt
     Should Be Equal    ${encrypted}    This string 'Séèalt' contains characters not legal in a base64 encoded string.
     ...    We should have an RPC error during encoding.
-    ${final}    Aes Decrypt    51001    AppSecret    Sé\èalt    ${encrypted}
+    ${final}    Ctn Aes Decrypt    51001    AppSecret    Sé\èalt    ${encrypted}
     Should Be Equal    ${final}    This string 'Séèalt' contains characters not legal in a base64 encoded string.
     ...    We should have an RPC error during decoding.
     Ctn Kindly Stop Broker
@@ -221,7 +221,7 @@ BAEBC
     Ctn Broker Config Log    central    core    error
     Ctn Start Broker
 
-    ${final}    Aes Decrypt    51001    ${AppSecret}    Salt    Strange content to decrypt
+    ${final}    Ctn Aes Decrypt    51001    ${AppSecret}    Salt    Strange content to decrypt
     Should Be Equal    ${final}    The content is not AES256 encrypted
     ...    We should have an RPC error during decoding.
     Ctn Kindly Stop Broker
@@ -238,8 +238,8 @@ BAV
     Ctn Config BBDO3    0
     Ctn Start Broker
 
-    ${encrypted_role_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
-    ${encrypted_secret_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
+    ${encrypted_role_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
+    ${encrypted_secret_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
 
     Ctn Kindly Stop Broker
 
@@ -287,8 +287,8 @@ BASV
     Ctn Config BBDO3    0
     Ctn Start Broker
 
-    ${encrypted_role_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
-    ${encrypted_secret_id}    Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
+    ${encrypted_role_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
+    ${encrypted_secret_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
 
     Ctn Kindly Stop Broker
 

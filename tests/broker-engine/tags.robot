@@ -148,15 +148,11 @@ BEUTAG3
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
-    Sleep    1s
     ${start}    Get Current Date
     Ctn Start engine
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
@@ -164,7 +160,10 @@ BEUTAG3
     Should Be True    ${result}    tag1 should be of type 0
 
 BEUTAG4
-    [Documentation]    Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
+    [Documentation]    Engine is configured with some tags.
+    ...    Group tags tag9, tag13 are set to services 1 and 3.
+    ...    Category tags tag3 and tag11 are added to services 1, 3, 5 and 6.
+    ...    The centreon_storage.resources and resources_tags tables are well filled.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
     # Clear Db    tags
     Ctn Config Engine    ${1}
@@ -182,15 +181,22 @@ BEUTAG4
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start engine
-    Sleep    1s
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Resources Tags With Timeout    1    1    servicegroup    [4, 5]    60
+    IF    not ${result}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ${output}    Query    SELECT * FROM tags
+	Log To Console    tags content: ${output}
+        ${output}    Query    SELECT * FROM resources_tags
+	Log To Console    resources_tags content: ${output}
+        ${output}    Query    SELECT * FROM resources
+	Log To Console    resources content: ${output}
+        ${output}    Query    SELECT * FROM servicegroups
+	Log To Console    servicegroups content: ${output}
+    END
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag ids 4 and 5
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
     Should Be True    ${result}    Service (1, 3) should have servicegroup tag ids 4, 5
@@ -221,10 +227,7 @@ BEUTAG5
     Ctn Start engine
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}	  ${1}
 
     ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 1 should have hostgroup tags 2 and 3
