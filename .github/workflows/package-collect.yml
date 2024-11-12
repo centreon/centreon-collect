@@ -223,7 +223,7 @@ jobs:
         run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
-      - if: ${{ false }}
+      - if: ${{ true }}
         name: Upload package artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
