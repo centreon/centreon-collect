@@ -1,21 +1,27 @@
 ARG REGISTRY_URL=docker.io
+ARG VERSION
 
 FROM ${REGISTRY_URL}/almalinux:8
 
-ARG CENTREON_VERSION
+ARG VERSION
+ARG IS_CLOUD
 
-RUN bash -e <<EOF
+RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
+    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    bash -e <<EOF
 
 dnf install -y dnf-plugins-core zstd curl mariadb iproute procps lsof
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 dnf config-manager --set-enabled 'powertools'
-if curl --head --silent --fail "https://packages.centreon.com/rpm-standard/${CENTREON_VERSION}/el8/centreon-${CENTREON_VERSION}.repo" > /dev/null; then
-    internal_repo=""
+
+if [[ "${IS_CLOUD}" == "true" ]]; then
+  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el8/centreon-${VERSION}-internal.repo
+  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
 else
-    internal_repo="-internal"
+  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el8/centreon-${VERSION}.repo
 fi
-dnf -y config-manager --add-repo https://packages.centreon.com/rpm-standard$internal_repo/${CENTREON_VERSION}/el8/centreon-${CENTREON_VERSION}.repo
-dnf -y clean all --enablerepo=*
+dnf config-manager --set-enabled 'centreon*'
+
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
 
