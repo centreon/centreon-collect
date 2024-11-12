@@ -133,7 +133,6 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
 
   test-gorgone:
-    if: false
     needs: [get-environment, package]
 
     strategy:
