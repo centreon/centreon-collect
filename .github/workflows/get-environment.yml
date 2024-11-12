@@ -39,9 +39,6 @@ on:
       test_img_version:
         description: "test docker image version (checksum of database sql, script and dockerfiles)"
         value: ${{ jobs.get-environment.outputs.test_img_version }}
-      gorgone_docker_version:
-        description: "md5 of gorgone dockerfile"
-        value: ${{ jobs.get-environment.outputs.gorgone_docker_version }}
 
 jobs:
   get-environment:
@@ -58,7 +55,6 @@ jobs:
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       img_version: ${{ steps.get_docker_images_version.outputs.img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
-      gorgone_docker_version: ${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}
 
     steps:
       - name: Checkout sources (current branch)
@@ -239,9 +235,6 @@ jobs:
           TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
 
-          GORGONE_DOCKER_VERSION=$(cat .github/docker/Dockerfile.gorgone-testing-* | md5sum | cut -c1-8)
-          echo "gorgone_docker_version=$GORGONE_DOCKER_VERSION" >> $GITHUB_OUTPUT
-
       - name: Display info in job summary
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         env:
@@ -260,7 +253,6 @@ jobs:
               ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
               ['img_version', '${{ steps.get_docker_images_version.outputs.img_version }}'],
               ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
-              ['gorgone_docker_version', '${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}'],
             ];
 
             outputTable.push(['target_stability', '${{ steps.get_stability.outputs.target_stability || '<em>not defined because current run is not triggered by pull request event</em>' }}']);
