@@ -17,12 +17,15 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include <absl/synchronization/mutex.h>
+#include <absl/time/time.h>
+#include <fmt/format.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
-#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -255,20 +258,22 @@ const config::applier::state::stats& state::stats_conf() {
  * @param poller_id The id of the poller (an id by host)
  * @param poller_name The name of the poller
  */
-void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+void state::add_peer(uint64_t poller_id,
+                     const std::string& poller_name,
+                     common::PeerType peer_type) {
+  absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end()) {
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found == _connected_peers.end()) {
     logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
-    _connected_pollers[poller_id] = poller_name;
   } else {
     logger->warn(
-        "Poller '{}' with id {} already known as connected. Replacing it "
-        "with '{}'",
-        _connected_pollers[poller_id], poller_id, poller_name);
-    found->second = poller_name;
+        "Poller '{}' with id {} already known as connected. Replacing it.",
+        poller_name, poller_id);
+    _connected_peers.erase(found);
   }
+  _connected_peers[{poller_id, poller_name, peer_type}] = peer{
+      poller_id, poller_name, time(nullptr), peer_type};
 }
 
 /**
@@ -276,16 +281,23 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
  *
  * @param poller_id The id of the poller to remove.
  */
-void state::remove_poller(uint64_t poller_id) {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+void state::remove_peer(uint64_t poller_id,
+                        const std::string& poller_name,
+                        common::PeerType peer_type) {
+  absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_pollers.find(poller_id);
-  if (found == _connected_pollers.end())
-    logger->warn("There is currently no poller {} connected", poller_id);
-  else {
-    logger->info("Poller '{}' with id {} just disconnected",
-                 _connected_pollers[poller_id], poller_id);
-    _connected_pollers.erase(found);
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end()) {
+    logger->info(
+        "Peer '{}' with id {} and type '{}' disconnected", poller_name,
+        poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
+    _connected_peers.erase(found);
+  } else {
+    logger->warn(
+        "Peer '{}' with id {} and type '{}' not found in connected peers",
+        poller_name, poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
   }
 }
 
@@ -295,6 +307,22 @@ void state::remove_poller(uint64_t poller_id) {
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  std::lock_guard<std::mutex> lck(_connected_pollers_m);
-  return _connected_pollers.contains(poller_id);
+  absl::MutexLock lck(&_connected_peers_m);
+  for (auto& p : _connected_peers)
+    if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
+      return true;
+  return false;
+}
+
+/**
+ * @brief Get the list of connected pollers.
+ *
+ * @return A vector of pairs containing the poller id and the poller name.
+ */
+std::vector<state::peer> state::connected_peers() const {
+  absl::MutexLock lck(&_connected_peers_m);
+  std::vector<peer> retval;
+  for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
+    retval.push_back(it->second);
+  return retval;
 }

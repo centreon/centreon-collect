@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "common.pb.h"
 
 namespace com::centreon::broker::config::applier {
 /**
@@ -36,6 +37,14 @@ class state {
     uint32_t sql_slowest_queries_count = false;
   };
 
+  struct peer {
+    uint64_t poller_id;
+    std::string name;
+    time_t connected_since;
+    /* Is it a broker, an engine, a map or an unknown peer? */
+    common::PeerType peer_type;
+  };
+
  private:
   std::string _cache_dir;
   uint32_t _poller_id;
@@ -47,8 +56,9 @@ class state {
 
   static stats _stats_conf;
 
-  absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
-  mutable std::mutex _connected_pollers_m;
+  absl::flat_hash_map<std::tuple<uint64_t, std::string, common::PeerType>, peer>
+      _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
+  mutable absl::Mutex _connected_peers_m;
 
   state(const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
@@ -69,11 +79,20 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
-  void add_poller(uint64_t poller_id, const std::string& poller_name);
-  void remove_poller(uint64_t poller_id);
-  bool has_connection_from_poller(uint64_t poller_id) const;
+  void add_peer(uint64_t poller_id,
+                const std::string& poller_name,
+                common::PeerType peer_type)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void remove_peer(uint64_t poller_id,
+                   const std::string& poller_name,
+                   common::PeerType peer_type)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool has_connection_from_poller(uint64_t poller_id) const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   static stats& mut_stats_conf();
   static const stats& stats_conf();
+  std::vector<peer> connected_peers() const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 };
 }  // namespace com::centreon::broker::config::applier
 

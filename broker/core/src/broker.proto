@@ -1,7 +1,9 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "process_stat.proto";
+import "common.proto";
 
 package com.centreon.broker;
 
@@ -93,6 +95,19 @@ service Broker {
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
   rpc Aes256Encrypt(AesMessage) returns (GenericString) {}
   rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
+
+  rpc GetPeers(google.protobuf.Empty) returns (PeerList) {}
+}
+
+message PeerList {
+  repeated Peer peers = 1;
+}
+
+message Peer {
+  uint32 id = 1;
+  string name = 2;
+  google.protobuf.Timestamp connected_since = 3;
+  common.PeerType type = 4;
 }
 
 message AesMessage {

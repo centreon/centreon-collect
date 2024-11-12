@@ -21,15 +21,12 @@
 #include <cerrno>
 #include <chrono>
 #include <clocale>
-#include <condition_variable>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
-#include <deque>
 #include <exception>
-#include <forward_list>
-#include <future>
 #include <thread>
+#include "bbdo/common.pb.h"
 
 #include <absl/synchronization/mutex.h>
 
@@ -39,6 +36,7 @@
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
+using namespace com::centreon;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
@@ -60,13 +58,13 @@ namespace asio = boost::asio;
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
+using log_v2 = common::log_v2::log_v2;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
-
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
