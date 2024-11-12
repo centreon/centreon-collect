@@ -553,10 +553,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
       static const rapidjson::Value no_arg;
       args = &no_arg;
     }
-#ifdef _WINDOWS
-    throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
-                              cmd_line);
-#else
     if (check_type == "cpu_percentage"sv) {
       return std::make_shared<check_cpu>(
           io_context, logger, first_start_expected, check_interval, service,
@@ -565,8 +561,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
                                 cmd_line);
     }
-#endif
-
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,
                             check_interval, service, cmd_name, cmd_line, conf,
