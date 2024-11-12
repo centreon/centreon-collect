@@ -203,7 +203,6 @@ EBPN2
     Ctn Add Parent To Host    0    host_2    host_1
 
     ${start}    Get Current Date
-    Ctn Clear Retention
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}

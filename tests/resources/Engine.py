@@ -24,6 +24,7 @@ import grpc
 import math
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.json_format import MessageToDict
 import engine_pb2
 import engine_pb2_grpc
 import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2
@@ -3750,5 +3751,28 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
     else:
         logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
 
-    
+def ctn_get_host_info_grpc(id:int):
+    """
+    Retrieve host information via a gRPC call.
+
+    Args:
+        id: The identifier of the host to retrieve.
+
+    Returns:
+        A dictionary containing the host informations, if successfully retrieved.
+    """
+    if id is not None:
+        limit = time.time() + 30
+        while time.time() < limit:
+            time.sleep(1)
+            with grpc.insecure_channel("127.0.0.1:50001") as channel:
+                stub = engine_pb2_grpc.EngineStub(channel)
+                request = engine_pb2.HostIdentifier(id=id)
+                try:
+                    host = stub.GetHost(request)
+                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                    return host_dict
+                except Exception as e:
+                    logger.console(f"gRPC server not ready {e}")
+    return {}
 
