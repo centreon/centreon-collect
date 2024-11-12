@@ -46,9 +46,11 @@ add_library("${SIMU}" SHARED
 )
 add_dependencies(${SIMU}
 	pb_neb_lib
+	pb_common_lib
 	pb_header_lib
 	pb_storage_lib
 	pb_bam_lib
+	pb_bam_state_lib
 	pb_open_telemetry_lib)
 
 target_link_libraries("${SIMU}" ${LUA_LIBRARIES} spdlog::spdlog)

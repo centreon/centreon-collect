@@ -228,7 +228,7 @@ for directory in args.proto_directory:
                     print(
                         f"generate_proto.py : Error: Message {{ {m.group(1)} }} has no protobuf id or missing the comment /* Ignore */ : file :{file}:{line_counter}", file=sys.stderr)
                     print(
-                        f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state*/", file=sys.stderr)
+                        f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state, XXX */", file=sys.stderr)
                     exit(1)
 
         if len(messages) > 0:
