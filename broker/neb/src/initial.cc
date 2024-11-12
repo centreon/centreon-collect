@@ -430,12 +430,6 @@ static void send_pb_instance_configuration() {
   neb::gl_publisher.write(ic);
 }
 
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
-
 /**
  *  Send initial configuration to the global publisher.
  */
@@ -452,12 +446,6 @@ void neb::send_initial_configuration() {
   send_service_group_list();
   send_instance_configuration();
 }
-
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
 
 /**
  *  Send initial configuration to the global publisher.

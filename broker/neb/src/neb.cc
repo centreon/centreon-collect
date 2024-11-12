@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
 #include <clocale>
 #include <csignal>
 
@@ -25,12 +27,12 @@
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using com::centreon::common::log_v2::log_v2;
+namespace po = boost::program_options;
 
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
@@ -87,7 +89,7 @@ int nebmodule_deinit(int flags, int reason) {
  *
  *  @return 0 on success, any other value on failure.
  */
-int nebmodule_init(int flags, char const* args, void* handle) {
+int nebmodule_init(int flags, const char* args, void* handle) {
   neb_logger = log_v2::instance().get(log_v2::NEB);
 
   try {
@@ -120,19 +122,33 @@ int nebmodule_init(int flags, char const* args, void* handle) {
 
     try {
       // Set configuration file.
-      if (args) {
-        char const* config_file("config_file=");
-        size_t config_file_size(strlen(config_file));
-        if (!strncmp(args, config_file, config_file_size))
-          args += config_file_size;
-        neb::gl_configuration_file = args;
-      } else
+      if (!args)
+        throw msg_fmt("main: no configuration file provided");
+
+      // Declare the supported options.
+      po::options_description desc("Allowed options");
+      desc.add_options()  // list of options
+          ("config_file,c", po::value<std::string>(),
+           "set the module JSON configuration file");  // 1st option
+      po::positional_options_description pos;
+      // The first positional argument is interpreted as config_file, this is
+      // useful because currently the wui configure cbmod like this.
+      pos.add("config_file", 1);
+      std::vector<std::string> av = po::split_unix(args);
+      po::variables_map vm;
+      po::store(po::command_line_parser(av).options(desc).positional(pos).run(),
+                vm);
+      po::notify(vm);
+
+      std::string configuration_file;
+      if (vm.count("config_file"))
+        configuration_file = vm["config_file"].as<std::string>();
+      else
         throw msg_fmt("main: no configuration file provided");
 
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
-      com::centreon::broker::config::state s{
-          p.parse(neb::gl_configuration_file)};
+      com::centreon::broker::config::state s{p.parse(configuration_file)};
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
