@@ -74,9 +74,6 @@ jobs:
           - package_extension: deb
             image: packaging-nfpm-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: packaging-nfpm-jammy
-            distrib: jammy
 
     runs-on: ubuntu-24.04
 
@@ -146,9 +143,6 @@ jobs:
           - package_extension: rpm
             image: gorgone-testing-alma9
             distrib: el9
-          - package_extension: deb
-            image: gorgone-testing-jammy
-            distrib: jammy
           - package_extension: deb
             image: gorgone-testing-bookworm
             distrib: bookworm
