@@ -151,7 +151,7 @@ add_library(
   "storage/status.hh")
 set_target_properties(bbdo_storage PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_storage REUSE_FROM bbdo_bbdo)
-add_dependencies(bbdo_storage table_max_size)
+add_dependencies(bbdo_storage table_max_size pb_storage_lib)
 add_library(
   bbdo_bam STATIC
   "bam/ba_duration_event.cc"
