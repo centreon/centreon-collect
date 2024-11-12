@@ -165,11 +165,11 @@ class stream : public io::stream {
                             time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
-  /* Name of the peer poller */
+  /* Name of the peer poller: used since BBDO 3.0.1 */
   std::string _poller_name;
-  /* ID of the peer poller */
+  /* ID of the peer poller: used since BBDO 3.0.1 */
   uint64_t _poller_id = 0u;
-  /* Type of the peer */
+  /* Type of the peer: used since BBDO 3.0.1 */
   common::PeerType _peer_type = common::UNKNOWN;
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,

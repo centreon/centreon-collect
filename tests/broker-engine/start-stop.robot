@@ -67,12 +67,22 @@ BESS2U
     Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+    &{result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    ${length}    Get Length    ${result['peers']}
+    Should Be Equal As Integers    ${length}    2
+    ...    Engine and Broker RRD should be connected to Broker Central
     Ctn Stop Engine
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
+    &{result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    ${length}    Get Length    ${result['peers']}
+    Should Be Equal As Integers    ${length}    1
+    ...    RRD Broker should be still connected to Broker Central
     Ctn Kindly Stop Broker
 
 BESS3

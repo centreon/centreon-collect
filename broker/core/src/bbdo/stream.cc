@@ -627,8 +627,9 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  config::applier::state::instance().remove_peer(_poller_id, _poller_name,
-                                                 _peer_type);
+  if (_poller_id && !_poller_name.empty())
+    config::applier::state::instance().remove_peer(_poller_id, _poller_name,
+                                                   _peer_type);
   return retval;
 }
 
@@ -944,8 +945,11 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_peer(
-      _poller_id, _poller_name, _peer_type);
+  /* With old BBDO, we don't have poller_id nor poller name available. */
+  if (_poller_id > 0 && !_poller_name.empty()) {
+    config::applier::state::instance().add_peer(_poller_id, _poller_name,
+                                                _peer_type);
+  }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 

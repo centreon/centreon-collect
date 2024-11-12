@@ -261,6 +261,7 @@ const config::applier::state::stats& state::stats_conf() {
 void state::add_peer(uint64_t poller_id,
                      const std::string& poller_name,
                      common::PeerType peer_type) {
+  assert(poller_id && !poller_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, peer_type});
@@ -272,8 +273,8 @@ void state::add_peer(uint64_t poller_id,
         poller_name, poller_id);
     _connected_peers.erase(found);
   }
-  _connected_peers[{poller_id, poller_name, peer_type}] = peer{
-      poller_id, poller_name, time(nullptr), peer_type};
+  _connected_peers[{poller_id, poller_name, peer_type}] =
+      peer{poller_id, poller_name, time(nullptr), peer_type};
 }
 
 /**
@@ -284,6 +285,7 @@ void state::add_peer(uint64_t poller_id,
 void state::remove_peer(uint64_t poller_id,
                         const std::string& poller_name,
                         common::PeerType peer_type) {
+  assert(poller_id && !poller_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, peer_type});
