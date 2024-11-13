@@ -42,6 +42,7 @@ service Engine {
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
+  rpc GetTag(TagIdentifier) returns (EngineTag) {}
   rpc GetContactGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetHostGroupsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServiceDependenciesCount(google.protobuf.Empty)
@@ -702,6 +703,23 @@ message EngineContactGroup {
   string name = 1;
   string alias = 2;
   repeated string members = 3;
+}
+
+message TagIdentifier {
+  uint64 id = 1;
+  uint32 type = 2;
+}
+
+message EngineTag {
+  enum TagType {
+    SERVICEGROUP = 0;
+    HOSTGROUP = 1;
+    SERVICECATEGORY = 2;
+    HOSTCATEGORY = 3;
+  }
+  uint64 id = 1;
+  TagType type = 2;
+  string name = 3;
 }
 
 message EngineComment {
