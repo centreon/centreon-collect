@@ -1,6 +1,3 @@
-ARG REGISTRY_URL=docker.io
-ARG VERSION
-
 FROM ${REGISTRY_URL}/almalinux:9
 
 ARG VERSION
