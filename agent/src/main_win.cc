@@ -23,9 +23,16 @@
 #include <spdlog/sinks/win_eventlog_sink.h>
 
 #include "config.hh"
-#include "native_drive_size.hh"
+#include "drive_size.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
+
+namespace com::centreon::agent::check_drive_size_detail {
+
+std::list<fs_stat> os_fs_stats(filter& filter,
+                               const std::shared_ptr<spdlog::logger>& logger);
+
+}
 
 using namespace com::centreon::agent;
 
@@ -118,6 +125,10 @@ int _main(bool service_start) {
     return 1;
   }
 
+  // init os specific drive_size getter
+  check_drive_size_detail::drive_size_thread::os_fs_stats =
+      check_drive_size_detail::os_fs_stats;
+
   if (service_start)
     SPDLOG_INFO("centreon-monitoring-agent service start");
   else
@@ -200,8 +211,8 @@ int _main(bool service_start) {
     return -1;
   }
 
-  // kill native_drive_size thread if used
-  native_drive_size::thread_kill();
+  // kill check_drive_size thread if used
+  check_drive_size::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 

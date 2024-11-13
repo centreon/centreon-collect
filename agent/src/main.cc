@@ -21,7 +21,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "config.hh"
-#include "native_drive_size.hh"
+#include "drive_size.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
 
@@ -197,8 +197,8 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  // kill native_drive_size thread if used
-  native_drive_size::thread_kill();
+  // kill check_drive_size thread if used
+  check_drive_size::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 

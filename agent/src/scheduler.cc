@@ -24,6 +24,7 @@
 #include "check_exec.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
+#include "drive_size.hh"
 
 using namespace com::centreon::agent;
 
@@ -563,6 +564,10 @@ std::shared_ptr<check> scheduler::default_check_builder(
 #ifdef _WINDOWS
     } else if (check_type == "uptime"sv) {
       return std::make_shared<check_uptime>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler));
+    } else if (check_type == "storage"sv) {
+      return std::make_shared<check_drive_size>(
           io_context, logger, first_start_expected, check_interval, service,
           cmd_name, cmd_line, *args, conf, std::move(handler));
 #endif

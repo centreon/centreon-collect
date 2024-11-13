@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <memory>
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "boost/asio/io_context.hpp"
 #include "check.hh"
@@ -29,7 +30,8 @@
 namespace com::centreon::agent {
 namespace check_drive_size_detail {
 
-enum e_fs_type : unsigned {
+enum e_drive_fs_type : uint64_t {
+  hr_unknown = 0,
   hr_storage_ram = 1 << 0,
   hr_storage_virtual_memory = 1 << 1,
   hr_storage_fixed_disk = 1 << 2,
@@ -61,14 +63,27 @@ enum e_fs_type : unsigned {
   hr_fs_dgcfs = 1 << 28,
   hr_fs_bfs = 1 << 29,
   hr_fs_fat32 = 1 << 30,
-  hr_fs_linux_ext2 = 1U << 31
+  hr_fs_linux_ext2 = 1U << 31,
+  hr_fs_linux_ext4 = 1ULL << 32,
+  hr_fs_exfat = 1ULL << 33
 };
 
+/**
+ * @brief user can check only some fs by using filters
+ * This is the goal of this class
+ * In order to improve perf, results of previous tests are saved
+ * in cache sets. That's why is_allowed is not const
+ *
+ */
 class filter {
   using string_set = absl::flat_hash_set<std::string>;
 
-  string_set _cache_allowed_fs, _cache_excluded_fs;
-  string_set _cache_allowed_mountpoint, _cache_excluded_mountpoint;
+  string_set _cache_allowed_fs ABSL_GUARDED_BY(_protect);
+  string_set _cache_excluded_fs ABSL_GUARDED_BY(_protect);
+  string_set _cache_allowed_mountpoint ABSL_GUARDED_BY(_protect);
+  string_set _cache_excluded_mountpoint ABSL_GUARDED_BY(_protect);
+
+  mutable absl::Mutex _protect;
 
   unsigned _fs_type_filter;
 
@@ -80,10 +95,22 @@ class filter {
 
   bool is_allowed(const std::string_view& fs,
                   const std::string_view& mount_point,
-                  e_fs_type fs_type);
+                  e_drive_fs_type fs_type);
+
+  bool is_fs_yet_allowed(const std::string_view& fs) const;
+
+  bool is_fs_yet_excluded(const std::string_view& fs) const;
 };
 
+/**
+ * @brief tupple where we store statistics of a fs
+ *
+ */
 struct fs_stat {
+  fs_stat() = default;
+  fs_stat(std::string&& fs_in, uint64_t used_in, uint64_t total_in)
+      : fs(fs_in), used(used_in), total(total_in) {}
+
   std::string fs;
   uint64_t used;
   uint64_t total;
@@ -123,6 +150,11 @@ struct fs_stat {
   }
 };
 
+/**
+ * @brief get fs statistics can block on network drives, so we use this thread
+ * to do the job and not block main thread
+ *
+ */
 class drive_size_thread
     : public std::enable_shared_from_this<drive_size_thread> {
   std::shared_ptr<asio::io_context> _io_context;
@@ -140,12 +172,18 @@ class drive_size_thread
 
   bool _active = true;
 
+  std::shared_ptr<spdlog::logger> _logger;
+
   bool has_to_stop_wait() const { return !_active || !_queue.empty(); }
 
  public:
-  typedef std::list<fs_stat> (*get_fs_stats)(const filter&);
+  typedef std::list<fs_stat> (
+      *get_fs_stats)(filter&, const std::shared_ptr<spdlog::logger>& logger);
 
-  static get_fs_stats _os_fs_stats;
+  static get_fs_stats os_fs_stats;
+
+  drive_size_thread(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger(logger) {}
 
   void run();
 
@@ -157,26 +195,16 @@ class drive_size_thread
                           handler_type&& handler);
 };
 
-template <class handler_type>
-void drive_size_thread::async_get_fs_stats(
-    const std::shared_ptr<filter>& request_filter,
-    const time_point& timeout,
-    handler_type&& handler) {
-  absl::MutexLock lck(&_queue_m);
-  _queue.push_back(
-      {request_filter, std::forward<handler_type>(handler), timeout});
-}
-
 }  // namespace check_drive_size_detail
 
-class native_drive_size : public check {
+class check_drive_size : public check {
   std::shared_ptr<check_drive_size_detail::filter> _filter;
   bool _prct_threshold;
   bool _free_threshold;
   uint64_t _warning;  // value in bytes or percent * 100
   uint64_t _critical;
 
-  typedef e_status (native_drive_size::*fs_stat_test)(
+  typedef e_status (check_drive_size::*fs_stat_test)(
       const check_drive_size_detail::fs_stat&) const;
 
   fs_stat_test _fs_test;
@@ -194,21 +222,21 @@ class native_drive_size : public check {
       const std::list<check_drive_size_detail::fs_stat>& result);
 
  public:
-  native_drive_size(const std::shared_ptr<asio::io_context>& io_context,
-                    const std::shared_ptr<spdlog::logger>& logger,
-                    time_point first_start_expected,
-                    duration check_interval,
-                    const std::string& serv,
-                    const std::string& cmd_name,
-                    const std::string& cmd_line,
-                    const rapidjson::Value& args,
-                    const engine_to_agent_request_ptr& cnf,
-                    check::completion_handler&& handler);
+  check_drive_size(const std::shared_ptr<asio::io_context>& io_context,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   time_point first_start_expected,
+                   duration check_interval,
+                   const std::string& serv,
+                   const std::string& cmd_name,
+                   const std::string& cmd_line,
+                   const rapidjson::Value& args,
+                   const engine_to_agent_request_ptr& cnf,
+                   check::completion_handler&& handler);
 
-  virtual ~native_drive_size() = default;
+  virtual ~check_drive_size() = default;
 
-  std::shared_ptr<native_drive_size> shared_from_this() {
-    return std::static_pointer_cast<native_drive_size>(
+  std::shared_ptr<check_drive_size> shared_from_this() {
+    return std::static_pointer_cast<check_drive_size>(
         check::shared_from_this());
   }
 
