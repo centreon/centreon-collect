@@ -13,6 +13,7 @@ on:
       - reopened
       - ready_for_review
     paths:
+      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
@@ -73,9 +74,6 @@ jobs:
           - package_extension: deb
             image: packaging-nfpm-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: packaging-nfpm-jammy
-            distrib: jammy
 
     runs-on: ubuntu-24.04
 
@@ -132,7 +130,6 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
 
   test-gorgone:
-    if: false
     needs: [get-environment, package]
 
     strategy:
@@ -147,15 +144,12 @@ jobs:
             image: gorgone-testing-alma9
             distrib: el9
           - package_extension: deb
-            image: gorgone-testing-jammy
-            distrib: jammy
-          - package_extension: deb
             image: gorgone-testing-bookworm
             distrib: bookworm
 
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.gorgone_docker_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}

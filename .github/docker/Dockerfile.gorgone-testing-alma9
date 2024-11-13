@@ -1,13 +1,25 @@
 FROM almalinux:9
 
-RUN bash -e <<EOF
+ARG VERSION
+ARG IS_CLOUD
+
+RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
+    --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    bash -e <<EOF
 
 dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
-dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/23.10/el9/centreon-23.10.repo
+
+if [[ "${IS_CLOUD}" == "true" ]]; then
+  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el9/centreon-${VERSION}-internal.repo
+  sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
+else
+  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
+fi
+dnf config-manager --set-enabled 'centreon*'
+
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
-
 
 dnf clean all
 
