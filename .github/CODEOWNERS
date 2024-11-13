@@ -2,6 +2,7 @@
 
 *.pm                           @centreon/owners-perl
 *.pl                           @centreon/owners-perl
+perl-libs/**                   @centreon/owners-perl
 
 gorgone/                       @centreon/owners-perl
 gorgone/docs/                  @centreon/owners-doc

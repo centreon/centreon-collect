@@ -14,6 +14,7 @@ on:
       - ready_for_review
     paths:
       - "gorgone/**"
+      - "perl-libs/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
@@ -25,6 +26,7 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - "gorgone/**"
+      - "perl-libs/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
