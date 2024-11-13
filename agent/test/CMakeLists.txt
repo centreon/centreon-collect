@@ -26,7 +26,7 @@ set( SRC_COMMON
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
-  set(SRC ${SRC_COMMON})
+  set(SRC ${SRC_COMMON} check_windows_cpu_test.cc check_uptime_test.cc)
 endif()
 
 

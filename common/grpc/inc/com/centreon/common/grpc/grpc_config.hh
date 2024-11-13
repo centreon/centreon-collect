@@ -55,17 +55,32 @@ class grpc_config {
   bool _compress;
   int _second_keepalive_interval;
 
+  /**
+   * @brief (client side) if this parameter is > 0 this is the longest delay in
+   * second between two failed connection. if is the
+   * GRPC_ARG_MAX_RECONNECT_BACKOFF_MS parameter
+   *
+   */
+  unsigned _second_max_reconnect_backoff;
+
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _compress(false), _second_keepalive_interval(30) {}
+  grpc_config()
+      : _compress(false),
+        _second_keepalive_interval(30),
+        _second_max_reconnect_backoff(0) {}
   grpc_config(const std::string& hostp)
-      : _hostport(hostp), _compress(false), _second_keepalive_interval(30) {}
+      : _hostport(hostp),
+        _compress(false),
+        _second_keepalive_interval(30),
+        _second_max_reconnect_backoff(0) {}
   grpc_config(const std::string& hostp, bool crypted)
       : _hostport(hostp),
         _crypted(crypted),
         _compress(false),
-        _second_keepalive_interval(30) {}
+        _second_keepalive_interval(30),
+        _second_max_reconnect_backoff(0) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
@@ -81,7 +96,27 @@ class grpc_config {
         _ca_cert(ca_cert),
         _ca_name(ca_name),
         _compress(compression),
-        _second_keepalive_interval(second_keepalive_interval) {}
+        _second_keepalive_interval(second_keepalive_interval),
+        _second_max_reconnect_backoff(0) {}
+
+  grpc_config(const std::string& hostp,
+              bool crypted,
+              const std::string& certificate,
+              const std::string& cert_key,
+              const std::string& ca_cert,
+              const std::string& ca_name,
+              bool compression,
+              int second_keepalive_interval,
+              unsigned second_max_reconnect_backoff)
+      : _hostport(hostp),
+        _crypted(crypted),
+        _certificate(certificate),
+        _cert_key(cert_key),
+        _ca_cert(ca_cert),
+        _ca_name(ca_name),
+        _compress(compression),
+        _second_keepalive_interval(second_keepalive_interval),
+        _second_max_reconnect_backoff(second_max_reconnect_backoff) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -94,12 +129,17 @@ class grpc_config {
     return _second_keepalive_interval;
   }
 
+  unsigned get_second_max_reconnect_backoff() const {
+    return _second_max_reconnect_backoff;
+  }
+
   bool operator==(const grpc_config& right) const {
     return _hostport == right._hostport && _crypted == right._crypted &&
            _certificate == right._certificate && _cert_key == right._cert_key &&
            _ca_cert == right._ca_cert && _ca_name == right._ca_name &&
            _compress == right._compress &&
-           _second_keepalive_interval == right._second_keepalive_interval;
+           _second_keepalive_interval == right._second_keepalive_interval &&
+           _second_max_reconnect_backoff == right._second_max_reconnect_backoff;
   }
 
   /**

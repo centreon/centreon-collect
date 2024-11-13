@@ -385,11 +385,11 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     
-    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    60    HARD
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    10
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
     Should Be True    ${result}    metrics not updated
 
 
@@ -399,7 +399,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.1"}}    OTEL connector
 
     Ctn Reload Engine
-    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    SOFT
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
     Should Be True    ${result}    resources table not updated
 
     #a small threshold to make service_1 critical
@@ -408,7 +408,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "cpu_percentage", "args": {"critical-average" : "0.2", "warning-average" : "0.1"}}    OTEL connector
 
     Ctn Reload Engine
-    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    SOFT
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
 
 

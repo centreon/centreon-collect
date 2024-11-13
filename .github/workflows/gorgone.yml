@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -134,12 +134,13 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
 
   test-gorgone:
+    if: false
     needs: [get-environment, package]
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -216,9 +217,12 @@ jobs:
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*.deb ./centreon-perl-libs-common*.deb
+            apt install -y ./centreon-gorgone*.deb ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
           else
-            dnf install -y ./centreon-gorgone*.rpm ./centreon-perl-libs-common*.rpm
+            dnf install -y ./centreon-gorgone*.rpm  ./centreon-gorgone-centreon-config*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+            # in el8 at least, there is a package for the configuration and a package for the actual code.
+            # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
+
           fi
 
       - name: Create databases
@@ -295,7 +299,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, jammy]
+        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources

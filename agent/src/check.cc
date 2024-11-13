@@ -48,10 +48,10 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _command_name(command_name),
       _command_line(cmd_line),
       _conf(cnf),
-      _io_context(io_context),
-      _logger(logger),
       _time_out_timer(*io_context),
-      _completion_handler(handler) {}
+      _completion_handler(handler),
+      _io_context(io_context),
+      _logger(logger) {}
 
 /**
  * @brief start timeout timer and init some flags used by timeout and completion

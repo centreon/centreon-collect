@@ -208,7 +208,8 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context
  * @param request Host's identifier (it can be a hostname or a hostid)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the Host is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
                                   const NameOrIdIdentifier* request
@@ -431,7 +432,8 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
  * @param request Contact's identifier
  * @param response The filled fields
  *
- * @return Status::OK
+ * @return Status::OK if the Contact is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  **/
 grpc::Status engine_impl::GetContact(grpc::ServerContext* context
                                      [[maybe_unused]],
@@ -552,7 +554,8 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
  *        hostid & serviceid)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the Service is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetService(grpc::ServerContext* context
                                      [[maybe_unused]],
@@ -803,7 +806,8 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
  * hostgroupid)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the HostGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
                                        [[maybe_unused]],
@@ -852,7 +856,8 @@ grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
  * @param request ServiceGroup's identifier (by ServiceGroup name)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the ServiceGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
                                           [[maybe_unused]],
@@ -903,7 +908,8 @@ grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
  * @param request ContactGroup's identifier (by ContactGroup name)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the ContactGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
                                           [[maybe_unused]],
@@ -928,6 +934,48 @@ grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
     if (!selectedcontactgroup->get_members().empty())
       for (const auto& [key, _] : selectedcontactgroup->get_members())
         contactgroup->add_members(key);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Tag informations.
+ *
+ * @param context gRPC context
+ * @param request Tag's identifier (by Tag id and type)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the tag is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetTag(grpc::ServerContext* context [[maybe_unused]],
+                                 const TagIdentifier* request,
+                                 EngineTag* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           tag = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::tag> selectedtag;
+    auto ittag = tag::tags.find(std::make_pair(request->id(), request->type()));
+    if (ittag != tag::tags.end())
+      selectedtag = ittag->second;
+    else {
+      err = fmt::format("could not find tag id:'{}', type:'{}' ", request->id(),
+                        request->type());
+      return 1;
+    }
+
+    tag->set_name(selectedtag->name());
+    tag->set_id(selectedtag->id());
+    tag->set_type(static_cast<EngineTag::TagType>(selectedtag->type()));
 
     return 0;
   });

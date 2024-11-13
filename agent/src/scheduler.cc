@@ -18,6 +18,9 @@
 
 #include "scheduler.hh"
 #include "check_cpu.hh"
+#ifdef _WINDOWS
+#include "check_uptime.hh"
+#endif
 #include "check_exec.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
@@ -297,10 +300,10 @@ void scheduler::stop() {
  * @param outputs
  */
 void scheduler::_store_result_in_metrics(
-    const check::pointer& check,
-    unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
-    const std::list<std::string>& outputs) {
+    [[maybe_unused]] const check::pointer& check,
+    [[maybe_unused]] unsigned status,
+    [[maybe_unused]] const std::list<com::centreon::common::perfdata>& perfdata,
+    [[maybe_unused]] const std::list<std::string>& outputs) {
   // auto scope_metrics =
   //     get_scope_metrics(check->get_host(), check->get_service());
   // unsigned now = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -553,20 +556,20 @@ std::shared_ptr<check> scheduler::default_check_builder(
       static const rapidjson::Value no_arg;
       args = &no_arg;
     }
-#ifdef _WINDOWS
-    throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
-                              cmd_line);
-#else
     if (check_type == "cpu_percentage"sv) {
       return std::make_shared<check_cpu>(
           io_context, logger, first_start_expected, check_interval, service,
           cmd_name, cmd_line, *args, conf, std::move(handler));
+#ifdef _WINDOWS
+    } else if (check_type == "uptime"sv) {
+      return std::make_shared<check_uptime>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler));
+#endif
     } else {
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
                                 cmd_line);
     }
-#endif
-
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,
                             check_interval, service, cmd_name, cmd_line, conf,

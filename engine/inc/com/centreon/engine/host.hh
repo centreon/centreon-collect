@@ -249,7 +249,7 @@ class host : public notifier {
   void set_check_command_ptr(
       const std::shared_ptr<commands::command>& cmd) override;
 
-  host_map_unsafe parent_hosts;
+  host_map parent_hosts;
   host_map_unsafe child_hosts;
   static host_map hosts;
   static host_id_map hosts_by_id;
@@ -309,6 +309,7 @@ int number_of_total_parent_hosts(com::centreon::engine::host* hst);
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::host const& obj);
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
+std::ostream& operator<<(std::ostream& os, host_map const& obj);
 
 namespace com::centreon::engine {
 
@@ -319,7 +320,5 @@ uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
 }  // namespace com::centreon::engine
-
-std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 
 #endif  // !CCE_HOST_HH
