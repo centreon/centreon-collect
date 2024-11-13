@@ -245,9 +245,19 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
         host->set_alias(selectedhost->get_alias());
         host->set_address(selectedhost->get_address());
         host->set_check_period(selectedhost->check_period());
+        host->set_id(selectedhost->host_id());
         host->set_current_state(
             static_cast<EngineHost::State>(selectedhost->get_current_state()));
-        host->set_id(selectedhost->host_id());
+        host->set_display_name(selectedhost->get_display_name());
+
+        if (!selectedhost->parent_hosts.empty())
+          for (const auto& [key, _] : selectedhost->parent_hosts)
+            host->add_parent_hosts(key);
+
+        if (!selectedhost->child_hosts.empty())
+          for (const auto& [key, _] : selectedhost->child_hosts)
+            host->add_child_hosts(key);
+
         return 0;
       });
 
