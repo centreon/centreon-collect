@@ -13,6 +13,7 @@ on:
       - reopened
       - ready_for_review
     paths:
+      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
@@ -61,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -72,23 +73,20 @@ jobs:
           - package_extension: deb
             image: packaging-nfpm-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: packaging-nfpm-jammy
-            distrib: jammy
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
     name: package ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Set package version and paths according to distrib
         run: |
@@ -136,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -145,18 +143,15 @@ jobs:
             image: gorgone-testing-alma9
             distrib: el9
           - package_extension: deb
-            image: gorgone-testing-jammy
-            distrib: jammy
-          - package_extension: deb
             image: gorgone-testing-bookworm
             distrib: bookworm
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
     services:
       mariadb:
@@ -250,7 +245,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
@@ -273,7 +268,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -294,11 +289,11 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm]
+        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
@@ -326,7 +321,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
