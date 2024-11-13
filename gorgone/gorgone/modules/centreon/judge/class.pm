@@ -18,6 +18,7 @@
 # limitations under the License.
 #
 
+
 package gorgone::modules::centreon::judge::class;
 
 use base qw(gorgone::class::module);

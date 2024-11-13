@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: packaging-nfpm-alma8
@@ -132,13 +132,12 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
 
   test-gorgone:
-    if: false
     needs: [get-environment, package]
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -296,7 +295,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [bookworm, jammy]
 
     steps:
       - name: Checkout sources
@@ -324,7 +323,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, jammy]
 
     steps:
       - name: Checkout sources
