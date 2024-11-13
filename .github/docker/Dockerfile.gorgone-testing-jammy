@@ -1,7 +1,4 @@
-ARG REGISTRY_URL=docker.io
-ARG VERSION
-
-FROM ${REGISTRY_URL}/ubuntu:jammy
+FROM ubuntu:jammy
 
 ARG VERSION
 
