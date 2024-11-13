@@ -67,7 +67,7 @@ state_helper::state_helper(State* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool state_helper::hook(std::string_view key, const std::string_view& value) {
+bool state_helper::hook(std::string_view key, std::string_view value) {
   State* obj = static_cast<State*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -75,13 +75,15 @@ bool state_helper::hook(std::string_view key, const std::string_view& value) {
 
   if (key.substr(0, 10) == "log_level_") {
     if (value == "off" || value == "critical" || value == "error" ||
-        value == "warning" || value == "info" || value == "debug" ||
-        value == "trace") {
+        value == "err" || value == "warning" || value == "info" ||
+        value == "debug" || value == "trace") {
+      if (value == "err")
+        value = "error";
       return set_global(key, value);
     } else
       throw msg_fmt(
           "Log level '{}' has value '{}' but it cannot be a different string "
-          "than off, critical, error, warning, info, debug or trace",
+          "than off, critical, error, err, warning, info, debug or trace",
           key, value);
   } else if (key == "date_format") {
     if (value == "euro")

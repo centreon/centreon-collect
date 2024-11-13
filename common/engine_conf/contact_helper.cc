@@ -46,7 +46,7 @@ contact_helper::contact_helper(Contact* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool contact_helper::hook(std::string_view key, const std::string_view& value) {
+bool contact_helper::hook(std::string_view key, std::string_view value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */

@@ -57,7 +57,7 @@ anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
  * @param value The value corresponding to the key
  */
 bool anomalydetection_helper::hook(std::string_view key,
-                                   const std::string_view& value) {
+                                   std::string_view value) {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
