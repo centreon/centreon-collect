@@ -1,4 +1,4 @@
-FROM ${REGISTRY_URL}/almalinux:9
+FROM almalinux:9
 
 ARG VERSION
 ARG IS_CLOUD
