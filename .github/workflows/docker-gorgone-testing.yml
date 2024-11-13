@@ -54,7 +54,6 @@ jobs:
           file: .github/docker/Dockerfile.gorgone-testing-${{ matrix.distrib }}
           context: .
           build-args: |
-            "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
           pull: true
