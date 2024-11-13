@@ -40,7 +40,7 @@ class StatsTest : public ::testing::Test {
   void SetUp() override {
     stats::center::load();
     mysql_manager::load();
-    config::applier::state::load();
+    config::applier::state::load(com::centreon::common::BROKER);
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();

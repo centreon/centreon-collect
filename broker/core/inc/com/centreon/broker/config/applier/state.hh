@@ -46,6 +46,7 @@ class state {
   };
 
  private:
+  const common::PeerType _peer_type;
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
@@ -60,12 +61,13 @@ class state {
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
 
-  state(const std::shared_ptr<spdlog::logger>& logger);
+  state(common::PeerType peer_type,
+        const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
 
  public:
   static state& instance();
-  static void load();
+  static void load(common::PeerType peer_type);
   static void unload();
   static bool loaded();
 
@@ -93,6 +95,7 @@ class state {
   static const stats& stats_conf();
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  common::PeerType peer_type() const;
 };
 }  // namespace com::centreon::broker::config::applier
 

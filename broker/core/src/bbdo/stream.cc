@@ -753,14 +753,14 @@ void stream::negotiate(stream::negotiation_type neg) {
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_peer_type(config::applier::state::instance().peer_type());
       _write(welcome);
     }
   }

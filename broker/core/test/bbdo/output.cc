@@ -75,7 +75,7 @@ class OutputTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::CORE);
     io::data::broker_id = 0;
     try {
-      config::applier::init(0, "broker_test", 0);
+      config::applier::init(com::centreon::common::BROKER, 0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }

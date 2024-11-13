@@ -27,6 +27,7 @@
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
+#include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -154,7 +155,8 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       /* This is a little hack to avoid to replace the log file set by
        * centengine */
       s.mut_log_conf().allow_only_atomic_changes(true);
-      com::centreon::broker::config::applier::init(s);
+      com::centreon::broker::config::applier::init(
+          com::centreon::common::ENGINE, s);
       try {
         log_v2::instance().apply(s.log_conf());
       } catch (const std::exception& e) {

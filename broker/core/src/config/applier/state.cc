@@ -48,8 +48,10 @@ state::stats state::_stats_conf;
 /**
  *  Default constructor.
  */
-state::state(const std::shared_ptr<spdlog::logger>& logger)
-    : _poller_id(0),
+state::state(common::PeerType peer_type,
+             const std::shared_ptr<spdlog::logger>& logger)
+    : _peer_type{peer_type},
+      _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
       _modules{logger} {}
@@ -190,9 +192,9 @@ state& state::instance() {
 /**
  *  Load singleton.
  */
-void state::load() {
+void state::load(common::PeerType peer_type) {
   if (!gl_state)
-    gl_state = new state(log_v2::instance().get(log_v2::CONFIG));
+    gl_state = new state(peer_type, log_v2::instance().get(log_v2::CONFIG));
 }
 
 /**
@@ -327,4 +329,13 @@ std::vector<state::peer> state::connected_peers() const {
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
   return retval;
+}
+
+/**
+ * @brief Get the type of peer this state is defined for.
+ *
+ * @return A PeerType enum.
+ */
+com::centreon::common::PeerType state::peer_type() const {
+  return _peer_type;
 }
