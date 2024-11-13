@@ -23,6 +23,7 @@
 #include <spdlog/sinks/win_eventlog_sink.h>
 
 #include "config.hh"
+#include "native_drive_size.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
 
@@ -198,6 +199,9 @@ int _main(bool service_start) {
     SPDLOG_LOGGER_CRITICAL(g_logger, "unhandled exception: {}", e.what());
     return -1;
   }
+
+  // kill native_drive_size thread if used
+  native_drive_size::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 
