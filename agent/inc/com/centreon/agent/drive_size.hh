@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include "absl/base/thread_annotations.h"
+#include "absl/container/btree_set.h"
 #include "absl/synchronization/mutex.h"
 #include "boost/asio/io_context.hpp"
 #include "check.hh"
@@ -109,9 +110,28 @@ class filter {
 struct fs_stat {
   fs_stat() = default;
   fs_stat(std::string&& fs_in, uint64_t used_in, uint64_t total_in)
-      : fs(fs_in), used(used_in), total(total_in) {}
+      : fs(fs_in), mount_point(fs), used(used_in), total(total_in) {}
+
+  fs_stat(std::string&& fs_in,
+          std::string&& mount_point_in,
+          uint64_t used_in,
+          uint64_t total_in)
+      : fs(fs_in),
+        mount_point(mount_point_in),
+        used(used_in),
+        total(total_in) {}
+
+  fs_stat(const std::string_view& fs_in,
+          const std::string_view& mount_point_in,
+          uint64_t used_in,
+          uint64_t total_in)
+      : fs(fs_in),
+        mount_point(mount_point_in),
+        used(used_in),
+        total(total_in) {}
 
   std::string fs;
+  std::string mount_point;
   uint64_t used;
   uint64_t total;
 
@@ -119,8 +139,8 @@ struct fs_stat {
     return used >= threshold;
   }
 
-  bool is_free_more_than_threshold(uint64_t threshold) const {
-    return total - used >= threshold;
+  bool is_free_less_than_threshold(uint64_t threshold) const {
+    return total - used < threshold;
   }
 
   bool is_used_more_than_prct_threshold(uint64_t percent_hundredth) const {
@@ -130,11 +150,11 @@ struct fs_stat {
     return (used * 10000) / total >= percent_hundredth;
   }
 
-  bool is_free_more_than_prct_threshold(uint64_t percent_hundredth) const {
+  bool is_free_less_than_prct_threshold(uint64_t percent_hundredth) const {
     if (!total) {
       return true;
     }
-    return ((total - used) * 10000) / total >= percent_hundredth;
+    return ((total - used) * 10000) / total < percent_hundredth;
   }
 
   double get_used_prct() const {
@@ -182,8 +202,9 @@ class drive_size_thread
 
   static get_fs_stats os_fs_stats;
 
-  drive_size_thread(const std::shared_ptr<spdlog::logger>& logger)
-      : _logger(logger) {}
+  drive_size_thread(const std::shared_ptr<asio::io_context>& io_context,
+                    const std::shared_ptr<spdlog::logger>& logger)
+      : _io_context(io_context), _logger(logger) {}
 
   void run();
 
@@ -197,6 +218,10 @@ class drive_size_thread
 
 }  // namespace check_drive_size_detail
 
+/**
+ * @brief drive size check object (same for linux and windows)
+ *
+ */
 class check_drive_size : public check {
   std::shared_ptr<check_drive_size_detail::filter> _filter;
   bool _prct_threshold;

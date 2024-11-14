@@ -129,6 +129,10 @@ std::list<fs_stat> os_fs_stats(filter& filt,
                                         &total_number_of_free_bytes);
 
       if (success) {
+        SPDLOG_LOGGER_TRACE(logger, "{} total: {}, free {}", fs_to_test,
+                            total_number_of_bytes.QuadPart ,
+                                total_number_of_free_bytes.QuadPart);
+
         result.emplace_back(std::move(fs_to_test),
                             total_number_of_bytes.QuadPart -
                                 total_number_of_free_bytes.QuadPart,

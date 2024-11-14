@@ -103,7 +103,7 @@ filter::filter(const rapidjson::Value& args) : _fs_type_filter(0xFFFFFFFFU) {
           throw exceptions::msg_fmt("invalid regex for filter-storage-type: {}",
                                     member_iter->value.GetString());
         }
-
+        _fs_type_filter = 0;
         for (const auto& [label, flag] : _fs_type) {
           if (RE2::FullMatch(label, filter_typ_re)) {
             _fs_type_filter |= flag;
@@ -115,7 +115,7 @@ filter::filter(const rapidjson::Value& args) : _fs_type_filter(0xFFFFFFFFU) {
           throw exceptions::msg_fmt("invalid regex for filter-fs: {}",
                                     member_iter->value.GetString());
         }
-      } else if (member_iter->name == "filter-exclude-fs") {
+      } else if (member_iter->name == "exclude-fs") {
         _filter_exclude_fs =
             std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_exclude_fs->ok()) {  // NOLINT
@@ -129,7 +129,7 @@ filter::filter(const rapidjson::Value& args) : _fs_type_filter(0xFFFFFFFFU) {
           throw exceptions::msg_fmt("invalid regex for filter-mountpoint: {}",
                                     member_iter->value.GetString());
         }
-      } else if (member_iter->name == "filter-exclude-mountpoint") {
+      } else if (member_iter->name == "exclude-mountpoint") {
         _filter_exclude_mountpoint =
             std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_exclude_mountpoint->ok()) {
@@ -261,20 +261,23 @@ void drive_size_thread::run() {
     while (!_queue.empty()) {
       if (_queue.begin()->timeout < now) {
         _queue.pop_front();
+      } else {
+        break;
       }
     }
 
     if (!_queue.empty()) {
+      auto to_execute = _queue.begin();
       std::list<fs_stat> stats =
-          os_fs_stats(*_queue.begin()->request_filter, _logger);
+          os_fs_stats(*to_execute->request_filter, _logger);
       // main code of this program is not thread safe, so we use io_context
       // launched from main thread to call callback
       _io_context->post(
           [result = std::move(stats),
-           completion_handler = std::move(_queue.begin()->handler)]() {
+           completion_handler = std::move(to_execute->handler)]() {
             completion_handler(result);
           });
-      _queue.pop_front();
+      _queue.erase(to_execute);
     }
   }
 }
@@ -342,7 +345,11 @@ check_drive_size::check_drive_size(
   if (args.IsObject()) {
     common::rapidjson_helper helper(args);
 
-    _prct_threshold = helper.get_string("units", "%") == "%"sv;
+    if (args.HasMember("unit")) {
+      _prct_threshold = helper.get_string("unit", "%") == "%"sv;
+    } else {
+      _prct_threshold = helper.get_string("units", "%") == "%"sv;
+    }
     _free_threshold = helper.get_bool("free", false);
 
     _warning = helper.get_uint64_t("warning", 0);
@@ -416,10 +423,10 @@ e_status check_drive_size::_prct_used_test(
  */
 e_status check_drive_size::_free_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_free_more_than_threshold(_critical)) {
+  if (_critical && fs.is_free_less_than_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_free_more_than_threshold(_warning)) {
+  if (_warning && fs.is_free_less_than_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -433,10 +440,10 @@ e_status check_drive_size::_free_test(
  */
 e_status check_drive_size::_prct_free_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_free_more_than_prct_threshold(_critical)) {
+  if (_critical && fs.is_free_less_than_prct_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_free_more_than_prct_threshold(_warning)) {
+  if (_warning && fs.is_free_less_than_prct_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -454,8 +461,8 @@ void check_drive_size::start_check(const duration& timeout) {
   }
 
   if (!_worker_thread) {
-    _worker =
-        std::make_shared<check_drive_size_detail::drive_size_thread>(_logger);
+    _worker = std::make_shared<check_drive_size_detail::drive_size_thread>(
+        _io_context, _logger);
     _worker_thread = new std::thread([worker = _worker] { worker->run(); });
   }
 
@@ -496,18 +503,18 @@ void check_drive_size::_completion_handler(
       output += fs_status == e_status::critical ? "CRITICAL: " : "WARNING: ";
       if (_prct_threshold) {
         output += fmt::format("{} Total: {}G Used: {:.2f}% Free: {:.2f}%",
-                              fs.fs, fs.total / 1024 / 1024 / 1024,
+                              fs.mount_point, fs.total / 1024 / 1024 / 1024,
                               fs.get_used_prct(), fs.get_free_prct());
       } else {
-        output += fmt::format("{} Total: {}G Used: {}G Free: {}G", fs.fs,
-                              fs.total / 1024 / 1024 / 1024,
+        output += fmt::format("{} Total: {}G Used: {}G Free: {}G",
+                              fs.mount_point, fs.total / 1024 / 1024 / 1024,
                               fs.used / 1024 / 1024 / 1024,
                               (fs.total - fs.used) / 1024 / 1024 / 1024);
       }
     }
 
-    centreon::common::perfdata perf;
-    perf.name((_free_threshold ? "free_" : "used_") + fs.fs);
+    centreon::common::perfdata& perf = perfs.emplace_back();
+    perf.name((_free_threshold ? "free_" : "used_") + fs.mount_point);
 
     if (_prct_threshold) {
       perf.unit("%");
@@ -536,7 +543,6 @@ void check_drive_size::_completion_handler(
       }
       perf.value(_free_threshold ? (fs.total - fs.used) : fs.used);
     }
-    perfs.push_back(std::move(perf));
   }
   if (output.empty()) {
     using namespace std::literals;

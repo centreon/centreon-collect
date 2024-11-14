@@ -76,11 +76,11 @@ class perfdata {
   void warning_mode(bool val) { _warning_mode = val; }
 };
 
-}  // namespace com::centreon::common
-
 bool operator==(com::centreon::common::perfdata const& left,
                 com::centreon::common::perfdata const& right);
 bool operator!=(com::centreon::common::perfdata const& left,
                 com::centreon::common::perfdata const& right);
+
+}  // namespace com::centreon::common
 
 #endif
