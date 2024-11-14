@@ -173,6 +173,10 @@ class stream : public io::stream {
   bool _extended_negotiation = false;
   /* Type of the peer: used since BBDO 3.0.1 */
   common::PeerType _peer_type = common::UNKNOWN;
+  /* Currently, this is a hash of the Engine configuration directory. It's
+   * filled when neb::pb_instance is sent to Broker. */
+  std::string _config_version;
+
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,
                         uint32_t destination_id,
@@ -203,6 +207,8 @@ class stream : public io::stream {
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
+  bool check_poller_configuration(uint64_t poller_id,
+                                  const std::string& expected_version);
 };
 }  // namespace com::centreon::broker::bbdo
 

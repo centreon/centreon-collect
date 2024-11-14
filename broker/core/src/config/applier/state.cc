@@ -295,7 +295,8 @@ void state::add_peer(uint64_t poller_id,
     _connected_peers.erase(found);
   }
   _connected_peers[{poller_id, poller_name, peer_type}] = peer{
-      poller_id, poller_name, time(nullptr), peer_type, extended_negotiation};
+      poller_id, poller_name, time(nullptr), peer_type, extended_negotiation,
+      true,      false};
 }
 
 /**
@@ -414,4 +415,118 @@ void state::set_pollers_config_dir(
  */
 com::centreon::common::PeerType state::peer_type() const {
   return _peer_type;
+}
+
+/**
+ * @brief Specify if a broker needs an update. And then set the broker as ready
+ * to receive data.
+ *
+ * @param poller_id The poller id.
+ * @param poller_name The poller name.
+ * @param peer_type The peer type.
+ * @param need_update true if the broker needs an update, false otherwise.
+ */
+void state::set_broker_needs_update(uint64_t poller_id,
+                                    const std::string& poller_name,
+                                    common::PeerType peer_type,
+                                    bool need_update) {
+  absl::MutexLock lck(&_connected_peers_m);
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end()) {
+    found->second.needs_update = need_update;
+    found->second.ready = true;
+  } else {
+    auto logger = log_v2::instance().get(log_v2::CORE);
+    logger->warn(
+        "Poller '{}' with id {} and type '{}' not found in connected peers",
+        poller_name, poller_id,
+        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
+  }
+}
+
+/**
+ * @brief Set all the connected peers as ready to receive data (no extended
+ * negociation available).
+ */
+void state::set_peers_ready() {
+  absl::MutexLock lck(&_connected_peers_m);
+  for (auto& p : _connected_peers)
+    p.second.ready = true;
+}
+
+/**
+ * @brief Check if a broker needs an update.
+ *
+ * @param poller_id The poller id.
+ * @param poller_name The poller name.
+ * @param peer_type The peer type.
+ *
+ * @return true if the broker needs an update, false otherwise.
+ */
+bool state::broker_needs_update(uint64_t poller_id,
+                                const std::string& poller_name,
+                                common::PeerType peer_type) const {
+  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  if (found != _connected_peers.end())
+    return found->second.needs_update;
+  else
+    return false;
+}
+
+/**
+ * @brief Wait for 20 seconds for all Brokers to be ready and then check if at
+ * least one broker needs an update.
+ *
+ * @return true if at least one broker needs an update, false otherwise.
+ */
+bool state::broker_needs_update() const {
+  auto brokers_ready = [this] {
+    for (auto& p : _connected_peers) {
+      if (p.second.peer_type == common::BROKER && !p.second.ready)
+        return false;
+    }
+    return true;
+  };
+
+  absl::MutexLock lck(&_connected_peers_m);
+  // Let's wait for at most 20 seconds for all brokers to be ready.
+  _connected_peers_m.AwaitWithTimeout(absl::Condition(&brokers_ready),
+                                      absl::Seconds(20));
+
+  // Now, we can check if they need some updates.
+  for (auto& p : _connected_peers) {
+    if (p.second.peer_type == common::BROKER && p.second.needs_update)
+      return true;
+  }
+  return false;
+}
+
+/**
+ * @brief The peer with the given poller_id has its engine configuration version
+ * set to the given one.
+ *
+ * @param poller_id Poller ID concerned by the modification.
+ * @param version The version to set.
+ */
+void state::set_engine_configuration(uint64_t poller_id,
+                                     const std::string& version) {
+  absl::MutexLock lck(&_connected_peers_m);
+  _engine_configuration[poller_id] = version;
+}
+
+/**
+ * @brief Get the engine configuration for a poller. On error an empty string is
+ * returned.
+ *
+ * @param poller_id The poller id.
+ *
+ * @return The engine configuration as a string.
+ */
+std::string state::engine_configuration(uint64_t poller_id) const {
+  absl::MutexLock lck(&_connected_peers_m);
+  auto found = _engine_configuration.find(poller_id);
+  if (found != _engine_configuration.end())
+    return found->second;
+  else
+    return "";
 }

@@ -45,6 +45,11 @@ class state {
     common::PeerType peer_type;
     /* Does the peer support extended negotiation? */
     bool extended_negotiation;
+    /* Does this peer need an update concerning the engine configuration? */
+    bool needs_update;
+    /* Is this peer ready to receive data? That's to say negociation and engine
+     * configuration exchanged. */
+    bool ready = false;
   };
 
  private:
@@ -127,6 +132,19 @@ class state {
   std::vector<peer> connected_peers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   common::PeerType peer_type() const;
+  std::string get_engine_conf_from_cache(uint64_t poller_id);
+  void set_broker_needs_update(uint64_t poller_id,
+                               const std::string& poller_name,
+                               common::PeerType peer_type,
+                               bool need_update)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  void set_peers_ready() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool broker_needs_update(uint64_t poller_id,
+                           const std::string& poller_name,
+                           common::PeerType peer_type) const;
+  bool broker_needs_update() const;
+  void set_engine_configuration(uint64_t poller_id, const std::string& conf);
+  std::string engine_configuration(uint64_t poller_id) const;
 };
 }  // namespace com::centreon::broker::config::applier
 
