@@ -144,6 +144,55 @@ START_STOP_CBD
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Stop Broker
 
+BC1
+    [Documentation]    Central and RRD brokers are started.
+    ...    Then we check they are correctly connected.
+    ...    RRD broker is stopped. The connection is lost.
+    ...    Then RRD broker is started again. The connection is re-established.
+    ...    Central broker is stopped. The connection is lost.
+    ...    Then Central broker is started again. The connection is re-established.
+    [Tags]    broker    start-stop    unified_sql    MON-15671
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${0}
+
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${start}    Get Current Date
+
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between central and rrd broker is KO
+
+    # RRD cbd is stopped
+    Send Signal To Process    SIGTERM    b2
+    ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
+    Should Be True
+    ...    ${result.rc} == -15 or ${result.rc} == 0
+    ...    RRD Broker badly stopped with code ${result.rc}
+
+    # RRD cbd is started
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between central and rrd broker is KO
+
+    # Central cbd is stopped
+    Send Signal To Process    SIGTERM    b1
+    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
+    Should Be True
+    ...    ${result.rc} == -15 or ${result.rc} == 0
+    ...    Central Broker badly stopped with code ${result.rc}
+
+    # Central cbd is started
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between central and rrd broker is KO
+
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
+    Ctn Kindly Stop Broker
 
 *** Keywords ***
 Ctn Start Stop Service
