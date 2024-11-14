@@ -28,7 +28,6 @@
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -761,6 +760,16 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_poller_id(config::applier::state::instance().poller_id());
       obj.set_poller_name(config::applier::state::instance().poller_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
+      /* I know I'm Engine, and I have access to the configuration. */
+      if (!config::applier::state::instance().engine_config_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I know I'm Broker, and I have access to the php cache configuration
+       * directory. */
+      else if (!config::applier::state::instance().config_cache_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I don't know what I am. */
+      else
+        obj.set_extended_negotiation(false);
       _write(welcome);
     }
   }
@@ -797,6 +806,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   std::string peer_extensions;
+  _extended_negotiation = false;
+
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
@@ -864,14 +875,24 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_peer_type(config::applier::state::instance().peer_type());
+      /* I know I'm Engine, and I have access to the configuration directory. */
+      if (!config::applier::state::instance().engine_config_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I know I'm Broker, and I have access to the php cache configuration
+       * directory. */
+      else if (!config::applier::state::instance().config_cache_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I don't have access to any configuration directory. */
+      else
+        obj.set_extended_negotiation(false);
 
       _write(welcome);
       _substream->flush();
@@ -879,6 +900,13 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = w->obj().extensions();
     _poller_id = w->obj().poller_id();
     _poller_name = w->obj().poller_name();
+
+    _peer_type = w->obj().peer_type();
+    if (_peer_type != common::UNKNOWN) {
+      /* We are in the bbdo stream, _poller_id, _poller_name,
+       * _extended_negotiation are informations about the peer, not us. */
+      _extended_negotiation = true;
+    }
   }
 
   // Negotiation.
@@ -947,8 +975,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
   if (_poller_id > 0 && !_poller_name.empty()) {
-    config::applier::state::instance().add_peer(_poller_id, _poller_name,
-                                                _peer_type);
+    config::applier::state::instance().add_peer(
+        _poller_id, _poller_name, _peer_type, _extended_negotiation);
   }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
@@ -1184,11 +1212,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       uint32_t dest_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 12));
       uint16_t expected = misc::crc16_ccitt(pack + 2, BBDO_HEADER_SIZE - 2);
 
-      SPDLOG_LOGGER_TRACE(
-          _logger,
-          "Reading: header eventID {} sourceID {} destID {} checksum {:x} and "
-          "expected {:x}",
-          event_id, source_id, dest_id, chksum, expected);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "Reading: header eventID {} sourceID {} destID {} "
+                          "checksum {:x} and "
+                          "expected {:x}",
+                          event_id, source_id, dest_id, chksum, expected);
 
       if (expected != chksum) {
         // The packet is corrupted.
@@ -1261,11 +1289,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "There are still {} long BBDO packets that cannot be sent, this "
-              "maybe be due to a corrupted retention file.",
-              _buffer.size());
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "There are still {} long BBDO packets that "
+                              "cannot be sent, this "
+                              "maybe be due to a corrupted retention file.",
+                              _buffer.size());
           /* In case of too many long events stored in memory, we purge the
            * oldest ones. */
           while (_buffer.size() > 3) {
@@ -1315,7 +1343,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         if (_buffer.size() > 1) {
           SPDLOG_LOGGER_ERROR(
               _logger,
-              "There are {} long BBDO packets waiting for their missing parts "
+              "There are {} long BBDO packets waiting for their missing "
+              "parts "
               "in memory, this may be due to a corrupted retention file.",
               _buffer.size());
           /* In case of too many long events stored in memory, we purge the
@@ -1339,12 +1368,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 /**
  * @brief Fill the internal _packet vector until it reaches the given size. It
  * may be bigger. The deadline is the limit time after that an exception is
- * thrown. Even if an exception is thrown the vector may begin to be fill, it is
- * just not finished, and so no data are lost. Received packets are BBDO packets
- * or maybe pieces of BBDO packets, so we keep vectors as is because usually a
- * vector should just represent a packet.
- * In case of event serialized only by grpc stream, we store it in
- * _grpc_serialized_queue
+ * thrown. Even if an exception is thrown the vector may begin to be fill, it
+ * is just not finished, and so no data are lost. Received packets are BBDO
+ * packets or maybe pieces of BBDO packets, so we keep vectors as is because
+ * usually a vector should just represent a packet. In case of event
+ * serialized only by grpc stream, we store it in _grpc_serialized_queue
  *
  * @param size The wanted final size
  * @param deadline A time_t.

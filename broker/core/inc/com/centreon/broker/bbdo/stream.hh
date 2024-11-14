@@ -169,6 +169,8 @@ class stream : public io::stream {
   std::string _poller_name;
   /* ID of the peer poller: used since BBDO 3.0.1 */
   uint64_t _poller_id = 0u;
+  /* True if the peer supports extended negotiation */
+  bool _extended_negotiation = false;
   /* Type of the peer: used since BBDO 3.0.1 */
   common::PeerType _peer_type = common::UNKNOWN;
   io::data* unserialize(uint32_t event_type,

@@ -19,7 +19,6 @@
 #ifndef CCB_FILE_STREAM_HH
 #define CCB_FILE_STREAM_HH
 
-#include "broker.pb.h"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/stats/center.hh"

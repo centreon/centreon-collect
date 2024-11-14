@@ -79,14 +79,15 @@ class parser {
 
   parser() = default;
   ~parser() noexcept = default;
-  parser(parser const&) = delete;
+  parser(const parser&) = delete;
   parser& operator=(const parser&) = delete;
   state parse(const std::string& file);
 };
 
 template <>
 absl::optional<std::string> parser::check_and_read<std::string>(
-    const nlohmann::json& elem, const std::string& key);
+    const nlohmann::json& elem,
+    const std::string& key);
 
 template <>
 absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,

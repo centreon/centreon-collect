@@ -43,6 +43,8 @@ class state {
     time_t connected_since;
     /* Is it a broker, an engine, a map or an unknown peer? */
     common::PeerType peer_type;
+    /* Does the peer support extended negotiation? */
+    bool extended_negotiation;
   };
 
  private:
@@ -53,6 +55,28 @@ class state {
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
   size_t _pool_size;
+
+  /* In a cbmod configuration, this string contains the directory containing
+   * the Engine configuration. */
+  std::filesystem::path _engine_config_dir;
+
+  /* Currently, this is the poller configurations known by this instance of
+   * Broker. It is updated during neb::instance and
+   * bbdo::pb_engine_configuration messages. And it is used in unified_sql
+   * stream when the neb::pb_instance_configuration is handled. */
+  absl::flat_hash_map<uint64_t, std::string> _engine_configuration
+      ABSL_GUARDED_BY(_connected_peers_m);
+
+  /* In a Broker configuration, this object contains the configuration cache
+   * directory used by php. We can find there all the pollers configurations. */
+  std::filesystem::path _config_cache_dir;
+
+  /* In a Broker configuration, this object contains the pollers configurations
+   * known by the Broker. These directories are copies from the
+   * _config_cache_dir and are copied once Broker has written them in the
+   * storage database. */
+  std::filesystem::path _pollers_config_dir;
+
   modules _modules;
 
   static stats _stats_conf;
@@ -80,10 +104,17 @@ class state {
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
+  const std::filesystem::path& engine_config_dir() const noexcept;
+  void set_engine_config_dir(const std::filesystem::path& dir);
+  const std::filesystem::path& config_cache_dir() const noexcept;
+  void set_config_cache_dir(const std::filesystem::path& engine_conf_dir);
+  const std::filesystem::path& pollers_config_dir() const noexcept;
+  void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
   void add_peer(uint64_t poller_id,
                 const std::string& poller_name,
-                common::PeerType peer_type)
+                common::PeerType peer_type,
+                bool extended_negotiation)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,

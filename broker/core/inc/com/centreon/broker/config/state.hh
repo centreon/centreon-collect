@@ -52,6 +52,16 @@ class state {
   std::string _poller_name;
   size_t _pool_size;
 
+  /* The directory where the engine configuration files are stored. This file
+   * has a sense only for the cbmod (usual value: /etc/centreon-engine) */
+  std::string _engine_config_dir;
+
+  /* The directory where php writes the pollers configurations. */
+  std::string _config_cache_dir;
+
+  /* The directory where broker stores all the pollers configurations. */
+  std::string _pollers_config_dir;
+
   common::log_v2::config _log_conf;
 
  public:
@@ -128,6 +138,12 @@ class state {
   int pool_size() const noexcept;
   void poller_name(const std::string& name);
   const std::string& poller_name() const noexcept;
+  void set_engine_config_dir(const std::string& dir);
+  const std::string& engine_config_dir() const noexcept;
+  void set_config_cache_dir(const std::string& config_cache_dir);
+  const std::string& config_cache_dir() const noexcept;
+  void set_pollers_config_dir(const std::string& pollers_config_dir);
+  const std::string& pollers_config_dir() const noexcept;
   common::log_v2::config& mut_log_conf();
   const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();

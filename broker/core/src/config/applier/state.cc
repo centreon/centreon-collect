@@ -118,11 +118,29 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _pool_size = s.pool_size();
 
   // Set cache directory.
-  _cache_dir = s.cache_directory();
-  if (_cache_dir.empty())
-    _cache_dir.append(PREFIX_VAR);
-  _cache_dir.append("/");
-  _cache_dir.append(s.broker_name());
+  std::filesystem::path cache_dir;
+  if (s.cache_directory().empty())
+    cache_dir = PREFIX_VAR;
+  else
+    cache_dir = s.cache_directory();
+
+  _cache_dir = cache_dir.string() + "/" + s.broker_name();
+
+  if (s.get_bbdo_version().major_v >= 3) {
+    // Engine configuration directory (for cbmod).
+    if (!s.engine_config_dir().empty())
+      set_engine_config_dir(s.engine_config_dir());
+
+    // Configuration cache directory (for broker, from php).
+    set_config_cache_dir(s.config_cache_dir());
+
+    // Pollers configuration directory (for Broker).
+    // If not provided in the configuration, use a default directory.
+    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
+      set_pollers_config_dir(cache_dir / "pollers-configuration/");
+    else
+      set_pollers_config_dir(s.pollers_config_dir());
+  }
 
   // Apply modules configuration.
   _modules.apply(s.module_list(), s.module_directory(), &s);
@@ -262,7 +280,8 @@ const config::applier::state::stats& state::stats_conf() {
  */
 void state::add_peer(uint64_t poller_id,
                      const std::string& poller_name,
-                     common::PeerType peer_type) {
+                     common::PeerType peer_type,
+                     bool extended_negotiation) {
   assert(poller_id && !poller_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
@@ -275,8 +294,8 @@ void state::add_peer(uint64_t poller_id,
         poller_name, poller_id);
     _connected_peers.erase(found);
   }
-  _connected_peers[{poller_id, poller_name, peer_type}] =
-      peer{poller_id, poller_name, time(nullptr), peer_type};
+  _connected_peers[{poller_id, poller_name, peer_type}] = peer{
+      poller_id, poller_name, time(nullptr), peer_type, extended_negotiation};
 }
 
 /**
@@ -329,6 +348,63 @@ std::vector<state::peer> state::connected_peers() const {
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
   return retval;
+}
+
+/**
+ * @brief Get the Engine configuration directory.
+ *
+ * @return The Engine configuration directory.
+ */
+const std::filesystem::path& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}
+
+/**
+ * @brief Set the Engine configuration directory.
+ *
+ * @param engine_conf_dir The Engine configuration directory.
+ */
+void state::set_engine_config_dir(const std::filesystem::path& dir) {
+  _engine_config_dir = dir;
+}
+
+/**
+ * @brief Get the configuration cache directory used by php to write
+ * pollers' configurations.
+ *
+ * @return The configuration cache directory.
+ */
+const std::filesystem::path& state::config_cache_dir() const noexcept {
+  return _config_cache_dir;
+}
+
+/**
+ * @brief Set the configuration cache directory.
+ *
+ * @param engine_conf_dir The configuration cache directory.
+ */
+void state::set_config_cache_dir(
+    const std::filesystem::path& config_cache_dir) {
+  _config_cache_dir = config_cache_dir;
+}
+
+/**
+ * @brief Get the pollers configurations directory.
+ *
+ * @return The pollers configurations directory.
+ */
+const std::filesystem::path& state::pollers_config_dir() const noexcept {
+  return _pollers_config_dir;
+}
+
+/**
+ * @brief Set the pollers configurations directory.
+ *
+ * @param pollers_config_dir The pollers configurations directory.
+ */
+void state::set_pollers_config_dir(
+    const std::filesystem::path& pollers_config_dir) {
+  _pollers_config_dir = pollers_config_dir;
 }
 
 /**
