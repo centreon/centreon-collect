@@ -130,7 +130,9 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       po::options_description desc("Allowed options");
       desc.add_options()  // list of options
           ("config_file,c", po::value<std::string>(),
-           "set the module JSON configuration file");  // 1st option
+           "set the module JSON configuration file")  // 1st option
+          ("engine_conf_dir,e", po::value<std::string>(),
+           "set the Engine configuration directory");  // 2nd option
       po::positional_options_description pos;
       // The first positional argument is interpreted as config_file, this is
       // useful because currently the wui configure cbmod like this.
@@ -147,9 +149,16 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       else
         throw msg_fmt("main: no configuration file provided");
 
+      std::string engine_conf_dir;
+
+      if (vm.count("engine_conf_dir"))
+        engine_conf_dir = vm["engine_conf_dir"].as<std::string>();
+
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
       com::centreon::broker::config::state s{p.parse(configuration_file)};
+
+      s.set_engine_config_dir(engine_conf_dir);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by

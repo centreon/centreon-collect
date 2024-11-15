@@ -105,7 +105,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_service_group,
     &stream::_process_pb_service_group_member,
     &stream::_process_pb_host_parent,
-    nullptr,  // pb_instance_configuration
+    &stream::_process_pb_instance_configuration,
     &stream::_process_pb_adaptive_service_status,
     &stream::_process_pb_adaptive_host_status,
 };
