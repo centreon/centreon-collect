@@ -126,20 +126,13 @@ BESS7
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
-    log to console    step4
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
-    log to console    step5
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
-    log to console    step6
-    log to console    step1
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
-    log to console    step2
     Create Directory    ${VarRoot}/lib/centreon/config
-    log to console    step3
     Copy Directory
     ...    ${EtcRoot}/centreon-engine/config0
     ...    ${VarRoot}/lib/centreon/config/1
-    log to console    step4
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -251,10 +244,7 @@ BESS8
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    trace
-    Ctn Broker Config Log    module0    core    error
-    Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
@@ -269,18 +259,18 @@ BESS8
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    BBDO: engine configuration sent to peer 'Central' with version
+    ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
 
     ${content}    Create List
-    ...    BBDO: received engine configuration from Engine peer 'Poller0'
-    ...    BBDO: engine configuration for 'Poller0' is outdated
+    ...    BBDO: received engine configuration from Engine peer 'central-module-master0'
+    ...    BBDO: engine configuration for 'central-module-master0' is outdated
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that Broker received the configuration from Engine should be available in central.log. And this configuration should be outdated.
 
     ${content}    Create List
-    ...    BBDO: engine configuration from peer 'Central' received as expected
+    ...    BBDO: engine configuration from peer 'central-broker-master' received as expected
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
 
@@ -324,10 +314,7 @@ BESS9
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    trace
-    Ctn Broker Config Log    module0    core    error
-    Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
@@ -350,18 +337,18 @@ BESS9
     Ctn Start Broker
     Ctn Start Engine
 
-    ${content}    Create List    BBDO: engine configuration sent to peer 'Central' with version
+    ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
 
     ${content}    Create List
-    ...    BBDO: received engine configuration from Engine peer 'Poller0'
-    ...    BBDO: engine configuration for 'Poller0' is up to date
+    ...    BBDO: received engine configuration from Engine peer 'central-module-master0'
+    ...    BBDO: engine configuration for 'central-module-master0' is up to date
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that Broker received the configuration from Engine should be available in central.log. And this configuration should be up to date.
 
     ${content}    Create List
-    ...    BBDO: engine configuration from peer 'Central' received as expected
+    ...    BBDO: engine configuration from peer 'central-broker-master' received as expected
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
 
@@ -401,9 +388,6 @@ BESS10
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    core    error
-    Ctn Broker Config Log    module0    core    error
-    Ctn Broker Config Log    rrd    core    error
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
