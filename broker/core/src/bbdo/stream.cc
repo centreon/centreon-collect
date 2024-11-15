@@ -628,8 +628,8 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  if (_poller_id && !_poller_name.empty())
-    config::applier::state::instance().remove_peer(_poller_id, _poller_name,
+  if (_poller_id && !_broker_name.empty())
+    config::applier::state::instance().remove_peer(_poller_id, _broker_name,
                                                    _peer_type);
   return retval;
 }
@@ -760,7 +760,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.mutable_version()->set_patch(_bbdo_version.patch);
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
-      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration. */
       if (!config::applier::state::instance().engine_config_dir().empty())
@@ -883,7 +883,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.mutable_version()->set_patch(_bbdo_version.patch);
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
-      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration directory. */
       if (!config::applier::state::instance().engine_config_dir().empty())
@@ -902,10 +902,11 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = w->obj().extensions();
     _poller_id = w->obj().poller_id();
     _poller_name = w->obj().poller_name();
+    _broker_name = w->obj().broker_name();
 
     _peer_type = w->obj().peer_type();
     if (_peer_type != common::UNKNOWN) {
-      /* We are in the bbdo stream, _poller_id, _poller_name,
+      /* We are in the bbdo stream, _poller_id, _broker_name,
        * _extended_negotiation are informations about the peer, not us. */
       _extended_negotiation = true;
     }
@@ -976,9 +977,9 @@ void stream::negotiate(stream::negotiation_type neg) {
   // Stream has now negotiated.
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
-  if (_poller_id > 0 && !_poller_name.empty()) {
+  if (_poller_id > 0 && !_broker_name.empty()) {
     config::applier::state::instance().add_peer(
-        _poller_id, _poller_name, _peer_type, _extended_negotiation);
+        _poller_id, _broker_name, _peer_type, _extended_negotiation);
   }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
@@ -1092,24 +1093,24 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         SPDLOG_LOGGER_INFO(
             _logger,
             "BBDO: received engine configuration from Engine peer '{}'",
-            ec.poller_name());
+            ec.broker_name());
         bool match = check_poller_configuration(ec.poller_id(),
                                                 ec.engine_config_version());
         auto engine_conf = std::make_shared<pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
-        obj.set_poller_name(config::applier::state::instance().poller_name());
+        obj.set_broker_name(config::applier::state::instance().broker_name());
         obj.set_peer_type(common::BROKER);
         if (match) {
           SPDLOG_LOGGER_INFO(
               _logger, "BBDO: engine configuration for '{}' is up to date",
-              ec.poller_name());
+              ec.broker_name());
           obj.set_need_update(false);
         } else {
           SPDLOG_LOGGER_INFO(_logger,
                              "BBDO: engine configuration for '{}' is "
                              "outdated",
-                             ec.poller_name());
+                             ec.broker_name());
           /* engine_conf has a new version, it is sent to engine. And engine
            * will send its configuration to broker. */
           obj.set_need_update(true);
@@ -1502,7 +1503,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
       SPDLOG_LOGGER_DEBUG(_logger,
                           "BBDO: instance event sent to {} - supports "
                           "extended negotiation: {}",
-                          _poller_name, _extended_negotiation);
+                          _broker_name, _extended_negotiation);
       /* We are an Engine since we emit an instance event and we have an
        * engine config directory. If the Broker supports extended negotiation,
        * we send also an engine configuration event. And then we'll wait for
@@ -1512,7 +1513,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
         auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
-        obj.set_poller_name(config::applier::state::instance().poller_name());
+        obj.set_broker_name(config::applier::state::instance().broker_name());
         obj.set_peer_type(common::ENGINE);
 
         /* Time to fill the config version. */
@@ -1521,7 +1522,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
         obj.set_engine_config_version(_config_version);
         _logger->info(
             "BBDO: engine configuration sent to peer '{}' with version {}",
-            _poller_name, _config_version);
+            _broker_name, _config_version);
         _write(engine_conf);
         std::shared_ptr<io::data> d;
         time_t deadline = time(nullptr) + 5;
@@ -1531,7 +1532,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
           _logger->warn(
               "BBDO: no engine configuration received from peer '{}' as "
               "response",
-              _poller_name);
+              _broker_name);
           if (d) {
             _logger->info(
                 "BBDO: received message of type {:x} instead of "
@@ -1542,7 +1543,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
         } else {
           _logger->debug(
               "BBDO: engine configuration from peer '{}' received as expected",
-              _poller_name);
+              _broker_name);
           const EngineConfiguration& ec =
               std::static_pointer_cast<pb_engine_configuration>(d)->obj();
 
@@ -1550,12 +1551,12 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
             SPDLOG_LOGGER_INFO(_logger,
                                "BBDO: No engine configuration update needed");
             config::applier::state::instance().set_broker_needs_update(
-                ec.poller_id(), ec.poller_name(), common::BROKER, false);
+                ec.poller_id(), ec.broker_name(), common::BROKER, false);
           } else {
             SPDLOG_LOGGER_INFO(
                 _logger, "BBDO: Engine configuration needs to be updated");
             config::applier::state::instance().set_broker_needs_update(
-                ec.poller_id(), ec.poller_name(), common::BROKER, true);
+                ec.poller_id(), ec.broker_name(), common::BROKER, true);
           }
         }
       } else {

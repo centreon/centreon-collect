@@ -33,9 +33,13 @@ message Welcome {
   Bbdo version = 1;
   string extensions = 2;
   uint64 poller_id = 3;
-  string broker_name = 4;
-  com.centreon.common.PeerType peer_type = 5;
-  bool extended_negotiation = 6;
+  string poller_name = 4;
+  /* Broker name is more relevant than poller name because for example on the
+   * central, rrd broker, central broker and engine share the same poller name
+   * that is 'Central'. */
+  string broker_name = 5;
+  com.centreon.common.PeerType peer_type = 6;
+  bool extended_negotiation = 7;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */

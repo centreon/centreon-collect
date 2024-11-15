@@ -165,8 +165,10 @@ class stream : public io::stream {
                             time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
-  /* Name of the peer poller: used since BBDO 3.0.1 */
+  /* Poller Name of the peer: used since BBDO 3.0.1 */
   std::string _poller_name;
+  /* Broker Name of the peer: used since BBDO 3.0.1 */
+  std::string _broker_name;
   /* ID of the peer poller: used since BBDO 3.0.1 */
   uint64_t _poller_id = 0u;
   /* True if the peer supports extended negotiation */
