@@ -342,31 +342,37 @@ check_drive_size::check_drive_size(
       _critical(0),
       _fs_test(&check_drive_size::_no_test) {
   using namespace std::literals;
-  if (args.IsObject()) {
-    common::rapidjson_helper helper(args);
+  try {
+    if (args.IsObject()) {
+      common::rapidjson_helper helper(args);
 
-    if (args.HasMember("unit")) {
-      _prct_threshold = helper.get_string("unit", "%") == "%"sv;
-    } else {
-      _prct_threshold = helper.get_string("units", "%") == "%"sv;
-    }
-    _free_threshold = helper.get_bool("free", false);
+      if (args.HasMember("unit")) {
+        _prct_threshold = helper.get_string("unit", "%") == "%"sv;
+      } else {
+        _prct_threshold = helper.get_string("units", "%") == "%"sv;
+      }
+      _free_threshold = helper.get_bool("free", false);
 
-    _warning = helper.get_uint64_t("warning", 0);
-    _critical = helper.get_uint64_t("critical", 0);
-    if (_prct_threshold) {
-      if (_warning || _critical) {
-        _warning *= 100;
-        _critical *= 100;
-        _fs_test = _free_threshold ? &check_drive_size::_prct_free_test
-                                   : &check_drive_size::_prct_used_test;
-      }
-    } else {
-      if (_warning || _critical) {
-        _fs_test = _free_threshold ? &check_drive_size::_free_test
-                                   : &check_drive_size::_used_test;
+      _warning = helper.get_uint64_t("warning", 0);
+      _critical = helper.get_uint64_t("critical", 0);
+      if (_prct_threshold) {
+        if (_warning || _critical) {
+          _warning *= 100;
+          _critical *= 100;
+          _fs_test = _free_threshold ? &check_drive_size::_prct_free_test
+                                     : &check_drive_size::_prct_used_test;
+        }
+      } else {
+        if (_warning || _critical) {
+          _fs_test = _free_threshold ? &check_drive_size::_free_test
+                                     : &check_drive_size::_used_test;
+        }
       }
     }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "check_drive_size fail to parse check params: {}", e.what());
+    throw;
   }
 }
 

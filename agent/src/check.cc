@@ -136,8 +136,10 @@ void check::on_completion(
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   if (start_check_index == _running_check_index) {
-    SPDLOG_LOGGER_TRACE(_logger, "end check for service {} cmd: {}", _service,
-                        _command_name);
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "end check for service {} cmd: {} status:{} output: {}",
+                        _service, _command_name, status,
+                        outputs.empty() ? "" : outputs.front());
     _time_out_timer.cancel();
     _running_check = false;
     ++_running_check_index;

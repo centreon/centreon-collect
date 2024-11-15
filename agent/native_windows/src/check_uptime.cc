@@ -18,6 +18,7 @@
 
 #include <windows.h>
 #include <chrono>
+#include <exception>
 
 #include "absl/container/flat_hash_map.h"
 #include "check_uptime.hh"
@@ -66,16 +67,22 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
       _second_warning_threshold(0),
       _second_critical_threshold(0) {
   com::centreon::common::rapidjson_helper arg(args);
-  if (args.IsObject()) {
-    _second_warning_threshold = arg.get_unsigned("warning-uptime", 0);
-    _second_critical_threshold = arg.get_unsigned("critical-uptime", 0);
-    std::string unit = arg.get_string("unit", "s");
-    boost::to_lower(unit);
-    auto multiplier = _unit_multiplier.find(unit);
-    if (multiplier != _unit_multiplier.end()) {
-      _second_warning_threshold *= multiplier->second;
-      _second_critical_threshold *= multiplier->second;
+  try {
+    if (args.IsObject()) {
+      _second_warning_threshold = arg.get_unsigned("warning-uptime", 0);
+      _second_critical_threshold = arg.get_unsigned("critical-uptime", 0);
+      std::string unit = arg.get_string("unit", "s");
+      boost::to_lower(unit);
+      auto multiplier = _unit_multiplier.find(unit);
+      if (multiplier != _unit_multiplier.end()) {
+        _second_warning_threshold *= multiplier->second;
+        _second_critical_threshold *= multiplier->second;
+      }
     }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "check_uptime, fail to parse arguments: {}",
+                        e.what());
+    throw;
   }
 }
 

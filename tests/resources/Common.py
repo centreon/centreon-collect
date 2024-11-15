@@ -1949,3 +1949,47 @@ def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
             return False
     return True
 
+
+
+def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (dict): A dictionary containing the expected performance data values.
+    """
+    limit = time.time() + timeout
+    query = f"""SELECT sub_query.metric_name, db.value FROM data_bin db JOIN
+            (SELECT m.metric_name, MAX(db.ctime) AS last_data, db.id_metric FROM data_bin db
+                JOIN metrics m ON db.id_metric = m.metric_id
+                JOIN index_data id ON id.id = m.index_id
+                WHERE id.host_name='{host}' AND id.service_description='{serv}'
+                GROUP BY m.metric_id) sub_query 
+            ON db.ctime = sub_query.last_data AND db.id_metric = sub_query.id_metric"""
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result)  == len(expected):
+                    for res in result:
+                        logger.console(f"metric: {res['metric_name']}, value: {res['value']}")
+                        metric = res['metric_name']
+                        value = float(res['value'])
+                        if metric not in expected:
+                            logger.console(f"ERROR unexpected metric: {metric}")
+                            return False
+                        if abs(value - expected[metric]) > precision:
+                            logger.console(f"ERROR unexpected value for {metric}: {value}")
+                            return False
+                    return True
+        time.sleep(1)
+    return False

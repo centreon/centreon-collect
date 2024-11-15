@@ -410,111 +410,117 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           std::move(handler))
 
 {
-  com::centreon::common::rapidjson_helper arg(args);
-  if (args.IsObject()) {
-    for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
-         ++member_iter) {
-      auto cpu_to_status_search = _label_to_cpu_to_status.find(
-          absl::AsciiStrToLower(member_iter->name.GetString()));
-      if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-            val.IsUint64()) {
-          check_cpu_detail::cpu_to_status cpu_checker =
-              cpu_to_status_search->second(member_iter->value.GetDouble() /
-                                           100);
-          _cpu_to_status.emplace(
-              std::make_tuple(cpu_checker.get_proc_stat_index(),
-                              cpu_checker.is_average(),
-                              cpu_checker.get_status()),
-              cpu_checker);
-        } else if (val.IsString()) {
-          auto to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
+  try {
+    com::centreon::common::rapidjson_helper arg(args);
+    if (args.IsObject()) {
+      for (auto member_iter = args.MemberBegin();
+           member_iter != args.MemberEnd(); ++member_iter) {
+        auto cpu_to_status_search = _label_to_cpu_to_status.find(
+            absl::AsciiStrToLower(member_iter->name.GetString()));
+        if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
+          const rapidjson::Value& val = member_iter->value;
+          if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
+              val.IsUint64()) {
             check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(dval / 100);
+                cpu_to_status_search->second(member_iter->value.GetDouble() /
+                                             100);
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
                                 cpu_checker.is_average(),
                                 cpu_checker.get_status()),
                 cpu_checker);
+          } else if (val.IsString()) {
+            auto to_conv = val.GetString();
+            double dval;
+            if (absl::SimpleAtod(to_conv, &dval)) {
+              check_cpu_detail::cpu_to_status cpu_checker =
+                  cpu_to_status_search->second(dval / 100);
+              _cpu_to_status.emplace(
+                  std::make_tuple(cpu_checker.get_proc_stat_index(),
+                                  cpu_checker.is_average(),
+                                  cpu_checker.get_status()),
+                  cpu_checker);
+            } else {
+              SPDLOG_LOGGER_ERROR(
+                  logger,
+                  "command: {}, value is not a number for parameter {}: {}",
+                  cmd_name, member_iter->name, val);
+            }
+
+          } else {
+            SPDLOG_LOGGER_ERROR(logger,
+                                "command: {}, bad value for parameter {}: {}",
+                                cmd_name, member_iter->name, val);
+          }
+        } else if (member_iter->name == "use-nt-query-system-information") {
+          const rapidjson::Value& val = member_iter->value;
+          if (val.IsBool()) {
+            _use_nt_query_system_information = val.GetBool();
           } else {
             SPDLOG_LOGGER_ERROR(
                 logger,
-                "command: {}, value is not a number for parameter {}: {}",
-                cmd_name, member_iter->name, val);
+                "command: {}, use-nt-query-system-information is not a boolean",
+                cmd_name);
           }
-
-        } else {
-          SPDLOG_LOGGER_ERROR(logger,
-                              "command: {}, bad value for parameter {}: {}",
-                              cmd_name, member_iter->name, val);
+        } else if (member_iter->name != "cpu-detailed") {
+          SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
+                              cmd_name, member_iter->name);
         }
-      } else if (member_iter->name == "use-nt-query-system-information") {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
-          _use_nt_query_system_information = val.GetBool();
-        } else {
-          SPDLOG_LOGGER_ERROR(
-              logger,
-              "command: {}, use-nt-query-system-information is not a boolean",
-              cmd_name);
-        }
-      } else if (member_iter->name != "cpu-detailed") {
-        SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
-                            cmd_name, member_iter->name);
       }
     }
+    catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger, "check_cpu fail to parse check params: {}",
+                          e.what());
+      throw;
+    }
+
+    if (_use_nt_query_system_information) {
+      _ntdll_init();
+    } else {
+      _pdh_counters = std::make_unique<pdh_counters>();
+    }
   }
-  if (_use_nt_query_system_information) {
-    _ntdll_init();
-  } else {
-    _pdh_counters = std::make_unique<pdh_counters>();
+
+  check_cpu::~check_cpu() {}
+
+  std::unique_ptr<
+      check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
+  check_cpu::get_cpu_time_snapshot(bool first_measure) {
+    if (_use_nt_query_system_information) {
+      return std::make_unique<check_cpu_detail::kernel_cpu_time_snapshot>(
+          _nb_core);
+    } else {
+      return std::make_unique<check_cpu_detail::pdh_cpu_time_snapshot>(
+          _nb_core, *_pdh_counters, first_measure);
+    }
   }
-}
 
-check_cpu::~check_cpu() {}
+  constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
+      _sz_summary_labels = {", User ", ", System ", ", Idle ", ", Interrupt ",
+                            ", Dpc Interrupt "};
 
-std::unique_ptr<
-    check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
-check_cpu::get_cpu_time_snapshot(bool first_measure) {
-  if (_use_nt_query_system_information) {
-    return std::make_unique<check_cpu_detail::kernel_cpu_time_snapshot>(
-        _nb_core);
-  } else {
-    return std::make_unique<check_cpu_detail::pdh_cpu_time_snapshot>(
-        _nb_core, *_pdh_counters, first_measure);
+  constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
+      _sz_perfdata_name = {"user", "system", "idle", "interrupt",
+                           "dpc_interrupt"};
+
+  /**
+   * @brief compute the difference between second_measure and first_measure and
+   * generate status, output and perfdatas
+   *
+   * @param first_measure first snapshot of /proc/stat
+   * @param second_measure second snapshot of /proc/stat
+   * @param output out plugin output
+   * @param perfs perfdatas
+   * @return e_status plugin out status
+   */
+  e_status check_cpu::compute(
+      const check_cpu_detail::cpu_time_snapshot<
+          check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
+      const check_cpu_detail::cpu_time_snapshot<
+          check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+      std::string* output, std::list<common::perfdata>* perfs) {
+    output->reserve(256 * _nb_core);
+
+    return _compute(first_measure, second_measure, _sz_summary_labels.data(),
+                    _sz_perfdata_name.data(), output, perfs);
   }
-}
-
-constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
-    _sz_summary_labels = {", User ", ", System ", ", Idle ", ", Interrupt ",
-                          ", Dpc Interrupt "};
-
-constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
-    _sz_perfdata_name = {"user", "system", "idle", "interrupt",
-                         "dpc_interrupt"};
-
-/**
- * @brief compute the difference between second_measure and first_measure and
- * generate status, output and perfdatas
- *
- * @param first_measure first snapshot of /proc/stat
- * @param second_measure second snapshot of /proc/stat
- * @param output out plugin output
- * @param perfs perfdatas
- * @return e_status plugin out status
- */
-e_status check_cpu::compute(
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-    const check_cpu_detail::cpu_time_snapshot<
-        check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
-    std::string* output,
-    std::list<common::perfdata>* perfs) {
-  output->reserve(256 * _nb_core);
-
-  return _compute(first_measure, second_measure, _sz_summary_labels.data(),
-                  _sz_perfdata_name.data(), output, perfs);
-}
