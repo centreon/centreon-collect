@@ -110,6 +110,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   // Set poller instance.
   _poller_id = s.poller_id();
+  _broker_name = s.broker_name();
   _poller_name = s.poller_name();
   _rpc_port = s.rpc_port();
   _bbdo_version = s.get_bbdo_version();
@@ -238,8 +239,8 @@ uint32_t state::poller_id() const noexcept {
  *
  *  @return Poller name of this Broker instance.
  */
-const std::string& state::poller_name() const noexcept {
-  return _poller_name;
+const std::string& state::broker_name() const noexcept {
+  return _broker_name;
 }
 
 /**
@@ -276,26 +277,26 @@ const config::applier::state::stats& state::stats_conf() {
  * @brief Add a poller to the list of connected pollers.
  *
  * @param poller_id The id of the poller (an id by host)
- * @param poller_name The name of the poller
+ * @param broker_name The name of the poller
  */
 void state::add_peer(uint64_t poller_id,
-                     const std::string& poller_name,
+                     const std::string& broker_name,
                      common::PeerType peer_type,
                      bool extended_negotiation) {
-  assert(poller_id && !poller_name.empty());
+  assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  auto found = _connected_peers.find({poller_id, broker_name, peer_type});
   if (found == _connected_peers.end()) {
-    logger->info("Poller '{}' with id {} connected", poller_name, poller_id);
+    logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
   } else {
     logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it.",
-        poller_name, poller_id);
+        broker_name, poller_id);
     _connected_peers.erase(found);
   }
-  _connected_peers[{poller_id, poller_name, peer_type}] = peer{
-      poller_id, poller_name, time(nullptr), peer_type, extended_negotiation,
+  _connected_peers[{poller_id, broker_name, peer_type}] = peer{
+      poller_id, broker_name, time(nullptr), peer_type, extended_negotiation,
       true,      false};
 }
 
@@ -305,22 +306,22 @@ void state::add_peer(uint64_t poller_id,
  * @param poller_id The id of the poller to remove.
  */
 void state::remove_peer(uint64_t poller_id,
-                        const std::string& poller_name,
+                        const std::string& broker_name,
                         common::PeerType peer_type) {
-  assert(poller_id && !poller_name.empty());
+  assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
-  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  auto found = _connected_peers.find({poller_id, broker_name, peer_type});
   if (found != _connected_peers.end()) {
     logger->info(
-        "Peer '{}' with id {} and type '{}' disconnected", poller_name,
+        "Peer '{}' with id {} and type '{}' disconnected", broker_name,
         poller_id,
         common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
     _connected_peers.erase(found);
   } else {
     logger->warn(
         "Peer '{}' with id {} and type '{}' not found in connected peers",
-        poller_name, poller_id,
+        broker_name, poller_id,
         common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
   }
 }
@@ -422,16 +423,16 @@ com::centreon::common::PeerType state::peer_type() const {
  * to receive data.
  *
  * @param poller_id The poller id.
- * @param poller_name The poller name.
+ * @param broker_name The poller name.
  * @param peer_type The peer type.
  * @param need_update true if the broker needs an update, false otherwise.
  */
 void state::set_broker_needs_update(uint64_t poller_id,
-                                    const std::string& poller_name,
+                                    const std::string& broker_name,
                                     common::PeerType peer_type,
                                     bool need_update) {
   absl::MutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  auto found = _connected_peers.find({poller_id, broker_name, peer_type});
   if (found != _connected_peers.end()) {
     found->second.needs_update = need_update;
     found->second.ready = true;
@@ -439,7 +440,7 @@ void state::set_broker_needs_update(uint64_t poller_id,
     auto logger = log_v2::instance().get(log_v2::CORE);
     logger->warn(
         "Poller '{}' with id {} and type '{}' not found in connected peers",
-        poller_name, poller_id,
+        broker_name, poller_id,
         common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
   }
 }
@@ -458,15 +459,15 @@ void state::set_peers_ready() {
  * @brief Check if a broker needs an update.
  *
  * @param poller_id The poller id.
- * @param poller_name The poller name.
+ * @param broker_name The poller name.
  * @param peer_type The peer type.
  *
  * @return true if the broker needs an update, false otherwise.
  */
 bool state::broker_needs_update(uint64_t poller_id,
-                                const std::string& poller_name,
+                                const std::string& broker_name,
                                 common::PeerType peer_type) const {
-  auto found = _connected_peers.find({poller_id, poller_name, peer_type});
+  auto found = _connected_peers.find({poller_id, broker_name, peer_type});
   if (found != _connected_peers.end())
     return found->second.needs_update;
   else

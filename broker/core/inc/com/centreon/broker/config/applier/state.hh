@@ -59,6 +59,7 @@ class state {
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
+  std::string _broker_name;
   size_t _pool_size;
 
   /* In a cbmod configuration, this string contains the directory containing
@@ -108,6 +109,7 @@ class state {
   bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
+  const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
   const std::filesystem::path& engine_config_dir() const noexcept;
   void set_engine_config_dir(const std::filesystem::path& dir);
@@ -117,12 +119,12 @@ class state {
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
   void add_peer(uint64_t poller_id,
-                const std::string& poller_name,
+                const std::string& broker_name,
                 common::PeerType peer_type,
                 bool extended_negotiation)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
-                   const std::string& poller_name,
+                   const std::string& broker_name,
                    common::PeerType peer_type)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool has_connection_from_poller(uint64_t poller_id) const
@@ -134,13 +136,13 @@ class state {
   common::PeerType peer_type() const;
   std::string get_engine_conf_from_cache(uint64_t poller_id);
   void set_broker_needs_update(uint64_t poller_id,
-                               const std::string& poller_name,
+                               const std::string& broker_name,
                                common::PeerType peer_type,
                                bool need_update)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_peers_ready() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool broker_needs_update(uint64_t poller_id,
-                           const std::string& poller_name,
+                           const std::string& broker_name,
                            common::PeerType peer_type) const;
   bool broker_needs_update() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
