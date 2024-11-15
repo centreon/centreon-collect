@@ -33,7 +33,7 @@ message Welcome {
   Bbdo version = 1;
   string extensions = 2;
   uint64 poller_id = 3;
-  string poller_name = 4;
+  string broker_name = 4;
   com.centreon.common.PeerType peer_type = 5;
   bool extended_negotiation = 6;
 }
@@ -51,7 +51,7 @@ message Stop {
 /* io::bbdo, bbdo::de_pb_engine_configuration, 52 */
 message EngineConfiguration {
   uint64 poller_id = 1;    // Poller ID of the sender (Engine or Broker)
-  string poller_name = 2;  // Poller name of the sender (Engine or Broker)
+  string broker_name = 2;  // Broker name of the sender (Engine or Broker)
   com.centreon.common.PeerType peer_type =
       3;  // Peer type of the sender (Engine or Broker)
   string engine_config_version =
