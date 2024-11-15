@@ -105,9 +105,10 @@ message PeerList {
 
 message Peer {
   uint32 id = 1;
-  string name = 2;
-  google.protobuf.Timestamp connected_since = 3;
-  common.PeerType type = 4;
+  string poller_name = 2;
+  string broker_name = 3;
+  google.protobuf.Timestamp connected_since = 4;
+  common.PeerType type = 5;
 }
 
 message AesMessage {

@@ -55,11 +55,12 @@ message Stop {
 /* io::bbdo, bbdo::de_pb_engine_configuration, 52 */
 message EngineConfiguration {
   uint64 poller_id = 1;    // Poller ID of the sender (Engine or Broker)
-  string broker_name = 2;  // Broker name of the sender (Engine or Broker)
+  string poller_name = 2;  // Poller name of the sender
+  string broker_name = 3;  // Broker name of the sender
   com.centreon.common.PeerType peer_type =
-      3;  // Peer type of the sender (Engine or Broker)
+      4;  // Peer type of the sender (Engine or Broker)
   string engine_config_version =
-      4;  // Engine uses this to send the conf version
+      5;  // Engine uses this to send the conf version
   bool need_update =
-      5;  // Broker uses this to tell Engine if an update is needed
+      6;  // Broker uses this to tell Engine if an update is needed
 }

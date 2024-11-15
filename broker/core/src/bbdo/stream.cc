@@ -628,9 +628,9 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  if (_poller_id && !_broker_name.empty())
-    config::applier::state::instance().remove_peer(_poller_id, _broker_name,
-                                                   _peer_type);
+  if (_poller_id && !_broker_name.empty() && !_poller_name.empty())
+    config::applier::state::instance().remove_peer(_poller_id, _poller_name,
+                                                   _broker_name);
   return retval;
 }
 
@@ -760,6 +760,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.mutable_version()->set_patch(_bbdo_version.patch);
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration. */
@@ -883,6 +884,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.mutable_version()->set_patch(_bbdo_version.patch);
       obj.set_extensions(extensions);
       obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration directory. */
@@ -978,8 +980,9 @@ void stream::negotiate(stream::negotiation_type neg) {
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
   if (_poller_id > 0 && !_broker_name.empty()) {
-    config::applier::state::instance().add_peer(
-        _poller_id, _broker_name, _peer_type, _extended_negotiation);
+    config::applier::state::instance().add_peer(_poller_id, _poller_name,
+                                                _broker_name, _peer_type,
+                                                _extended_negotiation);
   }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
@@ -1099,6 +1102,7 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         auto engine_conf = std::make_shared<pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
+        obj.set_poller_name(config::applier::state::instance().poller_name());
         obj.set_broker_name(config::applier::state::instance().broker_name());
         obj.set_peer_type(common::BROKER);
         if (match) {
@@ -1513,6 +1517,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
         auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
+        obj.set_poller_name(config::applier::state::instance().poller_name());
         obj.set_broker_name(config::applier::state::instance().broker_name());
         obj.set_peer_type(common::ENGINE);
 
@@ -1551,12 +1556,14 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
             SPDLOG_LOGGER_INFO(_logger,
                                "BBDO: No engine configuration update needed");
             config::applier::state::instance().set_broker_needs_update(
-                ec.poller_id(), ec.broker_name(), common::BROKER, false);
+                ec.poller_id(), ec.poller_name(), ec.broker_name(),
+                common::BROKER, false);
           } else {
             SPDLOG_LOGGER_INFO(
                 _logger, "BBDO: Engine configuration needs to be updated");
             config::applier::state::instance().set_broker_needs_update(
-                ec.poller_id(), ec.broker_name(), common::BROKER, true);
+                ec.poller_id(), ec.poller_name(), ec.broker_name(),
+                common::BROKER, true);
           }
         }
       } else {

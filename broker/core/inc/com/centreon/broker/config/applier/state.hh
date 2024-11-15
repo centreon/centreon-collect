@@ -39,7 +39,8 @@ class state {
 
   struct peer {
     uint64_t poller_id;
-    std::string name;
+    std::string poller_name;
+    std::string broker_name;
     time_t connected_since;
     /* Is it a broker, an engine, a map or an unknown peer? */
     common::PeerType peer_type;
@@ -87,7 +88,8 @@ class state {
 
   static stats _stats_conf;
 
-  absl::flat_hash_map<std::tuple<uint64_t, std::string, common::PeerType>, peer>
+  /* This map is indexed by the tuple {poller_id, poller_name, broker_name}. */
+  absl::flat_hash_map<std::tuple<uint64_t, std::string, std::string>, peer>
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
 
@@ -119,13 +121,14 @@ class state {
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
   void add_peer(uint64_t poller_id,
+                const std::string& poller_name,
                 const std::string& broker_name,
                 common::PeerType peer_type,
                 bool extended_negotiation)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
-                   const std::string& broker_name,
-                   common::PeerType peer_type)
+                   const std::string& poller_name,
+                   const std::string& broker_name)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool has_connection_from_poller(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
@@ -136,14 +139,15 @@ class state {
   common::PeerType peer_type() const;
   std::string get_engine_conf_from_cache(uint64_t poller_id);
   void set_broker_needs_update(uint64_t poller_id,
+                               const std::string& poller_name,
                                const std::string& broker_name,
                                common::PeerType peer_type,
                                bool need_update)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void set_peers_ready() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool broker_needs_update(uint64_t poller_id,
-                           const std::string& broker_name,
-                           common::PeerType peer_type) const;
+                           const std::string& poller_name,
+                           const std::string& broker_name) const;
   bool broker_needs_update() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
   std::string engine_configuration(uint64_t poller_id) const;

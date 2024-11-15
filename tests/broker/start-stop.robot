@@ -57,7 +57,7 @@ BSSU3
     [Documentation]    Start-Stop one instance of broker (BBDO3) and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
-    Ct Config BBDO3    0
+    Ctn Config BBDO3    0
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Repeat Keyword    5 times    Ctn Start Stop Instance    0
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -104,10 +104,9 @@ START_STOP_CBD
     [Documentation]    restart cbd with unified_sql services state must not be null after restart
     [Tags]    broker    start-stop    unified_sql
     Ctn Config Broker    central
-    Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
-    Ctn Config BBDO3    nbEngine=1
+    Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker Sql Output    central    unified_sql
 
@@ -119,12 +118,7 @@ START_STOP_CBD
     Ctn Start Engine
     Ctn Start Broker
 
-    # wait engine start
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     # restart central broker
     Ctn Stop Broker

@@ -441,7 +441,8 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
   for (auto& p : config::applier::state::instance().connected_peers()) {
     auto peer = response->add_peers();
     peer->set_id(p.poller_id);
-    peer->set_name(p.name);
+    peer->set_poller_name(p.poller_name);
+    peer->set_broker_name(p.broker_name);
     peer->mutable_connected_since()->set_seconds(p.connected_since);
     peer->set_type(p.peer_type);
   }

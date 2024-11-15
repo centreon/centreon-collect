@@ -32,6 +32,7 @@ BESS6
     Ctn Broker Config Log    rrd    bbdo    debug
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
     Copy Directory
     ...    ${EtcRoot}/centreon-engine/config0
@@ -46,11 +47,12 @@ BESS6
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
         # We check that result contains a 'peers' key
-        IF    "peers" not in ${result}
+        IF    ${result} is not None and "peers" not in ${result}
             Log To Console    No peers found in the result, let's wait a bit more
             Sleep    1s
             Continue For
         END
+	Log To Console    ${result}
         ${count}    Evaluate    len(${result['peers']})
         IF    ${count} == 2
             BREAK
@@ -62,20 +64,22 @@ BESS6
     # We define a variable to count the number of peers found
     ${count}        Set Variable    0
     FOR                ${peer}    IN    @{result['peers']}
-      IF    "${peer['name']}" == "Poller0"
+      IF    "${peer['brokerName']}" == "central-module-master0"
         ${count}    Evaluate    ${count} + 1
-        Should Be Equal As Strings    ${peer['name']}    Poller0    Poller name should be Poller0
+        Should Be Equal As Strings    ${peer['brokerName']}    central-module-master0    Broker name should be central-module-master0
+        Should Be Equal As Strings    ${peer['pollerName']}    Poller0    Poller name should be Poller0
         Should Be Equal As Integers    ${peer['id']}    1    On the poller instance, Poller id should be 1
         Should Be True    "type" in ${peer}    Poller type should be defined as ENGINE.
         Should Be Equal As Strings    ${peer['type']}    ENGINE    Poller type should be ENGINE
-      ELSE IF    "${peer['name']}" == "Central"
+      ELSE IF    "${peer['brokerName']}" == "central-rrd-master"
         ${count}    Evaluate    ${count} + 1
-        Should Be Equal As Strings    ${peer['name']}    Central    Central name should be Central
+        Should Be Equal As Strings    ${peer['brokerName']}    central-rrd-master    Broker name should be central-rrd-master
+        Should Be Equal As Strings    ${peer['pollerName']}    Central    Poller name should be Central
         Should Be Equal As Integers    ${peer['id']}    1    On the central instance, Central id should be 1
         Should Be True    "type" in ${peer}    Poller type should be defined as BROKER.
         Should Be Equal As Strings    ${peer['type']}    BROKER    Central type should be BROKER
       ELSE
-        Fail    Peer '${peer['name']}' name should not be found
+        Fail    Peer '${peer['brokerName']}' name should not be found
       END
     END
 
@@ -93,7 +97,8 @@ BESS6
 
     Should Be True    "peers" in ${result}    RRD cbd should know about its peers.
     Log To Console    ${result}
-    Should Be Equal As Strings    ${result['peers'][0]['name']}    Central    From the RRD cbd, peer name should be Central
+    Should Be Equal As Strings    ${result['peers'][0]['brokerName']}    central-broker-master    From the RRD cbd, Poller peer name should be central-broker-master
+    Should Be Equal As Strings    ${result['peers'][0]['pollerName']}    Central    From the RRD cbd, peer Broker name should be Central
     Should Be Equal As Integers    ${result['peers'][0]['id']}    1    From the RRD cbd, peer id should be 1
     Should Be Equal As Strings    ${result['peers'][0]['type']}    BROKER    From the RRD cbd, peer type should be BROKER because it is the central cbd instance.
     Ctn Stop Engine
@@ -121,13 +126,20 @@ BESS7
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
+    log to console    step4
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    log to console    step5
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    log to console    step6
+    log to console    step1
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    log to console    step2
     Create Directory    ${VarRoot}/lib/centreon/config
+    log to console    step3
     Copy Directory
     ...    ${EtcRoot}/centreon-engine/config0
     ...    ${VarRoot}/lib/centreon/config/1
+    log to console    step4
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
