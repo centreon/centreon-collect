@@ -2681,35 +2681,42 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resour
     return False
 
 
-def ctn_get_hosts_services_count(poller_id: int):
+def ctn_get_hosts_services_count(poller_id: int, expected_hst: int, expected_svc: int, timeout: int = 30):
     """
     Get the number of hosts and services monitored by a poller.
 
     Args:
         poller_id: The poller ID.
+        expected_hst: The expected number of hosts.
+        expected_svc: The expected number of services.
+        timeout: A timeout in seconds.
 
     Returns:
         A tuple (number of hosts, number of services).
     """
-    connection = pymysql.connect(host=DB_HOST,
-                                 user=DB_USER,
-                                 password=DB_PASS,
-                                 database=DB_NAME_STORAGE,
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id=0 AND enabled=1")
-            result = cursor.fetchone()
-            hosts = result['COUNT(*)']
-            cursor.execute(
-                f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id<>0 AND enabled=1")
-            result = cursor.fetchone()
-            services = result['COUNT(*)']
-            return (hosts, services)
-
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id=0 AND enabled=1")
+                result = cursor.fetchone()
+                hosts = result['COUNT(*)']
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id<>0 AND enabled=1")
+                result = cursor.fetchone()
+                services = result['COUNT(*)']
+                if hosts == expected_hst and services == expected_svc:
+                    return (hosts, services)
+        time.sleep(2)
+    return (0, 0)
 
 def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
