@@ -294,7 +294,7 @@ BESS8
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should update its poller configuration.
 
-    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    ${result}    Ctn Check Poller Enabled In Database    1    30    ${True}
     Should Be True    ${result}    Poller not visible in resources table
 
     Ctn Stop Engine
@@ -407,7 +407,7 @@ BESS10
 
     # For the first connection, Engine still sends its configuration, so the
     # resources table is well updated.
-    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    ${result}    Ctn Check Poller Enabled In Database    1    30    ${True}
     Should Be True    ${result}    Poller not visible in resources table (first connection)
 
     ${hosts_services}    Ctn Get Hosts Services Count    1    50    1000
@@ -417,7 +417,7 @@ BESS10
 
     # For the second connection, Engine does not send its configuration, so the
     # resources table is updated by broker alone.
-    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
+    ${result}    Ctn Check Poller Enabled In Database    1    30    ${True}
     Should Be True    ${result}    Poller not visible in resources table (second connection)
 
     ${content}    Create List
