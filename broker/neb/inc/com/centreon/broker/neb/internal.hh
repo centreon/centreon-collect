@@ -47,6 +47,9 @@ using pb_downtime =
 
 using pb_host_status =
     io::protobuf<HostStatus, make_type(io::neb, neb::de_pb_host_status)>;
+using pb_adaptive_host_status =
+    io::protobuf<AdaptiveHostStatus,
+                 make_type(io::neb, neb::de_pb_adaptive_host_status)>;
 using pb_host = io::protobuf<Host, make_type(io::neb, neb::de_pb_host)>;
 using pb_adaptive_host =
     io::protobuf<AdaptiveHost, make_type(io::neb, neb::de_pb_adaptive_host)>;
@@ -59,6 +62,10 @@ using pb_adaptive_service =
 
 using pb_service_status =
     io::protobuf<ServiceStatus, make_type(io::neb, neb::de_pb_service_status)>;
+
+using pb_adaptive_service_status =
+    io::protobuf<AdaptiveServiceStatus,
+                 make_type(io::neb, neb::de_pb_adaptive_service_status)>;
 
 using pb_severity =
     io::protobuf<Severity, make_type(io::neb, neb::de_pb_severity)>;
