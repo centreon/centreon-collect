@@ -468,59 +468,60 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
         }
       }
     }
-    catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(_logger, "check_cpu fail to parse check params: {}",
-                          e.what());
-      throw;
-    }
-
-    if (_use_nt_query_system_information) {
-      _ntdll_init();
-    } else {
-      _pdh_counters = std::make_unique<pdh_counters>();
-    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "check_cpu fail to parse check params: {}",
+                        e.what());
+    throw;
   }
 
-  check_cpu::~check_cpu() {}
-
-  std::unique_ptr<
-      check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
-  check_cpu::get_cpu_time_snapshot(bool first_measure) {
-    if (_use_nt_query_system_information) {
-      return std::make_unique<check_cpu_detail::kernel_cpu_time_snapshot>(
-          _nb_core);
-    } else {
-      return std::make_unique<check_cpu_detail::pdh_cpu_time_snapshot>(
-          _nb_core, *_pdh_counters, first_measure);
-    }
+  if (_use_nt_query_system_information) {
+    _ntdll_init();
+  } else {
+    _pdh_counters = std::make_unique<pdh_counters>();
   }
+}
 
-  constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
-      _sz_summary_labels = {", User ", ", System ", ", Idle ", ", Interrupt ",
-                            ", Dpc Interrupt "};
+check_cpu::~check_cpu() {}
 
-  constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
-      _sz_perfdata_name = {"user", "system", "idle", "interrupt",
-                           "dpc_interrupt"};
-
-  /**
-   * @brief compute the difference between second_measure and first_measure and
-   * generate status, output and perfdatas
-   *
-   * @param first_measure first snapshot of /proc/stat
-   * @param second_measure second snapshot of /proc/stat
-   * @param output out plugin output
-   * @param perfs perfdatas
-   * @return e_status plugin out status
-   */
-  e_status check_cpu::compute(
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
-      const check_cpu_detail::cpu_time_snapshot<
-          check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
-      std::string* output, std::list<common::perfdata>* perfs) {
-    output->reserve(256 * _nb_core);
-
-    return _compute(first_measure, second_measure, _sz_summary_labels.data(),
-                    _sz_perfdata_name.data(), output, perfs);
+std::unique_ptr<
+    check_cpu_detail::cpu_time_snapshot<e_proc_stat_index::nb_field>>
+check_cpu::get_cpu_time_snapshot(bool first_measure) {
+  if (_use_nt_query_system_information) {
+    return std::make_unique<check_cpu_detail::kernel_cpu_time_snapshot>(
+        _nb_core);
+  } else {
+    return std::make_unique<check_cpu_detail::pdh_cpu_time_snapshot>(
+        _nb_core, *_pdh_counters, first_measure);
   }
+}
+
+constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
+    _sz_summary_labels = {", User ", ", System ", ", Idle ", ", Interrupt ",
+                          ", Dpc Interrupt "};
+
+constexpr std::array<std::string_view, e_proc_stat_index::nb_field>
+    _sz_perfdata_name = {"user", "system", "idle", "interrupt",
+                         "dpc_interrupt"};
+
+/**
+ * @brief compute the difference between second_measure and first_measure and
+ * generate status, output and perfdatas
+ *
+ * @param first_measure first snapshot of /proc/stat
+ * @param second_measure second snapshot of /proc/stat
+ * @param output out plugin output
+ * @param perfs perfdatas
+ * @return e_status plugin out status
+ */
+e_status check_cpu::compute(
+    const check_cpu_detail::cpu_time_snapshot<
+        check_cpu_detail::e_proc_stat_index::nb_field>& first_measure,
+    const check_cpu_detail::cpu_time_snapshot<
+        check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
+    std::string* output,
+    std::list<common::perfdata>* perfs) {
+  output->reserve(256 * _nb_core);
+
+  return _compute(first_measure, second_measure, _sz_summary_labels.data(),
+                  _sz_perfdata_name.data(), output, perfs);
+}

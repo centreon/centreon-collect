@@ -396,7 +396,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.1"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -405,7 +405,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "cpu_percentage", "args": {"critical-average" : "0.2", "warning-average" : "0.1"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "cpu_percentage", "args": {"critical-average" : "0.02", "warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
@@ -557,11 +557,11 @@ Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
     ${host_name}  Ctn Get Hostname
     ${run_env}       Ctn Run Env
-    # IF    "${run_env}" == "WSL"
-    #     Copy File    ../server_grpc.key    /tmp/server_grpc.key
-    #     Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
-    # ELSE
-    #     Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
-    # END
+    IF    "${run_env}" == "WSL"
+        Copy File    ../server_grpc.key    /tmp/server_grpc.key
+        Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
+    ELSE
+        Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+    END
 
     Ctn Clean Before Suite

@@ -18,7 +18,6 @@
 
 #include <windows.h>
 #include <chrono>
-#include <exception>
 
 #include "absl/container/flat_hash_map.h"
 #include "check_uptime.hh"

@@ -31,6 +31,11 @@
 namespace com::centreon::agent {
 namespace check_drive_size_detail {
 
+/**
+ * @brief these flags are passed in check parameter:filter-storage-type and
+ * filter-type
+ *
+ */
 enum e_drive_fs_type : uint64_t {
   hr_unknown = 0,
   hr_storage_ram = 1 << 0,

@@ -445,7 +445,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo target_extcmd)
+add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
 target_link_libraries(
   rokerbase
   bbdo_bbdo
@@ -465,7 +465,7 @@ target_link_libraries(roker rokerbase crypto ssl pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(

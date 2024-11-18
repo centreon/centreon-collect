@@ -49,6 +49,9 @@ function test_args_to_registry {
         exit 1
     }
     
+    #let time to windows to flush registry
+    Start-Sleep  -Seconds 2
+
     foreach ($value_name in $expected_registry_values.Keys) {
         $expected_value = $($expected_registry_values[$value_name])
         $real_value = (Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent -Name $value_name).$value_name

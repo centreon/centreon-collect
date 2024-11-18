@@ -117,7 +117,7 @@ The second one relies on performance data counters (pdh API), it gives us percen
 The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
 
 ### check_drive_size
-we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats.
+we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats. This functor is initialized in main function. drive_size thread is stopped at the end of main function.
 
 So it works like that:
 * check_drive_size post query in drive_size_thread queue
