@@ -62,6 +62,17 @@ TEST(string_utils, extractPerfdataGaugeDiff) {
             "d[aa a]=28;13;54;0;80");
 }
 
+TEST(string_utils, extractPerfdataBrackets) {
+  std::string perfdata(
+      "'xx[aa a aa]'=2;3;7;1;9 '[a aa]'=12;25;50;0;118 'aa a]'=28;13;54;0;80");
+  ASSERT_EQ(string::extract_perfdata(perfdata, "xx[aa a aa]"),
+            "'xx[aa a aa]'=2;3;7;1;9");
+  ASSERT_EQ(string::extract_perfdata(perfdata, "[a aa]"),
+            "'[a aa]'=12;25;50;0;118");
+  ASSERT_EQ(string::extract_perfdata(perfdata, "aa a]"),
+            "'aa a]'=28;13;54;0;80");
+}
+
 TEST(string_utils, removeThresholdsWithoutThresholds) {
   std::string perfdata("a=2V");
   ASSERT_EQ(string::remove_thresholds(perfdata), "a=2V");
