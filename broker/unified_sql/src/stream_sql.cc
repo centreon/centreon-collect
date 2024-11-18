@@ -1861,32 +1861,30 @@ void stream::_process_pb_instance_configuration(
         }
         if (_store_in_resources) {
           if (!_ehr_update) {
+	    std::string query = "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0";
             if (_bulk_prepared_statement) {
-              auto ehr = std::make_unique<database::mysql_bulk_stmt>(
-                  "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0");
+              auto ehr = std::make_unique<database::mysql_bulk_stmt>(query);
               _mysql.prepare_statement(*ehr);
               _ehr_bind = std::make_unique<bulk_bind>(
                   _dbcfg.get_connections_count(), dt_queue_timer_duration,
                   _max_pending_queries, *ehr, _logger_sql);
               _ehr_update = std::move(ehr);
             } else {
-              _ehr_update = std::make_unique<database::mysql_stmt>(
-                  "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0");
+              _ehr_update = std::make_unique<database::mysql_stmt>(query);
               _mysql.prepare_statement(*_ehr_update);
             }
           }
           if (!_esr_update) {
+	    std::string query = "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?";
             if (_bulk_prepared_statement) {
-              auto esr = std::make_unique<database::mysql_bulk_stmt>(
-                  "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?");
+              auto esr = std::make_unique<database::mysql_bulk_stmt>(query);
               _mysql.prepare_statement(*esr);
               _esr_bind = std::make_unique<bulk_bind>(
                   _dbcfg.get_connections_count(), dt_queue_timer_duration,
                   _max_pending_queries, *esr, _logger_sql);
               _esr_update = std::move(esr);
             } else {
-              _esr_update = std::make_unique<database::mysql_stmt>(
-                  "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?");
+              _esr_update = std::make_unique<database::mysql_stmt>(query);
               _mysql.prepare_statement(*_esr_update);
             }
           }
@@ -1942,16 +1940,16 @@ void stream::_process_pb_instance_configuration(
                 database::mysql_error::update_services_resources_enabled, 0);
           } else {
             for (const auto& h : state.hosts()) {
-              _eh_update->bind_value_as_u64(0, h.host_id());
+              _ehr_update->bind_value_as_u64(0, h.host_id());
               _mysql.run_statement(
-                  *_eh_update,
+                  *_ehr_update,
                   database::mysql_error::update_hosts_resources_enabled, 0);
             }
             for (const auto& s : state.services()) {
-              _es_update->bind_value_as_u64(0, s.host_id());
-              _es_update->bind_value_as_u64(1, s.service_id());
+              _esr_update->bind_value_as_u64(0, s.host_id());
+              _esr_update->bind_value_as_u64(1, s.service_id());
               _mysql.run_statement(
-                  *_es_update,
+                  *_esr_update,
                   database::mysql_error::update_services_resources_enabled, 0);
             }
           }
