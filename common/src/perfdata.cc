@@ -265,18 +265,21 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     /* The label is given by s and finishes at end */
     if (*end == ']') {
-      --end;
       if (strncmp(s, "a[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::absolute;
       } else if (strncmp(s, "c[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::counter;
       } else if (strncmp(s, "d[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::derive;
       } else if (strncmp(s, "g[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::gauge;
       }
     }
