@@ -24,7 +24,7 @@ BESS6
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    rrd    core    error
@@ -122,7 +122,7 @@ BESS7
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    rrd    core    error
@@ -251,7 +251,7 @@ BESS8
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
@@ -321,7 +321,7 @@ BESS9
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
@@ -395,7 +395,7 @@ BESS10
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
@@ -449,7 +449,7 @@ BENE_GRPC1
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -477,7 +477,7 @@ BENE_GRPC2
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -520,7 +520,7 @@ BENE_GRPC3
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -563,7 +563,7 @@ BENE_GRPC4
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -603,7 +603,7 @@ BENE_GRPC5
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -643,7 +643,7 @@ BENE_GRPC_COMPRESS1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Ctn Change Broker Tcp Output To Grpc    central
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
@@ -689,7 +689,7 @@ BENE_CRYPTED_GRPC1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    3.1.0
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
