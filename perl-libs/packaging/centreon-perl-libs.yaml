@@ -15,27 +15,27 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/perl/centreon/health"
+  - src: "../lib/centreon/health"
     dst: "${PERL_VENDORLIB}/centreon/health"
     expand: true
     file_info:
       mode: 0755
-  - src: "../lib/perl/centreon/reporting"
+  - src: "../lib/centreon/reporting"
     dst: "${PERL_VENDORLIB}/centreon/reporting"
     expand: true
     file_info:
       mode: 0755
-  - src: "../lib/perl/centreon/script"
+  - src: "../lib/centreon/script"
     dst: "${PERL_VENDORLIB}/centreon/script"
     expand: true
     file_info:
       mode: 0755
-  - src: "../lib/perl/centreon/trapd"
+  - src: "../lib/centreon/trapd"
     dst: "${PERL_VENDORLIB}/centreon/trapd"
     expand: true
     file_info:
       mode: 0755
-  - src: "../lib/perl/centreon/script.pm"
+  - src: "../lib/centreon/script.pm"
     dst: "${PERL_VENDORLIB}/centreon/script.pm"
     expand: true
     file_info:
@@ -46,7 +46,6 @@ overrides:
   rpm:
     depends:
       - centreon-perl-libs-common
-      - centreon-common = ${VERSION}-${RELEASE}${DIST}
       - perl-interpreter
       - perl(DBI)
       - perl(FindBin)
@@ -74,7 +73,6 @@ overrides:
   deb:
     depends:
       - centreon-perl-libs-common
-      - centreon-common (= ${VERSION}-${RELEASE}${DIST})
       - libconfig-inifiles-perl
       - libcrypt-des-perl
       - librrds-perl
