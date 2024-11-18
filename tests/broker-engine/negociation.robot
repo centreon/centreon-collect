@@ -8,6 +8,7 @@ Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
+Library    Collections
 
 *** Test Cases ***
 BESS6
@@ -46,6 +47,7 @@ BESS6
     ${count}        Set Variable    0
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
         # We check that result contains a 'peers' key
         IF    ${result} is not None and "peers" not in ${result}
             Log To Console    No peers found in the result, let's wait a bit more
@@ -88,6 +90,7 @@ BESS6
     # While we not get two peers connected, we recheck the peers list
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51002
+	Log To Console    ${result}
         # We check that result contains a 'peers' key
         IF    "peers" in ${result}
             Log To Console    peers found in the result
@@ -140,6 +143,7 @@ BESS7
     ...    Connection between Engine and Broker not established
 
     ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
     # We should have two peers connected to the central broker
     Should Be True    "peers" in ${result}
     ${count}    Evaluate    len(${result['peers']})
@@ -152,6 +156,7 @@ BESS7
     # We wait for the central engine to be disconnected
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
         # We check that there is only one peer connected
         IF   len(${result['peers']}) == 1
             BREAK
@@ -171,6 +176,7 @@ BESS7
     # We wait for the central engine to be connected
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
         # We check that there is two peers connected
         IF   len(${result['peers']}) == 2
             BREAK
@@ -193,6 +199,7 @@ BESS7
     # We wait for the rrd broker to be disconnected
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
         # We check that there is only one peer connected
         IF   len(${result['peers']}) == 1
             BREAK
@@ -211,6 +218,7 @@ BESS7
     # We wait for the rrd broker to be connected
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
         # We check that there is two peers connected
         IF   len(${result['peers']}) == 2
             BREAK
@@ -428,3 +436,301 @@ BESS10
     ...    Hosts and services count should be the same before and after Engine restart
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+BENE_GRPC1
+    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first
+    ...    Broker stopped first - Extended negociation enabled.
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connections between Engine and Broker not established
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
+
+BENE_GRPC2
+    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connections between Engine and Broker not established
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    # We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+    Should Be True    "peers" in ${result}
+    ${count}    Evaluate    len(${result['peers']})
+    Should Be Equal As Integers    ${count}    2
+    ...    Two peers should be connected to the central broker.
+    ${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+    ${expected}    Create List	  central-module-master0    central-rrd-master
+    Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+    Ctn Stop Engine
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BENE_GRPC3
+    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Start Broker
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connections between Engine and Broker not established
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    # We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+    Should Be True    "peers" in ${result}
+    ${count}    Evaluate    len(${result['peers']})
+    Should Be Equal As Integers    ${count}    2
+    ...    Two peers should be connected to the central broker.
+    ${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+    ${expected}    Create List	  central-module-master0    central-rrd-master
+    Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+    Ctn Stop Engine
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BENE_GRPC4
+    [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Start Broker
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connections between Engine and Broker not established
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    # We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+    Should Be True    "peers" in ${result}
+    ${count}    Evaluate    len(${result['peers']})
+    Should Be Equal As Integers    ${count}    2
+    ...    Two peers should be connected to the central broker.
+    ${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+    ${expected}    Create List	  central-module-master0    central-rrd-master
+    Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
+
+BENE_GRPC5
+    [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connections between Engine and Broker not established
+
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    # We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+    Should Be True    "peers" in ${result}
+    ${count}    Evaluate    len(${result['peers']})
+    Should Be Equal As Integers    ${count}    2
+    ...    Two peers should be connected to the central broker.
+    ${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+    ${expected}    Create List	  central-module-master0    central-rrd-master
+    Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+    Ctn Stop Engine
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BENE_GRPC_COMPRESS1
+    [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Change Broker Compression Output    module0    central-module-master-output    yes
+    Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    ${result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    # We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+    Should Be True    "peers" in ${result}
+    ${count}    Evaluate    len(${result['peers']})
+    Should Be Equal As Integers    ${count}    2
+    ...    Two peers should be connected to the central broker.
+    ${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+    ${expected}    Create List	  central-module-master0    central-rrd-master
+    Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection not established between Engine and Broker
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+    Ctn Stop Engine
+    ${result}    Ctn Check Poller Disabled In Database    1    10
+    Should Be True    ${result}    Poller still visible in database
+    Ctn Kindly Stop Broker
+
+BENE_CRYPTED_GRPC1
+    [Documentation]    Start-Stop grpc version Broker/Engine - well configured
+    [Tags]    broker    engine    start-stop
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
+    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
+    Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
+    Ctn Change Broker Tcp Output To Grpc    central
+    Ctn Change Broker Tcp Output To Grpc    module0
+    Ctn Change Broker Tcp Input To Grpc    central
+    Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
+    Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    FOR    ${i}    IN RANGE    0    5
+        ${start}    Get Current Date
+        Ctn Start Broker
+        Ctn Start Engine
+	Ctn Wait For Engine To Be Ready    ${start}    1
+        ${result}    Ctn Check Connections
+        Should Be True    ${result}    Connection not established between Engine and Broker
+
+	${result}    Ctn Get Peers    51001
+	Log To Console    ${result}
+	# We should have two peers with brokerName in [ 'central-module-master0', 'central-rrd-master' ]
+	Should Be True    "peers" in ${result}
+	${count}    Evaluate    len(${result['peers']})
+	Should Be Equal As Integers    ${count}    2
+	...    Two peers should be connected to the central broker.
+	${content}    Create List    ${result['peers'][0]['brokerName']}    ${result['peers'][1]['brokerName']}
+	${expected}    Create List	  central-module-master0    central-rrd-master
+	Lists Should Be Equal    ${content}    ${expected}    ignore_order=True
+
+        ${result}    Ctn Check Poller Enabled In Database    1    10
+        Should Be True    ${result}
+        Ctn Stop Engine
+        ${result}    Ctn Check Poller Disabled In Database    1    10
+        Should Be True    ${result}
+        Ctn Kindly Stop Broker
+    END
