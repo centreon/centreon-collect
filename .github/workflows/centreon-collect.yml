@@ -300,7 +300,7 @@ jobs:
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
       rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-      rpm_gpg_signing_key_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+      rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
       jira_base_url: ${{ secrets.JIRA_BASE_URL }}
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
@@ -374,7 +374,9 @@ jobs:
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
       xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
-
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
