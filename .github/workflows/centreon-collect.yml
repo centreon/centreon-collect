@@ -292,6 +292,7 @@ jobs:
       package_extension: ${{ matrix.package_extension }}
       runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets: inherit
 
   robot-test:
@@ -352,10 +353,11 @@ jobs:
       image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
       image_version: ${{ needs.get-environment.outputs.img_version }}
       package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension}}
+      package_cache_path: ./*.${{ matrix.package_extension }}
       database_type: ${{ matrix.database_type }}
-      tests_params: ${{matrix.tests_params}}
-      test_group_name: ${{matrix.test_group_name}}
+      tests_params: ${{ matrix.tests_params }}
+      test_group_name: ${{ matrix.test_group_name }}
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -424,6 +426,19 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name || github.base_ref, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+
   deliver-deb:
     if: |
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
@@ -457,6 +472,19 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name || github.base_ref, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
