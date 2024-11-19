@@ -29,7 +29,7 @@ EBBPS1
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
     FOR    ${i}    IN RANGE    ${1000}
@@ -109,7 +109,7 @@ EBBPS2
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
@@ -191,7 +191,7 @@ EBMSSM
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
@@ -240,7 +240,7 @@ EBPS2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -294,7 +294,7 @@ RLCode
     ${start}    Get Current Date
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -364,7 +364,7 @@ metric_mapping
     ${start}    Get Current Date
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -404,7 +404,7 @@ Services_and_bulks_${id}
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
@@ -435,6 +435,60 @@ Services_and_bulks_${id}
     ...    1    1020
     ...    2    150
 
+EBMSSMDBD
+    [Documentation]    1000 services are configured with 100 metrics each.
+    ...    The rrd output is removed from the broker configuration.
+    ...    While metrics are written in the database, we stop the database and then restart it.
+    ...    Broker must recover its connection to the database and continue to write metrics.
+    [Tags]    broker    engine    unified_sql    MON-152743
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1000}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    ${start}    Ctn Get Round Current Date
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    Log To Console    Many service checks with 100 metrics each are processed.
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+    END
+
+    Log To Console    We wait for at least one metric to be written in the database.
+    # Let's wait for all force checks to be in the storage database.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${500}
+        ${output}    Query
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
+        IF    ${output[0][0]} >= 1    BREAK
+        Sleep    1s
+    END
+
+    Log To Console    Let's start some database manipulation...
+    ${start}    Get Current Date
+
+    FOR    ${i}    IN RANGE    ${120}
+	Start Process    /usr/bin/bash    /root/mv_data_bin.sh    alias=mv_data_bin
+	${content}    Create List    could not insert data in data_bin
+	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+	Log To Console    ${result}
+	${result}    Wait For Process    mv_data_bin
+	Log To Console    ${result}
+    END
 
 *** Keywords ***
 Ctn Test Clean
