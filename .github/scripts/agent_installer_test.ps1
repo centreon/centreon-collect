@@ -42,7 +42,7 @@ function test_args_to_registry {
     Write-Host "arguments: $exe_args"
 
     $process_info= Start-Process -PassThru  $exe_path $exe_args
-    Wait-Process -Id $process_info.Id
+    $process_info.WaitForExit()
     if ($process_info.ExitCode -ne 0) {
         Write-Host "fail to execute $exe_path with arguments $exe_args"
         Write-Host "exit status = " $process_info.ExitCode
