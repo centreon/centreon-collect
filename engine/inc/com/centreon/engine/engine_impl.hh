@@ -72,6 +72,18 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetSeverity(grpc::ServerContext* context,
                            const IdOrTypeIdentifier* request,
                            EngineSeverity* response) override;
+  grpc::Status GetCommand(grpc::ServerContext* context,
+                          const NameIdentifier* request,
+                          EngineCommand* response) override;
+  grpc::Status GetConnector(grpc::ServerContext* context,
+                            const NameIdentifier* request,
+                            EngineConnector* response) override;
+  grpc::Status GetHostEscalation(grpc::ServerContext* context,
+                                 const NameIdentifier* request,
+                                 EngineHostEscalation* response) override;
+  grpc::Status GetServiceEscalation(grpc::ServerContext* context,
+                                    const PairNamesIdentifier* request,
+                                    EngineServiceEscalation* response) override;
   grpc::Status AddHostComment(grpc::ServerContext* context,
                               const EngineComment* request,
                               CommandSuccess* response) override;

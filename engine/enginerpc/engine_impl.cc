@@ -33,13 +33,17 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/hostescalation.hh"
+#include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -1027,6 +1031,223 @@ grpc::Status engine_impl::GetSeverity(grpc::ServerContext* context
         return 0;
       });
 
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Command informations.
+ *
+ * @param context gRPC context
+ * @param request Command's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Command is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetCommand(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const NameIdentifier* request,
+                                     EngineCommand* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, command = response]() -> int32_t {
+        std::shared_ptr<commands::command> selectedcommand;
+        auto itcommand = commands::command::commands.find(request->name());
+        if (itcommand != commands::command::commands.end())
+          selectedcommand = itcommand->second;
+        else {
+          err = fmt::format("could not find Command '{}'", request->name());
+          return 1;
+        }
+        command->set_command_name(selectedcommand->get_name());
+        command->set_command_line(selectedcommand->get_command_line());
+        command->set_type(
+            static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
+
+        return 0;
+      });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Connector informations.
+ *
+ * @param context gRPC context
+ * @param request Connector's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Connector is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetConnector(grpc::ServerContext* context
+                                       [[maybe_unused]],
+                                       const NameIdentifier* request,
+                                       EngineConnector* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           connector = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::commands::connector>
+        selectedconnector;
+    auto itconnector = commands::connector::connectors.find(request->name());
+    if (itconnector != commands::connector::connectors.end())
+      selectedconnector = itconnector->second;
+    else {
+      err = fmt::format("could not find Connector '{}'", request->name());
+      return 1;
+    }
+    connector->set_connector_name(selectedconnector->get_name());
+    connector->set_connector_line(selectedconnector->get_command_line());
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return HostEscalation informations.
+ *
+ * @param context gRPC context
+ * @param request HostEscalation's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the HostEscalation is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetHostEscalation(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const NameIdentifier* request,
+                                            EngineHostEscalation* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           escalation = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::hostescalation> selectedescalation;
+    auto itescalation = hostescalation::hostescalations.find(request->name());
+    if (itescalation != hostescalation::hostescalations.end())
+      selectedescalation = itescalation->second;
+    else {
+      err = fmt::format("could not find hostescalation '{}'", request->name());
+      return 1;
+    }
+    escalation->set_host_name(selectedescalation->get_hostname());
+    if (!selectedescalation->get_contactgroups().empty())
+      for (const auto& [name, _] : selectedescalation->get_contactgroups())
+        escalation->add_contact_group(name);
+
+    escalation->set_first_notification(
+        selectedescalation->get_first_notification());
+    escalation->set_last_notification(
+        selectedescalation->get_last_notification());
+    escalation->set_notification_interval(
+        selectedescalation->get_notification_interval());
+    escalation->set_escalation_period(
+        selectedescalation->get_escalation_period());
+    auto options = fmt::format(
+        "{}{}{}",
+        selectedescalation->get_escalate_on(notifier::down) ? "d" : "",
+        selectedescalation->get_escalate_on(notifier::unreachable) ? "u" : "",
+        selectedescalation->get_escalate_on(notifier::up) ? "r" : "");
+
+    if (options == "dur")
+      options = "all";
+
+    if (!options.empty() && options != "all" && options.length() != 1)
+      options = fmt::format("{}", fmt::join(options, ","));
+
+    escalation->set_escalation_option(options);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return ServiceEscalation informations.
+ *
+ * @param context gRPC context
+ * @param request ServiceEscalation's identifier (by host and service name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the ServiceEscalation is found and populated
+ * successfully, otherwise returns Status::INVALID_ARGUMENT with an error
+ * message.
+ */
+grpc::Status engine_impl::GetServiceEscalation(
+    grpc::ServerContext* context [[maybe_unused]],
+    const PairNamesIdentifier* request,
+    EngineServiceEscalation* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           escalation = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::serviceescalation>
+        selectedescalation;
+    auto itescalation = serviceescalation::serviceescalations.find(
+        std::make_pair(request->host_name(), request->service_name()));
+    if (itescalation != serviceescalation::serviceescalations.end())
+      selectedescalation = itescalation->second;
+    else {
+      err = fmt::format(
+          "could not find serviceescalation with : host '{}',service '{}'",
+          request->host_name(), request->service_name());
+      return 1;
+    }
+    escalation->set_host(selectedescalation->get_hostname());
+    escalation->set_service_description(selectedescalation->get_description());
+    if (!selectedescalation->get_contactgroups().empty())
+      for (const auto& [name, _] : selectedescalation->get_contactgroups())
+        escalation->add_contact_group(name);
+
+    escalation->set_first_notification(
+        selectedescalation->get_first_notification());
+    escalation->set_last_notification(
+        selectedescalation->get_last_notification());
+    escalation->set_notification_interval(
+        selectedescalation->get_notification_interval());
+    escalation->set_escalation_period(
+        selectedescalation->get_escalation_period());
+
+    auto options = fmt::format(
+        "{}{}{}{}",
+        selectedescalation->get_escalate_on(notifier::warning) ? "w" : "",
+        selectedescalation->get_escalate_on(notifier::unknown) ? "u" : "",
+        selectedescalation->get_escalate_on(notifier::critical) ? "c" : "",
+        selectedescalation->get_escalate_on(notifier::ok) ? "r" : "");
+
+    if (options == "wucr")
+      options = "all";
+
+    if (!options.empty() && options != "all" && options.length() != 1)
+      options = fmt::format("{}", fmt::join(options, ","));
+
+    escalation->set_escalation_option(options);
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
