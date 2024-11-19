@@ -38,7 +38,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
 
-#define BAM_NAME "_Module_"
+constexpr std::string_view BAM_NAME("_Module_");
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
@@ -82,7 +82,8 @@ void conflict_manager::_storage_process_service_status(
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
   bool index_locked{false};
-  bool special{!strncmp(ss.host_name.c_str(), BAM_NAME, sizeof(BAM_NAME) - 1)};
+  bool special =
+      (std::string_view(ss.host_name.data(), BAM_NAME.size()) == BAM_NAME);
 
   auto add_metric_in_cache =
       [this](uint64_t index_id, uint64_t host_id, uint64_t service_id,

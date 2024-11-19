@@ -18,6 +18,7 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
+#include <absl/synchronization/mutex.h>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -511,7 +512,7 @@ void stream::_load_caches() {
     std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
     _metric_cache.clear();
     {
-      std::lock_guard<std::mutex> lck(_queues_m);
+      absl::MutexLock lck(&_queues_m);
       _metrics.clear();
     }
 
@@ -680,11 +681,12 @@ void stream::statistics(nlohmann::json& tree) const {
   size_t perfdata = _perfdata_query->row_count();
   size_t sz_metrics;
   size_t sz_logs = _logs->row_count();
-  size_t sz_cv = _cv.size();
+  size_t sz_cv;
   size_t sz_cvs = _cvs.size();
   size_t count;
   {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(&_queues_m);
+    sz_cv = _cv.size();
     sz_metrics = _metrics.size();
     count = _count;
   }
@@ -843,9 +845,13 @@ int32_t stream::stop() {
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;
   /* We wait for the check_queues to be really stopped */
-  std::unique_lock<std::mutex> lck(_queues_m);
-  if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration),
-                                [this] { return _check_queues_stopped; })) {
+  absl::MutexLock lck(&_queues_m);
+  auto check_queues_stopped = [this] {
+    absl::MutexLock l(&_queues_m);
+    return _check_queues_stopped;
+  };
+  if (_queues_m.AwaitWithTimeout(absl::Condition(&check_queues_stopped),
+                                 absl::Seconds(queue_timer_duration + 1))) {
     SPDLOG_LOGGER_INFO(_logger_sql, "SQL: stream correctly stopped");
   } else {
     SPDLOG_LOGGER_ERROR(_logger_sql,

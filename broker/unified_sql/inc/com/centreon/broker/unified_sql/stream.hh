@@ -18,6 +18,7 @@
 
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
+#include <absl/base/thread_annotations.h>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -110,7 +111,7 @@ class service_status;
 
 namespace unified_sql {
 
-constexpr const char* BAM_NAME = "_Module_";
+constexpr std::string_view BAM_NAME("_Module_");
 constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
@@ -257,7 +258,7 @@ class stream : public io::stream {
   /* To give the order to stop the check_queues */
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
-  bool _check_queues_stopped;
+  bool _check_queues_stopped ABSL_GUARDED_BY(_queues_m);
 
   /* Stats */
   std::shared_ptr<stats::center> _center;
@@ -297,20 +298,19 @@ class stream : public io::stream {
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
-  mutable std::mutex _queues_m;
-  mutable std::condition_variable _queues_cond_var;
+  mutable absl::Mutex _queues_m;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_metrics_queries. Values here are the real time values, so if the
    * same metric is recevied two times, the new value can overwrite the old
    * one, that's why we store those values in a map. The filled table here is
    * 'metrics'. */
-  std::unordered_map<int32_t, metric_info> _metrics;
+  std::unordered_map<int32_t, metric_info> _metrics ABSL_GUARDED_BY(_queues_m);
 
   /* These queues are sent in bulk to the database. The insert/update is done
    * if the loop timeout is reached or if the queue size is greater than
    * _max_cv_queries/_max_log_queries. */
-  bulk_queries _cv;
+  bulk_queries _cv ABSL_GUARDED_BY(_queues_m);
   bulk_queries _cvs;
 
   std::unique_ptr<database::bulk_or_multi> _perfdata_query;
@@ -393,7 +393,8 @@ class stream : public io::stream {
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(boost::system::error_code ec)
-      ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
+      ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m)
+          ABSL_LOCKS_EXCLUDED(_timer_m);
   void _check_deleted_index();
   void _check_rebuild_index();
 

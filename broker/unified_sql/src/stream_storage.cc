@@ -284,7 +284,7 @@ void stream::_unified_sql_process_pb_service_status(
             it_index_cache->second.min = pd.min();
             it_index_cache->second.max = pd.max();
             {
-              std::lock_guard<std::mutex> lck(_queues_m);
+              absl::MutexLock lck(&_queues_m);
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
@@ -400,7 +400,8 @@ void stream::_unified_sql_process_service_status(
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
   bool index_locked{false};
-  bool special{!strncmp(ss.host_name.c_str(), BAM_NAME, sizeof(BAM_NAME) - 1)};
+  bool special =
+      (std::string_view(ss.host_name.data(), BAM_NAME.size()) == BAM_NAME);
 
   auto add_metric_in_cache =
       [this](uint64_t index_id, uint64_t host_id, uint64_t service_id,
@@ -661,7 +662,7 @@ void stream::_unified_sql_process_service_status(
             it_index_cache->second.min = pd.min();
             it_index_cache->second.max = pd.max();
             {
-              std::lock_guard<std::mutex> lck(_queues_m);
+              absl::MutexLock lck(&_queues_m);
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
@@ -739,7 +740,7 @@ void stream::_unified_sql_process_service_status(
 void stream::_update_metrics() {
   std::unordered_map<int32_t, metric_info> metrics;
   {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(&_queues_m);
     std::swap(_metrics, metrics);
   }
 
@@ -803,7 +804,7 @@ void stream::_check_queues(boost::system::error_code ec) {
     time_t now = time(nullptr);
     size_t sz_metrics;
     {
-      std::lock_guard<std::mutex> lck(_queues_m);
+      absl::MutexLock lck(&_queues_m);
       sz_metrics = _metrics.size();
     }
 
@@ -924,16 +925,19 @@ void stream::_check_queues(boost::system::error_code ec) {
       }
 
       bool customvar_done = false;
-      if (_cv.ready()) {
-        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
-                            _cv.size());
-        std::string query = _cv.get_query();
-        int32_t conn =
-            special_conn::custom_variable % _mysql.connections_count();
-        _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         conn);
-        _add_action(conn, actions::custom_variables);
-        customvar_done = true;
+      {
+        absl::MutexLock lck(&_queues_m);
+        if (_cv.ready()) {
+          SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
+                              _cv.size());
+          std::string query = _cv.get_query();
+          int32_t conn =
+              special_conn::custom_variable % _mysql.connections_count();
+          _mysql.run_query(query, database::mysql_error::update_customvariables,
+                           conn);
+          _add_action(conn, actions::custom_variables);
+          customvar_done = true;
+        }
       }
 
       if (_cvs.ready()) {
@@ -1018,8 +1022,8 @@ void stream::_check_queues(boost::system::error_code ec) {
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
+      absl::MutexLock l(&_queues_m);
       _check_queues_stopped = true;
-      _queues_cond_var.notify_all();
     }
   }
 }

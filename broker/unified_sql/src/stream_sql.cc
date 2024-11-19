@@ -615,7 +615,7 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
                        "unified_sql: enable custom variable '{}' of ({}, {})",
                        cv.name(), cv.host_id(), cv.service_id());
 
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(&_queues_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name(),
@@ -738,7 +738,7 @@ void stream::_process_custom_variable(const std::shared_ptr<io::data>& d) {
 
   // Processing.
   if (cv.enabled) {
-    std::lock_guard<std::mutex> lck(_queues_m);
+    absl::MutexLock lck(&_queues_m);
     _cv.push_query(fmt::format(
         "('{}',{},{},'{}',{},{},{},'{}')",
         misc::string::escape(cv.name,
