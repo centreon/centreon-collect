@@ -43,7 +43,7 @@ on:
         required: true
         type: string
       is_nightly:
-        required: true
+        required: false
         type: string
     secrets:
       collect_s3_access_key:

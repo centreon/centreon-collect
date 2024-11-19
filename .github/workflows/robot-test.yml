@@ -47,7 +47,12 @@ on:
         required: true
       xray_client_secret:
         required: true
-
+      jira_base_url:
+        required: true
+      jira_user_email:
+        required: true
+      jira_api_token:
+        required: true
 jobs:
   test-image-to-cache:
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
