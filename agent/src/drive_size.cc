@@ -96,40 +96,52 @@ filter::filter(const rapidjson::Value& args) : _fs_type_filter(0xFFFFFFFFU) {
          ++member_iter) {
       if (member_iter->name == "filter-storage-type" ||
           member_iter->name == "filter-type") {
-        std::string sz_regexp(member_iter->value.GetString());
-        boost::to_lower(sz_regexp);
-        re2::RE2 filter_typ_re(sz_regexp);
-        if (!filter_typ_re.ok()) {
-          throw exceptions::msg_fmt("invalid regex for filter-storage-type: {}",
-                                    member_iter->value.GetString());
-        }
-        _fs_type_filter = 0;
-        for (const auto& [label, flag] : _fs_type) {
-          if (RE2::FullMatch(label, filter_typ_re)) {
-            _fs_type_filter |= flag;
+        if (member_iter->value.IsString() &&
+            member_iter->value.GetStringLength() > 0) {
+          std::string sz_regexp(member_iter->value.GetString());
+          boost::to_lower(sz_regexp);
+          re2::RE2 filter_typ_re(sz_regexp);
+          if (!filter_typ_re.ok()) {
+            throw exceptions::msg_fmt(
+                "invalid regex for filter-storage-type: {}",
+                member_iter->value.GetString());
+          }
+          _fs_type_filter = 0;
+          for (const auto& [label, flag] : _fs_type) {
+            if (RE2::FullMatch(label, filter_typ_re)) {
+              _fs_type_filter |= flag;
+            }
           }
         }
-      } else if (member_iter->name == "filter-fs") {
+      } else if (member_iter->name == "filter-fs" &&
+                 member_iter->value.IsString() &&
+                 member_iter->value.GetStringLength() > 0) {
         _filter_fs = std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_fs->ok()) {
           throw exceptions::msg_fmt("invalid regex for filter-fs: {}",
                                     member_iter->value.GetString());
         }
-      } else if (member_iter->name == "exclude-fs") {
+      } else if (member_iter->name == "exclude-fs" &&
+                 member_iter->value.IsString() &&
+                 member_iter->value.GetStringLength() > 0) {
         _filter_exclude_fs =
             std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_exclude_fs->ok()) {  // NOLINT
           throw exceptions::msg_fmt("invalid regex for filter-exclude-fs: {}",
                                     member_iter->value.GetString());
         }
-      } else if (member_iter->name == "filter-mountpoint") {
+      } else if (member_iter->name == "filter-mountpoint" &&
+                 member_iter->value.IsString() &&
+                 member_iter->value.GetStringLength() > 0) {
         _filter_mountpoint =
             std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_mountpoint->ok()) {
           throw exceptions::msg_fmt("invalid regex for filter-mountpoint: {}",
                                     member_iter->value.GetString());
         }
-      } else if (member_iter->name == "exclude-mountpoint") {
+      } else if (member_iter->name == "exclude-mountpoint" &&
+                 member_iter->value.IsString() &&
+                 member_iter->value.GetStringLength() > 0) {
         _filter_exclude_mountpoint =
             std::make_unique<re2::RE2>(member_iter->value.GetString());
         if (!_filter_exclude_mountpoint->ok()) {
