@@ -145,7 +145,8 @@ sub test_transform_json_to_object {
 }
 sub test_get_app_secret {
     `mkdir -p /usr/share/centreon/`;
-    `mv /usr/share/centreon/.env /usr/share/centreon/.env.back`;
+    -e '/usr/share/centreon/.env' and `mv /usr/share/centreon/.env /usr/share/centreon/.env.back`;
+
     my $old_app_secret = $ENV{'APP_SECRET'};
     my $res = "SECRET";
     $ENV{'APP_SECRET'} = $res;
@@ -161,7 +162,7 @@ sub test_get_app_secret {
     close($fh);
     is(centreon::common::centreonvault->get_app_secret(), $res, "get_app_secret() should get value from file.");
     `rm /usr/share/centreon/.env`;
-    `mv /usr/share/centreon/.env.back /usr/share/centreon/.env`;
+    -e '/usr/share/centreon/.env.back' and `mv /usr/share/centreon/.env.back /usr/share/centreon/.env`;
     $ENV{'APP_SECRET'} = $old_app_secret;
 }
 
