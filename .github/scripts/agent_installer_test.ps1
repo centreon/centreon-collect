@@ -42,13 +42,16 @@ function test_args_to_registry {
     Write-Host "arguments: $exe_args"
 
     $process_info= Start-Process -PassThru  $exe_path $exe_args
-    Wait-Process -Id $process_info.Id
+    $process_info.WaitForExit()
     if ($process_info.ExitCode -ne 0) {
         Write-Host "fail to execute $exe_path with arguments $exe_args"
         Write-Host "exit status = " $process_info.ExitCode
         exit 1
     }
     
+    #let time to windows to flush registry
+    Start-Sleep  -Seconds 2
+
     foreach ($value_name in $expected_registry_values.Keys) {
         $expected_value = $($expected_registry_values[$value_name])
         $real_value = (Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent -Name $value_name).$value_name
