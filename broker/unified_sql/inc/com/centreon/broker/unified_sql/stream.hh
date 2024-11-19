@@ -258,7 +258,7 @@ class stream : public io::stream {
   /* To give the order to stop the check_queues */
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
-  bool _check_queues_stopped ABSL_GUARDED_BY(_queues_m);
+  bool _queues_stopped ABSL_GUARDED_BY(_queues_m);
 
   /* Stats */
   std::shared_ptr<stats::center> _center;

@@ -161,7 +161,7 @@ stream::stream(const database_config& dbcfg,
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
       _queues_timer{com::centreon::common::pool::io_context()},
       _stop_check_queues{false},
-      _check_queues_stopped{false},
+      _queues_stopped{false},
       _center{stats::center::instance_ptr()},
       _stats{_center->register_conflict_manager()},
       _group_clean_timer{com::centreon::common::pool::io_context()},
@@ -847,8 +847,7 @@ int32_t stream::stop() {
   /* We wait for the check_queues to be really stopped */
   absl::MutexLock lck(&_queues_m);
   auto check_queues_stopped = [this] {
-    absl::MutexLock l(&_queues_m);
-    return _check_queues_stopped;
+    return _queues_stopped;
   };
   if (_queues_m.AwaitWithTimeout(absl::Condition(&check_queues_stopped),
                                  absl::Seconds(queue_timer_duration + 1))) {

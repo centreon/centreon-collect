@@ -1023,7 +1023,7 @@ void stream::_check_queues(boost::system::error_code ec) {
       SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
       absl::MutexLock l(&_queues_m);
-      _check_queues_stopped = true;
+      _queues_stopped = true;
     }
   }
 }
