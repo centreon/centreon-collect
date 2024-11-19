@@ -1208,6 +1208,8 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
     elif file == "contactgroups.cfg":
         r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
     else:
@@ -1246,6 +1248,8 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
         r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
     elif file == "contactgroups.cfg":
         r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
         if file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
@@ -4057,6 +4061,30 @@ def ctn_get_contactgroup_info_grpc(name:str):
                 cg = stub.GetContactGroup(request)
                 cg_dict = MessageToDict(cg, always_print_fields_with_no_presence=True)
                 return cg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_command_info_grpc(name:str):
+    """
+    Retrieve command information via a gRPC call.
+
+    Args:
+        name: The name of the command to retrieve.
+
+    Returns:
+        A dictionary containing the command information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                command = stub.GetCommand(request)
+                command_dict = MessageToDict(command, always_print_fields_with_no_presence=True)
+                return command_dict
             except Exception as e:
                 logger.console(f"gRPC server not ready {e}")
     return {}
