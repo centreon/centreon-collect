@@ -59,6 +59,49 @@ jobs:
       docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
+  unit-test-perl:
+    needs: [get-environment]
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bullseye-arm64, unit-tests-bookworm]
+        include:
+          - runner_name: ubuntu-22.04
+          - package_extension: rpm
+            image: unit-tests-alma8
+            distrib: el8
+          - package_extension: rpm
+            image: unit-tests-alma9
+            distrib: el9
+          - package_extension: deb
+            image: unit-tests-bullseye-arm64
+            distrib: bullseye-arm64
+            runner_name: ["self-hosted", "collect-arm64"]
+          - package_extension: deb
+            image: unit-tests-bookworm
+            distrib: bookworm
+    runs-on: ${{ matrix.runner_name }}
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}
+      credentials:
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Run unit tests
+        run: yath -L test ./perl-libs/lib/
+
+      - name: Upload logs as artifacts if tests failed
+        if: failure()
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: plugin-installation-${{ matrix.distrib }}
+          path: ./lastlog.jsonl
+          retention-days: 1
+
+
   package:
     needs: [get-environment]
     if: ${{ needs.get-environment.outputs.stability != 'stable' }}
@@ -132,7 +175,7 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
           stability: ${{ needs.get-environment.outputs.stability }}
 
-  test-gorgone:
+  robot-test-gorgone:
     needs: [get-environment, package]
 
     strategy:
