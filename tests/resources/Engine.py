@@ -443,17 +443,21 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str,type: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
-            content = """define serviceescalation {{
-    ;escalation_name                esc{0}
+            content = f"""define {type}escalation {{
+    ;escalation_name                esc{name}
     escalation_period              24x7
-    escalation_options             w,c,r
-    servicegroup_name              {1}
-    contact_groups                 {2}
+    escalation_options             """
+            if type == "service":
+                content+="w,c,r\nservicegroup_name"
+            else:
+                content+="all\nhostgroup_name"
+            content+=f"""              {SG}
+    contact_groups                 {contactgroup}
     }}
-    """.format(name, SG, contactgroup)
+    """
             ff.write(content)
 
     @staticmethod
@@ -524,7 +528,10 @@ define command {
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
-        config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
+        if typ == "hostescalation" or typ == "serviceescalation":
+            config_file = f"{CONF_DIR}/config{poller}/escalationTemplates.cfg"
+        else:
+            config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             idx = 1
@@ -1212,6 +1219,8 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
     elif file == "connectors.cfg":
         r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
     else:
@@ -1254,6 +1263,8 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
         r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
     elif file == "connectors.cfg":
         r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
         if file[-13:] == "Templates.cfg":
             r = re.compile(r"^\s*name\s+" + desc + "\s*$")
@@ -2524,7 +2535,7 @@ def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str,type: str = "service"):
     """
     Create an escalations.cfg file for a given poller.
 
@@ -2534,7 +2545,7 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
     """
-    engine.create_escalations_file(poller, name, SG, contactgroup)
+    engine.create_escalations_file(poller, name, SG, contactgroup,type)
 
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     """
@@ -4115,6 +4126,60 @@ def ctn_get_connector_info_grpc(name:str):
                 return connector_dict
             except Exception as e:
                 logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_service_escalation_info_grpc(host_name:str,service_name:str):
+    """
+    Retrieve service escalation information via a gRPC call.
+
+    Args:
+        name: The name of the service escalation to retrieve.
+
+    Returns:
+        A dictionary containing the service escalation information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.PairNamesIdentifier(host_name=host_name,service_name=service_name)
+            try:
+                ServiceEscalation = stub.GetServiceEscalation(identifier)
+                ServiceEscalation_dict = MessageToDict(ServiceEscalation, always_print_fields_with_no_presence=True)
+                return ServiceEscalation_dict
+            except Exception as e:
+                error_details = e.details()
+                logger.console(f"gRPC server not ready {e}")
+                if error_details == f"could not find serviceescalation with : host '{host_name}',service '{service_name}'":
+                    return {}
+    return {}
+
+def ctn_get_host_escalation_info_grpc(host_name:str ):
+    """
+    Retrieve host escalation information via a gRPC call.
+
+    Args:
+        name: The name of the host escalation to retrieve.
+
+    Returns:
+        A dictionary containing the host escalation information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.NameIdentifier(name=host_name)
+            try:
+                hostEscalation = stub.GetHostEscalation(identifier)
+                hostEscalation_dict = MessageToDict(hostEscalation, always_print_fields_with_no_presence=True)
+                return hostEscalation_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+                error_details = e.details()
+                if error_details == f"could not find hostescalation '{host_name}'":
+                    return {}
     return {}
 
 def ctn_check_key_value_existence(data_list, key, value):
