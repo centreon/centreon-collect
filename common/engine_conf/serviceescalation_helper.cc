@@ -91,6 +91,8 @@ bool serviceescalation_helper::hook(std::string_view key,
         return false;
     }
     obj->set_escalation_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("escalation_options")->index());
     return true;
   } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
