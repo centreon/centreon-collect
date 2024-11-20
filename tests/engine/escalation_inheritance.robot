@@ -49,36 +49,36 @@ EESI0
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_1    service_1
 
-    Should Be Equal As Strings    ${output}[host]    host_1
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_1    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_1    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_2    service_2
 
-    Should Be Equal As Strings    ${output}[host]    host_2
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_2    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_2    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_3    service_3
 
-    Should Be Equal As Strings    ${output}[host]    host_3
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_3    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_3    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_6    service_6
     Should Be Empty   ${output}
@@ -147,36 +147,36 @@ EESI1
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_1    service_1
 
-    Should Be Equal As Strings    ${output}[host]    host_1
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_1    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_1    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_2    service_2
 
-    Should Be Equal As Strings    ${output}[host]    host_2
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_2    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_2    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_3    service_3
 
-    Should Be Equal As Strings    ${output}[host]    host_3
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_3    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_3    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -248,36 +248,36 @@ EESI2
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_1    service_1
 
-    Should Be Equal As Strings    ${output}[host]    host_1
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_1    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_1    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_2    service_2
 
-    Should Be Equal As Strings    ${output}[host]    host_2
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_2    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_2    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_3    service_3
 
-    Should Be Equal As Strings    ${output}[host]    host_3
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_3    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_3    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_4    service_4    
     Should Be Empty    ${output}
@@ -368,25 +368,25 @@ EESI3
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_4    service_4
 
-    Should Be Equal As Strings    ${output}[host]    host_4
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_4
-    Should Contain   ${output}[contactGroup]    contactgroup_2
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_4    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_4    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_2    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_5    service_5
 
-    Should Be Equal As Strings    ${output}[host]    host_5
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_5
-    Should Contain   ${output}[contactGroup]    contactgroup_2
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_5    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_5    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_2    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,c,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -470,36 +470,36 @@ EESI4
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_1    service_1
 
-    Should Be Equal As Strings    ${output}[host]    host_1
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_1    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_1    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_2    service_2
 
-    Should Be Equal As Strings    ${output}[host]    host_2
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_2    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_2    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_3    service_3
 
-    Should Be Equal As Strings    ${output}[host]    host_3
-    Should Be Equal As Strings    ${output}[serviceDescription]    service_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    w,r
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[host]    host_3    host
+    Should Be Equal As Strings    ${output}[serviceDescription]    service_3    serviceDescription
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    w,r    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Service Escalation Info Grpc    host_4    service_4    
     Should Be Empty    ${output}
@@ -545,33 +545,33 @@ EESI5
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_1
 
-    Should Be Equal As Strings    ${output}[hostName]    host_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_1    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_2
 
-    Should Be Equal As Strings    ${output}[hostName]    host_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_2    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_3
 
-    Should Be Equal As Strings    ${output}[hostName]    host_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_3    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -631,33 +631,33 @@ EESI6
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_1
 
-    Should Be Equal As Strings    ${output}[hostName]    host_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_1    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_2
 
-    Should Be Equal As Strings    ${output}[hostName]    host_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_2    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_3
 
-    Should Be Equal As Strings    ${output}[hostName]    host_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    all
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_3    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    all    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -723,33 +723,33 @@ EESI7
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_1
 
-    Should Be Equal As Strings    ${output}[hostName]    host_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    none
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_1    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    none    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_2
 
-    Should Be Equal As Strings    ${output}[hostName]    host_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    none
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_2    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    none    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_3
 
-    Should Be Equal As Strings    ${output}[hostName]    host_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    none
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_3    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    none    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_4
     
@@ -934,33 +934,33 @@ EESI9
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_1
 
-    Should Be Equal As Strings    ${output}[hostName]    host_1
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_1    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_2
 
-    Should Be Equal As Strings    ${output}[hostName]    host_2
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_2    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_3
 
-    Should Be Equal As Strings    ${output}[hostName]    host_3
-    Should Contain   ${output}[contactGroup]    contactgroup_1
-    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours
-    Should Be Equal As Strings    ${output}[escalationOption]    d
-    Should Be Equal As Numbers     ${output}[firstNotification]    2
-    Should Be Equal As Numbers     ${output}[lastNotification]    2
-    Should Be Equal As Numbers     ${output}[notificationInterval]    1
+    Should Be Equal As Strings    ${output}[hostName]    host_3    hostName
+    Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+    Should Be Equal As Strings    ${output}[escalationPeriod]    workhours    escalationPeriod
+    Should Be Equal As Strings    ${output}[escalationOption]    d    escalationOption
+    Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+    Should Be Equal As Numbers     ${output}[lastNotification]    2    lastNotification
+    Should Be Equal As Numbers     ${output}[notificationInterval]    1    notificationInterval
 
     ${output}    Ctn Get Host Escalation Info Grpc    host_4
     
