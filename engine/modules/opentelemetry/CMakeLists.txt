@@ -34,7 +34,7 @@ foreach(name IN LISTS service_files)
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto 
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${proto_file}
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -61,7 +61,7 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # mod_externalcmd target.
-add_library(opentelemetry SHARED 
+add_library(opentelemetry SHARED
 ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
 ${SRC_DIR}/centreon_agent/agent.pb.cc
 ${SRC_DIR}/centreon_agent/agent_check_result_builder.cc
@@ -86,26 +86,27 @@ ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-target_link_libraries(opentelemetry   
+target_link_libraries(opentelemetry
   spdlog::spdlog
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_program_options)
 
-add_dependencies(opentelemetry 
+add_dependencies(opentelemetry
   pb_open_telemetry_lib
   engine_rpc
   pb_neb_lib
+  engine_rpc
   pb_tag_lib)
 
-target_include_directories(opentelemetry PRIVATE 
-  "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry" 
-  "${CMAKE_SOURCE_DIR}/bbdo" 
+target_include_directories(opentelemetry PRIVATE
+  "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry"
+  "${CMAKE_SOURCE_DIR}/bbdo"
   "${MODULE_DIR}/inc"
   ${CMAKE_SOURCE_DIR}/common/inc
-  ${CMAKE_SOURCE_DIR}/common/http/inc 
-  ${CMAKE_SOURCE_DIR}/common/grpc/inc 
+  ${CMAKE_SOURCE_DIR}/common/http/inc
+  ${CMAKE_SOURCE_DIR}/common/grpc/inc
   src
-  ${PROJECT_SOURCE_DIR}/enginerpc 
+  ${PROJECT_SOURCE_DIR}/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src
   )
 
