@@ -573,6 +573,8 @@ EBMSSMPART
     Log To Console    ${output}
     Should Be True    ${output[0][0]} == 100
 
+    Ctn Init Data Bin Without Partition
+
 
 *** Keywords ***
 Ctn Test Clean
