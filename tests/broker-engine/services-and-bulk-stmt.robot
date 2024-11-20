@@ -481,12 +481,12 @@ EBMSSMDBD
     Log To Console    Let's start some database manipulation...
     ${start}    Get Current Date
 
-    FOR    ${i}    IN RANGE    ${120}
-	Start Process    /usr/bin/bash    /root/mv_data_bin.sh    alias=mv_data_bin
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Stop Mysql
+	Sleep    10s
+	Ctn Start Mysql
 	${content}    Create List    could not insert data in data_bin
 	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-	Log To Console    ${result}
-	${result}    Wait For Process    mv_data_bin
 	Log To Console    ${result}
     END
 
