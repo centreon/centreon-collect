@@ -395,7 +395,7 @@ EBMSSMDBD
     ...    The rrd output is removed from the broker configuration.
     ...    While metrics are written in the database, we stop the database and then restart it.
     ...    Broker must recover its connection to the database and continue to write metrics.
-    [Tags]    broker    engine    unified_sql    MON-152743
+    [Tags]    broker    engine    unified_sql    MON-153321
     Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
@@ -437,12 +437,12 @@ EBMSSMDBD
     ${start}    Get Current Date
 
     FOR    ${i}    IN RANGE    ${3}
-       Ctn Stop Mysql
-       Sleep    10s
-       Ctn Start Mysql
-       ${content}    Create List    could not insert data in data_bin
-       ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
-       Log To Console    ${result}
+        Ctn Stop Mysql
+        Sleep    10s
+        Ctn Start Mysql
+        ${content}    Create List    could not insert data in data_bin
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+        Log To Console    ${result}
     END
 
 
