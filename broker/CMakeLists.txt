@@ -468,7 +468,7 @@ target_link_libraries(
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
