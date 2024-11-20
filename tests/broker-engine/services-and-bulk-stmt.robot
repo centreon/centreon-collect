@@ -420,7 +420,7 @@ EBMSSMDBD
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     Log To Console    Many service checks with 100 metrics each are processed.
     FOR    ${i}    IN RANGE    ${1000}
-        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
     END
 
     Log To Console    We wait for at least one metric to be written in the database.
