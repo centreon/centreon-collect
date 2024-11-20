@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include <errmsg.h>
+#include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -462,10 +463,10 @@ void mysql_connection::_statement(mysql_task* t) {
       if (mysql_stmt_execute(stmt)) {
         int32_t err_code = ::mysql_stmt_errno(stmt);
         if (err_code == 0) {
-          SPDLOG_LOGGER_TRACE(
-              _logger,
-              "mysql_connection: errno=0, so we simulate a server error 1213");
-          err_code = 1213;
+          SPDLOG_LOGGER_TRACE(_logger,
+                              "mysql_connection: errno=0, so we simulate a "
+                              "server error CR_SERVER_LOST");
+          err_code = CR_SERVER_LOST;
         }
         std::string err_msg(fmt::format("{} errno={} {}",
                                         mysql_error::msg[task->error_code],
@@ -477,8 +478,8 @@ void mysql_connection::_statement(mysql_task* t) {
           set_error_message(err_msg);
           break;
         }
-        if (mysql_stmt_errno(stmt) != 1213 &&
-            mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
+        if (err_code != ER_LOCK_DEADLOCK &&
+            err_code != ER_LOCK_WAIT_TIMEOUT)  // Dead Lock error
           attempts = MAX_ATTEMPTS;
 
         if (mysql_commit(_conn)) {
