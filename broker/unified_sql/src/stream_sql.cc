@@ -1493,7 +1493,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     std::string query = fmt::format(
-        "DELETE FROM hosts_hostgroup WHERE host_id={} and hostgroup_id = {}",
+        "DELETE FROM hosts_hostgroups WHERE host_id={} and hostgroup_id = {}",
         hgm.host_id(), hgm.hostgroup_id());
 
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
