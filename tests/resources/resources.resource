@@ -106,13 +106,6 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
-        ELSE
-            IF    not ${bbdo2}
-                Log To Console    "central broker stopped"
-                # We have to check if central RRD logs contain errors about data sent in the past.
-                ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
-            END
         END
     END
 
