@@ -141,6 +141,23 @@ uint64_t rapidjson_helper::get_uint64_t(const char* field_name) const {
 }
 
 /**
+ * @brief read an uint64_t field
+ *
+ * @param field_name
+ * @param default_value value returned if member does not exist
+ * @return const char* field value
+ * @throw msg_fmt if field value is nor a integer nor a
+ * string containing a integer
+ */
+uint64_t rapidjson_helper::get_uint64_t(const char* field_name,
+                                        uint64_t default_value) const {
+  return get_or_default<uint64_t>(
+      field_name, "uint64_t",
+      [](const rapidjson::Value& val) { return val.IsUint64(); },
+      &rapidjson::Value::GetUint64, &absl::SimpleAtoi<uint64_t>, default_value);
+}
+
+/**
  * @brief read a int64_t field
  *
  * @param field_name

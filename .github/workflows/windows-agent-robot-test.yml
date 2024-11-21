@@ -67,6 +67,7 @@ jobs:
             python3
             python3-pip
             rrdtool
+            jq
 
       - name: IP info
         run: |

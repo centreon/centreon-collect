@@ -396,7 +396,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.1"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -405,11 +405,151 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "cpu_percentage", "args": {"critical-average" : "0.2", "warning-average" : "0.1"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "cpu_percentage", "args": {"critical-average" : "0.02", "warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+
+
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
+    [Documentation]    agent check service with native check storage and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    MON-147936
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "storage", "args": { "free": true, "unit": "%"}}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Db    metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
+    Should Be True    ${result}    resources table not updated
+
+    ${expected_perfdata}    Ctn Get Drive Statistics    free_{}:\\
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1    ${expected_perfdata}
+    Should be True    ${result}    data_bin not updated
+
+
+    #a small threshold to make service_1 warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
+
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "storage", "args": {"warning" : "10", "unit": "B"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+    #a small threshold to make service_1 critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
+
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "storage", "args": {"critical" : "10", "unit": "B"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+
+
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
+    [Documentation]    agent check service with native check uptime and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    MON-147919
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "uptime"}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Db    metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
+    Should Be True    ${result}    resources table not updated
+
+    ${expected_perfdata}    Ctn Get Uptime
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    600    ${expected_perfdata}
+    Should be True    ${result}    data_bin not updated
+
+
+    #a small threshold to make service_1 warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
+
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "uptime", "args": {"warning-uptime" : "1000000000"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+    #a small threshold to make service_1 critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
+
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "uptime", "args": {"critical-uptime" : "1000000000"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    resources table not updated
+
 
 
 *** Keywords ***
