@@ -263,6 +263,7 @@ class rapidjson_helper {
   float get_float(const char* field_name) const;
 
   uint64_t get_uint64_t(const char* field_name) const;
+  uint64_t get_uint64_t(const char* field_name, uint64_t default_value) const;
   int64_t get_int64_t(const char* field_name) const;
 
   uint32_t get_uint32_t(const char* field_name) const;

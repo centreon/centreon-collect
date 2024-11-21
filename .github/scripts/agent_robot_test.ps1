@@ -100,7 +100,28 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name lo
 
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
-wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip $pwsh_path ${current_dir}.replace('\','/')
+$uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
+$d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
+$ts_uptime =  ([DateTimeOffset]$d_uptime).ToUnixTimeSeconds() #timestamp format
+
+$test_param = @{
+    'host'= $my_host_name
+    'ip'= $my_ip
+    'wsl_path'= $wsl_path
+    'pwsh_path'= $pwsh_path
+    'drive' = @()
+    'current_dir' = $current_dir.replace('\','/')
+    'uptime' = $ts_uptime  
+}
+
+Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process {$test_param.drive += $_}
+
+$json_test_param =  $test_param | ConvertTo-Json -Compress
+
+Write-Host "json_test_param" $json_test_param
+$quoted_json_test_param = "'" + $json_test_param + "'"
+
+wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $quoted_json_test_param
 
 #something wrong in robot test => exit 1 => failure
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {
