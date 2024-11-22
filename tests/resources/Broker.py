@@ -2734,3 +2734,100 @@ def ctn_broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+
+def ctn_prepare_partitions_for_data_bin():
+    """
+    Create two partitions for the data_bin table.
+    The first one named p1 contains data with ctime older than now - 60.
+    The second one named p2 contains data with ctime older than now + 3600.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    now = int(time.time())
+    before = now - 60
+    after = now + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS data_bin")
+            sql = f"""CREATE TABLE `data_bin` (
+  `id_metric` int(11) DEFAULT NULL,
+  `ctime` int(11) DEFAULT NULL,
+  `value` float DEFAULT NULL,
+  `status` enum('0','1','2','3','4') DEFAULT NULL,
+  KEY `index_metric` (`id_metric`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+ PARTITION BY RANGE (`ctime`)
+(PARTITION `p1` VALUES LESS THAN ({before}) ENGINE = InnoDB,
+ PARTITION `p2` VALUES LESS THAN ({after}) ENGINE = InnoDB)"""
+            cursor.execute(sql)
+            connection.commit()
+
+
+def ctn_remove_p2_from_data_bin():
+    """
+    Remove the partition p2 from the data_bin table.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE data_bin DROP PARTITION p2")
+            connection.commit()
+
+
+def ctn_add_p2_to_data_bin():
+    """
+    Add the partition p2 the the data_bin table.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    after = int(time.time()) + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"ALTER TABLE data_bin ADD PARTITION (PARTITION p2 VALUES LESS THAN ({after}))")
+            connection.commit()
+
+
+def ctn_init_data_bin_without_partition():
+    """
+    Recreate the data_bin table without partition.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    now = int(time.time())
+    before = now - 60
+    after = now + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS data_bin")
+            sql = f"""CREATE TABLE `data_bin` (
+  `id_metric` int(11) DEFAULT NULL,
+  `ctime` int(11) DEFAULT NULL,
+  `value` float DEFAULT NULL,
+  `status` enum('0','1','2','3','4') DEFAULT NULL,
+  KEY `index_metric` (`id_metric`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1"""
+            cursor.execute(sql)
+            connection.commit()
