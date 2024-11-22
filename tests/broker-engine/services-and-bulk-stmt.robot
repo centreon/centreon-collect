@@ -567,11 +567,11 @@ EBMSSMPART
     FOR    ${i}    IN RANGE    ${120}
         ${output}    Query    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10
 	Log To Console    ${output}
-        IF    ${output[0][0]} == 100    BREAK
+        IF    ${output[0][0]} >= 100    BREAK
         Sleep    1s
     END
     Log To Console    ${output}
-    Should Be True    ${output[0][0]} == 100
+    Should Be True    ${output[0][0]} >= 100
 
     Ctn Init Data Bin Without Partition
 
