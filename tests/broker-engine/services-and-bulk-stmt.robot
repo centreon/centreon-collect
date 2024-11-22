@@ -56,6 +56,7 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
@@ -93,6 +94,7 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
@@ -139,6 +141,7 @@ EBBPS2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    critical${i}
@@ -175,6 +178,7 @@ EBBPS2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
@@ -221,6 +225,7 @@ EBMSSM
         Sleep    1s
     END
     Should Be True    ${output[0][0]} >= 100000
+    Disconnect From Database
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
@@ -483,6 +488,7 @@ EBMSSMDBD
         IF    ${output[0][0]} >= 1    BREAK
         Sleep    1s
     END
+    Disconnect From Database
 
     Log To Console    Let's start some database manipulation...
     ${start}    Get Current Date
@@ -545,6 +551,7 @@ EBMSSMPART
         IF    ${output[0][0]} >= 1    BREAK
         Sleep    1s
     END
+    Disconnect From Database
 
     Log To Console    Let's start some database manipulation...
     Ctn Remove P2 From Data Bin
@@ -572,6 +579,7 @@ EBMSSMPART
     END
     Log To Console    ${output}
     Should Be True    ${output[0][0]} >= 100
+    Disconnect From Database
 
     Ctn Init Data Bin Without Partition
 
