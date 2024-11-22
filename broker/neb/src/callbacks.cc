@@ -21,7 +21,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <unistd.h>
-#include <boost/stacktrace.hpp>
 
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -3424,14 +3423,11 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
       static_cast<nebstruct_service_status_data*>(data);
   const engine::service* es = static_cast<engine::service*>(ds->object_ptr);
   neb_logger->debug(
-      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}",
+      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}, "
+      "last check {}",
       es->host_id(), es->service_id(),
       static_cast<uint32_t>(es->get_current_state()), ds->attributes,
-      static_cast<uint32_t>(es->get_check_type()));
-  std::stringstream ss;
-  ss << boost::stacktrace::stacktrace();
-  neb_logger->debug("For service ({},{}) stacktrace: {}", es->host_id(),
-                    es->service_id(), ss.str());
+      static_cast<uint32_t>(es->get_check_type()), es->get_last_check());
 
   auto handle_acknowledgement = [](uint16_t state, auto& r) {
     neb_logger->debug("Looking for acknowledgement on service ({}:{})",

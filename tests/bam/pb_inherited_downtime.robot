@@ -281,6 +281,7 @@ BEBAMIGNDTU2
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
+    Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
