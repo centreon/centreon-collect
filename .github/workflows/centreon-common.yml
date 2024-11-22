@@ -74,7 +74,7 @@ jobs:
         shell: bash
 
       - name: Package Centreon
-        uses: ./.github/actions/package-nfpm
+        uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/centreon-common/*.yaml"
           distrib: ${{ matrix.distrib }}
@@ -162,7 +162,6 @@ jobs:
           module_name: common
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
           stability: ${{ needs.get-environment.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
