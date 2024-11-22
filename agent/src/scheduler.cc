@@ -19,6 +19,7 @@
 #include "scheduler.hh"
 #include "check_cpu.hh"
 #ifdef _WINDOWS
+#include "check_memory.hh"
 #include "check_uptime.hh"
 #endif
 #include "check_exec.hh"
@@ -568,6 +569,10 @@ std::shared_ptr<check> scheduler::default_check_builder(
           cmd_name, cmd_line, *args, conf, std::move(handler));
     } else if (check_type == "storage"sv) {
       return std::make_shared<check_drive_size>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler));
+    } else if (check_type == "memory"sv) {
+      return std::make_shared<check_memory>(
           io_context, logger, first_start_expected, check_interval, service,
           cmd_name, cmd_line, *args, conf, std::move(handler));
 #endif

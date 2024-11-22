@@ -149,6 +149,8 @@ class check : public std::enable_shared_from_this<check> {
  public:
   using pointer = std::shared_ptr<check>;
 
+  static const std::array<std::string_view, 4> sz_status;
+
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
         time_point first_start_expected,
