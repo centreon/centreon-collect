@@ -118,6 +118,7 @@ jobs:
   deliver-deb:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) }}
 
     strategy:
       matrix:
