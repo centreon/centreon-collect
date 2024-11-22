@@ -2415,9 +2415,16 @@ int neb::callback_pb_process(int callback_type, void* data) {
    * evoluated negotiation. The goal is to send the hash of the configuration
    * directory to the broker. */
   auto& engine_config = config::applier::state::instance().engine_config_dir();
-  if (!engine_config.empty() && std::filesystem::exists(engine_config))
+  std::error_code ec;
+  if (!engine_config.empty() && std::filesystem::exists(engine_config, ec)) {
     inst.set_engine_config_version(common::hash_directory(
-        config::applier::state::instance().engine_config_dir()));
+        config::applier::state::instance().engine_config_dir(), ec));
+  }
+  if (ec) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger, "callbacks: error while hashing engine configuration: {}",
+        ec.message());
+  }
 
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);

@@ -1721,7 +1721,13 @@ void stream::_process_pb_instance_configuration(
           cache_dir.string());
       return;
     }
-    std::string new_version = common::hash_directory(cache_dir);
+    std::error_code ec;
+    std::string new_version = common::hash_directory(cache_dir, ec);
+    if (ec) {
+      _logger_sql->error(
+          "unified_sql: Error while hashing the cache directory '{}': {}",
+          cache_dir.string(), ec.message());
+    }
     if (new_version != current_version) {
       _logger_sql->debug(
           "unified_sql: New engine configuration, broker directories updated");
@@ -1861,7 +1867,8 @@ void stream::_process_pb_instance_configuration(
         }
         if (_store_in_resources) {
           if (!_ehr_update) {
-	    std::string query = "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0";
+            std::string query =
+                "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0";
             if (_bulk_prepared_statement) {
               auto ehr = std::make_unique<database::mysql_bulk_stmt>(query);
               _mysql.prepare_statement(*ehr);
@@ -1875,7 +1882,8 @@ void stream::_process_pb_instance_configuration(
             }
           }
           if (!_esr_update) {
-	    std::string query = "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?";
+            std::string query =
+                "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?";
             if (_bulk_prepared_statement) {
               auto esr = std::make_unique<database::mysql_bulk_stmt>(query);
               _mysql.prepare_statement(*esr);
