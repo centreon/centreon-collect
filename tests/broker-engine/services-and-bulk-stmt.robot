@@ -512,7 +512,7 @@ EBMSSMPART
     ...    to the database and continue to write metrics.
     ...    To check that last point, we force a last service check and we check
     ...    that its metrics are written in the database.
-    [Tags]    broker    engine    unified_sql    MON-152743
+    [Tags]    broker    engine    unified_sql    MON-153321
     Ctn Clear Metrics
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
