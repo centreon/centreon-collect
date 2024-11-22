@@ -17,6 +17,7 @@
  */
 
 #include <errmsg.h>
+#include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -464,24 +465,25 @@ void mysql_connection::_statement(mysql_task* t) {
           static_cast<const void*>(this), task->statement_id, attempts, query);
       if (mysql_stmt_execute(stmt)) {
         int32_t err_code = ::mysql_stmt_errno(stmt);
-        if (err_code == 0) {
-          SPDLOG_LOGGER_TRACE(
-              log_v2::sql(),
-              "mysql_connection: errno=0, so we simulate a server error 1213");
-          err_code = 1213;
-        }
         std::string err_msg(fmt::format("{} errno={} {}",
                                         mysql_error::msg[task->error_code],
                                         err_code, ::mysql_stmt_error(stmt)));
-        SPDLOG_LOGGER_ERROR(log_v2::sql(),
-                            "connection fail to execute statement {:p}: {}",
-                            static_cast<const void*>(this), err_msg);
+        if (err_code == 0) {
+          SPDLOG_LOGGER_ERROR(
+              log_v2::sql(),
+              "mysql_connection: errno=0, so we simulate a server error 1213");
+          err_code = CR_SERVER_LOST;
+        } else {
+          SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                              "connection fail to execute statement {:p}: {}",
+                              static_cast<const void*>(this), err_msg);
+        }
         if (_server_error(err_code)) {
           set_error_message(err_msg);
           break;
         }
-        if (mysql_stmt_errno(stmt) != 1213 &&
-            mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
+        if (err_code != ER_LOCK_DEADLOCK &&
+            err_code != ER_LOCK_WAIT_TIMEOUT)  // Dead Lock error
           attempts = MAX_ATTEMPTS;
 
         if (mysql_commit(_conn)) {
