@@ -47,7 +47,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -55,6 +55,7 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -74,7 +75,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -82,6 +83,7 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
