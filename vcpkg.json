@@ -28,6 +28,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-stacktrace",
+      "platform": "linux"
+    },
+    {
       "name": "boost-beast",
       "platform": "linux"
     },
