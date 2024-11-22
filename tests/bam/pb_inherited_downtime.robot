@@ -348,15 +348,15 @@ BEBAMIGNDTU2
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log To Console    Still one downtime applied to service_314.
 
-#    Log To Console    After 30s, the second downtime should be finished.
-#    ${result}    Ctn Check Ba Status With Timeout    test    0    60
-#    Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
-#    Log To Console    The BA is still OK
-#
-#    # The second downtime finishes
-#    ${result}    Ctn Check Ba Status With Timeout    test    2    90
-#    Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
-#    Log To Console    The BA is now critical (no more downtime)
+    Log To Console    After 30s, the second downtime should be finished.
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
+    Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
+    Log To Console    The BA is still OK
+
+    # The second downtime finishes
+    ${result}    Ctn Check Ba Status With Timeout    test    2    90
+    Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
+    Log To Console    The BA is now critical (no more downtime)
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
