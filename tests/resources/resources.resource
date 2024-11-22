@@ -394,7 +394,7 @@ Ctn Process Service Result Hard
         ...    ${svc}
         ...    ${state}
         ...    ${output}
-	Sleep    1s
+        Sleep    1s
     END
 
 
@@ -406,7 +406,7 @@ Ctn Wait For Engine To Be Ready
         ${result}    Ctn Find In Log With Timeout
         ...    ${ENGINE_LOG}/config${i}/centengine.log
         ...    ${start}    ${content}    60
-	...    verbose=False
+        ...    verbose=False
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
