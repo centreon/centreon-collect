@@ -1644,14 +1644,29 @@ void stream::send_event_acknowledgement() {
  */
 bool stream::check_poller_configuration(uint64_t poller_id,
                                         const std::string& expected_version) {
-  if (!std::filesystem::is_directory(
-          config::applier::state::instance().pollers_config_dir()))
-    std::filesystem::create_directories(
-        config::applier::state::instance().pollers_config_dir());
-  auto poller_dir = config::applier::state::instance().pollers_config_dir() /
-                    fmt::to_string(poller_id);
-  if (!std::filesystem::is_directory(poller_dir)) {
-    std::filesystem::create_directories(poller_dir);
+  error_code ec;
+  const std::filesystem::path& pollers_conf_dir =
+      config::applier::state::instance().pollers_config_dir();
+  if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}",
+                     pollers_conf_dir.string(), ec.message());
+    std::filesystem::create_directories(pollers_conf_dir, ec);
+    if (ec) {
+      _logger->error("Cannot create directory '{}': {}",
+                     pollers_conf_dir.string(), ec.message());
+      return false;
+    }
+  }
+  auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
+  if (!std::filesystem::is_directory(poller_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}", poller_dir,
+                     ec.message());
+    std::filesystem::create_directories(poller_dir, ec);
+    if (ec)
+      _logger->error("Cannot create directory '{}': {}", poller_dir,
+                     ec.message());
     return false;
   }
   std::string current = common::hash_directory(poller_dir);
