@@ -1816,7 +1816,7 @@ void stream::_process_pb_instance_configuration(
                 "Check if some statements are ready, eh_bind connections "
                 "count = {}",
                 _eh_bind->connections_count());
-            if (_eh_bind->ready(0)) {
+            if (_eh_bind->size(0) > 0) {
               SPDLOG_LOGGER_DEBUG(_logger_sql,
                                   "Enabling {} hosts in hosts table",
                                   _eh_bind->size(0));
@@ -1839,7 +1839,7 @@ void stream::_process_pb_instance_configuration(
                 "Check if some statements are ready, es_bind connections "
                 "count = {}",
                 _es_bind->connections_count());
-            if (_es_bind->ready(0)) {
+            if (_es_bind->size(0) > 0) {
               SPDLOG_LOGGER_DEBUG(_logger_sql,
                                   "Enabling {} services in services table",
                                   _es_bind->size(0));
@@ -1912,15 +1912,17 @@ void stream::_process_pb_instance_configuration(
                 "count = {}",
                 _ehr_bind->connections_count());
 
-            SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                "Enabling {} hosts in resources table",
-                                _ehr_bind->size(0));
-            // Setting the good bind to the stmt
-            _ehr_bind->apply_to_stmt(0);
-            // Executing the stmt
-            _mysql.run_statement(
-                *_ehr_update,
-                database::mysql_error::update_hosts_resources_enabled, 0);
+            if (_ehr_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} hosts in resources table",
+                                  _ehr_bind->size(0));
+              // Setting the good bind to the stmt
+              _ehr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_ehr_update,
+                  database::mysql_error::update_hosts_resources_enabled, 0);
+            }
             for (const auto& s : state.services()) {
               if (!_esr_bind->bind(0))
                 _esr_bind->init_from_stmt(0);
@@ -1936,16 +1938,17 @@ void stream::_process_pb_instance_configuration(
                 "Check if some statements are ready, esr_bind connections "
                 "count = {}",
                 _esr_bind->connections_count());
-
-            SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                "Enabling {} services in resources table",
-                                _esr_bind->size(0));
-            // Setting the good bind to the stmt
-            _esr_bind->apply_to_stmt(0);
-            // Executing the stmt
-            _mysql.run_statement(
-                *_esr_update,
-                database::mysql_error::update_services_resources_enabled, 0);
+            if (_esr_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} services in resources table",
+                                  _esr_bind->size(0));
+              // Setting the good bind to the stmt
+              _esr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_esr_update,
+                  database::mysql_error::update_services_resources_enabled, 0);
+            }
           } else {
             for (const auto& h : state.hosts()) {
               _ehr_update->bind_value_as_u64(0, h.host_id());
