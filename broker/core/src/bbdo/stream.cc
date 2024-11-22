@@ -1518,8 +1518,15 @@ void stream::_negotiate_engine_conf() {
     obj.set_peer_type(common::ENGINE);
 
     /* Time to fill the config version. */
+    std::error_code ec;
     _config_version = common::hash_directory(
-        config::applier::state::instance().engine_config_dir());
+        config::applier::state::instance().engine_config_dir(), ec);
+    if (ec) {
+      _logger->error(
+          "BBDO: cannot access directory '{}': {}",
+          config::applier::state::instance().engine_config_dir().string(),
+          ec.message());
+    }
     obj.set_engine_config_version(_config_version);
     _logger->info(
         "BBDO: engine configuration sent to peer '{}' with version {}",
@@ -1644,7 +1651,7 @@ void stream::send_event_acknowledgement() {
  */
 bool stream::check_poller_configuration(uint64_t poller_id,
                                         const std::string& expected_version) {
-  error_code ec;
+  std::error_code ec;
   const std::filesystem::path& pollers_conf_dir =
       config::applier::state::instance().pollers_config_dir();
   if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
@@ -1661,15 +1668,20 @@ bool stream::check_poller_configuration(uint64_t poller_id,
   auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
   if (!std::filesystem::is_directory(poller_dir, ec)) {
     if (ec)
-      _logger->error("Cannot access directory '{}': {}", poller_dir,
+      _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
                      ec.message());
     std::filesystem::create_directories(poller_dir, ec);
     if (ec)
-      _logger->error("Cannot create directory '{}': {}", poller_dir,
+      _logger->error("Cannot create directory '{}': {}", poller_dir.string(),
                      ec.message());
     return false;
   }
-  std::string current = common::hash_directory(poller_dir);
+  std::string current = common::hash_directory(poller_dir, ec);
+  if (ec) {
+    _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
+                   ec.message());
+    return false;
+  }
   config::applier::state::instance().set_engine_configuration(poller_id,
                                                               current);
   return current == expected_version;

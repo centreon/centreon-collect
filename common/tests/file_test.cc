@@ -24,8 +24,11 @@ using namespace com::centreon::common;
 TEST(TestParser, hashDirectory_empty) {
   system("mkdir -p /tmp/foo ; rm -rf /tmp/foo/*");
   system("mkdir -p /tmp/bar ; rm -rf /tmp/bar/*");
-  std::string hash_foo = hash_directory("/tmp/foo");
-  std::string hash_bar = hash_directory("/tmp/bar");
+  std::error_code ec1, ec2;
+  std::string hash_foo = hash_directory("/tmp/foo", ec1);
+  std::string hash_bar = hash_directory("/tmp/bar", ec2);
+  ASSERT_FALSE(ec1);
+  ASSERT_FALSE(ec2);
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
@@ -36,8 +39,11 @@ TEST(TestParser, hashDirectory_simple) {
   system(
       "mkdir -p /tmp/bar ; rm -rf /tmp/bar/* ; mkdir -p /tmp/bar/b ; mkdir -p "
       "/tmp/bar/b/a ; touch /tmp/bar/b/a/foobar ; mkdir -p /tmp/bar/a");
-  std::string hash_foo = hash_directory("/tmp/foo");
-  std::string hash_bar = hash_directory("/tmp/bar");
+  std::error_code ec1, ec2;
+  std::string hash_foo = hash_directory("/tmp/foo", ec1);
+  std::string hash_bar = hash_directory("/tmp/bar", ec2);
+  ASSERT_FALSE(ec1);
+  ASSERT_FALSE(ec2);
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
@@ -50,8 +56,11 @@ TEST(TestParser, hashDirectory_multifiles) {
   for (int i = 19; i >= 0; i--) {
     system(fmt::format("touch /tmp/bar/file_{}", i).c_str());
   }
-  std::string hash_foo = hash_directory("/tmp/foo");
-  std::string hash_bar = hash_directory("/tmp/bar");
+  std::error_code ec1, ec2;
+  std::string hash_foo = hash_directory("/tmp/foo", ec1);
+  std::string hash_bar = hash_directory("/tmp/bar", ec2);
+  ASSERT_FALSE(ec1);
+  ASSERT_FALSE(ec2);
   ASSERT_EQ(hash_foo,
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
   ASSERT_EQ(hash_foo, hash_bar);
@@ -59,13 +68,33 @@ TEST(TestParser, hashDirectory_multifiles) {
 
 TEST(TestParser, hashDirectory_realSituation) {
   system("rm -rf /tmp/tests_foo ; cp -rf tests /tmp/tests_foo");
-  std::string hash = hash_directory("tests");
-  std::string hash1 = hash_directory("/tmp/tests_foo");
+  std::error_code ec1, ec2;
+  std::string hash = hash_directory("tests", ec1);
+  std::string hash1 = hash_directory("/tmp/tests_foo", ec2);
+  ASSERT_FALSE(ec1);
+  ASSERT_FALSE(ec2);
   ASSERT_EQ(hash, hash1);
 
   // A new line added to a file.
   system("echo test >> /tmp/tests_foo/timeperiods.cfg");
-  hash = hash_directory("tests");
-  hash1 = hash_directory("/tmp/tests_foo");
+  hash = hash_directory("tests", ec1);
+  hash1 = hash_directory("/tmp/tests_foo", ec2);
+  ASSERT_FALSE(ec1);
+  ASSERT_FALSE(ec2);
   ASSERT_NE(hash, hash1);
+}
+
+TEST(TestParser, hashDirectory_error) {
+  std::error_code ec;
+  std::string hash = hash_directory("/tmp/doesnotexist", ec);
+  ASSERT_TRUE(ec);
+  ASSERT_EQ(hash, "");
+}
+
+TEST(TestParser, with_file_error) {
+  std::error_code ec;
+  system("echo test > /tmp/my_file");
+  std::string hash = hash_directory("/tmp/my_file", ec);
+  ASSERT_TRUE(ec);
+  ASSERT_EQ(hash, "");
 }

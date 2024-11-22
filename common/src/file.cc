@@ -50,15 +50,20 @@ std::string read_file_content(const std::filesystem::path& file_path) {
  *
  * @return a size_t hash.
  */
-std::string hash_directory(const std::filesystem::path& dir_path) {
+std::string hash_directory(const std::filesystem::path& dir_path,
+                           std::error_code& ec) noexcept {
   std::list<std::filesystem::path> files;
+  ec.clear();
 
   /* Recursively parse the directory */
   for (const auto& entry :
-       std::filesystem::recursive_directory_iterator(dir_path)) {
+       std::filesystem::recursive_directory_iterator(dir_path, ec)) {
     if (entry.is_regular_file() && entry.path().extension() == ".cfg")
       files.push_back(entry.path());
   }
+
+  if (ec)
+    return "";
 
   files.sort();
 
@@ -66,7 +71,10 @@ std::string hash_directory(const std::filesystem::path& dir_path) {
   EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
 
   for (auto& f : files) {
-    const std::string& fname = std::filesystem::relative(f, dir_path).string();
+    const std::string& fname =
+        std::filesystem::relative(f, dir_path, ec).string();
+    if (ec)
+      break;
     EVP_DigestUpdate(mdctx, fname.data(), fname.size());
     std::string content = read_file_content(f);
     EVP_DigestUpdate(mdctx, content.data(), content.size());
@@ -76,6 +84,9 @@ std::string hash_directory(const std::filesystem::path& dir_path) {
   unsigned int size;
   EVP_DigestFinal_ex(mdctx, hash, &size);
   EVP_MD_CTX_free(mdctx);
+
+  if (ec)
+    return "";
 
   std::string retval;
   retval.reserve(SHA256_DIGEST_LENGTH * 2);
