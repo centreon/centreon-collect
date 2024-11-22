@@ -24,7 +24,7 @@ provides:
   - centreon-engine-selinux-debuginfo
 
 contents:
-  - src: "../selinux/centreon-engine/centreon-engine.pp"
+  - src: "../../selinux/centreon-engine/centreon-engine.pp"
     dst: "/usr/share/selinux/packages/centreon/centreon-engine.pp"
     file_info:
       mode: 0655

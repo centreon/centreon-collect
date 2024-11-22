@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../build/engine/modules/opentelemetry/libopentelemetry.so.debug"
+  - src: "../../build/engine/modules/opentelemetry/libopentelemetry.so.debug"
     dst: "/usr/lib/debug/usr/lib64/centreon-engine/libopentelemetry.so.debug"
     file_info:
       mode: 0644

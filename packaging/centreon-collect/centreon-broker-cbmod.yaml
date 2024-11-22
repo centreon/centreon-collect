@@ -16,7 +16,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../broker/config/central-module.json"
+  - src: "../../broker/config/central-module.json"
     dst: "/etc/centreon-broker/central-module.json"
     type: config|noreplace
     file_info:
@@ -24,7 +24,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../build/broker/neb/cbmod.so"
+  - src: "../../build/broker/neb/cbmod.so"
     dst: "/usr/lib64/nagios/cbmod.so"
 
 overrides:

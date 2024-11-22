@@ -15,12 +15,12 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../build/engine/centengine.debug"
+  - src: "../../build/engine/centengine.debug"
     dst: "/usr/lib/debug/usr/sbin/centengine.debug"
     file_info:
       mode: 0644
 
-  - src: "../build/engine/centenginestats.debug"
+  - src: "../../build/engine/centenginestats.debug"
     dst: "/usr/lib/debug/usr/sbin/centenginestats.debug"
     file_info:
       mode: 0644

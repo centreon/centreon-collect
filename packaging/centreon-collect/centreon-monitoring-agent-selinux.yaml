@@ -24,7 +24,7 @@ provides:
   - centreon-monitoring-agent-selinux-debuginfo
 
 contents:
-  - src: "../selinux/centreon-monitoring-agent/centreon-monitoring-agent.pp"
+  - src: "../../selinux/centreon-monitoring-agent/centreon-monitoring-agent.pp"
     dst: "/usr/share/selinux/packages/centreon/centreon-monitoring-agent.pp"
     file_info:
       mode: 0655

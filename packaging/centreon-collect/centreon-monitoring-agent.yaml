@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../agent/conf/centagent.json"
+  - src: "../../agent/conf/centagent.json"
     dst: "/etc/centreon-monitoring-agent/centagent.json"
     type: config|noreplace
     file_info:
@@ -23,18 +23,18 @@ contents:
       owner: centreon-monitoring-agent
       group: centreon-monitoring-agent
 
-  - src: "../agent/scripts/centagent.service"
+  - src: "../../agent/scripts/centagent.service"
     dst: "/usr/lib/systemd/system/centagent.service"
     file_info:
       mode: 0644
     packager: rpm
-  - src: "../agent/scripts/centagent.service"
+  - src: "../../agent/scripts/centagent.service"
     dst: "/lib/systemd/system/centagent.service"
     file_info:
       mode: 0644
     packager: deb
 
-  - src: "../build/agent/centagent"
+  - src: "../../build/agent/centagent"
     dst: "/usr/bin/centagent"
 
   - dst: "/etc/centreon-monitoring-agent"
