@@ -87,9 +87,9 @@ sub check_log_format {
     # as it is a builtin function, it is possible but hard to setup and can have various hard to debug side effect.
     my %options = @_;
 
-    my $regex = '^\[\d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2}\] \[' . $options{severity} . '\] ';
+    my $regex = '^\d{4}\-\d{2}\-\d{2} \d{2}:\d{2}:\d{2} - ' . $options{severity} . ' - ';
     # if there is pid we ignore it in the regex
-    $options{pid} == 1 and $regex .= '\[\d+\] ';
+    $options{pid} == 1 and $regex .= '\d+ - ';
     $regex .= '(.*)$';
     like($options{log}, qr/$regex/, "log format is respected.");
     $options{log} =~ /$regex/; # like() don't seem to return the matched string

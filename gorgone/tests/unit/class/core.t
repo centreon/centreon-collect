@@ -1,14 +1,26 @@
 #!/usr/bin/perl
 
-package centreon::common::centreonvault;
-sub get_secret;
-sub new;
+# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
+# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
+BEGIN {
+    package centreon::common::centreonvault;
+    sub get_secret {};
+    sub new {};
+    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1;
+}
+
+# same here, gorgone use a logger, but we don't want to test it right now, so we mock it.
+BEGIN {
+    package centreon::common::logger;
+    sub severity {};
+    sub new {};
+    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
+}
 
 package main;
 
 use strict;
 use warnings;
-
 use Test2::V0;
 use Test2::Plugin::NoWarnings echo => 1;
 use Test2::Tools::Compare qw{is like match};
@@ -22,9 +34,9 @@ sub create_data_set {
     my $set = {};
     # as we are in unit test, we can't be sure of our current path, but the tests require that we start from the same directory than the script.
     chdir($FindBin::Bin);
-    $set->{logger} = gorgone::class::logger->new();
-    $set->{logger}->severity('debug');
-    $set->{vault} = mock 'centreon::common::centreonvault'; # is from Test2::Tools::Mock, included by Test2::V0
+    $set->{logger} = mock 'centreon::common::logger'; # this is from Test2::Tools::Mock, included by Test2::V0
+    $set->{vault} = mock 'centreon::common::centreonvault';
+
     $set->{vault}->override('get_secret' => sub {
         if ($_[1] eq 'secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse') {
             return 'VaultSentASecret';
