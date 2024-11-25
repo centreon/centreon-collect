@@ -42,7 +42,7 @@ EBNSVC1
         ${result}    Ctn Check Number Of Resources Monitored By Poller Is    ${3}    ${nb_res}    30
         Should Be True    ${result}    Poller 3 should monitor ${nb_srv} services and 16 hosts.
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 Service_increased_huge_check_interval
@@ -154,4 +154,4 @@ Service_increased_huge_check_interval
         ...    rra[0].pdp_per_row must be equal to 5400 for metric ${m}
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker

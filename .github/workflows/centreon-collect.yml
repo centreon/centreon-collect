@@ -266,11 +266,6 @@ jobs:
             package_extension: deb
             runner: collect
             arch: amd64
-          - image: centreon-collect-ubuntu-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: collect
-            arch: amd64
           - image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm
             package_extension: deb
