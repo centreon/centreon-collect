@@ -1,4 +1,11 @@
 #!/usr/bin/perl
+
+package centreon::common::centreonvault;
+sub get_secret;
+sub new;
+
+package main;
+
 use strict;
 use warnings;
 
@@ -10,7 +17,6 @@ use FindBin;
 use lib "$FindBin::Bin/../../../";
 use gorgone::class::script;
 use gorgone::class::core;
-use centreon::common::centreonvault;
 
 sub create_data_set {
     my $set = {};
