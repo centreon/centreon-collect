@@ -25,7 +25,7 @@ use warnings;
 use FindBin;
 use Getopt::Long;
 use Pod::Usage;
-use gorgone::class::logger;
+use centreon::common::logger;
 use gorgone::class::db;
 use gorgone::class::lock;
 use YAML::XS;
@@ -53,7 +53,7 @@ sub new {
 
     bless $self, $class;
     $self->{name} = $name;
-    $self->{logger} = gorgone::class::logger->new();
+    $self->{logger} = centreon::common::logger->new();
     $self->{options} = {
         'config=s'    => \$self->{config_file},
         'vault=s'     => \$self->{vault_config_file},

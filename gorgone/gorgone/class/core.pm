@@ -35,7 +35,7 @@ use gorgone::class::listener;
 use gorgone::class::frame;
 use Time::HiRes;
 use Try::Tiny;
-
+use centreon::common::centreonvault;
 my ($gorgone);
 
 use base qw(gorgone::class::script);
@@ -166,7 +166,7 @@ sub init {
     # before loading the config, we need to load initialize vault.
     # Gorgone don't know how to reload for now, but once it will be done, we will need to retry the vault connexion if it failed when starting, and read again the configuration
     $self->{vault_file} = defined($self->{vault_file}) ? $self->{vault_file} : '/var/lib/centreon/vault/vault.json';
-    $self->{vault} = centreon::common::vault->new(logger => $self->{logger},  'config_file' =>  $self->{vault_file});
+    $self->{vault} = centreon::common::centreonvault->new(logger => $self->{logger},  'config_file' =>  $self->{vault_file});
 
     $self->{config} = $self->yaml_load_config(
         file   => $self->{config_file},
