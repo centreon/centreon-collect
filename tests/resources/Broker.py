@@ -37,7 +37,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
 
 TIMEOUT = 30
@@ -63,7 +63,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
@@ -2646,7 +2646,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
     """
     Check if at least one host monitored by a poller is enabled.
 
@@ -2668,14 +2668,55 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                if in_resources:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
+                else:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     return True
         time.sleep(2)
     return False
 
+
+def ctn_get_hosts_services_count(poller_id: int, expected_hst: int, expected_svc: int, timeout: int = 30):
+    """
+    Get the number of hosts and services monitored by a poller.
+
+    Args:
+        poller_id: The poller ID.
+        expected_hst: The expected number of hosts.
+        expected_svc: The expected number of services.
+        timeout: A timeout in seconds.
+
+    Returns:
+        A tuple (number of hosts, number of services).
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id=0 AND enabled=1")
+                result = cursor.fetchone()
+                hosts = result['COUNT(*)']
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id<>0 AND enabled=1")
+                result = cursor.fetchone()
+                services = result['COUNT(*)']
+                if hosts == expected_hst and services == expected_svc:
+                    return (hosts, services)
+        time.sleep(2)
+    return (0, 0)
 
 def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
@@ -2977,7 +3018,7 @@ def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
     return str(res)
 
 
-def aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
+def ctn_aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
     """
     Send a gRPC command to aes encrypt a content
 
@@ -3011,7 +3052,7 @@ def aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
     return encoded.str_arg
 
 
-def aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
+def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
     """
     Send a gRPC command to aes decrypt a content
 
@@ -3140,3 +3181,23 @@ def ctn_init_data_bin_without_partition():
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1"""
             cursor.execute(sql)
             connection.commit()
+
+
+def ctn_get_peers(port, timeout=TIMEOUT):
+    """
+    Get the list of peers from the broker.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetPeers(empty_pb2.Empty())
+                return MessageToDict(res)
+            except:
+                logger.console("gRPC server not ready")

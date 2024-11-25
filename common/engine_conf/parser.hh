@@ -19,9 +19,9 @@
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
+#include <filesystem>
 #include "common/engine_conf/message_helper.hh"
 #include "state_helper.hh"
-// #include "host.hh"
 
 namespace com::centreon::engine::configuration {
 
@@ -62,17 +62,9 @@ class parser {
    */
   pb_map_helper _pb_helper;
 
-  void _merge(std::unique_ptr<message_helper>& msg_helper, Message* tmpl);
-  void _cleanup(State* pb_config);
+  unsigned int _current_line;
+  std::string _current_path;
 
- public:
-  parser();
-  parser(const parser&) = delete;
-  parser& operator=(const parser&) = delete;
-  ~parser() noexcept = default;
-  void parse(const std::string& path, State* config, error_cnt& err);
-
- private:
   /**
    *  Apply parse method into list.
    *
@@ -94,9 +86,15 @@ class parser {
   void _resolve_template(State* pb_config, error_cnt& err);
   void _resolve_template(std::unique_ptr<message_helper>& msg_helper,
                          const pb_map_object& tmpls);
+  void _merge(std::unique_ptr<message_helper>& msg_helper, Message* tmpl);
+  void _cleanup(State* pb_config);
 
-  unsigned int _current_line;
-  std::string _current_path;
+ public:
+  parser();
+  parser(const parser&) = delete;
+  parser& operator=(const parser&) = delete;
+  ~parser() noexcept = default;
+  void parse(const std::string& path, State* config, error_cnt& err);
 };
 }  // namespace com::centreon::engine::configuration
 

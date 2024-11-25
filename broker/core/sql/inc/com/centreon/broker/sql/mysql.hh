@@ -49,8 +49,8 @@ class mysql {
   ~mysql();
   void prepare_statement(const database::mysql_stmt_base& stmt);
   database::mysql_stmt prepare_query(
-      std::string const& query,
-      mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
+      const std::string& query,
+      const mysql_bind_mapping& bind_mapping = mysql_bind_mapping());
   void commit(int thread_id = -1);
   int run_query(std::string const& query,
                 my_error::code ec = my_error::empty,

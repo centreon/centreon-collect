@@ -20,6 +20,7 @@
 #define CCB_BBDO_STREAM_HH
 
 #include "bbdo/bbdo/bbdo_version.hh"
+#include "bbdo/common.pb.h"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -156,12 +157,29 @@ class stream : public io::stream {
   /* bbdo logger */
   std::shared_ptr<spdlog::logger> _logger;
 
+  void _negotiate_engine_conf();
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
+  void _handle_bbdo_event(const std::shared_ptr<io::data>& d);
+  bool _wait_for_bbdo_event(uint32_t expected_type,
+                            std::shared_ptr<io::data>& d,
+                            time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
+  /* Poller Name of the peer: used since BBDO 3.0.1 */
   std::string _poller_name;
+  /* Broker Name of the peer: used since BBDO 3.0.1 */
+  std::string _broker_name;
+  /* ID of the peer poller: used since BBDO 3.0.1 */
   uint64_t _poller_id = 0u;
+  /* True if the peer supports extended negotiation */
+  bool _extended_negotiation = false;
+  /* Type of the peer: used since BBDO 3.0.1 */
+  common::PeerType _peer_type = common::UNKNOWN;
+  /* Currently, this is a hash of the Engine configuration directory. It's
+   * filled when neb::pb_instance is sent to Broker. */
+  std::string _config_version;
+
   io::data* unserialize(uint32_t event_type,
                         uint32_t source_id,
                         uint32_t destination_id,
@@ -192,6 +210,8 @@ class stream : public io::stream {
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
+  bool check_poller_configuration(uint64_t poller_id,
+                                  const std::string& expected_version);
 };
 }  // namespace com::centreon::broker::bbdo
 

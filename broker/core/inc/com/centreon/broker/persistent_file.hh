@@ -20,7 +20,6 @@
 #define CCB_PERSISTENT_FILE_HH
 
 #include "com/centreon/broker/file/stream.hh"
-#include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker {
 

@@ -33,11 +33,12 @@ class state_helper : public message_helper {
   state_helper(State* obj);
   ~state_helper() noexcept = default;
 
-  bool hook(std::string_view key, const std::string_view& value) override;
+  bool hook(std::string_view key, std::string_view value) override;
   bool apply_extended_conf(const std::string& file_path,
                            const rapidjson::Document& json_doc,
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
+  void resolve(State* pb_config);
 };
 }  // namespace com::centreon::engine::configuration
 

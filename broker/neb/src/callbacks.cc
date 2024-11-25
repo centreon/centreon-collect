@@ -28,6 +28,7 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
@@ -2409,6 +2410,21 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_engine("Centreon Engine");
   inst.set_pid(getpid());
   inst.set_version(get_program_version());
+
+  /* Here we are Engine. The idea is to know if broker is able to handle the
+   * evoluated negotiation. The goal is to send the hash of the configuration
+   * directory to the broker. */
+  auto& engine_config = config::applier::state::instance().engine_config_dir();
+  std::error_code ec;
+  if (!engine_config.empty() && std::filesystem::exists(engine_config, ec)) {
+    inst.set_engine_config_version(common::hash_directory(
+        config::applier::state::instance().engine_config_dir(), ec));
+  }
+  if (ec) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger, "callbacks: error while hashing engine configuration: {}",
+        ec.message());
+  }
 
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);

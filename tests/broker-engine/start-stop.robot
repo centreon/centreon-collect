@@ -17,12 +17,15 @@ BESS1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
+
     ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS2
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
@@ -34,6 +37,7 @@ BESS2
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    info
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -48,6 +52,7 @@ BESS2
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS2U
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
@@ -60,6 +65,7 @@ BESS2U
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    central    bbdo    info
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -67,13 +73,24 @@ BESS2U
     Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+    &{result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    ${length}    Get Length    ${result['peers']}
+    Should Be Equal As Integers    ${length}    2
+    ...    Engine and Broker RRD should be connected to Broker Central
     Ctn Stop Engine
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
+    &{result}    Ctn Get Peers    51001
+    Log To Console    ${result}
+    ${length}    Get Length    ${result['peers']}
+    Should Be Equal As Integers    ${length}    1
+    ...    RRD Broker should be still connected to Broker Central
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS3
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -82,6 +99,7 @@ BESS3
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -92,6 +110,7 @@ BESS3
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS4
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Broker stopped first
@@ -100,6 +119,7 @@ BESS4
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -108,6 +128,7 @@ BESS4
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS5
     [Documentation]    Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
@@ -117,11 +138,13 @@ BESS5
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine seem not connected
     [Teardown]    Ctn Stop Engine Broker And Save Logs
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
@@ -134,12 +157,14 @@ BESS_GRPC1
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
@@ -152,6 +177,7 @@ BESS_GRPC2
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -162,6 +188,7 @@ BESS_GRPC2
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Engine stopped first
@@ -174,6 +201,7 @@ BESS_GRPC3
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -184,6 +212,7 @@ BESS_GRPC3
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC4
     [Documentation]    Start-Stop grpc version Broker/Engine - Engine started first - Broker stopped first
@@ -196,12 +225,14 @@ BESS_GRPC4
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
     Should Be True    ${result}
     Ctn Kindly Stop Broker
     Ctn Stop Engine
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC5
     [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
@@ -215,6 +246,7 @@ BESS_GRPC5
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -225,6 +257,7 @@ BESS_GRPC5
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_GRPC_COMPRESS1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
@@ -239,6 +272,7 @@ BESS_GRPC_COMPRESS1
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Change Broker Compression Output    module0    central-module-master-output    yes
     Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -249,6 +283,7 @@ BESS_GRPC_COMPRESS1
     ${result}    Ctn Check Poller Disabled In Database    1    10
     Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
@@ -268,6 +303,7 @@ BESS_CRYPTED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -280,6 +316,7 @@ BESS_CRYPTED_GRPC1
         Should Be True    ${result}
         Ctn Kindly Stop Broker
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only server crypted
@@ -296,6 +333,7 @@ BESS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -303,6 +341,7 @@ BESS_CRYPTED_GRPC2
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
@@ -319,6 +358,7 @@ BESS_CRYPTED_GRPC3
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -326,6 +366,7 @@ BESS_CRYPTED_GRPC3
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_REVERSED_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - well configured
@@ -345,6 +386,7 @@ BESS_CRYPTED_REVERSED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -354,6 +396,7 @@ BESS_CRYPTED_REVERSED_GRPC1
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_REVERSED_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine only engine server crypted
@@ -372,6 +415,7 @@ BESS_CRYPTED_REVERSED_GRPC2
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -379,6 +423,7 @@ BESS_CRYPTED_REVERSED_GRPC2
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_CRYPTED_REVERSED_GRPC3
     [Documentation]    Start-Stop grpc version Broker/Engine only engine crypted
@@ -395,6 +440,7 @@ BESS_CRYPTED_REVERSED_GRPC3
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -402,6 +448,7 @@ BESS_CRYPTED_REVERSED_GRPC3
         Ctn Kindly Stop Broker
         Ctn Stop Engine
     END
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS_ENGINE_DELETE_HOST
     [Documentation]    once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
@@ -410,6 +457,7 @@ BESS_ENGINE_DELETE_HOST
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Clear Retention
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start Engine
@@ -426,6 +474,7 @@ BESS_ENGINE_DELETE_HOST
     Sleep    2s
     Ctn Kindly Stop Broker    True
     Ctn Stop Engine
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESSBQ1
     [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
@@ -442,6 +491,7 @@ BESSBQ1
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -451,6 +501,7 @@ BESSBQ1
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
@@ -469,6 +520,7 @@ Start_Stop_Engine_Broker_${id}
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -488,6 +540,7 @@ Start_Stop_Engine_Broker_${id}
     ...    1    False
     ...    2    True
     Ctn Kindly Stop Broker
+    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
@@ -505,6 +558,7 @@ Start_Stop_Broker_Engine_${id}
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
+    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker

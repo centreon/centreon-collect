@@ -31,7 +31,9 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
 class BamMonitoringStream : public testing::Test {
-  void SetUp() override { config::applier::init(0, "test_broker", 0); }
+  void SetUp() override {
+    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+  }
   void TearDown() override { config::applier::deinit(); }
 };
 

@@ -77,7 +77,7 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
  * @param value The value corresponding to the key
  */
 bool servicedependency_helper::hook(std::string_view key,
-                                    const std::string_view& value) {
+                                    std::string_view value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */

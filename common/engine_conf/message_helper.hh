@@ -172,7 +172,7 @@ class message_helper {
    * @return True on success.
    */
   virtual bool hook(std::string_view key [[maybe_unused]],
-                    const std::string_view& value [[maybe_unused]]) {
+                    std::string_view value [[maybe_unused]]) {
     return false;
   }
   virtual void check_validity(error_cnt& err [[maybe_unused]]) const {}

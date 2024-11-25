@@ -29,6 +29,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
+    file_test.cc
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common

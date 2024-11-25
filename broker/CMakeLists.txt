@@ -104,6 +104,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
@@ -111,11 +112,12 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
+add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
@@ -123,7 +125,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc protobuf)
+target_link_libraries(berpc protobuf pb_common_lib)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -453,6 +455,7 @@ target_link_libraries(
   ctncrypto
   dl
   pb_bbdo_lib
+  pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
   pthread

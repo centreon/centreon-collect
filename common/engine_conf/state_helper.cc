@@ -67,7 +67,7 @@ state_helper::state_helper(State* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool state_helper::hook(std::string_view key, const std::string_view& value) {
+bool state_helper::hook(std::string_view key, std::string_view value) {
   State* obj = static_cast<State*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -75,13 +75,15 @@ bool state_helper::hook(std::string_view key, const std::string_view& value) {
 
   if (key.substr(0, 10) == "log_level_") {
     if (value == "off" || value == "critical" || value == "error" ||
-        value == "warning" || value == "info" || value == "debug" ||
-        value == "trace") {
+        value == "err" || value == "warning" || value == "info" ||
+        value == "debug" || value == "trace") {
+      if (value == "err")
+        value = "error";
       return set_global(key, value);
     } else
       throw msg_fmt(
           "Log level '{}' has value '{}' but it cannot be a different string "
-          "than off, critical, error, warning, info, debug or trace",
+          "than off, critical, error, err, warning, info, debug or trace",
           key, value);
   } else if (key == "date_format") {
     if (value == "euro")
@@ -491,5 +493,28 @@ bool state_helper::apply_extended_conf(
     }
   }
   return retval;
+}
+
+/**
+ * @brief In Engine, the configuration::applier::state resolves many things on
+ * configuration objects. On Broker side, we don't have it yet. So this is why
+ * we have this helper to resolve some things on the State object, for example:
+ * - host_id on services
+ *
+ * @param pb_config
+ */
+void state_helper::resolve(State* pb_config) {
+  // In configuration files, host_id are not set to services. So we need to set
+  // them later.
+  absl::flat_hash_map<std::string, uint64_t> hosts;
+
+  for (const auto& h : pb_config->hosts()) {
+    hosts[h.host_name()] = h.host_id();
+  }
+  for (auto& s : *pb_config->mutable_services()) {
+    auto found = hosts.find(s.host_name());
+    if (found != hosts.end())
+      s.set_host_id(found->second);
+  }
 }
 }  // namespace com::centreon::engine::configuration

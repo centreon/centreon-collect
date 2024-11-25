@@ -63,7 +63,7 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
  * @param value The value corresponding to the key
  */
 bool serviceescalation_helper::hook(std::string_view key,
-                                    const std::string_view& value) {
+                                    std::string_view value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
