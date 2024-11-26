@@ -2084,6 +2084,15 @@ void applier::state::_processing(configuration::state& new_cfg,
 void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
+  configuration::DiffState* diff_state_ptr = nullptr;
+  bool new_conf = broker_get_diff_state(&diff_state_ptr) == 0;
+  if (!new_conf)
+    config_logger->error("No new Engine Configuration available from broker");
+  else
+    config_logger->error("New Engine Configuration available from broker");
+
+  std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
+
   // Timing.
   struct timeval tv[5];
 
@@ -2147,14 +2156,16 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   // Build difference for timeperiods.
   pb_difference<configuration::Timeperiod, std::string> diff_timeperiods;
-  google::protobuf::RepeatedPtrField<
-      ::com::centreon::engine::configuration::Timeperiod>
-      old = *pb_config.mutable_timeperiods();
-  const google::protobuf::RepeatedPtrField<
-      ::com::centreon::engine::configuration::Timeperiod>
-      new_conf = new_cfg.timeperiods();
-  diff_timeperiods.parse(old, new_conf,
-                         &configuration::Timeperiod::timeperiod_name);
+  {
+    google::protobuf::RepeatedPtrField<
+        ::com::centreon::engine::configuration::Timeperiod>
+        old = *pb_config.mutable_timeperiods();
+    const google::protobuf::RepeatedPtrField<
+        ::com::centreon::engine::configuration::Timeperiod>
+        new_conf = new_cfg.timeperiods();
+    diff_timeperiods.parse(old, new_conf,
+                           &configuration::Timeperiod::timeperiod_name);
+  }
 
   // Build difference for connectors.
   pb_difference<configuration::Connector, std::string> diff_connectors;
@@ -2169,11 +2180,20 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Build difference for severities.
   pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
       diff_severities;
+
   diff_severities.parse(
       *pb_config.mutable_severities(), new_cfg.severities(),
       [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
+  const DiffSeverity* diff_severity = nullptr;
+  if (diff_state) {
+    diff_severity = &diff_state->severities();
+
+    assert(diff_severity->added_size() == diff_severities.added().size());
+    assert(diff_severity->deleted_size() == diff_severities.deleted().size());
+    assert(diff_severity->modified_size() == diff_severities.modified().size());
+  }
 
   // Build difference for tags.
   pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;

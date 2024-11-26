@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "state.pb.h"
 
 namespace com::centreon::broker::bbdo {
 /**
@@ -212,6 +213,9 @@ class stream : public io::stream {
   std::list<std::string> get_running_config();
   bool check_poller_configuration(uint64_t poller_id,
                                   const std::string& expected_version);
+  com::centreon::engine::configuration::DiffState* build_diff_state(
+      uint64_t poller_id,
+      const std::string& expected_version);
 };
 }  // namespace com::centreon::broker::bbdo
 

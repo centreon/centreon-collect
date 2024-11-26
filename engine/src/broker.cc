@@ -30,8 +30,6 @@
 
 using namespace com::centreon::engine;
 
-extern "C" {
-
 /**
  *  Send acknowledgement data to broker.
  *
@@ -1124,4 +1122,17 @@ void broker_bench(unsigned id,
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
 }
+
+/**
+ * @brief Get the Engine configuration difference between the old and the new
+ * configurations.
+ *
+ * @param[out] diff_state A pointer to the diff state pointer.
+ *
+ * @return 0 on success.
+ */
+int broker_get_diff_state(
+    com::centreon::engine::configuration::DiffState** diff_state) {
+  // Make callbacks.
+  return neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, diff_state);
 }

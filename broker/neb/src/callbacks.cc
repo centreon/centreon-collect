@@ -37,6 +37,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/severity.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -99,7 +100,8 @@ static struct {
     {NEBCALLBACK_SERVICE_STATUS_DATA, &neb::callback_pb_service_status},
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
-    {NEBCALLBACK_OTL_METRICS, &neb::callback_otl_metrics}};
+    {NEBCALLBACK_OTL_METRICS, &neb::callback_otl_metrics},
+    {NEBCALLBACK_GET_DIFF_STATE, &neb::callback_get_diff_state}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -3791,6 +3793,29 @@ class otl_protobuf
 int neb::callback_otl_metrics(int, void* data) {
   gl_publisher.write(std::make_shared<neb::otl_detail::otl_protobuf>(data));
   return 0;
+}
+
+/**
+ * @brief Get from cbmod the difference of the engine configuration.
+ *
+ * @param int callback_type
+ * @param[out] data pointer to a neb::pb_diff_state*.
+ *
+ * @return 0 on success.
+ */
+int neb::callback_get_diff_state(int, void* data) {
+  engine::configuration::DiffState** diff_state =
+      static_cast<engine::configuration::DiffState**>(data);
+  auto diff = config::applier::state::instance().diff_state();
+  int retval;
+  if (diff) {
+    retval = 0;
+    *diff_state = diff.release();
+  } else {
+    retval = 1;
+    *diff_state = nullptr;
+  }
+  return retval;
 }
 
 /**

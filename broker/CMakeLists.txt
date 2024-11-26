@@ -88,6 +88,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
@@ -112,13 +113,12 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    ${SRC_DIR}/broker.proto
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/src ${SRC_DIR}/broker.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
+                                                "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_SOURCE_DIR}/bbdo)
@@ -448,6 +448,8 @@ add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
+target_include_directories(rokerbase
+                           PRIVATE ${CMAKE_BINARY_DIR}/common/engine_conf)
 target_link_libraries(
   rokerbase
   bbdo_bbdo
@@ -493,7 +495,8 @@ target_link_libraries(
   # spdlog::spdlog
   gRPC::gpr
   gRPC::grpc
-  gRPC::grpc++_alts)
+  gRPC::grpc++_alts
+  engine_conf)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

@@ -22,6 +22,7 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "severity_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
 using ::google::protobuf::Descriptor;
@@ -501,9 +502,9 @@ bool state_helper::apply_extended_conf(
  * we have this helper to resolve some things on the State object, for example:
  * - host_id on services
  *
- * @param pb_config
  */
-void state_helper::resolve(State* pb_config) {
+void state_helper::resolve() {
+  State* pb_config = static_cast<State*>(mut_obj());
   // In configuration files, host_id are not set to services. So we need to set
   // them later.
   absl::flat_hash_map<std::string, uint64_t> hosts;
@@ -516,5 +517,20 @@ void state_helper::resolve(State* pb_config) {
     if (found != hosts.end())
       s.set_host_id(found->second);
   }
+}
+
+/**
+ * @brief Compare two State objects and generate a DiffState object.
+ *
+ * @param old_state The old State object.
+ * @param new_state The new State object.
+ * @param A DiffState object point that will contain the differences between the
+ * two State objects.
+ */
+void state_helper::diff(const State& old_state,
+                        const State& new_state,
+                        DiffState* result) {
+  severity_helper::diff(old_state.severities(), new_state.severities(),
+                        result->mutable_severities());
 }
 }  // namespace com::centreon::engine::configuration

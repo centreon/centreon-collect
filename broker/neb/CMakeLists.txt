@@ -85,15 +85,11 @@ set(NEB_SOURCES
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(
-  nebbase
-  table_max_size
-  target_neb
-  pb_neb_lib
-  pb_common_lib
-  pb_header_lib)
+add_dependencies(nebbase table_max_size target_neb pb_neb_lib pb_common_lib
+                 pb_header_lib)
 
-target_link_libraries(nebbase
+target_link_libraries(
+  nebbase
   -L${PROTOBUF_LIB_DIR}
   protobuf
   pb_neb_lib
@@ -150,13 +146,8 @@ set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
-  target_link_libraries(
-    "${CBMOD}"
-    -L${PROTOBUF_LIB_DIR}
-    "-Wl,--whole-archive"
-    rokerbase
-    multiplexing
-    "-Wl,--no-whole-archive")
+  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "-Wl,--whole-archive"
+                        rokerbase multiplexing "-Wl,--no-whole-archive")
 else()
   target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
 endif()
@@ -164,7 +155,9 @@ endif()
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
 
-target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+target_include_directories(
+  ${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo
+                   ${CMAKE_BINARY_DIR}/common/engine_conf)
 
 # Testing.
 if(WITH_TESTING)
