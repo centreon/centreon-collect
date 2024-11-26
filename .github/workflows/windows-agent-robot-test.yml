@@ -93,7 +93,7 @@ jobs:
           wsl cd $wsl_path `&`& .github/scripts/collect-setup-database.sh
 
       - name: Restore packages
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-bullseye-amd64-${{ github.head_ref || github.ref_name }}
