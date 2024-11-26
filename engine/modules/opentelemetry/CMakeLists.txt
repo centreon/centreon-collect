@@ -93,6 +93,7 @@ target_link_libraries(opentelemetry
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
+  engine_rpc
   pb_neb_lib
   engine_rpc
   pb_tag_lib)
