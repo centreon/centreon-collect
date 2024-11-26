@@ -5,7 +5,7 @@ centreon:
     db_configuration:
       dsn: "mysql:host=localhost:port=3306;dbname=centreon"
       username: "centreon"
-      password: "password"
+      password: "secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse"
     db_realtime:
       dsn: "mysql:host=localhost:port=3306;dbname=centreon_storage"
       username: "centreon"

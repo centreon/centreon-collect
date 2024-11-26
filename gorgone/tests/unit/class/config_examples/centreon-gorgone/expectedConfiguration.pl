@@ -4,7 +4,7 @@ return {
             'database' => {
                 'db_configuration' => {
                     'dsn'      => 'mysql:host=localhost:port=3306;dbname=centreon',
-                    'password' => 'password',
+                    'password' => 'VaultSentASecret',
                     'username' => 'centreon'
                 },
                 'db_realtime'      => {
@@ -17,7 +17,7 @@ return {
         'gorgone'  => {
             'tpapi'       => [
                 {
-                    'password' => 'webapiPassword!',
+                    'password' => 'VaultSentASecret',
                     'base_url' => 'http://127.0.0.1/centreon/api/latest/',
                     'name'     => 'centreonv2',
                     'username' => 'centreon-gorgone'
@@ -36,7 +36,7 @@ return {
             'modules'     => [
                 {
                     'package'         => 'gorgone::modules::core::action::hooks',
-                    'whitelist_cmds'  => 'true',
+                    'whitelist_cmds'  => 'VaultSentASecret',
                     'command_timeout' => 30,
                     'allowed_cmds'    => [
                         '^sudo\\s+(/bin/|/usr/bin/)?systemctl\\s+(reload|restart)\\s+(centengine|centreontrapd|cbd)\\s*$',
@@ -56,7 +56,8 @@ return {
                         '^/usr/share/centreon/cron/dashboardBuilder --config=/etc/centreon/conf\\.pm >> /var/log/centreon-gorgone/dashboardBuilder\\.log 2>&1$',
                         '^/usr/share/centreon/www/modules/centreon-dsm/+cron/centreon_dsm_purge\\.pl --config=\\"/etc/centreon/conf.pm\\" --severity=\\S+ >> /var/log/centreon-gorgone/centreon_dsm_purge\\.log 2>&1\\s*$',
                         '^/usr/share/centreon-bi-backup/centreon-bi-backup-web\\.sh >> /var/log/centreon-gorgone/centreon-bi-backup-web\\.log 2>&1$',
-                        '^/usr/share/centreon/www/modules/centreon-autodiscovery-server/+cron/centreon_autodisco.pl --config=\'/etc/centreon/conf.pm\' --config-extra=\'/etc/centreon/centreon_autodisco.pm\' --severity=\\S+ >> /var/log/centreon-gorgone/centreon_service_discovery.log 2>&1$'
+                        '^/usr/share/centreon/www/modules/centreon-autodiscovery-server/+cron/centreon_autodisco.pl --config=\'/etc/centreon/conf.pm\' --config-extra=\'/etc/centreon/centreon_autodisco.pm\' --severity=\\S+ >> /var/log/centreon-gorgone/centreon_service_discovery.log 2>&1$',
+                        'VaultSentASecret'
                     ],
                     'name'            => 'action',
                     'enable'          => 'true'
