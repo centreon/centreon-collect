@@ -41,7 +41,7 @@ add_library(
   ${INC_DIR}/parser.hh
   ${INC_DIR}/worker.hh
   ${INC_DIR}/worker_pool.hh)
-add_dependencies("${STATS}" target_broker_message)
+add_dependencies("${STATS}" target_broker_message pb_common_lib)
 set_target_properties("${STATS}" PROPERTIES PREFIX "")
 target_link_libraries("${STATS}" spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)

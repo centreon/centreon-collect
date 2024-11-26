@@ -62,6 +62,7 @@ add_library("${TLS}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
+add_dependencies(${TLS} pb_common_lib)
 target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
 

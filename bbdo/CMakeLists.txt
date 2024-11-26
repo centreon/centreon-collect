@@ -51,6 +51,8 @@ foreach(name IN LISTS protobuf_files)
                                                     ON)
 endforeach()
 
+add_dependencies(pb_bbdo_lib pb_common_lib)
+
 set(otl_protobuf_files
     opentelemetry/proto/collector/metrics/v1/metrics_service
     opentelemetry/proto/metrics/v1/metrics opentelemetry/proto/common/v1/common

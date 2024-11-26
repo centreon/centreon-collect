@@ -50,6 +50,7 @@ add_library("${TCP}" SHARED
   ${SOURCES}
   ${HEADERS}
 )
+add_dependencies(${TCP} pb_common_lib)
 set_target_properties("${TCP}" PROPERTIES PREFIX "")
 target_link_libraries("${TCP}" spdlog::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
