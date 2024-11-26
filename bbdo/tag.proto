@@ -41,7 +41,7 @@ enum TagType {
   HOSTCATEGORY = 3;
 }
 
-/*io::neb, neb::de_pb_tag*/
+/* io::neb, neb::de_pb_tag, 30 */
 message Tag {
   uint64 id = 1;
   enum Action {
@@ -55,7 +55,7 @@ message Tag {
   string name = 4;
   int64 poller_id = 5;
 }
-
+/* Ignore */
 message TagInfo {
   uint64 id = 1;
   TagType type = 2;
