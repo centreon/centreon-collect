@@ -101,7 +101,6 @@ jobs:
           path: ./lastlog.jsonl
           retention-days: 1
 
-
   package:
     needs: [get-environment]
     if: ${{ needs.get-environment.outputs.stability != 'stable' }}
