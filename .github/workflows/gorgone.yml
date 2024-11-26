@@ -137,7 +137,7 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
 
     steps:
       - name: Checkout sources
@@ -206,7 +206,7 @@ jobs:
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
