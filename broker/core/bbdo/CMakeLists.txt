@@ -18,7 +18,7 @@
 
 # include_directories(${PROJECT_SOURCE_DIR}/core)
 
-add_library(bbdo STATIC acceptor.cc CMakeLists.txt connector.cc factory.cc
+add_library(bbdo STATIC acceptor.cc connector.cc factory.cc
                         internal.cc stream.cc)
 
 target_precompile_headers(bbdo PRIVATE precomp_inc/precomp.hh)
