@@ -127,7 +127,7 @@ jobs:
 
       - name: Remove selinux packaging files on debian
         if: ${{ inputs.package_extension == 'deb' }}
-        run: rm -f packaging/*-selinux.yaml
+        run: rm -f packaging/centreon-collect/*-selinux.yaml
         shell: bash
 
       - name: Compile sources
@@ -246,7 +246,7 @@ jobs:
       - name: Packages
         uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "packaging/*.yaml"
+          nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
