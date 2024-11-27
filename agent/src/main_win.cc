@@ -177,7 +177,7 @@ int _main(bool service_start) {
         read_file(conf->get_public_cert_file()),
         read_file(conf->get_private_key_file()),
         read_file(conf->get_ca_certificate_file()), conf->get_ca_name(), true,
-        30);
+        30, conf->get_second_max_reconnect_backoff());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -226,6 +226,10 @@ int main(int argc, char* argv[]) {
   if (argc > 1 && !lstrcmpi(argv[1], "--standalone")) {
     return _main(false);
   }
+
+  SPDLOG_INFO(
+      "centagent.exe will start in service mode, if you launch it from command "
+      "line, use --standalone flag");
 
   SERVICE_TABLE_ENTRY DispatchTable[] = {
       {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};

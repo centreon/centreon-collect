@@ -62,6 +62,11 @@ static constexpr std::string_view _config_schema(R"(
 }
 )");
 
+constexpr unsigned default_check_interval = 60;
+constexpr unsigned default_max_concurrent_checks = 100;
+constexpr unsigned default_export_period = 60;
+constexpr unsigned default_check_timeout = 30;
+
 /**
  * @brief Construct a new agent config::agent from json data
  *
@@ -74,11 +79,14 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
 
   file_content.validate(validator);
 
-  _check_interval = file_content.get_unsigned("check_interval", 60);
-  _max_concurrent_checks =
-      file_content.get_unsigned("max_concurrent_checks", 100);
-  _export_period = file_content.get_unsigned("export_period", 60);
-  _check_timeout = file_content.get_unsigned("check_timeout", 30);
+  _check_interval =
+      file_content.get_unsigned("check_interval", default_check_interval);
+  _max_concurrent_checks = file_content.get_unsigned(
+      "max_concurrent_checks", default_max_concurrent_checks);
+  _export_period =
+      file_content.get_unsigned("export_period", default_export_period);
+  _check_timeout =
+      file_content.get_unsigned("check_timeout", default_check_timeout);
 
   if (file_content.has_member("reverse_connections")) {
     const auto& reverse_array = file_content.get_member("reverse_connections");
@@ -89,6 +97,16 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
     }
   }
 }
+
+/**
+ * @brief default constructor with the same values as default json values
+ *
+ */
+agent_config::agent_config()
+    : _check_interval(default_check_interval),
+      _max_concurrent_checks(default_max_concurrent_checks),
+      _export_period(default_export_period),
+      _check_timeout(default_check_timeout) {}
 
 /**
  * @brief Constructor used by tests

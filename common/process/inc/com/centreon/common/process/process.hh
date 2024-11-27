@@ -129,6 +129,8 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   virtual ~process() = default;
 
+  int get_pid();
+
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 
