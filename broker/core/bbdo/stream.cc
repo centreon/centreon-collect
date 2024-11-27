@@ -21,7 +21,6 @@
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
-#include "absl/strings/match.h"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -33,6 +32,8 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/parser.hh"
+#include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -1119,6 +1120,10 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           /* engine_conf has a new version, it is sent to engine. And engine
            * will send its configuration to broker. */
           obj.set_need_update(true);
+
+          com::centreon::engine::configuration::DiffState* diff_state =
+              build_diff_state(ec.poller_id(), ec.engine_config_version());
+          obj.set_allocated_diff_state(diff_state);
         }
         _write(engine_conf);
       }
@@ -1500,6 +1505,11 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
+/**
+ * @brief Called since an Engine. If it supports extended negociation with
+ * the peer Broker, it sends its EngineConfiguration and waits for the
+ * Broker's answer.
+ */
 void stream::_negotiate_engine_conf() {
   SPDLOG_LOGGER_DEBUG(_logger,
                       "BBDO: instance event sent to {} - supports "
@@ -1535,6 +1545,7 @@ void stream::_negotiate_engine_conf() {
     _write(engine_conf);
     std::shared_ptr<io::data> d;
     time_t deadline = time(nullptr) + 5;
+    /* We wait for the Broker's answer. */
     bool found = _wait_for_bbdo_event(pb_engine_configuration::static_type(), d,
                                       deadline);
     if (!found) {
@@ -1686,4 +1697,72 @@ bool stream::check_poller_configuration(uint64_t poller_id,
   config::applier::state::instance().set_engine_configuration(poller_id,
                                                               current);
   return current == expected_version;
+}
+
+com::centreon::engine::configuration::DiffState* stream::build_diff_state(
+    uint64_t poller_id,
+    const std::string& expected_version) {
+  std::error_code ec;
+  /* The last configuration known by broker for the poller */
+  const std::filesystem::path& poller_conf_dir =
+      config::applier::state::instance().pollers_config_dir() /
+      fmt::to_string(poller_id);
+
+  const std::filesystem::path& new_conf_dir =
+      config::applier::state::instance().pollers_config_dir() / "new_conf";
+
+  if (!std::filesystem::is_directory(new_conf_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}", new_conf_dir.string(),
+                     ec.message());
+    std::filesystem::create_directories(new_conf_dir, ec);
+    if (ec) {
+      _logger->error("Cannot create directory '{}': {}", new_conf_dir.string(),
+                     ec.message());
+    }
+  } else if (!std::filesystem::is_empty(new_conf_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}", new_conf_dir.string(),
+                     ec.message());
+    std::filesystem::remove_all(new_conf_dir, ec);
+    if (ec)
+      _logger->error("Cannot remove directory '{}': {}", new_conf_dir.string(),
+                     ec.message());
+  }
+  std::filesystem::path cache_dir =
+      config::applier::state::instance().config_cache_dir() /
+      fmt::to_string(poller_id);
+  std::filesystem::copy(cache_dir, new_conf_dir,
+                        std::filesystem::copy_options::recursive, ec);
+  if (ec) {
+    _logger->error("Cannot copy directory '{}' into '{}': {}",
+                   cache_dir.string(), new_conf_dir.string(), ec.message());
+  }
+
+  std::string hash = common::hash_directory(new_conf_dir, ec);
+  if (ec) {
+    _logger->error("Cannot access directory '{}': {}", new_conf_dir.string(),
+                   ec.message());
+  }
+  if (hash != expected_version) {
+    _logger->error(
+        "The configuration directory '{}' has a different version than "
+        "expected: {} != {}",
+        new_conf_dir.string(), hash, expected_version);
+  }
+  engine::configuration::State old_state, new_state;
+  engine::configuration::state_helper old_state_hlp(&old_state);
+  engine::configuration::state_helper new_state_hlp(&new_state);
+  engine::configuration::parser parser;
+  engine::configuration::error_cnt err;
+  parser.parse(poller_conf_dir, &old_state, err);
+  parser.parse(new_conf_dir, &new_state, err);
+
+  old_state_hlp.resolve();
+  new_state_hlp.resolve();
+
+  auto diff_state = std::make_unique<engine::configuration::DiffState>();
+  engine::configuration::state_helper::diff(old_state, new_state,
+                                            diff_state.get());
+  return diff_state.release();
 }

@@ -38,7 +38,10 @@ class state_helper : public message_helper {
                            const rapidjson::Document& json_doc,
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
-  void resolve(State* pb_config);
+  void resolve();
+  static void diff(const State& old_state,
+                   const State& new_state,
+                   com::centreon::engine::configuration::DiffState* result);
 };
 }  // namespace com::centreon::engine::configuration
 

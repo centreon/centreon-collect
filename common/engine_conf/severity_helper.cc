@@ -22,6 +22,7 @@
 #include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
+using google::protobuf::util::MessageDifferencer;
 
 namespace com::centreon::engine::configuration {
 
@@ -110,4 +111,54 @@ void severity_helper::_init() {
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(SeverityType::none);
 }
+
+/**
+ * @brief Compare two Severity objects and generate a DiffSeverity object.
+ *
+ * @param other The other Severity object to compare with.
+ *
+ * @return A DiffSeverity object that contains the differences between the two
+ * Severity objects.
+ */
+void severity_helper::diff(const Container& old_list,
+                           const Container& new_list,
+                           DiffSeverity* result) {
+  result->Clear();
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                      std::pair<uint32_t, const Severity*>>
+      keys_values;
+  uint32_t idx = 0;
+  for (const auto& item : old_list) {
+    keys_values[{item.key().id(), item.key().type()}] =
+        std::make_pair(idx, &item);
+    ++idx;
+  }
+
+  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> new_keys;
+  for (const auto& item : new_list) {
+    auto inserted = new_keys.insert({item.key().id(), item.key().type()});
+    if (!keys_values.contains(*inserted.first)) {
+      // New object to add
+      result->add_added()->CopyFrom(item);
+    } else {
+      // Object to modify or equal
+      if (!MessageDifferencer::Equals(item,
+                                      *keys_values[*inserted.first].second)) {
+        // There are changes in this object
+        DiffSeverity::PairIdxSeverity* res = result->add_modified();
+        res->set_idx(keys_values[*inserted.first].first);
+        res->mutable_severity()->CopyFrom(item);
+      }
+    }
+  }
+
+  ssize_t i = 0;
+  for (const auto& item : old_list) {
+    if (!new_keys.contains({item.key().id(), item.key().type()})) {
+      result->add_deleted(i);
+    }
+    ++i;
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

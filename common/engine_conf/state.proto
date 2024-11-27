@@ -40,8 +40,8 @@ message InterCheckDelay {
 
 message InterleaveFactor {
   enum IFType {
-  ilf_user = 0;   // user-specified interleave factor
-  ilf_smart = 1;  // smart interleave
+    ilf_user = 0;   // user-specified interleave factor
+    ilf_smart = 1;  // smart interleave
   }
   IFType type = 1;
   int32 user_value = 2;
@@ -208,48 +208,8 @@ message State {
   map<string, string> user = 146;
 }
 
-message Value {
-  oneof value {
-    bool value_b = 1;
-    int32 value_i32 = 2;
-    uint32 value_u32 = 3;
-    string value_str = 4;
-    Timerange value_tr = 5;
-    Daterange value_dr = 6;
-    Timeperiod value_tp = 7;
-    Connector value_cn = 8;
-    Command value_co = 9;
-    CustomVariable value_cv = 10;
-    Contact value_ct = 11;
-  }
-}
-
-message Key {
-  oneof key {
-    int32 i32 = 1;
-    string str = 2;
-  }
-}
-
-message Path {
-  repeated Key key = 1;
-}
-
-message PathWithValue {
-  Path path = 1;
-  Value val = 2;
-}
-
-message PathWithPair {
-  Path path = 1;
-  Value val1 = 2;
-  Value val2 = 3;
-}
-
 message DiffState {
-  repeated PathWithValue to_add = 1;
-  repeated Path to_remove = 2;
-  repeated PathWithValue to_modify = 3;
+  DiffSeverity severities = 1;
 }
 
 message CustomVariable {
@@ -747,6 +707,20 @@ message Severity {
   uint32 level = 3;
   uint64 icon_id = 4;
   string severity_name = 5;
+}
+
+message DiffSeverity {
+  /* Added severities */
+  repeated Severity added = 1;
+  /* Deleted severities given by their index in the old list. */
+  repeated uint32 deleted = 2;
+  message PairIdxSeverity {
+    uint32 idx = 1;
+    Severity severity = 2;
+  }
+  /* Modified severities given by the index in the old list and the new
+   * severity. */
+  repeated PairIdxSeverity modified = 3;
 }
 
 message Tag {
