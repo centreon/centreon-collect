@@ -17,7 +17,6 @@
  */
 
 #include <rapidjson/document.h>
-#include <re2/re2.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

@@ -35,11 +35,14 @@
 #include <absl/base/thread_annotations.h>
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
+
+#include <re2/re2.h>
 
 #include <boost/asio.hpp>
 
