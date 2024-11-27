@@ -669,4 +669,4 @@ EBDP8
 *** Keywords ***
 Ctn Clear Instances
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Query    DELETE FROM instances
+    Execute SQL String    DELETE FROM instances

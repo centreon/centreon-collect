@@ -114,11 +114,20 @@ jobs:
             cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
 
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
       - name: Upload Test Results
         if: ${{ failure() }}
         uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
         with:
-          name: reports-${{inputs.test_group_name}}
+          name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
