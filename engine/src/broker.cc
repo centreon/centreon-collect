@@ -30,8 +30,6 @@
 
 using namespace com::centreon::engine;
 
-extern "C" {
-
 /**
  *  Send acknowledgement data to broker.
  *
@@ -1123,5 +1121,4 @@ void broker_bench(unsigned id,
   nebstruct_bench_data ds = {id, mess_create};
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
-}
 }

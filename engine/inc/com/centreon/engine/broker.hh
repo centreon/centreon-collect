@@ -314,10 +314,6 @@
 #define NEBATTR_DOWNTIME_STOP_NORMAL 1
 #define NEBATTR_DOWNTIME_STOP_CANCELLED 2
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
-
 void broker_acknowledgement_data(
     int type,
     acknowledgement_resource_type acknowledgement_type,
@@ -519,9 +515,5 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
 void broker_bench(unsigned id,
                   const std::chrono::system_clock::time_point& mess_create);
-
-#ifdef __cplusplus
-}
-#endif /* C++ */
 
 #endif /* !CCE_BROKER_HH */

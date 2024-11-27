@@ -18,6 +18,7 @@
 syntax = "proto3";
 
 import "common.proto";
+import "state.proto";
 
 package com.centreon.broker;
 
@@ -63,4 +64,7 @@ message EngineConfiguration {
       5;  // Engine uses this to send the conf version
   bool need_update =
       6;  // Broker uses this to tell Engine if an update is needed
+  com.centreon.engine.configuration.DiffState diff_state =
+      7;  // Diff state, filled by Broker when the Engine
+          // configuration needs an update.
 }

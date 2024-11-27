@@ -20,9 +20,8 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/storage/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/storage/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/storage/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories(${INC_DIR} ${SRC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
+                    ${CMAKE_SOURCE_DIR})
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
 # conflict_manager library.
@@ -39,13 +38,8 @@ add_library(
 set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
-add_dependencies(conflictmgr
-	pb_neb_lib
-	pb_common_lib
-	pb_header_lib
-	pb_storage_lib
-	pb_open_telemetry_lib
-	)
+add_dependencies(conflictmgr pb_neb_lib pb_common_lib pb_header_lib
+                 pb_storage_lib pb_open_telemetry_lib)
 
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(conflictmgr spdlog::spdlog)
@@ -73,10 +67,14 @@ add_library(
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
                  target_remove_graph_message table_max_size)
-target_link_libraries(${STORAGE}
+target_link_libraries(
+  ${STORAGE}
   -L${PROTOBUF_LIB_DIR}
-  conflictmgr rokerbase bbdo_storage
-  pb_rebuild_message_lib pb_remove_graph_message_lib)
+  conflictmgr
+  rokerbase
+  bbdo_storage
+  pb_rebuild_message_lib
+  pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
 # Testing.
