@@ -40,6 +40,8 @@ Legacycmd Teardown
     Terminate Process    pipeWatcher_${comm}
     Run    rm -rf /var/cache/centreon/config
     Run    rm -rf /etc/centreon/centreon_vmware.json
+    Run    rm -rf /etc/centreon-engine/randomBigFile.cfg
+    Run    rm -rf /etc/centreon-engine/engine-hosts.cfg
     
 Push Engine And vmware Configuration
     [Arguments]    ${comm}=    ${poller_id}=2
@@ -51,22 +53,29 @@ Push Engine And vmware Configuration
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/vmware/${poller_id}/centreon_vmware.json
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/broker/${poller_id}/broker.cfg
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/engine/${poller_id}/engine-hosts.cfg
+    Run    dd if=/dev/urandom of=/var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg bs=200MB count=1 iflag=fullblock
+    ${MD5Start}=    Run    md5sum /var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg | cut -f 1 -d " "
     Run    chown www-data:www-data /var/cache/centreon/config/*/${poller_id}/*
     Run    chmod 644 /var/cache/centreon/config/*/${poller_id}/*
-    
+
     # gorgone central should get these files, and send it to poller in /etc/centreon/, /etc/centreon-broker/, /etc/centreon-engine/
-    ${log_query}    Create List    centreon_vmware.json
+    # we are checking the poller have the last bit of centreon-engine before continuing.
+    ${log_query}    Create List    Copy to '/etc/centreon-engine//' finished successfully
     # SENDCFGFILE say to gorgone to push conf to poller for a poller id.
     Run    echo SENDCFGFILE:${poller_id} > /var/lib/centreon/centcore/random.cmd
-    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/gorgoned.log    content=${log_query}    regex=0    timeout=20
+    ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_poller${poller_id}_legacycmd/gorgoned.log    content=${log_query}    regex=0    timeout=40
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}
     Log To Console    File should be set in /etc/centreon/ now
 
+    # check vmware conf file
     ${res}=    Run    cat /etc/centreon/centreon_vmware.json
     Should Be Equal As Strings    ${res}    {"communication mode": "${comm}"}    data in /etc/centreon/centreon_vmware.json is not correct.
     # check the user/group and permission are right. as gorgone run as root in the tests and as centreon-gorgone in prod, this might be different from real life.
     ${vmware_stat}=    Run    stat -c "%a %U %G" /etc/centreon/centreon_vmware.json
     Should Be Equal As Strings    ${vmware_stat}    644 centreon-gorgone centreon    for vmware file
+
+    ${MD5Result}=    Run  md5sum /etc/centreon-engine/randomBigFile.cfg | cut -f 1 -d " "
+    Should Be Equal    ${MD5Start}    ${MD5Result}    MD5 Don't match, the big file might have been corrupted.
 
     # check engine conf file
     # for now gorgone don't set user/group after it untar, it's only done when copying single files.
