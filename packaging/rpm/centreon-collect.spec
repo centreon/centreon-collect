@@ -558,9 +558,6 @@ fi
 %{_localstatedir}/log/centreon-engine/centengine.log
 %{_localstatedir}/log/centreon-engine/status.dat
 
-%ghost
-%{_localstatedir}/log/centreon-engine/retention.dat
-
 %files -n centreon-engine-selinux
 %defattr(-,root,root,-)
 %{_datadir}/selinux/packages/centreon/centreon-engine.pp
