@@ -59,7 +59,7 @@ def ctn_config_reverse_centreon_agent(key_path:str = None, cert_path:str = None,
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
     with open(f"{CONF_DIR}/centagent.json", "w") as ff:
         ff.write(agent_config)
-        ff.write(",\n  \"reverse_connection\":true")
+        ff.write(",\n  \"reversed_grpc_streaming\":true")
         if key_path is not None or  cert_path is not None or ca_path is not None:
             ff.write(",\n  \"encryption\":true")
         if key_path is not None:
