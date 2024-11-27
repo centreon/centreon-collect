@@ -2908,12 +2908,8 @@ int neb::callback_relation(int callback_type, void* data) {
       if (relation->hst && relation->dep_hst && !relation->svc &&
           !relation->dep_svc) {
         // Find host IDs.
-        int host_id;
-        int parent_id;
-        {
-          host_id = engine::get_host_id(relation->dep_hst->name());
-          parent_id = engine::get_host_id(relation->hst->name());
-        }
+        int host_id = relation->dep_hst->host_id();
+        int parent_id = relation->hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
           auto new_host_parent{std::make_shared<host_parent>()};
@@ -2964,10 +2960,8 @@ int neb::callback_pb_relation(int callback_type [[maybe_unused]], void* data) {
       if (relation->hst && relation->dep_hst && !relation->svc &&
           !relation->dep_svc) {
         // Find host IDs.
-        int host_id;
-        int parent_id;
-        host_id = engine::get_host_id(relation->dep_hst->name());
-        parent_id = engine::get_host_id(relation->hst->name());
+        int host_id = relation->dep_hst->host_id();
+        int parent_id = relation->hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
           auto new_host_parent{std::make_shared<pb_host_parent>()};
