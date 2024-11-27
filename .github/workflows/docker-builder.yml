@@ -17,13 +17,13 @@ on:
       - '.github/docker/Dockerfile.centreon-collect-*'
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
   create-and-push-docker:
-    needs: [get-version]
+    needs: [get-environment]
 
     strategy:
       fail-fast: false
@@ -32,31 +32,31 @@ jobs:
           - runner: collect
             dockerfile: centreon-collect-alma8
             image: centreon-collect-alma8
-            tag: ${{ needs.get-version.outputs.img_version }}
+            tag: ${{ needs.get-environment.outputs.img_version }}
           - runner: collect
             dockerfile: centreon-collect-alma9
             image: centreon-collect-alma9
-            tag: ${{ needs.get-version.outputs.img_version }}
+            tag: ${{ needs.get-environment.outputs.img_version }}
           - runner: collect
             dockerfile: centreon-collect-alma9-test
             image: centreon-collect-alma9-test
-            tag: ${{ needs.get-version.outputs.test_img_version }}
+            tag: ${{ needs.get-environment.outputs.test_img_version }}
           - runner: collect
             dockerfile: centreon-collect-mysql-alma9
             image: centreon-collect-mysql-alma9
-            tag: ${{ needs.get-version.outputs.img_version }}
+            tag: ${{ needs.get-environment.outputs.img_version }}
           - runner: collect
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
-            tag: ${{ needs.get-version.outputs.test_img_version }}
+            tag: ${{ needs.get-environment.outputs.test_img_version }}
           - runner: collect
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye
-            tag: ${{ needs.get-version.outputs.img_version }}
+            tag: ${{ needs.get-environment.outputs.img_version }}
           - runner: collect
             dockerfile: centreon-collect-debian-bullseye-test
             image: centreon-collect-debian-bullseye-test
-            tag: ${{ needs.get-version.outputs.test_img_version }}
+            tag: ${{ needs.get-environment.outputs.test_img_version }}
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
@@ -70,15 +70,15 @@ jobs:
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
       - name: Login to Proxy Registry
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
           registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
       - uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
 

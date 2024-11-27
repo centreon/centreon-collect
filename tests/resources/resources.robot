@@ -212,7 +212,7 @@ Ctn Stop Engine Broker And Save Logs
 Ctn Get Engine Pid
 	[Arguments]  ${process_alias}
 	${pid}=  Get Process Id  ${process_alias} 
-	[Return]  ${pid}
+	RETURN  ${pid}
 	
 Ctn Reload Engine
 	${count}=	Ctn Get Engines Count
@@ -234,7 +234,7 @@ Ctn Check Connections
 	${pid2}=	Get Process Id	b2
 	Log to console	Check Connection 5670 ${pid1} ${pid2}
 	${retval}=	Ctn Check Connection	5670	${pid1}	${pid2}
-	[Return]	${retval}
+	RETURN	${retval}
 
 Ctn Disable Eth Connection On Port
 	[Arguments]	${port}
@@ -283,7 +283,7 @@ Ctn Wait Or Dump And Kill Process
 		Run Process  gcore  -o  ${ENGINE_LOG}/config0/gcore_${process_name}  ${pid}
 		${result}=      Wait For Process	${process_name}	timeout=1s      on_timeout=kill
 	END
-	[Return]	${result}
+	RETURN	${result}
 
 Ctn Clear Metrics
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}

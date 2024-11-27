@@ -43,8 +43,8 @@ jobs:
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
       - name: package rpm ${{ matrix.image }}
         run: |
@@ -62,10 +62,12 @@ jobs:
         with:
           script_name: rpm-signing
           image_name: rpm-signing
-          image_version: ubuntu
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+          image_version: latest
+          registry_url: docker.centreon.com/centreon-private
+          registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+          registry_private_username: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_USERNAME }}
+          registry_private_token: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_TOKEN }}
 
       - name: Cache RPM files
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
@@ -106,8 +108,8 @@ jobs:
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
       - name: debmake ${{ matrix.image }}
         uses: ./centreon-collect/.github/actions/runner-docker
