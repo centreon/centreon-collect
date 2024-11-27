@@ -125,6 +125,7 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
+  ${NATIVE_SRC}/check_uptime.cc
 )
 
 set( SRC_LINUX

@@ -18,6 +18,9 @@
 
 #include "scheduler.hh"
 #include "check_cpu.hh"
+#ifdef _WINDOWS
+#include "check_uptime.hh"
+#endif
 #include "check_exec.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
@@ -557,6 +560,12 @@ std::shared_ptr<check> scheduler::default_check_builder(
       return std::make_shared<check_cpu>(
           io_context, logger, first_start_expected, check_interval, service,
           cmd_name, cmd_line, *args, conf, std::move(handler));
+#ifdef _WINDOWS
+    } else if (check_type == "uptime"sv) {
+      return std::make_shared<check_uptime>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler));
+#endif
     } else {
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
                                 cmd_line);

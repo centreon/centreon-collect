@@ -195,9 +195,6 @@ TEST(proc_stat_file_test, no_threshold) {
   }
 }
 
-constexpr std::array<unsigned, 5> proc_index = {
-    0, 1, 2, 3, check_cpu_detail::average_cpu_index};
-
 TEST(proc_stat_file_test, no_threshold_detailed) {
   constexpr const char* test_file_path = "/tmp/proc_stat_test";
   {
