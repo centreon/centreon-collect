@@ -18,9 +18,9 @@
 
 #include <absl/strings/match.h>
 
-#include "com/centreon/broker/bbdo/acceptor.hh"
-#include "com/centreon/broker/bbdo/connector.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
+#include "broker/core/bbdo/acceptor.hh"
+#include "broker/core/bbdo/connector.hh"
+#include "broker/core/bbdo/factory.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/io/protocols.hh"

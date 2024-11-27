@@ -25,7 +25,7 @@
 namespace com::centreon::broker::bbdo {
 
 /**
- *  @class connector connector.hh "com/centreon/broker/bbdo/connector.hh"
+ *  @class connector connector.hh "broker/core/bbdo/connector.hh"
  *  @brief BBDO connector.
  *
  *  Initiate direct BBDO protocol connections.

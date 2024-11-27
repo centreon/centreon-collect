@@ -20,14 +20,14 @@
 #define CCB_BBDO_VERSION_RESPONSE_HH
 
 #include "bbdo/bbdo/bbdo_version.hh"
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
 namespace com::centreon::broker::bbdo {
 /**
  *  @class version_response version_response.hh
- * "com/centreon/broker/bbdo/version_response.hh"
+ * "broker/core/bbdo/version_response.hh"
  *  @brief Send protocol version used by endpoint.
  *
  *  Send protocol version used by endpoint.

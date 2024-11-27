@@ -20,7 +20,7 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/io/raw.hh"

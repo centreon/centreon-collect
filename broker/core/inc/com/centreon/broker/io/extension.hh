@@ -22,7 +22,7 @@
 namespace com::centreon::broker::io {
 
 /**
- * @class extension extension.hh "com/centreon/broker/bbdo/extension.hh"
+ * @class extension extension.hh "broker/core/bbdo/extension.hh"
  * @brief Used essentially by the bbdo stream, it stores some configuration
  * about sub streams of a stream.
  *

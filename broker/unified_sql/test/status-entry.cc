@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"

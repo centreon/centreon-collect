@@ -34,7 +34,7 @@ namespace bbdo {
 class stream;
 
 /**
- *  @class acceptor acceptor.hh "com/centreon/broker/bbdo/acceptor.hh"
+ *  @class acceptor acceptor.hh "broker/core/bbdo/acceptor.hh"
  *  @brief BBDO acceptor.
  *
  *  Accept incoming BBDO connections.

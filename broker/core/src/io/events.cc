@@ -22,7 +22,7 @@
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
+#include "broker/core/bbdo/factory.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

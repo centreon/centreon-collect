@@ -19,13 +19,13 @@
 #ifndef CCB_BBDO_STOP_HH
 #define CCB_BBDO_STOP_HH
 
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
 namespace com::centreon::broker::bbdo {
 /**
- *  @class stop stop.hh "com/centreon/broker/bbdo/stop.hh"
+ *  @class stop stop.hh "broker/core/bbdo/stop.hh"
  *  @brief An stop event sent between two bbdo's endpoint.
  *
  *  When it is time for engine to stop, it sends this event to its peers.

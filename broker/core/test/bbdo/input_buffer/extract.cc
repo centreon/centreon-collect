@@ -17,7 +17,7 @@
  *
  */
 #include <gtest/gtest.h>
-#include "com/centreon/broker/bbdo/input_buffer.hh"
+#include "broker/core/bbdo/input_buffer.hh"
 
 using namespace com::centreon::broker;
 

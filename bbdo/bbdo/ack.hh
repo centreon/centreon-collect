@@ -19,13 +19,13 @@
 #ifndef CCB_BBDO_ACK_HH
 #define CCB_BBDO_ACK_HH
 
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
 namespace com::centreon::broker::bbdo {
 /**
- *  @class ack ack.hh "com/centreon/broker/bbdo/ack.hh"
+ *  @class ack ack.hh "broker/core/bbdo/ack.hh"
  *  @brief An ack event sent between two bbdo's endpoint.
  *
  *  This is used for high-level event acknowledgement.

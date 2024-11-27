@@ -20,8 +20,8 @@
 //#include <gtest/gtest.h>
 //#include <bitset>
 //#include <iostream>
-//#include "com/centreon/broker/bbdo/internal.hh"
-//#include "com/centreon/broker/bbdo/stream.hh"
+//#include "broker/core/bbdo/internal.hh"
+//#include "broker/core/bbdo/stream.hh"
 //#include "com/centreon/broker/config/applier/init.hh"
 //#include "com/centreon/broker/exceptions/msg.hh"
 //#include "com/centreon/broker/extcmd/command_request.hh"

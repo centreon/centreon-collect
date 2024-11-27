@@ -16,11 +16,12 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
+#include "absl/strings/match.h"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -935,7 +936,7 @@ void stream::negotiate(stream::negotiation_type neg) {
                  proto_it = io::protocols::instance().begin(),
                  proto_end = io::protocols::instance().end();
              proto_it != proto_end; ++proto_it) {
-          if (boost::iequals(proto_it->first, ext->name())) {
+          if (absl::EqualsIgnoreCase(proto_it->first, ext->name())) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
                     _substream, neg == negotiate_second, ext->options())};

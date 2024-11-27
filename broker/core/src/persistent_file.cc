@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/persistent_file.hh"
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"

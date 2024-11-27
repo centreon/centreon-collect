@@ -24,7 +24,7 @@
 namespace com::centreon::broker::bbdo {
 
 /**
- *  @class factory factory.hh "com/centreon/broker/bbdo/factory.hh"
+ *  @class factory factory.hh "broker/core/bbdo/factory.hh"
  *  @brief BBDO protocol factory.
  *
  *  Build BBDO (Broker Binary Data Objects) objects.
