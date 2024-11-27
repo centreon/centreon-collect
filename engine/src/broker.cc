@@ -1131,8 +1131,8 @@ void broker_bench(unsigned id,
  *
  * @return 0 on success.
  */
-int broker_get_diff_state(
+void broker_get_diff_state(
     com::centreon::engine::configuration::DiffState** diff_state) {
   // Make callbacks.
-  return neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, diff_state);
+  neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, diff_state);
 }

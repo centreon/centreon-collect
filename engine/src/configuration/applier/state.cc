@@ -2084,6 +2084,14 @@ void applier::state::_processing(configuration::state& new_cfg,
 void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
+  configuration::DiffState* diff_state_ptr = nullptr;
+  broker_get_diff_state(&diff_state_ptr);
+  std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
+  if (!diff_state)
+    config_logger->error("No new Engine Configuration available from broker");
+  else
+    config_logger->error("New Engine Configuration available from broker");
+
   // Timing.
   struct timeval tv[5];
 
@@ -2169,11 +2177,20 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Build difference for severities.
   pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
       diff_severities;
+
   diff_severities.parse(
       *pb_config.mutable_severities(), new_cfg.severities(),
       [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
+  const DiffSeverity* diff_severity = nullptr;
+  if (diff_state) {
+    diff_severity = &diff_state->severities();
+
+    assert(diff_severity->added_size() == diff_severities.added().size());
+    assert(diff_severity->deleted_size() == diff_severities.deleted().size());
+    assert(diff_severity->modified_size() == diff_severities.modified().size());
+  }
 
   // Build difference for tags.
   pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;
