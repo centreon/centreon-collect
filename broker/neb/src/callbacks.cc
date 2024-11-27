@@ -850,10 +850,10 @@ int neb::callback_pb_downtime(int callback_type, void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_external_command(int callback_type, void* data) {
+int neb::callback_external_command(int callback_type [[maybe_unused]],
+                                   void* data) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
-  (void)callback_type;
 
   nebstruct_external_command_data* necd(
       static_cast<nebstruct_external_command_data*>(data));

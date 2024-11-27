@@ -540,3 +540,26 @@ std::string state::engine_configuration(uint64_t poller_id) const {
   else
     return "";
 }
+
+/**
+ * @brief Set the Engine Configuration difference into the applier to be able
+ * to apply it when Engine is reloaded/restarted.
+ *
+ * @param diff_state The Engine Configuration difference.
+ */
+void state::set_diff_state(
+    std::unique_ptr<com::centreon::engine::configuration::DiffState>
+        diff_state) {
+  _diff_state = std::move(diff_state);
+}
+
+/**
+ * @brief Get the Engine Configuration difference to apply to Engine. Once done,
+ * it is cleared.
+ *
+ * @return The Engine Configuration difference.
+ */
+std::unique_ptr<com::centreon::engine::configuration::DiffState>
+state::diff_state() {
+  return std::move(_diff_state);
+}

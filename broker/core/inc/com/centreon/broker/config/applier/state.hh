@@ -22,6 +22,7 @@
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "common.pb.h"
+#include "state.pb.h"
 
 namespace com::centreon::broker::config::applier {
 /**
@@ -93,6 +94,10 @@ class state {
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
 
+  /* The Engine Configuration difference to apply to Engine. Once done, it is
+   * cleared. */
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+
   state(common::PeerType peer_type,
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
@@ -151,6 +156,10 @@ class state {
   bool broker_needs_update() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
   std::string engine_configuration(uint64_t poller_id) const;
+  void set_diff_state(
+      std::unique_ptr<com::centreon::engine::configuration::DiffState>
+          diff_state);
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
 };
 }  // namespace com::centreon::broker::config::applier
 

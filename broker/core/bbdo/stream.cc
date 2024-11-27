@@ -1564,8 +1564,9 @@ void stream::_negotiate_engine_conf() {
       _logger->debug(
           "BBDO: engine configuration from peer '{}' received as expected",
           _broker_name);
-      const EngineConfiguration& ec =
-          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+      /* We have received the Broker's answer. */
+      EngineConfiguration& ec =
+          std::static_pointer_cast<pb_engine_configuration>(d)->mut_obj();
 
       if (!ec.need_update()) {
         SPDLOG_LOGGER_INFO(_logger,
@@ -1579,6 +1580,10 @@ void stream::_negotiate_engine_conf() {
         config::applier::state::instance().set_broker_needs_update(
             ec.poller_id(), ec.poller_name(), ec.broker_name(), common::BROKER,
             true);
+        auto diff_state = std::unique_ptr<engine::configuration::DiffState>(
+            ec.release_diff_state());
+        config::applier::state::instance().set_diff_state(
+            std::move(diff_state));
       }
     }
   } else {
