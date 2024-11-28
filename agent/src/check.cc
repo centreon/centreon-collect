@@ -20,6 +20,9 @@
 
 using namespace com::centreon::agent;
 
+const std::array<std::string_view, 4> check::status_label = {
+    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
+
 /**
  * @brief Construct a new check::check object
  *

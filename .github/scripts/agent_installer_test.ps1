@@ -49,8 +49,16 @@ function test_args_to_registry {
         exit 1
     }
     
-    #let time to windows to flush registry
-    Start-Sleep  -Seconds 2
+    for (($i = 0); $i -lt 10; $i++) {
+        Start-Sleep -Seconds 1
+        try {
+            Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
+            break
+        }
+        catch { 
+            continue
+        }
+    }
 
     foreach ($value_name in $expected_registry_values.Keys) {
         $expected_value = $($expected_registry_values[$value_name])
@@ -95,12 +103,15 @@ if ($process_info.ExitCode -ne 0) {
     exit 1
 }
 
-Start-Sleep -Seconds 5
 
-Get-Process | Select-Object -Property ProcessName | Select-String centagent
+for (($i = 0); $i -lt 10; $i++) {
+    Start-Sleep -Seconds 1
+    $info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
+    if (! $info)  {
+        break
+    }
+}
 
-$info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
-#$info = Get-Process centagent 2>$null
 if ($info) {
     Write-Host "centagent.exe running"
     exit 1

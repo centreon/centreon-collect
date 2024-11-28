@@ -459,3 +459,12 @@ Ctn Kindly Stop Agent
             Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
         END
     END
+
+
+Ctn Wait For Otel Server To Be Ready
+    [Documentation]    Wait for engine otel server to be ready
+    [Arguments]    ${start}
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+
