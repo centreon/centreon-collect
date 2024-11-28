@@ -104,6 +104,14 @@ $uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf form
 $d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
 $ts_uptime =  ([DateTimeOffset]$d_uptime).ToUnixTimeSeconds() #timestamp format
 
+$systeminfo_data = systeminfo /FO CSV | ConvertFrom-Csv
+$memory_info = @{
+    'total' = $systeminfo_data.'Total Physical Memory'
+    'free' = $systeminfo_data.'Available Physical Memory'
+    'virtual_max' = $systeminfo_data.'Virtual Memory: Max Size'
+    'virtual_free' = $systeminfo_data.'Virtual Memory: Available'
+}
+
 $test_param = @{
     'host'= $my_host_name
     'ip'= $my_ip
@@ -111,8 +119,8 @@ $test_param = @{
     'pwsh_path'= $pwsh_path
     'drive' = @()
     'current_dir' = $current_dir.replace('\','/')
-    'uptime' = $ts_uptime  
-}
+    'uptime' = $ts_uptime
+    'mem_info' = $memory_info}
 
 Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process {$test_param.drive += $_}
 

@@ -1956,9 +1956,10 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                         if metric not in expected:
                             logger.console(f"ERROR unexpected metric: {metric}")
                             return False
-                        if abs(value - expected[metric]) > precision:
-                            logger.console(f"ERROR unexpected value for {metric}: {value}")
+                        if expected[metric] is not None and abs(value - expected[metric]) > precision:
+                            logger.console(f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
                             return False
                     return True
         time.sleep(1)
+    logger.console(f"unexpected result: {result}")
     return False

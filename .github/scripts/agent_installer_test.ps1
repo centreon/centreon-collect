@@ -51,8 +51,12 @@ function test_args_to_registry {
     
     for (($i = 0); $i -lt 10; $i++) {
         Start-Sleep -Seconds 1
-        if (Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent) {
+        try {
+            Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
             break
+        }
+        catch { 
+            continue
         }
     }
 
