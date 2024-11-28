@@ -56,9 +56,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     Sleep    1s
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
@@ -122,9 +120,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    2  HARD  Test check 456
     Should Be True    ${result}    resources table not updated
@@ -381,9 +377,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
@@ -450,9 +444,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
@@ -520,9 +512,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
@@ -588,9 +578,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready
     
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated

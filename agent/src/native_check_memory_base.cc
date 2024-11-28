@@ -160,7 +160,7 @@ e_status check_memory_base<nb_metric>::compute(
     mem_status.second.compute_status(data, &status);
   }
 
-  *output = sz_status[status];
+  *output = status_label[status];
   data.dump_to_output(output, _output_flags);
 
   for (const auto& metric : metric_definitions) {
