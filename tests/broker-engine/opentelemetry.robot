@@ -34,7 +34,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 #    Ctn Start Engine
 
 #    # Let's wait for the otel server start
-#    Ctn Wait For Otel Server To Be Ready
+#    Ctn Wait For Otel Server To Be Ready    ${start}
 
 #    Sleep    1s
 
@@ -109,7 +109,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Start Engine
 
     # Let's wait for the otel server start
-    Ctn Wait For Otel Server To Be Ready
+    Ctn Wait For Otel Server To Be Ready    ${start}
     Sleep    1
 
 
@@ -179,7 +179,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Ctn Start Engine
 
     # Let's wait for the otel server start
-    Ctn Wait For Otel Server To Be Ready
+    Ctn Wait For Otel Server To Be Ready    ${start}
     Sleep    1
 
 
