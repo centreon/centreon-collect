@@ -38,7 +38,7 @@ class state_helper : public message_helper {
                            const rapidjson::Document& json_doc,
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
-  void resolve();
+  void expand();
   static void diff(const State& old_state,
                    const State& new_state,
                    com::centreon::engine::configuration::DiffState* result);

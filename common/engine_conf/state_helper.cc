@@ -503,7 +503,7 @@ bool state_helper::apply_extended_conf(
  * - host_id on services
  *
  */
-void state_helper::resolve() {
+void state_helper::expand() {
   State* pb_config = static_cast<State*>(mut_obj());
   // In configuration files, host_id are not set to services. So we need to set
   // them later.

@@ -334,15 +334,10 @@ void applier::service::expand_objects(configuration::state& s) {
  *  @param[in,out] s  State being applied.
  */
 void applier::service::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<Service>> expanded;
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
     cvs.emplace(cv);
-
-  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
 
   // Browse all services.
   for (auto& service_cfg : *s.mutable_services()) {
