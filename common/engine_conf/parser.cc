@@ -17,6 +17,7 @@
  *
  */
 #include "parser.hh"
+#include <absl/strings/match.h>
 #include "anomalydetection_helper.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -797,5 +798,31 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
         }
       }
     }
+  }
+}
+
+void parser::build_test_file(const std::filesystem::path& centengine_cfg,
+                             const std::filesystem::path& test_centengine_cfg,
+                             std::error_code& ec) {
+  std::string content;
+  try {
+    content = common::read_file_content(centengine_cfg);
+    auto directory = test_centengine_cfg.parent_path();
+    std::ofstream f(test_centengine_cfg);
+    auto tab{absl::StrSplit(content, '\n', absl::SkipEmpty())};
+    for (auto& line : tab) {
+      if (absl::StartsWith(line, "cfg_file=")) {
+        std::filesystem::path p(line.substr(8));
+        f << "cfg_file=" << (directory / p.filename()).string() << std::endl;
+      } else if (absl::StartsWith(line, "resource_file=")) {
+        std::filesystem::path p(line.substr(13));
+        f << "resource_file=" << (directory / p.filename()).string()
+          << std::endl;
+      } else {
+        f << line << std::endl;
+      }
+    }
+  } catch (std::exception& e) {
+    ec = std::make_error_code(std::errc::io_error);
   }
 }

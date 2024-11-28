@@ -20,6 +20,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
     crypto/base64.cc
+    engine_conf/parser.cc
+    file_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -29,7 +31,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
-    file_test.cc
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
@@ -41,6 +42,9 @@ else()
     ${TESTS_SOURCES})
 endif()
 
+target_include_directories(
+	ut_common
+	PRIVATE ${PROJECT_SOURCE_DIR}/inc)
 target_compile_definitions(
   ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
 
@@ -73,6 +77,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+	    engine_conf
             -L${Boost_LIBRARY_DIR_RELEASE}
             boost_program_options
             re2::re2

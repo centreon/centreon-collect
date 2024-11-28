@@ -21,7 +21,7 @@
 
 using namespace com::centreon::common;
 
-TEST(TestParser, hashDirectory_empty) {
+TEST(TestFile, hashDirectory_empty) {
   system("mkdir -p /tmp/foo ; rm -rf /tmp/foo/*");
   system("mkdir -p /tmp/bar ; rm -rf /tmp/bar/*");
   std::error_code ec1, ec2;
@@ -32,7 +32,7 @@ TEST(TestParser, hashDirectory_empty) {
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
-TEST(TestParser, hashDirectory_simple) {
+TEST(TestFile, hashDirectory_simple) {
   system(
       "mkdir -p /tmp/foo ; rm -rf /tmp/foo/* ; mkdir -p /tmp/foo/a ; mkdir -p "
       "/tmp/foo/b ; mkdir -p /tmp/foo/b/a ; touch /tmp/foo/b/a/foobar");
@@ -47,7 +47,7 @@ TEST(TestParser, hashDirectory_simple) {
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
-TEST(TestParser, hashDirectory_multifiles) {
+TEST(TestFile, hashDirectory_multifiles) {
   system("mkdir -p /tmp/foo ; rm -rf /tmp/foo/*");
   system("mkdir -p /tmp/bar ; rm -rf /tmp/bar/*");
   for (int i = 0; i < 20; i++) {
@@ -66,7 +66,7 @@ TEST(TestParser, hashDirectory_multifiles) {
   ASSERT_EQ(hash_foo, hash_bar);
 }
 
-TEST(TestParser, hashDirectory_realSituation) {
+TEST(TestFile, hashDirectory_realSituation) {
   system("rm -rf /tmp/tests_foo ; cp -rf tests /tmp/tests_foo");
   std::error_code ec1, ec2;
   std::string hash = hash_directory("tests", ec1);
@@ -84,14 +84,14 @@ TEST(TestParser, hashDirectory_realSituation) {
   ASSERT_NE(hash, hash1);
 }
 
-TEST(TestParser, hashDirectory_error) {
+TEST(TestFile, hashDirectory_error) {
   std::error_code ec;
   std::string hash = hash_directory("/tmp/doesnotexist", ec);
   ASSERT_TRUE(ec);
   ASSERT_EQ(hash, "");
 }
 
-TEST(TestParser, with_file_error) {
+TEST(TestFile, with_file_error) {
   std::error_code ec;
   system("echo test > /tmp/my_file");
   std::string hash = hash_directory("/tmp/my_file", ec);
