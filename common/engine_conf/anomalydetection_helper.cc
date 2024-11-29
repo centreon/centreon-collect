@@ -282,4 +282,29 @@ bool anomalydetection_helper::insert_customvariable(std::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
+
+/**
+ * @brief Expand the Anomalydetection object.
+ *
+ * @param s The state object.
+ * @param err An error counter.
+ */
+void anomalydetection_helper::_expand_anomalydetections(
+    configuration::State& s,
+    configuration::error_cnt& err [[maybe_unused]]) {
+  std::list<std::unique_ptr<Service> > expanded;
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all anomalydetections.
+  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *ad_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+}
 }  // namespace com::centreon::engine::configuration

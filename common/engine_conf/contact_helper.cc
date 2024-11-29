@@ -157,4 +157,45 @@ bool contact_helper::insert_customvariable(std::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
+
+/**
+ * @brief Expand the Contact object.
+ *
+ * @param s The configuration::State object.
+ * @param err An error counter.
+ */
+void contact_helper::_expand_contacts(configuration::State& s,
+                                      configuration::error_cnt& err) {
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all contacts.
+  for (auto& c : *s.mutable_contacts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *c.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+
+    // Browse current contact's groups.
+    for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
+      // Find contact group.
+      Contactgroup* found_cg = nullptr;
+      for (auto& cgg : *s.mutable_contactgroups())
+        if (cgg.contactgroup_name() == cg) {
+          found_cg = &cgg;
+          break;
+        }
+      if (found_cg == nullptr) {
+        err.config_errors++;
+        throw msg_fmt(
+            "Could not add contact '{}' to non-existing contact group '{}'",
+            c.contact_name(), cg);
+      }
+      fill_string_group(found_cg->mutable_members(), c.contact_name());
+    }
+  }
+}
 }  // namespace com::centreon::engine::configuration
