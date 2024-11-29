@@ -1136,3 +1136,21 @@ void broker_get_diff_state(
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, diff_state);
 }
+
+/**
+ * @brief Return True if a difference of Engine Configuration is available.
+ * This function cannot be called more than every 5s, or it will return false
+ * this just to avoid too many calls of the broker callback.
+ *
+ * @return A boolean.
+ */
+bool broker_has_diff_state() {
+  static time_t limit = time(nullptr) + 5;
+  time_t now = time(nullptr);
+  bool retval = false;
+  if (now >= limit) {
+    limit = now + 5;
+    neb_make_callbacks(NEBCALLBACK_HAS_DIFF_STATE, &retval);
+  }
+  return retval;
+}

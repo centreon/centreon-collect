@@ -122,7 +122,16 @@ void severity_helper::_init() {
  */
 void severity_helper::diff(const Container& old_list,
                            const Container& new_list,
+                           const std::shared_ptr<spdlog::logger>& logger,
                            DiffSeverity* result) {
+  if (logger->level() <= spdlog::level::trace) {
+    logger->trace("severities::diff previous severities:");
+    for (const auto& item : old_list)
+      logger->trace(" * {}", item.DebugString());
+    logger->trace("severities::diff new severities:");
+    for (const auto& item : new_list)
+      logger->trace(" * {}", item.DebugString());
+  }
   result->Clear();
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
                       std::pair<uint32_t, const Severity*>>
@@ -159,6 +168,7 @@ void severity_helper::diff(const Container& old_list,
     }
     ++i;
   }
+  logger->debug("severities::diff result: {}", result->DebugString());
 }
 
 }  // namespace com::centreon::engine::configuration

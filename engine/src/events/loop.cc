@@ -167,7 +167,7 @@ void loop::_dispatching() {
     }
 
     // Start reload configuration.
-    if (_need_reload) {
+    if (_need_reload || broker_has_diff_state()) {
       engine_logger(log_info_message, most) << "Need reload.";
       process_logger->info("Need reload.");
       if (!reloading) {

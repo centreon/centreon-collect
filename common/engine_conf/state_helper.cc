@@ -529,8 +529,9 @@ void state_helper::expand() {
  */
 void state_helper::diff(const State& old_state,
                         const State& new_state,
+                        const std::shared_ptr<spdlog::logger>& logger,
                         DiffState* result) {
-  severity_helper::diff(old_state.severities(), new_state.severities(),
+  severity_helper::diff(old_state.severities(), new_state.severities(), logger,
                         result->mutable_severities());
 }
 }  // namespace com::centreon::engine::configuration

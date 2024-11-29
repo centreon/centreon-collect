@@ -39,6 +39,7 @@ class severity_helper : public message_helper {
   using Container = ::google::protobuf::RepeatedPtrField<Severity>;
   static void diff(const Container& old_list,
                    const Container& new_list,
+                   const std::shared_ptr<spdlog::logger>& logger,
                    DiffSeverity* result);
 };
 }  // namespace com::centreon::engine::configuration

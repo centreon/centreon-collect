@@ -826,3 +826,13 @@ void parser::build_test_file(const std::filesystem::path& centengine_cfg,
     ec = std::make_error_code(std::errc::io_error);
   }
 }
+
+/**
+ * @brief Reinitialize the parser, so it can be used again.
+ */
+void parser::clear() {
+  for (auto& tmp : _pb_templates) {
+    tmp.clear();
+  }
+  _pb_helper.clear();
+}

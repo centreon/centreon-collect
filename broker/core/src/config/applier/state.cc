@@ -563,3 +563,12 @@ std::unique_ptr<com::centreon::engine::configuration::DiffState>
 state::diff_state() {
   return std::move(_diff_state);
 }
+
+/**
+ * @brief Return True if a difference of engine configuration is available.
+ *
+ * @return A boolean.
+ */
+bool state::has_diff_state() const {
+  return _diff_state != nullptr;
+}

@@ -160,6 +160,7 @@ class state {
       std::unique_ptr<com::centreon::engine::configuration::DiffState>
           diff_state);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  bool has_diff_state() const;
 };
 }  // namespace com::centreon::broker::config::applier
 

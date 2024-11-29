@@ -99,6 +99,7 @@ class parser {
   static void build_test_file(const std::filesystem::path& centengine_cfg,
                               const std::filesystem::path& test_centengine_cfg,
                               std::error_code& ec);
+  void clear();
 };
 }  // namespace com::centreon::engine::configuration
 

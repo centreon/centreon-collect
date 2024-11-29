@@ -1760,14 +1760,31 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
   engine::configuration::state_helper new_state_hlp(&new_state);
   engine::configuration::parser parser;
   engine::configuration::error_cnt err;
-  parser.parse(poller_conf_dir, &old_state, err);
-  parser.parse(new_conf_dir, &new_state, err);
+  engine::configuration::parser::build_test_file(
+      poller_conf_dir / "centengine.cfg", poller_conf_dir / "centengine.test",
+      ec);
+  engine::configuration::parser::build_test_file(
+      new_conf_dir / "centengine.cfg", new_conf_dir / "centengine.test", ec);
+  try {
+    parser.parse(poller_conf_dir / "centengine.test", &old_state, err);
+  } catch (const std::exception& e) {
+    _logger->info("Unable to parse the configuration '{}': {}",
+                  (poller_conf_dir / "centengine.test").string(), e.what());
+  }
 
-  old_state_hlp.resolve();
-  new_state_hlp.resolve();
+  parser.clear();
+  try {
+    parser.parse(new_conf_dir / "centengine.test", &new_state, err);
+  } catch (const std::exception& e) {
+    _logger->info("Unable to parse the configuration '{}': {}",
+                  (poller_conf_dir / "centengine.test").string(), e.what());
+  }
+
+  old_state_hlp.expand();
+  new_state_hlp.expand();
 
   auto diff_state = std::make_unique<engine::configuration::DiffState>();
-  engine::configuration::state_helper::diff(old_state, new_state,
+  engine::configuration::state_helper::diff(old_state, new_state, _logger,
                                             diff_state.get());
   return diff_state.release();
 }

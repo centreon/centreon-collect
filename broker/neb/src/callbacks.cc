@@ -100,6 +100,7 @@ static struct {
     {NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &neb::callback_severity},
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
     {NEBCALLBACK_OTL_METRICS, &neb::callback_otl_metrics},
+    {NEBCALLBACK_HAS_DIFF_STATE, &neb::callback_has_diff_state},
     {NEBCALLBACK_GET_DIFF_STATE, &neb::callback_get_diff_state}};
 
 // List of Engine-specific callbacks.
@@ -3791,6 +3792,23 @@ class otl_protobuf
  */
 int neb::callback_otl_metrics(int, void* data) {
   gl_publisher.write(std::make_shared<neb::otl_detail::otl_protobuf>(data));
+  return 0;
+}
+
+/**
+ * @brief Function telling if a new engine configuration is available.
+ *
+ * @param int The callback type.
+ * @param data A pointer to a boolean to store the answer.
+ *
+ * @return 0
+ */
+int neb::callback_has_diff_state(int, void* data) {
+  bool* result = static_cast<bool*>(data);
+  if (config::applier::state::instance().has_diff_state())
+    *result = true;
+  else
+    *result = false;
   return 0;
 }
 
