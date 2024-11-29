@@ -911,6 +911,69 @@ void applier::state::_apply(difference<std::set<ConfigurationType>> const& diff,
  *  @param[in] cur_cfg Current configuration set.
  *  @param[in] new_cfg New configuration set.
  */
+template <typename DiffObj, typename ApplierType>
+void applier::state::_apply(const DiffObj* diff, error_cnt& err) {
+  // Applier.
+  ApplierType aplyr;
+
+  // Modify objects.
+  for (auto& p : diff->modified()) {
+    if (!verify_config)
+      aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.severity());
+    else {
+      try {
+        aplyr.modify_object(pb_config.mutable_severities(p.idx()),
+                            p.severity());
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        events_logger->info(e.what());
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto it = diff->deleted().rbegin(); it != diff->deleted().rend(); ++it) {
+    if (!verify_config)
+      aplyr.remove_object(*it);
+    else {
+      try {
+        aplyr.remove_object(*it);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        events_logger->info(e.what());
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff->added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        events_logger->info(e.what());
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Apply protobuf configuration of a specific object type.
+ *
+ *  This method will perform a diff on cur_cfg and new_cfg to create the
+ *  three element sets : added, modified and removed. The type applier
+ *  will then be called to:
+ *  * 1) modify existing objects (the modification must be done in first since
+ * remove and create changes indices).
+ *  * 2) remove old objects
+ *  * 3) create new objects
+ *
+ *  @param[in] cur_cfg Current configuration set.
+ *  @param[in] new_cfg New configuration set.
+ */
 template <typename ConfigurationType, typename Key, typename ApplierType>
 void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
                             error_cnt& err) {
@@ -2175,21 +2238,16 @@ void applier::state::_processing(configuration::State& new_cfg,
                       &configuration::Command::command_name);
 
   // Build difference for severities.
-  pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
-      diff_severities;
+  pb_difference<Severity, std::pair<uint64_t, uint32_t>> diff_severities;
 
   diff_severities.parse(
       *pb_config.mutable_severities(), new_cfg.severities(),
-      [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
+      [](const Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
-  const DiffSeverity* diff_severity = nullptr;
+  const DiffSeverity* pb_diff_severities = nullptr;
   if (diff_state) {
-    diff_severity = &diff_state->severities();
-
-    assert(diff_severity->added_size() == diff_severities.added().size());
-    assert(diff_severity->deleted_size() == diff_severities.deleted().size());
-    assert(diff_severity->modified_size() == diff_severities.modified().size());
+    pb_diff_severities = &diff_state->severities();
   }
 
   // Build difference for tags.
@@ -2341,8 +2399,11 @@ void applier::state::_processing(configuration::State& new_cfg,
         pb_config.contactgroups(), err);
 
     // Apply severities.
-    _apply<configuration::Severity, std::pair<uint64_t, uint32_t>,
-           applier::severity>(diff_severities, err);
+    if (diff_state)
+      _apply<DiffSeverity, applier::severity>(pb_diff_severities, err);
+    else
+      _apply<Severity, std::pair<uint64_t, uint32_t>, applier::severity>(
+          diff_severities, err);
 
     // Apply tags.
     _apply<configuration::Tag, std::pair<uint64_t, uint32_t>, applier::tag>(
