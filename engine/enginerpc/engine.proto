@@ -24,6 +24,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 import "process_stat.proto";
+import "state.proto";
 
 package com.centreon.engine;
 
@@ -43,7 +44,8 @@ service Engine {
   rpc GetCommand(NameIdentifier) returns (EngineCommand) {}
   rpc GetConnector(NameIdentifier) returns (EngineConnector) {}
   rpc GetHostEscalation(NameIdentifier) returns (EngineHostEscalation) {}
-  rpc GetServiceEscalation(PairNamesIdentifier) returns (EngineServiceEscalation) {}
+  rpc GetServiceEscalation(PairNamesIdentifier)
+      returns (EngineServiceEscalation) {}
   rpc GetHostsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetContactsCount(google.protobuf.Empty) returns (GenericValue) {}
   rpc GetServicesCount(google.protobuf.Empty) returns (GenericValue) {}
@@ -117,8 +119,8 @@ service Engine {
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc EnableHostAndChildNotifications(NameOrIdIdentifier) returns (CommandSuccess) {
-  }
+  rpc EnableHostAndChildNotifications(NameOrIdIdentifier)
+      returns (CommandSuccess) {}
   rpc DisableHostAndChildNotifications(NameOrIdIdentifier)
       returns (CommandSuccess) {}
   rpc DisableHostNotifications(NameOrIdIdentifier) returns (CommandSuccess) {}
@@ -157,6 +159,8 @@ service Engine {
    * @return nothing.
    */
   rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
+
+  rpc DumpCurrentConfig(google.protobuf.Empty) returns (configuration.State) {}
 }
 
 message GenericString {
@@ -421,15 +425,15 @@ message EngineHost {
   double y_3d = 60;
   double z_3d = 61;
   int32 should_be_drawn = 62;
-  enum AckType { 
-    NONE = 0; 
-    NORMAL = 1; 
+  enum AckType {
+    NONE = 0;
+    NORMAL = 1;
     STICKY = 2;
   }
   AckType acknowledgement = 63;
   enum CheckType {
     CHECK_ACTIVE = 0;
-    CHECK_PASSIVE = 1; 
+    CHECK_PASSIVE = 1;
   }
   CheckType check_type = 64;
   State last_state = 65;
@@ -566,22 +570,22 @@ message EngineService {
   repeated string contactgroups = 14;
   repeated string contacts = 15;
   uint32 notification_interval = 16;
-  uint32 first_notification_delay = 17 ;
-  uint32 recovery_notification_delay = 18 ;
-  bool notify_on_unknown = 19 ;
-  bool notify_on_warning = 20 ;
-  bool notify_on_critical = 21 ;
-  bool notify_on_ok = 22 ;
-  bool notify_on_flappingstart = 23 ;
-  bool notify_on_flappingstop = 24 ;
-  bool notify_on_flappingdisabled = 25 ;
-  bool notify_on_downtime = 26 ;
-  bool stalk_on_ok = 27 ;
-  bool stalk_on_unknown = 28 ;
-  bool stalk_on_warning = 29 ;
-  bool stalk_on_critical = 30 ;
-  bool is_volatile = 31 ;
-  string notification_period = 32 ;
+  uint32 first_notification_delay = 17;
+  uint32 recovery_notification_delay = 18;
+  bool notify_on_unknown = 19;
+  bool notify_on_warning = 20;
+  bool notify_on_critical = 21;
+  bool notify_on_ok = 22;
+  bool notify_on_flappingstart = 23;
+  bool notify_on_flappingstop = 24;
+  bool notify_on_flappingdisabled = 25;
+  bool notify_on_downtime = 26;
+  bool stalk_on_ok = 27;
+  bool stalk_on_unknown = 28;
+  bool stalk_on_warning = 29;
+  bool stalk_on_critical = 30;
+  bool is_volatile = 31;
+  string notification_period = 32;
   bool flap_detection_enabled = 33;
   double low_flap_threshold = 34;
   double high_flap_threshold = 35;
@@ -604,16 +608,16 @@ message EngineService {
   string action_url = 52;
   string icon_image = 53;
   string icon_image_alt = 54;
-  enum AckType { 
-    NONE = 0; 
-    NORMAL = 1; 
+  enum AckType {
+    NONE = 0;
+    NORMAL = 1;
     STICKY = 2;
   }
   AckType acknowledgement = 55;
   bool host_problem_at_last_check = 56;
   enum CheckType {
     CHECK_ACTIVE = 0;
-    CHECK_PASSIVE = 1; 
+    CHECK_PASSIVE = 1;
   }
   CheckType check_type = 57;
   State last_state = 58;

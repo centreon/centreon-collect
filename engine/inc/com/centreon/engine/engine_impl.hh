@@ -287,6 +287,10 @@ class engine_impl final : public Engine::Service {
   grpc::Status SendBench(grpc::ServerContext* context,
                          const com::centreon::engine::BenchParam* request,
                          google::protobuf::Empty* response) override;
+
+  grpc::Status DumpCurrentConfig(grpc::ServerContext* context,
+                                 const google::protobuf::Empty* request,
+                                 configuration::State* response) override;
 };
 
 }  // namespace com::centreon::engine

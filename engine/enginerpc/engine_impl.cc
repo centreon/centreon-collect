@@ -4286,3 +4286,20 @@ grpc::Status engine_impl::SendBench(
   broker_bench(request->id(), client_ts);
   return grpc::Status::OK;
 }
+
+/**
+ * @brief Dump the current Engine configuration.
+ *
+ * @param context gRPC context.
+ * @param request Nothing.
+ * @param response The output current configuration as a configuration::State.
+ *
+ * @return Status::OK
+ */
+grpc::Status engine_impl::DumpCurrentConfig(
+    grpc::ServerContext* context [[maybe_unused]],
+    const google::protobuf::Empty* request [[maybe_unused]],
+    configuration::State* response) {
+  response->CopyFrom(pb_config);
+  return grpc::Status::OK;
+}
