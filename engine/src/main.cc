@@ -491,8 +491,14 @@ int main(int argc, char* argv[]) {
 #else
         // Parse configuration.
         configuration::error_cnt err;
+
+        std::filesystem::path config_path =
+            std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+        std::ifstream f(config_path);
         configuration::State pb_config;
-        {
+        if (f)
+          pb_config.ParseFromIstream(&f);
+        else {
           configuration::parser p;
           p.parse(config_file, &pb_config, err);
         }
