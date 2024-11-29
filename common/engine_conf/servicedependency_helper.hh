@@ -36,6 +36,16 @@ class servicedependency_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+  static void _expand_servicedependencies(State& s, error_cnt& err);
+
+ private:
+  static void _expand_services(
+      const ::google::protobuf::RepeatedPtrField<std::string>& hst,
+      const ::google::protobuf::RepeatedPtrField<std::string>& hg,
+      const ::google::protobuf::RepeatedPtrField<std::string>& svc,
+      const ::google::protobuf::RepeatedPtrField<std::string>& sg,
+      State& s,
+      absl::flat_hash_set<std::pair<std::string, std::string>>& expanded);
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -41,6 +41,8 @@ class host_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+  static void _expand_hosts(configuration::State& s,
+                            configuration::error_cnt& err);
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -162,4 +162,80 @@ void hostdependency_helper::_init() {
   obj->set_inherits_parent(false);
   obj->set_notification_failure_options(action_hd_none);
 }
+
+/**
+ * @brief Expand the hostdependencies.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void hostdependency_helper::_expand_hostdependencies(State& s,
+                                                     error_cnt& err
+                                                     [[maybe_unused]]) {
+  std::list<std::unique_ptr<configuration::Hostdependency> > lst;
+
+  for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
+    auto* hd_conf = s.mutable_hostdependencies(i);
+    if (hd_conf->hosts().data().size() > 1 ||
+        !hd_conf->hostgroups().data().empty() ||
+        hd_conf->dependent_hosts().data().size() > 1 ||
+        !hd_conf->dependent_hostgroups().data().empty() ||
+        hd_conf->dependency_type() == unknown) {
+      for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
+        auto found =
+            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
+                         [&hg_name](const configuration::Hostgroup& hg) {
+                           return hg.hostgroup_name() == hg_name;
+                         });
+        if (found != s.hostgroups().end()) {
+          auto& hg_conf = *found;
+          for (auto& h : hg_conf.members().data())
+            fill_string_group(hd_conf->mutable_dependent_hosts(), h);
+        }
+      }
+      for (auto& hg_name : hd_conf->hostgroups().data()) {
+        auto found =
+            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
+                         [&hg_name](const configuration::Hostgroup& hg) {
+                           return hg.hostgroup_name() == hg_name;
+                         });
+        if (found != s.hostgroups().end()) {
+          auto& hg_conf = *found;
+          for (auto& h : hg_conf.members().data())
+            fill_string_group(hd_conf->mutable_hosts(), h);
+        }
+      }
+      for (auto& h : hd_conf->hosts().data()) {
+        for (auto& h_dep : hd_conf->dependent_hosts().data()) {
+          for (int ii = 1; ii <= 2; ii++) {
+            if (hd_conf->dependency_type() == DependencyKind::unknown ||
+                static_cast<int32_t>(hd_conf->dependency_type()) == ii) {
+              lst.emplace_back(std::make_unique<Hostdependency>());
+              auto& new_hd = lst.back();
+              new_hd->set_dependency_period(hd_conf->dependency_period());
+              new_hd->set_inherits_parent(hd_conf->inherits_parent());
+              fill_string_group(new_hd->mutable_hosts(), h);
+              fill_string_group(new_hd->mutable_dependent_hosts(), h_dep);
+              if (ii == 2) {
+                new_hd->set_dependency_type(
+                    DependencyKind::execution_dependency);
+                new_hd->set_execution_failure_options(
+                    hd_conf->execution_failure_options());
+              } else {
+                new_hd->set_dependency_type(
+                    DependencyKind::notification_dependency);
+                new_hd->set_notification_failure_options(
+                    hd_conf->notification_failure_options());
+              }
+            }
+          }
+        }
+      }
+      s.mutable_hostdependencies()->DeleteSubrange(i, 1);
+    }
+  }
+  for (auto& hd : lst)
+    s.mutable_hostdependencies()->AddAllocated(hd.release());
+}
+
 }  // namespace com::centreon::engine::configuration
