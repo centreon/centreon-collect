@@ -2568,6 +2568,16 @@ void applier::state::_processing(configuration::State& new_cfg,
     _processing_state = state_error;
     throw;
   }
+  std::filesystem::path config_path =
+      std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+  std::ofstream f(config_path);
+  if (f.is_open()) {
+    pb_config.SerializeToOstream(&f);
+    f.close();
+  } else {
+    config_logger->error("Could not write configuration to file '{}'",
+                         config_path.string());
+  }
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
