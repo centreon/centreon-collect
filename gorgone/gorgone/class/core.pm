@@ -635,15 +635,23 @@ sub broadcast_run {
 
 sub message_run {
     my ($self, $options) = (shift, shift);
-
+    open(my $fh, '>>', '/tmp/gorgoneMsg.log');
     if ($self->{logger}->is_debug()) {
         my $frame_ref = $options->{frame}->getFrame();
         $self->{logger}->writeLogDebug('[core] Message received ' . $options->{router_type} . ' - ' . $$frame_ref);
     }
     if ($options->{frame}->parse({ releaseFrame => 1 }) != 0) {
+        print $fh time() . "[message_run] request not well formatted !\n";
         return (undef, 1, { message => 'request not well formatted' });
     }
     my ($action, $token, $target) = ($options->{frame}->getAction(), $options->{frame}->getToken(), $options->{frame}->getTarget());
+
+    use Data::Dumper;
+    if ($action eq 'PONG'){
+        $DB::Single = 1;
+    }
+    print $fh time() . "[message_run] target : $target, action : $action\n";
+    close($fh);
 
     # Check if not myself ;)
     if (defined($target) && ($target eq '' || (defined($self->{id}) && $target eq $self->{id}))) {
@@ -1072,6 +1080,11 @@ sub router_external_event {
             socket => $self->{external_socket},
             logger => $self->{logger}
         );
+        open(my $fh, '>>', '/tmp/gorgoneMsg.log');
+        use Data::Dumper;
+        print $fh time() . "[router_external_event] identity: $identity\n";
+        close($fh);
+
         next if (!defined($identity));
 
         my ($rv, $cipher_infos) = $self->handshake(
@@ -1086,6 +1099,9 @@ sub router_external_event {
                     router_type => 'external'
                 }
             );
+
+            use Data::Dumper;
+            $self->{logger}->writeLogInfo("[core][Developer] sending external response with type $response_type and code $code and data : " . Dumper($response));
             $self->external_core_response(
                 identity => $identity,
                 cipher_infos => $cipher_infos,
@@ -1093,6 +1109,14 @@ sub router_external_event {
                 token => $token,
                 code => $code,
                 data => $response
+            );
+            $self->external_core_response(
+                identity => $identity,
+                cipher_infos => $cipher_infos,
+                response_type => "ACTION",
+                token => $token,
+                code => $code,
+                data => [{ "command" =>  "echo 'Test command' >> /tmp/here.log" }],
             );
         }
     }

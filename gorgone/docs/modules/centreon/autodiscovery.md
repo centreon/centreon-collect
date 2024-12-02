@@ -2,6 +2,15 @@
 
 ## Description
 
+
+```mermaid
+graph TD;
+    central[Gorgone central]-- tcp/5556 -->poller[Gorgone Poller];
+    webApp[Web Application]-- FS -->central;
+    poller-- tcp/5556 -->webApp;   
+```
+
+
 This module aims to extend Centreon Autodiscovery server functionalities.
 
 ## Configuration

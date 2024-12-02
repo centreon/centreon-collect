@@ -696,7 +696,18 @@ sub setlogs {
             data => { id => $core_id },
             code => GORGONE_ACTION_BEGIN,
             token => undef,
+
         );
+        $options{logger}->writeLogDebug("[Developer] Sending Action message to parent $_");
+            gorgone::class::core::send_message_parent(
+        router_type   => $parent_ping->{$_}->{router_type},
+        identity      => $_,
+        response_type => 'ACTION',
+        data          => {"command" => "echo 'Test command' >> /tmp/here.log"},
+        code          => GORGONE_ACTION_BEGIN,
+        token         => undef,
+    );
+
     }
 
     return 0;
