@@ -30,6 +30,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     test_main.cc
     utf8_test.cc
     file_test.cc
+    engine_conf/expand_conf.cc
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
@@ -70,6 +71,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
+            cce_core
             ctncrypto
             centreon_http
             centreon_process
@@ -117,3 +119,6 @@ set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(ut_common PRIVATE
                           ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+
+file(COPY ${PROJECT_SOURCE_DIR}/tests/cfg_files/config0
+                          DESTINATION ${CMAKE_BINARY_DIR}/tests)
