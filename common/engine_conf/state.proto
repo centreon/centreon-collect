@@ -206,10 +206,18 @@ message State {
   repeated Severity severities = 144;
   repeated Tag tags = 145;
   map<string, string> user = 146;
+
+  /* Configuration version: it is initialized by Broker when it reads it for
+   * the first time. Then this field is used to identify the configuration. */
+  string conf_version = 147;
 }
 
 message DiffState {
+  /* Modifications concerning severities */
   DiffSeverity severities = 1;
+
+  /* In case of all the configuration should be reloaded */
+  State state = 2;
 }
 
 message CustomVariable {

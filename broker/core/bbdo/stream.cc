@@ -20,6 +20,7 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
+#include <system_error>
 
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
@@ -1093,38 +1094,30 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     case pb_engine_configuration::static_type(): {
       const EngineConfiguration& ec =
           std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+      /* Here, we are Broker and peer is Engine. */
       if (config::applier::state::instance().peer_type() == common::BROKER &&
           _peer_type == common::ENGINE) {
         SPDLOG_LOGGER_INFO(
             _logger,
             "BBDO: received engine configuration from Engine peer '{}'",
             ec.broker_name());
-        bool match = check_poller_configuration(ec.poller_id(),
-                                                ec.engine_config_version());
+
+        /* We build the diff state to send to the engine from its poller ID
+         * and its current version. */
+        com::centreon::engine::configuration::DiffState* diff_state =
+            build_diff_state(ec.poller_id(), ec.engine_config_version());
         auto engine_conf = std::make_shared<pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
         obj.set_poller_name(config::applier::state::instance().poller_name());
         obj.set_broker_name(config::applier::state::instance().broker_name());
         obj.set_peer_type(common::BROKER);
-        if (match) {
-          SPDLOG_LOGGER_INFO(
-              _logger, "BBDO: engine configuration for '{}' is up to date",
-              ec.broker_name());
-          obj.set_need_update(false);
-        } else {
-          SPDLOG_LOGGER_INFO(_logger,
-                             "BBDO: engine configuration for '{}' is "
-                             "outdated",
-                             ec.broker_name());
-          /* engine_conf has a new version, it is sent to engine. And engine
-           * will send its configuration to broker. */
-          obj.set_need_update(true);
+        /* engine_conf has a new version, it is sent to engine. And engine
+         * will send its configuration to broker. */
+        obj.set_need_update(true);
 
-          com::centreon::engine::configuration::DiffState* diff_state =
-              build_diff_state(ec.poller_id(), ec.engine_config_version());
-          obj.set_allocated_diff_state(diff_state);
-        }
+        obj.set_allocated_diff_state(diff_state);
+        //        }
         _write(engine_conf);
       }
     } break;
@@ -1659,60 +1652,71 @@ void stream::send_event_acknowledgement() {
 }
 
 /**
- * @brief Check if the poller configuration is up to date.
+ * @brief Load the configuration given by cfg files in the dir directory and
+ * fill the given state.
  *
- * @param poller_id
- * @param expected_version
- *
- * @return
+ * @param state The state to fill.
+ * @param dir The directory with the configuration.
  */
-bool stream::check_poller_configuration(uint64_t poller_id,
-                                        const std::string& expected_version) {
+void stream::_load_state(engine::configuration::State* const state,
+                         const std::filesystem::path& dir,
+                         const std::shared_ptr<spdlog::logger>& logger) {
+  engine::configuration::state_helper new_state_hlp(state);
+  engine::configuration::parser parser;
+  engine::configuration::error_cnt err;
   std::error_code ec;
-  const std::filesystem::path& pollers_conf_dir =
-      config::applier::state::instance().pollers_config_dir();
-  if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
-    if (ec)
-      _logger->error("Cannot access directory '{}': {}",
-                     pollers_conf_dir.string(), ec.message());
-    std::filesystem::create_directories(pollers_conf_dir, ec);
-    if (ec) {
-      _logger->error("Cannot create directory '{}': {}",
-                     pollers_conf_dir.string(), ec.message());
-      return false;
-    }
+  engine::configuration::parser::build_test_file(dir / "centengine.cfg",
+                                                 dir / "centengine.test", ec);
+  try {
+    parser.parse(dir / "centengine.test", state, err);
+  } catch (const std::exception& e) {
+    logger->info("Unable to parse the configuration '{}': {}",
+                 (dir / "centengine.test").string(), e.what());
   }
-  auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
-  if (!std::filesystem::is_directory(poller_dir, ec)) {
-    if (ec)
-      _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
-                     ec.message());
-    std::filesystem::create_directories(poller_dir, ec);
-    if (ec)
-      _logger->error("Cannot create directory '{}': {}", poller_dir.string(),
-                     ec.message());
-    return false;
-  }
-  std::string current = common::hash_directory(poller_dir, ec);
-  if (ec) {
-    _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
-                   ec.message());
-    return false;
-  }
-  config::applier::state::instance().set_engine_configuration(poller_id,
-                                                              current);
-  return current == expected_version;
+  new_state_hlp.expand();
 }
 
+/**
+ * @brief Build the diff state between the old and the new configuration of a
+ * poller.
+ *
+ * @param poller_id The poller ID.
+ * @param expected_version The version sent by the poller.
+ *
+ * @return A DiffState.
+ */
 com::centreon::engine::configuration::DiffState* stream::build_diff_state(
     uint64_t poller_id,
     const std::string& expected_version) {
   std::error_code ec;
-  /* The last configuration known by broker for the poller */
-  const std::filesystem::path& poller_conf_dir =
+  /* The last configuration known by broker and sent to the poller */
+  const std::filesystem::path& poller_conf =
       config::applier::state::instance().pollers_config_dir() /
-      fmt::to_string(poller_id);
+      fmt::format("{}.proto", poller_id);
 
+  std::ifstream f(poller_conf);
+  auto old_state = std::make_unique<engine::configuration::State>();
+  if (f) {
+    old_state->ParseFromIstream(&f);
+    f.close();
+  } else {
+    _logger->error("Cannot open old Engine configuration '{}': {}",
+                   poller_conf.string(), strerror(errno));
+  }
+
+  bool should_send_full_config;
+  /* We compare the versions, the expected one on one side and the one of
+   * old_state on the other side. */
+  if (old_state->conf_version() == expected_version) {
+    _logger->info("Configurations are synchronized for poller {}", poller_id);
+    should_send_full_config = true;
+  } else {
+    _logger->info("Configurations are not synchronized for poller {}",
+                  poller_id);
+    should_send_full_config = false;
+  }
+
+  /* We get the last configuration from the php cache. */
   const std::filesystem::path& new_conf_dir =
       config::applier::state::instance().pollers_config_dir() / "new_conf";
 
@@ -1744,47 +1748,53 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
                    cache_dir.string(), new_conf_dir.string(), ec.message());
   }
 
+  /* We get the hash of the last configuration. */
   std::string hash = common::hash_directory(new_conf_dir, ec);
   if (ec) {
     _logger->error("Cannot access directory '{}': {}", new_conf_dir.string(),
                    ec.message());
   }
-  if (hash != expected_version) {
-    _logger->error(
-        "The configuration directory '{}' has a different version than "
-        "expected: {} != {}",
-        new_conf_dir.string(), hash, expected_version);
-  }
-  engine::configuration::State old_state, new_state;
-  engine::configuration::state_helper old_state_hlp(&old_state);
-  engine::configuration::state_helper new_state_hlp(&new_state);
-  engine::configuration::parser parser;
-  engine::configuration::error_cnt err;
-  engine::configuration::parser::build_test_file(
-      poller_conf_dir / "centengine.cfg", poller_conf_dir / "centengine.test",
-      ec);
-  engine::configuration::parser::build_test_file(
-      new_conf_dir / "centengine.cfg", new_conf_dir / "centengine.test", ec);
-  try {
-    parser.parse(poller_conf_dir / "centengine.test", &old_state, err);
-  } catch (const std::exception& e) {
-    _logger->info("Unable to parse the configuration '{}': {}",
-                  (poller_conf_dir / "centengine.test").string(), e.what());
-  }
 
-  parser.clear();
-  try {
-    parser.parse(new_conf_dir / "centengine.test", &new_state, err);
-  } catch (const std::exception& e) {
-    _logger->info("Unable to parse the configuration '{}': {}",
-                  (poller_conf_dir / "centengine.test").string(), e.what());
+  bool no_change;
+  /* Did the configuration change? */
+  if (hash == old_state->conf_version()) {
+    _logger->info("No update of the configuration from users for poller {}",
+                  poller_id);
+    no_change = true;
+  } else {
+    _logger->info("New configuration available for poller {}", poller_id);
+    no_change = false;
   }
-
-  old_state_hlp.expand();
-  new_state_hlp.expand();
 
   auto diff_state = std::make_unique<engine::configuration::DiffState>();
-  engine::configuration::state_helper::diff(old_state, new_state, _logger,
-                                            diff_state.get());
+  if (should_send_full_config) {
+    /* Here Broker and Engine are not synchronized, we lost the last version
+     * running on Engine. So we have to send it fully. */
+
+    if (no_change) {
+      /* No update between the last sent to Engine known by Broker and the new
+       * one on php side. */
+      diff_state->set_allocated_state(old_state.release());
+    } else {
+      /* There are changes, so we use the last available configuration */
+      _load_state(diff_state->mutable_state(), new_conf_dir, _logger);
+    }
+  } else {
+    if (no_change) {
+    } else {
+      engine::configuration::State new_state;
+      /* The new configuration is read. */
+      _load_state(&new_state, new_conf_dir, _logger);
+      /* Then it is saved as protobuf file */
+      std::ofstream f(new_conf_dir / fmt::format("{}.proto", poller_id));
+      if (f) {
+        new_state.SerializeToOstream(&f);
+        f.close();
+      }
+      /* We can now build the diff */
+      engine::configuration::state_helper::diff(*old_state, new_state, _logger,
+                                                diff_state.get());
+    }
+  }
   return diff_state.release();
 }

@@ -187,6 +187,9 @@ class stream : public io::stream {
                         const char* buffer,
                         uint32_t size);
   io::raw* serialize(const io::data& e);
+  static void _load_state(engine::configuration::State* const state,
+                          const std::filesystem::path& dir,
+                          const std::shared_ptr<spdlog::logger>& logger);
 
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
@@ -211,8 +214,6 @@ class stream : public io::stream {
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
-  bool check_poller_configuration(uint64_t poller_id,
-                                  const std::string& expected_version);
   com::centreon::engine::configuration::DiffState* build_diff_state(
       uint64_t poller_id,
       const std::string& expected_version);
