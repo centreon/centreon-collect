@@ -2404,7 +2404,8 @@ int neb::callback_pb_process(int callback_type, void* data) {
   (void)callback_type;
 
   // Input variables.
-  nebstruct_process_data const* process_data;
+  const nebstruct_process_data* process_data =
+      static_cast<nebstruct_process_data*>(data);
   static time_t start_time;
 
   std::shared_ptr<pb_instance> inst_obj(std::make_shared<pb_instance>());
@@ -2416,20 +2417,10 @@ int neb::callback_pb_process(int callback_type, void* data) {
   /* Here we are Engine. The idea is to know if broker is able to handle the
    * evoluated negotiation. The goal is to send the hash of the configuration
    * directory to the broker. */
-  auto& engine_config = config::applier::state::instance().engine_config_dir();
-  std::error_code ec;
-  if (!engine_config.empty() && std::filesystem::exists(engine_config, ec)) {
-    inst.set_engine_config_version(common::hash_directory(
-        config::applier::state::instance().engine_config_dir(), ec));
-  }
-  if (ec) {
-    SPDLOG_LOGGER_ERROR(
-        neb_logger, "callbacks: error while hashing engine configuration: {}",
-        ec.message());
-  }
+  inst.set_engine_config_version(
+      std::string(process_data->engine_config_version));
 
   // Check process event type.
-  process_data = static_cast<nebstruct_process_data*>(data);
   if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
     SPDLOG_LOGGER_DEBUG(neb_logger,
                         "callbacks: generating process start event");

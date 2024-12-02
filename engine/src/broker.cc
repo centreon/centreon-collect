@@ -844,6 +844,7 @@ void broker_program_state(int type, int flags) {
   nebstruct_process_data ds;
   ds.type = type;
   ds.flags = flags;
+  ds.engine_config_version = pb_config.conf_version();
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);
