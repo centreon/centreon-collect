@@ -512,8 +512,8 @@ bool state_helper::apply_extended_conf(
  * @param pb_config The protobuf configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void state_helper::expand_conf(configuration::State& pb_config,
-                               configuration::error_cnt& err) {
+void state_helper::expand_conf(configuration::error_cnt& err) {
+  configuration::State& pb_config = *static_cast<State*>(mut_obj());
   // Expand contacts
   contact_helper::_expand_contacts(pb_config, err);
   // Expand contactgroups
