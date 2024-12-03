@@ -363,13 +363,14 @@ Ctn Dump Ba On Error
 
 Ctn Process Service Result Hard
     [Arguments]    ${host}    ${svc}    ${state}    ${output}
-    Repeat Keyword
-    ...    3 times
-    ...    Ctn Process Service Check Result
-    ...    ${host}
-    ...    ${svc}
-    ...    ${state}
-    ...    ${output}
+    FOR    ${idx}    IN RANGE    3
+        Ctn Process Service Check Result
+        ...    ${host}
+        ...    ${svc}
+        ...    ${state}
+        ...    ${output}
+        Sleep    1s
+    END
 
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1
