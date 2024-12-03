@@ -42,8 +42,12 @@ else()
     ${TESTS_SOURCES})
 endif()
 
+set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")                   
+
 target_compile_definitions(
-  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
+  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
+  -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
+  )
 
 set_target_properties(
   ut_common
@@ -119,6 +123,5 @@ set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(ut_common PRIVATE
                           ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+                          
 
-file(COPY ${PROJECT_SOURCE_DIR}/tests/cfg_files/config0
-                          DESTINATION ${CMAKE_BINARY_DIR}/tests)
