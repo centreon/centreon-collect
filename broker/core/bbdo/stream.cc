@@ -1502,8 +1502,12 @@ void stream::statistics(nlohmann::json& tree) const {
  * @brief Called since an Engine. If it supports extended negociation with
  * the peer Broker, it sends its EngineConfiguration and waits for the
  * Broker's answer.
+ *
+ * @param d The instance event (useful to get the current configuration
+ * version).
  */
-void stream::_negotiate_engine_conf() {
+void stream::_negotiate_engine_conf(const std::shared_ptr<io::data>& d) {
+  auto instance = static_cast<neb::pb_instance*>(d.get());
   SPDLOG_LOGGER_DEBUG(_logger,
                       "BBDO: instance event sent to {} - supports "
                       "extended negotiation: {}",
@@ -1520,18 +1524,24 @@ void stream::_negotiate_engine_conf() {
     obj.set_poller_name(config::applier::state::instance().poller_name());
     obj.set_broker_name(config::applier::state::instance().broker_name());
     obj.set_peer_type(common::ENGINE);
+    obj.set_engine_config_version(instance->obj().engine_config_version());
+    _logger->debug(
+        "BBDO: sending EngineConfiguration object with conf version {}",
+        obj.engine_config_version());
 
-    /* Time to fill the config version. */
-    std::error_code ec;
-    _config_version = common::hash_directory(
-        config::applier::state::instance().engine_config_dir(), ec);
-    if (ec) {
-      _logger->error(
-          "BBDO: cannot access directory '{}': {}",
-          config::applier::state::instance().engine_config_dir().string(),
-          ec.message());
+    if (obj.engine_config_version().empty()) {
+      /* Time to fill the config version. */
+      std::error_code ec;
+      _config_version = common::hash_directory(
+          config::applier::state::instance().engine_config_dir(), ec);
+      if (ec) {
+        _logger->error(
+            "BBDO: cannot access directory '{}': {}",
+            config::applier::state::instance().engine_config_dir().string(),
+            ec.message());
+      }
+      obj.set_engine_config_version(_config_version);
     }
-    obj.set_engine_config_version(_config_version);
     _logger->info(
         "BBDO: engine configuration sent to peer '{}' with version {}",
         _broker_name, _config_version);
@@ -1554,12 +1564,13 @@ void stream::_negotiate_engine_conf() {
       } else
         _logger->info("BBDO: no message received");
     } else {
-      _logger->debug(
-          "BBDO: engine configuration from peer '{}' received as expected",
-          _broker_name);
       /* We have received the Broker's answer. */
       EngineConfiguration& ec =
           std::static_pointer_cast<pb_engine_configuration>(d)->mut_obj();
+
+      _logger->debug(
+          "BBDO: engine configuration from peer '{}' received as expected with conf version {}",
+          _broker_name, ec.engine_config_version());
 
       if (!ec.need_update()) {
         SPDLOG_LOGGER_INFO(_logger,
@@ -1589,7 +1600,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
   if (d->type() == neb::pb_instance::static_type())
-    _negotiate_engine_conf();
+    _negotiate_engine_conf(d);
 
   if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
     std::shared_ptr<io::raw> serialized(serialize(*d));

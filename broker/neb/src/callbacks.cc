@@ -2420,6 +2420,8 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_engine_config_version(
       std::string(process_data->engine_config_version));
 
+  neb_logger->debug("pb instance sent with engine config version '{}'",
+                    inst.engine_config_version());
   // Check process event type.
   if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
     SPDLOG_LOGGER_DEBUG(neb_logger,

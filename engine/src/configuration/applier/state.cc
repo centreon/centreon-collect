@@ -2151,9 +2151,9 @@ void applier::state::_processing(configuration::State& new_cfg,
   broker_get_diff_state(&diff_state_ptr);
   std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
   if (!diff_state)
-    config_logger->error("No new Engine Configuration available from broker");
+    config_logger->info("No new Engine Configuration available from broker");
   else
-    config_logger->error("New Engine Configuration available from broker");
+    config_logger->info("New Engine Configuration available from broker");
 
   // Timing.
   struct timeval tv[5];
