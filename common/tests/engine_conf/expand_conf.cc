@@ -44,19 +44,37 @@ using namespace com::centreon::engine::configuration;
 using namespace rapidjson;
 namespace fs = std::filesystem;
 
+static void RmConf() {
+  std::filesystem::remove_all("/tmp/etc/centreon-engine/config0");
+}
+
+static void CreateConf() {
+  if (!fs::exists("/tmp/etc/centreon-engine/config0/")) {
+    fs::create_directories("/tmp/etc/centreon-engine/config0/");
+  }
+
+  constexpr const char* cmd1 =
+      "for i in " COMMON_CFG_TEST
+      "/config0/*.cfg ; do cp $i /tmp/etc/centreon-engine/config0/ ; done";
+  system(cmd1);
+}
+
 class Pb_Expand : public ::testing::Test {
  public:
-  static void SetUpTestSuite() {}
-  void SetUp() override {
+  static void SetUpTestSuite() {
     com::centreon::common::log_v2::log_v2::load("expand-tests");
+    CreateConf();
   }
-  void TearDown() override { com::centreon::common::log_v2::log_v2::unload(); }
+  static void TearDownTestSuite() {
+    RmConf();
+    com::centreon::common::log_v2::log_v2::unload();
+    std::cout << "Directories deleted: " << std::endl;
+  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 TEST_F(Pb_Expand, host) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -189,9 +207,6 @@ TEST_F(Pb_Expand, host) {
 }
 
 TEST_F(Pb_Expand, service) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -331,9 +346,6 @@ TEST_F(Pb_Expand, service) {
 }
 
 TEST_F(Pb_Expand, contact) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -405,9 +417,6 @@ TEST_F(Pb_Expand, contact) {
 }
 
 TEST_F(Pb_Expand, contactgroup) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -465,9 +474,6 @@ TEST_F(Pb_Expand, contactgroup) {
 }
 
 TEST_F(Pb_Expand, serviceescalation) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -536,9 +542,6 @@ TEST_F(Pb_Expand, serviceescalation) {
 }
 
 TEST_F(Pb_Expand, hostescalation) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
@@ -590,9 +593,6 @@ TEST_F(Pb_Expand, hostescalation) {
 }
 
 TEST_F(Pb_Expand, anomalydetection) {
-  fs::copy(CONFIG_PATH, "/tmp/etc/centreon-engine/config0",
-           fs::copy_options::recursive | fs::copy_options::overwrite_existing);
-
   configuration::State pb_config;
   configuration::state_helper state_hlp(&pb_config);
   configuration::error_cnt err;
