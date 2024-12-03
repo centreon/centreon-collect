@@ -17,6 +17,8 @@
  *
  */
 
+#include <filesystem>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -100,6 +102,40 @@ void applier::state::apply(configuration::state& new_cfg,
   }
 }
 #else
+void applier::state::apply_diff(const configuration::DiffState& diff,
+                                error_cnt& err) {
+  configuration::State save(pb_config);
+  try {
+    _processing_state = state_ready;
+    _processing(diff, err);
+    std::filesystem::path config_path =
+        std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+    std::ofstream f(config_path);
+    if (f) {
+      pb_config.SerializeToOstream(&f);
+      f.close();
+    } else {
+      config_logger->error("Cannot save configuration to file '{}': {}",
+                           config_path.string(), strerror(errno));
+    }
+  } catch (const std::exception& e) {
+    // If is the first time to load configuration, we don't
+    // have a valid configuration to restore.
+    if (!has_already_been_loaded)
+      throw;
+
+    // If is not the first time, we can restore the old one.
+    config_logger->error("Cannot apply new configuration difference: {}",
+                         e.what());
+
+    // Check if we need to restore old configuration.
+    if (_processing_state == state_error) {
+      config_logger->debug("configuration: try to restore old configuration");
+      _processing(save, err, nullptr);
+    }
+  }
+}
+
 /**
  *  Apply new protobuf configuration.
  *
@@ -114,6 +150,16 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
+    std::filesystem::path config_path =
+        std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+    std::ofstream f(config_path);
+    if (f) {
+      new_cfg.SerializeToOstream(&f);
+      f.close();
+    } else {
+      config_logger->error("Cannot save configuration to file '{}': {}",
+                           config_path.string(), strerror(errno));
+    }
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -898,7 +944,8 @@ void applier::state::_apply(difference<std::set<ConfigurationType>> const& diff,
 }
 #else
 /**
- *  @brief Apply protobuf configuration of a specific object type.
+ *  @brief Apply protobuf configuration of a specific object type on the RT
+ * objects and also on the current configuration.
  *
  *  This method will perform a diff on cur_cfg and new_cfg to create the
  *  three element sets : added, modified and removed. The type applier
@@ -912,12 +959,12 @@ void applier::state::_apply(difference<std::set<ConfigurationType>> const& diff,
  *  @param[in] new_cfg New configuration set.
  */
 template <typename DiffObj, typename ApplierType>
-void applier::state::_apply(const DiffObj* diff, error_cnt& err) {
+void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
   // Applier.
   ApplierType aplyr;
 
   // Modify objects.
-  for (auto& p : diff->modified()) {
+  for (auto& p : diff.modified()) {
     if (!verify_config)
       aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.severity());
     else {
@@ -932,7 +979,7 @@ void applier::state::_apply(const DiffObj* diff, error_cnt& err) {
   }
 
   // Erase objects.
-  for (auto it = diff->deleted().rbegin(); it != diff->deleted().rend(); ++it) {
+  for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
     if (!verify_config)
       aplyr.remove_object(*it);
     else {
@@ -946,7 +993,7 @@ void applier::state::_apply(const DiffObj* diff, error_cnt& err) {
   }
 
   // Add objects.
-  for (auto& obj : diff->added()) {
+  for (auto& obj : diff.added()) {
     if (!verify_config)
       aplyr.add_object(obj);
     else {
@@ -2138,6 +2185,23 @@ void applier::state::_processing(configuration::state& new_cfg,
   _processing_state = state_ready;
 }
 #else
+void applier::state::_processing(const configuration::DiffState& diff_state,
+                                 error_cnt& err) {
+  // Timing.
+  struct timeval tv[5];
+
+  // Call prelauch broker event the first time to run applier state.
+  if (!has_already_been_loaded)
+    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE);
+
+  //
+  // Expand all objects.
+  //
+  gettimeofday(tv, nullptr);
+
+  _apply<DiffSeverity, applier::severity>(diff_state.severities(), err);
+}
+
 /**
  *  Process new configuration and apply it.
  *
@@ -2147,14 +2211,6 @@ void applier::state::_processing(configuration::state& new_cfg,
 void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
-  configuration::DiffState* diff_state_ptr = nullptr;
-  broker_get_diff_state(&diff_state_ptr);
-  std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
-  if (!diff_state)
-    config_logger->info("No new Engine Configuration available from broker");
-  else
-    config_logger->info("New Engine Configuration available from broker");
-
   // Timing.
   struct timeval tv[5];
 
@@ -2245,10 +2301,6 @@ void applier::state::_processing(configuration::State& new_cfg,
       [](const Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
-  const DiffSeverity* pb_diff_severities = nullptr;
-  if (diff_state) {
-    pb_diff_severities = &diff_state->severities();
-  }
 
   // Build difference for tags.
   pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;
@@ -2399,11 +2451,8 @@ void applier::state::_processing(configuration::State& new_cfg,
         pb_config.contactgroups(), err);
 
     // Apply severities.
-    if (diff_state)
-      _apply<DiffSeverity, applier::severity>(pb_diff_severities, err);
-    else
-      _apply<Severity, std::pair<uint64_t, uint32_t>, applier::severity>(
-          diff_severities, err);
+    _apply<Severity, std::pair<uint64_t, uint32_t>, applier::severity>(
+        diff_severities, err);
 
     // Apply tags.
     _apply<configuration::Tag, std::pair<uint64_t, uint32_t>, applier::tag>(

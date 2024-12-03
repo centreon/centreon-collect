@@ -1702,8 +1702,7 @@ void stream::_process_pb_instance_configuration(
       _logger_sql,
       "unified_sql: processing Pb instance configuration (poller {})",
       obj.poller_id());
-  std::string current_version =
-      config::applier::state::instance().engine_configuration(obj.poller_id());
+  std::string current_version = obj.engine_config_version();
   /* The instance configuration message is only interesting with extended
    * negociation. */
   if (!current_version.empty() &&

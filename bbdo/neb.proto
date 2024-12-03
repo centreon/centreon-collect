@@ -765,6 +765,7 @@ message InstanceConfiguration {
   BBDOHeader header = 1;
   bool loaded = 2;
   uint64 poller_id = 3;
+  string engine_config_version = 4;
 }
 
 /**

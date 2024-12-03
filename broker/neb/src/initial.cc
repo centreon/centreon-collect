@@ -421,12 +421,16 @@ static void send_instance_configuration() {
 /**
  *  Send the instance configuration loaded event.
  */
-static void send_pb_instance_configuration() {
+static void send_pb_instance_configuration(const std::string& conf_version) {
   neb_logger->info(
-      "init: sending initial instance configuration loading event");
+      "init: sending initial instance configuration loading event with engine "
+      "configuration '{}'",
+      conf_version);
   auto ic = std::make_shared<neb::pb_instance_configuration>();
-  ic->mut_obj().set_loaded(true);
-  ic->mut_obj().set_poller_id(config::applier::state::instance().poller_id());
+  auto& obj = ic->mut_obj();
+  obj.set_loaded(true);
+  obj.set_poller_id(config::applier::state::instance().poller_id());
+  obj.set_engine_config_version(conf_version);
   neb::gl_publisher.write(ic);
 }
 
@@ -450,7 +454,7 @@ void neb::send_initial_configuration() {
 /**
  *  Send initial configuration to the global publisher.
  */
-void neb::send_initial_pb_configuration() {
+void neb::send_initial_pb_configuration(const std::string& conf_version) {
   if (config::applier::state::instance().broker_needs_update()) {
     SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
     send_severity_list();
@@ -466,5 +470,5 @@ void neb::send_initial_pb_configuration() {
     SPDLOG_LOGGER_INFO(neb_logger,
                        "init: No need to send poller configuration");
   }
-  send_pb_instance_configuration();
+  send_pb_instance_configuration(conf_version);
 }

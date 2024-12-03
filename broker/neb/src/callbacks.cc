@@ -2458,7 +2458,7 @@ int neb::callback_pb_process(int callback_type, void* data) {
 
     // Send initial event and then configuration.
     gl_publisher.write(inst_obj);
-    send_initial_pb_configuration();
+    send_initial_pb_configuration(inst.engine_config_version());
   } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
     SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating process end event");
     // Fill output var.

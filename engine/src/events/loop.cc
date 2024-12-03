@@ -138,6 +138,23 @@ static void apply_conf(std::atomic<bool>* reloading) {
   *reloading = false;
   process_logger->info("Reload configuration finished.");
 }
+
+static void apply_diff(std::atomic<bool>* reloading) {
+  configuration::error_cnt err;
+  process_logger->info("Starting to reload configuration.");
+  try {
+    // configuration::extended_conf::update_state(&config);
+    configuration::DiffState* diff_state_ptr;
+    broker_get_diff_state(&diff_state_ptr);
+    std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
+    configuration::applier::state::instance().apply_diff(*diff_state, err);
+    process_logger->info("Configuration reloaded, main loop continuing.");
+  } catch (const std::exception& e) {
+    config_logger->error("Error: {}", e.what());
+  }
+  *reloading = false;
+  process_logger->info("Reload configuration finished.");
+}
 #endif
 
 /**
@@ -174,8 +191,13 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
         reloading = true;
-        auto future [[maybe_unused]] =
-            std::async(std::launch::async, apply_conf, &reloading);
+        if (broker_has_diff_state()) {
+          auto future [[maybe_unused]] =
+              std::async(std::launch::async, apply_diff, &reloading);
+        } else {
+          auto future [[maybe_unused]] =
+              std::async(std::launch::async, apply_conf, &reloading);
+        }
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");

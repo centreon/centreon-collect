@@ -1499,7 +1499,7 @@ void stream::statistics(nlohmann::json& tree) const {
 }
 
 /**
- * @brief Called since an Engine. If it supports extended negociation with
+ * @brief Called from an Engine. If it supports extended negociation with
  * the peer Broker, it sends its EngineConfiguration and waits for the
  * Broker's answer.
  *
@@ -1569,7 +1569,8 @@ void stream::_negotiate_engine_conf(const std::shared_ptr<io::data>& d) {
           std::static_pointer_cast<pb_engine_configuration>(d)->mut_obj();
 
       _logger->debug(
-          "BBDO: engine configuration from peer '{}' received as expected with conf version {}",
+          "BBDO: engine configuration from peer '{}' received as expected with "
+          "conf version {}",
           _broker_name, ec.engine_config_version());
 
       if (!ec.need_update()) {
@@ -1720,11 +1721,11 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
    * old_state on the other side. */
   if (old_state->conf_version() == expected_version) {
     _logger->info("Configurations are synchronized for poller {}", poller_id);
-    should_send_full_config = true;
+    should_send_full_config = false;
   } else {
     _logger->info("Configurations are not synchronized for poller {}",
                   poller_id);
-    should_send_full_config = false;
+    should_send_full_config = true;
   }
 
   /* We get the last configuration from the php cache. */
@@ -1789,6 +1790,8 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
     } else {
       /* There are changes, so we use the last available configuration */
       _load_state(diff_state->mutable_state(), new_conf_dir, _logger);
+      /* It's time to set the configuration version. */
+      diff_state->mutable_state()->set_conf_version(hash);
     }
   } else {
     if (no_change) {
@@ -1796,6 +1799,9 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
       engine::configuration::State new_state;
       /* The new configuration is read. */
       _load_state(&new_state, new_conf_dir, _logger);
+
+      /* It's time to set the configuration version. */
+      new_state.set_conf_version(hash);
       /* Then it is saved as protobuf file */
       std::ofstream f(new_conf_dir / fmt::format("{}.proto", poller_id));
       if (f) {

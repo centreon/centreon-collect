@@ -59,13 +59,14 @@ class state {
   void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
+  void apply_diff(const configuration::DiffState& diff, error_cnt& err);
   void apply_log_config(configuration::State& new_cfg);
 #endif
   static state& instance();
   void clear();
 
-  servicedependency_mmap const& servicedependencies() const throw();
-  servicedependency_mmap& servicedependencies() throw();
+  servicedependency_mmap const& servicedependencies() const noexcept;
+  servicedependency_mmap& servicedependencies() noexcept;
 #ifdef LEGACY_CONF
   servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency::key_type const& k);
@@ -112,7 +113,7 @@ class state {
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
   template <typename DiffObj, typename ApplierType>
-  void _apply(const DiffObj* diff, error_cnt& err);
+  void _apply(const DiffObj& diff, error_cnt& err);
 
   void _apply(configuration::State& new_cfg,
               retention::state& state,
@@ -132,6 +133,7 @@ class state {
   void _processing(configuration::State& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);
+  void _processing(const configuration::DiffState& diff_state, error_cnt& err);
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(
       const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
