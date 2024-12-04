@@ -121,45 +121,87 @@ function test_args_to_registry ([string] $exe_path, [string[]] $exe_args, $expec
     }
 }
 
-Write-Host "############################  all install uninstall   ############################"
+function test_all_silent_install_uninstall([string]$plugins_flag) {
+    <#
+    .SYNOPSIS
+    test all silent install uninstall
 
-$exe_args = '/S', '--install_cma', '--install_plugins', '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
-$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'EventLog'; 'log_level' = 'error'; 'encryption' = 0; 'reversed_grpc_streaming' = 0 }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+    .DESCRIPTION
+    test all silent install uninstall
 
-if (!(Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent)) {
-    Write-Host "no registry entry created"
-    exit 1
-}
+    .PARAMETER plugins_flag
+    Can be --install_plugins or --install_embedded_plugins
 
-Get-Process | Select-Object -Property ProcessName | Select-String centagent
-
-$info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
-
-#$info = Get-Process centagent 2>$null
-if (!$info) {
-    Write-Host "centagent.exe not started"
-    exit 1
-}
-
-if (![System.Io.File]::Exists("C:\Program Files\Centreon\Plugins\centreon_plugins.exe")) {
-    Write-Host "centreon_plugins.exe not installed"
-    exit 1
-}
-
-$process_info = Start-Process -PassThru  "C:\Program Files\Centreon\CentreonMonitoringAgent\uninstall.exe" "/S", "--uninstall_cma", "--uninstall_plugins"
-Wait-Process -Id $process_info.Id
-if ($process_info.ExitCode -ne 0) {
-    Write-Host "bad uninstaller exit code"
-    exit 1
-}
+    #>
 
 
-for (($i = 0); $i -lt 10; $i++) {
-    Start-Sleep -Seconds 1
+
+    Write-Host "############################  all install uninstall with flag: $plugins_flag  ############################"
+
+    $exe_args = '/S', '--install_cma', $plugins_flag, '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
+    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'EventLog'; 'log_level' = 'error'; 'encryption' = 0; 'reversed_grpc_streaming' = 0 }
+    test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+
+    if (!(Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent)) {
+        Write-Host "no registry entry created"
+        exit 1
+    }
+
+    Get-Process | Select-Object -Property ProcessName | Select-String centagent
+
     $info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
-    if (! $info) {
-        break
+
+    #$info = Get-Process centagent 2>$null
+    if (!$info) {
+        Write-Host "centagent.exe not started"
+        exit 1
+    }
+
+    if (![System.Io.File]::Exists("C:\Program Files\Centreon\Plugins\centreon_plugins.exe")) {
+        Write-Host "centreon_plugins.exe not installed"
+        exit 1
+    }
+
+    $process_info = Start-Process -PassThru  "C:\Program Files\Centreon\CentreonMonitoringAgent\uninstall.exe" "/S", "--uninstall_cma", "--uninstall_plugins"
+    Wait-Process -Id $process_info.Id
+    if ($process_info.ExitCode -ne 0) {
+        Write-Host "bad uninstaller exit code"
+        exit 1
+    }
+
+
+    for (($i = 0); $i -lt 10; $i++) {
+        Start-Sleep -Seconds 1
+        $info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
+        if (! $info) {
+            break
+        }
+    }
+
+    if ($info) {
+        Write-Host "centagent.exe running"
+        exit 1
+    }
+
+    if ([System.Io.File]::Exists("C:\Program Files\Centreon\Plugins\centreon_plugins.exe")) {
+        Write-Host "centreon_plugins.exe not removed"
+        exit 1
+    }
+
+    Write-Host "The followind command will output errors, don't take it into account"
+    #the only mean I have found to test key erasure under CI
+    #Test-Path doesn't work
+    $key_found = true
+    try {
+        Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
+    }
+    catch { 
+        $key_found = false
+    }
+
+    if ($key_found) {
+        Write-Host "registry entry not removed"
+        exit 1
     }
 }
 
@@ -190,6 +232,8 @@ if ($key_found) {
 }
 
 Start-Sleep -Seconds 10
+test_all_silent_install_uninstall("--install_plugins")
+test_all_silent_install_uninstall("--install_embedded_plugins")
 
 Write-Host "############################  installer test  ############################"
 

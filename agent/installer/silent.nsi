@@ -55,7 +55,7 @@ Function show_help
         FileWrite $0 "--hostname           The name of the host as defined in the Centreon interface.$\n"
         FileWrite $0 "--endpoint           IP address of DNS name of the poller the agent will connect to.$\n"
         FileWrite $0 "                     In case of Poller-initiated connection mode, it is the interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.$\n"
-        FileWrite $0 "                     The format is <IP or DNS name>:<port>"
+        FileWrite $0 "                     The format is <IP or DNS name>:<port>$\n"
         FileWrite $0 "--reverse            Add this flag for Poller-initiated connection mode.$\n"
         FileWrite $0 "$\n"
         FileWrite $0 "--log_type           event_log or file. In case of logging in a file, log_file param is mandatory $\n"
@@ -413,6 +413,12 @@ FunctionEnd
 */
 Function installer_parse_cmd_line
     Push $0
+
+    ClearErrors
+    ${GetOptions} $cmdline_parameters "--install_embedded_plugins" $0
+    ${IfNot} ${Errors}
+        StrCpy $silent_install_plugins 2
+    ${EndIf}
 
     ClearErrors
     ${GetOptions} $cmdline_parameters "--install_plugins" $0

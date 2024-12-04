@@ -87,6 +87,7 @@ InstallDir "$PROGRAMFILES64\${COMPANYNAME}\${APPNAME}"
 !define HELPURL "https://www.centreon.com/"
 
 Var plugins_url
+Var plugin_section_choice
 
 
 
@@ -166,7 +167,7 @@ FunctionEnd
 /**
   * @brief this section download plugings from the asset of the last centreon-nsclient-build release
 */
-Section "Plugins" PluginsInstSection
+Section "Download latest Centreon Plugins" PluginsInstSection
     Call get_plugins_url
     CreateDirectory ${PLUGINS_DIR}
     DetailPrint "download plugins from $plugins_url"
@@ -178,6 +179,12 @@ Section "Plugins" PluginsInstSection
     ${EndIf}
 SectionEnd
 
+
+
+Section /o "Centreon Plugins ${PLUGINS_VERSION}" PluginsEmbeddedInstSection
+    SetOutPath ${PLUGINS_DIR}
+    File "centreon_plugins.exe"
+SectionEnd
 
 /**
   * @brief this section configure and install centreon monitoring agent
@@ -243,7 +250,8 @@ function .onInit
         SetErrorLevel 0
         ${GetParameters} $cmdline_parameters
         Strcpy $1 "--install_cma        Set this flag if you want to install centreon monitoring agent$\n\
---install_plugins    Set this flag if you want to install centreon plugins$\n"
+--install_plugins    Set this flag if you want to download and install latest version of centreon plugins$\n\
+--install_embedded_plugins Set this flag if you want to install the plugins embedded in the installer$\n"
         Call show_help
         Call show_version
         Call silent_verify_admin
@@ -259,15 +267,41 @@ function .onInit
 
         ${If} $silent_install_plugins == 1
             SectionSetFlags ${PluginsInstSection} ${SF_SELECTED}
+            SectionSetFlags ${PluginsEmbeddedInstSection} 0
+        ${ElseIf} $silent_install_embedded_plugins == 2
+            SectionSetFlags ${PluginsInstSection} 0
+            SectionSetFlags ${PluginsEmbeddedInstSection} ${SF_SELECTED}
         ${Else}
             SectionSetFlags ${PluginsInstSection} 0
+            SectionSetFlags ${PluginsEmbeddedInstSection} 0
         ${EndIf}
 
     ${Else}
-    	!insertmacro verify_user_is_admin
+        #by default download plugins
+        StrCpy $plugin_section_choice ${PluginsInstSection}
     ${EndIf}
 
 functionEnd
+
+Function .onSelChange
+    #only one plugins component can be selected
+    ${If} ${SectionIsSelected} ${PluginsInstSection}
+    ${AndIf} ${SectionIsSelected} ${PluginsEmbeddedInstSection}
+        Push $0
+        ${If} $plugin_section_choice == ${PluginsInstSection}
+            SectionGetFlags ${PluginsInstSection} $0
+            IntOp $0 $0 & ${${SECTION_OFF}}
+            SectionSetFlags ${PluginsInstSection} $0
+            StrCpy $plugin_section_choice ${PluginsEmbeddedInstSection}
+        ${Else} 
+            SectionGetFlags ${PluginsEmbeddedInstSection} $0
+            IntOp $0 $0 & ${${SECTION_OFF}}
+            SectionSetFlags ${PluginsEmbeddedInstSection} $0
+            StrCpy $plugin_section_choice ${PluginsInstSection}
+        ${EndIf}
+        Pop $0
+    ${EndIf}
+FunctionEnd
 
 /**
   * @brief show cma setup dialogbox ig user has choosen to install cma
@@ -279,7 +313,7 @@ Function setup_cma_show
 FunctionEnd
 
 /**
-  * @brief show cma log dialogbox ig user has choosen to install cma
+  * @brief show cma log dialogbox if user has choosen to install cma
 */
 Function setup_log_show
     ${If} ${SectionIsSelected} ${CMAInstSection}
@@ -288,7 +322,7 @@ Function setup_log_show
 FunctionEnd
 
 /**
-  * @brief show cma encryption dialogbox ig user has choosen to install cma
+  * @brief show cma encryption dialogbox if user has choosen to install cma
 */
 Function setup_cma_encryption_show
     ${If} ${SectionIsSelected} ${CMAInstSection}
