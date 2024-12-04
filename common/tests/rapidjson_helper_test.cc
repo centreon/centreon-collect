@@ -30,7 +30,7 @@
 using namespace com::centreon;
 using namespace com::centreon::common;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define JSON_FILE_PATH "C:/Users/Public/toto.json"
 #else
 #define JSON_FILE_PATH "/tmp/toto.json"

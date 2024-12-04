@@ -25,7 +25,7 @@
 
 using namespace com::centreon::common;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define ECHO_PATH "tests\\echo.bat"
 #define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
@@ -147,7 +147,7 @@ TEST_F(process_test, throw_on_error) {
 
 TEST_F(process_test, script_error) {
   using namespace std::literals;
-#ifdef _WINDOWS
+#ifdef _WIN32
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "tests\\\\bad_script.bat"));
 #else
@@ -192,7 +192,7 @@ TEST_F(process_test, call_start_several_time_no_args) {
   ASSERT_EQ(to_wait->get_stderr(), "");
 }
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 
 TEST_F(process_test, stdin_to_stdout) {
   ::remove("toto.sh");
@@ -249,7 +249,7 @@ TEST_F(process_test, kill_process) {
   // kill process
   to_wait->kill();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-#ifdef _WINDOWS
+#ifdef _WIN32
   auto process_handle =
       OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
   ASSERT_NE(process_handle, nullptr);

@@ -129,6 +129,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_memory.cc
+  ${NATIVE_SRC}/check_service.cc
 )
 
 set( SRC_LINUX
