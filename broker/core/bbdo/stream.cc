@@ -1792,6 +1792,17 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
       _load_state(diff_state->mutable_state(), new_conf_dir, _logger);
       /* It's time to set the configuration version. */
       diff_state->mutable_state()->set_conf_version(hash);
+      /* Then it is saved as protobuf file */
+      std::ofstream f(new_conf_dir / fmt::format("{}.proto", poller_id));
+      if (f) {
+        diff_state->state().SerializeToOstream(&f);
+        f.close();
+      } else {
+        _logger->error(
+            "Cannot write new Engine configuration '{}': {}",
+            (new_conf_dir / fmt::format("{}.proto", poller_id)).string(),
+            strerror(errno));
+      }
     }
   } else {
     if (no_change) {
@@ -1807,6 +1818,11 @@ com::centreon::engine::configuration::DiffState* stream::build_diff_state(
       if (f) {
         new_state.SerializeToOstream(&f);
         f.close();
+      } else {
+        _logger->error(
+            "Cannot write new Engine configuration '{}': {}",
+            (new_conf_dir / fmt::format("{}.proto", poller_id)).string(),
+            strerror(errno));
       }
       /* We can now build the diff */
       engine::configuration::state_helper::diff(*old_state, new_state, _logger,
