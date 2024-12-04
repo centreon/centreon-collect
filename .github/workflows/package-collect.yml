@@ -24,6 +24,9 @@ on:
       legacy_engine:
         required: true
         type: string
+      build_debug_packages:
+        required: true
+        type: boolean
       packages_in_artifact:
         required: true
         type: boolean
@@ -180,23 +183,21 @@ jobs:
         run: ${SCCACHE_PATH} --stop-server
         shell: bash
 
-      # - name: Upload binaries artifacts
-      #   uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-      #   with:
-      #     name: binaries-${{ inputs.distrib }}-${{ inputs.arch }}
-      #     path: build/engine
-      #     retention-days: 1
-
       - name: Generate debug files
         run: |
-          dnf install -y rpm-build
+          if [ "${{ inputs.package_extension }}" = "deb" ]; then
+            apt-get update
+            apt-get install -y dwz
+          elif [ "${{ inputs.package_extension }}" = "rpm" ]; then
+            dnf install -y dwz
+          fi
+
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
             objcopy --merge-notes --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
-            ls -lha $file.debug $file
           done
           exe=("build/broker/cbd"
                "build/broker/watchdog/cbwd"
@@ -213,8 +214,11 @@ jobs:
             objcopy --strip-debug $file
             dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
-            ls -lha $file.debug $file
           done
+        shell: bash
+
+      - if: ${{ inputs.build_debug_packages == false }}
+        run: rm -f packaging/centreon-collect/*debuginfo*.yaml
         shell: bash
 
       - uses: ./.github/actions/package
@@ -234,14 +238,12 @@ jobs:
           stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
+        run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
         shell: bash
-        run: |
-          ls -lha *.${{ inputs.package_extension }}
-          rm -rf *-debuginfo*.${{ inputs.package_extension }}
 
       # set condition to true if artifacts are needed
-      #- if: inputs.packages_in_artifact == true
-      - name: Upload package artifacts
+      - if: inputs.packages_in_artifact == true
+        name: Upload package artifacts
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: packages-${{ inputs.distrib }}-${{ inputs.arch }}
