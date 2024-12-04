@@ -966,11 +966,10 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
   // Modify objects.
   for (auto& p : diff.modified()) {
     if (!verify_config)
-      aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.severity());
+      aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.object());
     else {
       try {
-        aplyr.modify_object(pb_config.mutable_severities(p.idx()),
-                            p.severity());
+        aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.object());
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());
@@ -2185,6 +2184,13 @@ void applier::state::_processing(configuration::state& new_cfg,
   _processing_state = state_ready;
 }
 #else
+/**
+ * @brief Process new configuration as a difference with the previous one and
+ * apply it.
+ *
+ * @param diff_state The difference to apply to the current configuration.
+ * @param err The error counter.
+ */
 void applier::state::_processing(const configuration::DiffState& diff_state,
                                  error_cnt& err) {
   // Timing.

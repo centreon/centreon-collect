@@ -1147,8 +1147,8 @@ void broker_get_diff_state(
  */
 bool broker_has_diff_state() {
   static time_t limit = time(nullptr) + 5;
+  static bool retval = false;
   time_t now = time(nullptr);
-  bool retval = false;
   if (now >= limit) {
     limit = now + 5;
     neb_make_callbacks(NEBCALLBACK_HAS_DIFF_STATE, &retval);

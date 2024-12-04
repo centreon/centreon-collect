@@ -724,7 +724,7 @@ message DiffSeverity {
   repeated uint32 deleted = 2;
   message PairIdxSeverity {
     uint32 idx = 1;
-    Severity severity = 2;
+    Severity object = 2;
   }
   /* Modified severities given by the index in the old list and the new
    * severity. */

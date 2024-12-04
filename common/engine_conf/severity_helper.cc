@@ -156,7 +156,7 @@ void severity_helper::diff(const Container& old_list,
         // There are changes in this object
         DiffSeverity::PairIdxSeverity* res = result->add_modified();
         res->set_idx(keys_values[*inserted.first].first);
-        res->mutable_severity()->CopyFrom(item);
+        res->mutable_object()->CopyFrom(item);
       }
     }
   }

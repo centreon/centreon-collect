@@ -118,6 +118,13 @@ static void apply_conf(std::atomic<bool>* reloading) {
   process_logger->info("Reload configuration finished.");
 }
 #else
+/**
+ * @brief Reload the configuration and apply its difference with the current
+ * one.
+ *
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
 static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
@@ -139,21 +146,36 @@ static void apply_conf(std::atomic<bool>* reloading) {
   process_logger->info("Reload configuration finished.");
 }
 
+/**
+ * @brief Apply the configuration difference to the current configuration and
+ * also save the new configuration.
+ *
+ * @param reloading A boolean to know if the configuration is currently
+ */
 static void apply_diff(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
-  process_logger->info("Starting to reload configuration.");
+  process_logger->info("Starting to reload configuration (from difference)");
+  // configuration::extended_conf::update_state(&config);
+  configuration::DiffState* diff_state_ptr;
+  broker_get_diff_state(&diff_state_ptr);
+  std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
   try {
-    // configuration::extended_conf::update_state(&config);
-    configuration::DiffState* diff_state_ptr;
-    broker_get_diff_state(&diff_state_ptr);
-    std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
-    configuration::applier::state::instance().apply_diff(*diff_state, err);
-    process_logger->info("Configuration reloaded, main loop continuing.");
+    if (diff_state->has_state()) {
+      configuration::State* config = diff_state->mutable_state();
+      configuration::extended_conf::update_state(config);
+      configuration::applier::state::instance().apply(*config, err);
+    } else {
+      // FIXME DBO: Don't know how to handle this case.
+      // configuration::extended_conf::update_state(&config);
+      configuration::applier::state::instance().apply_diff(*diff_state, err);
+    }
+    process_logger->info(
+        "Patch applied to the configuration, main loop continuing.");
   } catch (const std::exception& e) {
     config_logger->error("Error: {}", e.what());
   }
   *reloading = false;
-  process_logger->info("Reload configuration finished.");
+  process_logger->info("Configuration applied.");
 }
 #endif
 
@@ -185,8 +207,10 @@ void loop::_dispatching() {
 
     // Start reload configuration.
     if (_need_reload || broker_has_diff_state()) {
-      engine_logger(log_info_message, most) << "Need reload.";
-      process_logger->info("Need reload.");
+      if (_need_reload)
+        process_logger->info("Need reload.");
+      else
+        process_logger->info("New configuration patch from Broker.");
       if (!reloading) {
         engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
