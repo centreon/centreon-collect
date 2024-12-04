@@ -191,8 +191,11 @@ jobs:
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
-            objcopy --strip-debug $file
+            # objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
+            objcopy --merge-notes --only-keep-debug $file $file.debug
+            # objcopy --strip-debug $file
+            eu-strip --remove-comment --reloc-debug-sections -g -f $file.debug $file
+            dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
           done
           exe=("build/broker/cbd"
@@ -206,10 +209,13 @@ jobs:
                "build/agent/centagent")
           for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
-            objcopy --strip-debug $file
+            objcopy --merge-notes --only-keep-debug $file $file.debug
+            # objcopy --strip-debug $file
+            eu-strip --remove-comment --reloc-debug-sections -g -f $file.debug $file
+            dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
           done
+          ls -lha *
         shell: bash
 
       - uses: ./.github/actions/package
@@ -228,9 +234,11 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
 
-      # - name: Cleaning not needed packages
-      #   shell: bash
-      #   run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
+      - name: Cleaning not needed packages
+        shell: bash
+        run: |
+          ls -lha *.${{ inputs.package_extension }}
+          rm -rf *-debuginfo*.${{ inputs.package_extension }}
 
       # set condition to true if artifacts are needed
       #- if: inputs.packages_in_artifact == true
