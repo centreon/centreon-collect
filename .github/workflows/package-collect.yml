@@ -180,18 +180,18 @@ jobs:
         run: ${SCCACHE_PATH} --stop-server
         shell: bash
 
-      - name: Upload binaries artifacts
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: binaries-${{ inputs.distrib }}-${{ inputs.arch }}
-          path: build/engine
-          retention-days: 1
+      # - name: Upload binaries artifacts
+      #   uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+      #   with:
+      #     name: binaries-${{ inputs.distrib }}-${{ inputs.arch }}
+      #     path: build/engine
+      #     retention-days: 1
 
       - name: Generate debug files
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
+            objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
@@ -206,7 +206,7 @@ jobs:
                "build/agent/centagent")
           for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
+            objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
@@ -228,13 +228,13 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
 
-      - name: Cleaning not needed packages
-        shell: bash
-        run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
+      # - name: Cleaning not needed packages
+      #   shell: bash
+      #   run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
 
       # set condition to true if artifacts are needed
-      - if: inputs.packages_in_artifact == true
-        name: Upload package artifacts
+      #- if: inputs.packages_in_artifact == true
+      - name: Upload package artifacts
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: packages-${{ inputs.distrib }}-${{ inputs.arch }}
