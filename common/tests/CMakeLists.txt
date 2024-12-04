@@ -21,6 +21,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ut_common
     crypto/base64.cc
     engine_conf/parser.cc
+    engine_conf/severity.cc
     file_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc

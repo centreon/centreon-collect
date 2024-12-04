@@ -217,7 +217,6 @@ void loop::_dispatching() {
           process_logger->info("Need reload.");
         else
           process_logger->info("New configuration patch from Broker.");
-        engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
         if (broker_has_diff_state()) {
           auto future [[maybe_unused]] =
