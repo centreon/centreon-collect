@@ -768,6 +768,7 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.set_use_true_regexp_matching(new_cfg.use_true_regexp_matching());
   pb_config.set_send_recovery_notifications_anyways(
       new_cfg.send_recovery_notifications_anyways());
+  pb_config.set_conf_version(new_cfg.conf_version());
   pb_config.set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
   pb_config.clear_user();

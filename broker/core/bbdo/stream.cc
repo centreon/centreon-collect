@@ -1510,14 +1510,15 @@ void stream::_negotiate_engine_conf(const std::shared_ptr<io::data>& d) {
   auto instance = static_cast<neb::pb_instance*>(d.get());
   SPDLOG_LOGGER_DEBUG(_logger,
                       "BBDO: instance event sent to {} - supports "
-                      "extended negotiation: {}",
-                      _broker_name, _extended_negotiation);
+                      "extended negotiation: {} - conf version: {}",
+                      _broker_name, _extended_negotiation,
+                      instance->obj().engine_config_version());
   /* We are an Engine since we emit an instance event and we have an
    * engine config directory. If the Broker supports extended negotiation,
    * we send also an engine configuration event. And then we'll wait for
    * an answer from Broker. */
   if (_extended_negotiation &&
-      !config::applier::state::instance().engine_config_dir().empty()) {
+      !instance->obj().engine_config_version().empty()) {
     auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
     auto& obj = engine_conf->mut_obj();
     obj.set_poller_id(config::applier::state::instance().poller_id());

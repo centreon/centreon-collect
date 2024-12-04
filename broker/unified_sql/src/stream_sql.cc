@@ -1708,7 +1708,7 @@ void stream::_process_pb_instance_configuration(
   if (!current_version.empty() &&
       !config::applier::state::instance().config_cache_dir().empty()) {
     std::filesystem::path new_poller_conf =
-        config::applier::state::instance().pollers_config_dir() /
+        config::applier::state::instance().pollers_config_dir() / "new_conf" /
         fmt::format("{}.proto", obj.poller_id());
     std::error_code ec;
     engine::configuration::State state;

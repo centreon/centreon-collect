@@ -158,6 +158,10 @@ static void apply_diff(std::atomic<bool>* reloading) {
   // configuration::extended_conf::update_state(&config);
   configuration::DiffState* diff_state_ptr;
   broker_get_diff_state(&diff_state_ptr);
+  if (!diff_state_ptr) {
+    config_logger->warn("Configuration diff already retrieved.");
+    return;
+  }
   std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
   try {
     if (diff_state->has_state()) {
@@ -207,14 +211,14 @@ void loop::_dispatching() {
 
     // Start reload configuration.
     if (_need_reload || broker_has_diff_state()) {
-      if (_need_reload)
-        process_logger->info("Need reload.");
-      else
-        process_logger->info("New configuration patch from Broker.");
       if (!reloading) {
+        reloading = true;
+        if (_need_reload)
+          process_logger->info("Need reload.");
+        else
+          process_logger->info("New configuration patch from Broker.");
         engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
-        reloading = true;
         if (broker_has_diff_state()) {
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_diff, &reloading);
