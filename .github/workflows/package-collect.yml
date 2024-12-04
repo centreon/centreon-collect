@@ -189,6 +189,7 @@ jobs:
 
       - name: Generate debug files
         run: |
+          dnf install -y rpm-build
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
             # objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
