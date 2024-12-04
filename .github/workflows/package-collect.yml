@@ -192,12 +192,11 @@ jobs:
           dnf install -y rpm-build
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
-            # objcopy --only-keep-debug --compress-debug-sections=zlib $file $file.debug
             objcopy --merge-notes --only-keep-debug $file $file.debug
-            # objcopy --strip-debug $file
-            eu-strip --remove-comment --reloc-debug-sections -g -f $file.debug $file
+            objcopy --strip-debug $file
             dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
+            ls -lha $file.debug $file
           done
           exe=("build/broker/cbd"
                "build/broker/watchdog/cbwd"
@@ -211,12 +210,11 @@ jobs:
           for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
             objcopy --merge-notes --only-keep-debug $file $file.debug
-            # objcopy --strip-debug $file
-            eu-strip --remove-comment --reloc-debug-sections -g -f $file.debug $file
+            objcopy --strip-debug $file
             dwz -h -q -r $file.debug
             objcopy --add-gnu-debuglink $file.debug $file
+            ls -lha $file.debug $file
           done
-          ls -lha *
         shell: bash
 
       - uses: ./.github/actions/package
