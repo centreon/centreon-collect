@@ -221,8 +221,11 @@ bool mysql_connection::_try_to_reconnect() {
       break;
     } else {
       if (mysql_stmt_prepare(s, itq->second.c_str(), itq->second.size())) {
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection: {}",
-                            mysql_stmt_error(s));
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "mysql_connection {:p}: fail to prepare statement {}: <<{}>>: {}",
+            static_cast<const void*>(this), itq->first, itq->second,
+            mysql_stmt_error(s));
         fail = true;
         break;
       } else {
