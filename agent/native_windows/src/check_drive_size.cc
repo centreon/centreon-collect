@@ -56,6 +56,7 @@ static e_drive_fs_type get_fs_type(
       fs_type = e_drive_fs_type::hr_storage_ram_disk;
       break;
     default:
+      fs_type = e_drive_fs_type::hr_unknown;
       SPDLOG_LOGGER_ERROR(logger, "{} unknown drive type {}", fs_root,
                           drive_type);
       break;
@@ -78,6 +79,7 @@ static e_drive_fs_type get_fs_type(
     if (fs_search != _sz_filesystem_map.end()) {
       fs_type |= fs_search->second;
     } else {
+      fs_type |= e_drive_fs_type::hr_fs_unknown;
       SPDLOG_LOGGER_ERROR(logger, "{} unknown file system type {}", fs_root,
                           file_system_name);
     }
@@ -130,8 +132,8 @@ std::list<fs_stat> os_fs_stats(filter& filt,
 
       if (success) {
         SPDLOG_LOGGER_TRACE(logger, "{} total: {}, free {}", fs_to_test,
-                            total_number_of_bytes.QuadPart ,
-                                total_number_of_free_bytes.QuadPart);
+                            total_number_of_bytes.QuadPart,
+                            total_number_of_free_bytes.QuadPart);
 
         result.emplace_back(std::move(fs_to_test),
                             total_number_of_bytes.QuadPart -

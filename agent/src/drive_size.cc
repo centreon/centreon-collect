@@ -17,7 +17,6 @@
  */
 
 #include "drive_size.hh"
-#include "absl/synchronization/mutex.h"
 #include "check.hh"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
@@ -582,4 +581,54 @@ void check_drive_size::thread_kill() {
     delete _worker_thread;
     _worker_thread = nullptr;
   }
+}
+
+void check_drive_size::help(std::ostream& help_stream) {
+  help_stream <<
+      R"(
+- storage  params:" 
+    unit (default %): unit of threshold. If different from % threshold are in bytes
+    free (default used): true: threshold is applied on free space and service become warning if free sapce is lower than threshold
+                         false: threshold is applied on used space and service become warning if used space is higher than threshold
+    warning: warning threshold
+    critical: critical threshold
+    filters:
+      filter-storage-type: case insensitive regex to filter storage type it includes drive type (fixed, network...) and also fs type (fat32, ntfs..)
+        types recognized by agent:
+           hrunknown
+           hrstoragefixeddisk
+           hrstorageremovabledisk
+           hrstoragecompactdisc
+           hrstorageramdisk
+           hrstoragenetworkdisk
+           hrfsunknown
+           hrfsfat
+           hrfsntfs
+           hrfsfat32
+           hrfsexfat
+      filter-fs: regex to filter filesystem
+        Example: [C-D]:\\.*
+      exclude-fs: regex to exclude filesystem
+  An example of configuration:
+  { 
+    "check": "storage",
+    "args": {
+        "unit": "%",
+        "free": false,
+        "warning": 80,
+        "critical": 90,
+        "filter-storage-type": "hrstoragefixeddisk",
+        "filter-fs": "[C-D]:\\"
+    }
+  }
+  Examples of output:
+    WARNING: C:\ Total: 322G Used: 39.54% Free: 60.46% CRITICAL: D:\ Total: 5G Used: 50.60% Free: 49.40%
+  Metrics:
+    if free flag = true
+      free_C:\
+      free_D:\
+    if free flag = false
+      used_C:\
+      used_D:\
+)";
 }
