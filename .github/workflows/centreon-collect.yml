@@ -317,7 +317,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect-collect'
+      github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
