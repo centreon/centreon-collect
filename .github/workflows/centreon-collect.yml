@@ -394,7 +394,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect-collect'
+      github.repository == 'centreon/centreon-collect'
 
     steps:
       - name: Checkout sources
