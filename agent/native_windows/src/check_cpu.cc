@@ -525,3 +525,53 @@ e_status check_cpu::compute(
   return _compute(first_measure, second_measure, _sz_summary_labels.data(),
                   _sz_perfdata_name.data(), output, perfs);
 }
+
+void check_cpu::help(std::ostream& help_stream) {
+  help_stream << R"(
+- cpu params:
+    use-nt-query-system-information (default true): true: use NtQuerySystemInformation instead of performance counters
+    cpu-detailed (default false): true: add detailed cpu usage metrics
+    warning-core: threshold for warning status on core usage in percentage
+    critical-core: threshold for critical status on core usage in percentage
+    warning-average: threshold for warning status on average usage in percentage
+    critical-average: threshold for critical status on average usage in percentage
+    warning-core-user: threshold for warning status on core user usage in percentage
+    critical-core-user: threshold for critical status on core user usage in percentage
+    warning-average-user: threshold for warning status on average user usage in percentage
+    critical-average-user: threshold for critical status on average user usage in percentage
+    warning-core-system: threshold for warning status on core system usage in percentage
+    critical-core-system: threshold for critical status on core system usage in percentage
+    warning-average-system: threshold for warning status on average system usage in percentage
+    critical-average-system: threshold for critical status on average system usage in percentage
+  An example of configuration:
+  { 
+    "check": "cpu_percentage",
+    "args": {
+        "cpu-detailed": true,
+        "warning-core": 80,
+        "critical-core": 90,
+        "warning-average": 60,
+        "critical-average": 70
+    }
+  }
+  Examples of output:
+    OK: CPU(s) average usage is 50.00%
+    WARNING: CPU'0' Usage: 40.00%, User 25.00%, System 10.00%, Idle 60.00%, Interrupt 5.00%, Dpc Interrupt 1.00% CRITICAL: CPU'1' Usage: 60.00%, User 45.00%, System 10.00%, Idle 40.00%, Interrupt 5.00%, Dpc Interrupt 0.00% WARNING: CPU(s) average Usage: 50.00%, User 35.00%, System 10.00%, Idle 50.00%, Interrupt 5.00%, Dpc Interrupt 0.50%
+  Metrics:
+    Normal mode:
+      <core index>#core.cpu.utilization.percentage
+      cpu.utilization.percentage
+    cpu-detailed mode:
+      <core index>~user#core.cpu.utilization.percentage
+      <core index>~system#core.cpu.utilization.percentage
+      <core index>~idle#core.cpu.utilization.percentage
+      <core index>~interrupt#core.cpu.utilization.percentage
+      <core index>~dpc_interrupt#core.cpu.utilization.percentage
+      <code index>~used#core.cpu.utilization.percentage
+      user#cpu.utilization.percentage
+      system#cpu.utilization.percentage
+      idle#cpu.utilization.percentage
+      interrupt#cpu.utilization.percentage
+      dpc_interrupt#cpu.utilization.percentage
+)";
+}

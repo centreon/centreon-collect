@@ -18,7 +18,7 @@
 
 #include "scheduler.hh"
 #include "check_cpu.hh"
-#ifdef _WINDOWS
+#ifdef _WIN32
 #include "check_memory.hh"
 #include "check_uptime.hh"
 #endif
@@ -562,7 +562,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
       return std::make_shared<check_cpu>(
           io_context, logger, first_start_expected, check_interval, service,
           cmd_name, cmd_line, *args, conf, std::move(handler));
-#ifdef _WINDOWS
+#ifdef _WIN32
     } else if (check_type == "uptime"sv) {
       return std::make_shared<check_uptime>(
           io_context, logger, first_start_expected, check_interval, service,
