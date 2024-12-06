@@ -76,7 +76,7 @@ else()
     Boost::program_options
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     fmt::fmt
-    ${Iconv_LIBRARY})
+    )
 endif()
 
 add_dependencies(ut_agent centreon_common centagent_lib)

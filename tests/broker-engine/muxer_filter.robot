@@ -259,6 +259,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
@@ -356,6 +357,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
     Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
