@@ -283,6 +283,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine != 'true' && 'OFF' || 'ON' }}
+      build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
@@ -301,6 +302,7 @@ jobs:
       jira_base_url: ${{ secrets.JIRA_BASE_URL }}
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+
   robot-test:
     needs: [get-environment, package]
     if: |
