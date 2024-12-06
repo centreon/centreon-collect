@@ -125,6 +125,11 @@ Function cmd_line_to_registry
         Call silent_fatal_error
     ${EndIf}
     WriteRegStr HKLM ${CMA_REG_KEY} "host" "$0"
+    ${If} ${Errors}
+        StrCpy $1 "Failed to write registry key for host"
+        Call silent_fatal_error
+    ${EndIf}
+
     ClearErrors
     ${GetOptions} $cmdline_parameters "--endpoint" $0
     ${If} ${Errors}

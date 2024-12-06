@@ -157,3 +157,27 @@ e_status check_uptime::compute(uint64_t ms_uptime,
   }
   return status;
 }
+
+void check_uptime::help(std::ostream& help_stream) {
+  help_stream <<
+      R"(
+- uptime  params:" 
+    unit (defaults s): can be s, second, m, minute, h, hour, d, day, w, week
+    warning-uptime: warning threshold, if computer has been up for less than this time, service will be in warning state
+    critical-uptime: critical threshold
+  An example of configuration:
+  {
+    "check": "uptime",
+    "args": {
+      "unit": "day",
+      "warning-uptime": 1,
+      "critical-uptime": 2
+    }
+  }
+  Examples of output:
+    OK: System uptime is: 5d 1h 1m 1s
+    CRITICAL: System uptime is: 1d 4h 0m 0s
+  Metrics:
+    uptime
+)";
+}

@@ -19,9 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <psapi.h>
-#include <cstdint>
 
-#include "check.hh"
 #include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
@@ -30,7 +28,7 @@
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_memory_detail;
+using namespace com::centreon::agent::native_check_detail;
 
 using namespace std::string_literals;
 
@@ -55,11 +53,11 @@ class test_check : public check_memory {
                const std::list<com::centreon::common::perfdata>& perfdata,
                const std::list<std::string>& outputs) {}) {}
 
-  std::shared_ptr<check_memory_detail::memory_info<
-      check_memory_detail::e_metric::nb_metric>>
-  measure() const override {
-    return std::make_shared<check_memory_detail::w_memory_info>(mock,
-                                                                perf_mock);
+  std::shared_ptr<native_check_detail::snapshot<
+      native_check_detail::e_memory_metric::nb_metric>>
+  measure() override {
+    return std::make_shared<native_check_detail::w_memory_info>(mock, perf_mock,
+                                                                _output_flags);
   }
 };
 
