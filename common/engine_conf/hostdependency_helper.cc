@@ -191,6 +191,10 @@ void hostdependency_helper::_expand_hostdependencies(State& s,
           auto& hg_conf = *found;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_dependent_hosts(), h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Host dependency dependent hostgroup '{}' not found",
+                        hg_name);
         }
       }
       for (auto& hg_name : hd_conf->hostgroups().data()) {
@@ -203,6 +207,9 @@ void hostdependency_helper::_expand_hostdependencies(State& s,
           auto& hg_conf = *found;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_hosts(), h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Host dependency hostgroup '{}' not found", hg_name);
         }
       }
       for (auto& h : hd_conf->hosts().data()) {

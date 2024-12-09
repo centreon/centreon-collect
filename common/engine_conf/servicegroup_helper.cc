@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/servicegroup_helper.hh"
-#include <string_view>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/state.pb.h"

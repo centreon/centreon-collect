@@ -208,6 +208,17 @@ void servicedependency_helper::_expand_servicedependencies(State& s,
                                                            [[maybe_unused]]) {
   // Browse all dependencies.
   std::list<std::unique_ptr<Servicedependency>> expanded;
+
+  absl::flat_hash_map<std::string, configuration::Hostgroup> hostgroups;
+  for (auto& hg : s.hostgroups()) {
+    hostgroups[hg.hostgroup_name()] = hg;
+  }
+
+  absl::flat_hash_map<std::string, configuration::Servicegroup> servicegroups;
+  for (auto& sg : s.servicegroups()) {
+    servicegroups[sg.servicegroup_name()] = sg;
+  }
+
   for (auto& dep : s.servicedependencies()) {
     // Expand service dependency instances.
     if (dep.hosts().data().size() != 1 || !dep.hostgroups().data().empty() ||
@@ -223,15 +234,17 @@ void servicedependency_helper::_expand_servicedependencies(State& s,
           depended_services;
       _expand_services(dep.hosts().data(), dep.hostgroups().data(),
                        dep.service_description().data(),
-                       dep.servicegroups().data(), s, depended_services);
+                       dep.servicegroups().data(), depended_services,
+                       hostgroups, servicegroups);
 
       // Expand dependent services.
       absl::flat_hash_set<std::pair<std::string, std::string>>
           dependent_services;
-      _expand_services(
-          dep.dependent_hosts().data(), dep.dependent_hostgroups().data(),
-          dep.dependent_service_description().data(),
-          dep.dependent_servicegroups().data(), s, dependent_services);
+      _expand_services(dep.dependent_hosts().data(),
+                       dep.dependent_hostgroups().data(),
+                       dep.dependent_service_description().data(),
+                       dep.dependent_servicegroups().data(), dependent_services,
+                       hostgroups, servicegroups);
 
       // Browse all depended and dependent services.
       for (auto& p1 : depended_services)
@@ -291,8 +304,10 @@ void servicedependency_helper::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& hg,
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
-    configuration::State& s,
-    absl::flat_hash_set<std::pair<std::string, std::string>>& expanded) {
+    absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
+    absl::flat_hash_map<std::string, configuration::Hostgroup>& hostgroups,
+    absl::flat_hash_map<std::string, configuration::Servicegroup>&
+        servicegroups) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;
 
@@ -302,14 +317,12 @@ void servicedependency_helper::_expand_services(
   // Host groups.
   for (auto& hgn : hg) {
     // Find host group
-    auto found = std::find_if(
-        s.hostgroups().begin(), s.hostgroups().end(),
-        [&hgn](const Hostgroup& hgg) { return hgg.hostgroup_name() == hgn; });
-    if (found == s.hostgroups().end())
+    auto found = hostgroups.find(hgn);
+    if (found == hostgroups.end())
       throw msg_fmt("Could not resolve host group '{}'", hgn);
     // Add host group members.
-    all_hosts.insert(found->members().data().begin(),
-                     found->members().data().end());
+    all_hosts.insert(found->second.members().data().begin(),
+                     found->second.members().data().end());
   }
 
   // Hosts * services.
@@ -320,16 +333,13 @@ void servicedependency_helper::_expand_services(
   // Service groups.
   for (auto& sgn : sg) {
     // Find service group.
-    auto found =
-        std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
-                     [&sgn](const Servicegroup& sgg) {
-                       return sgg.servicegroup_name() == sgn;
-                     });
-    if (found == s.servicegroups().end())
+    auto found = servicegroups.find(sgn);
+    ;
+    if (found == servicegroups.end())
       throw msg_fmt("Coulx not resolve service group '{}'", sgn);
 
     // Add service group members.
-    for (auto& m : found->members().data())
+    for (auto& m : found->second.members().data())
       expanded.insert({m.first(), m.second()});
   }
 }
