@@ -3798,10 +3798,7 @@ int neb::callback_otl_metrics(int, void* data) {
  */
 int neb::callback_has_diff_state(int, void* data) {
   bool* result = static_cast<bool*>(data);
-  if (config::applier::state::instance().has_diff_state())
-    *result = true;
-  else
-    *result = false;
+  *result = config::applier::state::instance().has_diff_state();
   return 0;
 }
 
@@ -3814,17 +3811,16 @@ int neb::callback_has_diff_state(int, void* data) {
  * @return 0 on success.
  */
 int neb::callback_get_diff_state(int, void* data) {
-  engine::configuration::DiffState** diff_state =
-      static_cast<engine::configuration::DiffState**>(data);
+  std::unique_ptr<engine::configuration::DiffState>* diff_state =
+      static_cast<std::unique_ptr<engine::configuration::DiffState>*>(data);
   auto diff = config::applier::state::instance().diff_state();
   int retval;
   if (diff) {
     retval = 0;
-    *diff_state = diff.release();
   } else {
     retval = 1;
-    *diff_state = nullptr;
   }
+  *diff_state = std::move(diff);
   return retval;
 }
 

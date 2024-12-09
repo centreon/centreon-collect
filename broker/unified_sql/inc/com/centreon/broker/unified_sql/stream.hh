@@ -492,6 +492,8 @@ class stream : public io::stream {
   bool _host_instance_known(uint64_t host_id) const;
 
   void _start_loop_timer() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_timer_m);
+  void _apply_diff_state(uint32_t poller_id,
+                         const engine::configuration::DiffState& ds);
 
  public:
   static void (stream::*const neb_processing_table[])(

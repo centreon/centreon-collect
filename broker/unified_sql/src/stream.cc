@@ -1207,6 +1207,16 @@ void stream::_start_loop_timer() {
  * bind or directly. It is the case for _hscr_update.
  */
 void stream::_init_statements() {
+  // Prepare queries.
+  if (!_severity_insert.prepared()) {
+    _severity_update = _mysql.prepare_query(
+        "UPDATE severities SET id=?,type=?,name=?,level=?,icon_id=? "
+        "WHERE "
+        "severity_id=?");
+    _severity_insert = _mysql.prepare_query(
+        "INSERT INTO severities (id,type,name,level,icon_id) "
+        "VALUES(?,?,?,?,?)");
+  }
   if (_bulk_prepared_statement) {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         _dedicated_connections ? *_dedicated_connections : _mysql,

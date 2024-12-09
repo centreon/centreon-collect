@@ -214,9 +214,8 @@ class stream : public io::stream {
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
-  com::centreon::engine::configuration::DiffState* build_diff_state(
-      uint64_t poller_id,
-      const std::string& expected_version);
+  std::unique_ptr<com::centreon::engine::configuration::DiffState>
+  build_diff_state(uint64_t poller_id, const std::string& expected_version);
 };
 }  // namespace com::centreon::broker::bbdo
 

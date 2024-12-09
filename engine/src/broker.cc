@@ -1132,10 +1132,12 @@ void broker_bench(unsigned id,
  *
  * @return 0 on success.
  */
-void broker_get_diff_state(
-    com::centreon::engine::configuration::DiffState** diff_state) {
+std::unique_ptr<com::centreon::engine::configuration::DiffState>
+broker_get_diff_state() {
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> retval;
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, diff_state);
+  neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, &retval);
+  return retval;
 }
 
 /**

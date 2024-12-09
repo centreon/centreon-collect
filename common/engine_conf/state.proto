@@ -720,15 +720,15 @@ message Severity {
 message DiffSeverity {
   /* Added severities */
   repeated Severity added = 1;
-  /* Deleted severities given by their index in the old list. */
-  repeated uint32 deleted = 2;
-  message PairIdxSeverity {
-    uint32 idx = 1;
+  /* Deleted severities given by their key in the old list. */
+  repeated KeyType deleted = 2;
+  message PairKeySeverity {
+    KeyType key = 1;
     Severity object = 2;
   }
-  /* Modified severities given by the index in the old list and the new
+  /* Modified severities given by the key in the old list and the new
    * severity. */
-  repeated PairIdxSeverity modified = 3;
+  repeated PairKeySeverity modified = 3;
 }
 
 message Tag {

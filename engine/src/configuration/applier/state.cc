@@ -17,6 +17,7 @@
  *
  */
 
+#include <google/protobuf/util/message_differencer.h>
 #include <filesystem>
 
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -52,6 +53,7 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "state.pb.h"
 #ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/command.hh"
 #endif
@@ -965,12 +967,34 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
   ApplierType aplyr;
 
   // Modify objects.
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                      std::pair<uint32_t, Severity*>>
+      current_severities;
+  uint32_t i = 0;
+  for (auto& s : *pb_config.mutable_severities())
+    current_severities[{s.key().id(), s.key().type()}] =
+        std::make_pair(i++, &s);
+
   for (auto& p : diff.modified()) {
-    if (!verify_config)
-      aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.object());
-    else {
+    auto found = current_severities.find({p.key().id(), p.key().type()});
+    if (!verify_config) {
+      if (found != current_severities.end()) {
+        aplyr.modify_object(found->second.second, p.object());
+      } else {
+        ++err.config_errors;
+        events_logger->error(
+            "The severity ({}, {}) should be modified but it currently doesn't "
+            "exist",
+            p.key().id(), p.key().type());
+      }
+    } else {
       try {
-        aplyr.modify_object(pb_config.mutable_severities(p.idx()), p.object());
+        if (found != current_severities.end()) {
+          aplyr.modify_object(found->second.second, p.object());
+        } else
+          throw engine_error()
+              << "The severity (" << p.key().id() << ", " << p.key().type()
+              << ") should be modified but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());
@@ -979,12 +1003,26 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
   }
 
   // Erase objects.
-  for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
-    if (!verify_config)
-      aplyr.remove_object(*it);
-    else {
+  for (auto& key : diff.deleted()) {
+    auto found = current_severities.find({key.id(), key.type()});
+    if (!verify_config) {
+      if (found != current_severities.end()) {
+        aplyr.remove_object(found->second.first);
+      } else {
+        ++err.config_errors;
+        events_logger->error(
+            "The severity ({}, {}) should be removed but it currently doesn't "
+            "exist",
+            key.id(), key.type());
+      }
+    } else {
       try {
-        aplyr.remove_object(*it);
+        if (found != current_severities.end()) {
+          aplyr.remove_object(found->second.first);
+        } else
+          throw engine_error()
+              << "The severity (" << key.id() << ", " << key.type()
+              << ") should be removed but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());

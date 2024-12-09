@@ -156,13 +156,12 @@ static void apply_diff(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration (from difference)");
   // configuration::extended_conf::update_state(&config);
-  configuration::DiffState* diff_state_ptr;
-  broker_get_diff_state(&diff_state_ptr);
-  if (!diff_state_ptr) {
+  std::unique_ptr<configuration::DiffState> diff_state =
+      broker_get_diff_state();
+  if (!diff_state) {
     config_logger->warn("Configuration diff already retrieved.");
     return;
   }
-  std::unique_ptr<configuration::DiffState> diff_state(diff_state_ptr);
   try {
     if (diff_state->has_state()) {
       configuration::State* config = diff_state->mutable_state();

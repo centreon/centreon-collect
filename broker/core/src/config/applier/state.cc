@@ -20,6 +20,7 @@
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 #include <fmt/format.h>
+#include <atomic>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
@@ -543,24 +544,28 @@ std::string state::engine_configuration(uint64_t poller_id) const {
 
 /**
  * @brief Set the Engine Configuration difference into the applier to be able
- * to apply it when Engine is reloaded/restarted.
+ * to apply it when Engine is reloaded/restarted. This function is only called
+ * from Engine, in fact from the cbmod.
  *
+ * @param poller_id The poller ID.
  * @param diff_state The Engine Configuration difference.
  */
 void state::set_diff_state(
     std::unique_ptr<com::centreon::engine::configuration::DiffState>
         diff_state) {
+  absl::MutexLock lck(&_diff_state_m);
   _diff_state = std::move(diff_state);
 }
 
 /**
- * @brief Get the Engine Configuration difference to apply to Engine. Once done,
- * it is cleared.
+ * @brief Get the Engine Configuration difference to apply to Engine. This
+ * function is only called from Engine, in fact from the cbmod.
  *
  * @return The Engine Configuration difference.
  */
 std::unique_ptr<com::centreon::engine::configuration::DiffState>
 state::diff_state() {
+  absl::MutexLock lck(&_diff_state_m);
   return std::move(_diff_state);
 }
 
@@ -570,5 +575,6 @@ state::diff_state() {
  * @return A boolean.
  */
 bool state::has_diff_state() const {
+  absl::MutexLock lck(&_diff_state_m);
   return _diff_state != nullptr;
 }

@@ -22,6 +22,7 @@
 #include <spdlog/spdlog.h>
 #include "common/engine_conf/severity_helper.hh"
 #include "common/engine_conf/state_helper.hh"
+#include "engine/inc/com/centreon/engine/configuration/applier/pb_difference.hh"
 
 using namespace com::centreon::engine;
 
@@ -63,6 +64,7 @@ TEST_F(TestDiffSeverity, AddSeverity) {
   ASSERT_EQ(diff.severities().added(0).severity_name(), "severity_12");
   ASSERT_EQ(diff.severities().added(0).level(), 1);
   ASSERT_EQ(diff.severities().added(0).icon_id(), 15);
+  ASSERT_FALSE(diff.has_state());
 }
 
 /**
@@ -87,7 +89,9 @@ TEST_F(TestDiffSeverity, DelSeverity) {
   ASSERT_EQ(diff.severities().added_size(), 0);
   ASSERT_EQ(diff.severities().modified_size(), 0);
   ASSERT_EQ(diff.severities().deleted_size(), 1);
-  ASSERT_EQ(diff.severities().deleted(0), 0);
+  ASSERT_TRUE(
+      MessageDifferencer::Equals(diff.severities().deleted(0), sev->key()));
+  ASSERT_FALSE(diff.has_state());
 }
 
 TEST_F(TestDiffSeverity, ModifySeverity) {
@@ -115,11 +119,15 @@ TEST_F(TestDiffSeverity, ModifySeverity) {
   ASSERT_EQ(diff.severities().added_size(), 0);
   ASSERT_EQ(diff.severities().modified_size(), 1);
   ASSERT_EQ(diff.severities().deleted_size(), 0);
-  ASSERT_EQ(diff.severities().modified(0).idx(), 0);
+  // We check the key
+  ASSERT_EQ(diff.severities().modified(0).key().id(), 12);
+  ASSERT_EQ(diff.severities().modified(0).key().type(), 1);
+  // We check the object
   ASSERT_EQ(diff.severities().modified(0).object().key().id(), 12);
   ASSERT_EQ(diff.severities().modified(0).object().key().type(), 1);
   ASSERT_EQ(diff.severities().modified(0).object().severity_name(),
             "severity_12");
   ASSERT_EQ(diff.severities().modified(0).object().level(), 1);
   ASSERT_EQ(diff.severities().modified(0).object().icon_id(), 15);
+  ASSERT_FALSE(diff.has_state());
 }

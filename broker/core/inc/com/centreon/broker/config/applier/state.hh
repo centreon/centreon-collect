@@ -54,6 +54,12 @@ class state {
     bool ready = false;
   };
 
+  enum update_type {
+    NONE_UPDATE = 0,
+    POLLER_UPDATE = 1,
+    STORAGE_UPDATE = 2,
+  };
+
  private:
   const common::PeerType _peer_type;
   std::string _cache_dir;
@@ -94,9 +100,25 @@ class state {
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
 
-  /* The Engine Configuration difference to apply to Engine. Once done, it is
-   * cleared. */
+  // FIXME DBO, we need to review this comment. Not done for now, because there
+  // are things to change on broker side too.
+  //
+  /* The Engine Configuration difference to apply to Engine. It is a hash table
+   * because several pollers can be connected to Broker. The hash is indexed
+   * by the poller ID. The diff state is stored in a pair. That pair also
+   * contains an integer to store a union of flags, each one corresponds to an
+   * action to do with this diff. At the moment, there are two actions, sending
+   * the diff to the poller and sending the diff to the storage. When the diff
+   * is sent to both of them, the pair is removed from the table. The mutex is
+   * useful since there are several pollers, actions are done in parallel. */
+  mutable absl::Mutex _diff_state_m;
+  // Engine case
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+  // Broker case
+  absl::flat_hash_map<
+      uint32_t,
+      std::unique_ptr<com::centreon::engine::configuration::DiffState>>
+      _diff_state_table;
 
   state(common::PeerType peer_type,
         const std::shared_ptr<spdlog::logger>& logger);

@@ -154,8 +154,8 @@ void severity_helper::diff(const Container& old_list,
       if (!MessageDifferencer::Equals(item,
                                       *keys_values[*inserted.first].second)) {
         // There are changes in this object
-        DiffSeverity::PairIdxSeverity* res = result->add_modified();
-        res->set_idx(keys_values[*inserted.first].first);
+        DiffSeverity::PairKeySeverity* res = result->add_modified();
+        res->mutable_key()->CopyFrom(item.key());
         res->mutable_object()->CopyFrom(item);
       }
     }
@@ -164,7 +164,8 @@ void severity_helper::diff(const Container& old_list,
   ssize_t i = 0;
   for (const auto& item : old_list) {
     if (!new_keys.contains({item.key().id(), item.key().type()})) {
-      result->add_deleted(i);
+      auto* key = result->add_deleted();
+      key->CopyFrom(item.key());
     }
     ++i;
   }

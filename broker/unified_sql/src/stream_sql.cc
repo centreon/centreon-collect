@@ -1,5 +1,5 @@
 /**
- * Copyright 2021-2023 Centreon
+ * Copyright 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 #include "com/centreon/engine/host.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -1709,24 +1710,38 @@ void stream::_process_pb_instance_configuration(
       !config::applier::state::instance().config_cache_dir().empty()) {
     std::filesystem::path new_poller_conf =
         config::applier::state::instance().pollers_config_dir() / "new_conf" /
-        fmt::format("{}.proto", obj.poller_id());
+        fmt::format("{}.prot", obj.poller_id());
+    std::filesystem::path current_conf =
+        config::applier::state::instance().pollers_config_dir() /
+        fmt::format("{}.prot", obj.poller_id());
     std::error_code ec;
-    engine::configuration::State state;
-    std::ifstream f(new_poller_conf);
-    if (f) {
-      state.ParseFromIstream(&f);
-      std::filesystem::copy_file(
-          new_poller_conf,
-          config::applier::state::instance().pollers_config_dir() /
-              fmt::format("{}.proto", obj.poller_id()),
-          ec);
-      f.close();
+    if (std::filesystem::exists(new_poller_conf, ec)) {
+      std::filesystem::rename(new_poller_conf, current_conf, ec);
     } else {
       _logger_sql->error(
           "Unable to read the Engine configuration for poller {}",
           obj.poller_id());
     }
 
+    /* We need to update centreon_storage database from the diff_state */
+    engine::configuration::DiffState diff_state;
+    std::ifstream f(config::applier::state::instance().pollers_config_dir() /
+                    fmt::format("diff-{}.prot", obj.poller_id()));
+    if (f) {
+      diff_state.ParseFromIstream(&f);
+      _apply_diff_state(obj.poller_id(), diff_state);
+      f.close();
+    } else {
+      _logger_sql->error("Unable to read the diff state for poller {}: {}",
+                         obj.poller_id(), strerror(errno));
+    }
+
+    engine::configuration::State state;
+    f.open(current_conf);
+    if (f) {
+      state.ParseFromIstream(&f);
+      f.close();
+    }
     if (_is_valid_poller(obj.poller_id())) {
       if (_store_in_hosts_services) {
         if (!_eh_update) {
@@ -2005,10 +2020,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   auto& h = hst->obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing pb host event (poller: {}, host: {}, name: {})",
-      h.instance_id(), h.host_id(), h.name());
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: processing pb host event (poller: {}, "
+                     "host: {}, name: {})",
+                     h.instance_id(), h.host_id(), h.name());
 
   auto cache_ptr = cache::global_cache::instance_ptr();
 
@@ -2794,7 +2809,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         _logger_sql,
-        "unified_sql: not processing pb host status check result event (host: "
+        "unified_sql: not processing pb host status check result event "
+        "(host: "
         "{}, "
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
@@ -4952,16 +4968,6 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified_sql: processing severity");
   _finish_action(-1, actions::resources);
 
-  // Prepare queries.
-  if (!_severity_insert.prepared()) {
-    _severity_update = _mysql.prepare_query(
-        "UPDATE severities SET id=?,type=?,name=?,level=?,icon_id=? "
-        "WHERE "
-        "severity_id=?");
-    _severity_insert = _mysql.prepare_query(
-        "INSERT INTO severities (id,type,name,level,icon_id) "
-        "VALUES(?,?,?,?,?)");
-  }
   // Processed object.
   auto s{static_cast<const neb::pb_severity*>(d.get())};
   auto& sv = s->obj();
@@ -5130,3 +5136,51 @@ void stream::_process_responsive_instance(const std::shared_ptr<io::data>& d
 
 void stream::_process_pb_responsive_instance(const std::shared_ptr<io::data>& d
                                              __attribute__((unused))) {}
+
+void stream::_apply_diff_state(uint32_t poller_id,
+                               const engine::configuration::DiffState& ds) {
+  if (ds.has_severities()) {
+    for (const auto& m : ds.severities().modified()) {
+      _logger_sql->trace("unified_sql: modification of severity id={}, type={}",
+                         m.object().key().id(), m.object().key().type());
+      uint64_t severity_id =
+          _severity_cache[{m.object().key().id(), m.object().key().type()}];
+      if (severity_id) {
+        _severity_update.bind_value_as_u64(0, m.object().key().id());
+        _severity_update.bind_value_as_u32(1, m.object().key().type());
+        _severity_update.bind_value_as_str(2, m.object().severity_name());
+        _severity_update.bind_value_as_u32(3, m.object().level());
+        _severity_update.bind_value_as_u64(4, m.object().icon_id());
+        _severity_update.bind_value_as_u64(5, severity_id);
+        _mysql.run_statement(_severity_update,
+                             database::mysql_error::store_severity, 0);
+      } else {
+        _severity_insert.bind_value_as_u64(0, m.object().key().id());
+        _severity_insert.bind_value_as_u32(1, m.object().key().type());
+        _severity_insert.bind_value_as_str(2, m.object().severity_name());
+        _severity_insert.bind_value_as_u32(3, m.object().level());
+        _severity_insert.bind_value_as_u64(4, m.object().icon_id());
+        std::promise<uint64_t> p;
+        std::future<uint64_t> future = p.get_future();
+        _mysql.run_statement_and_get_int<uint64_t>(
+            _severity_insert, std::move(p),
+            database::mysql_task::LAST_INSERT_ID, 0);
+        try {
+          severity_id = future.get();
+          _severity_cache[{m.object().key().id(), m.object().key().type()}] =
+              severity_id;
+        } catch (const std::exception& e) {
+          SPDLOG_LOGGER_ERROR(
+              _logger_sql,
+              "unified sql: unable to insert new severity ({},{}): {}",
+              m.object().key().id(), m.object().key().type(), e.what());
+        }
+      }
+    }
+
+    for (const auto& d : ds.severities().deleted()) {
+      _logger_sql->trace("unified_sql: deletion of severity id={}, type={}",
+                         d.id(), d.type());
+    }
+  }
+}
