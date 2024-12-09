@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -147,7 +147,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
