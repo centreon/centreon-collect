@@ -162,6 +162,17 @@ void serviceescalation_helper::_expand_serviceescalations(
     configuration::State& s,
     configuration::error_cnt& err) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
+
+  absl::flat_hash_map<std::string, configuration::Hostgroup> hostgroups;
+  for (auto& hg : s.hostgroups()) {
+    hostgroups[hg.hostgroup_name()] = hg;
+  }
+
+  absl::flat_hash_map<std::string, configuration::Servicegroup> servicegroups;
+  for (auto& sg : s.servicegroups()) {
+    servicegroups[sg.servicegroup_name()] = sg;
+  }
+
   for (auto& se : *s.mutable_serviceescalations()) {
     /* A set of all the hosts related to this escalation */
     absl::flat_hash_set<std::string> host_names;
@@ -169,13 +180,9 @@ void serviceescalation_helper::_expand_serviceescalations(
       host_names.insert(hname);
     if (se.hostgroups().data().size() > 0) {
       for (auto& hg_name : se.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found_hg != s.hostgroups().end()) {
-          for (auto& h : found_hg->members().data())
+        auto found_hg = hostgroups.find(hg_name);
+        if (found_hg != hostgroups.end()) {
+          for (auto& h : found_hg->second.members().data())
             host_names.emplace(h);
         } else {
           err.config_errors++;
@@ -194,17 +201,13 @@ void serviceescalation_helper::_expand_serviceescalations(
     }
 
     for (auto& sg_name : se.servicegroups().data()) {
-      auto found =
-          std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
-                       [&sg_name](const Servicegroup& sg) {
-                         return sg.servicegroup_name() == sg_name;
-                       });
-      if (found == s.servicegroups().end()) {
+      auto found = servicegroups.find(sg_name);
+      if (found == servicegroups.end()) {
         err.config_errors++;
         throw msg_fmt("Could not resolve service group '{}'", sg_name);
       }
 
-      for (auto& m : found->members().data())
+      for (auto& m : found->second.members().data())
         expanded.emplace(m.first(), m.second());
     }
     se.mutable_hostgroups()->clear_data();
