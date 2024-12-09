@@ -59,7 +59,7 @@ sub test_configuration_read {
     my $tests_cases = [
         {
             file => './config_examples/simple_no_recursion/norecursion.yaml',
-            got  => { configuration => { gorgone => {
+            expected  => { configuration => { gorgone => {
                 key1     => 'a string with all char &é"\'(-è_çà)=!:;,*$^ù%µ£¨/.\e?/§',
                 key2     => ["array1", "array2", "array3"],
                 TrueVal  => 'true',
@@ -73,7 +73,7 @@ sub test_configuration_read {
         },
         {
             file => './config_examples/include_other_files/main.yaml',
-            got  => { configuration => { gorgone => {
+            expected  => { configuration => { gorgone => {
                 gorgonecore => { global_variable => "value" }
             } } },
             msg  => 'simple configuration with !include.'
@@ -81,7 +81,7 @@ sub test_configuration_read {
         { # this is a real world exemple with all parameter I could think of. The default configuration don't have all of them.
             # this is more an integration test than a unit test, but allow to test the whole configuration.
             file => './config_examples/centreon-gorgone/config.yaml',
-            got  => require("./config_examples/centreon-gorgone/expectedConfiguration.pl"),
+            expected  => require("./config_examples/centreon-gorgone/expectedConfiguration.pl"),
             msg  => 'complete configuration with multiples include and many files.'
         }
     ];
@@ -91,7 +91,7 @@ sub test_configuration_read {
             file   => $test->{file},
             filter => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)'
         );
-        is($config, $test->{got}, $test->{msg});
+        is($config, $test->{expected}, $test->{msg});
     }
 
 }
