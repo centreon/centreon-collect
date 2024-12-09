@@ -18,21 +18,6 @@ on:
         required: true
         default: false
         type: boolean
-      legacy_engine:
-        description: 'Compile Engine with legacy configuration library'
-        required: true
-        default: false
-        type: boolean
-      packages_in_artifact:
-        description: 'Save packages in artifacts'
-        required: true
-        default: false
-        type: boolean
-      unit_tests:
-        description: 'Execute the unit tests'
-        required: true
-        default: true
-        type: boolean
 
   schedule:
     - cron: '30 0 * * 1-5'
