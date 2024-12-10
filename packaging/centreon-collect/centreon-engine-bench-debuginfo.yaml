@@ -1,0 +1,47 @@
+name: "centreon-engine-bench-debuginfo"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Debuginfo package for centreon-engine.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../build/engine/modules/bench/centengine_bench_passive.debug"
+    dst: "/usr/lib/debug/usr/sbin/centengine_bench_passive.debug"
+    file_info:
+      mode: 0644
+
+  - src: "../../build/engine/modules/bench/bench_passive_module.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/centreon-engine/bench_passive_module.so.debug"
+    file_info:
+      mode: 0644
+
+overrides:
+  rpm:
+    depends:
+      - centreon-engine-bench = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-engine-bench (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-engine-bench-dbgsym
+    replaces:
+      - centreon-engine-bench-dbgsym
+    provides:
+      - centreon-engine-bench-dbgsym
+
+rpm:
+  summary: Debuginfo package for centreon-engine-bench.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

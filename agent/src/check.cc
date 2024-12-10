@@ -16,9 +16,14 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 #include "check.hh"
 
 using namespace com::centreon::agent;
+
+const std::array<std::string_view, 4> check::status_label = {
+    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
 
 /**
  * @brief Construct a new check::check object
@@ -145,4 +150,73 @@ void check::on_completion(
     ++_running_check_index;
     _completion_handler(shared_from_this(), status, perfdata, outputs);
   }
+}
+
+/**
+ * @brief get a double value from a json number or a string containing a number
+ *
+ * @param cmd_name used to trace exception
+ * @param field_name used to trace exception
+ * @param val rapidjson value
+ * @param must_be_positive if true, value must be positive
+ * @throw exception-object if value is not a number
+ * @return std::optional<double> set if value is not an empty string
+ */
+std::optional<double> check::get_double(const std::string& cmd_name,
+                                        const char* field_name,
+                                        const rapidjson::Value& val,
+                                        bool must_be_positive) {
+  double value;
+  if (val.IsNumber()) {
+    value = val.GetDouble();
+  } else if (val.IsString()) {
+    const char* to_conv = val.GetString();
+    if (!*to_conv) {
+      return {};
+    }
+    if (!absl::SimpleAtod(to_conv, &value)) {
+      throw exceptions::msg_fmt("command: {}, parameter {} is not a number",
+                                cmd_name, field_name);
+    }
+  } else {
+    throw exceptions::msg_fmt("command: {}, parameter {} is not a number",
+                              cmd_name, field_name);
+  }
+  if (must_be_positive && value < 0) {
+    throw exceptions::msg_fmt("command: {}, {} is negative for parameter {}",
+                              cmd_name, value, field_name);
+  }
+  return value;
+}
+
+/**
+ * @brief get a boolean value from a json object
+ * It can be a boolean value or a string containing a boolean
+ *
+ * @param cmd_name
+ * @param field_name
+ * @param val
+ * @throw exception-object if value is not a boolean
+ * @return std::optional<bool>
+ */
+std::optional<bool> check::get_bool(const std::string& cmd_name,
+                                    const char* field_name,
+                                    const rapidjson::Value& val) {
+  bool value;
+  if (val.IsBool()) {
+    value = val.GetBool();
+  } else if (val.IsString()) {
+    const char* to_conv = val.GetString();
+    if (!*to_conv) {
+      return {};
+    }
+    if (!absl::SimpleAtob(to_conv, &value)) {
+      throw exceptions::msg_fmt("command: {}, parameter {} is not a boolean",
+                                cmd_name, field_name);
+    }
+  } else {
+    throw exceptions::msg_fmt("command: {}, parameter {} is not a boolean",
+                              cmd_name, field_name);
+  }
+  return value;
 }

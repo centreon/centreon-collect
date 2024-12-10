@@ -17,6 +17,12 @@
  */
 #include <windows.h>
 
+#include "check_cpu.hh"
+#include "check_memory.hh"
+#include "check_service.hh"
+#include "check_uptime.hh"
+#include "drive_size.hh"
+
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -104,6 +110,21 @@ static std::string read_file(const std::string& file_path) {
     SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
   }
   return "";
+}
+
+void show_help() {
+  std::cout << "usage: centagent.exe [options]" << std::endl;
+  std::cout << "Options:" << std::endl;
+  std::cout << "  --standalone: run the agent in standalone mode not from "
+               "service manager (mandatory for start it from command line)"
+            << std::endl;
+  std::cout << "  --help: show this help" << std::endl;
+  std::cout << std::endl << "native checks options:" << std::endl;
+  check_cpu::help(std::cout);
+  check_memory::help(std::cout);
+  check_uptime::help(std::cout);
+  check_drive_size::help(std::cout);
+  check_service::help(std::cout);
 }
 
 /**
@@ -240,6 +261,11 @@ void WINAPI SvcMain(DWORD, LPTSTR*);
 int main(int argc, char* argv[]) {
   if (argc > 1 && !lstrcmpi(argv[1], "--standalone")) {
     return _main(false);
+  }
+
+  if (argc > 1 && !lstrcmpi(argv[1], "--help")) {
+    show_help();
+    return 0;
   }
 
   SPDLOG_INFO(

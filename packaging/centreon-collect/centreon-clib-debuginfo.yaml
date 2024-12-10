@@ -1,0 +1,45 @@
+name: "centreon-clib-debuginfo"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Debuginfo package for centreon-clib.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../build/clib/libcentreon_clib.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/clib/libcentreon_clib.so.debug"
+    dst: "/usr/lib/debug/usr/lib/"
+    packager: deb
+
+overrides:
+  rpm:
+    depends:
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-clib-dbgsym
+    replaces:
+      - centreon-clib-dbgsym
+    provides:
+      - centreon-clib-dbgsym
+
+rpm:
+  summary: Centreon core library.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

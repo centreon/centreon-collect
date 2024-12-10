@@ -294,9 +294,6 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
   }
 }
 
-constexpr std::array<std::string_view, 4> _sz_status = {
-    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
-
 /**
  * @brief called at measure timer expiration
  * Then we take a new snapshot of /proc/stat, compute difference with
@@ -379,7 +376,7 @@ e_status native_check_cpu<nb_metric>::_compute(
         } else {
           output->push_back(' ');
         }
-        *output += _sz_status[cpu_status.second];
+        *output += status_label[cpu_status.second];
         delta[cpu_status.first].dump(cpu_status.first, summary_labels, output);
       }
     }

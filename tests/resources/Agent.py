@@ -186,7 +186,7 @@ def ctn_get_drive_statistics(drive_name_format:str):
         return drive_dict
     else:
         return None
-    
+
 def ctn_get_uptime():
     """
     ctn_get_uptime
@@ -199,5 +199,64 @@ def ctn_get_uptime():
         if test_args["uptime"] is not None:
             uptime_dict['uptime'] = time.time() - test_args["uptime"]
             return uptime_dict
+    return None
+     
+def ctn_get_memory():
+    """
+    ctn_get_memory statistics
+    return a dict with these elements (expected perfdata):
+    - memory.free.bytes
+    - memory.usage.bytes
+    - memory.usage.percentage
+    - swap.free.bytes
+    - swap.usage.bytes
+    - swap.usage.percentage
+    - virtual-memory.free.bytes
+    - virtual-memory.usage.bytes
+    - virtual-memory.usage.percentage
+    """
+
+    if environ.get("RUN_ENV","") == "WSL":
+        memory_dict = {'swap.free.bytes': None, 'swap.usage.bytes': None, 'swap.usage.percentage': None }
+        json_test_args = environ.get("JSON_TEST_PARAMS")
+        test_args = json.loads(json_test_args)
+        if test_args["mem_info"] is not None:
+            #values of systeminfo are given in Mb
+            virtual_free = int(test_args["mem_info"]["virtual_free"].replace(",", "").split()[0]) *1024 *1024
+            virtual_max = int(test_args["mem_info"]["virtual_max"].replace(",", "").split()[0])*1024 *1024
+            free= int(test_args["mem_info"]["free"].replace(",", "").split()[0])*1024 *1024
+            total = int(test_args["mem_info"]["total"].replace(",", "").split()[0])*1024 *1024
+            memory_dict['virtual-memory.free.bytes'] = virtual_free
+            memory_dict['virtual-memory.usage.bytes'] = virtual_max - virtual_free
+            memory_dict['virtual-memory.usage.percentage'] = 100 - (100.0 * virtual_free) / virtual_max
+
+            memory_dict['memory.free.bytes'] = free
+            memory_dict['memory.usage.bytes'] = total - free
+            memory_dict['memory.usage.percentage'] = 100 - (100.0 * free) / total    
+            return memory_dict
+    return None
+    
+def ctn_get_service():
+    """
+    ctn_get_service statistics
+    return a dict with these elements (expected perfdata):
+    - services.stopped.count
+    - services.starting.count
+    - services.stopping.count
+    - services.running.count
+    - services.continuing.count
+    - services.pausing.count
+    - services.paused.count
+    """
+
+    if environ.get("RUN_ENV","") == "WSL":
+        service_dict = {'services.stopped.count': 0, 'services.starting.count': None, 'services.stopping.count': None, 'services.running.count': 0, 
+                       'services.continuing.count': None, 'services.pausing.count': None, 'services.paused.count': None }
+        json_test_args = environ.get("JSON_TEST_PARAMS")
+        test_args = json.loads(json_test_args)
+        if test_args["serv_stat"] is not None:
+            service_dict["services.stopped.count"] = test_args["serv_stat"]["services.stopped.count"]
+            service_dict["services.running.count"] = test_args["serv_stat"]["services.running.count"]
+            return service_dict
     return None
     

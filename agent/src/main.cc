@@ -20,6 +20,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "check_cpu.hh"
 #include "config.hh"
 #include "drive_size.hh"
 #include "streaming_client.hh"
@@ -104,6 +105,8 @@ int main(int argc, char* argv[]) {
         "Usage: {} <path to json config file>\nSchema of the config "
         "file is:\n{}",
         argv[0], config::config_schema);
+    std::cout << std::endl << "Native checks options:" << std::endl;
+    check_cpu::help(std::cout);
     return 1;
   }
 
