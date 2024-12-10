@@ -19,6 +19,7 @@
 
 #include "check_cpu.hh"
 #include "check_memory.hh"
+#include "check_service.hh"
 #include "check_uptime.hh"
 #include "drive_size.hh"
 
@@ -123,6 +124,7 @@ void show_help() {
   check_memory::help(std::cout);
   check_uptime::help(std::cout);
   check_drive_size::help(std::cout);
+  check_service::help(std::cout);
 }
 
 /**
