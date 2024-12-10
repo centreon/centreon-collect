@@ -192,6 +192,15 @@ class check : public std::enable_shared_from_this<check> {
                      const std::list<std::string>& outputs);
 
   virtual void start_check(const duration& timeout) = 0;
+
+  static std::optional<double> get_double(const std::string& cmd_name,
+                                          const char* field_name,
+                                          const rapidjson::Value& val,
+                                          bool must_be_positive);
+
+  static std::optional<bool> get_bool(const std::string& cmd_name,
+                                      const char* field_name,
+                                      const rapidjson::Value& val);
 };
 
 }  // namespace com::centreon::agent

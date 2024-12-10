@@ -24,8 +24,6 @@
 #include "check_cpu.hh"
 #include "native_check_cpu_base.cc"
 
-#include "com/centreon/common/rapidjson_helper.hh"
-
 #pragma comment(lib, "pdh.lib")
 
 using namespace com::centreon::agent;
@@ -411,56 +409,29 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
 
 {
   try {
-    com::centreon::common::rapidjson_helper arg(args);
     if (args.IsObject()) {
       for (auto member_iter = args.MemberBegin();
            member_iter != args.MemberEnd(); ++member_iter) {
         auto cpu_to_status_search = _label_to_cpu_to_status.find(
             absl::AsciiStrToLower(member_iter->name.GetString()));
         if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-          const rapidjson::Value& val = member_iter->value;
-          if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-              val.IsUint64()) {
+          std::optional<double> threshold =
+              check::get_double(cmd_name, member_iter->name.GetString(),
+                                member_iter->value, true);
+          if (threshold) {
             check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(member_iter->value.GetDouble() /
-                                             100);
+                cpu_to_status_search->second(*threshold / 100);
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
                                 cpu_checker.is_average(),
                                 cpu_checker.get_status()),
                 cpu_checker);
-          } else if (val.IsString()) {
-            auto to_conv = val.GetString();
-            double dval;
-            if (absl::SimpleAtod(to_conv, &dval)) {
-              check_cpu_detail::cpu_to_status cpu_checker =
-                  cpu_to_status_search->second(dval / 100);
-              _cpu_to_status.emplace(
-                  std::make_tuple(cpu_checker.get_proc_stat_index(),
-                                  cpu_checker.is_average(),
-                                  cpu_checker.get_status()),
-                  cpu_checker);
-            } else {
-              SPDLOG_LOGGER_ERROR(
-                  logger,
-                  "command: {}, value is not a number for parameter {}: {}",
-                  cmd_name, member_iter->name, val);
-            }
-
-          } else {
-            SPDLOG_LOGGER_ERROR(logger,
-                                "command: {}, bad value for parameter {}: {}",
-                                cmd_name, member_iter->name, val);
           }
         } else if (member_iter->name == "use-nt-query-system-information") {
-          const rapidjson::Value& val = member_iter->value;
-          if (val.IsBool()) {
-            _use_nt_query_system_information = val.GetBool();
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, use-nt-query-system-information is not a boolean",
-                cmd_name);
+          std::optional<bool> val = get_bool(
+              cmd_name, "use-nt-query-system-information", member_iter->value);
+          if (val) {
+            _use_nt_query_system_information = *val;
           }
         } else if (member_iter->name != "cpu-detailed") {
           SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
