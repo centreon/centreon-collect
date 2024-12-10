@@ -136,7 +136,10 @@ jobs:
 
   unit-test:
     needs: [get-environment]
-    if: ${{ github.event.inputs.unit_tests == 'true' && ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      github.event.inputs.unit_tests == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
@@ -247,7 +250,9 @@ jobs:
 
   package:
     needs: [get-environment]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
@@ -306,6 +311,8 @@ jobs:
   robot-test:
     needs: [get-environment, package]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
       needs.get-environment.outputs.is_nightly == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -376,12 +383,13 @@ jobs:
       jira_base_url: ${{ secrets.JIRA_BASE_URL }}
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
-      contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+      needs.get-environment.outputs.stability == 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -404,6 +412,7 @@ jobs:
 
   deliver-rpm:
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -451,6 +460,7 @@ jobs:
 
   deliver-deb:
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -499,6 +509,7 @@ jobs:
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -523,3 +534,12 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
