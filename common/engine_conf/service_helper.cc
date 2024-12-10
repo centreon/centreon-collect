@@ -283,16 +283,15 @@ bool service_helper::insert_customvariable(std::string_view key,
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void service_helper::_expand_services(configuration::State& s,
-                                      configuration::error_cnt& err) {
+void service_helper::_expand_services(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Host> m_host,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*> sgs) {
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
     cvs.emplace(cv);
-
-  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
 
   // Browse all services.
   for (auto& service_cfg : *s.mutable_services()) {
@@ -301,9 +300,6 @@ void service_helper::_expand_services(configuration::State& s,
       if (!s.enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
-    absl::flat_hash_map<std::string_view, Servicegroup*> sgs;
-    for (auto& sg : *s.mutable_servicegroups())
-      sgs[sg.servicegroup_name()] = &sg;
 
     // Browse service groups.
     for (auto& sg_name : service_cfg.servicegroups().data()) {
@@ -330,11 +326,8 @@ void service_helper::_expand_services(configuration::State& s,
         service_cfg.notification_period().empty() ||
         service_cfg.timezone().empty()) {
       // Find host.
-      auto it = std::find_if(s.hosts().begin(), s.hosts().end(),
-                             [name = service_cfg.host_name()](const Host& h) {
-                               return h.host_name() == name;
-                             });
-      if (it == s.hosts().end()) {
+      auto it = m_host.find(service_cfg.host_name());
+      if (it == m_host.end()) {
         err.config_errors++;
         throw msg_fmt(
             "Could not inherit special variables for service '{}': host '{}' "
@@ -344,18 +337,20 @@ void service_helper::_expand_services(configuration::State& s,
 
       // Inherits variables.
       if (!service_cfg.host_id())
-        service_cfg.set_host_id(it->host_id());
+        service_cfg.set_host_id(it->second.host_id());
       if (service_cfg.contacts().data().empty() &&
           service_cfg.contactgroups().data().empty()) {
-        service_cfg.mutable_contacts()->CopyFrom(it->contacts());
-        service_cfg.mutable_contactgroups()->CopyFrom(it->contactgroups());
+        service_cfg.mutable_contacts()->CopyFrom(it->second.contacts());
+        service_cfg.mutable_contactgroups()->CopyFrom(
+            it->second.contactgroups());
       }
       if (service_cfg.notification_interval() == 0)
-        service_cfg.set_notification_interval(it->notification_interval());
+        service_cfg.set_notification_interval(
+            it->second.notification_interval());
       if (service_cfg.notification_period().empty())
-        service_cfg.set_notification_period(it->notification_period());
+        service_cfg.set_notification_period(it->second.notification_period());
       if (service_cfg.timezone().empty())
-        service_cfg.set_timezone(it->timezone());
+        service_cfg.set_timezone(it->second.timezone());
     }
   }
 }

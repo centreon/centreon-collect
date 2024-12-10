@@ -203,21 +203,14 @@ void servicedependency_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void servicedependency_helper::_expand_servicedependencies(State& s,
-                                                           error_cnt& err
-                                                           [[maybe_unused]]) {
+void servicedependency_helper::_expand_servicedependencies(
+    State& s,
+    error_cnt& err [[maybe_unused]],
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+        servicegroups) {
   // Browse all dependencies.
   std::list<std::unique_ptr<Servicedependency>> expanded;
-
-  absl::flat_hash_map<std::string, configuration::Hostgroup> hostgroups;
-  for (auto& hg : s.hostgroups()) {
-    hostgroups[hg.hostgroup_name()] = hg;
-  }
-
-  absl::flat_hash_map<std::string, configuration::Servicegroup> servicegroups;
-  for (auto& sg : s.servicegroups()) {
-    servicegroups[sg.servicegroup_name()] = sg;
-  }
 
   for (auto& dep : s.servicedependencies()) {
     // Expand service dependency instances.
@@ -305,8 +298,8 @@ void servicedependency_helper::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
     absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
-    absl::flat_hash_map<std::string, configuration::Hostgroup>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup>&
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
         servicegroups) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;
@@ -321,8 +314,8 @@ void servicedependency_helper::_expand_services(
     if (found == hostgroups.end())
       throw msg_fmt("Could not resolve host group '{}'", hgn);
     // Add host group members.
-    all_hosts.insert(found->second.members().data().begin(),
-                     found->second.members().data().end());
+    all_hosts.insert(found->second->members().data().begin(),
+                     found->second->members().data().end());
   }
 
   // Hosts * services.
@@ -339,7 +332,7 @@ void servicedependency_helper::_expand_services(
       throw msg_fmt("Coulx not resolve service group '{}'", sgn);
 
     // Add service group members.
-    for (auto& m : found->second.members().data())
+    for (auto& m : found->second->members().data())
       expanded.insert({m.first(), m.second()});
   }
 }

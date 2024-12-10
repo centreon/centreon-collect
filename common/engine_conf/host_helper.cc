@@ -331,15 +331,13 @@ bool host_helper::insert_customvariable(std::string_view key,
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void host_helper::_expand_hosts(configuration::State& s,
-                                configuration::error_cnt& err) {
+void host_helper::_expand_hosts(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
   absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
     cvs.emplace(cv);
-
-  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
 
   // Browse all hosts.
   for (auto& host_cfg : *s.mutable_hosts()) {

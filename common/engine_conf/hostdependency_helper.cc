@@ -169,9 +169,10 @@ void hostdependency_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void hostdependency_helper::_expand_hostdependencies(State& s,
-                                                     error_cnt& err
-                                                     [[maybe_unused]]) {
+void hostdependency_helper::_expand_hostdependencies(
+    State& s,
+    error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
   std::list<std::unique_ptr<configuration::Hostdependency> > lst;
 
   for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
@@ -182,13 +183,9 @@ void hostdependency_helper::_expand_hostdependencies(State& s,
         !hd_conf->dependent_hostgroups().data().empty() ||
         hd_conf->dependency_type() == unknown) {
       for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
+        auto found = m_hostgroups.find(hg_name);
+        if (found != m_hostgroups.end()) {
+          auto& hg_conf = *found->second;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_dependent_hosts(), h);
         } else {
@@ -198,13 +195,9 @@ void hostdependency_helper::_expand_hostdependencies(State& s,
         }
       }
       for (auto& hg_name : hd_conf->hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
+        auto found = m_hostgroups.find(hg_name);
+        if (found != m_hostgroups.end()) {
+          auto& hg_conf = *found->second;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_hosts(), h);
         } else {

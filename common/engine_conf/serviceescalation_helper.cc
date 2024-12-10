@@ -160,18 +160,11 @@ void serviceescalation_helper::_init() {
  */
 void serviceescalation_helper::_expand_serviceescalations(
     configuration::State& s,
-    configuration::error_cnt& err) {
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+        servicegroups) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
-
-  absl::flat_hash_map<std::string, configuration::Hostgroup> hostgroups;
-  for (auto& hg : s.hostgroups()) {
-    hostgroups[hg.hostgroup_name()] = hg;
-  }
-
-  absl::flat_hash_map<std::string, configuration::Servicegroup> servicegroups;
-  for (auto& sg : s.servicegroups()) {
-    servicegroups[sg.servicegroup_name()] = sg;
-  }
 
   for (auto& se : *s.mutable_serviceescalations()) {
     /* A set of all the hosts related to this escalation */
@@ -182,7 +175,7 @@ void serviceescalation_helper::_expand_serviceescalations(
       for (auto& hg_name : se.hostgroups().data()) {
         auto found_hg = hostgroups.find(hg_name);
         if (found_hg != hostgroups.end()) {
-          for (auto& h : found_hg->second.members().data())
+          for (auto& h : found_hg->second->members().data())
             host_names.emplace(h);
         } else {
           err.config_errors++;
@@ -207,7 +200,7 @@ void serviceescalation_helper::_expand_serviceescalations(
         throw msg_fmt("Could not resolve service group '{}'", sg_name);
       }
 
-      for (auto& m : found->second.members().data())
+      for (auto& m : found->second->members().data())
         expanded.emplace(m.first(), m.second());
     }
     se.mutable_hostgroups()->clear_data();
