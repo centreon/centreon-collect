@@ -102,12 +102,17 @@ configuration:
 
 ## *centreon vault*
 
-Centreon vault is a tool to secure passwords present in the Centreon configuration.\
-It allows to store the password in a vault and retrieve it when needed by each component.\
-Gorgone allow to use a vault to store any string in the configuration. It cannot store an array or an hash.
+Centreon Vault is a tool that secures the passwords present in the Centreon configuration.\
 
-To use vault, report to the official documentation to set up vault and the configuration file in `/var/lib/centreon/vault/vault.json`\
-Then replace any password present in the gorgone configuration with a vault string. See the official format here : 
+It stores passwords in a vault and retrieves them when needed by each component.\
+
+Gorgone allows you to use a vault to store any string in the configuration. It cannot store an array or a hash.
+
+
+To use Vault, read the official documentation to set up Vault and the configuration file in `/var/lib/centreon/vault/vault.json`\
+
+Then replace any password present in the Gorgone configuration with a Vault string. See the official format here : 
+
 
 https://github.com/centreon/centreon-collect/blob/develop/perl-libs/lib/centreon/common/centreonvault.pm#L391
 
