@@ -204,39 +204,16 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
       auto cpu_to_status_search = _label_to_cpu_to_status.find(
           absl::AsciiStrToLower(member_iter->name.GetString()));
       if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-            val.IsUint64()) {
+        std::optional<double> val = get_double(
+            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        if (val) {
           check_cpu_detail::cpu_to_status cpu_checker =
-              cpu_to_status_search->second(member_iter->value.GetDouble() /
-                                           100);
+              cpu_to_status_search->second(*val / 100);
           _cpu_to_status.emplace(
               std::make_tuple(cpu_checker.get_proc_stat_index(),
                               cpu_checker.is_average(),
                               cpu_checker.get_status()),
               cpu_checker);
-        } else if (val.IsString()) {
-          auto to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
-            check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(dval / 100);
-            _cpu_to_status.emplace(
-                std::make_tuple(cpu_checker.get_proc_stat_index(),
-                                cpu_checker.is_average(),
-                                cpu_checker.get_status()),
-                cpu_checker);
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, value is not a number for parameter {}: {}",
-                cmd_name, member_iter->name, val);
-          }
-
-        } else {
-          SPDLOG_LOGGER_ERROR(logger,
-                              "command: {}, bad value for parameter {}: {}",
-                              cmd_name, member_iter->name, val);
         }
       } else if (member_iter->name != "cpu-detailed") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",

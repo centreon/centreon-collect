@@ -563,8 +563,12 @@ void check_drive_size::_completion_handler(
   }
   if (output.empty()) {
     using namespace std::literals;
-    output = perfs.empty() ? "No storage found (filters issue)"sv
-                           : "OK: All storages are ok"sv;
+    if (perfs.empty()) {
+      output = "No storage found (filters issue)"sv;
+      status = e_status::critical;
+    } else {
+      output = "OK: All storages are ok"sv;
+    }
   }
 
   on_completion(start_check_index, status, perfs, {output});

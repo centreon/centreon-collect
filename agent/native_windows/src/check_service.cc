@@ -561,8 +561,9 @@ check_service::check_service(
       if (val.IsString()) {
         re2::RE2 filter_typ_re(val.GetString());
         if (!filter_typ_re.ok()) {
-          throw exceptions::msg_fmt("warning-state: {} is not a valid regex",
-                                    val.GetString());
+          throw exceptions::msg_fmt(
+              "command: {} warning-state: {} is not a valid regex",
+              cmd_name, val.GetString());
         } else {
           for (const auto& [label, flag] : _label_state) {
             if (RE2::FullMatch(label, filter_typ_re)) {
@@ -571,15 +572,17 @@ check_service::check_service(
           }
         }
       } else {
-        throw exceptions::msg_fmt("warning-state must be a string");
+        throw exceptions::msg_fmt("command: {} warning-state must be a string",
+                                  cmd_name);
       }
     } else if (key == "critical-state") {
       const rapidjson::Value& val = member_iter->value;
       if (val.IsString()) {
         re2::RE2 filter_typ_re(val.GetString());
         if (!filter_typ_re.ok()) {
-          throw exceptions::msg_fmt("critical-state: {} is not a valid regex",
-                                    val.GetString());
+          throw exceptions::msg_fmt(
+              "command: {} critical-state: {} is not a valid regex", cmd_name,
+              val.GetString());
         } else {
           for (const auto& [label, flag] : _label_state) {
             if (RE2::FullMatch(label, filter_typ_re)) {
@@ -588,42 +591,27 @@ check_service::check_service(
           }
         }
       } else {
-        throw exceptions::msg_fmt("critical-state must be a string");
+        throw exceptions::msg_fmt("command: {} critical-state must be a string",
+                                  cmd_name);
       }
     } else {
       auto threshold = _label_to_service_status.find(key);
       if (threshold != _label_to_service_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsNumber()) {
-          std::unique_ptr<w_service_to_status> to_ins =
-              threshold->second(val.GetDouble());
+        std::optional<double> val = get_double(
+            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        if (val) {
+          std::unique_ptr<w_service_to_status> to_ins = threshold->second(*val);
           _measure_to_status.emplace(
               std::make_tuple(to_ins->get_data_index(),
                               e_service_metric::nb_service_metric,
                               to_ins->get_status()),
               std::move(to_ins));
-
-        } else if (val.IsString()) {
-          const auto& to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
-            std::unique_ptr<w_service_to_status> to_ins =
-                threshold->second(dval);
-            _measure_to_status.emplace(
-                std::make_tuple(to_ins->get_data_index(),
-                                e_service_metric::nb_service_metric,
-                                to_ins->get_status()),
-                std::move(to_ins));
-          } else {
-            throw exceptions::msg_fmt(
-                "command: {}, {} is not a number for parameter {}", cmd_name,
-                key, val);
-          }
-        } else {
-          throw exceptions::msg_fmt(
-              "command: {}, {} is not a number for parameter {}", cmd_name, key,
-              val);
         }
+      } else if (key != "filter-name" || key != "exclude-name" ||
+                 key != "filter-display" || key != "exclude-display" ||
+                 key != "start-auto") {
+        SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
+                            cmd_name, member_iter->name);
       }
     }
   }
