@@ -145,7 +145,8 @@ void hostescalation_helper::_init() {
  */
 void hostescalation_helper::_expand_hostescalations(
     configuration::State& s,
-    configuration::error_cnt& err) {
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
   std::list<std::unique_ptr<Hostescalation> > resolved;
   for (auto& he : *s.mutable_hostescalations()) {
     if (he.hostgroups().data().size() > 0) {
@@ -153,13 +154,9 @@ void hostescalation_helper::_expand_hostescalations(
       for (auto& hname : he.hosts().data())
         host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found_hg != s.hostgroups().end()) {
-          for (auto& h : found_hg->members().data())
+        auto found_hg = m_hostgroups.find(hg_name);
+        if (found_hg != m_hostgroups.end()) {
+          for (auto& h : found_hg->second->members().data())
             host_names.emplace(h);
         } else {
           err.config_errors++;

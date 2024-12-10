@@ -164,8 +164,11 @@ bool contact_helper::insert_customvariable(std::string_view key,
  * @param s The configuration::State object.
  * @param err An error counter.
  */
-void contact_helper::_expand_contacts(configuration::State& s,
-                                      configuration::error_cnt& err) {
+void contact_helper::_expand_contacts(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+        m_contactgroups) {
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
@@ -182,19 +185,14 @@ void contact_helper::_expand_contacts(configuration::State& s,
     // Browse current contact's groups.
     for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
       // Find contact group.
-      Contactgroup* found_cg = nullptr;
-      for (auto& cgg : *s.mutable_contactgroups())
-        if (cgg.contactgroup_name() == cg) {
-          found_cg = &cgg;
-          break;
-        }
-      if (found_cg == nullptr) {
+      auto found_cg = m_contactgroups.find(cg);
+      if (found_cg == m_contactgroups.end()) {
         err.config_errors++;
         throw msg_fmt(
             "Could not add contact '{}' to non-existing contact group '{}'",
             c.contact_name(), cg);
       }
-      fill_string_group(found_cg->mutable_members(), c.contact_name());
+      fill_string_group(found_cg->second->mutable_members(), c.contact_name());
     }
   }
 }

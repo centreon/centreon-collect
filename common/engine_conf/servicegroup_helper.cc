@@ -86,16 +86,13 @@ void servicegroup_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void servicegroup_helper::_expand_servicegroups(configuration::State& s,
-                                                configuration::error_cnt& err) {
+void servicegroup_helper::_expand_servicegroups(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+        m_servicegroups) {
   // This set stores resolved service groups.
   absl::flat_hash_set<std::string_view> resolved;
-
-  // Here, we store each Servicegroup pointer by its name.
-  absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
-      sg_by_name;
-  for (auto& sg_conf : *s.mutable_servicegroups())
-    sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;
 
   // Each servicegroup can contain servicegroups, that is to mean the services
   // in the sub servicegroups are also in our servicegroup.
@@ -105,7 +102,7 @@ void servicegroup_helper::_expand_servicegroups(configuration::State& s,
   // step, a servicegroup is considered as resolved.
   for (auto& sg_conf : *s.mutable_servicegroups()) {
     if (!resolved.contains(sg_conf.servicegroup_name())) {
-      _resolve_members(s, &sg_conf, resolved, sg_by_name, err);
+      _resolve_members(s, &sg_conf, resolved, m_servicegroups, err);
     }
   }
 }
@@ -123,24 +120,23 @@ void servicegroup_helper::_resolve_members(
     configuration::State& s,
     configuration::Servicegroup* sg_conf,
     absl::flat_hash_set<std::string_view>& resolved,
-    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string, configuration::Servicegroup*>&
         sg_by_name,
     configuration::error_cnt& err) {
   for (auto& sgm : sg_conf->servicegroup_members().data()) {
     std::cout << "Resolving service group member sgm " << sgm << std::endl;
-    configuration::Servicegroup* sgm_conf =
-        sg_by_name.at(std::string_view(sgm));
-    if (sgm_conf == nullptr) {
+    auto sgm_conf = sg_by_name.find(sgm);
+    if (sgm_conf == sg_by_name.end()) {
       err.config_errors++;
       throw msg_fmt(
           "Could not add non-existing service group member '{}' to service "
           "group '{}'\n",
           sgm, sg_conf->servicegroup_name());
     }
-    if (!resolved.contains(sgm_conf->servicegroup_name()))
-      _resolve_members(s, sgm_conf, resolved, sg_by_name, err);
+    if (!resolved.contains(sgm_conf->second->servicegroup_name()))
+      _resolve_members(s, sgm_conf->second, resolved, sg_by_name, err);
 
-    for (auto& sm : sgm_conf->members().data()) {
+    for (auto& sm : sgm_conf->second->members().data()) {
       fill_pair_string_group(sg_conf->mutable_members(), sm.first(),
                              sm.second());
     }

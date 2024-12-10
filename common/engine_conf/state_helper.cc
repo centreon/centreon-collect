@@ -514,29 +514,53 @@ bool state_helper::apply_extended_conf(
  */
 void state_helper::expand_conf(configuration::error_cnt& err) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
+
+  absl::flat_hash_map<std::string, configuration::Host> m_host;
+  for (auto& h : pb_config.hosts()) {
+    m_host.emplace(h.host_name(), h);
+  }
+
+  absl::flat_hash_map<std::string, configuration::Contactgroup*>
+      m_contactgroups;
+  for (auto& cg : *pb_config.mutable_contactgroups()) {
+    m_contactgroups.emplace(cg.contactgroup_name(), &cg);
+  }
+
+  absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
+  for (auto& hg : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  }
+
+  absl::flat_hash_map<std::string, configuration::Servicegroup*>
+      m_servicegroups;
+  for (auto& sg : *pb_config.mutable_servicegroups())
+    m_servicegroups.emplace(sg.servicegroup_name(), &sg);
+
   // Expand contacts
-  contact_helper::_expand_contacts(pb_config, err);
+  contact_helper::_expand_contacts(pb_config, err, m_contactgroups);
   // Expand contactgroups
-  contactgroup_helper::_expand_contactgroups(pb_config, err);
+  contactgroup_helper::_expand_contactgroups(pb_config, err, m_contactgroups);
   // Expand hosts
-  host_helper::_expand_hosts(pb_config, err);
+  host_helper::_expand_hosts(pb_config, err, m_hostgroups);
   // Expand services
-  service_helper::_expand_services(pb_config, err);
+  service_helper::_expand_services(pb_config, err, m_host, m_servicegroups);
   // Expand anomalydetection
   anomalydetection_helper::_expand_anomalydetections(pb_config, err);
 
   // Expand servicegroups
-  servicegroup_helper::_expand_servicegroups(pb_config, err);
+  servicegroup_helper::_expand_servicegroups(pb_config, err, m_servicegroups);
 
   // Expand hostdependencies.
-  hostdependency_helper::_expand_hostdependencies(pb_config, err);
+  hostdependency_helper::_expand_hostdependencies(pb_config, err, m_hostgroups);
   // Expand servicedependencies.
-  servicedependency_helper::_expand_servicedependencies(pb_config, err);
+  servicedependency_helper::_expand_servicedependencies(
+      pb_config, err, m_hostgroups, m_servicegroups);
 
   // Expand hostescalations
-  hostescalation_helper::_expand_hostescalations(pb_config, err);
+  hostescalation_helper::_expand_hostescalations(pb_config, err, m_hostgroups);
   // Expand serviceescalations
-  serviceescalation_helper::_expand_serviceescalations(pb_config, err);
+  serviceescalation_helper::_expand_serviceescalations(
+      pb_config, err, m_hostgroups, m_servicegroups);
 }
 
 }  // namespace com::centreon::engine::configuration
