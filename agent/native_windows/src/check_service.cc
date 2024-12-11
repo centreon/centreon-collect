@@ -122,7 +122,7 @@ void service_enumerator::_enumerate_services(
     if (success || GetLastError() == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
       for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
-        if (start_auto) {
+        if constexpr (start_auto) {
           QUERY_SERVICE_CONFIGA serv_conf;
           if (!_query_service_config(serv->lpServiceName, serv_conf, logger)) {
             continue;

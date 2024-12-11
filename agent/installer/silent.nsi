@@ -180,7 +180,7 @@ Function cmd_line_to_registry
         ${EndIf}
 
     ${Else}
-        WriteRegStr HKLM ${CMA_REG_KEY} "log_type"  "EventLog"
+        WriteRegStr HKLM ${CMA_REG_KEY} "log_type"  "event-log"
     ${EndIf}
     ClearErrors
     ${GetOptions} $cmdline_parameters "--log_level" $0

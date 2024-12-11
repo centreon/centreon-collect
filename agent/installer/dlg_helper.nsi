@@ -158,7 +158,7 @@ Function init_log_dlg
     ${NSD_CB_SelectString} $hCtl_log_dlg_log_level $0
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "log_type"
     ${If} $0 == ""
-        StrCpy $0 "EventLog"
+        StrCpy $0 "Event-Log"
     ${EndIf}
     ${NSD_CB_SelectString} $hCtl_log_dlg_log_type $0
     ReadRegDWORD $0 HKLM ${CMA_REG_KEY} "log_max_file_size"
