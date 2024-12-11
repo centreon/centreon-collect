@@ -234,12 +234,14 @@ sub writeLog($$$%) {
 
     # do nothing if the configured severity does not imply logging this message
     return if ($self->{severity} < $severity);
+    if (length($msg) > 20000) {
+        $msg = substr($msg, 0, 20000) . '...';
+    }
+    $msg = ($self->withpid()) ? "$$ - $msg" : $msg;
 
-    $msg = ($self->withpid()) ? "[$$] $msg" : $msg;
-
-    my $datedmsg = "[" . $human_severities{$severity} . "] " . $msg . "\n";
+    my $datedmsg = $human_severities{$severity} . " - " . $msg . "\n";
     if ($self->withdate()) {
-        $datedmsg = "[" . $self->get_date . "] " . $datedmsg;
+        $datedmsg = $self->get_date . " - " . $datedmsg;
     }
     if ($self->{log_mode} == 1 and defined($self->{filehandler})) {
         print {$self->{filehandler}} $datedmsg;

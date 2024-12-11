@@ -25,7 +25,7 @@ use warnings;
 use FindBin;
 use Getopt::Long;
 use Pod::Usage;
-use gorgone::class::logger;
+use centreon::common::logger;
 use gorgone::class::db;
 use gorgone::class::lock;
 use YAML::XS;
@@ -53,9 +53,10 @@ sub new {
 
     bless $self, $class;
     $self->{name} = $name;
-    $self->{logger} = gorgone::class::logger->new();
+    $self->{logger} = centreon::common::logger->new();
     $self->{options} = {
         'config=s'    => \$self->{config_file},
+        'vault=s'     => \$self->{vault_config_file},
         'logfile=s'   => \$self->{log_file},
         'severity=s'  => \$self->{severity},
         'flushoutput' => \$self->{flushoutput},
@@ -141,6 +142,11 @@ sub run {
     $self->init();
 }
 
+# yaml_get_include: return a flat array of files defined by an !include directive.
+# it will resolve the wildcard and return a sorted list of files.
+# include: string with the directive. It can be a comma separated list, each element can contain '*' at the start of the string to specify 0 or more character (any character).
+# current_dir: current directory to resolve relative path of !include directive.
+#           if the path is not absolute, it will be prefixed by the binary current path, so the first top level include should be an absolute path.
 sub yaml_get_include {
     my ($self, %options) = @_;
 
@@ -151,16 +157,19 @@ sub yaml_get_include {
         my $dirname = File::Basename::dirname($dir);
         $dirname = $options{current_dir} . '/' . $dirname if ($dirname !~ /^\//);
         my $match_files = File::Basename::basename($dir);
+        # \Q\E is used to escape every special characters in the regex.
+        # we replace * by .* to match any character and disable \Q\E locally.
+        # so the extension will correctly match the file.
         $match_files =~ s/\*/\\E.*\\Q/g;
         $match_files = '\Q' . $match_files . '\E';
-
         my @sorted_files = ();
         my $DIR;
+
         if (!opendir($DIR, $dirname)) {
             $self->{logger}->writeLogError("config - cannot opendir '$dirname' error: $!");
             return ();
         }
-
+        # opened the directory for the tested file, we will now test every file in the directory to see if they match the pattern.
         while (readdir($DIR)) {
             if (-f "$dirname/$_" && eval "/^$match_files\$/") {
                 push @sorted_files, "$dirname/$_";
@@ -170,13 +179,17 @@ sub yaml_get_include {
         @sorted_files = sort { $a cmp $b } @sorted_files;
         push @all_files, @sorted_files;
     }
-
+    # the list can be empty, for exemple if the client disable all the cron or whitelist of gorgone there should not be any error.
     return @all_files;
 }
-
+# yaml_parse_config: recursive function to parse yaml content and honor the inclusion of other files and vault password decryption.
+# depending on the type of the yaml object, it will call itself recursively.
+# config: yaml object as perl reference (hash, array, scalar, hash of hash...). $YAML::XS::LoadBlessed should be set to 1 to transform !include in blessed reference.
+# current_dir: current directory to resolve relative path of !include directive.
+# filter: a string to eval to filter the yaml content. you can for exemple return only children of a node.
+# ariane: Ariadne's thread to know where we are in the yaml content. It is used by the filter. example : 'configuration##gorgone##gorgonecore##'
 sub yaml_parse_config {
     my ($self, %options) = @_;
-
     if (ref(${$options{config}}) eq 'HASH') {
         foreach (keys %{${$options{config}}}) {
             my $ariane = $options{ariane} . $_ . '##';
@@ -206,6 +219,7 @@ sub yaml_parse_config {
                 ariane => $ariane
             );
         }
+    # $YAML::XS::LoadBlessed must be set, when YAML::XS will load a property with !include, it will be a blessed reference instead of a scalar.
     } elsif (ref(${$options{config}}) eq 'include') {
         my @files = $self->yaml_get_include(
             include => ${${$options{config}}},
@@ -236,9 +250,23 @@ sub yaml_parse_config {
         } else {
             ${$options{config}} = 'false';
         }
+
+    } elsif (ref(${$options{config}}) eq '') {
+        # this is a scalar value, we check if this is a vault path to replace it.
+        if ($self->{vault} and $self->{vault}->can('get_secret')) {
+            ${$options{config}} = $self->{vault}->get_secret( ${$options{config}});
+        }
+    } else {
+        $self->{logger}->writeLogError("config - unknown type of data: " . ref(${$options{config}}));
     }
 }
 
+# yaml_load_config: entry point for yaml parsing.
+# can be called by yaml_parse_config if there is !include in the yaml, and will call yaml_parse_config to parse the content of the file.
+# file: filename to parse. The file can contain !include directive to include other files.
+# filter: is a string to eval to filter the yaml content. you can for exemple return only children of a node named configuration with this filter :
+#        '$ariane eq "configuration##"'
+# arianne: Ariadne's thread to know where we are in the yaml content. It is used by the filter. example : 'configuration##gorgone##gorgonecore##'
 sub yaml_load_config {
     my ($self, %options) = @_;
 

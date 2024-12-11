@@ -1,0 +1,8 @@
+gorgone:
+  modules:
+    - name: action
+      package: "gorgone::modules::core::action::hooks"
+      enable: true
+      command_timeout: 30
+      whitelist_cmds: secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse
+      allowed_cmds: !include whitelist.conf.d/*.yaml

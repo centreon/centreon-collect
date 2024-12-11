@@ -94,13 +94,13 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Run unit tests
-        run: yath -L test ./perl-libs/lib/
+        run: yath -L test ./perl-libs/lib/ ./gorgone/tests/unit/
 
       - name: Upload logs as artifacts if tests failed
         if: failure()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: plugin-installation-${{ matrix.distrib }}
+          name: centreon-collect-perl-unit-tests-${{ matrix.distrib }}
           path: ./lastlog.jsonl
           retention-days: 1
 
@@ -348,7 +348,7 @@ jobs:
 
   deliver-deb:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package]
+    needs: [get-environment, package, robot-test-gorgone, unit-test-perl]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
