@@ -409,7 +409,7 @@ Function silent_update_conf
 FunctionEnd
 
 /**
-  * @brief checks --install_plugins and --install_cma cmdline flags
+  * @brief checks --install_plugins, --install_embedded_plugins and --install_cma cmdline flags
 */
 Function installer_parse_cmd_line
     Push $0

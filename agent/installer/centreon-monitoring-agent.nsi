@@ -268,7 +268,7 @@ function .onInit
         ${If} $silent_install_plugins == 1
             SectionSetFlags ${PluginsInstSection} ${SF_SELECTED}
             SectionSetFlags ${PluginsEmbeddedInstSection} 0
-        ${ElseIf} $silent_install_embedded_plugins == 2
+        ${ElseIf} $silent_install_plugins == 2
             SectionSetFlags ${PluginsInstSection} 0
             SectionSetFlags ${PluginsEmbeddedInstSection} ${SF_SELECTED}
         ${Else}
