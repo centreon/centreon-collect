@@ -120,6 +120,8 @@ add_custom_command(
 add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                 "${SRC_DIR}/broker.pb.h")
 
+add_dependencies(target_broker_message target_common)
+
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_SOURCE_DIR}/bbdo)
 
