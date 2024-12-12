@@ -341,8 +341,8 @@ void applier::service::expand_objects(configuration::State& s) {
     cvs.emplace(cv);
 
   absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
+  for (auto& [name, hg] : *s.mutable_hostgroups())
+    hgs.emplace(name, &hg);
 
   // Browse all services.
   for (auto& service_cfg : *s.mutable_services()) {

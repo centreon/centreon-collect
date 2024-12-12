@@ -527,8 +527,8 @@ void state_helper::expand_conf(configuration::error_cnt& err) {
   }
 
   absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
-  for (auto& hg : *pb_config.mutable_hostgroups()) {
-    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  for (auto& [name, hg] : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(name, &hg);
   }
 
   absl::flat_hash_map<std::string, configuration::Servicegroup*>

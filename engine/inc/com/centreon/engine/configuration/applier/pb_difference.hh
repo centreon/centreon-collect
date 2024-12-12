@@ -21,6 +21,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <google/protobuf/map.h>
 #include <google/protobuf/util/message_differencer.h>
 
 #include <iterator>
@@ -52,7 +53,8 @@ namespace configuration::applier {
  */
 template <typename T,
           typename Key,
-          typename Container = ::google::protobuf::RepeatedPtrField<T>>
+          typename Container = ::google::protobuf::RepeatedPtrField<T>,
+          typename Container_map = ::google::protobuf::Map<Key, T>>
 class pb_difference {
   // What are the new objects
   std::vector<const T*> _added;
@@ -128,6 +130,32 @@ class pb_difference {
       const T& item = *it;
       if (!new_keys.contains(f(item)))
         _deleted.push_back({i, f(item)});
+      ++i;
+    }
+  }
+
+  template <typename Function>
+  void parse(Container_map& old_list,
+             const Container_map& new_list,
+             Function f [[maybe_unused]]) {
+    for (const auto& [key, item] : new_list) {
+      auto it = old_list.find(key);
+      if (it == old_list.end()) {
+        _added.push_back(&item);
+      } else {
+        // Object to modify or equal
+        if (!MessageDifferencer::Equals(item, it->second)) {
+          // There are changes in this object
+          _modified.push_back(std::make_pair(&it->second, &item));
+        }
+      }
+    }
+
+    ssize_t i = 0;
+    for (const auto& [key, item] : old_list) {
+      auto it = new_list.find(key);
+      if (it == new_list.end())
+        _deleted.push_back({i, key});
       ++i;
     }
   }

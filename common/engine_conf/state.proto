@@ -195,7 +195,7 @@ message State {
   repeated Contactgroup contactgroups = 133;
   repeated Hostdependency hostdependencies = 134;
   repeated Hostescalation hostescalations = 135;
-  repeated Hostgroup hostgroups = 136;
+  map<string,Hostgroup> hostgroups = 136;
   repeated Host hosts = 137;
   repeated Servicedependency servicedependencies = 138;
   repeated Serviceescalation serviceescalations = 139;

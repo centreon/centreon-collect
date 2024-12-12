@@ -283,10 +283,18 @@ void parser::_parse_object_definitions(const std::string& path,
                 pb_config->mutable_commands()->AddAllocated(
                     static_cast<Command*>(msg.release()));
                 break;
-              case message_helper::hostgroup:
-                pb_config->mutable_hostgroups()->AddAllocated(
-                    static_cast<Hostgroup*>(msg.release()));
-                break;
+              case message_helper::hostgroup: {
+                auto tmp = std::move(_pb_helper[msg.get()]);
+                _pb_helper.erase(msg.get());
+
+                Hostgroup& inserted_hg = (*pb_config->mutable_hostgroups())
+                    [(*static_cast<Hostgroup*>(msg.get())).hostgroup_name()];
+                inserted_hg = *static_cast<Hostgroup*>(msg.release());
+
+                tmp->set_obj(&inserted_hg);
+                _pb_helper[&inserted_hg] = std::move(tmp);
+
+              } break;
               case message_helper::servicegroup:
                 pb_config->mutable_servicegroups()->AddAllocated(
                     static_cast<Servicegroup*>(msg.release()));
@@ -503,7 +511,7 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
     _resolve_template(_pb_helper[&he],
                       _pb_templates[message_helper::hostescalation]);
 
-  for (Hostgroup& hg : *pb_config->mutable_hostgroups())
+  for (auto& [_, hg] : *pb_config->mutable_hostgroups())
     _resolve_template(_pb_helper[&hg],
                       _pb_templates[message_helper::hostgroup]);
 
@@ -529,8 +537,10 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
   for (const Hostescalation& he : pb_config->hostescalations())
     _pb_helper.at(&he)->check_validity(err);
 
-  for (const Hostgroup& hg : pb_config->hostgroups())
-    _pb_helper.at(&hg)->check_validity(err);
+  for (const auto& [_, hg] : pb_config->hostgroups()) {
+    if (_pb_helper.at(&hg))
+      _pb_helper.at(&hg)->check_validity(err);
+  }
 
   for (const Service& s : pb_config->services())
     _pb_helper.at(&s)->check_validity(err);

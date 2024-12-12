@@ -742,11 +742,9 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(ct.contactgroups().data().size(), 0u);
 
   ASSERT_EQ(cfg.hostgroups().size(), HOSTGROUPS);
-  auto hgit = cfg.hostgroups().begin();
-  while (hgit != cfg.hostgroups().end() && hgit->hostgroup_name() != "hg1")
-    ++hgit;
+  auto hgit = cfg.hostgroups().find("hg1");
   ASSERT_TRUE(hgit != cfg.hostgroups().end());
-  const auto hg = *hgit;
+  const auto hg = hgit->second;
   ASSERT_EQ(hg.hostgroup_id(), 3u);
   ASSERT_EQ(hg.hostgroup_name(), std::string_view("hg1"));
   ASSERT_EQ(hg.alias(), std::string_view("hg1"));

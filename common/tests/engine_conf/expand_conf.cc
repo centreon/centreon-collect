@@ -83,8 +83,8 @@ TEST_F(Pb_Expand, host) {
   p.parse("/tmp/etc/centreon-engine/config0/centengine.cfg", &pb_config, err);
 
   absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
-  for (auto& hg : *pb_config.mutable_hostgroups()) {
-    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  for (auto& [key, item] : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(key, &item);
   }
   host_helper::_expand_hosts(pb_config, err, m_hostgroups);
 
@@ -508,8 +508,8 @@ TEST_F(Pb_Expand, serviceescalation) {
   p.parse("/tmp/etc/centreon-engine/config0/centengine.cfg", &pb_config, err);
 
   absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
-  for (auto& hg : *pb_config.mutable_hostgroups()) {
-    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  for (auto& [key, item] : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(key, &item);
   }
 
   absl::flat_hash_map<std::string, configuration::Servicegroup*>
@@ -588,8 +588,8 @@ TEST_F(Pb_Expand, hostescalation) {
   p.parse("/tmp/etc/centreon-engine/config0/centengine.cfg", &pb_config, err);
 
   absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
-  for (auto& hg : *pb_config.mutable_hostgroups()) {
-    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  for (auto& [key, item] : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(key, &item);
   }
   hostescalation_helper::_expand_hostescalations(pb_config, err, m_hostgroups);
 

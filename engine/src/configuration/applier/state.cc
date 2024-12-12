@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include <google/protobuf/map.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -911,7 +912,10 @@ void applier::state::_apply(difference<std::set<ConfigurationType>> const& diff,
  *  @param[in] cur_cfg Current configuration set.
  *  @param[in] new_cfg New configuration set.
  */
-template <typename ConfigurationType, typename Key, typename ApplierType>
+template <typename ConfigurationType,
+          typename Key,
+          typename ApplierType,
+          bool map>
 void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
                             error_cnt& err) {
   // Applier.
@@ -934,11 +938,17 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   // Erase objects.
   for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
     ssize_t idx = it->first;
-    if (!verify_config)
-      aplyr.remove_object(idx);
-    else {
-      try {
+    if (!verify_config) {
+      if constexpr (map)
+        aplyr.remove_object(it->second);
+      else
         aplyr.remove_object(idx);
+    } else {
+      try {
+        if constexpr (map)
+          aplyr.remove_object(it->second);
+        else
+          aplyr.remove_object(idx);
       } catch (const std::exception& e) {
         ++err.config_errors;
         events_logger->info(e.what());
@@ -2296,28 +2306,28 @@ void applier::state::_processing(configuration::State& new_cfg,
     //
 
     // Apply timeperiods.
-    _apply<configuration::Timeperiod, std::string, applier::timeperiod>(
+    _apply<configuration::Timeperiod, std::string, applier::timeperiod, false>(
         diff_timeperiods, err);
     _resolve<configuration::Timeperiod, applier::timeperiod>(
         pb_config.timeperiods(), err);
 
     // Apply connectors.
-    _apply<configuration::Connector, std::string, applier::connector>(
+    _apply<configuration::Connector, std::string, applier::connector, false>(
         diff_connectors, err);
     _resolve<configuration::Connector, applier::connector>(
         pb_config.connectors(), err);
 
     // Apply commands.
-    _apply<configuration::Command, std::string, applier::command>(diff_commands,
-                                                                  err);
+    _apply<configuration::Command, std::string, applier::command, false>(
+        diff_commands, err);
     _resolve<configuration::Command, applier::command>(pb_config.commands(),
                                                        err);
 
     // Apply contacts and contactgroups.
-    _apply<configuration::Contact, std::string, applier::contact>(diff_contacts,
-                                                                  err);
-    _apply<configuration::Contactgroup, std::string, applier::contactgroup>(
-        diff_contactgroups, err);
+    _apply<configuration::Contact, std::string, applier::contact, false>(
+        diff_contacts, err);
+    _apply<configuration::Contactgroup, std::string, applier::contactgroup,
+           false>(diff_contactgroups, err);
     _resolve<configuration::Contact, applier::contact>(pb_config.contacts(),
                                                        err);
     _resolve<configuration::Contactgroup, applier::contactgroup>(
@@ -2325,32 +2335,33 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     // Apply severities.
     _apply<configuration::Severity, std::pair<uint64_t, uint32_t>,
-           applier::severity>(diff_severities, err);
+           applier::severity, false>(diff_severities, err);
 
     // Apply tags.
-    _apply<configuration::Tag, std::pair<uint64_t, uint32_t>, applier::tag>(
-        diff_tags, err);
+    _apply<configuration::Tag, std::pair<uint64_t, uint32_t>, applier::tag,
+           false>(diff_tags, err);
 
     // Apply hosts and hostgroups.
-    _apply<configuration::Host, uint64_t, applier::host>(diff_hosts, err);
-    _apply<configuration::Hostgroup, std::string, applier::hostgroup>(
+    _apply<configuration::Host, uint64_t, applier::host, false>(diff_hosts,
+                                                                err);
+    _apply<configuration::Hostgroup, std::string, applier::hostgroup, true>(
         diff_hostgroups, err);
 
     // Apply services.
     _apply<configuration::Service, std::pair<uint64_t, uint64_t>,
-           applier::service>(diff_services, err);
+           applier::service, false>(diff_services, err);
 
     // Apply anomalydetections.
     _apply<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>,
-           applier::anomalydetection>(diff_anomalydetections, err);
+           applier::anomalydetection, false>(diff_anomalydetections, err);
 
     // Apply servicegroups.
-    _apply<configuration::Servicegroup, std::string, applier::servicegroup>(
-        diff_servicegroups, err);
+    _apply<configuration::Servicegroup, std::string, applier::servicegroup,
+           false>(diff_servicegroups, err);
 
     // Resolve hosts, services, host groups.
     _resolve<configuration::Host, applier::host>(pb_config.hosts(), err);
-    _resolve<configuration::Hostgroup, applier::hostgroup>(
+    _resolve<std::string, configuration::Hostgroup, applier::hostgroup>(
         pb_config.hostgroups(), err);
 
     // Resolve services.
@@ -2366,26 +2377,26 @@ void applier::state::_processing(configuration::State& new_cfg,
         pb_config.servicegroups(), err);
 
     // Apply host dependencies.
-    _apply<configuration::Hostdependency, size_t, applier::hostdependency>(
-        diff_hostdependencies, err);
+    _apply<configuration::Hostdependency, size_t, applier::hostdependency,
+           false>(diff_hostdependencies, err);
     _resolve<configuration::Hostdependency, applier::hostdependency>(
         pb_config.hostdependencies(), err);
 
     // Apply service dependencies.
-    _apply<configuration::Servicedependency, size_t,
-           applier::servicedependency>(diff_servicedependencies, err);
+    _apply<configuration::Servicedependency, size_t, applier::servicedependency,
+           false>(diff_servicedependencies, err);
     _resolve<configuration::Servicedependency, applier::servicedependency>(
         pb_config.servicedependencies(), err);
 
     // Apply host escalations.
-    _apply<configuration::Hostescalation, size_t, applier::hostescalation>(
-        diff_hostescalations, err);
+    _apply<configuration::Hostescalation, size_t, applier::hostescalation,
+           false>(diff_hostescalations, err);
     _resolve<configuration::Hostescalation, applier::hostescalation>(
         pb_config.hostescalations(), err);
 
     // Apply service escalations.
-    _apply<configuration::Serviceescalation, size_t,
-           applier::serviceescalation>(diff_serviceescalations, err);
+    _apply<configuration::Serviceescalation, size_t, applier::serviceescalation,
+           false>(diff_serviceescalations, err);
     _resolve<configuration::Serviceescalation, applier::serviceescalation>(
         pb_config.serviceescalations(), err);
 
@@ -2534,6 +2545,23 @@ void applier::state::_resolve(
     error_cnt& err) {
   ApplierType aplyr;
   for (auto& obj : cfg) {
+    try {
+      aplyr.resolve_object(obj, err);
+    } catch (const std::exception& e) {
+      if (verify_config) {
+        ++err.config_errors;
+        std::cout << e.what() << std::endl;
+      } else
+        throw;
+    }
+  }
+}
+template <typename Key, typename ConfigurationType, typename ApplierType>
+void applier::state::_resolve(
+    const ::google::protobuf::Map<Key, ConfigurationType>& cfg,
+    error_cnt& err) {
+  ApplierType aplyr;
+  for (auto& [_, obj] : cfg) {
     try {
       aplyr.resolve_object(obj, err);
     } catch (const std::exception& e) {

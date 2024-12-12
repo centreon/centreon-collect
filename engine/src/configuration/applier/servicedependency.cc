@@ -618,15 +618,13 @@ void applier::servicedependency::_expand_services(
   // Host groups.
   for (auto& hgn : hg) {
     // Find host group
-    auto found = std::find_if(
-        s.hostgroups().begin(), s.hostgroups().end(),
-        [&hgn](const Hostgroup& hgg) { return hgg.hostgroup_name() == hgn; });
+    auto found = s.hostgroups().find(hgn);
     if (found == s.hostgroups().end())
       throw engine_error() << fmt::format("Could not resolve host group '{}'",
                                           hgn);
     // Add host group members.
-    all_hosts.insert(found->members().data().begin(),
-                     found->members().data().end());
+    all_hosts.insert(found->second.members().data().begin(),
+                     found->second.members().data().end());
   }
 
   // Hosts * services.

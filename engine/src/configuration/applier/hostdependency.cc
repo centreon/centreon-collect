@@ -256,25 +256,17 @@ void applier::hostdependency::expand_objects(configuration::State& s) {
         !hd_conf->dependent_hostgroups().data().empty() ||
         hd_conf->dependency_type() == unknown) {
       for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
+        auto found = s.hostgroups().find(hg_name);
         if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
+          auto& hg_conf = found->second;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_dependent_hosts(), h);
         }
       }
       for (auto& hg_name : hd_conf->hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
+        auto found = s.hostgroups().find(hg_name);
         if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
+          auto& hg_conf = found->second;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_hosts(), h);
         }

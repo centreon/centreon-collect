@@ -49,7 +49,7 @@ class hostgroup {
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
-  void remove_object(ssize_t idx);
+  void remove_object(std::string key);
   void resolve_object(const configuration::Hostgroup& obj, error_cnt& err);
 #endif
 

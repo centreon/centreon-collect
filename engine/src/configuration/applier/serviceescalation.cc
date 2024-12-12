@@ -217,13 +217,9 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
       host_names.insert(hname);
     if (se.hostgroups().data().size() > 0) {
       for (auto& hg_name : se.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
+        auto found_hg = s.hostgroups().find(hg_name);
         if (found_hg != s.hostgroups().end()) {
-          for (auto& h : found_hg->members().data())
+          for (auto& h : found_hg->second.members().data())
             host_names.emplace(h);
         } else
           throw engine_error() << fmt::format(

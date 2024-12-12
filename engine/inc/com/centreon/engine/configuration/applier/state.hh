@@ -108,7 +108,10 @@ class state {
               error_cnt& err);
 #else
   void _apply(const configuration::State& new_cfg, error_cnt& err);
-  template <typename ConfigurationType, typename Key, typename ApplierType>
+  template <typename ConfigurationType,
+            typename Key,
+            typename ApplierType,
+            bool map>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
   void _apply(configuration::State& new_cfg,
@@ -133,6 +136,9 @@ class state {
   void _resolve(
       const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
       error_cnt& err);
+  template <typename Key, typename ConfigurationType, typename ApplierType>
+  void _resolve(const ::google::protobuf::Map<Key, ConfigurationType>& cfg,
+                error_cnt& err);
 #endif
 
   std::mutex _apply_lock;

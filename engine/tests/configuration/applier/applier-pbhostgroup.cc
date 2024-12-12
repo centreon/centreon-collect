@@ -128,7 +128,7 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg);
+  hg_aply.modify_object(&((*pb_config.mutable_hostgroups())["temphg"]), hg);
 
   ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
   ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
@@ -181,10 +181,10 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  ASSERT_NO_THROW(
-      hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg));
+  ASSERT_NO_THROW(hg_aply.modify_object(
+      &((*pb_config.mutable_hostgroups())["temphg"]), hg));
 
-  hg_aply.remove_object(0);
+  hg_aply.remove_object("temphg");
   ASSERT_TRUE(pb_config.hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }
