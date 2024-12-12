@@ -79,6 +79,7 @@ jobs:
       base_directory: gorgone
       spec_file: gorgone/packaging/centreon-gorgone.spectemplate
       package_extension: ${{ matrix.package_extension }}
+      distrib: ${{ matrix.distrib }}
       image_name: ${{ matrix.image }}
       module_name: gorgone
       major_version: ${{ needs.get-environment.outputs.major_version }}
