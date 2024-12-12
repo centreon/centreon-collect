@@ -2418,58 +2418,75 @@ int neb::callback_pb_process(int callback_type, void* data) {
    * evoluated negotiation. The goal is to send the hash of the configuration
    * directory to the broker. */
   inst.set_engine_config_version(
-      std::string(process_data->engine_config_version));
+      std::string(process_data->engine_config_version.data(),
+                  process_data->engine_config_version.size()));
 
   neb_logger->debug("pb instance sent with engine config version '{}'",
                     inst.engine_config_version());
   // Check process event type.
-  if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
-    SPDLOG_LOGGER_DEBUG(neb_logger,
-                        "callbacks: generating process start event");
+  switch (process_data->type) {
+    case NEBTYPE_PROCESS_EVENTLOOPSTART: {
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: generating process start event");
 
-    // Register callbacks.
-    SPDLOG_LOGGER_DEBUG(
-        neb_logger, "callbacks: registering callbacks for new BBDO version");
-    for (uint32_t i = 0; i < sizeof(gl_pb_callbacks) / sizeof(*gl_pb_callbacks);
-         ++i)
-      gl_registered_callbacks.emplace_back(
-          std::make_unique<callback>(gl_pb_callbacks[i].macro, gl_mod_handle,
-                                     gl_pb_callbacks[i].callback));
-
-    // Register Engine-specific callbacks.
-    if (gl_mod_flags & NEBMODULE_ENGINE) {
-      // Register engine callbacks.
+      // Register callbacks.
       SPDLOG_LOGGER_DEBUG(
           neb_logger, "callbacks: registering callbacks for new BBDO version");
       for (uint32_t i = 0;
-           i < sizeof(gl_pb_engine_callbacks) / sizeof(*gl_pb_engine_callbacks);
-           ++i)
-        gl_registered_callbacks.emplace_back(std::make_unique<callback>(
-            gl_pb_engine_callbacks[i].macro, gl_mod_handle,
-            gl_pb_engine_callbacks[i].callback));
-    }
+           i < sizeof(gl_pb_callbacks) / sizeof(*gl_pb_callbacks); ++i)
+        gl_registered_callbacks.emplace_back(
+            std::make_unique<callback>(gl_pb_callbacks[i].macro, gl_mod_handle,
+                                       gl_pb_callbacks[i].callback));
 
-    // Output variable.
-    inst.set_instance_id(config::applier::state::instance().poller_id());
-    inst.set_running(true);
-    inst.set_name(config::applier::state::instance().poller_name());
-    start_time = time(nullptr);
-    inst.set_start_time(start_time);
+      // Register Engine-specific callbacks.
+      if (gl_mod_flags & NEBMODULE_ENGINE) {
+        // Register engine callbacks.
+        SPDLOG_LOGGER_DEBUG(
+            neb_logger,
+            "callbacks: registering callbacks for new BBDO version");
+        for (uint32_t i = 0; i < sizeof(gl_pb_engine_callbacks) /
+                                     sizeof(*gl_pb_engine_callbacks);
+             ++i)
+          gl_registered_callbacks.emplace_back(std::make_unique<callback>(
+              gl_pb_engine_callbacks[i].macro, gl_mod_handle,
+              gl_pb_engine_callbacks[i].callback));
+      }
 
-    // Send initial event and then configuration.
-    gl_publisher.write(inst_obj);
-    send_initial_pb_configuration(inst.engine_config_version());
-  } else if (NEBTYPE_PROCESS_EVENTLOOPEND == process_data->type) {
-    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating process end event");
-    // Fill output var.
-    inst.set_instance_id(config::applier::state::instance().poller_id());
-    inst.set_running(false);
-    inst.set_name(config::applier::state::instance().poller_name());
-    inst.set_end_time(time(nullptr));
-    inst.set_start_time(start_time);
+      // Output variable.
+      inst.set_instance_id(config::applier::state::instance().poller_id());
+      inst.set_running(true);
+      inst.set_name(config::applier::state::instance().poller_name());
+      start_time = time(nullptr);
+      inst.set_start_time(start_time);
 
-    // Send event.
-    gl_publisher.write(inst_obj);
+      // Send initial event and then configuration.
+      gl_publisher.write(inst_obj);
+      send_initial_pb_configuration(inst.engine_config_version());
+    } break;
+    case NEBTYPE_PROCESS_DIFFSTATE: {
+      // Output variable.
+      inst.set_instance_id(config::applier::state::instance().poller_id());
+      inst.set_running(true);
+      inst.set_name(config::applier::state::instance().poller_name());
+      inst.set_start_time(start_time);
+
+      // Send initial event and then configuration.
+      gl_publisher.write(inst_obj);
+      send_initial_pb_configuration(inst.engine_config_version());
+    } break;
+    case NEBTYPE_PROCESS_EVENTLOOPEND: {
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: generating process end event");
+      // Fill output var.
+      inst.set_instance_id(config::applier::state::instance().poller_id());
+      inst.set_running(false);
+      inst.set_name(config::applier::state::instance().poller_name());
+      inst.set_end_time(time(nullptr));
+      inst.set_start_time(start_time);
+
+      // Send event.
+      gl_publisher.write(inst_obj);
+    } break;
   }
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: instance '{}' running {}",
                       inst.name(), inst.running());

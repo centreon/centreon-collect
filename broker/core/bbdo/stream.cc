@@ -766,16 +766,19 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_poller_name(config::applier::state::instance().poller_name());
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
-      /* I know I'm Engine, and I have access to the configuration. */
-      if (!config::applier::state::instance().engine_config_dir().empty())
+      /* We are Engine, and we have access to the configuration. */
+      if (!config::applier::state::instance().prot_config().empty())
         obj.set_extended_negotiation(true);
-      /* I know I'm Broker, and I have access to the php cache configuration
+      /* We are Broker, and we have access to the php cache configuration
        * directory. */
       else if (!config::applier::state::instance().config_cache_dir().empty())
         obj.set_extended_negotiation(true);
       /* I don't know what I am. */
       else
         obj.set_extended_negotiation(false);
+
+      _logger->trace("BBDO: extended negotiation supported: {}",
+                     obj.extended_negotiation() ? "yes" : "no");
       _write(welcome);
     }
   }
@@ -890,10 +893,11 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_poller_name(config::applier::state::instance().poller_name());
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
-      /* I know I'm Engine, and I have access to the configuration directory. */
-      if (!config::applier::state::instance().engine_config_dir().empty())
+      /* We are Engine, and we have access to the configuration protobuf file.
+       */
+      if (!config::applier::state::instance().prot_config().empty())
         obj.set_extended_negotiation(true);
-      /* I know I'm Broker, and I have access to the php cache configuration
+      /* We are Broker, and we have access to the php cache configuration
        * directory. */
       else if (!config::applier::state::instance().config_cache_dir().empty())
         obj.set_extended_negotiation(true);
@@ -901,6 +905,8 @@ void stream::negotiate(stream::negotiation_type neg) {
       else
         obj.set_extended_negotiation(false);
 
+      _logger->trace("BBDO: extended negotiation supported: {}",
+                     obj.extended_negotiation() ? "yes" : "no");
       _write(welcome);
       _substream->flush();
     }
@@ -915,6 +921,8 @@ void stream::negotiate(stream::negotiation_type neg) {
        * _extended_negotiation are informations about the peer, not us. */
       _extended_negotiation = true;
     }
+    _logger->trace("BBDO: peer supports extended negotiation: {}",
+                   _extended_negotiation ? "yes" : "no");
   }
 
   // Negotiation.
@@ -1097,16 +1105,18 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       /* Here, we are Broker and peer is Engine. */
       if (config::applier::state::instance().peer_type() == common::BROKER &&
           _peer_type == common::ENGINE) {
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: received engine configuration from Engine peer '{}'",
-            ec.broker_name());
+        SPDLOG_LOGGER_INFO(_logger,
+                           "BBDO: received engine configuration from Engine "
+                           "peer '{}' - version '{}'",
+                           ec.broker_name(), ec.engine_config_version());
 
         /* We build the diff state to send to the engine from its poller ID
          * and its current version. */
         auto diff_state =
             build_diff_state(ec.poller_id(), ec.engine_config_version());
 
+        _logger->trace("BBDO: engine configuration diff state: {}",
+                       diff_state->DebugString());
         auto engine_conf = std::make_shared<pb_engine_configuration>();
         auto& obj = engine_conf->mut_obj();
         obj.set_poller_id(config::applier::state::instance().poller_id());
@@ -1118,6 +1128,8 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         obj.set_need_update(true);
 
         obj.set_allocated_diff_state(diff_state.release());
+        _logger->trace("BBDO: responding '{}' engine configuration: {}",
+                       obj.broker_name(), obj.engine_config_version());
         _write(engine_conf);
       }
     } break;
@@ -1513,12 +1525,11 @@ void stream::_negotiate_engine_conf(const std::shared_ptr<io::data>& d) {
                       "extended negotiation: {} - conf version: {}",
                       _broker_name, _extended_negotiation,
                       instance->obj().engine_config_version());
-  /* We are an Engine since we emit an instance event and we have an
+  /* We are Engine since we emit an instance event and we have an
    * engine config directory. If the Broker supports extended negotiation,
    * we send also an engine configuration event. And then we'll wait for
    * an answer from Broker. */
-  if (_extended_negotiation &&
-      !instance->obj().engine_config_version().empty()) {
+  if (_extended_negotiation) {
     auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
     auto& obj = engine_conf->mut_obj();
     obj.set_poller_id(config::applier::state::instance().poller_id());
@@ -1530,19 +1541,6 @@ void stream::_negotiate_engine_conf(const std::shared_ptr<io::data>& d) {
         "BBDO: sending EngineConfiguration object with conf version {}",
         obj.engine_config_version());
 
-    if (obj.engine_config_version().empty()) {
-      /* Time to fill the config version. */
-      std::error_code ec;
-      _config_version = common::hash_directory(
-          config::applier::state::instance().engine_config_dir(), ec);
-      if (ec) {
-        _logger->error(
-            "BBDO: cannot access directory '{}': {}",
-            config::applier::state::instance().engine_config_dir().string(),
-            ec.message());
-      }
-      obj.set_engine_config_version(_config_version);
-    }
     _logger->info(
         "BBDO: engine configuration sent to peer '{}' with version {}",
         _broker_name, _config_version);
@@ -1720,11 +1718,11 @@ stream::build_diff_state(uint64_t poller_id,
   bool should_send_full_config;
   /* We compare the versions, the expected one on one side and the one of
    * old_state on the other side. */
-  if (old_state->conf_version() == expected_version) {
-    _logger->info("Configurations are synchronized for poller {}", poller_id);
+  if (expected_version != "" && old_state->conf_version() == expected_version) {
+    _logger->info("Configuration is synchronized with poller {}", poller_id);
     should_send_full_config = false;
   } else {
-    _logger->info("Configurations are not synchronized for poller {}",
+    _logger->info("Configuration is not synchronized with poller {}",
                   poller_id);
     should_send_full_config = true;
   }
@@ -1770,23 +1768,30 @@ stream::build_diff_state(uint64_t poller_id,
 
   bool no_change;
   /* Did the configuration change? */
-  if (hash == old_state->conf_version()) {
+  if (hash == expected_version) {
     _logger->info("No update of the configuration from users for poller {}",
                   poller_id);
     no_change = true;
   } else {
-    _logger->info("New configuration available for poller {}", poller_id);
+    _logger->info("New configuration available for poller {} with version '{}'",
+                  poller_id, hash);
     no_change = false;
   }
 
   auto diff_state = std::make_unique<engine::configuration::DiffState>();
+  std::filesystem::path diff_file =
+      new_conf_dir / fmt::format("diff-{}.prot", poller_id);
   if (should_send_full_config) {
     /* Here Broker and Engine are not synchronized, we lost the last version
      * running on Engine. So we have to send it fully. */
 
     if (no_change) {
       /* No update between the last sent to Engine known by Broker and the new
-       * one on php side. */
+       * one on php side.
+       * In case of a lost prot file, we have to set the engine_config_version
+       * again. */
+      if (old_state->conf_version().empty())
+        old_state->set_conf_version(hash);
       diff_state->set_allocated_state(old_state.release());
     } else {
       /* There are changes, so we use the last available configuration */
@@ -1794,30 +1799,28 @@ stream::build_diff_state(uint64_t poller_id,
       /* It's time to set the configuration version. */
       diff_state->mutable_state()->set_conf_version(hash);
       {
-        /* Then it is saved as protobuf file */
-        std::ofstream f(new_conf_dir / fmt::format("{}.prot", poller_id));
-        if (f) {
-          diff_state->state().SerializeToOstream(&f);
-          f.close();
-        } else {
-          _logger->error(
-              "Cannot write new Engine configuration '{}': {}",
-              (new_conf_dir / fmt::format("{}.prot", poller_id)).string(),
-              strerror(errno));
-        }
-      }
-
-      {
-        /* Then it is saved as protobuf file */
-        std::ofstream f(new_conf_dir / fmt::format("diff-{}.prot", poller_id));
+        /* Then the diff is saved as protobuf file */
+        std::ofstream f(diff_file);
         if (f) {
           diff_state->SerializeToOstream(&f);
           f.close();
         } else {
-          _logger->error(
-              "Cannot write the Engine configuration difference '{}': {}",
-              (new_conf_dir / fmt::format("diff-{}.prot", poller_id)).string(),
-              strerror(errno));
+          _logger->error("Cannot write new Engine configuration diff '{}': {}",
+                         diff_file.string(), strerror(errno));
+        }
+      }
+      {
+        /* We also save the new configuration */
+        std::filesystem::path new_conf =
+            config::applier::state::instance().pollers_config_dir() /
+            "new_conf" / fmt::format("{}.prot", poller_id);
+        std::ofstream f(new_conf);
+        if (f) {
+          diff_state->state().SerializeToOstream(&f);
+          f.close();
+        } else {
+          _logger->error("Cannot write new Engine configuration '{}': {}",
+                         new_conf.string(), strerror(errno));
         }
       }
     }
@@ -1832,15 +1835,15 @@ stream::build_diff_state(uint64_t poller_id,
       new_state.set_conf_version(hash);
       /* Then it is saved as protobuf file */
       {
-        std::ofstream f(new_conf_dir / fmt::format("{}.prot", poller_id));
+        std::filesystem::path last_conf =
+            new_conf_dir / fmt::format("{}.prot", poller_id);
+        std::ofstream f(last_conf);
         if (f) {
           new_state.SerializeToOstream(&f);
           f.close();
         } else {
-          _logger->error(
-              "Cannot write new Engine configuration '{}': {}",
-              (new_conf_dir / fmt::format("{}.prot", poller_id)).string(),
-              strerror(errno));
+          _logger->error("Cannot write new Engine configuration '{}': {}",
+                         last_conf.string(), strerror(errno));
         }
       }
       /* We can now build the diff */
@@ -1848,15 +1851,14 @@ stream::build_diff_state(uint64_t poller_id,
                                                 diff_state.get());
       /* The diff is saved as protobuf file */
       {
-        std::ofstream f(new_conf_dir / fmt::format("diff-{}.prot", poller_id));
+        std::ofstream f(diff_file);
         if (f) {
           diff_state->SerializeToOstream(&f);
           f.close();
         } else {
           _logger->error(
               "Cannot write new Engine configuration difference '{}': {}",
-              (new_conf_dir / fmt::format("diff-{}.prot", poller_id)).string(),
-              strerror(errno));
+              diff_file.string(), strerror(errno));
         }
       }
     }

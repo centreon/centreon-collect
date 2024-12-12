@@ -62,6 +62,9 @@ class state {
 
  private:
   const common::PeerType _peer_type;
+  /* The Broker cache directory where the cache files are stored. No relation
+   * with the _config_cache_dir which is the directory where the pollers
+   * configurations are stored by the php. */
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
@@ -70,9 +73,9 @@ class state {
   std::string _broker_name;
   size_t _pool_size;
 
-  /* In a cbmod configuration, this string contains the directory containing
-   * the Engine configuration. */
-  std::filesystem::path _engine_config_dir;
+  /* In a cbmod configuration, this string contains the protobuf configuration
+   * file path. */
+  std::filesystem::path _prot_config;
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -140,8 +143,8 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
-  const std::filesystem::path& engine_config_dir() const noexcept;
-  void set_engine_config_dir(const std::filesystem::path& dir);
+  const std::filesystem::path& prot_config() const noexcept;
+  void set_prot_config(const std::filesystem::path& file);
   const std::filesystem::path& config_cache_dir() const noexcept;
   void set_config_cache_dir(const std::filesystem::path& engine_conf_dir);
   const std::filesystem::path& pollers_config_dir() const noexcept;
@@ -162,6 +165,8 @@ class state {
   static stats& mut_stats_conf();
   static const stats& stats_conf();
   std::vector<peer> connected_peers() const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  bool poller_supports_extended_negotiation(uint64_t poller_id) const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   common::PeerType peer_type() const;
   std::string get_engine_conf_from_cache(uint64_t poller_id);

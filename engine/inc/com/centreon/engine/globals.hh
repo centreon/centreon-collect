@@ -56,6 +56,7 @@ extern std::shared_ptr<spdlog::logger> otel_logger;
 extern com::centreon::engine::configuration::state* config;
 #else
 extern com::centreon::engine::configuration::State pb_config;
+extern bool new_generation;
 #endif
 extern std::string config_file;
 

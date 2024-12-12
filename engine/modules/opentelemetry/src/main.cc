@@ -117,7 +117,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
  *  @brief Reload module after configuration reload.
  *
  */
-extern "C" int nebmodule_reload() {
+extern "C" int nebmodule_reload(const std::string& /*conf_version*/) {
   open_telemetry::reload(log_v2::instance().get(log_v2::OTL));
   return 0;
 }

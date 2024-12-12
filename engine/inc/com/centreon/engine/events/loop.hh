@@ -40,7 +40,7 @@ namespace events {
 class loop {
   time_t _last_status_update;
   time_t _last_time;
-  unsigned int _need_reload;
+  bool _need_reload;
 
   bool _reload_running;
   timed_event _sleep_event;
@@ -86,6 +86,6 @@ class loop {
 };
 }  // namespace events
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_EVENTS_LOOP_HH

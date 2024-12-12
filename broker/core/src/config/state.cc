@@ -474,21 +474,21 @@ state::stats_exporter_conf& state::mut_stats_exporter() {
 }
 
 /**
- * @brief Set the directory containing the Engine configuration.
+ * @brief Set the Engine protobuf configuration file.
  *
- * @param engine_config_dir The directory containing the Engine configuration.
+ * @param prot_config The Engine protobuf configuration file.
  */
-void state::set_engine_config_dir(const std::string& dir) {
-  _engine_config_dir = dir;
+void state::set_prot_config(const std::string& file) {
+  _prot_config = file;
 }
 
 /**
- * @brief Get the directory containing the Engine configuration.
+ * @brief Get the Engine configuration protobuf file.
  *
- * @return The directory containing the Engine configuration.
+ * @return The Engine configuration protobuf file.
  */
-const std::string& state::engine_config_dir() const noexcept {
-  return _engine_config_dir;
+const std::string& state::prot_config() const noexcept {
+  return _prot_config;
 }
 
 /**

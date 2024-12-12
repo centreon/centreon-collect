@@ -464,6 +464,8 @@ class stream : public io::stream {
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
+  void _update_severities(const Severity& severity);
+  void _update_severities(const engine::configuration::Severity& severity);
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);

@@ -33,6 +33,7 @@ using com::centreon::common::log_v2::log_v2;
 configuration::state* config = nullptr;
 #else
 configuration::State pb_config;
+bool new_generation = false;
 #endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",

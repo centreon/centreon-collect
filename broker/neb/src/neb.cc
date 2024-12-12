@@ -131,8 +131,8 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       desc.add_options()  // list of options
           ("config_file,c", po::value<std::string>(),
            "set the module JSON configuration file")  // 1st option
-          ("engine_conf_dir,e", po::value<std::string>(),
-           "set the Engine configuration directory");  // 2nd option
+          ("prot_config,p", po::value<std::string>(),
+           "set the Engine configuration binary Protobuf file");  // 2nd option
       po::positional_options_description pos;
       // The first positional argument is interpreted as config_file, this is
       // useful because currently the wui configure cbmod like this.
@@ -149,16 +149,16 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       else
         throw msg_fmt("main: no configuration file provided");
 
-      std::string engine_conf_dir;
+      std::string prot_config;
 
-      if (vm.count("engine_conf_dir"))
-        engine_conf_dir = vm["engine_conf_dir"].as<std::string>();
+      if (vm.count("prot_config"))
+        prot_config = vm["prot_config"].as<std::string>();
 
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
       com::centreon::broker::config::state s{p.parse(configuration_file)};
 
-      s.set_engine_config_dir(engine_conf_dir);
+      s.set_prot_config(prot_config);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by
@@ -225,14 +225,16 @@ int nebmodule_init(int flags, const char* args, void* handle) {
  *
  *  @return OK.
  */
-int nebmodule_reload() {
+int nebmodule_reload(const std::string& conf_version) {
   multiplexing::publisher p;
   if (com::centreon::broker::config::applier::state::instance()
           .get_bbdo_version()
           .major_v > 2) {
     auto ic = std::make_shared<neb::pb_instance_configuration>();
-    ic->mut_obj().set_loaded(true);
-    ic->mut_obj().set_poller_id(config::applier::state::instance().poller_id());
+    auto& obj = ic->mut_obj();
+    obj.set_loaded(true);
+    obj.set_poller_id(config::applier::state::instance().poller_id());
+    obj.set_engine_config_version(conf_version);
     p.write(ic);
   } else {
     std::shared_ptr<neb::instance_configuration> ic(

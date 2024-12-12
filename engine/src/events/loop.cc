@@ -53,7 +53,7 @@ void loop::clear() {
   _event_list_low.clear();
   _event_list_high.clear();
 
-  _need_reload = 0;
+  _need_reload = false;
   _reload_running = false;
 }
 
@@ -90,7 +90,7 @@ void loop::run() {
 /**
  *  Default constructor.
  */
-loop::loop() : _need_reload(0), _reload_running(false) {}
+loop::loop() : _need_reload(false), _reload_running(false) {}
 
 #ifdef LEGACY_CONF
 static void apply_conf(std::atomic<bool>* reloading) {
@@ -204,18 +204,26 @@ void loop::_dispatching() {
 
     if (sighup) {
       com::centreon::logging::engine::instance().reopen();
-      ++_need_reload;
+      _need_reload = true;
       sighup = false;
     }
 
     // Start reload configuration.
-    if (_need_reload || broker_has_diff_state()) {
+    if (_need_reload || (new_generation && broker_has_diff_state())) {
       if (!reloading) {
         reloading = true;
         if (_need_reload)
           process_logger->info("Need reload.");
-        else
-          process_logger->info("New configuration patch from Broker.");
+        else {
+          process_logger->info(
+              "New configuration patch available from Broker.");
+
+          //          // Send program data to broker. This event is needed to
+          //          exchange
+          //          // on Engine configuration.
+          //          broker_program_state(NEBTYPE_PROCESS_DIFFSTATE,
+          //          NEBFLAG_NONE);
+        }
         process_logger->info("Reloading...");
         if (broker_has_diff_state()) {
           auto future [[maybe_unused]] =
@@ -228,7 +236,7 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
       }
-      _need_reload = 0;
+      _need_reload = false;
     }
 
     // Get the current time.

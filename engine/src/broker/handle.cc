@@ -235,10 +235,10 @@ void handle::open(const std::string& filename, const std::string& args) {
 void handle::reload() {
   if (!is_loaded())
     return;
-  typedef int (*func_reload)();
+  typedef int (*func_reload)(const std::string&);
   func_reload routine((func_reload)_handle->resolve_proc("nebmodule_reload"));
   if (routine)
-    routine();
+    routine(pb_config.conf_version());
 }
 
 /**

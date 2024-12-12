@@ -111,7 +111,7 @@ void applier::state::apply_diff(const configuration::DiffState& diff,
     _processing_state = state_ready;
     _processing(diff, err);
     std::filesystem::path config_path =
-        std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+        std::filesystem::path(getenv("HOME")) / "current-conf.prot";
     std::ofstream f(config_path);
     if (f) {
       pb_config.SerializeToOstream(&f);
@@ -153,7 +153,7 @@ void applier::state::apply(configuration::State& new_cfg,
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
     std::filesystem::path config_path =
-        std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+        std::filesystem::path(getenv("HOME")) / "current-conf.prot";
     std::ofstream f(config_path);
     if (f) {
       new_cfg.SerializeToOstream(&f);
@@ -982,7 +982,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
         aplyr.modify_object(found->second.second, p.object());
       } else {
         ++err.config_errors;
-        events_logger->error(
+        config_logger->error(
             "The severity ({}, {}) should be modified but it currently doesn't "
             "exist",
             p.key().id(), p.key().type());
@@ -997,7 +997,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
               << ") should be modified but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1010,7 +1010,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
         aplyr.remove_object(found->second.first);
       } else {
         ++err.config_errors;
-        events_logger->error(
+        config_logger->error(
             "The severity ({}, {}) should be removed but it currently doesn't "
             "exist",
             key.id(), key.type());
@@ -1025,7 +1025,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
               << ") should be removed but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1039,7 +1039,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
         aplyr.add_object(obj);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1074,7 +1074,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.modify_object(p.first, *p.second);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1089,7 +1089,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.remove_object(idx);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1103,7 +1103,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.add_object(*obj);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -2663,7 +2663,7 @@ void applier::state::_processing(configuration::State& new_cfg,
     throw;
   }
   std::filesystem::path config_path =
-      std::filesystem::path(getenv("HOME")) / "current-conf.proto";
+      std::filesystem::path(getenv("HOME")) / "current-conf.prot";
   std::ofstream f(config_path);
   if (f.is_open()) {
     pb_config.SerializeToOstream(&f);

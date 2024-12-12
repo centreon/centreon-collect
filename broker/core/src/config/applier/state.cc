@@ -126,13 +126,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   else
     cache_dir = s.cache_directory();
 
-  _cache_dir = cache_dir.string() + "/" + s.broker_name();
+  _cache_dir = (cache_dir / s.broker_name()).string();
 
   if (s.get_bbdo_version().major_v >= 3) {
-    // Engine configuration directory (for cbmod).
-    if (!s.engine_config_dir().empty())
-      set_engine_config_dir(s.engine_config_dir());
-
     // Configuration cache directory (for broker, from php).
     set_config_cache_dir(s.config_cache_dir());
 
@@ -311,6 +307,15 @@ void state::add_peer(uint64_t poller_id,
            peer_type, extended_negotiation, true,        false};
 }
 
+bool state::poller_supports_extended_negotiation(uint64_t poller_id) const {
+  absl::MutexLock lck(&_connected_peers_m);
+  for (auto& p : _connected_peers) {
+    if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
+      return p.second.extended_negotiation;
+  }
+  return false;
+}
+
 /**
  * @brief Remove a poller from the list of connected pollers.
  *
@@ -362,21 +367,21 @@ std::vector<state::peer> state::connected_peers() const {
 }
 
 /**
- * @brief Get the Engine configuration directory.
+ * @brief Get the Engine configuration protobuf file.
  *
- * @return The Engine configuration directory.
+ * @return The Engine configuration protobuf file.
  */
-const std::filesystem::path& state::engine_config_dir() const noexcept {
-  return _engine_config_dir;
+const std::filesystem::path& state::prot_config() const noexcept {
+  return _prot_config;
 }
 
 /**
- * @brief Set the Engine configuration directory.
+ * @brief Set the Engine configuration protobuf file.
  *
- * @param engine_conf_dir The Engine configuration directory.
+ * @param file The Engine configuration protobuf file.
  */
-void state::set_engine_config_dir(const std::filesystem::path& dir) {
-  _engine_config_dir = dir;
+void state::set_prot_config(const std::filesystem::path& file) {
+  _prot_config = file;
 }
 
 /**

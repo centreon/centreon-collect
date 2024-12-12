@@ -183,6 +183,6 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
  *  This function is a placeholder to prevent Centreon Engine from
  *  complaining about impossible module reload.
  */
-extern "C" int nebmodule_reload() {
-  return (0);
+extern "C" int nebmodule_reload(const std::string& conf_version) {
+  return 0;
 }

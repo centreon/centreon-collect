@@ -289,7 +289,7 @@ print qq(  }
    *
    *  \@return OK.
    */
-  int nebmodule_reload() {
+  int nebmodule_reload(const std::string& config_file[[maybe_unused]]) {
     return 0;
   }
 }
