@@ -31,7 +31,7 @@ BESS6
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
-    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -e /tmp/etc/centreon-engine/config0    disambiguous=True
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -p /tmp/var/lib/centreon-engine/current-conf.prot    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
