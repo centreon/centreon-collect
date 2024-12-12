@@ -2453,8 +2453,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
             "SQL: could not find in cache the tag ({}, {}) for host "
-            "'{}': "
-            "trying to add it.",
+            "'{}': trying to add it.",
             tag.id(), tag.type(), h.host_id());
         if (!_tag_insert_update.prepared())
           _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
@@ -5200,8 +5199,8 @@ void stream::_apply_diff_state(uint32_t poller_id,
   if (ds.has_severities()) {
     for (const auto& m : ds.severities().modified()) {
       _logger_sql->trace("unified_sql: modification of severity id={}, type={}",
-                         m.object().key().id(), m.object().key().type());
-      _update_severities(m.object());
+                         m.key().id(), m.key().type());
+      _update_severities(m);
     }
 
     for (const auto& a : ds.severities().added()) {

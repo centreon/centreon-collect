@@ -979,7 +979,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
     auto found = current_severities.find({p.key().id(), p.key().type()});
     if (!verify_config) {
       if (found != current_severities.end()) {
-        aplyr.modify_object(found->second.second, p.object());
+        aplyr.modify_object(found->second.second, p);
       } else {
         ++err.config_errors;
         config_logger->error(
@@ -990,7 +990,7 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
     } else {
       try {
         if (found != current_severities.end()) {
-          aplyr.modify_object(found->second.second, p.object());
+          aplyr.modify_object(found->second.second, p);
         } else
           throw engine_error()
               << "The severity (" << p.key().id() << ", " << p.key().type()

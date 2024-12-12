@@ -154,9 +154,8 @@ void severity_helper::diff(const Container& old_list,
       if (!MessageDifferencer::Equals(item,
                                       *keys_values[*inserted.first].second)) {
         // There are changes in this object
-        DiffSeverity::PairKeySeverity* res = result->add_modified();
-        res->mutable_key()->CopyFrom(item.key());
-        res->mutable_object()->CopyFrom(item);
+        Severity* res = result->add_modified();
+        res->CopyFrom(item);
       }
     }
   }

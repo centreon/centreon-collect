@@ -722,13 +722,8 @@ message DiffSeverity {
   repeated Severity added = 1;
   /* Deleted severities given by their key in the old list. */
   repeated KeyType deleted = 2;
-  message PairKeySeverity {
-    KeyType key = 1;
-    Severity object = 2;
-  }
-  /* Modified severities given by the key in the old list and the new
-   * severity. */
-  repeated PairKeySeverity modified = 3;
+  /* We know what severity is modified thanks to its key. */
+  repeated Severity modified = 3;
 }
 
 message Tag {

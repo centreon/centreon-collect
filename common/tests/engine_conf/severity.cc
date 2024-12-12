@@ -119,15 +119,11 @@ TEST_F(TestDiffSeverity, ModifySeverity) {
   ASSERT_EQ(diff.severities().added_size(), 0);
   ASSERT_EQ(diff.severities().modified_size(), 1);
   ASSERT_EQ(diff.severities().deleted_size(), 0);
-  // We check the key
+  // We check the object
   ASSERT_EQ(diff.severities().modified(0).key().id(), 12);
   ASSERT_EQ(diff.severities().modified(0).key().type(), 1);
-  // We check the object
-  ASSERT_EQ(diff.severities().modified(0).object().key().id(), 12);
-  ASSERT_EQ(diff.severities().modified(0).object().key().type(), 1);
-  ASSERT_EQ(diff.severities().modified(0).object().severity_name(),
-            "severity_12");
-  ASSERT_EQ(diff.severities().modified(0).object().level(), 1);
-  ASSERT_EQ(diff.severities().modified(0).object().icon_id(), 15);
+  ASSERT_EQ(diff.severities().modified(0).severity_name(), "severity_12");
+  ASSERT_EQ(diff.severities().modified(0).level(), 1);
+  ASSERT_EQ(diff.severities().modified(0).icon_id(), 15);
   ASSERT_FALSE(diff.has_state());
 }
