@@ -83,7 +83,7 @@ jobs:
           rm -rf *-debugsource*.rpm
 
       - name: Upload package artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: packages-rpm-${{ matrix.distrib }}
           path: ./*.rpm
