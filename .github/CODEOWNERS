@@ -1,10 +1,10 @@
 *                              @centreon/owners-cpp
 
 gorgone/                       @centreon/owners-perl
-perl-libs/                      @centreon/owners-perl
+perl-libs/                     @centreon/owners-perl
 
 .github/**                     @centreon/owners-pipelines
-**/packaging/**                 @centreon/owners-pipelines
+**/packaging/**                @centreon/owners-pipelines
 selinux/**                     @centreon/owners-pipelines
 
 tests/**                       @centreon/owners-robot-e2e
