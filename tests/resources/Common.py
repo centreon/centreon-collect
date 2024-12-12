@@ -2010,3 +2010,16 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                     return True
         time.sleep(1)
     return False
+
+
+def ctn_remove_prot_files(directory: str):
+    """ Remove all files with extension .prot in a directory and also in its
+    subdirectories.
+
+    Args:
+        directory: The directory to clean.
+    """
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".prot"):
+                os.remove(os.path.join(root, file))

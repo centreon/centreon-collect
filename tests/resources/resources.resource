@@ -171,6 +171,7 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
+    [Arguments]    ${newGeneration}=False
     # Currently we are in BBDO2 by default.
     Ctn Set Bbdo2    ${True}
     ${count}    Ctn Get Engines Count
@@ -186,7 +187,11 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        IF    ${newGeneration}
+            Start Process    /usr/sbin/centengine    -n    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        ELSE
+            Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        END
     END
 
 Ctn Start Engine With Extend Conf
