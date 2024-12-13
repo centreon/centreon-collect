@@ -17,6 +17,7 @@
  */
 
 #include "check_health.hh"
+#include <iterator>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "config.hh"
 #include "version.hh"
@@ -73,11 +74,13 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
   }
 
   if (config::instance().use_reverse_connection()) {
-    _info_output =
-        "Version: " CENTREON_AGENT_VERSION " Connection mode: Poller initiated";
+    _info_output = "Version: " CENTREON_AGENT_VERSION
+                   " - Connection mode: Poller initiated - Current "
+                   "configuration: {} checks - Average runtime: {}s";
   } else {
-    _info_output =
-        "Version: " CENTREON_AGENT_VERSION " Connection mode: Agent initiated";
+    _info_output = "Version: " CENTREON_AGENT_VERSION
+                   " - Connection mode: Agent initiated - Current "
+                   "configuration: {} checks - Average runtime: {}s";
   }
 }
 
@@ -112,6 +115,13 @@ e_status check_health::compute(std::string* output,
   const checks_statistics& stats = get_stats();
 
   absl::flat_hash_set<std::string_view> written_to_output;
+
+  unsigned average_runtime = 0;
+  for (const auto& stat : stats.get_ordered_by_duration()) {
+    average_runtime += std::chrono::duration_cast<std::chrono::seconds>(
+                           stat.last_check_duration)
+                           .count();
+  }
 
   auto append_state_to_output = [&](e_status status, std::string* temp_output,
                                     const auto& iter) {
@@ -214,17 +224,21 @@ e_status check_health::compute(std::string* output,
     duration_perf.critical(_critical_check_duration);
   }
 
-  *output = _info_output;
   if (ret != e_status::ok) {
     if (!critical_output.empty()) {
-      output->push_back(' ');
       output->append(critical_output);
-    }
-    if (!warning_output.empty()) {
-      output->push_back(' ');
+      if (!warning_output.empty()) {
+        *output += " - ";
+        output->append(warning_output);
+      }
+    } else if (!warning_output.empty()) {
       output->append(warning_output);
     }
+    *output += " - ";
   }
+  fmt::format_to(std::back_inserter(*output), _info_output, get_stats().size(),
+                 average_runtime / get_stats().size());
+
   return ret;
 }
 
@@ -246,7 +260,7 @@ void check_health::help(std::ostream& help_stream) {
     }
   }
   Examples of output:
-    Version: 24.11.0 Connection mode: Poller initiated CRITICAL: command2 runtime:25s interval:15s WARNING: command1 runtime:20s interval:10s
+    CRITICAL: command2 runtime:25s interval:15s - WARNING: command1 runtime:20s interval:10s - Version: 24.11.0 - Connection mode: Poller initiated - Current configuration: 2 checks - Average runtime: 22s
   Metrics:
     runtime
     interval

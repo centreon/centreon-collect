@@ -64,6 +64,8 @@ class checks_statistics {
 
   const auto& get_ordered_by_interval() const { return _stats.get<1>(); }
   const auto& get_ordered_by_duration() const { return _stats.get<2>(); }
+
+  size_t size() const { return _stats.size(); }
 };
 
 /**
