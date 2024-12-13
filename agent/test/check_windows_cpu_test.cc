@@ -83,7 +83,8 @@ TEST(native_check_cpu_windows, output_no_threshold) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   checker.compute(first, second, &output, &perfs);
   ASSERT_EQ(output, "OK: CPU(s) average usage is 50.00%");
@@ -145,7 +146,8 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   checker.compute(first, second, &output, &perfs);
   ASSERT_EQ(output, "OK: CPU(s) average usage is 50.00%");
@@ -240,7 +242,8 @@ TEST(native_check_cpu_windows, output_threshold) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   checker.compute(first, second, &output, &perfs);
   ASSERT_EQ(
@@ -313,7 +316,8 @@ TEST(native_check_cpu_windows, output_threshold_detailed) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   checker.compute(first, second, &output, &perfs);
   ASSERT_EQ(
@@ -463,7 +467,8 @@ TEST(native_check_cpu_windows, compare_kernel_dph) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   rapidjson::Document pdh_check_args =
       R"({"use-nt-query-system-information":"false" })"_json;
@@ -475,7 +480,8 @@ TEST(native_check_cpu_windows, compare_kernel_dph) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto first_nt = nt_checker.get_cpu_time_snapshot(true);
   auto first_pdh = pdh_checker.get_cpu_time_snapshot(true);

@@ -130,7 +130,8 @@ TEST_F(drive_size_test, test_fs_filter1) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -197,7 +198,8 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -264,7 +266,8 @@ TEST_F(drive_size_test, test_fs_filter2) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -319,7 +322,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -383,7 +387,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -441,7 +446,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
   {
@@ -506,7 +512,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -566,7 +573,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -626,7 +634,8 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 

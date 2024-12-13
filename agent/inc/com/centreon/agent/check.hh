@@ -30,6 +30,42 @@ using engine_to_agent_request_ptr =
 using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
 
+class checks_statistics {
+  struct check_stat {
+    std::string cmd_name;
+    duration last_check_interval;
+    duration last_check_duration;
+  };
+
+  using statistic_container = multi_index::multi_index_container<
+      check_stat,
+      multi_index::indexed_by<
+          multi_index::hashed_unique<
+              BOOST_MULTI_INDEX_MEMBER(check_stat, std::string, cmd_name)>,
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
+              check_stat,
+              duration,
+              last_check_interval)>,
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
+              check_stat,
+              duration,
+              last_check_duration)>>>;
+
+  statistic_container _stats;
+
+ public:
+  using pointer = std::shared_ptr<checks_statistics>;
+
+  void add_interval_stat(const std::string& cmd_name,
+                         const duration& check_interval);
+
+  void add_duration_stat(const std::string& cmd_name,
+                         const duration& check_interval);
+
+  const auto& get_ordered_by_interval() const { return _stats.get<1>(); }
+  const auto& get_ordered_by_duration() const { return _stats.get<2>(); }
+};
+
 /**
  * @brief nagios status values
  *
@@ -130,6 +166,10 @@ class check : public std::enable_shared_from_this<check> {
   unsigned _running_check_index = 0;
   completion_handler _completion_handler;
 
+  // statistics used by check_health
+  time_point _last_start;
+  checks_statistics::pointer _stat;
+
  protected:
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
@@ -159,7 +199,8 @@ class check : public std::enable_shared_from_this<check> {
         const std::string& command_name,
         const std::string& cmd_line,
         const engine_to_agent_request_ptr& cnf,
-        completion_handler&& handler);
+        completion_handler&& handler,
+        const checks_statistics::pointer& stat);
 
   virtual ~check() = default;
 
@@ -201,6 +242,8 @@ class check : public std::enable_shared_from_this<check> {
   static std::optional<bool> get_bool(const std::string& cmd_name,
                                       const char* field_name,
                                       const rapidjson::Value& val);
+
+  const checks_statistics& get_stats() const { return *_stat; }
 };
 
 }  // namespace com::centreon::agent

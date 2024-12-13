@@ -16,11 +16,45 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/exceptions/msg_fmt.hh"
-
 #include "check.hh"
 
 using namespace com::centreon::agent;
+
+/**
+ * @brief update check interval of a check
+ *
+ * @param cmd_name name of command (entered by user in centreon UI)
+ * @param last_check_interval
+ */
+void checks_statistics::add_interval_stat(const std::string& cmd_name,
+                                          const duration& last_check_interval) {
+  auto it = _stats.find(cmd_name);
+  if (it == _stats.end()) {
+    _stats.insert({cmd_name, last_check_interval, {}});
+  } else {
+    _stats.get<0>().modify(it, [last_check_interval](check_stat& it) {
+      it.last_check_interval = last_check_interval;
+    });
+  }
+}
+
+/**
+ * @brief update check duration of a check
+ *
+ * @param cmd_name name of command (entered by user in centreon UI)
+ * @param last_check_duration
+ */
+void checks_statistics::add_duration_stat(const std::string& cmd_name,
+                                          const duration& last_check_duration) {
+  auto it = _stats.find(cmd_name);
+  if (it == _stats.end()) {
+    _stats.insert({cmd_name, {}, last_check_duration});
+  } else {
+    _stats.get<0>().modify(it, [last_check_duration](check_stat& it) {
+      it.last_check_duration = last_check_duration;
+    });
+  }
+}
 
 const std::array<std::string_view, 4> check::status_label = {
     "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
@@ -47,7 +81,8 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::string& command_name,
              const std::string& cmd_line,
              const engine_to_agent_request_ptr& cnf,
-             completion_handler&& handler)
+             completion_handler&& handler,
+             const checks_statistics::pointer& stat)
     : _start_expected(first_start_expected, check_interval),
       _service(serv),
       _command_name(command_name),
@@ -55,6 +90,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
       _conf(cnf),
       _time_out_timer(*io_context),
       _completion_handler(handler),
+      _stat(stat),
       _io_context(io_context),
       _logger(logger) {}
 
@@ -87,6 +123,15 @@ bool check::_start_check(const duration& timeout) {
   _running_check = true;
   _start_timeout_timer(timeout);
   SPDLOG_LOGGER_TRACE(_logger, "start check for service {}", _service);
+
+  time_point now = std::chrono::system_clock::now();
+
+  if (_last_start.time_since_epoch().count() != 0) {
+    _stat->add_interval_stat(_command_name, now - _last_start);
+  }
+
+  _last_start = now;
+
   return true;
 }
 
@@ -148,6 +193,8 @@ void check::on_completion(
     _time_out_timer.cancel();
     _running_check = false;
     ++_running_check_index;
+    _stat->add_duration_stat(_command_name,
+                             std::chrono::system_clock::now() - _last_start);
     _completion_handler(shared_from_this(), status, perfdata, outputs);
   }
 }
