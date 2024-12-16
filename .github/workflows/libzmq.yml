@@ -79,10 +79,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bullseye
-            distrib: bullseye
-            runner: ubuntu-22.04
-            arch: amd64
           - image: packaging-nfpm-bookworm
             distrib: bookworm
             runner: ubuntu-22.04
@@ -91,10 +87,6 @@ jobs:
             distrib: jammy
             runner: ubuntu-22.04
             arch: amd64
-          - image: packaging-bullseye-arm64
-            distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
-            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
@@ -107,6 +99,15 @@ jobs:
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
       - name: package deb
         run: |
           apt-get update
@@ -122,7 +123,7 @@ jobs:
           wget -O - https://github.com/zeromq/libzmq/archive/refs/tags/v4.3.5.tar.gz | tar zxvf -
           cd libzmq-4.3.5
           ln -s packaging/debian
-          sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1~${{ matrix.distrib }}/' debian/changelog
+          sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
           dpkg-buildpackage -us -uc -nc
           cd ..
@@ -175,13 +176,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
           - distrib: bookworm
-            arch: amd64
-          - distrib: jammy
             arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
@@ -203,12 +198,16 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   promote:
-    needs: [get-version]
-    #if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    needs: [get-version, deliver-rpm, deliver-deb]
+    if: |
+      (contains(fromJson('["stable", "testing"]'), needs.get-version.outputs.stability)) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources

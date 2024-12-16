@@ -90,26 +90,42 @@ These tests are executed from the `centreon-tests/robot` folder and uses the [Ro
 
 From a Centreon host, you need to install Robot Framework
 
-On CentOS 7, the following commands should work to initialize your robot tests:
+On AlmaLinux, the following commands should work to initialize your robot tests:
 
-```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql robotframework-requests
+```bash
+dnf install "Development Tools" python3-devel -y
 
-yum install "Development Tools" python3-devel -y
+pip3 install -U robotframework \
+        robotframework-databaselibrary \
+        robotframework-examples pymysql \
+        robotframework-requests psutil \
+        robotframework-httpctrl boto3 \
+        GitPython unqlite py-cpuinfo
 
-pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+
+pip3 install grpcio grpcio_tools
 
 #you need also to provide opentelemetry proto files at the project root with this command
 git clone https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
-          
+
 #Then you must have something like that:
 #root directory/bbdo
 #              /broker
 #              /engine
 #              /opentelemetry-proto
 #              /tests
+```
 
+We need some perl modules to run the tests, you can install them with the following command:
 
+```bash
+dnf install perl-HTTP-Daemon-SSL
+dnf install perl-JSON
+```
+
+Then you can initialize the tests with the following commands:
+
+```bash
 ./init-proto.sh
 ./init-sql.sh
 ```

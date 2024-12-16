@@ -73,9 +73,9 @@ Ctn Clear Broker Logs
 
 Ctn Start Broker
     [Arguments]    ${only_central}=False
-    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
-        Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
+        Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
     END
 
 Ctn Restart Broker
@@ -89,7 +89,12 @@ Ctn Reload Broker
     IF    not ${only_central}    Send Signal To Process    SIGHUP    b2
 
 Ctn Kindly Stop Broker
-    [Arguments]    ${only_central}=False
+    [Documentation]    Stop broker and check if it's correctly stopped.
+    ...    If not, generate a coredump and kill the process.
+    ...    If only_central is set to True, only the central broker will be stopped.
+    ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
+    ...    since there are still bugs in this context.
+    [Arguments]    ${only_central}=False    ${bbdo2}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
     ${result}    Wait For Process    b1    timeout=60s
@@ -106,6 +111,11 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
+        ELIF	not ${bbdo2}
+            Log To Console    "central broker stopped"
+            # We have to check if central RRD logs contain errors about data sent in the past.
+            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
         END
     END
 
@@ -156,7 +166,7 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}
+        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
     END
 
 Ctn Start Engine With Extend Conf
@@ -281,13 +291,12 @@ Ctn Save Logs If Failed
     Run Keyword If Test Failed    Ctn Save Logs
 
 Ctn Save Logs
+    Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    Copy Files    ${centralLog}    ${failDir}
-    Copy Files    ${rrdLog}    ${failDir}
-    Copy Files    ${moduleLog0}    ${failDir}
-    Copy Files    ${engineLog0}    ${failDir}
+    Copy Files    ${BROKER_LOG}/*    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
@@ -370,13 +379,15 @@ Ctn Dump Ba On Error
 
 Ctn Process Service Result Hard
     [Arguments]    ${host}    ${svc}    ${state}    ${output}
-    Repeat Keyword
-    ...    3 times
-    ...    Ctn Process Service Check Result
-    ...    ${host}
-    ...    ${svc}
-    ...    ${state}
-    ...    ${output}
+    FOR    ${idx}    IN RANGE    3
+        Ctn Process Service Check Result
+        ...    ${host}
+        ...    ${svc}
+        ...    ${state}
+        ...    ${output}
+	Sleep    1s
+    END
+
 
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1
@@ -394,9 +405,19 @@ Ctn Wait For Engine To Be Ready
 
 
 Ctn Start Agent
-    Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+    ${run_env}    Ctn Run Env
+
+    IF    "${run_env}" != "WSL"
+        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+    END
 
 Ctn Kindly Stop Agent
+    ${run_env}    Ctn Run Env
+
+    IF    "${run_env}" == "WSL"
+        RETURN
+    END
+
     #in most case centreon_agent is not started
     ${centreon_agent_process}    Get Process Object  centreon_agent
 
