@@ -93,6 +93,9 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
  * @param timeout unused
  */
 void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
+  if (!_start_check(timeout)) {
+    return;
+  }
   std::string output;
   common::perfdata perf;
   e_status status = compute(GetTickCount64(), &output, &perf);

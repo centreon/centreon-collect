@@ -137,7 +137,7 @@ void show_help() {
  * @return int exit status returned to command line (0 success)
  */
 int _main(bool service_start) {
-  const char* registry_path = "SOFTWARE\\Centreon\\" SERVICE_NAME;
+  std::string registry_path = "SOFTWARE\\Centreon\\" SERVICE_NAME;
 
   try {
     config::load(registry_path);

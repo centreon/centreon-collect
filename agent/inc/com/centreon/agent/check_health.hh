@@ -31,6 +31,13 @@ class check_health : public check {
 
   std::string _info_output;
 
+  // we use this timer to delay measure in order to have some checks yet done
+  // when we will compute the first statistics
+  asio::system_timer _measure_timer;
+
+  void _measure_timer_handler(const boost::system::error_code& err,
+                              unsigned start_check_index);
+
  public:
   check_health(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,

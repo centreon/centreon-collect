@@ -58,7 +58,8 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
             cmd_line,
             cnf,
             std::move(handler),
-            stat) {
+            stat),
+      _measure_timer(*io_context) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -85,19 +86,41 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
 }
 
 /**
- * @brief
+ * @brief start a timer to do the job
  *
  * @param timeout unused
  */
 void check_health::start_check([[maybe_unused]] const duration& timeout) {
+  if (!_start_check(timeout)) {
+    return;
+  }
+
+  // we wait a little in order to have statistics check_interval/2
+  _measure_timer.expires_from_now(get_raw_start_expected().get_step() / 2);
+  _measure_timer.async_wait(
+      [me = shared_from_this(), start_check_index = _get_running_check_index()](
+          const boost::system::error_code& err) mutable {
+        std::static_pointer_cast<check_health>(me)->_measure_timer_handler(
+            err, start_check_index);
+      });
+}
+
+/**
+ * @brief timer handler that do the job
+ *
+ * @param err  set if canceled
+ * @param start_check_index used by on_completion
+ */
+void check_health::_measure_timer_handler(const boost::system::error_code& err,
+                                          unsigned start_check_index) {
+  if (err) {
+    return;
+  }
   std::string output;
   std::list<common::perfdata> perf;
   e_status status = compute(&output, &perf);
 
-  _io_context->post([me = shared_from_this(), this, out = std::move(output),
-                     status, performance = std::move(perf)]() {
-    on_completion(_get_running_check_index(), status, performance, {out});
-  });
+  on_completion(start_check_index, status, perf, {output});
 }
 
 /**
@@ -113,6 +136,11 @@ e_status check_health::compute(std::string* output,
   e_status ret = e_status::ok;
 
   const checks_statistics& stats = get_stats();
+
+  if (stats.size() == 0) {
+    *output = "UNKNOWN: No check yet performed";
+    return e_status::unknown;
+  }
 
   absl::flat_hash_set<std::string_view> written_to_output;
 
@@ -235,6 +263,8 @@ e_status check_health::compute(std::string* output,
       output->append(warning_output);
     }
     *output += " - ";
+  } else {
+    *output = "OK: ";
   }
   fmt::format_to(std::back_inserter(*output), _info_output, get_stats().size(),
                  average_runtime / get_stats().size());

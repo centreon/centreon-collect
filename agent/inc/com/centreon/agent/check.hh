@@ -128,6 +128,8 @@ class time_step {
   time_point value() const { return _start_point + _step_index * _step; }
 
   uint64_t get_step_index() const { return _step_index; }
+
+  duration get_step() const { return _step; }
 };
 
 /**
@@ -220,6 +222,8 @@ class check : public std::enable_shared_from_this<check> {
   void add_check_interval_to_start_expected() { ++_start_expected; }
 
   time_point get_start_expected() const { return _start_expected.value(); }
+
+  const time_step & get_raw_start_expected() const { return _start_expected; }
 
   const std::string& get_service() const { return _service; }
 

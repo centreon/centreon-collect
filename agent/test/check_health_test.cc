@@ -59,7 +59,7 @@ TEST(check_health_test, no_threshold_no_reverse) {
   std::list<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::ok);
-  EXPECT_EQ(output, "Version: " CENTREON_AGENT_VERSION
+  EXPECT_EQ(output, "OK: Version: " CENTREON_AGENT_VERSION
                     " - Connection mode: Agent initiated - Current "
                     "configuration: 2 checks - Average runtime: 22s");
   EXPECT_EQ(perfs.size(), 2);
@@ -106,7 +106,7 @@ TEST(check_health_test, no_threshold_reverse) {
   std::list<com::centreon::common::perfdata> perfs;
   e_status ret = checker.compute(&output, &perfs);
   EXPECT_EQ(ret, e_status::ok);
-  EXPECT_EQ(output, "Version: " CENTREON_AGENT_VERSION
+  EXPECT_EQ(output, "OK: Version: " CENTREON_AGENT_VERSION
                     " - Connection mode: Poller initiated - Current "
                     "configuration: 2 checks - Average runtime: 22s");
   EXPECT_EQ(perfs.size(), 2);

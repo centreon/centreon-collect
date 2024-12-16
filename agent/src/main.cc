@@ -114,7 +114,9 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    config::load(argv[1]);
+    // mandatory to convert arg to a string to ensure of the choice of load
+    // method by compiler
+    config::load(std::string(argv[1]));
   } catch (const std::exception& e) {
     SPDLOG_ERROR("fail to parse config file {}: {}", argv[1], e.what());
     return 1;

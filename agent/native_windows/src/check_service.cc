@@ -609,8 +609,8 @@ check_service::check_service(
                               to_ins->get_status()),
               std::move(to_ins));
         }
-      } else if (key != "filter-name" || key != "exclude-name" ||
-                 key != "filter-display" || key != "exclude-display" ||
+      } else if (key != "filter-name" && key != "exclude-name" &&
+                 key != "filter-display" && key != "exclude-display" &&
                  key != "start-auto") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
                             cmd_name, member_iter->name);
