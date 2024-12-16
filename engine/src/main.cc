@@ -115,8 +115,8 @@ int main(int argc, char* argv[]) {
       {"test-scheduling", no_argument, nullptr, 's'},
       {"verify-config", no_argument, nullptr, 'v'},
       {"version", no_argument, nullptr, 'V'},
-      {"config-file", optional_argument, nullptr, 'c'},
-      {"new-generation", no_argument, nullptr, 'n'},
+      {"config-file", required_argument, nullptr, 'c'},
+      {"prot-config", required_argument, nullptr, 'p'},
       {NULL, no_argument, nullptr, '\0'}};
 #endif  // HAVE_GETOPT_H
 
@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
     // Process all command line arguments.
     int c;
 #ifdef HAVE_GETOPT_H
-    while ((c = getopt_long(argc, argv, "+hVvsxDcn", long_options,
+    while ((c = getopt_long(argc, argv, "+hVvsxDcp:", long_options,
                             &option_index)) != -1) {
 #else
     while ((c = getopt(argc, argv, "+hVvsxD")) != -1) {
@@ -187,8 +187,8 @@ int main(int argc, char* argv[]) {
           if (optarg)
             extended_conf_file.emplace_back(optarg);
           break;
-        case 'n':
-          new_generation = true;
+        case 'p':
+          proto_conf = optarg;
           break;
         default:
           error = true;
@@ -496,8 +496,7 @@ int main(int argc, char* argv[]) {
         // Parse configuration.
         configuration::error_cnt err;
 
-        std::filesystem::path config_path =
-            std::filesystem::path(getenv("HOME")) / "current-conf.prot";
+        std::filesystem::path config_path = std::filesystem::path(proto_conf);
         std::ifstream f(config_path);
         configuration::State pb_config;
         if (f)

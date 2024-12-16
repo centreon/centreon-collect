@@ -209,7 +209,7 @@ void loop::_dispatching() {
     }
 
     // Start reload configuration.
-    if (_need_reload || (new_generation && broker_has_diff_state())) {
+    if (_need_reload || (!proto_conf.empty() && broker_has_diff_state())) {
       if (!reloading) {
         reloading = true;
         if (_need_reload)

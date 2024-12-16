@@ -240,12 +240,15 @@ BESS7
 
 BESS8
     [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
-    ...    are started with extended negociation.
-    ...    The connection is established for the first time, so Broker doesn't know
-    ...    it. So when it is time to send the Instance message, Engine sends also
-    ...    an EngineConfiguration message and then waits for the EngineConfiguration
-    ...    answered by the Broker.
-    ...    Since this is the first time, Engine should send its configuration as usual.
+    ...    are started with extended negociation. We supporse that no prot file is
+    ...    available. The connection is established for the first time, so Broker
+    ...    doesn't know it.
+    ...    When Engine establishes the connection, it exchanges configuration versions
+    ...    with Broker. Broker sends a diff state with all the configuration as it
+    ...    does not know the current engine configuration.
+    ...    When done, there are three prot files (configurations and diff dumps),
+    ...    One in the Engine directory, one in the broker pollers configuration and
+    ...    also one diff state in the broker pollers_configuration/new_conf directory.
     [Tags]    broker    engine    start-stop    MON-15671
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
@@ -256,7 +259,54 @@ BESS8
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
-    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -p /tmp/var/lib/centreon-engine/current-config.prot    disambiguous=True
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -n    disambiguous=True
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+#Ctn Update Engine Config paths    ${VarRoot}/lib/centreon/config/1
+
+    Ctn Remove Prot Files    ${VarRoot}/lib
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine    ${True}
+
+    ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
+
+    ${content}    Create List
+    ...    BBDO: Engine configuration needs to be updated
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine needs an update of its configuration should be available.
+
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/current-conf.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BESS8B
+    [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
+    ...    are started with extended negociation. The tests starts exactly the same
+    ...    way as BESS8, so we got three prot files created.
+    ...    Then the php cache file has its severity.cfg files updated and then
+    ...    Engine is restarted. The diff-state is updated and should be much smaller.
+    ...    Engine should be aware of the new severities.
+    [Tags]    broker    engine    start-stop    MON-15671
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.1.0
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    rrd    bbdo    debug
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -n    disambiguous=True
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -274,38 +324,47 @@ BESS8
     Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
 
     ${content}    Create List
-    ...    BBDO: received engine configuration from Engine peer 'central-module-master0'
-    ...    BBDO: engine configuration for 'central-module-master0' is outdated
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-#    Should Be True    ${result}    A message telling that Broker received the configuration from Engine should be available in central.log. And this configuration should be outdated.
-#
-#    ${content}    Create List
-#    ...    BBDO: engine configuration from peer 'central-broker-master' received as expected
-#    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-#    Should Be True    ${result}    Broker should send a response to the EngineConfiguration.
-#
-#    ${content}    Create List
-#    ...    init: sending poller configuration
-#    ...    init: beginning host dump
-#    ...    init: end of host dump
-#    ...    init: beginning service dump
-#    ...    init: end of services dump
-#    ...    init: sending initial instance configuration loading event
-#
-#    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-#    Should Be True    ${result}    Engine should send its full configuration.
-#
-#    # Once the configuration is sent, Broker must copy the cache configuration
-#    # from the php cache.
-#    ${content}    Create List
-#    ...    unified_sql: processing Pb instance configuration (poller 1)
-#    ...    unified_sql: New engine configuration, broker directories updated
-#    ...    Poller 1 configuration updated in '${VarRoot}/lib/centreon-broker/pollers-configuration/1'
-#    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-#    Should Be True    ${result}    Broker should update its poller configuration.
-#
-#    ${result}    Ctn Check Poller Enabled In Database    1    30    ${True}
-#    Should Be True    ${result}    Poller not visible in resources table
+    ...    BBDO: Engine configuration needs to be updated
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine needs an update of its configuration should be available.
+
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/current-conf.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ${diffSize}    Get File Size    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+
+    # We update the php cache file
+    Ctn Create Severities File    0    2    ${VarRoot}/lib/centreon/config/1
+    Ctn Config Engine Add Cfg File    0
+    ...    ${VarRoot}/lib/centreon/config/1/severities.cfg
+    ...    ${VarRoot}/lib/centreon/config/1/centengine.cfg
+    ${start}    Ctn Get Round Current Date
+    Log To Console    Restarting Engine
+    Ctn Restart Engine    ${True}
+    ${count}    Set Variable    60
+    WHILE    ${count} > 0
+        ${diffSize1}    Get File Size    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+        IF    ${diffSize1} < ${diffSize}
+            BREAK
+        END
+        Sleep    1s
+        ${count}    Evaluate    ${count} - 1
+    END
+    Should Be True    ${diffSize1} < ${diffSize}    The new diff state should be smaller than the previous one.
+    ${count}    Set Variable    60
+    WHILE    ${count} > 0
+        ${result}    Ctn Engine Get Current Config    50001
+        IF    "severities" in ${result}
+            Log To Console    ${result['severities']}
+            ${length}    Get Length    ${result['severities']}
+            IF    ${length} == 2
+                BREAK
+            END
+        END
+        Sleep    1s
+        ${count}    Evaluate    ${count} - 1
+    END
+    Should Be True    "severities" in ${result} and ${length} == 2    Engine should be aware of the new severities.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

@@ -24,7 +24,7 @@
 
 #include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
-#include "nagios.h"
+// #include "nagios.h"
 
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
@@ -33,7 +33,7 @@ using com::centreon::common::log_v2::log_v2;
 configuration::state* config = nullptr;
 #else
 configuration::State pb_config;
-bool new_generation = false;
+std::filesystem::path proto_conf;
 #endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",

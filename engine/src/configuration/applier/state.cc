@@ -110,8 +110,7 @@ void applier::state::apply_diff(const configuration::DiffState& diff,
   try {
     _processing_state = state_ready;
     _processing(diff, err);
-    std::filesystem::path config_path =
-        std::filesystem::path(getenv("HOME")) / "current-conf.prot";
+    std::filesystem::path config_path = std::filesystem::path(proto_conf);
     std::ofstream f(config_path);
     if (f) {
       pb_config.SerializeToOstream(&f);
@@ -152,8 +151,7 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
-    std::filesystem::path config_path =
-        std::filesystem::path(getenv("HOME")) / "current-conf.prot";
+    std::filesystem::path config_path = std::filesystem::path(proto_conf);
     std::ofstream f(config_path);
     if (f) {
       new_cfg.SerializeToOstream(&f);
@@ -2662,8 +2660,7 @@ void applier::state::_processing(configuration::State& new_cfg,
     _processing_state = state_error;
     throw;
   }
-  std::filesystem::path config_path =
-      std::filesystem::path(getenv("HOME")) / "current-conf.prot";
+  std::filesystem::path config_path = std::filesystem::path(proto_conf);
   std::ofstream f(config_path);
   if (f.is_open()) {
     pb_config.SerializeToOstream(&f);

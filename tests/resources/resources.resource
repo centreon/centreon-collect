@@ -188,7 +188,7 @@ Ctn Start Engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -n    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
             Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END
@@ -216,8 +216,9 @@ Ctn Start Engine With Extend Conf
     END
 
 Ctn Restart Engine
-    Ctn Stop engine
-    Ctn Start engine
+    [Arguments]    ${newGeneration}=False
+    Ctn Stop Engine
+    Ctn Start Engine    ${newGeneration}
 
 Ctn Start Custom Engine
     [Arguments]    ${conf_path}    ${process_alias}

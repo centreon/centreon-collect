@@ -457,7 +457,7 @@ void neb::send_initial_configuration() {
 void neb::send_initial_pb_configuration(const std::string& conf_version) {
   if (config::applier::state::instance().broker_needs_update()) {
     SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
-    if (!new_generation || conf_version.empty()) {
+    if (!proto_conf.empty() || conf_version.empty()) {
       send_severity_list();
     }
     send_tag_list();

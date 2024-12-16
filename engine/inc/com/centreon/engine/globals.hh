@@ -21,8 +21,6 @@
 #ifndef CCE_GLOBALS_HH
 #define CCE_GLOBALS_HH
 
-#include <stdio.h>
-
 #include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -56,7 +54,7 @@ extern std::shared_ptr<spdlog::logger> otel_logger;
 extern com::centreon::engine::configuration::state* config;
 #else
 extern com::centreon::engine::configuration::State pb_config;
-extern bool new_generation;
+extern std::filesystem::path proto_conf;
 #endif
 extern std::string config_file;
 

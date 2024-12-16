@@ -131,8 +131,9 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       desc.add_options()  // list of options
           ("config_file,c", po::value<std::string>(),
            "set the module JSON configuration file")  // 1st option
-          ("prot_config,p", po::value<std::string>(),
-           "set the Engine configuration binary Protobuf file");  // 2nd option
+          ("new_generation,n",
+           "cbmod is configured to negotiate the Engine configuration");  // 2nd
+                                                                          // option
       po::positional_options_description pos;
       // The first positional argument is interpreted as config_file, this is
       // useful because currently the wui configure cbmod like this.
@@ -149,16 +150,16 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       else
         throw msg_fmt("main: no configuration file provided");
 
-      std::string prot_config;
+      bool new_generation = false;
 
-      if (vm.count("prot_config"))
-        prot_config = vm["prot_config"].as<std::string>();
+      if (vm.count("new_generation"))
+        new_generation = true;
 
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
       com::centreon::broker::config::state s{p.parse(configuration_file)};
 
-      s.set_prot_config(prot_config);
+      s.set_extended_negotiation(new_generation);
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by

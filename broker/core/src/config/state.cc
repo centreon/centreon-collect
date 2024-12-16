@@ -474,21 +474,21 @@ state::stats_exporter_conf& state::mut_stats_exporter() {
 }
 
 /**
- * @brief Set the Engine protobuf configuration file.
+ * @brief Set if the extended configuration is enabled.
  *
- * @param prot_config The Engine protobuf configuration file.
+ * @param extended_configuration true if the extended configuration is enabled.
  */
-void state::set_prot_config(const std::string& file) {
-  _prot_config = file;
+void state::set_extended_negotiation(bool extended_negotiation) {
+  _extended_negotiation = extended_negotiation;
 }
 
 /**
- * @brief Get the Engine configuration protobuf file.
+ * @brief Return if the extended negotiation is enabled.
  *
- * @return The Engine configuration protobuf file.
+ * @return true if the extended negotiation is enabled.
  */
-const std::string& state::prot_config() const noexcept {
-  return _prot_config;
+bool state::extended_negotiation() const noexcept {
+  return _extended_negotiation;
 }
 
 /**
