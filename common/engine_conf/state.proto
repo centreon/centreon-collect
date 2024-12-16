@@ -215,9 +215,10 @@ message State {
 message DiffState {
   /* Modifications concerning severities */
   DiffSeverity severities = 1;
+  DiffTag tags = 2;
 
   /* In case of all the configuration should be reloaded */
-  State state = 2;
+  State state = 3;
 }
 
 message CustomVariable {
@@ -730,6 +731,15 @@ message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   string tag_name = 3;
+}
+
+message DiffTag {
+  /* Added tags */
+  repeated Tag added = 1;
+  /* Deleted tags given by their index in the old list. */
+  repeated KeyType deleted = 2;
+  /* Modified tags given tags. */
+  repeated Tag modified = 3;
 }
 
 message Timeperiod {

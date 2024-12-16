@@ -22,6 +22,7 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/tag_helper.hh"
 #include "severity_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -531,7 +532,11 @@ void state_helper::diff(const State& old_state,
                         const State& new_state,
                         const std::shared_ptr<spdlog::logger>& logger,
                         DiffState* result) {
+  // Severities:
   severity_helper::diff(old_state.severities(), new_state.severities(), logger,
                         result->mutable_severities());
+  // Tags:
+  tag_helper::diff(old_state.tags(), new_state.tags(), logger,
+                   result->mutable_tags());
 }
 }  // namespace com::centreon::engine::configuration

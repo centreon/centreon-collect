@@ -19,8 +19,10 @@
 #include "common/engine_conf/tag_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
+using google::protobuf::util::MessageDifferencer;
 
 namespace com::centreon::engine::configuration {
 
@@ -106,5 +108,56 @@ void tag_helper::_init() {
   obj->mutable_obj()->set_register_(true);
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(-1);
+}
+
+/**
+ * @brief Compare two tags objects and generate a DiffTag object.
+ *
+ * @param other The other Tag object to compare with.
+ *
+ * @return A DiffTag object that contains the differences between the two
+ * Tag objects.
+ */
+void tag_helper::diff(const Container& old_list,
+                      const Container& new_list,
+                      const std::shared_ptr<spdlog::logger>& logger
+                      [[maybe_unused]],
+                      DiffTag* result) {
+  if (logger->level() <= spdlog::level::trace) {
+    logger->trace("tags::diff previous tags:");
+    for (const auto& item : old_list)
+      logger->trace(" * {}", item.DebugString());
+    logger->trace("tags::diff new tags:");
+    for (const auto& item : new_list)
+      logger->trace(" * {}", item.DebugString());
+  }
+
+  result->Clear();
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, const Tag*> keys_values;
+
+  // add old list keys to the map with the corresponding tag
+  for (const auto& item : old_list) {
+    keys_values[{item.key().id(), item.key().type()}] = &item;
+  }
+
+  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> new_keys;
+  for (const auto& item : new_list) {
+    auto inserted = new_keys.insert({item.key().id(), item.key().type()});
+    if (!keys_values.contains(*inserted.first)) {
+      // New object to add
+      result->add_added()->CopyFrom(item);
+    } else {
+      // Object to modify or equal
+      if (!MessageDifferencer::Equals(item, *keys_values[*inserted.first])) {
+        // There are changes in this object
+        result->add_modified()->CopyFrom(item);
+      }
+    }
+  }
+
+  for (const auto& item : old_list) {
+    if (!new_keys.contains({item.key().id(), item.key().type()}))
+      result->add_deleted()->CopyFrom(item.key());
+  }
 }
 }  // namespace com::centreon::engine::configuration
