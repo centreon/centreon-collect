@@ -319,7 +319,12 @@ def ctn_create_certificate(host: str, cert: str):
 
 
 def ctn_run_env():
-    return getoutput("echo $RUN_ENV | awk '{print $1}'")
+    """
+    ctn_run_env
+
+    Get RUN_ENV env variable content
+    """
+    return os.environ.get('RUN_ENV', '')
 
 
 def ctn_start_mysql():
@@ -554,8 +559,13 @@ def ctn_clear_commands_status():
 
 
 def ctn_set_command_status(cmd, status):
-    if os.path.exists("/tmp/states"):
-        f = open("/tmp/states")
+    if os.environ.get("RUN_ENV","") == "WSL":
+        state_path = "states"
+    else:
+        state_path = "/tmp/states"
+
+    if os.path.exists(state_path):
+        f = open(state_path)
         lines = f.readlines()
     else:
         lines = []
@@ -571,9 +581,8 @@ def ctn_set_command_status(cmd, status):
 
     if not done:
         lines.append("{}=>{}\n".format(cmd, status))
-    f = open("/tmp/states", "w")
-    f.writelines(lines)
-    f.close()
+    with open(state_path, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_truncate_resource_host_service():
@@ -652,6 +661,14 @@ def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, ent
 
 
 def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, which='COMMENTS'):
+    """
+    Check if an acknowledgement is deleted in comments, acknowledgements or both
+
+    Args:
+        ack_id (int): The acknowledgement id
+        timeout (int): The timeout in seconds
+        which (str): The table to check. It can be 'comments', 'acknowledgements' or 'BOTH'
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -667,7 +684,6 @@ def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int,
                 cursor.execute(
                     f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
-                logger.console(f"### {result}")
                 if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) >= int(result[0]['entry_time']):
                     if which == 'BOTH':
                         if result[0]['a.deletion_time']:
@@ -942,9 +958,11 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
         with connection:
             with connection.cursor() as cursor:
                 if enabled != '0':
-                    cursor.execute("SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{}' AND h.name='{}'".format(
-                        service_desc, hostname))
+                    logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
+                    if len(result) > 0:
+                        logger.console(f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
                     if len(result) == int(enabled) and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == int(enabled):
                         return True
                     if (len(result) > 0):
@@ -1231,7 +1249,7 @@ def ctn_delete_service_downtime(hst: str, svc: str):
 
     logger.console(f"delete downtime internal_id={did}")
     cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1438,7 +1456,11 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
 
 def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
-    d = parser.parse(start).timestamp()
+    try:
+        d = parser.parse(start)
+    except:
+        d = datetime.fromtimestamp(start)
+    d = d.timestamp()
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1448,6 +1470,8 @@ def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+                logger.console(
+                    f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 cursor.execute(
                     f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL")
                 result = cursor.fetchall()

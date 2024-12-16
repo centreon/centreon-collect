@@ -20,7 +20,7 @@ syntax = "proto3";
 
 package com.centreon.broker;
 
-/*io::storage, storage::de_pb_metric*/
+/* io::storage, storage::de_pb_metric, 44 */
 message Metric {
   enum ValueType {
     GAUGE = 0;
@@ -40,7 +40,7 @@ message Metric {
   uint64 service_id = 12;
 }
 
-/*io::storage, storage::de_pb_status*/
+/* io::storage, storage::de_pb_status, 45 */
 message Status {
   uint64 index_id = 1;
   uint32 interval = 2;
@@ -51,14 +51,14 @@ message Status {
   uint64 service_id = 7;
 }
 
-/*io::storage, storage::de_pb_index_mapping*/
+/* io::storage, storage::de_pb_index_mapping, 46 */
 message IndexMapping {
   uint64 index_id = 1;
   uint64 host_id = 2;
   uint64 service_id = 3;
 }
 
-/*io::storage, storage::de_pb_metric_mapping*/
+/* io::storage, storage::de_pb_metric_mapping, 47 */
 message MetricMapping {
   uint64 index_id = 1;
   uint64 metric_id = 2;

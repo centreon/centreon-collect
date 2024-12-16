@@ -1,26 +1,26 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/options.hh"
 #include "com/centreon/connector/perl/policy.hh"
-#include "com/centreon/exceptions/basic.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
@@ -50,7 +50,7 @@ int main(int argc, char** argv, char** env) {
 
     try {
       opts.parse(argc - 1, argv + 1);
-    } catch (exceptions::basic const& e) {
+    } catch (const exceptions::msg_fmt& e) {
       std::cout << e.what() << std::endl << opts.usage() << std::endl;
       return EXIT_FAILURE;
     }
@@ -108,7 +108,7 @@ int main(int argc, char** argv, char** env) {
 
       io_context->run();
     }
-  } catch (std::exception const& e) {
+  } catch (const std::exception& e) {
     log::core()->error(e.what());
   }
 

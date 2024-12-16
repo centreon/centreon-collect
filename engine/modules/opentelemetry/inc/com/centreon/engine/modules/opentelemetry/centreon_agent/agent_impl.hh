@@ -23,6 +23,8 @@
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"
 
+#include "com/centreon/engine/modules/opentelemetry/conf_helper.hh"
+
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
 /**
@@ -37,6 +39,8 @@ class agent_impl
       public std::enable_shared_from_this<agent_impl<bireactor_class>> {
   std::shared_ptr<boost::asio::io_context> _io_context;
   const std::string_view _class_name;
+
+  whitelist_cache _whitelist_cache;
 
   agent_config::pointer _conf ABSL_GUARDED_BY(_protect);
 
