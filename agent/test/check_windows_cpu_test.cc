@@ -28,7 +28,7 @@ using namespace com::centreon::agent;
 using namespace std::string_literals;
 
 TEST(native_check_cpu_windows, construct) {
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info;
+  M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info;
   info.IdleTime.QuadPart = 60;
   info.KernelTime.QuadPart = 70;
   info.UserTime.QuadPart = 25;
@@ -50,13 +50,14 @@ TEST(native_check_cpu_windows, construct) {
   ASSERT_EQ(k.get_proportional_used(), 0.4);
 }
 
-constexpr check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info[2] =
-    {{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}};
+constexpr M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info[2] = {
+    {0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0}};
 
 TEST(native_check_cpu_windows, output_no_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -117,7 +118,7 @@ TEST(native_check_cpu_windows, output_no_threshold) {
 TEST(native_check_cpu_windows, output_no_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -213,7 +214,7 @@ TEST(native_check_cpu_windows, output_no_threshold_detailed) {
 TEST(native_check_cpu_windows, output_threshold) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;
@@ -287,7 +288,7 @@ TEST(native_check_cpu_windows, output_threshold) {
 TEST(native_check_cpu_windows, output_threshold_detailed) {
   check_cpu_detail::kernel_cpu_time_snapshot first(info, info + 2);
 
-  check_cpu_detail::M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
+  M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION info2[2];
   info2[0].IdleTime.QuadPart = 60;
   info2[0].KernelTime.QuadPart = 70;
   info2[0].UserTime.QuadPart = 25;

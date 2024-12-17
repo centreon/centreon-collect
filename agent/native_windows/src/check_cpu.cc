@@ -22,9 +22,9 @@
 #include <pdhmsg.h>
 
 #include "check_cpu.hh"
+#include "com/centreon/common/rapidjson_helper.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "native_check_cpu_base.cc"
-
-#pragma comment(lib, "pdh.lib")
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_cpu_detail;
@@ -32,23 +32,6 @@ using namespace com::centreon::agent::check_cpu_detail;
 /**************************************************************************
       Kernel measure method
 ***************************************************************************/
-
-namespace com::centreon::agent::check_cpu_detail {
-
-// ntdll.dll handle
-static HMODULE _ntdll = nullptr;
-
-typedef LONG(WINAPI* NtQuerySystemInformationPtr)(ULONG SystemInformationClass,
-                                                  PVOID SystemInformation,
-                                                  ULONG SystemInformationLength,
-                                                  PULONG ReturnLength);
-
-// NtQuerySystemInformation function address
-static NtQuerySystemInformationPtr _nt_query_system_information = nullptr;
-
-constexpr ULONG SystemProcessorPerformanceInformationClass = 8;
-
-}  // namespace com::centreon::agent::check_cpu_detail
 
 /**
  * @brief Construct a kernel_per_cpu_time object from a
@@ -73,29 +56,6 @@ kernel_per_cpu_time::kernel_per_cpu_time(
 }
 
 /**
- * @brief load ntdll.dll and get NtQuerySystemInformation address
- *
- */
-static void _ntdll_init() {
-  if (!_ntdll) {
-    _ntdll = LoadLibraryA("ntdll.dll");
-    if (!_ntdll) {
-      throw std::runtime_error("Failed to load ntdll.dll");
-    }
-  }
-
-  if (!_nt_query_system_information)
-    // Obtenir le pointeur de fonction NtQuerySystemInformation
-    _nt_query_system_information = (NtQuerySystemInformationPtr)GetProcAddress(
-        _ntdll, "NtQuerySystemInformation");
-  if (!_nt_query_system_information) {
-    FreeLibrary(_ntdll);
-    throw std::runtime_error(
-        "Failed to get address of NtQuerySystemInformation");
-  }
-}
-
-/**
  * @brief Construct a new kernel cpu time snapshot::kernel cpu time snapshot
  * object it loads alls CPUs time and compute the average
  *
@@ -110,9 +70,10 @@ kernel_cpu_time_snapshot::kernel_cpu_time_snapshot(unsigned nb_core) {
 
   memset(buffer.get(), 0, buffer_size);
 
-  if (_nt_query_system_information(SystemProcessorPerformanceInformationClass,
-                                   buffer.get(), buffer_size,
-                                   &return_length) != 0) {
+  if (nt_query_system_information(
+          8 /*SystemProcessorPerformanceInformationClass*/
+          ,
+          buffer.get(), buffer_size, &return_length) != 0) {
     throw std::runtime_error("Failed to get kernel cpu time");
   }
 
@@ -447,9 +408,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
     throw;
   }
 
-  if (_use_nt_query_system_information) {
-    _ntdll_init();
-  } else {
+  if (!_use_nt_query_system_information) {
     _pdh_counters = std::make_unique<pdh_counters>();
   }
 }

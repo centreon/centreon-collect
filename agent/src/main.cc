@@ -20,6 +20,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
 
@@ -189,6 +190,8 @@ int main(int argc, char* argv[]) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
   }
+
+  read_os_version();
 
   if (conf.use_reverse_connection()) {
     _streaming_server = streaming_server::load(g_io_context, g_logger,
