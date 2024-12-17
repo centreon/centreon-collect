@@ -21,7 +21,9 @@ on:
       stability:
         required: true
         type: string
-
+      is_nightly:
+        required: false
+        type: string
 jobs:
   package:
     strategy:
@@ -70,14 +72,14 @@ jobs:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
 
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -226,5 +228,22 @@ jobs:
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
-          path: ./*.${{ matrix.package_extension}}
+          path: ./*.${{ matrix.package_extension }}
           retention-days: 1
+
+  create-jira-nightly-ticket:
+    needs: [package]
+    runs-on: ubuntu-24.04
+    if: |
+      inputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled()) &&
+      startsWith(github.ref_name, 'dev')
+    steps:
+      - name: Create Jira ticket if nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.jira_base_url }}
+          jira_user_email: ${{ secrets.jira_user_email }}
+          jira_api_token: ${{ secrets.jira_api_token }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'
