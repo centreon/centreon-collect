@@ -101,7 +101,13 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     steps:
       - name: Checkout sources
@@ -125,7 +131,8 @@ jobs:
       contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
     needs: [get-environment, package]
     runs-on: [self-hosted, common]
     strategy:
@@ -160,7 +167,8 @@ jobs:
       contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
     needs: [get-environment, package]
     runs-on: [self-hosted, common]
     strategy:
@@ -196,7 +204,9 @@ jobs:
       (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     runs-on: [self-hosted, common]
     strategy:
       matrix:
