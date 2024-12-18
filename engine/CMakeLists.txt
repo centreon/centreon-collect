@@ -49,7 +49,8 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(${INC_DIR} ${INC_DIR}/compatibility
                     ${CMAKE_BINARY_DIR}/common/engine_conf
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/broker/neb/inc)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -518,6 +519,7 @@ if(LEGACY_ENGINE)
   add_dependencies(centengine centreon_clib)
 
   # Link centengine with required libraries.
+  
   target_link_libraries(
     centengine
     -L${PROTOBUF_LIB_DIR}
@@ -548,7 +550,9 @@ if(LEGACY_ENGINE)
     z
     ryml::ryml
     stdc++fs
-    dl)
+    dl
+    -L ${PREFIX_CBMOD}
+    ${CBMOD})
 
 install(
   TARGETS centengine centenginestats
@@ -578,6 +582,7 @@ else()
   add_dependencies(centengine centreon_clib)
 
   # Link centengine with required libraries.
+  message(STATUS "################################  Cbmod library ${CBMOD}")
   target_link_libraries(
     centengine
     -L${PROTOBUF_LIB_DIR}
@@ -609,7 +614,8 @@ else()
     z
     ryml::ryml
     stdc++fs
-    dl)
+    dl
+    cbmod)
 
 install(
   TARGETS centengine centenginestats

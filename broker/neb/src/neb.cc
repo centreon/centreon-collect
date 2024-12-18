@@ -26,6 +26,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
+#include "com/centreon/broker/neb/neb.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "common.pb.h"
 #include "common/log_v2/log_v2.hh"
@@ -44,6 +45,10 @@ std::shared_ptr<spdlog::logger> neb_logger =
 }  // namespace com::centreon::broker
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+
+using namespace com::centreon::broker::neb;
+
+cbmod::cbmod(const std::string& config_file) : _neb_logger{log_v2::instance().get(log_v2::NEB)} {}
 
 extern "C" {
 /**
@@ -130,9 +135,9 @@ int nebmodule_init(int flags, const char* args, void* handle) {
       po::options_description desc("Allowed options");
       desc.add_options()  // list of options
           ("config_file,c", po::value<std::string>(),
-           "set the module JSON configuration file")
-          ("new_generation,n",
-           "cbmod is configured to negotiate the Engine configuration");
+           "set the module JSON configuration file")(
+              "new_generation,n",
+              "cbmod is configured to negotiate the Engine configuration");
 
       po::positional_options_description pos;
       // The first positional argument is interpreted as config_file, this is
@@ -246,5 +251,4 @@ int nebmodule_reload(const std::string& conf_version) {
   }
   return 0;
 }
-
 }

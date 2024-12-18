@@ -75,6 +75,7 @@ namespace asio = boost::asio;
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
 #endif
+#include "com/centreon/broker/neb/neb.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
@@ -573,6 +574,8 @@ int main(int argc, char* argv[]) {
 
         // Update all status data (with retained information).
         update_all_status_data();
+
+        com::centreon::broker::neb::cbmod cbmod(config_file);
 
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
