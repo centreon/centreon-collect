@@ -276,3 +276,88 @@ void applier::tag::resolve_object(const configuration::Tag& obj,
   }
 }
 #endif
+
+#ifndef LEGACY_CONF
+void applier::tag::_apply(const DiffTag& diff, error_cnt& err) {
+  // Applier.
+  applier::tag aplyr;
+
+  // Modify objects.
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::pair<uint32_t, Tag*>>
+      current_objs;
+
+  uint32_t i = 0;
+  for (auto& s : *pb_config.mutable_tags())
+    current_objs[{s.key().id(), s.key().type()}] = std::make_pair(i++, &s);
+
+  for (auto& p : diff.modified()) {
+    auto found = current_objs.find({p.key().id(), p.key().type()});
+    if (!verify_config) {
+      if (found != current_objs.end()) {
+        aplyr.modify_object(found->second.second, p);
+      } else {
+        ++err.config_errors;
+        config_logger->error(
+            "The tag ({}, {}) should be modified but it currently "
+            "doesn't "
+            "exist",
+            p.key().id(), p.key().type());
+      }
+    } else {
+      try {
+        if (found != current_objs.end()) {
+          aplyr.modify_object(found->second.second, p);
+        } else
+          throw engine_error()
+              << "The tag (" << p.key().id() << ", " << p.key().type()
+              << ") should be modified but it currently doesn't exist";
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        config_logger->info(e.what());
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& key : diff.deleted()) {
+    auto found = current_objs.find({key.id(), key.type()});
+    if (!verify_config) {
+      if (found != current_objs.end()) {
+        aplyr.remove_object(found->second.first);
+      } else {
+        ++err.config_errors;
+        config_logger->error(
+            "The tag ({}, {}) should be removed but it currently doesn't "
+            "exist",
+            key.id(), key.type());
+      }
+    } else {
+      try {
+        if (found != current_objs.end()) {
+          aplyr.remove_object(found->second.first);
+        } else
+          throw engine_error()
+              << "The tag (" << key.id() << ", " << key.type()
+              << ") should be removed but it currently doesn't exist";
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        config_logger->info(e.what());
+      }
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        config_logger->info(e.what());
+      }
+    }
+  }
+}
+#endif

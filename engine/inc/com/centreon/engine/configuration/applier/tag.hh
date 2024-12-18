@@ -49,8 +49,8 @@ class tag {
   void modify_object(configuration::Tag* to_modify,
                      const configuration::Tag& new_object);
   void remove_object(ssize_t idx);
-  void resolve_object(const configuration::Tag& obj,
-                      error_cnt& err);
+  void resolve_object(const configuration::Tag& obj, error_cnt& err);
+  static void _apply(const DiffTag& diff, error_cnt& err);
 #endif
 };
 }  // namespace applier

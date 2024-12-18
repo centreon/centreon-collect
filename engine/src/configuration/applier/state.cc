@@ -2245,6 +2245,8 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
   gettimeofday(tv, nullptr);
 
   _apply<DiffSeverity, applier::severity>(diff_state.severities(), err);
+  applier::tag::_apply(diff_state.tags(), err);
+  // _apply<DiffTag, applier::tag>(diff_state.tags(), err);
 }
 
 /**
