@@ -101,7 +101,8 @@ static struct {
     {NEBCALLBACK_ADAPTIVE_TAG_DATA, &neb::callback_tag},
     {NEBCALLBACK_OTL_METRICS, &neb::callback_otl_metrics},
     {NEBCALLBACK_HAS_DIFF_STATE, &neb::callback_has_diff_state},
-    {NEBCALLBACK_GET_DIFF_STATE, &neb::callback_get_diff_state}};
+    {NEBCALLBACK_GET_DIFF_STATE, &neb::callback_get_diff_state},
+    {NEBCALLBACK_SET_CONF_VERSION, &neb::callback_set_conf_version}};
 
 // List of Engine-specific callbacks.
 static struct {
@@ -2398,10 +2399,9 @@ int neb::callback_process(int, void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_pb_process(int callback_type, void* data) {
+int neb::callback_pb_process(int callback_type [[maybe_unused]], void* data) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: process event callback");
-  (void)callback_type;
 
   // Input variables.
   const nebstruct_process_data* process_data =
@@ -2414,15 +2414,8 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_pid(getpid());
   inst.set_version(get_program_version());
 
-  /* Here we are Engine. The idea is to know if broker is able to handle the
-   * evoluated negotiation. The goal is to send the hash of the configuration
-   * directory to the broker. */
-  inst.set_engine_config_version(
-      std::string(process_data->engine_config_version.data(),
-                  process_data->engine_config_version.size()));
+  neb_logger->debug("pb instance sent");
 
-  neb_logger->debug("pb instance sent with engine config version '{}'",
-                    inst.engine_config_version());
   // Check process event type.
   switch (process_data->type) {
     case NEBTYPE_PROCESS_EVENTLOOPSTART: {
@@ -2461,7 +2454,7 @@ int neb::callback_pb_process(int callback_type, void* data) {
 
       // Send initial event and then configuration.
       gl_publisher.write(inst_obj);
-      send_initial_pb_configuration(inst.engine_config_version());
+      send_initial_pb_configuration();
     } break;
     case NEBTYPE_PROCESS_DIFFSTATE: {
       // Output variable.
@@ -2472,7 +2465,7 @@ int neb::callback_pb_process(int callback_type, void* data) {
 
       // Send initial event and then configuration.
       gl_publisher.write(inst_obj);
-      send_initial_pb_configuration(inst.engine_config_version());
+      send_initial_pb_configuration();
     } break;
     case NEBTYPE_PROCESS_EVENTLOOPEND: {
       SPDLOG_LOGGER_DEBUG(neb_logger,
@@ -3839,6 +3832,20 @@ int neb::callback_get_diff_state(int, void* data) {
   }
   *diff_state = std::move(diff);
   return retval;
+}
+
+/**
+ * @brief Set the Engine configuration version on cbmod side.
+ *
+ * @param int Not used.
+ * @param data A pointer to a string containing the version.
+ *
+ * @return 0 on success.
+ */
+int neb::callback_set_conf_version(int, void* data) {
+  std::string* version = static_cast<std::string*>(data);
+  config::applier::state::instance().set_engine_conf(*version);
+  return 0;
 }
 
 /**

@@ -70,6 +70,7 @@ int callback_pb_bench(int callback_type, void* data);
 int callback_otl_metrics(int callback_type, void* data);
 int callback_has_diff_state(int callback_type, void* data);
 int callback_get_diff_state(int callback_type, void* data);
+int callback_set_conf_version(int callback_type, void* data);
 
 void unregister_callbacks();
 

@@ -21,7 +21,7 @@
 
 namespace com::centreon::broker::neb {
 void send_initial_configuration();
-void send_initial_pb_configuration(const std::string& conf_version);
+void send_initial_pb_configuration();
 }  // namespace com::centreon::broker::neb
 
 #endif /* !CCB_NEB_INITIAL_HH_ */
