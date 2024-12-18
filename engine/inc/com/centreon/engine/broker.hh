@@ -518,6 +518,7 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp);
 void broker_bench(unsigned id,
                   const std::chrono::system_clock::time_point& mess_create);
 bool broker_has_diff_state();
+void broker_set_conf_version(const std::string& version);
 std::unique_ptr<com::centreon::engine::configuration::DiffState>
 broker_get_diff_state();
 

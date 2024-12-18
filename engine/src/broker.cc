@@ -1157,3 +1157,8 @@ bool broker_has_diff_state() {
   }
   return retval;
 }
+
+void broker_set_conf_version(const std::string& version) {
+  neb_make_callbacks(NEBCALLBACK_SET_CONF_VERSION,
+                     const_cast<std::string*>(&version));
+}

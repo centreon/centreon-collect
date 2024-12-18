@@ -228,6 +228,7 @@ void loop::_dispatching() {
         if (broker_has_diff_state()) {
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_diff, &reloading);
+          broker_program_state(NEBTYPE_PROCESS_DIFFSTATE, NEBFLAG_NONE);
         } else {
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_conf, &reloading);

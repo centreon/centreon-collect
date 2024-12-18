@@ -2243,6 +2243,12 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
   gettimeofday(tv, nullptr);
 
   _apply<DiffSeverity, applier::severity>(diff_state.severities(), err);
+
+  /* Handling specific fields in State. */
+  if (diff_state.has_conf_version()) {
+    pb_config.set_conf_version(diff_state.conf_version());
+    broker_set_conf_version(diff_state.conf_version());
+  }
 }
 
 /**
@@ -2672,6 +2678,10 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
+
+  /* Handling specific fields in State. */
+  if (pb_config.conf_version() != new_cfg.conf_version())
+    pb_config.set_conf_version(new_cfg.conf_version());
 }
 #endif
 

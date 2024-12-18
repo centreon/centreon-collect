@@ -77,7 +77,8 @@
 #define NEBCALLBACK_OTL_METRICS 46
 #define NEBCALLBACK_GET_DIFF_STATE 47
 #define NEBCALLBACK_HAS_DIFF_STATE 48
-#define NEBCALLBACK_NUMITEMS 49 /* Total number of callback types we have. */
+#define NEBCALLBACK_SET_CONF_VERSION 49
+#define NEBCALLBACK_NUMITEMS 50 /* Total number of callback types we have. */
 
 #ifdef __cplusplus
 extern "C" {

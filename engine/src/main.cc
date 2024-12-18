@@ -485,6 +485,7 @@ int main(int argc, char* argv[]) {
           broker::loader::instance().add_module(filename, args);
         }
         neb_init_callback_list();
+        broker_set_conf_version(pb_config.conf_version());
 
         // Add broker backend.
         com::centreon::logging::engine::instance().add(
@@ -575,6 +576,7 @@ int main(int argc, char* argv[]) {
 
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
+        broker_set_conf_version(pb_config.conf_version());
 
         // if neb has not started g_io_context we do it here
         com::centreon::common::pool::set_pool_size(1);
