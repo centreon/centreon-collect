@@ -20,7 +20,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -186,7 +186,7 @@ int service_downtime::unschedule() {
         get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
 
     found->second->dec_scheduled_downtime_depth();
-    found->second->update_status();
+    found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
 
     /* log a notice - this is parsed by the history CGI */
     if (found->second->get_scheduled_downtime_depth() == 0) {
@@ -485,8 +485,7 @@ int service_downtime::handle() {
       SPDLOG_LOGGER_INFO(
           events_logger,
           "SERVICE DOWNTIME ALERT: {};{};STARTED; Service has entered a period "
-          "of scheduled "
-          "downtime",
+          "of scheduled downtime",
           found->second->get_hostname(), found->second->description());
 
       /* send a notification */
@@ -502,7 +501,7 @@ int service_downtime::handle() {
 
     /* update the status data */
     /* Because of the notification the status is sent with CHECK_RESULT level */
-    found->second->update_status();
+    found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
 
     /* schedule an event */
     if (!is_fixed())

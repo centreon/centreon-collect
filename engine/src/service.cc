@@ -17,12 +17,10 @@
  *
  */
 
-#include "com/centreon/engine/service.hh"
 
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -31,11 +29,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
@@ -850,7 +845,7 @@ void service::check_for_expired_acknowledgement() {
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
-        update_status();
+        update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
   }
@@ -3074,10 +3069,13 @@ void service::disable_flap_detection() {
 }
 
 /**
- * @brief Updates service status info. Send data to event broker.
+ * @brief Updates the status of the service partially.
+ *
+ * @param status_attributes A bits field based on status_attribute enum (default
+ * value: STATUS_ALL).
  */
-void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
+void service::update_status(uint32_t status_attributes) {
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, status_attributes);
 }
 
 /**

@@ -1,24 +1,23 @@
-/*
-** Copyright 1999-2009      Ethan Galstad
-** Copyright 2009-2011      Nagios Core Development Team and Community
-*Contributors
-** Copyright 2011-2013,2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009      Ethan Galstad
+ * Copyright 2009-2011      Nagios Core Development Team and Community
+ * Contributors Copyright 2011-2013,2016, 2024 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_COMMON_HH
 #define CCE_COMMON_HH
@@ -291,26 +290,31 @@ enum ret_val {
   8192 /* Max length of an external command. */
 #define MAX_DATETIME_LENGTH 48
 
-/* Modified attributes. */
-#define MODATTR_NONE 0
-#define MODATTR_NOTIFICATIONS_ENABLED (1 << 0)
-#define MODATTR_ACTIVE_CHECKS_ENABLED (1 << 1)
-#define MODATTR_PASSIVE_CHECKS_ENABLED (1 << 2)
-#define MODATTR_EVENT_HANDLER_ENABLED (1 << 3)
-#define MODATTR_FLAP_DETECTION_ENABLED (1 << 4)
-#define MODATTR_FAILURE_PREDICTION_ENABLED (1 << 5)
-#define MODATTR_PERFORMANCE_DATA_ENABLED (1 << 6)
-#define MODATTR_OBSESSIVE_HANDLER_ENABLED (1 << 7)
-#define MODATTR_EVENT_HANDLER_COMMAND (1 << 8)
-#define MODATTR_CHECK_COMMAND (1 << 9)
-#define MODATTR_NORMAL_CHECK_INTERVAL (1 << 10)
-#define MODATTR_RETRY_CHECK_INTERVAL (1 << 11)
-#define MODATTR_MAX_CHECK_ATTEMPTS (1 << 12)
-#define MODATTR_FRESHNESS_CHECKS_ENABLED (1 << 13)
-#define MODATTR_CHECK_TIMEPERIOD (1 << 14)
-#define MODATTR_CUSTOM_VARIABLE (1 << 15)
-#define MODATTR_NOTIFICATION_TIMEPERIOD (1 << 16)
-#define MODATTR_ALL (~0u)
+/* Modified attributes. These attributes are configuration attributes not real
+ * time ones. For example, we have a "modified attributes" field in services
+ * that stores them to know what has been changed in the current configuration,
+ * usually changed through an external command. */
+enum modattr {
+  MODATTR_NONE = 0,
+  MODATTR_NOTIFICATIONS_ENABLED = 1 << 0,
+  MODATTR_ACTIVE_CHECKS_ENABLED = 1 << 1,
+  MODATTR_PASSIVE_CHECKS_ENABLED = 1 << 2,
+  MODATTR_EVENT_HANDLER_ENABLED = 1 << 3,
+  MODATTR_FLAP_DETECTION_ENABLED = 1 << 4,
+  MODATTR_FAILURE_PREDICTION_ENABLED = 1 << 5,
+  MODATTR_PERFORMANCE_DATA_ENABLED = 1 << 6,
+  MODATTR_OBSESSIVE_HANDLER_ENABLED = 1 << 7,
+  MODATTR_EVENT_HANDLER_COMMAND = 1 << 8,
+  MODATTR_CHECK_COMMAND = 1 << 9,
+  MODATTR_NORMAL_CHECK_INTERVAL = 1 << 10,
+  MODATTR_RETRY_CHECK_INTERVAL = 1 << 11,
+  MODATTR_MAX_CHECK_ATTEMPTS = 1 << 12,
+  MODATTR_FRESHNESS_CHECKS_ENABLED = 1 << 13,
+  MODATTR_CHECK_TIMEPERIOD = 1 << 14,
+  MODATTR_CUSTOM_VARIABLE = 1 << 15,
+  MODATTR_NOTIFICATION_TIMEPERIOD = 1 << 16,
+  MODATTR_ALL = ~0u,
+};
 
 /* Default values. */
 #define DEFAULT_ORPHAN_CHECK_INTERVAL \
