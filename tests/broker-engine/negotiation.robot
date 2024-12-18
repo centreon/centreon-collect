@@ -340,9 +340,11 @@ BESS8B
     ...    ${VarRoot}/lib/centreon/config/1/centengine.cfg
     ${start}    Ctn Get Round Current Date
     Log To Console    Restarting Engine
+    Remove File    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
     Ctn Restart Engine    ${True}
     ${count}    Set Variable    60
     WHILE    ${count} > 0
+        Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
         ${diffSize1}    Get File Size    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
         IF    ${diffSize1} < ${diffSize}
             BREAK
@@ -365,6 +367,99 @@ BESS8B
         ${count}    Evaluate    ${count} - 1
     END
     Should Be True    "severities" in ${result} and ${length} == 2    Engine should be aware of the new severities.
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BESS8C
+    [Documentation]    Start-Stop Broker/Engine - Central and RRD Brokers and Engine
+    ...    are started with extended negociation. The test starts exactly the same
+    ...    way as BESS8, so we got three prot files created.
+    ...    Then the php cache file has its severity.cfg files updated and then
+    ...    Broker is restarted. The diff-state is updated and should be much smaller.
+    ...    Engine should be aware of the new severities.
+    [Tags]    broker    engine    start-stop    MON-15671
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.1.0
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
+    Ctn Broker Config Log    rrd    bbdo    debug
+
+    # The new generation flag is set on cbmod.so.
+    Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -n    disambiguous=True
+
+    # Broker is also prepared to read the php cache.
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+
+    # We start with no prot files.
+    Ctn Remove Prot Files    ${VarRoot}/lib
+    ${start}    Get Current Date
+    Ctn Start Broker
+    ${Bbdo2}   Ctn In Bbdo2
+    Log To Console    => BBDO2 ? ${Bbdo2}
+    Ctn Start Engine    ${True}
+
+    ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine is sending its configuration should be available in centengine.log
+
+    ${content}    Create List
+    ...    BBDO: Engine configuration needs to be updated
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that Engine needs an update of its configuration should be available.
+
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/current-conf.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ${diffSize}    Get File Size    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+
+    # We update the php cache file with new severities.
+    Ctn Create Severities File    0    2    ${VarRoot}/lib/centreon/config/1
+    Ctn Config Engine Add Cfg File    0
+    ...    ${VarRoot}/lib/centreon/config/1/severities.cfg
+    ...    ${VarRoot}/lib/centreon/config/1/centengine.cfg
+    ${start}    Ctn Get Round Current Date
+    Log To Console    Restarting Broker
+
+    # The diff state is removed to be sure that the new one is generated.
+    Remove File    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+    Ctn Restart Broker
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+    ${count}    Set Variable    30
+    WHILE    ${count} > 0
+        ${diffSize1}    Get File Size
+        ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
+        IF    ${diffSize1} < ${diffSize}
+            BREAK
+        END
+        Sleep    1s
+        ${count}    Evaluate    ${count} - 1
+    END
+    Should Be True    ${diffSize1} < ${diffSize}
+#    ...    The new diff state should be smaller than the previous one.
+#    ${count}    Set Variable    60
+#    WHILE    ${count} > 0
+#        ${result}    Ctn Engine Get Current Config    50001
+#        IF    "severities" in ${result}
+#            Log To Console    ${result['severities']}
+#            ${length}    Get Length    ${result['severities']}
+#            IF    ${length} == 2
+#                BREAK
+#            END
+#        END
+#        Sleep    1s
+#        ${count}    Evaluate    ${count} - 1
+#    END
+#    Should Be True    "severities" in ${result} and ${length} == 2    Engine should be aware of the new severities.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

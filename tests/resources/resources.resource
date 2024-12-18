@@ -84,7 +84,6 @@ Ctn Stop Vault
 Ctn Start Broker
     [Arguments]    ${only_central}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
@@ -173,7 +172,6 @@ Ctn Stop Processes
 Ctn Start Engine
     [Arguments]    ${newGeneration}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
