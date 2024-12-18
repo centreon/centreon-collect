@@ -47,6 +47,8 @@ class state {
     common::PeerType peer_type;
     /* Does the peer support extended negotiation? */
     bool extended_negotiation;
+    /* Current Engine configuration. */
+    std::string engine_configuration;
     /* Does this peer need an update concerning the engine configuration? */
     bool needs_update;
     /* Is this peer ready to receive data? That's to say negociation and engine
@@ -76,6 +78,10 @@ class state {
   /* In a cbmod configuration, this string contains the protobuf configuration
    * file path. */
   std::filesystem::path _prot_config;
+
+  /* In a cbmod configuration, this string constains the current Engine
+   * configuration version. */
+  std::string _engine_conf;
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -154,7 +160,7 @@ class state {
                 const std::string& poller_name,
                 const std::string& broker_name,
                 common::PeerType peer_type,
-                bool extended_negotiation)
+                bool extended_negotiation, const std::string& config_version)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
@@ -188,6 +194,8 @@ class state {
           diff_state);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   bool has_diff_state() const;
+  const std::string& engine_conf() const;
+  void set_engine_conf(const std::string& engine_conf);
 };
 }  // namespace com::centreon::broker::config::applier
 

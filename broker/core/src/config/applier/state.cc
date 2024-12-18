@@ -289,7 +289,8 @@ void state::add_peer(uint64_t poller_id,
                      const std::string& poller_name,
                      const std::string& broker_name,
                      common::PeerType peer_type,
-                     bool extended_negotiation) {
+                     bool extended_negotiation,
+                     const std::string& config_version) {
   assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto logger = log_v2::instance().get(log_v2::CORE);
@@ -303,8 +304,9 @@ void state::add_peer(uint64_t poller_id,
     _connected_peers.erase(found);
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
-      peer{poller_id, poller_name,          broker_name, time(nullptr),
-           peer_type, extended_negotiation, true,        false};
+      peer{poller_id,      poller_name, broker_name,
+           time(nullptr),  peer_type,   extended_negotiation,
+           config_version, true,        false};
 }
 
 bool state::poller_supports_extended_negotiation(uint64_t poller_id) const {
@@ -582,4 +584,22 @@ state::diff_state() {
 bool state::has_diff_state() const {
   absl::MutexLock lck(&_diff_state_m);
   return _diff_state != nullptr;
+}
+
+/**
+ * @brief Get the Engine configuration hash.
+ *
+ * @return The Engine configuration hash.
+ */
+const std::string& state::engine_conf() const {
+  return _engine_conf;
+}
+
+/**
+ * @brief Set the Engine configuration hash.
+ *
+ * @param engine_conf The Engine configuration hash.
+ */
+void state::set_engine_conf(const std::string& engine_conf) {
+  _engine_conf = engine_conf;
 }
