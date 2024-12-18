@@ -1113,7 +1113,7 @@ void reporting_stream::_process_pb_ba_event(
   id_start ba_key = std::make_pair(be.ba_id(), be.start_time());
   // event exists?
   if (_ba_event_cache.find(ba_key) != _ba_event_cache.end()) {
-    if (be.end_time() <= 0)
+    if (static_cast<int64_t>(be.end_time()) <= 0)
       _ba_event_update.bind_null_u64(0);
     else
       _ba_event_update.bind_value_as_u64(0, be.end_time());
@@ -1135,7 +1135,7 @@ void reporting_stream::_process_pb_ba_event(
       _ba_full_event_insert.bind_value_as_i32(1, be.first_level());
       _ba_full_event_insert.bind_value_as_u64(2, be.start_time());
 
-      if (be.end_time() <= 0)
+      if (static_cast<int64_t>(be.end_time()) <= 0)
         _ba_full_event_insert.bind_null_i64(3);
       else
         _ba_full_event_insert.bind_value_as_i64(3, be.end_time());

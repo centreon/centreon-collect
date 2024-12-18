@@ -21,8 +21,6 @@
 #ifndef CCE_UTILS_HH
 #define CCE_UTILS_HH
 
-#include "com/centreon/engine/check_result.hh"
-#include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 #ifdef __cplusplus
