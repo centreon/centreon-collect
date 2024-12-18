@@ -533,5 +533,9 @@ void state_helper::diff(const State& old_state,
                         DiffState* result) {
   severity_helper::diff(old_state.severities(), new_state.severities(), logger,
                         result->mutable_severities());
+
+  /* Handling State's fields */
+  if (old_state.conf_version() != new_state.conf_version())
+    result->set_conf_version(new_state.conf_version());
 }
 }  // namespace com::centreon::engine::configuration

@@ -218,6 +218,9 @@ message DiffState {
 
   /* In case of all the configuration should be reloaded */
   State state = 2;
+
+  /* State's fields needed for a good diff */
+  optional string conf_version = 3;
 }
 
 message CustomVariable {
