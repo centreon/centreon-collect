@@ -27,7 +27,6 @@
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
@@ -42,7 +41,7 @@ namespace com::centreon::broker::lua {
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
+  absl::flat_hash_map<uint64_t, std::shared_ptr<neb::pb_host>> _hosts;
   /* The host groups cache stores also a set with the pollers telling they need
    * the cache. So if no more poller needs a host group, we can remove it from
    * the cache. */
@@ -54,7 +53,8 @@ class macro_cache {
       _host_group_members;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_service>>
       _services;
   /* The service groups cache stores also a set with the pollers telling they
    * need the cache. So if no more poller needs a service group, we can remove
@@ -89,8 +89,8 @@ class macro_cache {
   const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
   const std::shared_ptr<storage::pb_metric_mapping>& get_metric_mapping(
       uint64_t metric_id) const;
-  const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
-  const std::shared_ptr<io::data>& get_service(uint64_t host_id,
+  const std::shared_ptr<neb::pb_host>& get_host(uint64_t host_id) const;
+  const std::shared_ptr<neb::pb_service>& get_service(uint64_t host_id,
                                                uint64_t service_id) const;
   const std::string& get_host_name(uint64_t host_id) const;
   const std::string& get_notes_url(uint64_t host_id, uint64_t service_id) const;
@@ -129,6 +129,7 @@ class macro_cache {
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host_status(std::shared_ptr<io::data> const& data);
+  void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);
   void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_pb_host_group(std::shared_ptr<io::data> const& data);
@@ -138,7 +139,9 @@ class macro_cache {
   void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
-  void _process_pb_service_status(std::shared_ptr<io::data> const& data);
+  void _process_pb_service_status(const std::shared_ptr<io::data>& data);
+  void _process_pb_adaptive_service_status(
+      const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);
   void _process_service_group(std::shared_ptr<io::data> const& data);
   void _process_pb_service_group(std::shared_ptr<io::data> const& data);

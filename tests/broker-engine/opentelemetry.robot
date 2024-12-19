@@ -34,9 +34,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 #    Ctn Start Engine
 
 #    # Let's wait for the otel server start
-#    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-#    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-#    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+#    Ctn Wait For Otel Server To Be Ready    ${start}
 
 #    Sleep    1s
 
@@ -111,9 +109,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Ctn Start Engine
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready    ${start}
     Sleep    1
 
 
@@ -183,9 +179,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Ctn Start Engine
 
     # Let's wait for the otel server start
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Ctn Wait For Otel Server To Be Ready    ${start}
     Sleep    1
 
 

@@ -18,8 +18,6 @@
 
 #include <windows.h>
 
-#include <re2/re2.h>
-
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 

@@ -89,7 +89,12 @@ Ctn Reload Broker
     IF    not ${only_central}    Send Signal To Process    SIGHUP    b2
 
 Ctn Kindly Stop Broker
-    [Arguments]    ${only_central}=False
+    [Documentation]    Stop broker and check if it's correctly stopped.
+    ...    If not, generate a coredump and kill the process.
+    ...    If only_central is set to True, only the central broker will be stopped.
+    ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
+    ...    since there are still bugs in this context.
+    [Arguments]    ${only_central}=False    ${bbdo2}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
     ${result}    Wait For Process    b1    timeout=60s
@@ -106,6 +111,11 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
+        ELIF	not ${bbdo2}
+            Log To Console    "central broker stopped"
+            # We have to check if central RRD logs contain errors about data sent in the past.
+            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
         END
     END
 
@@ -429,3 +439,12 @@ Ctn Kindly Stop Agent
             Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
         END
     END
+
+
+Ctn Wait For Otel Server To Be Ready
+    [Documentation]    Wait for engine otel server to be ready
+    [Arguments]    ${start}
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+

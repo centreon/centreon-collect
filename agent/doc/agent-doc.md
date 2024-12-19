@@ -115,3 +115,12 @@ metrics aren't the same as linux version. We collect user, idle, kernel , interr
 There are two methods, you can use internal microsoft function NtQuerySystemInformation. Yes Microsoft says that they can change signature or data format at any moment, but it's quite stable for many years. A trick, idle time is included un kernel time, so we subtract first from the second. Dpc time is yet included in interrupt time, so we don't sum it to calculate total time.
 The second one relies on performance data counters (pdh API), it gives us percentage despite that sum of percentage is not quite 100%. That's why the default method is the first one.
 The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
+
+### check_drive_size
+we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats. This functor is initialized in main function. drive_size thread is stopped at the end of main function.
+
+So it works like that:
+* check_drive_size post query in drive_size_thread queue
+* drive_size_thread call os_fs_stats
+* drive_size_thread post result in io_context
+* io_context calls check_drive_size::_completion_handler

@@ -123,6 +123,8 @@ procs_blocked 0
 softirq 166407220 66442046 14763247 1577070 4447556 33 0 18081353 30219191 75659 30801065
 )";
 
+using namespace std::string_literals;
+
 TEST(proc_stat_file_test, no_threshold) {
   constexpr const char* test_file_path = "/tmp/proc_stat_test";
   {
@@ -149,11 +151,13 @@ TEST(proc_stat_file_test, no_threshold) {
   rapidjson::Document check_args;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -195,9 +199,6 @@ TEST(proc_stat_file_test, no_threshold) {
   }
 }
 
-constexpr std::array<unsigned, 5> proc_index = {
-    0, 1, 2, 3, check_cpu_detail::average_cpu_index};
-
 TEST(proc_stat_file_test, no_threshold_detailed) {
   constexpr const char* test_file_path = "/tmp/proc_stat_test";
   {
@@ -227,11 +228,13 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
   rapidjson::Document check_args = R"({"cpu-detailed":true})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -357,11 +360,13 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
       R"({"warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -436,11 +441,13 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
       R"({"warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -493,11 +500,13 @@ TEST(proc_stat_file_test, threshold_detailed) {
       R"({"cpu-detailed":true, "warning-core" : "24.1", "critical-core" : "24.4", "warning-average" : "10", "critical-average" : "20"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -565,11 +574,13 @@ TEST(proc_stat_file_test, threshold_detailed2) {
       R"({"cpu-detailed":"true",  "warning-core-iowait" : "0.36", "critical-core-iowait" : "0.39", "warning-average-iowait" : "0.3", "critical-average-iowait" : "0.4"})"_json;
 
   check_cpu checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv", "cmd_name",
-      "cmd_line", check_args, nullptr,
-      [](const std::shared_ptr<check>& caller, int status,
-         const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {});
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);

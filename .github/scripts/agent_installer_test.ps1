@@ -42,13 +42,24 @@ function test_args_to_registry {
     Write-Host "arguments: $exe_args"
 
     $process_info= Start-Process -PassThru  $exe_path $exe_args
-    Wait-Process -Id $process_info.Id
+    $process_info.WaitForExit()
     if ($process_info.ExitCode -ne 0) {
         Write-Host "fail to execute $exe_path with arguments $exe_args"
         Write-Host "exit status = " $process_info.ExitCode
         exit 1
     }
     
+    for (($i = 0); $i -lt 10; $i++) {
+        Start-Sleep -Seconds 1
+        try {
+            Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
+            break
+        }
+        catch { 
+            continue
+        }
+    }
+
     foreach ($value_name in $expected_registry_values.Keys) {
         $expected_value = $($expected_registry_values[$value_name])
         $real_value = (Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent -Name $value_name).$value_name
@@ -92,12 +103,15 @@ if ($process_info.ExitCode -ne 0) {
     exit 1
 }
 
-Start-Sleep -Seconds 5
 
-Get-Process | Select-Object -Property ProcessName | Select-String centagent
+for (($i = 0); $i -lt 10; $i++) {
+    Start-Sleep -Seconds 1
+    $info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
+    if (! $info)  {
+        break
+    }
+}
 
-$info = Get-Process | Select-Object -Property ProcessName | Select-String centagent
-#$info = Get-Process centagent 2>$null
 if ($info) {
     Write-Host "centagent.exe running"
     exit 1
