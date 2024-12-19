@@ -467,6 +467,8 @@ class stream : public io::stream {
   void _update_severities(const Severity& severity);
   void _update_severities(const engine::configuration::Severity& severity);
   void _process_tag(const std::shared_ptr<io::data>& d);
+  void _update_tags(const Tag& tag);
+  void _update_tags(const engine::configuration::Tag& tg, Tag_Action action);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
 

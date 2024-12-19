@@ -5127,59 +5127,122 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
   auto& tg = s->obj();
-  int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:
     case Tag_Action_MODIFY: {
-      const char* debug_action =
-          tg.action() == Tag_Action_ADD ? "insert" : "update";
       if (cache_ptr) {
         cache_ptr->add_tag(tg.id(), tg.name(), tg.type(), tg.poller_id());
       }
-      SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} tag {}", debug_action, tg.id());
-      _tag_insert_update.bind_value_as_u64(0, tg.id());
-      _tag_insert_update.bind_value_as_u32(1, tg.type());
-      _tag_insert_update.bind_value_as_str(2, tg.name());
-      std::promise<uint64_t> p;
-      std::future<uint64_t> future = p.get_future();
-      _mysql.run_statement_and_get_int<uint64_t>(
-          _tag_insert_update, std::move(p),
-          database::mysql_task::LAST_INSERT_ID, conn);
-      try {
-        uint64_t tag_id = future.get();
-        _tags_cache[{tg.id(), tg.type()}] = tag_id;
-        SPDLOG_LOGGER_TRACE(_logger_sql, "new tag ({}, {}, {}) {}", tag_id,
-                            tg.id(), tg.type(), tg.name());
-
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(_logger_sql,
-                            "unified sql: unable to {} tag ({},{}): {}",
-                            debug_action, tg.id(), tg.type(), e.what());
-      }
-      _add_action(conn, actions::tags);
+      _update_tags(tg);
       break;
     }
     case Tag_Action_DELETE: {
       if (cache_ptr) {
         cache_ptr->remove_tag(tg.id());
       }
-      auto it = _tags_cache.find({tg.id(), tg.type()});
-      if (it != _tags_cache.end()) {
-        uint64_t id = it->second;
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: delete tag {}", id);
-        _tag_delete.bind_value_as_u64(0, tg.id());
-        _mysql.run_statement(
-            _tag_delete, database::mysql_error::delete_resources_tags, conn);
-        _tags_cache.erase(it);
-      } else
-        SPDLOG_LOGGER_WARN(_logger_sql,
-                           "unified_sql: unable to delete tag ({}, {}): it "
-                           "does not exist in cache",
-                           tg.id(), tg.type());
+      _update_tags(tg);
     } break;
     default:
       SPDLOG_LOGGER_ERROR(_logger_sql, "Bad action in tag object");
       break;
+  }
+}
+
+/**
+ * @brief Add/Update a tag in the centreon_storage.tags table.
+ *
+ * @param tg The tag to add/update.
+ * @param action The action to perform.
+ */
+void stream::_update_tags(const Tag& tg) {
+  if (tg.action() == Tag_Action_ADD || tg.action() == Tag_Action_MODIFY) {
+    const char* debug_action =
+        tg.action() == Tag_Action_ADD ? "insert" : "update";
+    SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} tag {}", debug_action, tg.id());
+
+    _tag_insert_update.bind_value_as_u64(0, tg.id());
+    _tag_insert_update.bind_value_as_u32(1, tg.type());
+    _tag_insert_update.bind_value_as_str(2, tg.name());
+
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _tag_insert_update, std::move(p), database::mysql_task::LAST_INSERT_ID,
+        0);
+    try {
+      uint64_t tag_id = future.get();
+      _tags_cache[{tg.id(), tg.type()}] = tag_id;
+      SPDLOG_LOGGER_TRACE(_logger_sql, "new tag ({}, {}, {}) {}", tag_id,
+                          tg.id(), tg.type(), tg.name());
+
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger_sql,
+                          "unified sql: unable to {} tag ({},{}): {}",
+                          debug_action, tg.id(), tg.type(), e.what());
+    }
+  } else {
+    auto it = _tags_cache.find({tg.id(), tg.type()});
+    if (it != _tags_cache.end()) {
+      uint64_t id = it->second;
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: delete tag {}", id);
+      _tag_delete.bind_value_as_u64(0, tg.id());
+      _mysql.run_statement(_tag_delete,
+                           database::mysql_error::delete_resources_tags, 0);
+      _tags_cache.erase(it);
+    } else
+      SPDLOG_LOGGER_WARN(_logger_sql,
+                         "unified_sql: unable to delete tag ({}, {}): it "
+                         "does not exist in cache",
+                         tg.id(), tg.type());
+  }
+}
+
+/**
+ * @brief Add/Update a tag in the centreon_storage.tags table.
+ *
+ * @param severity The severity to add/update.
+ */
+void stream::_update_tags(const engine::configuration::Tag& tg,
+                          Tag_Action action) {
+  if (action == Tag_Action_ADD || action == Tag_Action_MODIFY) {
+    const char* debug_action = action == Tag_Action_ADD ? "insert" : "update";
+    SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} tag {}", debug_action,
+                        tg.key().id());
+
+    _tag_insert_update.bind_value_as_u64(0, tg.key().id());
+    _tag_insert_update.bind_value_as_u32(1, tg.key().type());
+    _tag_insert_update.bind_value_as_str(2, tg.tag_name());
+
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _tag_insert_update, std::move(p), database::mysql_task::LAST_INSERT_ID,
+        0);
+    try {
+      uint64_t tag_id = future.get();
+      _tags_cache[{tg.key().id(), tg.key().type()}] = tag_id;
+      SPDLOG_LOGGER_TRACE(_logger_sql, "new tag ({}, {}, {}) {}", tag_id,
+                          tg.key().id(), tg.key().type(), tg.tag_name());
+
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          _logger_sql, "unified sql: unable to {} tag ({},{}): {}",
+          debug_action, tg.key().id(), tg.key().type(), e.what());
+    }
+  } else {
+    auto it = _tags_cache.find({tg.key().id(), tg.key().type()});
+    if (it != _tags_cache.end()) {
+      uint64_t id = it->second;
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: delete tag {}", id);
+      _tag_delete.bind_value_as_u64(0, id);
+      _mysql.run_statement(_tag_delete,
+                           database::mysql_error::delete_resources_tags, 0);
+      _tags_cache.erase(it);
+    } else
+      SPDLOG_LOGGER_WARN(_logger_sql,
+                         "unified_sql: unable to delete tag ({}, {}): it "
+                         "does not exist in cache",
+                         tg.key().id(), tg.key().type());
   }
 }
 
@@ -5208,9 +5271,35 @@ void stream::_apply_diff_state(uint32_t poller_id,
                          a.key().id(), a.key().type());
       _update_severities(a);
     }
-  } else if (ds.has_state()) {
+  }
+
+  if (ds.has_tags()) {
+    for (const auto& tag : ds.tags().modified()) {
+      _logger_sql->trace("unified_sql: modification of tag id={}, type={}",
+                         tag.key().id(), tag.key().type());
+      _update_tags(tag, Tag_Action_MODIFY);
+    }
+
+    // for (const auto& key : ds.tags().deleted()) {
+    //   _logger_sql->trace("unified_sql: modification of tag id={},
+    // type = {} ",
+    //                      key.id(), key.type());
+    //   _update_tags(tag, Tag_Action_DELETE);
+    // }
+
+    for (const auto& tag : ds.tags().added()) {
+      _logger_sql->trace("unified_sql: modification of tag id={}, type={}",
+                         tag.key().id(), tag.key().type());
+      _update_tags(tag, Tag_Action_ADD);
+    }
+  }
+
+  if (ds.has_state()) {
     for (const auto& s : ds.state().severities()) {
       _update_severities(s);
+    }
+    for (const auto& t : ds.state().tags()) {
+      _update_tags(t, Tag_Action_ADD);
     }
   }
 }

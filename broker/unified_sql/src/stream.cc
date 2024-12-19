@@ -1217,6 +1217,11 @@ void stream::_init_statements() {
         "INSERT INTO severities (id,type,name,level,icon_id) "
         "VALUES(?,?,?,?,?)");
   }
+  if (!_tag_insert_update.prepared()) {
+    _tag_insert_update = _mysql.prepare_query(
+        "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
+        "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id),  name=VALUES(name)");
+  }
   if (_bulk_prepared_statement) {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         _dedicated_connections ? *_dedicated_connections : _mysql,

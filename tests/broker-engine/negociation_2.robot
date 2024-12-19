@@ -66,6 +66,7 @@ BENOT01
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine   ${True}
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -75,21 +76,41 @@ BENOT01
     ...    BBDO: Engine configuration needs to be updated
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that Engine needs an update of its configuration should be available.
-    
-    Wait Until Created    ${HOME}/current-conf.prot
 
-    # Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new_conf/diff-1.prot
-    
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
     ${content}    Ctn Dump Conf Info Grpc
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${0}
-    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    3    ${0}
-    Log To Console    ${tags}[tagName]
-    Log To Console    ${severities}[severityName]
-    
+    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    1    ${0}
+    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    1    ${0}
+    Should Be Equal As Strings   ${tags}[tagName]    tag1
+    Should Be Equal As Strings     ${severities}[severityName]   severity1
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT name FROM tags WHERE id = 1 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "(('tag1',),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    (('tag1',),)
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT name FROM severities WHERE id = 1 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "(('severity1',),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    (('severity1',),)
+
     Ctn Stop Engine
 
-    Ctn Engine Config Set Key Value In Cfg    0    3    tag_name    tag_3_changed    tags.cfg
-    Ctn Engine Config Set Key Value In Cfg    0    3    severity_name    severity3_changed    severities.cfg
+    # modify tag 1/2 and severity 1/2
+    Ctn Engine Config Set Key Value In Cfg    0    1    tag_name    tag1_changed    tags.cfg
+    Ctn Engine Config Set Key Value In Cfg    0    1    severity_name    severity1_changed    severities.cfg
+
+    # delete tag 3 and severity 3
+    Ctn Engine Config Del Block In Cfg    0    tag    3    tags.cfg
+    Ctn Engine Config Del Block In Cfg    0    severity    3    severities.cfg
+
+    # # add tag 50 and severity 50
+    
 
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -100,6 +121,7 @@ BENOT01
 
     ${start}    Get Current Date
     Ctn Start Engine   ${True}
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     ${content}    Create List    BBDO: engine configuration sent to peer 'central-broker-master' with version
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -112,13 +134,24 @@ BENOT01
 
     ${content}    Ctn Dump Conf Info Grpc
 
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${0}
-    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    3    ${0}
-    Log To Console    ${tags}[tagName]
-    Log To Console    ${severities}[severityName]
-    
-    # Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    1    ${0}
+    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    1    ${0}
+    Should Be Equal As Strings   ${tags}[tagName]    tag1_changed
+    Should Be Equal As Strings     ${severities}[severityName]   severity1_changed
 
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT name FROM tags WHERE id = 1 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "(('tag1_changed',),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    (('tag1_changed',),)
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT name FROM severities WHERE id = 1 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "(('severity1_changed',),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    (('severity1_changed',),)
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

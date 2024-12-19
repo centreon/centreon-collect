@@ -4272,6 +4272,10 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         pattern = rf"define host \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
     elif type == "service":
         pattern = rf"define service \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+    elif type == "tag":
+        pattern = rf"define tag \{{\s*id\s+{re.escape(key)}\b.*?\}}"
+    elif type == "severity":
+        pattern = rf"define severity \{{\s*id\s+{re.escape(key)}\b.*?\}}"
 
     # Use re.sub to remove the matched block
     new_content = re.sub(pattern, '', content, flags=re.DOTALL)
@@ -4292,5 +4296,5 @@ def ctn_engine_config_extractor(dict, id,type:int):
     for item in dict:
         if item['key']['id'] == id and item['key']['type'] == type:
             return item
-    
+    return None
 
