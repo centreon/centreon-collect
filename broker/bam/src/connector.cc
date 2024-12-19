@@ -35,20 +35,28 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
 static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
-    neb::service_status::static_type(),  neb::pb_service_status::static_type(),
-    neb::service::static_type(),         neb::pb_service::static_type(),
-    neb::acknowledgement::static_type(), neb::pb_acknowledgement::static_type(),
-    neb::downtime::static_type(),        neb::pb_downtime::static_type(),
-    bam::ba_status::static_type(),       bam::pb_ba_status::static_type(),
-    bam::kpi_status::static_type(),      bam::pb_kpi_status::static_type(),
-    inherited_downtime::static_type(),   pb_inherited_downtime::static_type(),
-    extcmd::pb_ba_info::static_type(),   pb_services_book_state::static_type()};
+    neb::service_status::static_type(),
+    neb::pb_service_status::static_type(),
+    neb::service::static_type(),
+    neb::pb_service::static_type(),
+    neb::acknowledgement::static_type(),
+    neb::pb_acknowledgement::static_type(),
+    neb::downtime::static_type(),
+    neb::pb_downtime::static_type(),
+    neb::pb_adaptive_service_status::static_type(),
+    bam::ba_status::static_type(),
+    bam::pb_ba_status::static_type(),
+    bam::kpi_status::static_type(),
+    bam::pb_kpi_status::static_type(),
+    inherited_downtime::static_type(),
+    pb_inherited_downtime::static_type(),
+    extcmd::pb_ba_info::static_type(),
+    pb_services_book_state::static_type()};
 
 static constexpr multiplexing::muxer_filter _monitoring_forbidden_filter =
     multiplexing::muxer_filter(_monitoring_stream_filter).reverse();
