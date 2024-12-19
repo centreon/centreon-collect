@@ -95,7 +95,8 @@ void applier::tag::add_object(const configuration::Tag& obj) {
         "Could not insert tag ({},{}) into cache because it already exists",
         new_tg->key().id(), new_tg->key().type());
 
-  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
+  if (!new_generation)
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
 #endif
 
@@ -180,7 +181,8 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
     t->set_name(new_object.tag_name());
 
     // Notify event broker.
-    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
+    if (!new_generation)
+      broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
     config_logger->debug("Tag ({},{}) did not change", new_object.key().id(),
                          new_object.key().type());
@@ -234,7 +236,8 @@ void applier::tag::remove_object(ssize_t idx) {
     engine::tag* tg = it->second.get();
 
     // Notify event broker.
-    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
+    if (!new_generation)
+      broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
 
     // Erase tag object (this will effectively delete the object).
     engine::tag::tags.erase(it);

@@ -87,7 +87,8 @@ void applier::severity::add_object(const configuration::Severity& obj) {
   // Add new items to the configuration state.
   engine::severity::severities.insert({{obj.key().id(), obj.key().type()}, sv});
 
-  broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
+  if (!new_generation)
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, sv.get());
 }
 #endif
 
@@ -183,7 +184,8 @@ void applier::severity::modify_object(
     }
 
     // Notify event broker.
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
+    if (!new_generation)
+      broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
   } else
     config_logger->debug("Severity ({}, {}) did not change",
                          new_object.key().id(), new_object.key().type());
@@ -228,7 +230,7 @@ void applier::severity::remove_object(ssize_t idx) {
   // Logging.
 
   config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
-                obj.key().type());
+                       obj.key().type());
 
   // Find severity.
   severity_map::iterator it =
@@ -238,7 +240,8 @@ void applier::severity::remove_object(ssize_t idx) {
     engine::severity* sv = it->second.get();
 
     // Notify event broker.
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, sv);
+    if (!new_generation)
+      broker_adaptive_severity_data(NEBTYPE_SEVERITY_DELETE, sv);
 
     // Erase severity object (this will effectively delete the object).
     engine::severity::severities.erase(it);
