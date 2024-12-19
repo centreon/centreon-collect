@@ -22,6 +22,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
+      - '**'
       - agent/**
       - bbdo/**
       - broker/**
@@ -75,7 +76,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger }}
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   unit-test:
     needs: [get-environment]
