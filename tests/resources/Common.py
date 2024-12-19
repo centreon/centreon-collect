@@ -1955,3 +1955,38 @@ def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
             return False
     return True
 
+
+def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: float, expected: int):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (int): expected flapping value.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT s.flapping, s.percent_state_change FROM services s JOIN hosts h on s.host_id = h.host_id  WHERE h.name='{host}' AND description='{serv}'"""
+    r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
+
+
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False

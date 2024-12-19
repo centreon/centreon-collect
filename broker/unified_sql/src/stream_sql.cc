@@ -4037,8 +4037,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "severity_id,name,parent_name,notes_url,notes,action_url,"
             "notifications_enabled,passive_checks_enabled,active_"
             "checks_"
-            "enabled,enabled,icon_id) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)");
+            "enabled,enabled,icon_id, flapping, percent_state_change) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)");
         _resources_service_update = _mysql.prepare_query(
             "UPDATE resources SET "
             "type=?,internal_id=?,status=?,status_ordered=?,last_"
@@ -4050,7 +4050,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             ","
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?"
-            ","
+            ", flapping=?, percent_state_change=?, "
             "enabled=1 WHERE resource_id=?");
         if (!_resources_disable.prepared()) {
           _resources_disable = _mysql.prepare_query(
@@ -4160,6 +4160,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_insert.bind_value_as_bool(20, s.passive_checks());
       _resources_service_insert.bind_value_as_bool(21, s.active_checks());
       _resources_service_insert.bind_value_as_u64(22, s.icon_id());
+      _resources_service_insert.bind_value_as_bool(23, s.flapping());
+      _resources_service_insert.bind_value_as_f64(24, s.percent_state_change());
 
       std::promise<uint64_t> p;
       std::future<uint64_t> future = p.get_future();
@@ -4256,7 +4258,9 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_update.bind_value_as_bool(18, s.passive_checks());
       _resources_service_update.bind_value_as_bool(19, s.active_checks());
       _resources_service_update.bind_value_as_u64(20, s.icon_id());
-      _resources_service_update.bind_value_as_u64(21, res_id);
+      _resources_service_update.bind_value_as_bool(21, s.flapping());
+      _resources_service_update.bind_value_as_f64(22, s.percent_state_change());
+      _resources_service_update.bind_value_as_u64(23, res_id);
 
       _mysql.run_statement(_resources_service_update,
                            database::mysql_error::store_service, conn);
@@ -4861,8 +4865,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        b->set_value_as_u64(11, sscr.service_id());
-        b->set_value_as_u64(12, sscr.host_id());
+        b->set_value_as_bool(11, sscr.flapping());
+        b->set_value_as_f64(12, sscr.percent_state_change());
+        b->set_value_as_u64(13, sscr.service_id());
+        b->set_value_as_u64(14, sscr.host_id());
         b->next_row();
         SPDLOG_LOGGER_TRACE(
             _logger_sql, "{} waiting updates for service status in resources",
@@ -4893,8 +4899,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             9, sscr.last_check(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        _sscr_resources_update->bind_value_as_u64(11, sscr.service_id());
-        _sscr_resources_update->bind_value_as_u64(12, sscr.host_id());
+        _sscr_resources_update->bind_value_as_bool(11, sscr.flapping());
+        _sscr_resources_update->bind_value_as_f64(12,
+                                                  sscr.percent_state_change());
+        _sscr_resources_update->bind_value_as_u64(13, sscr.service_id());
+        _sscr_resources_update->bind_value_as_u64(14, sscr.host_id());
 
         _mysql.run_statement(*_sscr_resources_update,
                              database::mysql_error::store_service_status, conn);

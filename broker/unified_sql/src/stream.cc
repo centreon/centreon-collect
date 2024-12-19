@@ -1397,8 +1397,10 @@ void stream::_init_statements() {
       "has_graph=?,"                  // 7: perfdata != ""
       "last_check_type=?,"            // 8: check_type
       "last_check=?,"                 // 9: last_check
-      "output=? "                     // 10: output
-      "WHERE id=? AND parent_id=?");  // 11, 12: service_id and host_id
+      "output=?, "                    // 10: output
+      "flapping=?,"                   // 11: is_flapping
+      "percent_state_change=? "       // 12: percent_state_change
+      "WHERE id=? AND parent_id=?");  // 13, 14: service_id and host_id
   const std::string host_exe_dep_query(
       "INSERT INTO hosts_hosts_dependencies (dependent_host_id, host_id, "
       "dependency_period, execution_failure_options, inherits_parent) "
