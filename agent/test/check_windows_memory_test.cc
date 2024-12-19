@@ -151,7 +151,7 @@ static void test_perfs(std::list<com::centreon::common::perfdata> perfs) {
 
 TEST(native_check_memory_windows, output_no_threshold) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args = R"({})"_json;
+  rapidjson::Document check_args = R"({"swap": ""})"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -184,7 +184,7 @@ TEST(native_check_memory_windows, output_no_threshold2) {
 
 TEST(native_check_memory_windows, output_no_threshold3) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args = R"({ "swap": true, "virtual": true})"_json;
+  rapidjson::Document check_args = R"({ "swap": true, "virtual": "true"})"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -203,7 +203,7 @@ TEST(native_check_memory_windows, output_no_threshold3) {
 TEST(native_check_memory_windows, output_threshold) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-usage-free": "8388609", "critical-usage-prct": "99.99", "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
+      R"({ "warning-usage-free": "8388609", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -235,7 +235,7 @@ TEST(native_check_memory_windows, output_threshold) {
 TEST(native_check_memory_windows, output_threshold_2) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-usage-prct": "1", "critical-usage-prct": "99.5" })"_json;
+      R"({ "warning-usage-prct": "1", "critical-usage-prct": "99.5",  "warning-usage-free": "" })"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;

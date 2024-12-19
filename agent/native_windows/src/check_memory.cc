@@ -393,64 +393,34 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
          ++member_iter) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "swap") {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
-          if (val.GetBool()) {
-            _output_flags |= w_memory_info::output_flags::dump_swap;
-          }
-        } else {
-          SPDLOG_LOGGER_ERROR(logger, "command: {}, bad value for parameter {}",
-                              cmd_name, member_iter->name);
+        std::optional<bool> val = get_bool(
+            cmd_name, member_iter->name.GetString(), member_iter->value);
+        if (val && *val) {
+          _output_flags |= w_memory_info::output_flags::dump_swap;
         }
         continue;
       }
       if (key == "virtual") {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
-          if (val.GetBool()) {
-            _output_flags |= w_memory_info::output_flags::dump_virtual;
-          }
-        } else {
-          SPDLOG_LOGGER_ERROR(logger, "command: {}, bad value for parameter {}",
-                              cmd_name, member_iter->name);
+        std::optional<bool> val = get_bool(
+            cmd_name, member_iter->name.GetString(), member_iter->value);
+        if (val && *val) {
+          _output_flags |= w_memory_info::output_flags::dump_virtual;
         }
         continue;
       }
 
       auto mem_to_status_search = _label_to_mem_to_status.find(key);
       if (mem_to_status_search != _label_to_mem_to_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-            val.IsUint64()) {
+        std::optional<double> val = get_double(
+            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        if (val) {
           std::unique_ptr<windows_mem_to_status> mem_checker =
-              mem_to_status_search->second(member_iter->value.GetDouble());
+              mem_to_status_search->second(*val);
           _measure_to_status.emplace(
               std::make_tuple(mem_checker->get_data_index(),
                               mem_checker->get_total_data_index(),
                               mem_checker->get_status()),
               std::move(mem_checker));
-        } else if (val.IsString()) {
-          auto to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
-            std::unique_ptr<windows_mem_to_status> mem_checker =
-                mem_to_status_search->second(dval);
-            _measure_to_status.emplace(
-                std::make_tuple(mem_checker->get_data_index(),
-                                mem_checker->get_total_data_index(),
-                                mem_checker->get_status()),
-                std::move(mem_checker));
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, value is not a number for parameter {}: {}",
-                cmd_name, member_iter->name, val);
-          }
-
-        } else {
-          SPDLOG_LOGGER_ERROR(logger,
-                              "command: {}, bad value for parameter {}: {}",
-                              cmd_name, member_iter->name, val);
         }
       } else {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter {}",
