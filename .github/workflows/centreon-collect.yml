@@ -22,7 +22,6 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
-      - '**'
       - agent/**
       - bbdo/**
       - broker/**
