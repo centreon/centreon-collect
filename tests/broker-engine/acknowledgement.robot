@@ -164,7 +164,7 @@ BEACK4
     ...                acknowledge it. The centreon_storage.acknowledgements table is then updated with this
     ...                acknowledgement. The acknowledgement is removed and the comment in the comments table has its
     ...                deletion_time column updated.
-    [Tags]    broker    engine    services    extcmd
+    [Tags]    broker    engine    services    extcmd    MON-150015
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -262,17 +262,17 @@ BEACK5
 
 BEACK6
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to
-    ...                acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is
-    ...                then updated with this acknowledgement. The service is newly set to WARNING.
-    ...                And the acknowledgement in database is still there.
-    [Tags]    broker    engine    services    extcmd
+    ...    acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is
+    ...    then updated with this acknowledgement. The service is newly set to WARNING.
+    ...    And the acknowledgement in database is still there.
+    [Tags]    broker    engine    services    extcmd    MON-150015
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    module0    neb    debug
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -303,7 +303,7 @@ BEACK6
 
     # Acknowledgement is not deleted.
     ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
-    Should Be True    not ${result}    Acknowledgement ${ack_id} should not be deleted.
+    Should Not Be True    ${result}    Acknowledgement ${ack_id} should not be deleted.
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 

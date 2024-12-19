@@ -22,7 +22,6 @@
 #define CCE_DOWNTIMES_DOWTIME_HH
 
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 namespace com::centreon::engine {
 
