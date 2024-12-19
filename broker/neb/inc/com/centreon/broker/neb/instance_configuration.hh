@@ -19,12 +19,9 @@
 #ifndef CCB_NEB_INSTANCE_CONFIGURATION_HH
 #define CCB_NEB_INSTANCE_CONFIGURATION_HH
 
-#include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker {
 
@@ -59,6 +56,6 @@ class instance_configuration : public io::data {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_INSTANCE_CONFIGURATION_HH

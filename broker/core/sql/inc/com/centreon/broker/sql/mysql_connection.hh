@@ -19,7 +19,6 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/sql/mysql_error.hh"
