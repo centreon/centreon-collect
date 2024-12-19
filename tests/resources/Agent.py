@@ -236,3 +236,27 @@ def ctn_get_memory():
             return memory_dict
     return None
     
+def ctn_get_service():
+    """
+    ctn_get_service statistics
+    return a dict with these elements (expected perfdata):
+    - services.stopped.count
+    - services.starting.count
+    - services.stopping.count
+    - services.running.count
+    - services.continuing.count
+    - services.pausing.count
+    - services.paused.count
+    """
+
+    if environ.get("RUN_ENV","") == "WSL":
+        service_dict = {'services.stopped.count': 0, 'services.starting.count': None, 'services.stopping.count': None, 'services.running.count': 0, 
+                       'services.continuing.count': None, 'services.pausing.count': None, 'services.paused.count': None }
+        json_test_args = environ.get("JSON_TEST_PARAMS")
+        test_args = json.loads(json_test_args)
+        if test_args["serv_stat"] is not None:
+            service_dict["services.stopped.count"] = test_args["serv_stat"]["services.stopped.count"]
+            service_dict["services.running.count"] = test_args["serv_stat"]["services.running.count"]
+            return service_dict
+    return None
+    

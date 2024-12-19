@@ -166,6 +166,7 @@ BDB10
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    debug
     ${start}    Get Current Date
     Ctn Start Broker
     ${content}    Create List    sql stream initialization    storage stream initialization

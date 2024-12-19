@@ -607,6 +607,74 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
 
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
+    [Documentation]    agent check service with native check service and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    MON-147933
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "service"}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Db    metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
+    Should Be True    ${result}    resources table not updated
+
+    # as centagent retrieve much more services than powershell (on my computer 660 versus 263), we can't compare perfdatas
+    # ${expected_perfdata}    Ctn Get Service
+    # ${result}    Ctn Check Service Perfdata    host_1    service_1    60    2    ${expected_perfdata}
+    # Should be True    ${result}    data_bin not updated
+
+
+    #a small threshold to make service_1 warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
+
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"warning-total-running" : "1000"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+    #a small threshold to make service_1 critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
+
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"critical-total-running" : "1000"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+
 
 
 *** Keywords ***

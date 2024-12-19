@@ -22,7 +22,7 @@
 
 using namespace com::centreon::agent;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define ECHO_PATH "tests\\echo.bat"
 #define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
@@ -97,7 +97,7 @@ TEST(check_exec_test, timeout) {
   ASSERT_GT(pid, 0);
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-#ifdef _WINDOWS
+#ifdef _WIN32
   auto process_handle =
       OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
   ASSERT_NE(process_handle, nullptr);
@@ -138,7 +138,7 @@ TEST(check_exec_test, bad_command) {
   cond.wait(l);
   ASSERT_EQ(status, 3);
   ASSERT_EQ(outputs.size(), 1);
-#ifdef _WINDOWS
+#ifdef _WIN32
   // message is language dependant
   ASSERT_GE(outputs.begin()->size(), 20);
 #else
