@@ -138,6 +138,7 @@ if ($key_found) {
     exit 1
 }
 
+Start-Sleep -Seconds 10
 
 Write-Host "############################  installer test  ############################"
 
