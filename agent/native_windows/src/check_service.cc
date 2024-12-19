@@ -562,8 +562,8 @@ check_service::check_service(
         re2::RE2 filter_typ_re(val.GetString());
         if (!filter_typ_re.ok()) {
           throw exceptions::msg_fmt(
-              "command: {} warning-state: {} is not a valid regex",
-              cmd_name, val.GetString());
+              "command: {} warning-state: {} is not a valid regex", cmd_name,
+              val.GetString());
         } else {
           for (const auto& [label, flag] : _label_state) {
             if (RE2::FullMatch(label, filter_typ_re)) {
@@ -607,8 +607,8 @@ check_service::check_service(
                               to_ins->get_status()),
               std::move(to_ins));
         }
-      } else if (key != "filter-name" || key != "exclude-name" ||
-                 key != "filter-display" || key != "exclude-display" ||
+      } else if (key != "filter-name" && key != "exclude-name" &&
+                 key != "filter-display" && key != "exclude-display" &&
                  key != "start-auto") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
                             cmd_name, member_iter->name);
