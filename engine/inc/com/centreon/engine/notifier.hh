@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,15 @@ using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
  public:
+  /* Status attributes. Used as argument in the notifier::update_status(). */
+  enum status_attribute {
+    STATUS_NONE = 0,
+    STATUS_DOWNTIME_DEPTH = 1 << 0,
+    STATUS_NOTIFICATION_NUMBER = 1 << 1,
+    STATUS_ACKNOWLEDGEMENT = 1 << 2,
+    STATUS_ALL = ~0u,
+  };
+
   enum notification_category {
     cat_normal,
     cat_recovery,
@@ -173,7 +182,14 @@ class notifier : public checkable {
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
                               bool no_update_status_now) = 0;
-  virtual void update_status() = 0;
+
+  /**
+   * @brief Update the status of the notifier partially. attributes is a bits
+   * field based on enum status_attribute specifying what has to be updated.
+   *
+   * @param attributes A bits field based on enum status_attribute.
+   */
+  virtual void update_status(uint32_t attributes) = 0;
   int notify(reason_type type,
              std::string const& not_author,
              std::string const& not_data,

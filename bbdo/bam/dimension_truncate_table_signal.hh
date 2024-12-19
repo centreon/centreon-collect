@@ -19,9 +19,7 @@
 #ifndef CCB_BAM_DIMENSION_TRUNCATE_TABLE_SIGNAL_HH
 #define CCB_BAM_DIMENSION_TRUNCATE_TABLE_SIGNAL_HH
 
-#include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/timestamp.hh"
