@@ -39,7 +39,8 @@ TEST(native_check_uptime, ok) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -69,7 +70,8 @@ TEST(native_check_uptime, ok_m) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -99,7 +101,8 @@ TEST(native_check_uptime, ok_h) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -129,7 +132,8 @@ TEST(native_check_uptime, ok_d) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -159,7 +163,8 @@ TEST(native_check_uptime, ok_w) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -189,7 +194,8 @@ TEST(native_check_uptime, warning) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -219,7 +225,8 @@ TEST(native_check_uptime, warning_bis) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -249,7 +256,8 @@ TEST(native_check_uptime, critical) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;
@@ -278,7 +286,8 @@ TEST(native_check_uptime, critical_bis) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   std::string output;
   com::centreon::common::perfdata perf;

@@ -82,7 +82,8 @@ class check_memory : public native_check_base<
                const std::string& cmd_line,
                const rapidjson::Value& args,
                const engine_to_agent_request_ptr& cnf,
-               check::completion_handler&& handler);
+               check::completion_handler&& handler,
+               const checks_statistics::pointer& stat);
 
   std::shared_ptr<native_check_detail::snapshot<
       native_check_detail::e_memory_metric::nb_metric>>

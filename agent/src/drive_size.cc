@@ -17,10 +17,7 @@
  */
 
 #include "drive_size.hh"
-#include "check.hh"
-#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
 
@@ -336,7 +333,8 @@ check_drive_size::check_drive_size(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -345,7 +343,8 @@ check_drive_size::check_drive_size(
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
       _filter(std::make_shared<check_drive_size_detail::filter>(args)),
       _prct_threshold(false),
       _free_threshold(false),
@@ -590,7 +589,7 @@ void check_drive_size::thread_kill() {
 void check_drive_size::help(std::ostream& help_stream) {
   help_stream <<
       R"(
-- storage  params:" 
+- storage  params: 
     unit (default %): unit of threshold. If different from % threshold are in bytes
     free (default used): true: threshold is applied on free space and service become warning if free sapce is lower than threshold
                          false: threshold is applied on used space and service become warning if used space is higher than threshold

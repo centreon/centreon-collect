@@ -20,7 +20,6 @@
 
 #include <psapi.h>
 
-#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
 #include "check_memory.hh"
@@ -51,7 +50,8 @@ class test_check : public check_memory {
             [](const std::shared_ptr<check>& caller,
                int status,
                const std::list<com::centreon::common::perfdata>& perfdata,
-               const std::list<std::string>& outputs) {}) {}
+               const std::list<std::string>& outputs) {},
+            std::make_shared<checks_statistics>()) {}
 
   std::shared_ptr<native_check_detail::snapshot<
       native_check_detail::e_memory_metric::nb_metric>>

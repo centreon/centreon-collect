@@ -157,7 +157,8 @@ TEST(proc_stat_file_test, no_threshold) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -165,8 +166,6 @@ TEST(proc_stat_file_test, no_threshold) {
   ASSERT_EQ(output, "OK: CPU(s) average usage is 24.08%");
 
   ASSERT_EQ(perfs.size(), 5);
-
-  constexpr float nan_to_cmp = NAN;
 
   for (const auto& perf : perfs) {
     ASSERT_TRUE(std::isnan(perf.critical_low()));
@@ -222,8 +221,6 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
 
-  static const char* conf_doc = R"({"cpu-detailed":true})";
-
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args = R"({"cpu-detailed":"true"})"_json;
 
@@ -234,7 +231,8 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -366,7 +364,8 @@ TEST(proc_stat_file_test, threshold_nodetailed) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -447,7 +446,8 @@ TEST(proc_stat_file_test, threshold_nodetailed2) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -506,7 +506,8 @@ TEST(proc_stat_file_test, threshold_detailed) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -580,7 +581,8 @@ TEST(proc_stat_file_test, threshold_detailed2) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);
@@ -654,7 +656,8 @@ TEST(proc_stat_file_test, threshold_detailed3) {
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
              perfdata,
-         [[maybe_unused]] const std::list<std::string>& outputs) {});
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   e_status status =
       checker.compute(first_measure, second_measure, &output, &perfs);

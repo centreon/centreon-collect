@@ -131,7 +131,8 @@ TEST(check_service, service_no_threshold_all_running) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -199,7 +200,8 @@ TEST(check_service, service_no_threshold_one_by_state) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -264,7 +266,8 @@ TEST(check_service, service_filter_exclude_all_service) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -327,7 +330,8 @@ TEST(check_service, service_filter_allow_some_service) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -396,7 +400,8 @@ TEST(check_service, service_filter_exclude_some_service) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -467,7 +472,8 @@ TEST(check_service, service_filter_allow_some_service_warning_running) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -538,7 +544,8 @@ TEST(check_service, service_filter_allow_some_service_warning_stopped) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -608,7 +615,8 @@ TEST(check_service, service_filter_allow_some_service_critical_state) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -678,7 +686,8 @@ TEST(check_service, service_filter_start_auto_true) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -747,7 +756,8 @@ TEST(check_service, service_filter_start_auto_false) {
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
@@ -818,7 +828,8 @@ TEST(check_service,
       "cmd_line"s, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
-         const std::list<std::string>& outputs) {});
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
 
   auto snap = test_check.measure();
 
