@@ -531,7 +531,8 @@ check_service::check_service(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
@@ -541,7 +542,8 @@ check_service::check_service(
                         cmd_line,
                         args,
                         cnf,
-                        std::move(handler)),
+                        std::move(handler),
+                        stat),
       _filter(args),
       _enumerator(_enumerator_constructor()) {
   if (!args.IsObject()) {

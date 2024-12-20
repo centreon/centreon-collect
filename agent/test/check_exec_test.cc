@@ -17,6 +17,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <memory>
+#include "check.hh"
 
 #include "check_exec.hh"
 
@@ -57,7 +59,8 @@ TEST(check_exec_test, echo) {
           outputs = output;
         }
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -82,7 +85,8 @@ TEST(check_exec_test, timeout) {
         status = statuss;
         outputs = output;
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   int pid = check->get_pid();
@@ -131,7 +135,8 @@ TEST(check_exec_test, bad_command) {
         SPDLOG_INFO("end of {}", command_line);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -163,7 +168,8 @@ TEST(check_exec_test, recurse_not_lock) {
           caller->start_check(std::chrono::seconds(1));
         } else
           cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::mutex mut;

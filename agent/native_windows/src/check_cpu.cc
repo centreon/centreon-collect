@@ -394,7 +394,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::string& cmd_line,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
-                     check::completion_handler&& handler)
+                     check::completion_handler&& handler,
+                     const checks_statistics::pointer& stat)
     : native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field>(
           io_context,
           logger,
@@ -405,7 +406,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           cmd_line,
           args,
           cnf,
-          std::move(handler))
+          std::move(handler),
+          stat)
 
 {
   try {

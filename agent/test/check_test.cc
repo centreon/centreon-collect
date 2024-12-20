@@ -60,7 +60,8 @@ class dummy_check : public check {
               command_name,
               command_line,
               nullptr,
-              handler),
+              handler,
+              std::make_shared<checks_statistics>()),
         _command_duration(command_duration),
         _command_timer(*g_io_context) {}
 };

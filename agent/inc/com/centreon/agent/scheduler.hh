@@ -42,7 +42,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::string& /*cmd_name*/,
       const std::string& /*cmd_line*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
-      check::completion_handler&&)>;
+      check::completion_handler&&,
+      const checks_statistics::pointer& /*stat*/)>;
 
  private:
   using check_queue =
@@ -164,7 +165,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::string& cmd_name,
       const std::string& cmd_line,
       const engine_to_agent_request_ptr& conf,
-      check::completion_handler&& handler);
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;

@@ -53,7 +53,8 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
                            const std::string& cmd_line,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
-                           check::completion_handler&& handler)
+                           check::completion_handler&& handler,
+                           const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -62,7 +63,8 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
       _second_warning_threshold(0),
       _second_critical_threshold(0) {
   com::centreon::common::rapidjson_helper arg(args);
@@ -91,6 +93,9 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
  * @param timeout unused
  */
 void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
+  if (!_start_check(timeout)) {
+    return;
+  }
   std::string output;
   common::perfdata perf;
   e_status status = compute(GetTickCount64(), &output, &perf);

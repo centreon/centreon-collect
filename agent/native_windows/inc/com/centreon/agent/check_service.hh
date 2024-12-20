@@ -177,7 +177,8 @@ class check_service
                 const std::string& cmd_line,
                 const rapidjson::Value& args,
                 const engine_to_agent_request_ptr& cnf,
-                check::completion_handler&& handler);
+                check::completion_handler&& handler,
+                const checks_statistics::pointer& stat);
 
   std::shared_ptr<native_check_detail::snapshot<
       native_check_detail::e_service_metric::nb_service_metric>>

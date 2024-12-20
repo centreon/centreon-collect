@@ -20,6 +20,7 @@ set( SRC_COMMON
     check_test.cc 
     check_exec_test.cc
     drive_size_test.cc
+    check_health_test.cc
     scheduler_test.cc
     test_main.cc
 )
