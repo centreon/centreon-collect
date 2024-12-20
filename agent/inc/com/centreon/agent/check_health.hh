@@ -16,23 +16,30 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CENTREON_AGENT_CHECK_UPTIME_HH
-#define CENTREON_AGENT_CHECK_UPTIME_HH
+#ifndef CENTREON_AGENT_HEALTH_CHECK_HH
+#define CENTREON_AGENT_HEALTH_CHECK_HH
 
 #include "check.hh"
 
 namespace com::centreon::agent {
 
-/**
- * @brief check uptime
- *
- */
-class check_uptime : public check {
-  unsigned _second_warning_threshold;
-  unsigned _second_critical_threshold;
+class check_health : public check {
+  unsigned _warning_check_interval;
+  unsigned _critical_check_interval;
+  unsigned _warning_check_duration;
+  unsigned _critical_check_duration;
+
+  std::string _info_output;
+
+  // we use this timer to delay measure in order to have some checks yet done
+  // when we will compute the first statistics
+  asio::system_timer _measure_timer;
+
+  void _measure_timer_handler(const boost::system::error_code& err,
+                              unsigned start_check_index);
 
  public:
-  check_uptime(const std::shared_ptr<asio::io_context>& io_context,
+  check_health(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                time_point first_start_expected,
                duration check_interval,
@@ -48,9 +55,9 @@ class check_uptime : public check {
 
   void start_check(const duration& timeout) override;
 
-  e_status compute(uint64_t ms_uptime,
-                   std::string* output,
-                   common::perfdata* perfs);
+  e_status compute(std::string* output, std::list<common::perfdata>* perfs);
 };
+
 }  // namespace com::centreon::agent
-#endif
+
+#endif  // CENTREON_AGENT_HEALTH_CHECK_HH

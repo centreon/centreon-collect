@@ -376,7 +376,8 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                            const std::string& cmd_line,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
-                           check::completion_handler&& handler)
+                           check::completion_handler&& handler,
+                           const checks_statistics::pointer& stat)
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
@@ -386,7 +387,8 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                         cmd_line,
                         args,
                         cnf,
-                        std::move(handler)) {
+                        std::move(handler),
+                        stat) {
   _no_percent_unit = "B";
   if (args.IsObject()) {
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();

@@ -18,7 +18,7 @@
 
 # This script test CMA installer in silent mode
 
-Set-PSDebug -Trace 2
+#Set-PSDebug -Trace 2
 
 function f_start_process([string]$sProcess, [string]$sArgs, [ref]$pOutPut) {
     <#
@@ -189,6 +189,7 @@ if ($key_found) {
     exit 1
 }
 
+Start-Sleep -Seconds 10
 
 Write-Host "############################  installer test  ############################"
 
