@@ -310,10 +310,10 @@ void scheduler::stop() {
  * @param outputs
  */
 void scheduler::_store_result_in_metrics(
-    const check::pointer& check,
-    unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
-    const std::list<std::string>& outputs) {
+    [[maybe_unused]] const check::pointer& check,
+    [[maybe_unused]] unsigned status,
+    [[maybe_unused]] const std::list<com::centreon::common::perfdata>& perfdata,
+    [[maybe_unused]] const std::list<std::string>& outputs) {
   // auto scope_metrics =
   //     get_scope_metrics(check->get_host(), check->get_service());
   // unsigned now = std::chrono::duration_cast<std::chrono::nanoseconds>(

@@ -167,8 +167,6 @@ TEST(proc_stat_file_test, no_threshold) {
 
   ASSERT_EQ(perfs.size(), 5);
 
-  constexpr float nan_to_cmp = NAN;
-
   for (const auto& perf : perfs) {
     ASSERT_TRUE(std::isnan(perf.critical_low()));
     ASSERT_TRUE(std::isnan(perf.critical()));
@@ -222,8 +220,6 @@ TEST(proc_stat_file_test, no_threshold_detailed) {
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
-
-  static const char* conf_doc = R"({"cpu-detailed":true})";
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args = R"({"cpu-detailed":"true"})"_json;

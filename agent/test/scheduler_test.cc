@@ -74,7 +74,8 @@ class tempo_check : public check {
     _completion_timer.async_wait([me = shared_from_this(), this,
                                   check_running_index =
                                       _get_running_check_index()](
-                                     const boost::system::error_code& err) {
+                                     [[maybe_unused]] const boost::system::
+                                         error_code& err) {
       SPDLOG_TRACE("end of completion timer for serv {}", get_service());
       me->on_completion(
           check_running_index, _command_exit_status,
@@ -307,7 +308,6 @@ TEST_F(scheduler_test, time_out) {
 TEST_F(scheduler_test, correct_output_examplar) {
   std::shared_ptr<MessageFromAgent> exported_request;
   std::condition_variable export_cond;
-  time_point now = std::chrono::system_clock::now();
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
       create_conf(2, 1, 2, 10, 1),
@@ -433,7 +433,8 @@ class concurent_check : public check {
     _completion_timer.async_wait([me = shared_from_this(), this,
                                   check_running_index =
                                       _get_running_check_index()](
-                                     const boost::system::error_code& err) {
+                                     [[maybe_unused]] const boost::system::
+                                         error_code& err) {
       active_checks.erase(this);
       checked.insert(this);
       SPDLOG_TRACE("end of completion timer for serv {}", get_service());
@@ -457,7 +458,7 @@ TEST_F(scheduler_test, max_concurent) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
       create_conf(200, 10, 1, 10, 1),
-      [&](const std::shared_ptr<MessageFromAgent>& req) {},
+      [&]([[maybe_unused]] const std::shared_ptr<MessageFromAgent>& req) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          time_point start_expected, duration check_interval,

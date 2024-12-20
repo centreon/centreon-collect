@@ -189,10 +189,10 @@ scheduler::scheduler(
     const std::shared_ptr<com::centreon::agent::MessageToAgent>& config,
     sender&& met_sender,
     chck_builder&& builder)
-    : _metric_sender(met_sender),
-      _io_context(io_context),
+    : _io_context(io_context),
       _logger(logger),
       _supervised_host(supervised_host),
+      _metric_sender(met_sender),
       _send_timer(*io_context),
       _check_timer(*io_context),
       _check_builder(builder),
