@@ -22,13 +22,21 @@
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
 #include <unistd.h>
+#include "bbdo/neb.pb.h"
+#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/common/utf8.hh"
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/string.hh"
+#include "common.h"
 
 using namespace com::centreon::engine;
+using namespace com::centreon;
 
 /**
  *  Send acknowledgement data to broker.
@@ -825,27 +833,852 @@ int broker_notification_data(int type [[maybe_unused]],
 }
 
 /**
+ * @brief When centengine is started, send severities in bulk.
+ */
+static void send_severity_list() {
+  /* Start log message. */
+  neb_logger->info("init: beginning severity dump");
+
+  for (auto it = com::centreon::engine::severity::severities.begin(),
+            end = com::centreon::engine::severity::severities.end();
+       it != end; ++it) {
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, it->second.get());
+  }
+}
+
+/**
+ * @brief When centengine is started, send tags in bulk.
+ */
+static void send_tag_list() {
+  /* Start log message. */
+  neb_logger->info("init: beginning tag dump");
+
+  for (auto it = com::centreon::engine::tag::tags.begin(),
+            end = com::centreon::engine::tag::tags.end();
+       it != end; ++it) {
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, it->second.get());
+  }
+}
+
+static void forward_host(nebstruct_adaptive_host_data* nsahd) {
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_HOST_DATA, nsahd);
+}
+
+static void forward_pb_host(nebstruct_adaptive_host_data* dh) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb host event protobuf");
+
+  const host* eh{static_cast<host*>(dh->object_ptr)};
+
+  if (dh->type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
+      dh->modified_attribute != MODATTR_ALL) {
+    std::shared_ptr<com::centreon::broker::neb::pb_adaptive_host> h;
+    // auto h =
+    // std::make_shared<com::centreon::broker::neb::pb_adaptive_host>();
+    auto& hst = h->mut_obj();
+    if (dh->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
+      hst.set_notify(eh->get_notifications_enabled());
+    else if (dh->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
+      hst.set_active_checks(eh->active_checks_enabled());
+      hst.set_should_be_scheduled(eh->get_should_be_scheduled());
+    } else if (dh->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED)
+      hst.set_passive_checks(eh->passive_checks_enabled());
+    else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED)
+      hst.set_event_handler_enabled(eh->event_handler_enabled());
+    else if (dh->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED)
+      hst.set_flap_detection(eh->flap_detection_enabled());
+    else if (dh->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED)
+      hst.set_obsess_over_host(eh->obsess_over());
+    else if (dh->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND)
+      hst.set_event_handler(common::check_string_utf8(eh->event_handler()));
+    else if (dh->modified_attribute & MODATTR_CHECK_COMMAND)
+      hst.set_check_command(common::check_string_utf8(eh->check_command()));
+    else if (dh->modified_attribute & MODATTR_NORMAL_CHECK_INTERVAL)
+      hst.set_check_interval(eh->check_interval());
+    else if (dh->modified_attribute & MODATTR_RETRY_CHECK_INTERVAL)
+      hst.set_retry_interval(eh->retry_interval());
+    else if (dh->modified_attribute & MODATTR_MAX_CHECK_ATTEMPTS)
+      hst.set_max_check_attempts(eh->max_check_attempts());
+    else if (dh->modified_attribute & MODATTR_FRESHNESS_CHECKS_ENABLED)
+      hst.set_check_freshness(eh->check_freshness_enabled());
+    else if (dh->modified_attribute & MODATTR_CHECK_TIMEPERIOD)
+      hst.set_check_period(eh->check_period());
+    else if (dh->modified_attribute & MODATTR_NOTIFICATION_TIMEPERIOD)
+      hst.set_notification_period(eh->notification_period());
+    else {
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "callbacks: adaptive host not implemented.");
+      assert(1 == 0);
+    }
+
+    uint64_t host_id = engine::get_host_id(eh->name());
+    if (host_id != 0) {
+      hst.set_host_id(host_id);
+
+      // Send host event.
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks:  new host {} ('{}')",
+                          hst.host_id(), eh->name());
+      cbm->write(h);
+    } else
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "callbacks: host '{}' has no ID (yet) defined",
+                          (!eh->name().empty() ? eh->name() : "(unknown)"));
+  } else {
+    auto h = std::make_shared<com::centreon::broker::neb::pb_host>();
+    auto& host = h->mut_obj();
+
+    // Set host parameters.
+    host.set_acknowledged(eh->problem_has_been_acknowledged());
+    host.set_acknowledgement_type(eh->get_acknowledgement());
+    if (!eh->get_action_url().empty())
+      host.set_action_url(common::check_string_utf8(eh->get_action_url()));
+    host.set_active_checks(eh->active_checks_enabled());
+    if (!eh->get_address().empty())
+      host.set_address(common::check_string_utf8(eh->get_address()));
+    if (!eh->get_alias().empty())
+      host.set_alias(common::check_string_utf8(eh->get_alias()));
+    host.set_check_freshness(eh->check_freshness_enabled());
+    if (!eh->check_command().empty())
+      host.set_check_command(common::check_string_utf8(eh->check_command()));
+    host.set_check_interval(eh->check_interval());
+    if (!eh->check_period().empty())
+      host.set_check_period(eh->check_period());
+    host.set_check_type(static_cast<com::centreon::broker::Host_CheckType>(
+        eh->get_check_type()));
+    host.set_check_attempt(eh->get_current_attempt());
+    host.set_state(static_cast<com::centreon::broker::Host_State>(
+        eh->has_been_checked() ? eh->get_current_state()
+                               : 4));  // Pending state.
+    host.set_default_active_checks(eh->active_checks_enabled());
+    host.set_default_event_handler_enabled(eh->event_handler_enabled());
+    host.set_default_flap_detection(eh->flap_detection_enabled());
+    host.set_default_notify(eh->get_notifications_enabled());
+    host.set_default_passive_checks(eh->passive_checks_enabled());
+    host.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
+    if (!eh->get_display_name().empty())
+      host.set_display_name(common::check_string_utf8(eh->get_display_name()));
+    host.set_enabled(dh->type != NEBTYPE_HOST_DELETE);
+    if (!eh->event_handler().empty())
+      host.set_event_handler(common::check_string_utf8(eh->event_handler()));
+    host.set_event_handler_enabled(eh->event_handler_enabled());
+    host.set_execution_time(eh->get_execution_time());
+    host.set_first_notification_delay(eh->get_first_notification_delay());
+    host.set_notification_number(eh->get_notification_number());
+    host.set_flap_detection(eh->flap_detection_enabled());
+    host.set_flap_detection_on_down(
+        eh->get_flap_detection_on(engine::notifier::down));
+    host.set_flap_detection_on_unreachable(
+        eh->get_flap_detection_on(engine::notifier::unreachable));
+    host.set_flap_detection_on_up(
+        eh->get_flap_detection_on(engine::notifier::up));
+    host.set_freshness_threshold(eh->get_freshness_threshold());
+    host.set_checked(eh->has_been_checked());
+    host.set_high_flap_threshold(eh->get_high_flap_threshold());
+    if (!eh->name().empty())
+      host.set_name(common::check_string_utf8(eh->name()));
+    if (!eh->get_icon_image().empty())
+      host.set_icon_image(common::check_string_utf8(eh->get_icon_image()));
+    if (!eh->get_icon_image_alt().empty())
+      host.set_icon_image_alt(
+          common::check_string_utf8(eh->get_icon_image_alt()));
+    host.set_flapping(eh->get_is_flapping());
+    host.set_last_check(eh->get_last_check());
+    host.set_last_hard_state(static_cast<com::centreon::broker::Host_State>(
+        eh->get_last_hard_state()));
+    host.set_last_hard_state_change(eh->get_last_hard_state_change());
+    host.set_last_notification(eh->get_last_notification());
+    host.set_last_state_change(eh->get_last_state_change());
+    host.set_last_time_down(eh->get_last_time_down());
+    host.set_last_time_unreachable(eh->get_last_time_unreachable());
+    host.set_last_time_up(eh->get_last_time_up());
+    host.set_last_update(time(nullptr));
+    host.set_latency(eh->get_latency());
+    host.set_low_flap_threshold(eh->get_low_flap_threshold());
+    host.set_max_check_attempts(eh->max_check_attempts());
+    host.set_next_check(eh->get_next_check());
+    host.set_next_host_notification(eh->get_next_notification());
+    host.set_no_more_notifications(eh->get_no_more_notifications());
+    if (!eh->get_notes().empty())
+      host.set_notes(common::check_string_utf8(eh->get_notes()));
+    if (!eh->get_notes_url().empty())
+      host.set_notes_url(common::check_string_utf8(eh->get_notes_url()));
+    host.set_notify(eh->get_notifications_enabled());
+    host.set_notification_interval(eh->get_notification_interval());
+    if (!eh->notification_period().empty())
+      host.set_notification_period(eh->notification_period());
+    host.set_notify_on_down(eh->get_notify_on(engine::notifier::down));
+    host.set_notify_on_downtime(eh->get_notify_on(engine::notifier::downtime));
+    host.set_notify_on_flapping(
+        eh->get_notify_on(engine::notifier::flappingstart));
+    host.set_notify_on_recovery(eh->get_notify_on(engine::notifier::up));
+    host.set_notify_on_unreachable(
+        eh->get_notify_on(engine::notifier::unreachable));
+    host.set_obsess_over_host(eh->obsess_over());
+    if (!eh->get_plugin_output().empty()) {
+      host.set_output(common::check_string_utf8(eh->get_plugin_output()));
+    }
+    if (!eh->get_long_plugin_output().empty())
+      host.set_output(common::check_string_utf8(eh->get_long_plugin_output()));
+    host.set_passive_checks(eh->passive_checks_enabled());
+    host.set_percent_state_change(eh->get_percent_state_change());
+    if (!eh->get_perf_data().empty())
+      host.set_perfdata(common::check_string_utf8(eh->get_perf_data()));
+    host.set_instance_id(cbm->poller_id());
+    host.set_retain_nonstatus_information(
+        eh->get_retain_nonstatus_information());
+    host.set_retain_status_information(eh->get_retain_status_information());
+    host.set_retry_interval(eh->retry_interval());
+    host.set_should_be_scheduled(eh->get_should_be_scheduled());
+    host.set_stalk_on_down(eh->get_stalk_on(engine::notifier::down));
+    host.set_stalk_on_unreachable(
+        eh->get_stalk_on(engine::notifier::unreachable));
+    host.set_stalk_on_up(eh->get_stalk_on(engine::notifier::up));
+    host.set_state_type(static_cast<com::centreon::broker::Host_StateType>(
+        eh->has_been_checked() ? eh->get_state_type()
+                               : engine::notifier::hard));
+    if (!eh->get_statusmap_image().empty())
+      host.set_statusmap_image(
+          common::check_string_utf8(eh->get_statusmap_image()));
+    host.set_timezone(eh->get_timezone());
+    host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
+    host.set_icon_id(eh->get_icon_id());
+    for (auto& tg : eh->tags()) {
+      com::centreon::broker::TagInfo* ti = host.mutable_tags()->Add();
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<com::centreon::broker::TagType>(tg->type()));
+    }
+
+    // Find host ID.
+    uint64_t host_id = engine::get_host_id(host.name());
+    if (host_id != 0) {
+      host.set_host_id(host_id);
+
+      // Send host event.
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks:  new host {} ('{}') on instance {}",
+                          host.host_id(), host.name(), host.instance_id());
+      cbm->write(h);
+
+      /* No need to send this service custom variables changes, custom
+       * variables are managed in a different loop. */
+    } else
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "callbacks: host '{}' has no ID (yet) defined",
+                          (!eh->name().empty() ? eh->name() : "(unknown)"));
+  }
+}
+
+/**
+ *  Send to the global publisher the list of hosts within Nagios.
+ */
+template <bool proto>
+static void send_host_list() {
+  // Start log message.
+  neb_logger->info("init: beginning host dump");
+
+  // Loop through all hosts.
+  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
+       end{com::centreon::engine::host::hosts.end()};
+       it != end; ++it) {
+    // Fill callback struct.
+    nebstruct_adaptive_host_data nsahd;
+    memset(&nsahd, 0, sizeof(nsahd));
+    nsahd.type = NEBTYPE_HOST_ADD;
+    nsahd.modified_attribute = MODATTR_ALL;
+    nsahd.object_ptr = it->second.get();
+
+    // Callback.
+    if constexpr (proto)
+      forward_pb_host(&nsahd);
+    else
+      forward_host(&nsahd);
+  }
+
+  // End log message.
+  neb_logger->info("init: end of host dump");
+}
+
+template <typename SrvStatus>
+static void fill_service_type(SrvStatus& ss,
+                              const com::centreon::engine::service* es) {
+  switch (es->get_service_type()) {
+    case com::centreon::engine::service_type::METASERVICE: {
+      ss.set_type(com::centreon::broker::METASERVICE);
+      uint64_t iid;
+      if (absl::SimpleAtoi(es->description().c_str() + 5, &iid))
+        ss.set_internal_id(iid);
+      else {
+        SPDLOG_LOGGER_ERROR(
+            neb_logger,
+            "callbacks: service ('{}', '{}') looks like a meta-service but "
+            "its name is malformed",
+            es->get_hostname(), es->description());
+      }
+    } break;
+    case com::centreon::engine::service_type::BA: {
+      ss.set_type(com::centreon::broker::BA);
+      uint64_t iid;
+      if (absl::SimpleAtoi(es->description().c_str() + 3, &iid))
+        ss.set_internal_id(iid);
+      else {
+        SPDLOG_LOGGER_ERROR(
+            neb_logger,
+            "callbacks: service ('{}', '{}') looks like a business-activity "
+            "but its name is malformed",
+            es->get_hostname(), es->description());
+      }
+    } break;
+    case com::centreon::engine::service_type::ANOMALY_DETECTION:
+      ss.set_type(com::centreon::broker::ANOMALY_DETECTION);
+      {
+        const com::centreon::engine::anomalydetection* ad =
+            static_cast<const com::centreon::engine::anomalydetection*>(es);
+        ss.set_internal_id(ad->get_internal_id());
+      }
+      break;
+    default:
+      ss.set_type(com::centreon::broker::SERVICE);
+      break;
+  }
+}
+/**
+ *  @brief Function that process protobuf service data.
+ *
+ *  This function is called by Engine when some service data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_ADAPTIVE_SERVICE_DATA).
+ *  @param[in] data          A pointer to a
+ *                           nebstruct_adaptive_service_data containing
+ *                           the service data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_service(nebstruct_adaptive_service_data* ds) {
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb service event protobuf");
+
+  const engine::service* es{static_cast<engine::service*>(ds->object_ptr)};
+
+  SPDLOG_LOGGER_TRACE(neb_logger, "modified_attribute = {}",
+                      ds->modified_attribute);
+  if (ds->type == NEBTYPE_ADAPTIVESERVICE_UPDATE &&
+      ds->modified_attribute != MODATTR_ALL) {
+    auto s{std::make_shared<com::centreon::broker::neb::pb_adaptive_service>()};
+    bool done = false;
+    com::centreon::broker::AdaptiveService& srv = s.get()->mut_obj();
+    if (ds->modified_attribute & MODATTR_NOTIFICATIONS_ENABLED) {
+      srv.set_notify(es->get_notifications_enabled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_ACTIVE_CHECKS_ENABLED) {
+      srv.set_active_checks(es->active_checks_enabled());
+      srv.set_should_be_scheduled(es->get_should_be_scheduled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_PASSIVE_CHECKS_ENABLED) {
+      srv.set_passive_checks(es->passive_checks_enabled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_EVENT_HANDLER_ENABLED) {
+      srv.set_event_handler_enabled(es->event_handler_enabled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_FLAP_DETECTION_ENABLED) {
+      srv.set_flap_detection_enabled(es->flap_detection_enabled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_OBSESSIVE_HANDLER_ENABLED) {
+      srv.set_obsess_over_service(es->obsess_over());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_EVENT_HANDLER_COMMAND) {
+      srv.set_event_handler(common::check_string_utf8(es->event_handler()));
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_CHECK_COMMAND) {
+      srv.set_check_command(common::check_string_utf8(es->check_command()));
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_NORMAL_CHECK_INTERVAL) {
+      srv.set_check_interval(es->check_interval());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_RETRY_CHECK_INTERVAL) {
+      srv.set_retry_interval(es->retry_interval());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_MAX_CHECK_ATTEMPTS) {
+      srv.set_max_check_attempts(es->max_check_attempts());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_FRESHNESS_CHECKS_ENABLED) {
+      srv.set_check_freshness(es->check_freshness_enabled());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_CHECK_TIMEPERIOD) {
+      srv.set_check_period(es->check_period());
+      done = true;
+    }
+    if (ds->modified_attribute & MODATTR_NOTIFICATION_TIMEPERIOD) {
+      srv.set_notification_period(es->notification_period());
+      done = true;
+    }
+    if (!done) {
+      SPDLOG_LOGGER_ERROR(
+          neb_logger, "callbacks: adaptive service field {} not implemented.",
+          ds->modified_attribute);
+    }
+    std::pair<uint64_t, uint64_t> p{
+        engine::get_host_and_service_id(es->get_hostname(), es->description())};
+    if (p.first && p.second) {
+      srv.set_host_id(p.first);
+      srv.set_service_id(p.second);
+      // Send service event.
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: new service {} ('{}') on host {}",
+                          srv.service_id(), es->description(), srv.host_id());
+      cbm->write(s);
+
+      /* No need to send this service custom variables changes, custom
+       * variables are managed in a different loop. */
+    } else
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "callbacks: service has no host ID or no service ID (yet) (host "
+          "'{}', service '{}')",
+          !es->get_hostname().empty() ? es->get_hostname() : "(unknown)",
+          !es->description().empty() ? es->description() : "(unknown)");
+  } else {
+    auto s{std::make_shared<com::centreon::broker::neb::pb_service>()};
+    com::centreon::broker::Service& srv = s.get()->mut_obj();
+
+    // Fill output var.
+    srv.set_acknowledged(es->problem_has_been_acknowledged());
+    srv.set_acknowledgement_type(es->get_acknowledgement());
+    if (!es->get_action_url().empty())
+      srv.set_action_url(common::check_string_utf8(es->get_action_url()));
+    srv.set_active_checks(es->active_checks_enabled());
+    if (!es->check_command().empty())
+      srv.set_check_command(common::check_string_utf8(es->check_command()));
+    srv.set_check_freshness(es->check_freshness_enabled());
+    srv.set_check_interval(es->check_interval());
+    if (!es->check_period().empty())
+      srv.set_check_period(es->check_period());
+    srv.set_check_type(static_cast<com::centreon::broker::Service_CheckType>(
+        es->get_check_type()));
+    srv.set_check_attempt(es->get_current_attempt());
+    srv.set_state(static_cast<com::centreon::broker::Service_State>(
+        es->has_been_checked() ? es->get_current_state()
+                               : 4));  // Pending state.
+    srv.set_default_active_checks(es->active_checks_enabled());
+    srv.set_default_event_handler_enabled(es->event_handler_enabled());
+    srv.set_default_flap_detection(es->flap_detection_enabled());
+    srv.set_default_notify(es->get_notifications_enabled());
+    srv.set_default_passive_checks(es->passive_checks_enabled());
+    srv.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
+    if (!es->get_display_name().empty())
+      srv.set_display_name(common::check_string_utf8(es->get_display_name()));
+    srv.set_enabled(ds->type != NEBTYPE_SERVICE_DELETE);
+    if (!es->event_handler().empty())
+      srv.set_event_handler(common::check_string_utf8(es->event_handler()));
+    srv.set_event_handler_enabled(es->event_handler_enabled());
+    srv.set_execution_time(es->get_execution_time());
+    srv.set_first_notification_delay(es->get_first_notification_delay());
+    srv.set_notification_number(es->get_notification_number());
+    srv.set_flap_detection(es->flap_detection_enabled());
+    srv.set_flap_detection_on_critical(
+        es->get_flap_detection_on(engine::notifier::critical));
+    srv.set_flap_detection_on_ok(
+        es->get_flap_detection_on(engine::notifier::ok));
+    srv.set_flap_detection_on_unknown(
+        es->get_flap_detection_on(engine::notifier::unknown));
+    srv.set_flap_detection_on_warning(
+        es->get_flap_detection_on(engine::notifier::warning));
+    srv.set_freshness_threshold(es->get_freshness_threshold());
+    srv.set_checked(es->has_been_checked());
+    srv.set_high_flap_threshold(es->get_high_flap_threshold());
+    if (!es->description().empty())
+      srv.set_description(common::check_string_utf8(es->description()));
+    if (!es->get_hostname().empty()) {
+      std::string name{common::check_string_utf8(es->get_hostname())};
+      *srv.mutable_host_name() = std::move(name);
+    }
+    fill_service_type(srv, es);
+
+    if (!es->get_icon_image().empty())
+      *srv.mutable_icon_image() =
+          common::check_string_utf8(es->get_icon_image());
+    if (!es->get_icon_image_alt().empty())
+      *srv.mutable_icon_image_alt() =
+          common::check_string_utf8(es->get_icon_image_alt());
+    srv.set_flapping(es->get_is_flapping());
+    srv.set_is_volatile(es->get_is_volatile());
+    srv.set_last_check(es->get_last_check());
+    srv.set_last_hard_state(static_cast<com::centreon::broker::Service_State>(
+        es->get_last_hard_state()));
+    srv.set_last_hard_state_change(es->get_last_hard_state_change());
+    srv.set_last_notification(es->get_last_notification());
+    srv.set_last_state_change(es->get_last_state_change());
+    srv.set_last_time_critical(es->get_last_time_critical());
+    srv.set_last_time_ok(es->get_last_time_ok());
+    srv.set_last_time_unknown(es->get_last_time_unknown());
+    srv.set_last_time_warning(es->get_last_time_warning());
+    srv.set_last_update(time(nullptr));
+    srv.set_latency(es->get_latency());
+    srv.set_low_flap_threshold(es->get_low_flap_threshold());
+    srv.set_max_check_attempts(es->max_check_attempts());
+    srv.set_next_check(es->get_next_check());
+    srv.set_next_notification(es->get_next_notification());
+    srv.set_no_more_notifications(es->get_no_more_notifications());
+    if (!es->get_notes().empty())
+      srv.set_notes(common::check_string_utf8(es->get_notes()));
+    if (!es->get_notes_url().empty())
+      *srv.mutable_notes_url() = common::check_string_utf8(es->get_notes_url());
+    srv.set_notify(es->get_notifications_enabled());
+    srv.set_notification_interval(es->get_notification_interval());
+    if (!es->notification_period().empty())
+      srv.set_notification_period(es->notification_period());
+    srv.set_notify_on_critical(es->get_notify_on(engine::notifier::critical));
+    srv.set_notify_on_downtime(es->get_notify_on(engine::notifier::downtime));
+    srv.set_notify_on_flapping(
+        es->get_notify_on(engine::notifier::flappingstart));
+    srv.set_notify_on_recovery(es->get_notify_on(engine::notifier::ok));
+    srv.set_notify_on_unknown(es->get_notify_on(engine::notifier::unknown));
+    srv.set_notify_on_warning(es->get_notify_on(engine::notifier::warning));
+    srv.set_obsess_over_service(es->obsess_over());
+    if (!es->get_plugin_output().empty())
+      *srv.mutable_output() =
+          common::check_string_utf8(es->get_plugin_output());
+    if (!es->get_long_plugin_output().empty())
+      *srv.mutable_long_output() =
+          common::check_string_utf8(es->get_long_plugin_output());
+    srv.set_passive_checks(es->passive_checks_enabled());
+    srv.set_percent_state_change(es->get_percent_state_change());
+    if (!es->get_perf_data().empty())
+      *srv.mutable_perfdata() = common::check_string_utf8(es->get_perf_data());
+    srv.set_retain_nonstatus_information(
+        es->get_retain_nonstatus_information());
+    srv.set_retain_status_information(es->get_retain_status_information());
+    srv.set_retry_interval(es->retry_interval());
+    srv.set_should_be_scheduled(es->get_should_be_scheduled());
+    srv.set_stalk_on_critical(es->get_stalk_on(engine::notifier::critical));
+    srv.set_stalk_on_ok(es->get_stalk_on(engine::notifier::ok));
+    srv.set_stalk_on_unknown(es->get_stalk_on(engine::notifier::unknown));
+    srv.set_stalk_on_warning(es->get_stalk_on(engine::notifier::warning));
+    srv.set_state_type(static_cast<com::centreon::broker::Service_StateType>(
+        es->has_been_checked() ? es->get_state_type()
+                               : engine::notifier::hard));
+    srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
+    srv.set_icon_id(es->get_icon_id());
+
+    for (auto& tg : es->tags()) {
+      com::centreon::broker::TagInfo* ti = srv.mutable_tags()->Add();
+      ti->set_id(tg->id());
+      ti->set_type(static_cast<com::centreon::broker::TagType>(tg->type()));
+    }
+
+    // Search host ID and service ID.
+    std::pair<uint64_t, uint64_t> p;
+    p = engine::get_host_and_service_id(es->get_hostname(), es->description());
+    srv.set_host_id(p.first);
+    srv.set_service_id(p.second);
+    if (srv.host_id() && srv.service_id())
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: service ({}, {}) has a severity id {}",
+                          srv.host_id(), srv.service_id(), srv.severity_id());
+    if (srv.host_id() && srv.service_id()) {
+      // Send service event.
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: new service {} ('{}') on host {}",
+                          srv.service_id(), srv.description(), srv.host_id());
+      cbm->write(s);
+
+      /* No need to send this service custom variables changes, custom
+       * variables are managed in a different loop. */
+    } else
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "callbacks: service has no host ID or no service ID (yet) (host "
+          "'{}', service '{}')",
+          (!es->get_hostname().empty() ? srv.host_name() : "(unknown)"),
+          (!es->description().empty() ? srv.description() : "(unknown)"));
+  }
+}
+
+/**
+ *  @brief Function that process service data.
+ *
+ *  This function is called by Engine when some service data is
+ *  available.
+ *
+ *  @param[in] data          A pointer to a
+ *                           nebstruct_adaptive_service_data containing
+ *                           the service data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_service(nebstruct_adaptive_service_data* service_data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service event");
+
+  try {
+    // In/Out variables.
+    if (service_data->flags & NEBATTR_BBDO3_ONLY)
+      return;
+    engine::service const* s(
+        static_cast<engine::service*>(service_data->object_ptr));
+    auto my_service{std::make_shared<com::centreon::broker::neb::service>()};
+
+    // Fill output var.
+    my_service->acknowledged = s->problem_has_been_acknowledged();
+    my_service->acknowledgement_type = s->get_acknowledgement();
+    if (!s->get_action_url().empty())
+      my_service->action_url = common::check_string_utf8(s->get_action_url());
+    my_service->active_checks_enabled = s->active_checks_enabled();
+    if (!s->check_command().empty())
+      my_service->check_command = common::check_string_utf8(s->check_command());
+    my_service->check_freshness = s->check_freshness_enabled();
+    my_service->check_interval = s->check_interval();
+    if (!s->check_period().empty())
+      my_service->check_period = s->check_period();
+    my_service->check_type = s->get_check_type();
+    my_service->current_check_attempt = s->get_current_attempt();
+    my_service->current_state =
+        (s->has_been_checked() ? s->get_current_state() : 4);  // Pending state.
+    my_service->default_active_checks_enabled = s->active_checks_enabled();
+    my_service->default_event_handler_enabled = s->event_handler_enabled();
+    my_service->default_flap_detection_enabled = s->flap_detection_enabled();
+    my_service->default_notifications_enabled = s->get_notifications_enabled();
+    my_service->default_passive_checks_enabled = s->passive_checks_enabled();
+    my_service->downtime_depth = s->get_scheduled_downtime_depth();
+    if (!s->get_display_name().empty())
+      my_service->display_name =
+          common::check_string_utf8(s->get_display_name());
+    my_service->enabled = (service_data->type != NEBTYPE_SERVICE_DELETE);
+    if (!s->event_handler().empty())
+      my_service->event_handler = common::check_string_utf8(s->event_handler());
+    my_service->event_handler_enabled = s->event_handler_enabled();
+    my_service->execution_time = s->get_execution_time();
+    my_service->first_notification_delay = s->get_first_notification_delay();
+    my_service->notification_number = s->get_notification_number();
+    my_service->flap_detection_enabled = s->flap_detection_enabled();
+    my_service->flap_detection_on_critical =
+        s->get_flap_detection_on(engine::notifier::critical);
+    my_service->flap_detection_on_ok =
+        s->get_flap_detection_on(engine::notifier::ok);
+    my_service->flap_detection_on_unknown =
+        s->get_flap_detection_on(engine::notifier::unknown);
+    my_service->flap_detection_on_warning =
+        s->get_flap_detection_on(engine::notifier::warning);
+    my_service->freshness_threshold = s->get_freshness_threshold();
+    my_service->has_been_checked = s->has_been_checked();
+    my_service->high_flap_threshold = s->get_high_flap_threshold();
+    if (!s->get_hostname().empty())
+      my_service->host_name = common::check_string_utf8(s->get_hostname());
+    if (!s->get_icon_image().empty())
+      my_service->icon_image = common::check_string_utf8(s->get_icon_image());
+    if (!s->get_icon_image_alt().empty())
+      my_service->icon_image_alt =
+          common::check_string_utf8(s->get_icon_image_alt());
+    my_service->is_flapping = s->get_is_flapping();
+    my_service->is_volatile = s->get_is_volatile();
+    my_service->last_check = s->get_last_check();
+    my_service->last_hard_state = s->get_last_hard_state();
+    my_service->last_hard_state_change = s->get_last_hard_state_change();
+    my_service->last_notification = s->get_last_notification();
+    my_service->last_state_change = s->get_last_state_change();
+    my_service->last_time_critical = s->get_last_time_critical();
+    my_service->last_time_ok = s->get_last_time_ok();
+    my_service->last_time_unknown = s->get_last_time_unknown();
+    my_service->last_time_warning = s->get_last_time_warning();
+    my_service->last_update = time(nullptr);
+    my_service->latency = s->get_latency();
+    my_service->low_flap_threshold = s->get_low_flap_threshold();
+    my_service->max_check_attempts = s->max_check_attempts();
+    my_service->next_check = s->get_next_check();
+    my_service->next_notification = s->get_next_notification();
+    my_service->no_more_notifications = s->get_no_more_notifications();
+    if (!s->get_notes().empty())
+      my_service->notes = common::check_string_utf8(s->get_notes());
+    if (!s->get_notes_url().empty())
+      my_service->notes_url = common::check_string_utf8(s->get_notes_url());
+    my_service->notifications_enabled = s->get_notifications_enabled();
+    my_service->notification_interval = s->get_notification_interval();
+    if (!s->notification_period().empty())
+      my_service->notification_period = s->notification_period();
+    my_service->notify_on_critical =
+        s->get_notify_on(engine::notifier::critical);
+    my_service->notify_on_downtime =
+        s->get_notify_on(engine::notifier::downtime);
+    my_service->notify_on_flapping =
+        s->get_notify_on(engine::notifier::flappingstart);
+    my_service->notify_on_recovery = s->get_notify_on(engine::notifier::ok);
+    my_service->notify_on_unknown = s->get_notify_on(engine::notifier::unknown);
+    my_service->notify_on_warning = s->get_notify_on(engine::notifier::warning);
+    my_service->obsess_over = s->obsess_over();
+    if (!s->get_plugin_output().empty()) {
+      my_service->output = common::check_string_utf8(s->get_plugin_output());
+      my_service->output.append("\n");
+    }
+    if (!s->get_long_plugin_output().empty())
+      my_service->output.append(
+          common::check_string_utf8(s->get_long_plugin_output()));
+    my_service->passive_checks_enabled = s->passive_checks_enabled();
+    my_service->percent_state_change = s->get_percent_state_change();
+    if (!s->get_perf_data().empty())
+      my_service->perf_data = common::check_string_utf8(s->get_perf_data());
+    my_service->retain_nonstatus_information =
+        s->get_retain_nonstatus_information();
+    my_service->retain_status_information = s->get_retain_status_information();
+    my_service->retry_interval = s->retry_interval();
+    if (!s->description().empty())
+      my_service->service_description =
+          common::check_string_utf8(s->description());
+    my_service->should_be_scheduled = s->get_should_be_scheduled();
+    my_service->stalk_on_critical = s->get_stalk_on(engine::notifier::critical);
+    my_service->stalk_on_ok = s->get_stalk_on(engine::notifier::ok);
+    my_service->stalk_on_unknown = s->get_stalk_on(engine::notifier::unknown);
+    my_service->stalk_on_warning = s->get_stalk_on(engine::notifier::warning);
+    my_service->state_type =
+        (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
+
+    // Search host ID and service ID.
+    std::pair<uint64_t, uint64_t> p;
+    p = engine::get_host_and_service_id(s->get_hostname(), s->description());
+    my_service->host_id = p.first;
+    my_service->service_id = p.second;
+    if (my_service->host_id && my_service->service_id) {
+      // Send service event.
+      SPDLOG_LOGGER_DEBUG(neb_logger,
+                          "callbacks: new service {} ('{}') on host {}",
+                          my_service->service_id,
+                          my_service->service_description, my_service->host_id);
+      cbm->write(my_service);
+
+      /* No need to send this service custom variables changes, custom
+       * variables are managed in a different loop. */
+    } else
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "callbacks: service has no host ID or no service ID (yet) (host "
+          "'{}', service '{}')",
+          (!s->get_hostname().empty() ? my_service->host_name : "(unknown)"),
+          (!s->description().empty() ? my_service->service_description
+                                     : "(unknown)"));
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+template <bool proto>
+static void send_service_list() {
+  // Start log message.
+  neb_logger->info("init: beginning service dump");
+
+  // Loop through all services.
+  for (service_map::const_iterator
+           it{com::centreon::engine::service::services.begin()},
+       end{com::centreon::engine::service::services.end()};
+       it != end; ++it) {
+    // Fill callback struct.
+    nebstruct_adaptive_service_data nsasd;
+    memset(&nsasd, 0, sizeof(nsasd));
+    nsasd.type = NEBTYPE_SERVICE_ADD;
+    nsasd.modified_attribute = MODATTR_ALL;
+    nsasd.object_ptr = it->second.get();
+
+    // Callback.
+    if constexpr (proto)
+      forward_pb_service(&nsasd);
+    else
+      forward_service(&nsasd);
+  }
+
+  // End log message.
+  neb_logger->info("init: end of services dump");
+}
+
+static void send_initial_pb_configuration() {
+  // if (config::applier::state::instance().broker_needs_update()) {
+  SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+  if (proto_conf.empty()) {
+    send_severity_list();
+  }
+  send_tag_list();
+  send_host_list<true>();
+  send_service_list<true>();
+  //      _send_pb_custom_variables_list();
+  //      _send_pb_downtimes_list();
+  //      _send_pb_host_parents_list();
+  //      _send_pb_host_group_list();
+  //      _send_pb_service_group_list();
+  //    } else {
+  //      SPDLOG_LOGGER_INFO(_neb_logger,
+  //                         "init: No need to send poller configuration");
+  //  }
+  //  _send_pb_instance_configuration();
+}
+
+/**
  *  Sends program data (starts, restarts, stops, etc.) to broker.
  *
  *  @param[in] type      Type.
  *  @param[in] flags     Flags.
  */
 void broker_program_state(int type, int flags) {
+  // Input variables.
+  static time_t start_time;
+
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_PROGRAM_STATE))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
     return;
-#endif
 
   // Fill struct with relevant data.
   nebstruct_process_data ds;
   ds.type = type;
   ds.flags = flags;
-  ds.engine_config_version = pb_config.conf_version();
 
+  auto inst_obj = std::make_shared<com::centreon::broker::neb::pb_instance>();
+  com::centreon::broker::Instance& inst = inst_obj->mut_obj();
+  inst.set_engine("Centreon Engine");
+  inst.set_pid(getpid());
+  inst.set_version(get_program_version());
+
+  switch (type) {
+    case NEBTYPE_PROCESS_EVENTLOOPSTART: {
+      neb_logger->debug("callbacks: generating process start event");
+      inst.set_instance_id(cbm->poller_id());
+      inst.set_running(true);
+      inst.set_name(cbm->poller_name());
+      start_time = time(nullptr);
+      inst.set_start_time(start_time);
+
+      cbm->write(inst_obj);
+      send_initial_pb_configuration();
+    } break;
+    case NEBTYPE_PROCESS_DIFFSTATE: {
+      // Output variable.
+      inst.set_instance_id(cbm->poller_id());
+      inst.set_running(true);
+      inst.set_name(cbm->poller_name());
+      inst.set_start_time(start_time);
+
+      // Send initial event and then configuration.
+      cbm->write(inst_obj);
+      send_initial_pb_configuration();
+    } break;
+    // The code to apply is in broker/neb/src/callbacks.cc: 2459
+    default:
+      break;
+  }
+
+  neb_logger->debug("callbacks: instance '{}' running {}", inst.name(),
+                    inst.running());
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);
 }

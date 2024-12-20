@@ -20,7 +20,12 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
+include_directories(
+  ${INC_DIR}
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/engine/inc
+  ${PROJECT_SOURCE_DIR}/core/multiplexing/inc
+  )
 
 # NEB sources.
 set(NEB_SOURCES
@@ -126,45 +131,54 @@ install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 # Centreon Engine/Nagios module.
 set(CBMOD "cbmod")
 add_library(
-  "${CBMOD}" SHARED
-  # Sources.
-  "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
-  "${SRC_DIR}/callback.cc"
-  "${SRC_DIR}/callbacks.cc"
-  "${SRC_DIR}/initial.cc"
-  "${SRC_DIR}/internal.cc"
-  "${SRC_DIR}/neb.cc"
-  "${SRC_DIR}/set_log_data.cc"
-  # Headers.
-  "${INC_DIR}/com/centreon/broker/neb/callback.hh"
-  "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
-  "${INC_DIR}/com/centreon/broker/neb/initial.hh"
-  "${INC_DIR}/com/centreon/broker/neb/internal.hh"
-  "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
-get_property(
-  CBMOD_DEFINES
-  TARGET "${CBMOD}"
-  PROPERTY COMPILE_DEFINITIONS)
-list(APPEND CBMOD_DEFINES CBMOD)
-set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
+  ${CBMOD} SHARED
+  ${SRC_DIR}/cbmod.cc
+  )
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  # Flags needed to include all symbols in shared library.
-  target_link_libraries(
-    "${CBMOD}"
-    -L${PROTOBUF_LIB_DIR}
-    "-Wl,--whole-archive"
-    rokerbase
-    multiplexing
-    "-Wl,--no-whole-archive")
-else()
-  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
-endif()
+set_property(TARGET ${CBMOD} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+#add_library(
+#  "${CBMOD}" SHARED
+#  # Sources.
+#  "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
+#  "${SRC_DIR}/callback.cc"
+#  "${SRC_DIR}/callbacks.cc"
+#  "${SRC_DIR}/initial.cc"
+#  "${SRC_DIR}/internal.cc"
+#  "${SRC_DIR}/neb.cc"
+#  "${SRC_DIR}/set_log_data.cc"
+#  # Headers.
+#  "${INC_DIR}/com/centreon/broker/neb/callback.hh"
+#  "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
+#  "${INC_DIR}/com/centreon/broker/neb/initial.hh"
+#  "${INC_DIR}/com/centreon/broker/neb/internal.hh"
+#  "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
+#get_property(
+#  CBMOD_DEFINES
+#  TARGET "${CBMOD}"
+#  PROPERTY COMPILE_DEFINITIONS)
+#list(APPEND CBMOD_DEFINES CBMOD)
+#set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
+#
+#if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+#  # Flags needed to include all symbols in shared library.
+#  target_link_libraries(
+#    "${CBMOD}"
+#    -L${PROTOBUF_LIB_DIR}
+#    "-Wl,--whole-archive"
+#    rokerbase
+#    multiplexing
+#    "-Wl,--no-whole-archive")
+#else()
+#  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
+#endif()
+#
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
+target_link_libraries(${CBMOD} fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase)
+#target_link_libraries(${CBMOD} fmt::fmt "-Wl,--whole-archive" rokerbase multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf nebbase)
 
-target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+#target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)

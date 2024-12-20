@@ -32,6 +32,8 @@ endif()
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
@@ -49,7 +51,10 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(${INC_DIR} ${INC_DIR}/compatibility
                     ${CMAKE_BINARY_DIR}/common/engine_conf
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/broker/neb/inc
+                    ${CMAKE_SOURCE_DIR}/broker/core/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -569,7 +574,8 @@ else()
     centreon_clib
     engine_conf
     fmt::fmt
-    spdlog::spdlog)
+    spdlog::spdlog
+    cbmod)
 
   # centengine target.
 
@@ -609,7 +615,9 @@ else()
     z
     ryml::ryml
     stdc++fs
-    dl)
+    dl
+    -lfmt
+    )
 
 install(
   TARGETS centengine centenginestats

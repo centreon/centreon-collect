@@ -18,6 +18,7 @@
 #include <fmt/format.h>
 
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
