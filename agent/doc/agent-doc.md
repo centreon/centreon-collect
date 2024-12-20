@@ -125,6 +125,6 @@ So it works like that:
 * drive_size_thread post result in io_context
 * io_context calls check_drive_size::_completion_handler
 
-### check_heath
-This little check send agent's statistics to the poller. In order to do that, each checks share a shared checks_statistics object. 
+### check_health
+This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
 This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.
