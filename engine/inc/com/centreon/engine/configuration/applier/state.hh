@@ -112,8 +112,11 @@ class state {
   template <typename ConfigurationType, typename Key, typename ApplierType>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
-  template <typename DiffObj, typename ApplierType>
-  void _apply(const DiffObj& diff, error_cnt& err);
+  template <typename DiffObj, typename ApplierType, typename Type, typename Key>
+  void _apply(const DiffObj& diff,
+              google::protobuf::RepeatedPtrField<Type>* Container,
+              std::function<Key(const Type&)> f,
+              error_cnt& err);
 
   void _apply(configuration::State& new_cfg,
               retention::state& state,

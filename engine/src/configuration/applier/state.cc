@@ -961,40 +961,46 @@ void applier::state::_apply(difference<std::set<ConfigurationType>> const& diff,
  *  @param[in] cur_cfg Current configuration set.
  *  @param[in] new_cfg New configuration set.
  */
-template <typename DiffObj, typename ApplierType>
-void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
+template <typename DiffObj, typename ApplierType, typename Type, typename Key>
+void applier::state::_apply(const DiffObj& diff,
+                            google::protobuf::RepeatedPtrField<Type>* Container,
+                            std::function<Key(const Type&)> f,
+                            error_cnt& err) {
   // Applier.
   ApplierType aplyr;
 
   // Modify objects.
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
-                      std::pair<uint32_t, Severity*>>
-      current_severities;
-  uint32_t i = 0;
-  for (auto& s : *pb_config.mutable_severities())
-    current_severities[{s.key().id(), s.key().type()}] =
-        std::make_pair(i++, &s);
+  absl::flat_hash_map<Key, std::pair<uint32_t, Type*>> current_objs;
 
-  for (auto& p : diff.modified()) {
-    auto found = current_severities.find({p.key().id(), p.key().type()});
+  uint32_t i = 0;
+  for (auto& item : *Container) {
+    static_assert(std::is_same<decltype(f(item)), const Key&>::value ||
+                      std::is_same<decltype(f(item)), const Key>::value ||
+                      std::is_same<decltype(f(item)), Key>::value,
+                  "Invalid key function: it must match Key");
+    current_objs[f(item)] = std::make_pair(i++, &item);
+  }
+
+  for (auto& obj : diff.modified()) {
+    auto found = current_objs.find(f(obj));
     if (!verify_config) {
-      if (found != current_severities.end()) {
-        aplyr.modify_object(found->second.second, p);
+      if (found != current_objs.end()) {
+        aplyr.modify_object(found->second.second, obj);
       } else {
         ++err.config_errors;
-        config_logger->error(
-            "The severity ({}, {}) should be modified but it currently doesn't "
-            "exist",
-            p.key().id(), p.key().type());
+        // config_logger->error(
+        //     "The severity ({}, {}) should be modified but it currently
+        //     doesn't " "exist", p.key().id(), p.key().type());
       }
     } else {
       try {
-        if (found != current_severities.end()) {
-          aplyr.modify_object(found->second.second, p);
-        } else
-          throw engine_error()
-              << "The severity (" << p.key().id() << ", " << p.key().type()
-              << ") should be modified but it currently doesn't exist";
+        if (found != current_objs.end()) {
+          aplyr.modify_object(found->second.second, obj);
+        } else {
+        }
+        // throw engine_error()
+        //     << "The severity (" << p.key().id() << ", " << p.key().type()
+        //     << ") should be modified but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
         config_logger->info(e.what());
@@ -1004,25 +1010,25 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
 
   // Erase objects.
   for (auto& key : diff.deleted()) {
-    auto found = current_severities.find({key.id(), key.type()});
+    auto found = current_objs.find({key.id(), key.type()});
     if (!verify_config) {
-      if (found != current_severities.end()) {
+      if (found != current_objs.end()) {
         aplyr.remove_object(found->second.first);
       } else {
         ++err.config_errors;
-        config_logger->error(
-            "The severity ({}, {}) should be removed but it currently doesn't "
-            "exist",
-            key.id(), key.type());
+        // config_logger->error(
+        //     "The severity ({}, {}) should be removed but it currently doesn't
+        //     " "exist", key.id(), key.type());
       }
     } else {
       try {
-        if (found != current_severities.end()) {
+        if (found != current_objs.end()) {
           aplyr.remove_object(found->second.first);
-        } else
-          throw engine_error()
-              << "The severity (" << key.id() << ", " << key.type()
-              << ") should be removed but it currently doesn't exist";
+        } else {
+        }
+        // throw engine_error()
+        //     << "The severity (" << key.id() << ", " << key.type()
+        //     << ") should be removed but it currently doesn't exist";
       } catch (const std::exception& e) {
         ++err.config_errors;
         config_logger->info(e.what());
@@ -1032,6 +1038,13 @@ void applier::state::_apply(const DiffObj& diff, error_cnt& err) {
 
   // Add objects.
   for (auto& obj : diff.added()) {
+    auto found = current_objs.find(f(obj));
+    if (found != current_objs.end()) {
+      ++err.config_errors;
+      // config_logger->error(
+      //     "The severity ({}, {}) should be added but it currently exists",
+      //     p.key().id(), p.key().type());
+    }
     if (!verify_config)
       aplyr.add_object(obj);
     else {
@@ -2230,6 +2243,7 @@ void applier::state::_processing(configuration::state& new_cfg,
  * @param diff_state The difference to apply to the current configuration.
  * @param err The error counter.
  */
+
 void applier::state::_processing(const configuration::DiffState& diff_state,
                                  error_cnt& err) {
   // Timing.
@@ -2244,8 +2258,18 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
   //
   gettimeofday(tv, nullptr);
 
-  _apply<DiffSeverity, applier::severity>(diff_state.severities(), err);
-  applier::tag::_apply(diff_state.tags(), err);
+  auto fkey = [](const Severity& sev) -> std::pair<uint64_t, uint32_t> {
+    return std::make_pair(sev.key().id(), sev.key().type());
+  };
+  _apply<DiffSeverity, applier::severity, Severity,
+         std::pair<uint64_t, uint32_t>>(
+      diff_state.severities(), pb_config.mutable_severities(), fkey, err);
+
+  auto fkey_tag = [](const Tag& sev) -> std::pair<uint64_t, uint32_t> {
+    return std::make_pair(sev.key().id(), sev.key().type());
+  };
+  _apply<DiffTag, applier::tag, Tag, std::pair<uint64_t, uint32_t>>(
+      diff_state.tags(), pb_config.mutable_tags(), fkey_tag, err);
 }
 
 /**

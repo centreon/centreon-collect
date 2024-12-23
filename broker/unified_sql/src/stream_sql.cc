@@ -5280,12 +5280,14 @@ void stream::_apply_diff_state(uint32_t poller_id,
       _update_tags(tag, Tag_Action_MODIFY);
     }
 
-    // for (const auto& key : ds.tags().deleted()) {
-    //   _logger_sql->trace("unified_sql: modification of tag id={},
-    // type = {} ",
-    //                      key.id(), key.type());
-    //   _update_tags(tag, Tag_Action_DELETE);
-    // }
+    for (const auto& key : ds.tags().deleted()) {
+      _logger_sql->trace(
+          "unified_sql: modification of tag id={},          type = {} ",
+          key.id(), key.type());
+      auto tag = engine::configuration::Tag();
+      tag.mutable_key()->CopyFrom(key);
+      _update_tags(tag, Tag_Action_DELETE);
+    }
 
     for (const auto& tag : ds.tags().added()) {
       _logger_sql->trace("unified_sql: modification of tag id={}, type={}",
