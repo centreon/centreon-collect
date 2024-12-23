@@ -33,6 +33,7 @@ jobs:
       version_file: CMakeLists.txt
 
   build-and-test-agent:
+    if: github.repository == 'centreon/centreon-collect'
     needs: [get-environment]
     runs-on: windows-latest
     env:
