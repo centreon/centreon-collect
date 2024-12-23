@@ -18,6 +18,7 @@ on:
 
 jobs:
   get-version:
+    if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-version.yml
     with:
       version_file: CMakeLists.txt

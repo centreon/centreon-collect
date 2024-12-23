@@ -98,7 +98,7 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' && github.repository == 'centreon/centreon-collect' }}
 
     steps:
       - name: Checkout sources
@@ -117,7 +117,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) && github.repository == 'centreon/centreon-collect' }}
     needs: [get-version, package]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
@@ -148,7 +148,7 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) && github.repository == 'centreon/centreon-collect' }}
     needs: [get-version, package]
     environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
@@ -178,7 +178,7 @@ jobs:
 
   promote:
     needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' && github.repository == 'centreon/centreon-collect' }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
