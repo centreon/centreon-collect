@@ -1009,8 +1009,9 @@ void applier::state::_apply(const DiffObj& diff,
   }
 
   // Erase objects.
-  for (auto& key : diff.deleted()) {
-    auto found = current_objs.find({key.id(), key.type()});
+  for (auto key = diff.deleted().rbegin(); key != diff.deleted().rend();
+       ++key) {
+    auto found = current_objs.find({key->id(), key->type()});
     if (!verify_config) {
       if (found != current_objs.end()) {
         aplyr.remove_object(found->second.first);
@@ -2265,8 +2266,8 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
          std::pair<uint64_t, uint32_t>>(
       diff_state.severities(), pb_config.mutable_severities(), fkey, err);
 
-  auto fkey_tag = [](const Tag& sev) -> std::pair<uint64_t, uint32_t> {
-    return std::make_pair(sev.key().id(), sev.key().type());
+  auto fkey_tag = [](const Tag& tag) -> std::pair<uint64_t, uint32_t> {
+    return std::make_pair(tag.key().id(), tag.key().type());
   };
   _apply<DiffTag, applier::tag, Tag, std::pair<uint64_t, uint32_t>>(
       diff_state.tags(), pb_config.mutable_tags(), fkey_tag, err);

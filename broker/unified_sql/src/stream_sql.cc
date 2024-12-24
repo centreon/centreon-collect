@@ -5121,8 +5121,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   if (!_tag_insert_update.prepared())
     _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
   if (!_tag_delete.prepared())
-    _tag_delete =
-        _mysql.prepare_query("DELETE FROM resources_tags WHERE tag_id=?");
+    _tag_delete = _mysql.prepare_query("DELETE FROM tags WHERE tag_id=?");
 
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
