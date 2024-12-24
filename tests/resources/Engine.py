@@ -4298,3 +4298,15 @@ def ctn_engine_config_extractor(dict, id,type:int):
             return item
     return None
 
+def ctn_add_tag(poller: int, id: int, tag_name: str, type: str):
+    
+    content = f"""define tag {{
+id                     {id}
+tag_name               {tag_name}
+type                   {type}
+}}
+"""
+    config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+    with open(config_file, "a+") as ff:
+        ff.write("\n")
+        ff.write(content)

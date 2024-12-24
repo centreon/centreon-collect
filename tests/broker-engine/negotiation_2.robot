@@ -100,16 +100,15 @@ BENOT01
     Should Be Equal As Strings    ${output}    (('severity1',),)
 
     Ctn Stop Engine
-
     # modify tag 1/2 and severity 1/2
     Ctn Engine Config Set Key Value In Cfg    0    1    tag_name    tag1_changed    tags.cfg
     Ctn Engine Config Set Key Value In Cfg    0    1    severity_name    severity1_changed    severities.cfg
 
-    # delete tag 3 and severity 3
+    # # delete tag 3 and severity 3
     Ctn Engine Config Del Block In Cfg    0    tag    3    tags.cfg
-    Ctn Engine Config Del Block In Cfg    0    severity    3    severities.cfg
 
     # # add tag 50 and severity 50
+    Ctn Add Tag    0    50    tag50    servicegroup
     
 
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
@@ -134,18 +133,29 @@ BENOT01
 
     ${content}    Ctn Dump Conf Info Grpc
 
+    Log To Console    Check the change in GPRC
     ${tags}    Ctn Engine Config Extractor    ${content}[tags]    1    ${0}
     ${severities}    Ctn Engine Config Extractor    ${content}[severities]    1    ${0}
     Should Be Equal As Strings   ${tags}[tagName]    tag1_changed
     Should Be Equal As Strings     ${severities}[severityName]   severity1_changed
+    
+    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    50    ${0}
+    Should Be Equal As Strings   ${tags}[tagName]    tag50
 
+    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${0}
+    Should Be True   ${tags}==None   tag id:3 type:0 should have been deleted
+
+    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${1}
+    Should Be True   ${tags}==None   tag id:3 type:1 should have been deleted
+    
+    Log To Console    Check the change in Db
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT name FROM tags WHERE id = 1 and type = 0;
         Sleep    1s
         IF    "${output}" == "(('tag1_changed',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('tag1_changed',),)
-
+    
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT name FROM severities WHERE id = 1 and type = 0;
         Sleep    1s
@@ -153,5 +163,27 @@ BENOT01
     END
     Should Be Equal As Strings    ${output}    (('severity1_changed',),)
 
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT name FROM tags WHERE id = 50 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "(('tag50',),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    (('tag50',),)
+
+    FOR    ${index}    IN RANGE    2
+        ${output}    Query    SELECT name FROM tags WHERE id = 3 and type = 0;
+        Sleep    1s
+        IF    "${output}" == "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()
+
+    FOR    ${index}    IN RANGE    2
+        ${output}    Query    SELECT name FROM tags WHERE id = 3 and type = 1;
+        Sleep    1s
+        IF    "${output}" == "(())"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
