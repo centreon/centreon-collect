@@ -23,6 +23,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     engine_conf/parser.cc
     engine_conf/severity.cc
     engine_conf/tag.cc
+    engine_conf/hostgroup.cc
     file_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc

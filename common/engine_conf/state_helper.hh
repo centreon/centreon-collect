@@ -43,6 +43,14 @@ class state_helper : public message_helper {
                    const State& new_state,
                    const std::shared_ptr<spdlog::logger>& logger,
                    com::centreon::engine::configuration::DiffState* result);
+
+  template <typename Type, typename Key, typename DiffType, typename SpecialKey>
+  static void diff_obj(const google::protobuf::RepeatedPtrField<Type>& old_list,
+                       const google::protobuf::RepeatedPtrField<Type>& new_list,
+                       const std::shared_ptr<spdlog::logger>& logger
+                       [[maybe_unused]],
+                       DiffType* result,
+                       std::function<Key(const Type&)> key_extractor);
 };
 }  // namespace com::centreon::engine::configuration
 

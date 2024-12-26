@@ -84,7 +84,8 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   engine::hostgroup::hostgroups.insert({hg->get_group_name(), hg});
 
   // Notify event broker.
-  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
+  if (!new_generation)
+    broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
 
   // Apply resolved hosts on hostgroup.
   for (auto& h : obj.members().data())
@@ -138,8 +139,8 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Find old configuration.
   set_hostgroup::iterator it_cfg(config->hostgroups_find(obj.key()));
   if (it_cfg == config->hostgroups().end())
-    throw engine_error() << "Could not modify non-existing "
-                         << "host group '" << obj.hostgroup_name() << "'";
+    throw engine_error() << "Could not modify non-existing " << "host group '"
+                         << obj.hostgroup_name() << "'";
 
   // Find host group object.
   hostgroup_map::iterator it_obj(engine::hostgroup::hostgroups.find(obj.key()));
@@ -225,7 +226,8 @@ void applier::hostgroup::modify_object(
 
   old_obj->CopyFrom(new_obj);
   // Notify event broker.
-  broker_group(NEBTYPE_HOSTGROUP_UPDATE, it_obj->second.get());
+  if (!new_generation)
+    broker_group(NEBTYPE_HOSTGROUP_UPDATE, it_obj->second.get());
 }
 #endif
 
@@ -276,7 +278,8 @@ void applier::hostgroup::remove_object(ssize_t idx) {
     engine::hostgroup* grp(it->second.get());
 
     // Notify event broker.
-    broker_group(NEBTYPE_HOSTGROUP_DELETE, grp);
+    if (!new_generation)
+      broker_group(NEBTYPE_HOSTGROUP_DELETE, grp);
 
     // Erase host group object (will effectively delete the object).
     engine::hostgroup::hostgroups.erase(it);
@@ -303,8 +306,8 @@ void applier::hostgroup::resolve_object(configuration::hostgroup const& obj,
   // Find host group.
   hostgroup_map::iterator it{engine::hostgroup::hostgroups.find(obj.key())};
   if (it == engine::hostgroup::hostgroups.end())
-    throw engine_error() << "Cannot resolve non-existing "
-                         << "host group '" << obj.hostgroup_name() << "'";
+    throw engine_error() << "Cannot resolve non-existing " << "host group '"
+                         << obj.hostgroup_name() << "'";
 
   // Resolve host group.
   it->second->resolve(err.config_warnings, err.config_errors);

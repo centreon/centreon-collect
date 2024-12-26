@@ -216,9 +216,10 @@ message DiffState {
   /* Modifications concerning severities */
   DiffSeverity severities = 1;
   DiffTag tags = 2;
+  DiffHostgroup hostgroups = 3;
 
   /* In case of all the configuration should be reloaded */
-  State state = 3;
+  State state = 4;
 }
 
 message CustomVariable {
@@ -607,6 +608,15 @@ message Hostgroup {
   StringSet members = 6;
   string notes = 7;
   string notes_url = 8;
+}
+
+message DiffHostgroup{
+  /* Added Hostgroup */
+  repeated Hostgroup added = 1;
+  /* Deleted Hostgroup given by their key */
+  repeated string deleted = 2;
+  /* Modified Hostgroup given. */
+  repeated Hostgroup modified = 3;
 }
 
 message Service {

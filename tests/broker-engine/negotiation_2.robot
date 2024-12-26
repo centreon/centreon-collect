@@ -16,7 +16,7 @@ Library    Collections
 BENOT01
     [Documentation]    To Do
     [Tags]    broker    engine    start-stop    MON-15671
-    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -31,7 +31,6 @@ BENOT01
     Ctn Clear Db    severities
     Ctn Clear Db    tags
 
-
     ${home}=    Get Environment Variable    HOME
 
     ${file}=    Set Variable    ${HOME}/current-conf.prot
@@ -43,7 +42,6 @@ BENOT01
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
-
 
     # configure the engine to negotiate with the central broker
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/cbmod.so -c /tmp/etc/centreon-broker/central-module0.json -p /tmp/var/lib/centreon-engine/current-conf.prot    disambiguous=True
@@ -57,6 +55,9 @@ BENOT01
 
     Ctn Create Severities File    ${0}    ${10}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+
+    Ctn Add Host Group    ${0}    ${1}    ["host_2","host_3"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_4"]
 
     # copy the configuration files to the tmp/var/lib/centreon/config/1 directory
     Copy Directory
@@ -80,10 +81,17 @@ BENOT01
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     ${content}    Ctn Dump Conf Info Grpc
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    1    ${0}
-    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    1    ${0}
+    ${tags}    Ctn Engine Config Extractor Tags    ${content}[tags]    1    ${0}
+    ${severities}    Ctn Engine Config Extractor Tags    ${content}[severities]    1    ${0}
     Should Be Equal As Strings   ${tags}[tagName]    tag1
     Should Be Equal As Strings     ${severities}[severityName]   severity1
+
+    #check hostgroups
+    ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_1
+    Should Be Equal As Numbers   ${hostgroup}[hostgroupId]    1
+
+    ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_2
+    Should Be Equal As Numbers   ${hostgroup}[hostgroupId]    2
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT name FROM tags WHERE id = 1 and type = 0;
@@ -104,12 +112,20 @@ BENOT01
     Ctn Engine Config Set Key Value In Cfg    0    1    tag_name    tag1_changed    tags.cfg
     Ctn Engine Config Set Key Value In Cfg    0    1    severity_name    severity1_changed    severities.cfg
 
-    # # delete tag 3 and severity 3
+    # delete tag 3 and severity 3
     Ctn Engine Config Del Block In Cfg    0    tag    3    tags.cfg
 
-    # # add tag 50 and severity 50
+    # add tag 50 and severity 50
     Ctn Add Tag    0    50    tag50    servicegroup
     
+    # add new hostgroup 
+    Ctn Add Host Group    ${0}    ${3}    ["host_5"]
+
+    # modify host group 1
+    Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    alias    hostgroup1_changed    hostgroups.cfg
+
+    # delete host group 2
+    Ctn Engine Config Del Block In Cfg    0    hostgroup    hostgroup_2    hostgroups.cfg
 
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -134,19 +150,28 @@ BENOT01
     ${content}    Ctn Dump Conf Info Grpc
 
     Log To Console    Check the change in GPRC
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    1    ${0}
-    ${severities}    Ctn Engine Config Extractor    ${content}[severities]    1    ${0}
+    ${tags}    Ctn Engine Config Extractor Tags    ${content}[tags]    1    ${0}
+    ${severities}    Ctn Engine Config Extractor Tags    ${content}[severities]    1    ${0}
     Should Be Equal As Strings   ${tags}[tagName]    tag1_changed
     Should Be Equal As Strings     ${severities}[severityName]   severity1_changed
     
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    50    ${0}
+    ${tags}    Ctn Engine Config Extractor Tags    ${content}[tags]    50    ${0}
     Should Be Equal As Strings   ${tags}[tagName]    tag50
 
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${0}
+    ${tags}    Ctn Engine Config Extractor Tags    ${content}[tags]    3    ${0}
     Should Be True   ${tags}==None   tag id:3 type:0 should have been deleted
 
-    ${tags}    Ctn Engine Config Extractor    ${content}[tags]    3    ${1}
+    ${tags}    Ctn Engine Config Extractor Tags   ${content}[tags]    3    ${1}
     Should Be True   ${tags}==None   tag id:3 type:1 should have been deleted
+    
+    ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_1
+    Should Be Equal As Strings   ${hostgroup}[alias]    hostgroup1_changed
+
+    ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_2
+    Should Be True   ${hostgroup}==None   hostgroup_2 should have been deleted
+
+    ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_3
+    Should Be Equal As Numbers   ${hostgroup}[hostgroupId]    3
     
     Log To Console    Check the change in Db
     FOR    ${index}    IN RANGE    60
@@ -187,3 +212,4 @@ BENOT01
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+    Disconnect From Database

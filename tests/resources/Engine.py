@@ -1243,7 +1243,7 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
 
     for i in range(len(lines)):
         if r.match(lines[i]):
-            for j in range(i + 1, len(lines)):
+            for j in range(i, len(lines)):
                 if '}' in lines[j]:
                     break
                 if key in lines[j]:
@@ -4276,6 +4276,8 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         pattern = rf"define tag \{{\s*id\s+{re.escape(key)}\b.*?\}}"
     elif type == "severity":
         pattern = rf"define severity \{{\s*id\s+{re.escape(key)}\b.*?\}}"
+    elif type == "hostgroup":
+        pattern = rf"(?<=\n)define hostgroup\s*\{{.*?hostgroup_name\s+{re.escape(key)}\b.*?\}}\n?"
 
     # Use re.sub to remove the matched block
     new_content = re.sub(pattern, '', content, flags=re.DOTALL)
@@ -4288,13 +4290,23 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
 
     
-def ctn_engine_config_extractor(dict, id,type:int):
+def ctn_engine_config_extractor_tags(dict, id, type:int):
     """
     Extract a specific key-value pair from a dict.
 
     """
     for item in dict:
         if item['key']['id'] == id and item['key']['type'] == type:
+            return item
+    return None
+
+def ctn_engine_config_extractor_hostgroup(dict, name:string):
+    """
+    Extract a specific key-value pair from a dict.
+
+    """
+    for item in dict:
+        if item['hostgroupName'] == name :
             return item
     return None
 

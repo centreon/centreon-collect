@@ -19,6 +19,7 @@
 #include "common/engine_conf/state_helper.hh"
 #include <fmt/format.h>
 #include <google/protobuf/descriptor.h>
+#include <google/protobuf/message.h>
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -29,6 +30,7 @@ using com::centreon::exceptions::msg_fmt;
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
 using ::google::protobuf::Reflection;
+using google::protobuf::util::MessageDifferencer;
 
 extern sched_info scheduling_info;
 
@@ -521,6 +523,61 @@ void state_helper::expand() {
 }
 
 /**
+ * @brief Compare two objects and generate a DiffType object.
+ *
+ * @param old_list The old list of objects.
+ * @param new_list The new list of objects.
+ * @param result A DiffTypeobject point that will contain the differences
+ * between the two lists.
+ * @param key_extractor A function that extracts the key from an object.
+ *
+ */
+template <typename Type,
+          typename Key,
+          typename DiffType,
+          typename SpecialKey = void>
+void state_helper::diff_obj(
+    const google::protobuf::RepeatedPtrField<Type>& old_list,
+    const google::protobuf::RepeatedPtrField<Type>& new_list,
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]],
+    DiffType* result,
+    std::function<Key(const Type&)> key_extractor) {
+  result->Clear();
+  absl::flat_hash_map<Key, const Type*> keys_values;
+
+  // add old list keys to the map with the corresponding tag
+  for (const auto& item : old_list) {
+    keys_values[key_extractor(item)] = &item;
+  }
+
+  absl::flat_hash_set<Key> new_keys;
+  for (const auto& item : new_list) {
+    auto inserted = new_keys.insert(key_extractor(item));
+    if (!keys_values.contains(*inserted.first)) {
+      // New object to add
+      result->add_added()->CopyFrom(item);
+    } else {
+      // Object to modify or equal
+      if (!MessageDifferencer::Equals(item, *keys_values[*inserted.first])) {
+        // There are changes in this object
+        result->add_modified()->CopyFrom(item);
+      }
+    }
+  }
+
+  for (const auto& item : old_list) {
+    if (!new_keys.contains(key_extractor(item))) {
+      if constexpr (std::is_same_v<SpecialKey, void>) {
+        result->add_deleted(key_extractor(item));
+      } else {
+        result->add_deleted()->CopyFrom(item.key());
+      }
+    }
+  }
+  logger->debug("object::diff result: {}", result->DebugString());
+}
+
+/**
  * @brief Compare two State objects and generate a DiffState object.
  *
  * @param old_state The old State object.
@@ -533,10 +590,28 @@ void state_helper::diff(const State& old_state,
                         const std::shared_ptr<spdlog::logger>& logger,
                         DiffState* result) {
   // Severities:
-  severity_helper::diff(old_state.severities(), new_state.severities(), logger,
-                        result->mutable_severities());
+  auto key_extractor_sv = [](const Severity& sv) {
+    return std::make_pair(sv.key().id(), sv.key().type());
+  };
+  state_helper::diff_obj<Severity, std::pair<uint64_t, uint32_t>, DiffSeverity,
+                         KeyType>(
+      old_state.severities(), new_state.severities(), logger,
+      result->mutable_severities(), key_extractor_sv);
   // Tags:
-  tag_helper::diff(old_state.tags(), new_state.tags(), logger,
-                   result->mutable_tags());
+  auto key_extractor_tag = [](const Tag& tag) {
+    return std::make_pair(tag.key().id(), tag.key().type());
+  };
+
+  state_helper::diff_obj<Tag, std::pair<uint64_t, uint32_t>, DiffTag, KeyType>(
+      old_state.tags(), new_state.tags(), logger, result->mutable_tags(),
+      key_extractor_tag);
+
+  // Hostgroups:
+  auto key_extractor_hg = [](const Hostgroup& hg) {
+    return hg.hostgroup_name();
+  };
+  state_helper::diff_obj<Hostgroup, std::string, DiffHostgroup>(
+      old_state.hostgroups(), new_state.hostgroups(), logger,
+      result->mutable_hostgroups(), key_extractor_hg);
 }
 }  // namespace com::centreon::engine::configuration
