@@ -129,16 +129,16 @@ set_target_properties("${NEB}" PROPERTIES PREFIX "")
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-set(CBMOD "cbmod")
 add_library(
-  ${CBMOD} SHARED
+  cbmod SHARED
   ${SRC_DIR}/cbmod.cc
+  ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc
   )
 
-set_property(TARGET ${CBMOD} PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET cbmod PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 #add_library(
-#  "${CBMOD}" SHARED
+#  cbmod SHARED
 #  # Sources.
 #  "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
 #  "${SRC_DIR}/callback.cc"
@@ -153,32 +153,32 @@ set_property(TARGET ${CBMOD} PROPERTY POSITION_INDEPENDENT_CODE ON)
 #  "${INC_DIR}/com/centreon/broker/neb/initial.hh"
 #  "${INC_DIR}/com/centreon/broker/neb/internal.hh"
 #  "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
-#get_property(
-#  CBMOD_DEFINES
-#  TARGET "${CBMOD}"
-#  PROPERTY COMPILE_DEFINITIONS)
-#list(APPEND CBMOD_DEFINES CBMOD)
-#set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 #
 #if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 #  # Flags needed to include all symbols in shared library.
 #  target_link_libraries(
-#    "${CBMOD}"
+#    cbmod
 #    -L${PROTOBUF_LIB_DIR}
 #    "-Wl,--whole-archive"
 #    rokerbase
 #    multiplexing
 #    "-Wl,--no-whole-archive")
 #else()
-#  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
+#  target_link_libraries(cbmod -L${PROTOBUF_LIB_DIR} "rokerbase")
 #endif()
 #
-set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
-target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(${CBMOD} fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase)
-#target_link_libraries(${CBMOD} fmt::fmt "-Wl,--whole-archive" rokerbase multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf nebbase)
+set_target_properties(cbmod PROPERTIES PREFIX "")
+target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
+target_link_libraries(cbmod fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase)
+#target_link_libraries(cbmod fmt::fmt "-Wl,--whole-archive" rokerbase multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf nebbase)
+get_property(
+  CBMOD_DEFINES
+  TARGET cbmod
+  PROPERTY COMPILE_DEFINITIONS)
+list(APPEND CBMOD_DEFINES CBMOD)
+set_property(TARGET cbmod PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 
-#target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+#target_include_directories(cbmod PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)
@@ -208,4 +208,4 @@ if(WITH_TESTING)
 endif()
 
 # Install rules.
-install(TARGETS "${CBMOD}" LIBRARY DESTINATION "${PREFIX_CBMOD}")
+install(TARGETS cbmod LIBRARY DESTINATION "${PREFIX_CBMOD}")

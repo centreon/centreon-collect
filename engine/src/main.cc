@@ -23,7 +23,6 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-#include <forward_list>
 #include <random>
 #include <string>
 
@@ -73,8 +72,8 @@ namespace asio = boost::asio;
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-using com::centreon::common::log_v2::log_v2;
 using com::centreon::broker::neb::cbmod;
+using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -113,6 +112,7 @@ int main(int argc, char* argv[]) {
       {"version", no_argument, nullptr, 'V'},
       {"config-file", required_argument, nullptr, 'c'},
       {"prot-config", required_argument, nullptr, 'p'},
+      {"broker-config", required_argument, nullptr, 'b'},
       {NULL, no_argument, nullptr, '\0'}};
 #endif  // HAVE_GETOPT_H
 
@@ -139,12 +139,13 @@ int main(int argc, char* argv[]) {
     bool display_license(false);
     bool error(false);
     bool diagnose(false);
+    std::string broker_config;
     std::vector<std::string> extended_conf_file;
 
     // Process all command line arguments.
     int c;
 #ifdef HAVE_GETOPT_H
-    while ((c = getopt_long(argc, argv, "+hVvsxDcp:", long_options,
+    while ((c = getopt_long(argc, argv, "+hVvsxDcp:b:", long_options,
                             &option_index)) != -1) {
 #else
     while ((c = getopt(argc, argv, "+hVvsxD")) != -1) {
@@ -170,6 +171,10 @@ int main(int argc, char* argv[]) {
           break;
         case 'D':  // Diagnostic.
           diagnose = true;
+          break;
+        case 'b':
+          if (optarg)
+            broker_config = optarg;
           break;
         case 'c':
           if (optarg)
@@ -264,6 +269,7 @@ int main(int argc, char* argv[]) {
              "paths -\n"
              "                              USE WITH CAUTION !\n"
              "  -D, --diagnose              Generate a diagnostic file.\n"
+             "  -b, --broker-config         Broker configuration file.\n"
              "\n"
              "Online:\n"
              "  Website                     https://www.centreon.com\n"
@@ -431,8 +437,7 @@ int main(int argc, char* argv[]) {
         mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
         // Load broker modules.
-        cbm = std::unique_ptr<cbmod>(new cbmod(config_file, proto_conf));
-        //cbmod = std::make_unique<cbmod>(config_file);
+        cbm = std::make_unique<cbmod>(broker_config, proto_conf);
         for (auto& m : pb_config.broker_module()) {
           std::pair<std::string, std::string> p =
               absl::StrSplit(m, absl::MaxSplits(' ', 1));
