@@ -34,7 +34,9 @@ set(SOURCES
     "${SRC_DIR}/stream.cc"
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
     "${SRC_DIR}/grpc_stream.pb.cc"
-    "${SRC_DIR}/grpc_bridge.cc")
+    "${SRC_DIR}/grpc_bridge.cc"
+    "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc"
+)
 
 # GRPC module.
 set(GRPC "50-grpc")

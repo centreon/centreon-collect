@@ -340,7 +340,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/instance_broadcast.cc
     ${SRC_DIR}/io/data.cc
     ${SRC_DIR}/io/endpoint.cc
-    ${SRC_DIR}/io/limit_endpoint.cc
     ${SRC_DIR}/io/events.cc
     ${SRC_DIR}/io/factory.cc
     ${SRC_DIR}/io/protocols.cc
@@ -399,7 +398,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/instance_broadcast.hh
     ${INC_DIR}/io/data.hh
     ${INC_DIR}/io/endpoint.hh
-    ${INC_DIR}/io/limit_endpoint.hh
     ${INC_DIR}/io/event_info.hh
     ${INC_DIR}/io/events.hh
     ${INC_DIR}/io/factory.hh
