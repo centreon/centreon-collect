@@ -613,5 +613,12 @@ void state_helper::diff(const State& old_state,
   state_helper::diff_obj<Hostgroup, std::string, DiffHostgroup>(
       old_state.hostgroups(), new_state.hostgroups(), logger,
       result->mutable_hostgroups(), key_extractor_hg);
+
+  auto key_extractor_sg = [](const Servicegroup& sg) {
+    return sg.servicegroup_name();
+  };
+  state_helper::diff_obj<Servicegroup, std::string, DiffServicegroup>(
+      old_state.servicegroups(), new_state.servicegroups(), logger,
+      result->mutable_servicegroups(), key_extractor_sg);
 }
 }  // namespace com::centreon::engine::configuration

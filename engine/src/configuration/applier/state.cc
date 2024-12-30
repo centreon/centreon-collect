@@ -2290,6 +2290,13 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
   _apply<DiffHostgroup, applier::hostgroup, Hostgroup, std::string>(
       diff_state.hostgroups(), pb_config.mutable_hostgroups(), key_extractor_hg,
       err);
+
+  auto key_extractor_sg = [](const Servicegroup& sg) {
+    return sg.servicegroup_name();
+  };
+  _apply<DiffServicegroup, applier::servicegroup, Servicegroup, std::string>(
+      diff_state.servicegroups(), pb_config.mutable_servicegroups(),
+      key_extractor_sg, err);
 }
 
 /**

@@ -217,9 +217,10 @@ message DiffState {
   DiffSeverity severities = 1;
   DiffTag tags = 2;
   DiffHostgroup hostgroups = 3;
+  DiffServicegroup servicegroups = 4;
 
   /* In case of all the configuration should be reloaded */
-  State state = 4;
+  State state = 5;
 }
 
 message CustomVariable {
@@ -718,6 +719,15 @@ message Servicegroup {
   uint32 servicegroup_id = 7;
   StringSet servicegroup_members = 8;
   string servicegroup_name = 9;
+}
+
+message DiffServicegroup{
+  /* Added Servicegroup */
+  repeated Servicegroup added = 1;
+  /* Deleted Servicegroup given by their key */
+  repeated string deleted = 2;
+  /* Modified Servicegroup given. */
+  repeated Servicegroup modified = 3;
 }
 
 message Severity {

@@ -52,12 +52,18 @@ BENOT01
 
     Ctn Create Tags File    ${0}    ${10}
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
 
     Ctn Create Severities File    ${0}    ${10}
     Ctn Config Engine Add Cfg File    ${0}    severities.cfg
 
+    # Hostgroups configuration
     Ctn Add Host Group    ${0}    ${1}    ["host_2","host_3"]
     Ctn Add Host Group    ${0}    ${2}    ["host_4"]
+    
+    # Servicegroups configuration
+    Ctn Add Service Group    ${0}    1    ["host_1","service_1"]
+    Ctn Add Service Group    ${0}    2    ["host_2","service_6"]
 
     # copy the configuration files to the tmp/var/lib/centreon/config/1 directory
     Copy Directory
@@ -93,6 +99,13 @@ BENOT01
     ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_2
     Should Be Equal As Numbers   ${hostgroup}[hostgroupId]    2
 
+    #check servicegroups
+    ${servicegroup}    Ctn Engine Config Extractor servicegroup   ${content}[servicegroups]    servicegroup_1
+    Should Be Equal As Numbers   ${servicegroup}[servicegroupId]    1
+
+    ${servicegroup}    Ctn Engine Config Extractor servicegroup   ${content}[servicegroups]    servicegroup_2
+    Should Be Equal As Numbers   ${servicegroup}[servicegroupId]    2
+
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT name FROM tags WHERE id = 1 and type = 0;
         Sleep    1s
@@ -120,12 +133,15 @@ BENOT01
     
     # add new hostgroup 
     Ctn Add Host Group    ${0}    ${3}    ["host_5"]
+    Ctn Add Service Group    ${0}    ${3}    ["host_5","service_21"]
 
     # modify host group 1
     Ctn Engine Config Set Key Value In Cfg    0    hostgroup_1    alias    hostgroup1_changed    hostgroups.cfg
+    Ctn Engine Config Set Key Value In Cfg    0    servicegroup_1    alias    servicegroup1_changed    servicegroups.cfg
 
     # delete host group 2
     Ctn Engine Config Del Block In Cfg    0    hostgroup    hostgroup_2    hostgroups.cfg
+    Ctn Engine Config Del Block In Cfg    0    servicegroup    servicegroup_2    servicegroups.cfg
 
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -163,7 +179,7 @@ BENOT01
 
     ${tags}    Ctn Engine Config Extractor Tags   ${content}[tags]    3    ${1}
     Should Be True   ${tags}==None   tag id:3 type:1 should have been deleted
-    
+    #check hostgroups
     ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_1
     Should Be Equal As Strings   ${hostgroup}[alias]    hostgroup1_changed
 
@@ -172,6 +188,17 @@ BENOT01
 
     ${hostgroup}    Ctn Engine Config Extractor Hostgroup   ${content}[hostgroups]    hostgroup_3
     Should Be Equal As Numbers   ${hostgroup}[hostgroupId]    3
+
+    #check servicegroups
+    ${servicegroup}    Ctn Engine Config Extractor servicegroup   ${content}[servicegroups]    servicegroup_1
+    Should Be Equal As Strings   ${servicegroup}[alias]    servicegroup1_changed
+
+    ${servicegroup}    Ctn Engine Config Extractor servicegroup   ${content}[servicegroups]    servicegroup_2
+    Should Be True   ${servicegroup}==None   servicegroup_2 should have been deleted
+
+    ${servicegroup}    Ctn Engine Config Extractor servicegroup   ${content}[servicegroups]    servicegroup_3
+    Should Be Equal As Numbers   ${servicegroup}[servicegroupId]    3
+
     
     Log To Console    Check the change in Db
     FOR    ${index}    IN RANGE    60
