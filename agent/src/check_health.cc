@@ -59,6 +59,10 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
             cnf,
             std::move(handler),
             stat),
+      _warning_check_interval(0),
+      _critical_check_interval(0),
+      _warning_check_duration(0),
+      _critical_check_duration(0),
       _measure_timer(*io_context) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
