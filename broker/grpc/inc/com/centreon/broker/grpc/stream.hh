@@ -79,7 +79,12 @@ template <class bireactor_class>
 class stream : public io::stream,
                public bireactor_class,
                public std::enable_shared_from_this<stream<bireactor_class>> {
-  static std::set<std::shared_ptr<stream>> _instances;
+  /**
+   * @brief we store reactor instances in this container until OnDone is called
+   * by grpc layers. We allocate this container and never free this because
+   * threads terminate in unknown order.
+   */
+  static std::set<std::shared_ptr<stream>>* _instances;
   static std::mutex _instances_m;
 
   using read_queue = std::queue<event_ptr>;
