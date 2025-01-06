@@ -23,13 +23,12 @@ std::shared_ptr<asio::io_context> g_io_context(
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:
-#ifndef _WINDOWS
+#ifndef _WIN32
   void SetUp() override {
     setenv("TZ", ":Europe/Paris", 1);
     return;
   }
 #endif
-
 };
 
 /**

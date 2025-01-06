@@ -107,7 +107,7 @@ using namespace std::string_literals;
 TEST_F(drive_size_test, test_fs_filter1) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning" : "1000000", "critical" : "20000000", "unit": "b",
+      R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
         "filter-type": "^hrfsother$"})"_json;
 
   absl::Mutex wait_m;
@@ -130,7 +130,8 @@ TEST_F(drive_size_test, test_fs_filter1) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -174,7 +175,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
 TEST_F(drive_size_test, test_fs_filter_percent) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning" : "1", "critical" : "5", "unit": "%",
+      R"({ "warning" : "1", "critical" : 5, "unit": "%",
         "filter-type": "^hrfsother$"})"_json;
 
   absl::Mutex wait_m;
@@ -197,7 +198,8 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -241,7 +243,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
 TEST_F(drive_size_test, test_fs_filter2) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning" : "1000000", "critical" : "20000000", "unit": "b",
+      R"({ "warning" : "1000000", "critical" : 20000000, "unit": "b",
         "filter-type": "^(hrfsfat$|hrfsfat32)$"})"_json;
 
   absl::Mutex wait_m;
@@ -264,7 +266,8 @@ TEST_F(drive_size_test, test_fs_filter2) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -319,7 +322,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -383,7 +387,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -441,7 +446,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
   {
@@ -506,7 +512,8 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 
@@ -525,6 +532,67 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
     ASSERT_EQ(p.critical_low(), 0);
     ASSERT_EQ(p.warning(), 30);
     ASSERT_EQ(p.critical(), 50);
+    if (p.name() == "used_/") {
+      ASSERT_NEAR(p.value(), 39.54, 0.01);
+      ASSERT_EQ(p.max(), 100);
+    } else if (p.name() == "used_/data") {
+      ASSERT_NEAR(p.value(), 50.60, 0.01);
+      ASSERT_EQ(p.max(), 100);
+    } else if (p.name() == "used_/boot/efi") {
+      ASSERT_NEAR(p.value(), 0.0045, 0.0001);
+      ASSERT_EQ(p.max(), 100);
+    } else {
+      FAIL() << "Unexpected perfdata name: " << p.name();
+    }
+  }
+}
+
+TEST_F(drive_size_test, test_fs_filter_percent_6) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "warning" : "30", "critical" : "", "unit": "%",
+         "exclude-fs": "tmpfs", "exclude-mountpoint":"/dev" })"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+
+  auto is_complete = [&]() { return !perfs.empty(); };
+
+  auto debug_logger = spdlog::default_logger();
+
+  auto checker = std::make_shared<check_drive_size>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
+      nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(&wait_m);
+        perfs = perfdata;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(1));
+
+  absl::MutexLock lck(&wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_EQ(output,
+            "WARNING: / Total: 322G Used: 39.54% Free: 60.46% WARNING: /data "
+            "Total: 5G Used: 50.60% Free: 49.40%");
+  ASSERT_EQ(perfs.size(), 3);
+
+  for (const auto& p : perfs) {
+    ASSERT_EQ(p.unit(), "%");
+    ASSERT_EQ(p.min(), 0);
+    ASSERT_EQ(p.warning_low(), 0);
+    ASSERT_TRUE(std::isnan(p.critical_low()));
+    ASSERT_EQ(p.warning(), 30);
+    ASSERT_TRUE(std::isnan(p.critical()));
     if (p.name() == "used_/") {
       ASSERT_NEAR(p.value(), 39.54, 0.01);
       ASSERT_EQ(p.max(), 100);
@@ -566,7 +634,8 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
         absl::MutexLock lck(&wait_m);
         perfs = perfdata;
         output = outputs.front();
-      });
+      },
+      std::make_shared<checks_statistics>());
 
   checker->start_check(std::chrono::seconds(1));
 

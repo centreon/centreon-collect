@@ -19,14 +19,14 @@
 #ifndef CENTREON_AGENT_NATIVE_CHECK_MEMORY_HH
 #define CENTREON_AGENT_NATIVE_CHECK_MEMORY_HH
 
-#include "native_check_memory_base.hh"
+#include "native_check_base.hh"
 
 struct _PERFORMANCE_INFORMATION;
 
 namespace com::centreon::agent {
-namespace check_memory_detail {
+namespace native_check_detail {
 
-enum e_metric : unsigned {
+enum e_memory_metric : unsigned {
   phys_total,
   phys_free,
   phys_used,
@@ -45,27 +45,33 @@ enum e_metric : unsigned {
  *
  */
 class w_memory_info
-    : public memory_info<check_memory_detail::e_metric::nb_metric> {
+    : public snapshot<native_check_detail::e_memory_metric::nb_metric> {
+  unsigned _output_flags = 0;
+
  public:
   enum output_flags : unsigned { dump_swap = 1, dump_virtual };
 
-  w_memory_info();
+  w_memory_info(unsigned flags);
   w_memory_info(const MEMORYSTATUSEX& mem_status,
-                const struct _PERFORMANCE_INFORMATION& perf_mem_status);
+                const struct _PERFORMANCE_INFORMATION& perf_mem_status,
+                unsigned flags = 0);
   void init(const MEMORYSTATUSEX& mem_status,
             const struct _PERFORMANCE_INFORMATION& perf_mem_status);
 
-  void dump_to_output(std::string* output, unsigned flags) const override;
+  void dump_to_output(std::string* output) const override;
 };
 
-}  // namespace check_memory_detail
+}  // namespace native_check_detail
 
 /**
  * @brief native final check object
  *
  */
-class check_memory
-    : public check_memory_base<check_memory_detail::e_metric::nb_metric> {
+class check_memory : public native_check_base<
+                         native_check_detail::e_memory_metric::nb_metric> {
+ protected:
+  unsigned _output_flags = 0;
+
  public:
   check_memory(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
@@ -76,11 +82,17 @@ class check_memory
                const std::string& cmd_line,
                const rapidjson::Value& args,
                const engine_to_agent_request_ptr& cnf,
-               check::completion_handler&& handler);
+               check::completion_handler&& handler,
+               const checks_statistics::pointer& stat);
 
-  std::shared_ptr<check_memory_detail::memory_info<
-      check_memory_detail::e_metric::nb_metric>>
-  measure() const override;
+  std::shared_ptr<native_check_detail::snapshot<
+      native_check_detail::e_memory_metric::nb_metric>>
+  measure() override;
+
+  static void help(std::ostream& help_stream);
+
+  const std::vector<native_check_detail::metric_definition>&
+  get_metric_definitions() const override;
 };
 
 }  // namespace com::centreon::agent

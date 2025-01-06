@@ -60,7 +60,8 @@ class dummy_check : public check {
               command_name,
               command_line,
               nullptr,
-              handler),
+              handler,
+              std::make_shared<checks_statistics>()),
         _command_duration(command_duration),
         _command_timer(*g_io_context) {}
 };
@@ -80,7 +81,8 @@ TEST(check_test, timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {
@@ -117,7 +119,8 @@ TEST(check_test, no_timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {

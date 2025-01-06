@@ -180,6 +180,7 @@ BEPBHostParent
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Add Parent To Host    0    host_1    host_2
+    Ctn Add Parent To Host    0    host_3    host_2
     Ctn Config Broker    central
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
@@ -195,10 +196,9 @@ BEPBHostParent
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "((1, 2),)"    BREAK
+        IF    "${output}" == "((1, 2), (3, 2))"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ((1, 2),)    host parent not inserted
-
+    Should Be Equal As Strings    ${output}    ((1, 2), (3, 2))    host parent not inserted
     # remove host
     Ctn Config Engine    ${1}
     Ctn Reload Broker    True
@@ -212,6 +212,10 @@ BEPBHostParent
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()    host parent not deleted
+
+    ${content}    Create List    [sql] [error]
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    1
+    Should Not Be True    ${result}    sql error
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 

@@ -114,6 +114,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
   ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
@@ -129,6 +130,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_memory.cc
+  ${NATIVE_SRC}/check_service.cc
 )
 
 set( SRC_LINUX

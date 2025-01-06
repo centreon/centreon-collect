@@ -20,7 +20,6 @@
 #define CCE_COMMANDS_COMMAND_HH
 
 #include "com/centreon/engine/commands/command_listener.hh"
-#include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 namespace com::centreon::engine {

@@ -23,7 +23,7 @@
 
 namespace com::centreon::agent {
 
-namespace check_memory_detail {
+namespace native_check_detail {
 
 /**
  * @brief we store the result of a measure in this struct
@@ -31,12 +31,12 @@ namespace check_memory_detail {
  * @tparam nb_metric
  */
 template <unsigned nb_metric>
-class memory_info {
+class snapshot {
  protected:
   std::array<uint64_t, nb_metric> _metrics;
 
  public:
-  virtual ~memory_info() = default;
+  virtual ~snapshot() = default;
 
   uint64_t get_metric(unsigned data_index) const {
     return _metrics[data_index];
@@ -51,7 +51,7 @@ class memory_info {
     return (static_cast<double>(_metrics[data_index]) / total);
   }
 
-  virtual void dump_to_output(std::string* output, unsigned flags) const = 0;
+  virtual void dump_to_output(std::string* output) const = 0;
 };
 
 /**
@@ -61,7 +61,7 @@ class memory_info {
  * @tparam nb_metric
  */
 template <unsigned nb_metric>
-class mem_to_status {
+class measure_to_status {
   e_status _status;
   unsigned _data_index;
   double _threshold;
@@ -70,20 +70,22 @@ class mem_to_status {
   bool _free_threshold;
 
  public:
-  mem_to_status(e_status status,
-                unsigned data_index,
-                double threshold,
-                unsigned total_data_index,
-                bool _percent,
-                bool free_threshold);
+  measure_to_status(e_status status,
+                    unsigned data_index,
+                    double threshold,
+                    unsigned total_data_index,
+                    bool _percent,
+                    bool free_threshold);
+
+  virtual ~measure_to_status() = default;
 
   unsigned get_data_index() const { return _data_index; }
   unsigned get_total_data_index() const { return _total_data_index; }
   e_status get_status() const { return _status; }
   double get_threshold() const { return _threshold; }
 
-  void compute_status(const memory_info<nb_metric>& to_test,
-                      e_status* status) const;
+  virtual void compute_status(const snapshot<nb_metric>& to_test,
+                              e_status* status) const;
 };
 
 /**
@@ -97,13 +99,7 @@ struct metric_definition {
   bool percent;
 };
 
-/**
- * @brief this must be defined and filled in final OS implementation
- *
- */
-extern const std::vector<metric_definition> metric_definitions;
-
-}  // namespace check_memory_detail
+}  // namespace native_check_detail
 
 /**
  * @brief native check base (to inherit)
@@ -111,10 +107,10 @@ extern const std::vector<metric_definition> metric_definitions;
  * @tparam nb_metric
  */
 template <unsigned nb_metric>
-class check_memory_base : public check {
+class native_check_base : public check {
  protected:
   /**
-   * @brief key used to store mem_to_status
+   * @brief key used to store measure_to_status
    * @tparam 1 index (phys, virtual..)
    * @tparam 2 total index (phys, virtual..)
    * @tparam 3 e_status warning or critical
@@ -122,14 +118,15 @@ class check_memory_base : public check {
    */
   using mem_to_status_key = std::tuple<unsigned, unsigned, e_status>;
 
-  boost::container::flat_map<mem_to_status_key,
-                             check_memory_detail::mem_to_status<nb_metric>>
-      _mem_to_status;
+  boost::container::flat_map<
+      mem_to_status_key,
+      std::unique_ptr<native_check_detail::measure_to_status<nb_metric>>>
+      _measure_to_status;
 
-  unsigned _output_flags = 0;
+  const char* _no_percent_unit = nullptr;
 
  public:
-  check_memory_base(const std::shared_ptr<asio::io_context>& io_context,
+  native_check_base(const std::shared_ptr<asio::io_context>& io_context,
                     const std::shared_ptr<spdlog::logger>& logger,
                     time_point first_start_expected,
                     duration check_interval,
@@ -138,21 +135,25 @@ class check_memory_base : public check {
                     const std::string& cmd_line,
                     const rapidjson::Value& args,
                     const engine_to_agent_request_ptr& cnf,
-                    check::completion_handler&& handler);
+                    check::completion_handler&& handler,
+                    const checks_statistics::pointer& stat);
 
-  std::shared_ptr<check_memory_base<nb_metric>> shared_from_this() {
-    return std::static_pointer_cast<check_memory_base<nb_metric>>(
+  std::shared_ptr<native_check_base<nb_metric>> shared_from_this() {
+    return std::static_pointer_cast<native_check_base<nb_metric>>(
         check::shared_from_this());
   }
 
   void start_check(const duration& timeout) override;
 
-  virtual std::shared_ptr<check_memory_detail::memory_info<nb_metric>> measure()
-      const = 0;
+  virtual std::shared_ptr<native_check_detail::snapshot<nb_metric>>
+  measure() = 0;
 
-  e_status compute(const check_memory_detail::memory_info<nb_metric>& data,
+  e_status compute(const native_check_detail::snapshot<nb_metric>& data,
                    std::string* output,
                    std::list<common::perfdata>* perfs) const;
+
+  virtual const std::vector<native_check_detail::metric_definition>&
+  get_metric_definitions() const = 0;
 };
 
 }  // namespace com::centreon::agent

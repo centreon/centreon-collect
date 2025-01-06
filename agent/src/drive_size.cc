@@ -17,11 +17,7 @@
  */
 
 #include "drive_size.hh"
-#include "absl/synchronization/mutex.h"
-#include "check.hh"
-#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
 
@@ -337,7 +333,8 @@ check_drive_size::check_drive_size(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -346,7 +343,8 @@ check_drive_size::check_drive_size(
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
       _filter(std::make_shared<check_drive_size_detail::filter>(args)),
       _prct_threshold(false),
       _free_threshold(false),
@@ -564,8 +562,12 @@ void check_drive_size::_completion_handler(
   }
   if (output.empty()) {
     using namespace std::literals;
-    output = perfs.empty() ? "No storage found (filters issue)"sv
-                           : "OK: All storages are ok"sv;
+    if (perfs.empty()) {
+      output = "No storage found (filters issue)"sv;
+      status = e_status::critical;
+    } else {
+      output = "OK: All storages are ok"sv;
+    }
   }
 
   on_completion(start_check_index, status, perfs, {output});
@@ -582,4 +584,54 @@ void check_drive_size::thread_kill() {
     delete _worker_thread;
     _worker_thread = nullptr;
   }
+}
+
+void check_drive_size::help(std::ostream& help_stream) {
+  help_stream <<
+      R"(
+- storage  params: 
+    unit (default %): unit of threshold. If different from % threshold are in bytes
+    free (default used): true: threshold is applied on free space and service become warning if free sapce is lower than threshold
+                         false: threshold is applied on used space and service become warning if used space is higher than threshold
+    warning: warning threshold
+    critical: critical threshold
+    filters:
+      filter-storage-type: case insensitive regex to filter storage type it includes drive type (fixed, network...) and also fs type (fat32, ntfs..)
+        types recognized by agent:
+           hrunknown
+           hrstoragefixeddisk
+           hrstorageremovabledisk
+           hrstoragecompactdisc
+           hrstorageramdisk
+           hrstoragenetworkdisk
+           hrfsunknown
+           hrfsfat
+           hrfsntfs
+           hrfsfat32
+           hrfsexfat
+      filter-fs: regex to filter filesystem
+        Example: [C-D]:\\.*
+      exclude-fs: regex to exclude filesystem
+  An example of configuration:
+  { 
+    "check": "storage",
+    "args": {
+        "unit": "%",
+        "free": false,
+        "warning": 80,
+        "critical": 90,
+        "filter-storage-type": "hrstoragefixeddisk",
+        "filter-fs": "[C-D]:\\"
+    }
+  }
+  Examples of output:
+    WARNING: C:\ Total: 322G Used: 39.54% Free: 60.46% CRITICAL: D:\ Total: 5G Used: 50.60% Free: 49.40%
+  Metrics:
+    if free flag = true
+      free_C:\
+      free_D:\
+    if free flag = false
+      used_C:\
+      used_D:\
+)";
 }

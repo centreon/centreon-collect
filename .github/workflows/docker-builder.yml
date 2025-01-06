@@ -18,12 +18,16 @@ on:
 
 jobs:
   get-environment:
+    if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
-  create-and-push-docker:
+  dockerize:
     needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
 
     strategy:
       fail-fast: false
@@ -122,3 +126,12 @@ jobs:
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ matrix.tag }}
+
+  set-skip-label:
+    needs: [get-environment, dockerize]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
