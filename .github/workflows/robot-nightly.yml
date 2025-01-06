@@ -79,12 +79,9 @@ jobs:
     uses: ./.github/workflows/robot-test.yml
     with:
       image: ${{ matrix.image }}
-      image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
-      image_version: ${{ needs.get-environment.outputs.img_version }}
-      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension }}
+      full_name: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
+      distrib: ${{ matrix.distrib }}
       database_type: ${{ matrix.database_type }}
-      tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
