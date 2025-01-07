@@ -348,12 +348,12 @@ void broker_comment_data(int type,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id);
-void broker_contact_status(int type, com::centreon::engine::contact* cntct);
+template <typename R>
 void broker_custom_variable(int type,
-                            void* data,
-                            std::string_view&& varname,
-                            std::string_view&& varvalue,
-                            struct timeval const* timestamp);
+                            R* resource,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
+                            const struct timeval* timestamp);
 void broker_downtime_data(int type,
                           int attr,
                           int downtime_type,
@@ -373,13 +373,16 @@ void broker_external_command(int type,
                              int command_type,
                              char* command_args,
                              struct timeval const* timestamp);
-void broker_group(int type, void* data);
-void broker_group_member(int type, void* object, void* group);
+template <typename G>
+void broker_group(int type, const G* group);
+
+template <typename G, typename R>
+void broker_group_member(int type, const R* object, const G* group);
+
 int broker_host_check(int type,
-                      com::centreon::engine::host* hst,
+                      const com::centreon::engine::host* hst,
                       int check_type,
-                      const char* cmdline,
-                      char* output);
+                      const char* cmdline);
 void broker_host_status(int type,
                         com::centreon::engine::host* hst,
                         uint32_t attributes);

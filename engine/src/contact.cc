@@ -773,18 +773,6 @@ void contact::set_service_notifications_enabled(bool enabled) {
   _service_notifications_enabled = enabled;
 }
 
-/**
- *  Updates contact status info.
- *
- *  @param aggregated_dump
- *
- */
-void contact::update_status_info(bool aggregated_dump) {
-  /* send data to event broker (non-aggregated dumps only) */
-  if (!aggregated_dump)
-    broker_contact_status(NEBTYPE_CONTACTSTATUS_UPDATE, this);
-}
-
 std::list<std::shared_ptr<commands::command> > const&
 contact::get_host_notification_commands() const {
   return _host_notification_commands;

@@ -24,6 +24,7 @@
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/host_check.hh"
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/host_parent.hh"
@@ -39,6 +40,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/severity.hh"
@@ -78,7 +80,7 @@ static void forward_acknowledgement(const char* author_name,
     // In/Out variables.
     auto ack = std::make_shared<com::centreon::broker::neb::acknowledgement>();
 
-    if constexpr (std::is_same_v<R, com::centreon::engine::service>) {
+    if constexpr (std::is_same_v<R, engine::service>) {
       ack->acknowledgement_type = short(acknowledgement_resource_type::SERVICE);
       ack->service_id = resource->service_id();
     } else {
@@ -1409,28 +1411,267 @@ void broker_comment_data(int type,
 }
 
 /**
- *  Sends contact status updates to broker.
+ * @brief process custom variable data.
  *
- *  @param[in] type      Type.
- *  @param[in] cntct     Target contact.
+ * @param cvar custom variable data.
  */
-void broker_contact_status(int type, contact* cntct) {
-  // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
-  if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#endif
+template <typename R>
+static void forward_custom_variable(int type,
+                                    R* object_ptr,
+                                    const std::string_view& var_name,
+                                    const std::string_view& var_value,
+                                    const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating custom variable event");
 
-  // Fill struct with relevant data.
-  nebstruct_service_status_data ds;
-  ds.type = type;
-  ds.object_ptr = cntct;
+  // Input variable.
+  if (!var_name.empty() && !var_value.empty()) {
+    // Host custom variable.
+    if constexpr (std::is_same_v<R, engine::host>) {
+      switch (type) {
+        case NEBTYPE_HOSTCUSTOMVARIABLE_ADD: {
+          if (object_ptr && !object_ptr->name().empty()) {
+            // Fill custom variable event.
+            uint64_t host_id = engine::get_host_id(object_ptr->name());
+            if (host_id != 0) {
+              auto new_cvar = std::make_shared<
+                  com::centreon::broker::neb::custom_variable>();
+              new_cvar->enabled = true;
+              new_cvar->host_id = host_id;
+              new_cvar->modified = false;
+              new_cvar->name = common::check_string_utf8(var_name);
+              new_cvar->var_type = 0;
+              if (timestamp)
+                new_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                new_cvar->update_time = now.tv_sec;
+              }
+              new_cvar->value = common::check_string_utf8(var_value);
+              new_cvar->default_value = common::check_string_utf8(var_value);
 
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_CONTACT_STATUS_DATA, &ds);
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger, "callbacks: new custom variable '{}' on host {}",
+                  new_cvar->name, new_cvar->host_id);
+              cbm->write(new_cvar);
+            }
+          }
+        } break;
+        case NEBTYPE_HOSTCUSTOMVARIABLE_DELETE: {
+          if (object_ptr && !object_ptr->name().empty()) {
+            uint32_t host_id = engine::get_host_id(object_ptr->name());
+            if (host_id != 0) {
+              auto old_cvar{std::make_shared<
+                  com::centreon::broker::neb::custom_variable>()};
+              old_cvar->enabled = false;
+              old_cvar->host_id = host_id;
+              old_cvar->name = common::check_string_utf8(var_name);
+              old_cvar->var_type = 0;
+              if (timestamp)
+                old_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                old_cvar->update_time = now.tv_sec;
+              }
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on host {}",
+                  old_cvar->name, old_cvar->host_id);
+              cbm->write(old_cvar);
+            }
+          }
+        } break;
+      }
+    } else if constexpr (std::is_same_v<R, engine::service>) {
+      // Service custom variable.
+      switch (type) {
+        case NEBTYPE_SERVICECUSTOMVARIABLE_ADD: {
+          if (object_ptr && !object_ptr->description().empty() &&
+              !object_ptr->get_hostname().empty()) {
+            // Fill custom variable event.
+            std::pair<uint32_t, uint32_t> p;
+            p = engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                                object_ptr->description());
+            if (p.first && p.second) {
+              auto new_cvar{std::make_shared<
+                  com::centreon::broker::neb::custom_variable>()};
+              new_cvar->enabled = true;
+              new_cvar->host_id = p.first;
+              new_cvar->modified = false;
+              new_cvar->name = common::check_string_utf8(var_name);
+              new_cvar->service_id = p.second;
+              new_cvar->var_type = 1;
+              if (timestamp)
+                new_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                new_cvar->update_time = now.tv_sec;
+              }
+              new_cvar->value = common::check_string_utf8(var_value);
+              new_cvar->default_value = common::check_string_utf8(var_value);
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: new custom variable '{}' on service ({}, {})",
+                  new_cvar->name, new_cvar->host_id, new_cvar->service_id);
+              cbm->write(new_cvar);
+            }
+          }
+        } break;
+        case NEBTYPE_SERVICECUSTOMVARIABLE_DELETE: {
+          if (object_ptr && !object_ptr->description().empty() &&
+              !object_ptr->get_hostname().empty()) {
+            const std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                                object_ptr->description())};
+            if (p.first && p.second) {
+              auto old_cvar{std::make_shared<
+                  com::centreon::broker::neb::custom_variable>()};
+              old_cvar->enabled = false;
+              old_cvar->host_id = p.first;
+              old_cvar->modified = true;
+              old_cvar->name = common::check_string_utf8(var_name);
+              old_cvar->service_id = p.second;
+              old_cvar->var_type = 1;
+              if (timestamp)
+                old_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                old_cvar->update_time = now.tv_sec;
+              }
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on service ({},{})",
+                  old_cvar->name, old_cvar->host_id, old_cvar->service_id);
+              cbm->write(old_cvar);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @brief process custom variable data.
+ *
+ * @param cvar custom variable data.
+ */
+template <typename R>
+static void forward_pb_custom_variable(int type,
+                                       R* object_ptr,
+                                       const std::string_view& var_name,
+                                       const std::string_view& var_value,
+                                       const struct timeval* timestamp) {
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating custom variable event {} value:{}",
+                      var_name, var_value);
+
+  auto cv = std::make_shared<com::centreon::broker::neb::pb_custom_variable>();
+  com::centreon::broker::neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
+  bool ok_to_send = false;
+  if (!var_name.empty() && !var_value.empty()) {
+    // Host custom variable.
+    if constexpr (std::is_same_v<R, engine::host>) {
+      if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type ||
+          NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == type) {
+        if (object_ptr && !object_ptr->name().empty()) {
+          uint64_t host_id = engine::get_host_id(object_ptr->name());
+          if (host_id != 0) {
+            std::string name(common::check_string_utf8(var_name));
+            bool add = NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type;
+            obj.set_enabled(add);
+            obj.set_host_id(host_id);
+            obj.set_modified(!add);
+            obj.set_name(name);
+            obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
+            if (timestamp)
+              obj.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              obj.set_update_time(now.tv_sec);
+            }
+            if (add) {
+              std::string value(common::check_string_utf8(var_value));
+              obj.set_value(value);
+              obj.set_default_value(value);
+              SPDLOG_LOGGER_DEBUG(neb_logger,
+                                  "callbacks: new custom variable '{}' with "
+                                  "value '{}' on host {}",
+                                  name, value, host_id);
+            } else {
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on host {}", name,
+                  host_id);
+            }
+            ok_to_send = true;
+          }
+        }
+      }
+    } else if constexpr (std::is_same_v<R, engine::service>) {
+      // Service custom variable.
+      if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == type ||
+          NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == type) {
+        if (object_ptr && !object_ptr->description().empty() &&
+            !object_ptr->get_hostname().empty()) {
+          // Fill custom variable event.
+          std::pair<uint64_t, uint64_t> p;
+          p = engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                              object_ptr->description());
+          if (p.first && p.second) {
+            std::string name(common::check_string_utf8(var_name));
+            bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == type;
+            obj.set_enabled(add);
+            obj.set_host_id(p.first);
+            obj.set_modified(!add);
+            obj.set_service_id(p.second);
+            obj.set_name(name);
+            obj.set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
+            if (timestamp)
+              obj.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              obj.set_update_time(now.tv_sec);
+            }
+            if (add) {
+              std::string value(common::check_string_utf8(var_value));
+              obj.set_value(value);
+              obj.set_default_value(value);
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: new custom variable '{}' on service ({}, {})",
+                  name, p.first, p.second);
+
+            } else {
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on service ({},{})",
+                  name, p.first, p.second);
+            }
+            ok_to_send = true;
+          }
+        }
+      }
+    }
+  }
+  // Send event.
+  if (ok_to_send) {
+    cbm->write(cv);
+  }
 }
 
 /**
@@ -1442,31 +1683,247 @@ void broker_contact_status(int type, contact* cntct) {
  *  @param[in] varvalue  Variable value.
  *  @param[in] timestamp Timestamp.
  */
+template <typename R>
 void broker_custom_variable(int type,
-                            void* data,
-                            std::string_view&& varname,
-                            std::string_view&& varvalue,
-                            struct timeval const* timestamp) {
+                            R* resource,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
+                            const struct timeval* timestamp) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_custom_variable_data ds{
-      .type = type,
-      .timestamp = get_broker_timestamp(timestamp),
-      .var_name = varname,
-      .var_value = varvalue,
-      .object_ptr = data,
-  };
 
   // Make callback.
-  neb_make_callbacks(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_custom_variable(type, resource, varname, varvalue, timestamp);
+  else
+    forward_custom_variable(type, resource, varname, varvalue, timestamp);
+}
+
+template void broker_custom_variable(int type,
+                                     engine::host* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
+template void broker_custom_variable(int type,
+                                     engine::service* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
+
+/** This implementation is ready but in fact never used */
+template void broker_custom_variable(int type,
+                                     engine::contact* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
+
+static void forward_downtime(int type,
+                             int attr,
+                             int downtime_type,
+                             uint64_t host_id,
+                             uint64_t service_id,
+                             time_t entry_time,
+                             const char* author_name,
+                             const char* comment_data,
+                             time_t start_time,
+                             time_t end_time,
+                             bool fixed,
+                             unsigned long triggered_by,
+                             unsigned long duration,
+                             unsigned long downtime_id,
+                             const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating downtime event");
+  if (type == NEBTYPE_DOWNTIME_LOAD)
+    return;
+
+  try {
+    // In/Out variables.
+    auto downtime{std::make_shared<com::centreon::broker::neb::downtime>()};
+
+    // Fill output var.
+    if (author_name)
+      downtime->author = common::check_string_utf8(author_name);
+    if (comment_data)
+      downtime->comment = common::check_string_utf8(comment_data);
+    downtime->downtime_type = downtime_type;
+    downtime->duration = duration;
+    downtime->end_time = end_time;
+    downtime->entry_time = entry_time;
+    downtime->fixed = fixed;
+    downtime->host_id = host_id;
+    downtime->service_id = service_id;
+    downtime->poller_id = cbm->poller_id();
+    downtime->internal_id = downtime_id;
+    downtime->start_time = start_time;
+    downtime->triggered_by = triggered_by;
+    private_downtime_params& params(::downtimes[downtime->internal_id]);
+    switch (type) {
+      case NEBTYPE_DOWNTIME_ADD:
+        params.cancelled = false;
+        params.deletion_time = -1;
+        params.end_time = -1;
+        params.started = false;
+        params.start_time = -1;
+        break;
+      case NEBTYPE_DOWNTIME_START:
+        params.started = true;
+        if (timestamp)
+          params.start_time = timestamp->tv_sec;
+        else {
+          struct timeval now;
+          gettimeofday(&now, NULL);
+          params.start_time = now.tv_sec;
+        }
+        break;
+      case NEBTYPE_DOWNTIME_STOP:
+        if (NEBATTR_DOWNTIME_STOP_CANCELLED == attr)
+          params.cancelled = true;
+        if (timestamp)
+          params.end_time = timestamp->tv_sec;
+        else {
+          struct timeval now;
+          gettimeofday(&now, NULL);
+          params.end_time = now.tv_sec;
+        }
+        break;
+      case NEBTYPE_DOWNTIME_DELETE:
+        if (!params.started)
+          params.cancelled = true;
+        if (timestamp)
+          params.deletion_time = timestamp->tv_sec;
+        else {
+          struct timeval now;
+          gettimeofday(&now, NULL);
+          params.deletion_time = now.tv_sec;
+        }
+        break;
+      default:
+        throw com::centreon::exceptions::msg_fmt(
+            "Downtime with not managed type {}.", downtime_id);
+    }
+    downtime->actual_start_time = params.start_time;
+    downtime->actual_end_time = params.end_time;
+    downtime->deletion_time = params.deletion_time;
+    downtime->was_cancelled = params.cancelled;
+    downtime->was_started = params.started;
+    if (NEBTYPE_DOWNTIME_DELETE == type)
+      ::downtimes.erase(downtime->internal_id);
+
+    // Send event.
+    cbm->write(downtime);
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating downtime event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_downtime(int type,
+                                int attr,
+                                int downtime_type,
+                                uint64_t host_id,
+                                uint64_t service_id,
+                                time_t entry_time,
+                                const char* author_name,
+                                const char* comment_data,
+                                time_t start_time,
+                                time_t end_time,
+                                bool fixed,
+                                unsigned long triggered_by,
+                                unsigned long duration,
+                                unsigned long downtime_id,
+                                const struct timeval* timestamp) {
+  // Log message.
+  neb_logger->debug("callbacks: generating pb downtime event");
+
+  if (type == NEBTYPE_DOWNTIME_LOAD)
+    return;
+
+  // In/Out variables.
+  auto d{std::make_shared<com::centreon::broker::neb::pb_downtime>()};
+  com::centreon::broker::Downtime& downtime = d.get()->mut_obj();
+
+  // Fill output var.
+  if (author_name)
+    downtime.set_author(common::check_string_utf8(author_name));
+  if (comment_data)
+    downtime.set_comment_data(common::check_string_utf8(comment_data));
+  downtime.set_id(downtime_id);
+  downtime.set_type(
+      static_cast<com::centreon::broker::Downtime_DowntimeType>(downtime_type));
+  downtime.set_duration(duration);
+  downtime.set_end_time(end_time);
+  downtime.set_entry_time(entry_time);
+  downtime.set_fixed(fixed);
+  downtime.set_host_id(host_id);
+  downtime.set_service_id(service_id);
+  downtime.set_instance_id(cbm->poller_id());
+  downtime.set_start_time(start_time);
+  downtime.set_triggered_by(triggered_by);
+  private_downtime_params& params = ::downtimes[downtime.id()];
+  switch (type) {
+    case NEBTYPE_DOWNTIME_ADD:
+      params.cancelled = false;
+      params.deletion_time = -1;
+      params.end_time = -1;
+      params.started = false;
+      params.start_time = -1;
+      break;
+    case NEBTYPE_DOWNTIME_START:
+      params.started = true;
+      if (timestamp)
+        params.start_time = timestamp->tv_sec;
+      else {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        params.start_time = now.tv_sec;
+      }
+      break;
+    case NEBTYPE_DOWNTIME_STOP:
+      if (NEBATTR_DOWNTIME_STOP_CANCELLED == attr)
+        params.cancelled = true;
+      if (timestamp)
+        params.end_time = timestamp->tv_sec;
+      else {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        params.end_time = now.tv_sec;
+      }
+      break;
+    case NEBTYPE_DOWNTIME_DELETE:
+      if (!params.started)
+        params.cancelled = true;
+      if (timestamp)
+        params.deletion_time = timestamp->tv_sec;
+      else {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        params.deletion_time = now.tv_sec;
+      }
+      break;
+    default:
+      neb_logger->error(
+          "callbacks: error occurred while generating downtime event: "
+          "Downtime {} with not managed type.",
+          downtime_id);
+      return;
+  }
+  downtime.set_actual_start_time(params.start_time);
+  downtime.set_actual_end_time(params.end_time);
+  downtime.set_deletion_time(params.deletion_time);
+  downtime.set_cancelled(params.cancelled);
+  downtime.set_started(params.started);
+  if (NEBTYPE_DOWNTIME_DELETE == type)
+    ::downtimes.erase(downtime.id());
+
+  // Send event.
+  cbm->write(d);
 }
 
 /**
@@ -1502,36 +1959,226 @@ void broker_downtime_data(int type,
                           unsigned long triggered_by,
                           unsigned long duration,
                           unsigned long downtime_id,
-                          struct timeval const* timestamp) {
+                          const struct timeval* timestamp) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_DOWNTIME_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_DOWNTIME_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_downtime_data ds;
-  ds.type = type;
-  ds.attr = attr;
-  ds.timestamp = get_broker_timestamp(timestamp);
-  ds.downtime_type = downtime_type;
-  ds.host_id = host_id;
-  ds.service_id = service_id;
-  ds.entry_time = entry_time;
-  ds.author_name = author_name;
-  ds.comment_data = comment_data;
-  ds.start_time = start_time;
-  ds.end_time = end_time;
-  ds.fixed = fixed;
-  ds.duration = duration;
-  ds.triggered_by = triggered_by;
-  ds.downtime_id = downtime_id;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_DOWNTIME_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_downtime(type, attr, downtime_type, host_id, service_id,
+                        entry_time, author_name, comment_data, start_time,
+                        end_time, fixed, triggered_by, duration, downtime_id,
+                        timestamp);
+  else
+    forward_downtime(type, attr, downtime_type, host_id, service_id, entry_time,
+                     author_name, comment_data, start_time, end_time, fixed,
+                     triggered_by, duration, downtime_id, timestamp);
+}
+
+static void forward_external_command(int type,
+                                     int command_type,
+                                     char* command_args,
+                                     const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+
+  if (type == NEBTYPE_EXTERNALCOMMAND_START) {
+    if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating host custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        std::list<std::string> l{
+            absl::StrSplit(common::check_string_utf8(command_args), ';')};
+        if (l.size() != 3)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid host custom variable command");
+        else {
+          std::list<std::string>::iterator it(l.begin());
+          std::string host{std::move(*it)};
+          ++it;
+          std::string var_name{std::move(*it)};
+          ++it;
+          std::string var_value{std::move(*it)};
+
+          // Find host ID.
+          uint64_t host_id = engine::get_host_id(host);
+          if (host_id != 0) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<
+                com::centreon::broker::neb::custom_variable_status>();
+            cvs->host_id = host_id;
+            cvs->modified = true;
+            cvs->name = var_name;
+            cvs->service_id = 0;
+            if (timestamp)
+              cvs->update_time = timestamp->tv_sec;
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              cvs->update_time = now.tv_sec;
+            }
+            cvs->value = var_value;
+
+            // Send event.
+            cbm->write(cvs);
+          }
+        }
+      }
+    } else if (command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating service custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        std::list<std::string> l{
+            absl::StrSplit(common::check_string_utf8(command_args), ';')};
+        if (l.size() != 4)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid service custom variable command");
+        else {
+          std::list<std::string>::iterator it{l.begin()};
+          std::string host{std::move(*it)};
+          ++it;
+          std::string service{std::move(*it)};
+          ++it;
+          std::string var_name{std::move(*it)};
+          ++it;
+          std::string var_value{std::move(*it)};
+
+          // Find host/service IDs.
+          std::pair<uint64_t, uint64_t> p{
+              engine::get_host_and_service_id(host, service)};
+          if (p.first && p.second) {
+            // Fill custom variable.
+            auto cvs{std::make_shared<
+                com::centreon::broker::neb::custom_variable_status>()};
+            cvs->host_id = p.first;
+            cvs->modified = true;
+            cvs->name = var_name;
+            cvs->service_id = p.second;
+            if (timestamp)
+              cvs->update_time = timestamp->tv_sec;
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              cvs->update_time = now.tv_sec;
+            }
+            cvs->value = var_value;
+
+            // Send event.
+            cbm->write(cvs);
+          }
+        }
+      }
+    }
+  }
+}
+
+static void forward_pb_external_command(int type,
+                                        int command_type,
+                                        char* command_args,
+                                        const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+
+  if (type == NEBTYPE_EXTERNALCOMMAND_START) {
+    auto args = absl::StrSplit(common::check_string_utf8(command_args), ';');
+    size_t args_size = std::distance(args.begin(), args.end());
+    auto split_iter = args.begin();
+    if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating host custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        if (args_size != 3)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid host custom variable command {}",
+              command_args);
+        else {
+          std::string host(*(split_iter++));
+          // Find host ID.
+          uint64_t host_id = engine::get_host_id(host);
+          if (host_id != 0) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<
+                com::centreon::broker::neb::pb_custom_variable_status>();
+            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            data.set_host_id(host_id);
+            data.set_modified(true);
+            data.set_name(split_iter->data(), split_iter->length());
+            ++split_iter;
+            if (timestamp)
+              data.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              data.set_update_time(now.tv_sec);
+            }
+            data.set_value(split_iter->data(), split_iter->length());
+
+            // Send event.
+            cbm->write(cvs);
+          } else {
+            SPDLOG_LOGGER_ERROR(neb_logger, "callbacks: unknown host {} ",
+                                host);
+          }
+        }
+      }
+    } else if (command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating service custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        if (args_size != 4)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger,
+              "callbacks: invalid service custom variable command {}",
+              command_args);
+        else {
+          std::string host(*(split_iter++));
+          std::string service(*(split_iter++));
+          // Find host/service IDs.
+          std::pair<uint64_t, uint64_t> p{
+              engine::get_host_and_service_id(host, service)};
+          if (p.first && p.second) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<
+                com::centreon::broker::neb::pb_custom_variable_status>();
+            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            data.set_host_id(p.first);
+            data.set_modified(true);
+            data.set_name(split_iter->data(), split_iter->length());
+            ++split_iter;
+            data.set_service_id(p.second);
+            if (timestamp)
+              data.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              data.set_update_time(now.tv_sec);
+            }
+            data.set_value(split_iter->data(), split_iter->length());
+
+            // Send event.
+            cbm->write(cvs);
+          } else {
+            SPDLOG_LOGGER_ERROR(neb_logger,
+                                "callbacks: unknown host  {} service {}", host,
+                                service);
+          }
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -1547,13 +2194,8 @@ void broker_external_command(int type,
                              char* command_args,
                              struct timeval const* timestamp) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
     return;
-#endif
 
   // Fill struct with relevant data.
   nebstruct_external_command_data ds;
@@ -1563,7 +2205,173 @@ void broker_external_command(int type,
   ds.command_args = command_args;
 
   // Make callbacks.
+  if (cbm->use_protobuf())
+    forward_pb_external_command(type, command_type, command_args, timestamp);
+  else
+    forward_external_command(type, command_type, command_args, timestamp);
   neb_make_callbacks(NEBCALLBACK_EXTERNAL_COMMAND_DATA, &ds);
+}
+
+template <typename G>
+static void forward_group(int type, const G* group_data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
+
+  // Host group.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
+           NEBTYPE_HOSTGROUP_DELETE == type);
+    if (!group_data->get_group_name().empty()) {
+      auto new_hg = std::make_shared<com::centreon::broker::neb::host_group>();
+      new_hg->poller_id = cbm->poller_id();
+      new_hg->id = group_data->get_id();
+      new_hg->enabled =
+          type == NEBTYPE_HOSTGROUP_ADD ||
+          (type == NEBTYPE_HOSTGROUP_UPDATE && !group_data->members.empty());
+      new_hg->name = common::check_string_utf8(group_data->get_group_name());
+
+      // Send host group event.
+      if (new_hg->id) {
+        if (new_hg->enabled)
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger, "callbacks: new host group {} ('{}') on instance {}",
+              new_hg->id, new_hg->name, new_hg->poller_id);
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: disable host group {} ('{}') on instance {}",
+              new_hg->id, new_hg->name, new_hg->poller_id);
+        cbm->write(new_hg);
+      }
+    }
+  } else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    // Service group.
+    assert(NEBTYPE_SERVICEGROUP_ADD == type ||
+           NEBTYPE_SERVICEGROUP_UPDATE == type ||
+           NEBTYPE_SERVICEGROUP_DELETE == type);
+    if (!group_data->get_group_name().empty()) {
+      auto new_sg =
+          std::make_shared<com::centreon::broker::neb::service_group>();
+      new_sg->poller_id = cbm->poller_id();
+      new_sg->id = group_data->get_id();
+      new_sg->enabled =
+          type == NEBTYPE_SERVICEGROUP_ADD ||
+          (type == NEBTYPE_SERVICEGROUP_UPDATE && !group_data->members.empty());
+      new_sg->name = common::check_string_utf8(group_data->get_group_name());
+
+      // Send service group event.
+      if (new_sg->id) {
+        if (new_sg->enabled)
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: new service group {} ('{}) on instance {}",
+              new_sg->id, new_sg->name, new_sg->poller_id);
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: disable service group {} ('{}) on instance {}",
+              new_sg->id, new_sg->name, new_sg->poller_id);
+        cbm->write(new_sg);
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Function that process group data.
+ *
+ *  This function is called by Engine when some group data is available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_GROUP_DATA).
+ *  @param[in] data          Pointer to a nebstruct_group_data
+ *                           containing the group data.
+ *
+ *  @return 0 on success.
+ */
+template <typename G>
+static void forward_pb_group(int type, const G* group_data) {
+  // Host group.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
+           NEBTYPE_HOSTGROUP_DELETE == type);
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        group_data->get_group_name(), group_data->get_id(), type);
+
+    if (!group_data->get_group_name().empty()) {
+      auto new_hg{
+          std::make_shared<com::centreon::broker::neb::pb_host_group>()};
+      auto& obj = new_hg->mut_obj();
+      obj.set_poller_id(cbm->poller_id());
+      obj.set_hostgroup_id(group_data->get_id());
+      obj.set_enabled(
+          type == NEBTYPE_HOSTGROUP_ADD ||
+          (type == NEBTYPE_HOSTGROUP_UPDATE && !group_data->members.empty()));
+      obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+
+      // Send host group event.
+      if (group_data->get_id()) {
+        if (new_hg->obj().enabled())
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: new pb host group {} ('{}' {} "
+                              "members) on instance {}",
+                              group_data->get_id(), new_hg->obj().name(),
+                              group_data->members.size(),
+                              new_hg->obj().poller_id());
+        else
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: disable pb host group {} ('{}' {} "
+                              "members) on instance {}",
+                              group_data->get_id(), new_hg->obj().name(),
+                              group_data->members.size(),
+                              new_hg->obj().poller_id());
+
+        cbm->write(new_hg);
+      }
+    }
+  }
+  // Service group.
+  else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    assert(NEBTYPE_SERVICEGROUP_ADD == type ||
+           NEBTYPE_SERVICEGROUP_UPDATE == type ||
+           NEBTYPE_SERVICEGROUP_DELETE == type);
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        group_data->get_group_name(), group_data->get_id(), type);
+
+    if (!group_data->get_group_name().empty()) {
+      auto new_sg =
+          std::make_shared<com::centreon::broker::neb::pb_service_group>();
+      auto& obj = new_sg->mut_obj();
+      obj.set_poller_id(cbm->poller_id());
+      obj.set_servicegroup_id(group_data->get_id());
+      obj.set_enabled(type == NEBTYPE_SERVICEGROUP_ADD ||
+                      (type == NEBTYPE_SERVICEGROUP_UPDATE &&
+                       !group_data->members.empty()));
+      obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+
+      // Send service group event.
+      if (group_data->get_id()) {
+        if (new_sg->obj().enabled())
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: new pb service group {} ('{}) on instance {}",
+              group_data->get_id(), new_sg->obj().name(),
+              new_sg->obj().poller_id());
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: disable pb service group {} ('{}) on instance {}",
+              group_data->get_id(), new_sg->obj().name(),
+              new_sg->obj().poller_id());
+
+        cbm->write(new_sg);
+      }
+    }
+  }
 }
 
 /**
@@ -1573,23 +2381,202 @@ void broker_external_command(int type,
  *  @param[in] data      Host group or service group.
 
  */
-void broker_group(int type, void* data) {
+template <typename G>
+void broker_group(int type, const G* group) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_GROUP_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_GROUP_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_group_data ds;
-  ds.type = type;
-  ds.object_ptr = data;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GROUP_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_group(type, group);
+  else
+    forward_group(type, group);
+}
+
+template void broker_group(int type, const engine::hostgroup* group);
+template void broker_group(int type, const engine::servicegroup* group);
+/* This implementation is ready but in fact it does nothing */
+template void broker_group(int type, const engine::contactgroup* group);
+
+template <typename G, typename R>
+static void forward_group_member(int type, R* object, G* group) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group member event");
+
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    // Host group member.
+    static_assert(std::is_same_v<R, engine::host>);
+    assert(type == NEBTYPE_HOSTGROUPMEMBER_ADD ||
+           type == NEBTYPE_HOSTGROUPMEMBER_DELETE);
+    if (!object->name().empty() && !group->get_group_name().empty()) {
+      // Output variable.
+      auto hgm =
+          std::make_shared<com::centreon::broker::neb::host_group_member>();
+      hgm->group_id = group->get_id();
+      hgm->group_name = common::check_string_utf8(group->get_group_name());
+      hgm->poller_id = cbm->poller_id();
+      uint32_t host_id = engine::get_host_id(object->name());
+      if (host_id != 0 && hgm->group_id != 0) {
+        hgm->host_id = host_id;
+        if (type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: host {} is not a member of group "
+                              "{} on instance {} "
+                              "anymore",
+                              hgm->host_id, hgm->group_id, hgm->poller_id);
+          hgm->enabled = false;
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: host {} is a member of group {} on instance {}",
+              hgm->host_id, hgm->group_id, hgm->poller_id);
+          hgm->enabled = true;
+        }
+
+        // Send host group member event.
+        if (hgm->host_id && hgm->group_id)
+          cbm->write(hgm);
+      }
+    }
+  } else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    // Service group member.
+    static_assert(std::is_same_v<R, engine::service>);
+    assert(type == NEBTYPE_SERVICEGROUPMEMBER_ADD ||
+           type == NEBTYPE_SERVICEGROUPMEMBER_DELETE);
+    if (!object->description().empty() && !group->get_group_name().empty() &&
+        !object->get_hostname().empty()) {
+      // Output variable.
+      auto sgm{
+          std::make_shared<com::centreon::broker::neb::service_group_member>()};
+      sgm->group_id = group->get_id();
+      sgm->group_name = common::check_string_utf8(group->get_group_name());
+      sgm->poller_id = cbm->poller_id();
+      sgm->host_id = object->host_id();
+      sgm->service_id = object->service_id();
+      if (sgm->host_id && sgm->service_id && sgm->group_id) {
+        if (type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({},{}) is not a member of group {} on "
+              "instance {} anymore",
+              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
+          sgm->enabled = false;
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({}, {}) is a member of group {} on "
+              "instance {}",
+              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
+          sgm->enabled = true;
+        }
+
+        // Send service group member event.
+        if (sgm->host_id && sgm->service_id && sgm->group_id)
+          cbm->write(sgm);
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Function that process group membership.
+ *
+ *  This function is called by Engine when some group membership data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_GROUPMEMBER_DATA).
+ *  @param[in] data          Pointer to a nebstruct_group_member_data
+ *                           containing membership data.
+ *
+ *  @return 0 on success.
+ */
+template <typename G, typename R>
+static void forward_pb_group_member(int type, const R* object, const G* group) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb group member event");
+
+  // Host group member.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    static_assert(std::is_same_v<R, engine::host>);
+    assert(NEBTYPE_HOSTGROUPMEMBER_ADD == type ||
+           NEBTYPE_HOSTGROUPMEMBER_DELETE == type);
+    if (!object->name().empty() && !group->get_group_name().empty()) {
+      // Output variable.
+      auto hgmp{
+          std::make_shared<com::centreon::broker::neb::pb_host_group_member>()};
+      com::centreon::broker::HostGroupMember& hgm = hgmp->mut_obj();
+      hgm.set_hostgroup_id(group->get_id());
+      hgm.set_name(common::check_string_utf8(group->get_group_name()));
+      hgm.set_poller_id(cbm->poller_id());
+      uint32_t host_id = object->host_id();
+      if (host_id != 0 && hgm.hostgroup_id() != 0) {
+        hgm.set_host_id(host_id);
+        if (type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: host {} is not a member of group "
+                              "{} on instance {} "
+                              "anymore",
+                              hgm.host_id(), hgm.hostgroup_id(),
+                              hgm.poller_id());
+          hgm.set_enabled(false);
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: host {} is a member of group {} on instance {}",
+              hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
+          hgm.set_enabled(true);
+        }
+
+        // Send host group member event.
+        if (hgm.host_id() && hgm.hostgroup_id())
+          cbm->write(hgmp);
+      }
+    }
+  }
+  // Service group member.
+  else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    static_assert(std::is_same_v<R, engine::service>);
+    assert(type == NEBTYPE_SERVICEGROUPMEMBER_ADD ||
+           type == NEBTYPE_SERVICEGROUPMEMBER_DELETE);
+    if (!object->description().empty() && !group->get_group_name().empty() &&
+        !object->get_hostname().empty()) {
+      // Output variable.
+      auto sgmp{std::make_shared<
+          com::centreon::broker::neb::pb_service_group_member>()};
+      com::centreon::broker::ServiceGroupMember& sgm = sgmp->mut_obj();
+      sgm.set_servicegroup_id(group->get_id());
+      sgm.set_name(common::check_string_utf8(group->get_group_name()));
+      sgm.set_poller_id(cbm->poller_id());
+      sgm.set_host_id(object->host_id());
+      sgm.set_service_id(object->service_id());
+      if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id()) {
+        if (type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({},{}) is not a member of group {} on "
+              "instance {} anymore",
+              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+              sgm.poller_id());
+          sgm.set_enabled(false);
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({}, {}) is a member of group {} on "
+              "instance {}",
+              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+              sgm.poller_id());
+          sgm.set_enabled(true);
+        }
+
+        // Send service group member event.
+        if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id())
+          cbm->write(sgmp);
+      }
+    }
+  }
 }
 
 /**
@@ -1599,24 +2586,104 @@ void broker_group(int type, void* data) {
  *  @param[in] object    Member (host or service).
  *  @param[in] group     Group (host or service).
  */
-void broker_group_member(int type, void* object, void* group) {
+template <typename G, typename R>
+void broker_group_member(int type, const R* object, const G* group) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_GROUP_MEMBER_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_GROUP_MEMBER_DATA))
     return;
-#endif
-
-  // Fill struct will relevant data.
-  nebstruct_group_member_data ds;
-  ds.type = type;
-  ds.object_ptr = object;
-  ds.group_ptr = group;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GROUP_MEMBER_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_group_member(type, object, group);
+  else
+    forward_group_member(type, object, group);
+}
+
+template void broker_group_member(int type,
+                                  const engine::host* object,
+                                  const engine::hostgroup* group);
+template void broker_group_member(int type,
+                                  const engine::service* object,
+                                  const engine::servicegroup* group);
+
+static void forward_host_check(int type,
+                               const engine::host* hst,
+                               int check_type,
+                               const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the host status. */
+  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+    return;
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
+
+  auto host_check = std::make_shared<com::centreon::broker::neb::host_check>();
+
+  // Fill output var.
+  if (cmdline) {
+    host_check->active_checks_enabled = hst->active_checks_enabled();
+    host_check->check_type = check_type;
+    host_check->command_line = common::check_string_utf8(cmdline);
+    host_check->host_id = hst->host_id();
+    host_check->next_check = hst->get_next_check();
+
+    // Send event.
+    cbm->write(host_check);
+  }
+}
+
+/**
+ *  @brief Function that process host check data.
+ *
+ *  This function is called by Nagios when some host check data are available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_HOST_CHECK_DATA).
+ *  @param[in] data          A pointer to a nebstruct_host_check_data
+ *                           containing the host check data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_host_check(int type,
+                                  const engine::host* hst,
+                                  int check_type,
+                                  const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the host status. */
+  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+    return;
+
+  // Log message.
+  if (neb_logger->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating host check event for {} command_line={}",
+        hst->name(), cmdline);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
+  }
+
+  auto host_check =
+      std::make_shared<com::centreon::broker::neb::pb_host_check>();
+
+  // Fill output var.
+  if (cmdline) {
+    auto& obj = host_check->mut_obj();
+    obj.set_active_checks_enabled(hst->active_checks_enabled());
+    obj.set_check_type(
+        check_type == com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    host_check->mut_obj().set_command_line(common::check_string_utf8(cmdline));
+    host_check->mut_obj().set_host_id(hst->host_id());
+    host_check->mut_obj().set_next_check(hst->get_next_check());
+
+    // Send event.
+    cbm->write(host_check);
+  }
 }
 
 /**
@@ -1631,36 +2698,23 @@ void broker_group_member(int type, void* object, void* group) {
  *  @return Return value can override host check.
  */
 int broker_host_check(int type,
-                      host* hst,
+                      const engine::host* hst,
                       int check_type,
-                      char const* cmdline,
-                      char* output) {
+                      const char* cmdline) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_HOST_CHECKS))
-    return OK;
-#else
   if (!(pb_config.event_broker_options() & BROKER_HOST_CHECKS))
     return OK;
-#endif
+
   if (!hst)
     return ERROR;
 
-  // Fill struct with relevant data.
-  nebstruct_host_check_data ds;
-  ds.type = type;
-  ds.host_name = const_cast<char*>(hst->name().c_str());
-  ds.object_ptr = hst;
-  ds.check_type = check_type;
-  ds.command_line = cmdline;
-  ds.output = output;
-
   // Make callbacks.
-  int return_code;
-  return_code = neb_make_callbacks(NEBCALLBACK_HOST_CHECK_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_host_check(type, hst, check_type, cmdline);
+  else
+    forward_host_check(type, hst, check_type, cmdline);
 
-  // Free data.
-  return return_code;
+  return OK;
 }
 
 /**
@@ -1803,359 +2857,6 @@ static void send_host_list() {
   neb_logger->info("init: end of host dump");
 }
 
-/**
- * @brief process custom variable data.
- *
- * @param cvar custom variable data.
- */
-static void forward_custom_variable(nebstruct_custom_variable_data* cvar) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating custom variable event");
-
-  // Input variable.
-  if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
-    // Host custom variable.
-    if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type) {
-      engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-      if (hst && !hst->name().empty()) {
-        // Fill custom variable event.
-        uint64_t host_id = engine::get_host_id(hst->name());
-        if (host_id != 0) {
-          auto new_cvar =
-              std::make_shared<com::centreon::broker::neb::custom_variable>();
-          new_cvar->enabled = true;
-          new_cvar->host_id = host_id;
-          new_cvar->modified = false;
-          new_cvar->name = common::check_string_utf8(cvar->var_name);
-          new_cvar->var_type = 0;
-          new_cvar->update_time = cvar->timestamp.tv_sec;
-          new_cvar->value = common::check_string_utf8(cvar->var_value);
-          new_cvar->default_value = common::check_string_utf8(cvar->var_value);
-
-          // Send custom variable event.
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: new custom variable '{}' on host {}",
-                              new_cvar->name, new_cvar->host_id);
-          cbm->write(new_cvar);
-        }
-      }
-    } else if (NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
-      engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-      if (hst && !hst->name().empty()) {
-        uint32_t host_id = engine::get_host_id(hst->name());
-        if (host_id != 0) {
-          auto old_cvar{
-              std::make_shared<com::centreon::broker::neb::custom_variable>()};
-          old_cvar->enabled = false;
-          old_cvar->host_id = host_id;
-          old_cvar->name = common::check_string_utf8(cvar->var_name);
-          old_cvar->var_type = 0;
-          old_cvar->update_time = cvar->timestamp.tv_sec;
-
-          // Send custom variable event.
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger, "callbacks: deleted custom variable '{}' on host {}",
-              old_cvar->name, old_cvar->host_id);
-          cbm->write(old_cvar);
-        }
-      }
-    }
-    // Service custom variable.
-    else if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type) {
-      engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-      if (svc && !svc->description().empty() && !svc->get_hostname().empty()) {
-        // Fill custom variable event.
-        std::pair<uint32_t, uint32_t> p;
-        p = engine::get_host_and_service_id(svc->get_hostname(),
-                                            svc->description());
-        if (p.first && p.second) {
-          auto new_cvar{
-              std::make_shared<com::centreon::broker::neb::custom_variable>()};
-          new_cvar->enabled = true;
-          new_cvar->host_id = p.first;
-          new_cvar->modified = false;
-          new_cvar->name = common::check_string_utf8(cvar->var_name);
-          new_cvar->service_id = p.second;
-          new_cvar->var_type = 1;
-          new_cvar->update_time = cvar->timestamp.tv_sec;
-          new_cvar->value = common::check_string_utf8(cvar->var_value);
-          new_cvar->default_value = common::check_string_utf8(cvar->var_value);
-
-          // Send custom variable event.
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: new custom variable '{}' on service ({}, {})",
-              new_cvar->name, new_cvar->host_id, new_cvar->service_id);
-          cbm->write(new_cvar);
-        }
-      }
-    } else if (NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == cvar->type) {
-      engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-      if (svc && !svc->description().empty() && !svc->get_hostname().empty()) {
-        const std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-            svc->get_hostname(), svc->description())};
-        if (p.first && p.second) {
-          auto old_cvar{
-              std::make_shared<com::centreon::broker::neb::custom_variable>()};
-          old_cvar->enabled = false;
-          old_cvar->host_id = p.first;
-          old_cvar->modified = true;
-          old_cvar->name = common::check_string_utf8(cvar->var_name);
-          old_cvar->service_id = p.second;
-          old_cvar->var_type = 1;
-          old_cvar->update_time = cvar->timestamp.tv_sec;
-
-          // Send custom variable event.
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: deleted custom variable '{}' on service ({},{})",
-              old_cvar->name, old_cvar->host_id, old_cvar->service_id);
-          cbm->write(old_cvar);
-        }
-      }
-    }
-  }
-}
-
-/**
- * @brief process custom variable data.
- *
- * @param cvar custom variable data.
- */
-static void forward_pb_custom_variable(nebstruct_custom_variable_data* cvar) {
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating custom variable event {} value:{}",
-                      cvar->var_name, cvar->var_value);
-
-  auto cv = std::make_shared<com::centreon::broker::neb::pb_custom_variable>();
-  com::centreon::broker::neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
-  bool ok_to_send = false;
-  if (cvar && !cvar->var_name.empty() && !cvar->var_value.empty()) {
-    // Host custom variable.
-    if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type ||
-        NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == cvar->type) {
-      engine::host* hst(static_cast<engine::host*>(cvar->object_ptr));
-      if (hst && !hst->name().empty()) {
-        uint64_t host_id = engine::get_host_id(hst->name());
-        if (host_id != 0) {
-          std::string name(common::check_string_utf8(cvar->var_name));
-          bool add = NEBTYPE_HOSTCUSTOMVARIABLE_ADD == cvar->type;
-          obj.set_enabled(add);
-          obj.set_host_id(host_id);
-          obj.set_modified(!add);
-          obj.set_name(name);
-          obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
-          obj.set_update_time(cvar->timestamp.tv_sec);
-          if (add) {
-            std::string value(common::check_string_utf8(cvar->var_value));
-            obj.set_value(value);
-            obj.set_default_value(value);
-            SPDLOG_LOGGER_DEBUG(neb_logger,
-                                "callbacks: new custom variable '{}' with "
-                                "value '{}' on host {}",
-                                name, value, host_id);
-          } else {
-            SPDLOG_LOGGER_DEBUG(
-                neb_logger,
-                "callbacks: deleted custom variable '{}' on host {}", name,
-                host_id);
-          }
-          ok_to_send = true;
-        }
-      }
-    }
-    // Service custom variable.
-    else if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type ||
-             NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == cvar->type) {
-      engine::service* svc{static_cast<engine::service*>(cvar->object_ptr)};
-      if (svc && !svc->description().empty() && !svc->get_hostname().empty()) {
-        // Fill custom variable event.
-        std::pair<uint64_t, uint64_t> p;
-        p = engine::get_host_and_service_id(svc->get_hostname(),
-                                            svc->description());
-        if (p.first && p.second) {
-          std::string name(common::check_string_utf8(cvar->var_name));
-          bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == cvar->type;
-          obj.set_enabled(add);
-          obj.set_host_id(p.first);
-          obj.set_modified(!add);
-          obj.set_service_id(p.second);
-          obj.set_name(name);
-          obj.set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
-          obj.set_update_time(cvar->timestamp.tv_sec);
-          if (add) {
-            std::string value(common::check_string_utf8(cvar->var_value));
-            obj.set_value(value);
-            obj.set_default_value(value);
-            SPDLOG_LOGGER_DEBUG(
-                neb_logger,
-                "callbacks: new custom variable '{}' on service ({}, {})", name,
-                p.first, p.second);
-
-          } else {
-            SPDLOG_LOGGER_DEBUG(
-                neb_logger,
-                "callbacks: deleted custom variable '{}' on service ({},{})",
-                name, p.first, p.second);
-          }
-          ok_to_send = true;
-        }
-      }
-    }
-  }
-  // Send event.
-  if (ok_to_send) {
-    cbm->write(cv);
-  }
-}
-
-static void forward_downtime(nebstruct_downtime_data* downtime_data) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating downtime event");
-  if (downtime_data->type == NEBTYPE_DOWNTIME_LOAD)
-    return;
-
-  try {
-    // In/Out variables.
-    auto downtime{std::make_shared<com::centreon::broker::neb::downtime>()};
-
-    // Fill output var.
-    if (downtime_data->author_name)
-      downtime->author = common::check_string_utf8(downtime_data->author_name);
-    if (downtime_data->comment_data)
-      downtime->comment =
-          common::check_string_utf8(downtime_data->comment_data);
-    downtime->downtime_type = downtime_data->downtime_type;
-    downtime->duration = downtime_data->duration;
-    downtime->end_time = downtime_data->end_time;
-    downtime->entry_time = downtime_data->entry_time;
-    downtime->fixed = downtime_data->fixed;
-    downtime->host_id = downtime_data->host_id;
-    downtime->service_id = downtime_data->service_id;
-    downtime->poller_id = cbm->poller_id();
-    downtime->internal_id = downtime_data->downtime_id;
-    downtime->start_time = downtime_data->start_time;
-    downtime->triggered_by = downtime_data->triggered_by;
-    private_downtime_params& params(::downtimes[downtime->internal_id]);
-    switch (downtime_data->type) {
-      case NEBTYPE_DOWNTIME_ADD:
-        params.cancelled = false;
-        params.deletion_time = -1;
-        params.end_time = -1;
-        params.started = false;
-        params.start_time = -1;
-        break;
-      case NEBTYPE_DOWNTIME_START:
-        params.started = true;
-        params.start_time = downtime_data->timestamp.tv_sec;
-        break;
-      case NEBTYPE_DOWNTIME_STOP:
-        if (NEBATTR_DOWNTIME_STOP_CANCELLED == downtime_data->attr)
-          params.cancelled = true;
-        params.end_time = downtime_data->timestamp.tv_sec;
-        break;
-      case NEBTYPE_DOWNTIME_DELETE:
-        if (!params.started)
-          params.cancelled = true;
-        params.deletion_time = downtime_data->timestamp.tv_sec;
-        break;
-      default:
-        throw com::centreon::exceptions::msg_fmt(
-            "Downtime with not managed type {}.", downtime_data->downtime_id);
-    }
-    downtime->actual_start_time = params.start_time;
-    downtime->actual_end_time = params.end_time;
-    downtime->deletion_time = params.deletion_time;
-    downtime->was_cancelled = params.cancelled;
-    downtime->was_started = params.started;
-    if (NEBTYPE_DOWNTIME_DELETE == downtime_data->type)
-      ::downtimes.erase(downtime->internal_id);
-
-    // Send event.
-    cbm->write(downtime);
-  } catch (std::exception const& e) {
-    SPDLOG_LOGGER_ERROR(
-        neb_logger,
-        "callbacks: error occurred while generating downtime event: {}",
-        e.what());
-  }
-  // Avoid exception propagation in C code.
-  catch (...) {
-  }
-}
-
-static void forward_pb_downtime(nebstruct_downtime_data* downtime_data) {
-  // Log message.
-  neb_logger->debug("callbacks: generating pb downtime event");
-
-  if (downtime_data->type == NEBTYPE_DOWNTIME_LOAD)
-    return;
-
-  // In/Out variables.
-  auto d{std::make_shared<com::centreon::broker::neb::pb_downtime>()};
-  com::centreon::broker::Downtime& downtime = d.get()->mut_obj();
-
-  // Fill output var.
-  if (downtime_data->author_name)
-    downtime.set_author(common::check_string_utf8(downtime_data->author_name));
-  if (downtime_data->comment_data)
-    downtime.set_comment_data(
-        common::check_string_utf8(downtime_data->comment_data));
-  downtime.set_id(downtime_data->downtime_id);
-  downtime.set_type(static_cast<com::centreon::broker::Downtime_DowntimeType>(
-      downtime_data->downtime_type));
-  downtime.set_duration(downtime_data->duration);
-  downtime.set_end_time(downtime_data->end_time);
-  downtime.set_entry_time(downtime_data->entry_time);
-  downtime.set_fixed(downtime_data->fixed);
-  downtime.set_host_id(downtime_data->host_id);
-  downtime.set_service_id(downtime_data->service_id);
-  downtime.set_instance_id(cbm->poller_id());
-  downtime.set_start_time(downtime_data->start_time);
-  downtime.set_triggered_by(downtime_data->triggered_by);
-  private_downtime_params& params = ::downtimes[downtime.id()];
-  switch (downtime_data->type) {
-    case NEBTYPE_DOWNTIME_ADD:
-      params.cancelled = false;
-      params.deletion_time = -1;
-      params.end_time = -1;
-      params.started = false;
-      params.start_time = -1;
-      break;
-    case NEBTYPE_DOWNTIME_START:
-      params.started = true;
-      params.start_time = downtime_data->timestamp.tv_sec;
-      break;
-    case NEBTYPE_DOWNTIME_STOP:
-      if (NEBATTR_DOWNTIME_STOP_CANCELLED == downtime_data->attr)
-        params.cancelled = true;
-      params.end_time = downtime_data->timestamp.tv_sec;
-      break;
-    case NEBTYPE_DOWNTIME_DELETE:
-      if (!params.started)
-        params.cancelled = true;
-      params.deletion_time = downtime_data->timestamp.tv_sec;
-      break;
-    default:
-      neb_logger->error(
-          "callbacks: error occurred while generating downtime event: "
-          "Downtime {} with not managed type.",
-          downtime_data->downtime_id);
-      return;
-  }
-  downtime.set_actual_start_time(params.start_time);
-  downtime.set_actual_end_time(params.end_time);
-  downtime.set_deletion_time(params.deletion_time);
-  downtime.set_cancelled(params.cancelled);
-  downtime.set_started(params.started);
-  if (NEBTYPE_DOWNTIME_DELETE == downtime_data->type)
-    ::downtimes.erase(downtime.id());
-
-  // Send event.
-  cbm->write(d);
-}
-
 static void forward_host_parent(nebstruct_relation_data* relation) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
@@ -2230,361 +2931,6 @@ static void forward_pb_host_parent(nebstruct_relation_data* relation) {
   }
 }
 
-static void forward_group(nebstruct_group_data* group_data) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
-
-  // Host group.
-  if ((NEBTYPE_HOSTGROUP_ADD == group_data->type) ||
-      (NEBTYPE_HOSTGROUP_UPDATE == group_data->type) ||
-      (NEBTYPE_HOSTGROUP_DELETE == group_data->type)) {
-    engine::hostgroup const* host_group(
-        static_cast<engine::hostgroup*>(group_data->object_ptr));
-    if (!host_group->get_group_name().empty()) {
-      auto new_hg = std::make_shared<com::centreon::broker::neb::host_group>();
-      new_hg->poller_id = cbm->poller_id();
-      new_hg->id = host_group->get_id();
-      new_hg->enabled = group_data->type == NEBTYPE_HOSTGROUP_ADD ||
-                        (group_data->type == NEBTYPE_HOSTGROUP_UPDATE &&
-                         !host_group->members.empty());
-      new_hg->name = common::check_string_utf8(host_group->get_group_name());
-
-      // Send host group event.
-      if (new_hg->id) {
-        if (new_hg->enabled)
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger, "callbacks: new host group {} ('{}') on instance {}",
-              new_hg->id, new_hg->name, new_hg->poller_id);
-        else
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: disable host group {} ('{}') on instance {}",
-              new_hg->id, new_hg->name, new_hg->poller_id);
-        cbm->write(new_hg);
-      }
-    }
-  }
-  // Service group.
-  else if ((NEBTYPE_SERVICEGROUP_ADD == group_data->type) ||
-           (NEBTYPE_SERVICEGROUP_UPDATE == group_data->type) ||
-           (NEBTYPE_SERVICEGROUP_DELETE == group_data->type)) {
-    engine::servicegroup const* service_group(
-        static_cast<engine::servicegroup*>(group_data->object_ptr));
-    if (!service_group->get_group_name().empty()) {
-      auto new_sg =
-          std::make_shared<com::centreon::broker::neb::service_group>();
-      new_sg->poller_id = cbm->poller_id();
-      new_sg->id = service_group->get_id();
-      new_sg->enabled = group_data->type == NEBTYPE_SERVICEGROUP_ADD ||
-                        (group_data->type == NEBTYPE_SERVICEGROUP_UPDATE &&
-                         !service_group->members.empty());
-      new_sg->name = common::check_string_utf8(service_group->get_group_name());
-
-      // Send service group event.
-      if (new_sg->id) {
-        if (new_sg->enabled)
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks:: new service group {} ('{}) on instance {}",
-              new_sg->id, new_sg->name, new_sg->poller_id);
-        else
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks:: disable service group {} ('{}) on instance {}",
-              new_sg->id, new_sg->name, new_sg->poller_id);
-        cbm->write(new_sg);
-      }
-    }
-  }
-}
-
-/**
- *  @brief Function that process group data.
- *
- *  This function is called by Engine when some group data is available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_GROUP_DATA).
- *  @param[in] data          Pointer to a nebstruct_group_data
- *                           containing the group data.
- *
- *  @return 0 on success.
- */
-static void forward_pb_group(nebstruct_group_data* group_data) {
-  // Host group.
-  if (NEBTYPE_HOSTGROUP_ADD == group_data->type ||
-      NEBTYPE_HOSTGROUP_UPDATE == group_data->type ||
-      NEBTYPE_HOSTGROUP_DELETE == group_data->type) {
-    engine::hostgroup const* host_group(
-        static_cast<engine::hostgroup*>(group_data->object_ptr));
-    SPDLOG_LOGGER_DEBUG(
-        neb_logger,
-        "callbacks: generating pb host group {} (id: {}) event type:{}",
-        host_group->get_group_name(), host_group->get_id(), group_data->type);
-
-    if (!host_group->get_group_name().empty()) {
-      auto new_hg{
-          std::make_shared<com::centreon::broker::neb::pb_host_group>()};
-      auto& obj = new_hg->mut_obj();
-      obj.set_poller_id(cbm->poller_id());
-      obj.set_hostgroup_id(host_group->get_id());
-      obj.set_enabled(group_data->type == NEBTYPE_HOSTGROUP_ADD ||
-                      (group_data->type == NEBTYPE_HOSTGROUP_UPDATE &&
-                       !host_group->members.empty()));
-      obj.set_name(common::check_string_utf8(host_group->get_group_name()));
-
-      // Send host group event.
-      if (host_group->get_id()) {
-        if (new_hg->obj().enabled())
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: new pb host group {} ('{}' {} "
-                              "members) on instance {}",
-                              host_group->get_id(), new_hg->obj().name(),
-                              host_group->members.size(),
-                              new_hg->obj().poller_id());
-        else
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: disable pb host group {} ('{}' {} "
-                              "members) on instance {}",
-                              host_group->get_id(), new_hg->obj().name(),
-                              host_group->members.size(),
-                              new_hg->obj().poller_id());
-
-        cbm->write(new_hg);
-      }
-    }
-  }
-  // Service group.
-  else if (NEBTYPE_SERVICEGROUP_ADD == group_data->type ||
-           NEBTYPE_SERVICEGROUP_UPDATE == group_data->type ||
-           NEBTYPE_SERVICEGROUP_DELETE == group_data->type) {
-    engine::servicegroup const* service_group(
-        static_cast<engine::servicegroup*>(group_data->object_ptr));
-    SPDLOG_LOGGER_DEBUG(
-        neb_logger,
-        "callbacks: generating pb host group {} (id: {}) event type:{}",
-        service_group->get_group_name(), service_group->get_id(),
-        group_data->type);
-
-    if (!service_group->get_group_name().empty()) {
-      auto new_sg =
-          std::make_shared<com::centreon::broker::neb::pb_service_group>();
-      auto& obj = new_sg->mut_obj();
-      obj.set_poller_id(cbm->poller_id());
-      obj.set_servicegroup_id(service_group->get_id());
-      obj.set_enabled(group_data->type == NEBTYPE_SERVICEGROUP_ADD ||
-                      (group_data->type == NEBTYPE_SERVICEGROUP_UPDATE &&
-                       !service_group->members.empty()));
-      obj.set_name(common::check_string_utf8(service_group->get_group_name()));
-
-      // Send service group event.
-      if (service_group->get_id()) {
-        if (new_sg->obj().enabled())
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks:: new pb service group {} ('{}) on instance {}",
-              service_group->get_id(), new_sg->obj().name(),
-              new_sg->obj().poller_id());
-        else
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks:: disable pb service group {} ('{}) on instance {}",
-              service_group->get_id(), new_sg->obj().name(),
-              new_sg->obj().poller_id());
-
-        cbm->write(new_sg);
-      }
-    }
-  }
-}
-
-static void forward_group_member(nebstruct_group_member_data* member_data) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group member event");
-
-  // Host group member.
-  if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_ADD ||
-      member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-    engine::host const* hst(
-        static_cast<engine::host*>(member_data->object_ptr));
-    engine::hostgroup const* hg(
-        static_cast<engine::hostgroup*>(member_data->group_ptr));
-    if (!hst->name().empty() && !hg->get_group_name().empty()) {
-      // Output variable.
-      auto hgm =
-          std::make_shared<com::centreon::broker::neb::host_group_member>();
-      hgm->group_id = hg->get_id();
-      hgm->group_name = common::check_string_utf8(hg->get_group_name());
-      hgm->poller_id = cbm->poller_id();
-      uint32_t host_id = engine::get_host_id(hst->name());
-      if (host_id != 0 && hgm->group_id != 0) {
-        hgm->host_id = host_id;
-        if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: host {} is not a member of group "
-                              "{} on instance {} "
-                              "anymore",
-                              hgm->host_id, hgm->group_id, hgm->poller_id);
-          hgm->enabled = false;
-        } else {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: host {} is a member of group {} on instance {}",
-              hgm->host_id, hgm->group_id, hgm->poller_id);
-          hgm->enabled = true;
-        }
-
-        // Send host group member event.
-        if (hgm->host_id && hgm->group_id)
-          cbm->write(hgm);
-      }
-    }
-  }
-  // Service group member.
-  else if ((member_data->type == NEBTYPE_SERVICEGROUPMEMBER_ADD) ||
-           (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE)) {
-    engine::service const* svc(
-        static_cast<engine::service*>(member_data->object_ptr));
-    engine::servicegroup const* sg(
-        static_cast<engine::servicegroup*>(member_data->group_ptr));
-    if (!svc->description().empty() && !sg->get_group_name().empty() &&
-        !svc->get_hostname().empty()) {
-      // Output variable.
-      auto sgm{
-          std::make_shared<com::centreon::broker::neb::service_group_member>()};
-      sgm->group_id = sg->get_id();
-      sgm->group_name = common::check_string_utf8(sg->get_group_name());
-      sgm->poller_id = cbm->poller_id();
-      sgm->host_id = svc->host_id();
-      sgm->service_id = svc->service_id();
-      if (sgm->host_id && sgm->service_id && sgm->group_id) {
-        if (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: service ({},{}) is not a member of group {} on "
-              "instance {} anymore",
-              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
-          sgm->enabled = false;
-        } else {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: service ({}, {}) is a member of group {} on "
-              "instance {}",
-              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
-          sgm->enabled = true;
-        }
-
-        // Send service group member event.
-        if (sgm->host_id && sgm->service_id && sgm->group_id)
-          cbm->write(sgm);
-      }
-    }
-  }
-}
-
-/**
- *  @brief Function that process group membership.
- *
- *  This function is called by Engine when some group membership data is
- *  available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_GROUPMEMBER_DATA).
- *  @param[in] data          Pointer to a nebstruct_group_member_data
- *                           containing membership data.
- *
- *  @return 0 on success.
- */
-static void forward_pb_group_member(nebstruct_group_member_data* member_data) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating pb group member event");
-
-  // Host group member.
-  if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_ADD ||
-      member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-    engine::host const* hst(
-        static_cast<engine::host*>(member_data->object_ptr));
-    engine::hostgroup const* hg(
-        static_cast<engine::hostgroup*>(member_data->group_ptr));
-    if (!hst->name().empty() && !hg->get_group_name().empty()) {
-      // Output variable.
-      auto hgmp{
-          std::make_shared<com::centreon::broker::neb::pb_host_group_member>()};
-      com::centreon::broker::HostGroupMember& hgm = hgmp->mut_obj();
-      hgm.set_hostgroup_id(hg->get_id());
-      hgm.set_name(common::check_string_utf8(hg->get_group_name()));
-      hgm.set_poller_id(cbm->poller_id());
-      uint32_t host_id = hst->host_id();
-      if (host_id != 0 && hgm.hostgroup_id() != 0) {
-        hgm.set_host_id(host_id);
-        if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: host {} is not a member of group "
-                              "{} on instance {} "
-                              "anymore",
-                              hgm.host_id(), hgm.hostgroup_id(),
-                              hgm.poller_id());
-          hgm.set_enabled(false);
-        } else {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: host {} is a member of group {} on instance {}",
-              hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
-          hgm.set_enabled(true);
-        }
-
-        // Send host group member event.
-        if (hgm.host_id() && hgm.hostgroup_id())
-          cbm->write(hgmp);
-      }
-    }
-  }
-  // Service group member.
-  else if (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_ADD ||
-           member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
-    engine::service const* svc(
-        static_cast<engine::service*>(member_data->object_ptr));
-    engine::servicegroup const* sg(
-        static_cast<engine::servicegroup*>(member_data->group_ptr));
-    if (!svc->description().empty() && !sg->get_group_name().empty() &&
-        !svc->get_hostname().empty()) {
-      // Output variable.
-      auto sgmp{std::make_shared<
-          com::centreon::broker::neb::pb_service_group_member>()};
-      com::centreon::broker::ServiceGroupMember& sgm = sgmp->mut_obj();
-      sgm.set_servicegroup_id(sg->get_id());
-      sgm.set_name(common::check_string_utf8(sg->get_group_name()));
-      sgm.set_poller_id(cbm->poller_id());
-      sgm.set_host_id(svc->host_id());
-      sgm.set_service_id(svc->service_id());
-      if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id()) {
-        if (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: service ({},{}) is not a member of group {} on "
-              "instance {} anymore",
-              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
-              sgm.poller_id());
-          sgm.set_enabled(false);
-        } else {
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger,
-              "callbacks: service ({}, {}) is a member of group {} on "
-              "instance {}",
-              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
-              sgm.poller_id());
-          sgm.set_enabled(true);
-        }
-
-        // Send service group member event.
-        if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id())
-          cbm->write(sgmp);
-      }
-    }
-  }
-}
-
 template <bool proto>
 static void send_service_list() {
   // Start log message.
@@ -2627,19 +2973,18 @@ static void send_custom_variables_list() {
          cit != cend; ++cit) {
       std::string name{cit->first};
       if (cit->second.is_sent()) {
-        // Fill callback struct.
-        nebstruct_custom_variable_data nscvd;
-        nscvd.type = NEBTYPE_HOSTCUSTOMVARIABLE_ADD;
-        nscvd.timestamp.tv_sec = time(nullptr);
-        nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
-        nscvd.object_ptr = it->second.get();
+        struct timeval now;
+        gettimeofday(&now, NULL);
 
         // Callback.
         if constexpr (proto)
-          forward_pb_custom_variable(&nscvd);
+          forward_pb_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                                     it->second.get(), name,
+                                     cit->second.value(), &now);
         else
-          forward_custom_variable(&nscvd);
+          forward_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                                  it->second.get(), name, cit->second.value(),
+                                  &now);
       }
     }
   }
@@ -2656,20 +3001,18 @@ static void send_custom_variables_list() {
          cit != cend; ++cit) {
       std::string name{cit->first};
       if (cit->second.is_sent()) {
-        // Fill callback struct.
-        nebstruct_custom_variable_data nscvd{
-            .type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
-            .timestamp = {time(nullptr), 0},
-            .var_name = std::string_view(name),
-            .var_value = std::string_view(cit->second.value()),
-            .object_ptr = it->second.get(),
-        };
+        struct timeval now;
+        gettimeofday(&now, NULL);
 
         // Callback.
         if constexpr (proto)
-          forward_pb_custom_variable(&nscvd);
+          forward_pb_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                     it->second.get(), name,
+                                     cit->second.value(), &now);
         else
-          forward_custom_variable(&nscvd);
+          forward_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                  it->second.get(), name, cit->second.value(),
+                                  &now);
       }
     }
   }
@@ -2687,35 +3030,39 @@ static void send_downtimes_list() {
           .get_scheduled_downtimes()};
   // Iterate through all downtimes.
   for (const auto& p : dts) {
-    // Fill callback struct.
-    nebstruct_downtime_data nsdd;
-    memset(&nsdd, 0, sizeof(nsdd));
-    nsdd.type = NEBTYPE_DOWNTIME_ADD;
-    nsdd.timestamp.tv_sec = time(nullptr);
-    nsdd.downtime_type = p.second->get_type();
-    nsdd.host_id = p.second->host_id();
-    nsdd.service_id =
-        p.second->get_type() ==
-                com::centreon::engine::downtimes::downtime::service_downtime
-            ? std::static_pointer_cast<
-                  com::centreon::engine::downtimes::service_downtime>(p.second)
-                  ->service_id()
-            : 0;
-    nsdd.entry_time = p.second->get_entry_time();
-    nsdd.author_name = p.second->get_author().c_str();
-    nsdd.comment_data = p.second->get_comment().c_str();
-    nsdd.start_time = p.second->get_start_time();
-    nsdd.end_time = p.second->get_end_time();
-    nsdd.fixed = p.second->is_fixed();
-    nsdd.duration = p.second->get_duration();
-    nsdd.triggered_by = p.second->get_triggered_by();
-    nsdd.downtime_id = p.second->get_downtime_id();
-
     // Callback.
+    struct timeval now;
+    gettimeofday(&now, NULL);
     if constexpr (proto)
-      forward_pb_downtime(&nsdd);
+      forward_pb_downtime(
+          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
+          p.second->get_type() ==
+                  com::centreon::engine::downtimes::downtime::service_downtime
+              ? std::static_pointer_cast<
+                    com::centreon::engine::downtimes::service_downtime>(
+                    p.second)
+                    ->service_id()
+              : 0,
+          p.second->get_entry_time(), p.second->get_author().c_str(),
+          p.second->get_comment().c_str(), p.second->get_start_time(),
+          p.second->get_end_time(), p.second->is_fixed(),
+          p.second->get_triggered_by(), p.second->get_duration(),
+          p.second->get_downtime_id(), &now);
     else
-      forward_downtime(&nsdd);
+      forward_downtime(
+          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
+          p.second->get_type() ==
+                  com::centreon::engine::downtimes::downtime::service_downtime
+              ? std::static_pointer_cast<
+                    com::centreon::engine::downtimes::service_downtime>(
+                    p.second)
+                    ->service_id()
+              : 0,
+          p.second->get_entry_time(), p.second->get_author().c_str(),
+          p.second->get_comment().c_str(), p.second->get_start_time(),
+          p.second->get_end_time(), p.second->is_fixed(),
+          p.second->get_triggered_by(), p.second->get_duration(),
+          p.second->get_downtime_id(), &now);
   }
 
   // End log message.
@@ -2768,34 +3115,23 @@ static void send_host_group_list() {
            it{com::centreon::engine::hostgroup::hostgroups.begin()},
        end{com::centreon::engine::hostgroup::hostgroups.end()};
        it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_group_data nsgd;
-    memset(&nsgd, 0, sizeof(nsgd));
-    nsgd.type = NEBTYPE_HOSTGROUP_ADD;
-    nsgd.object_ptr = it->second.get();
-
     // Callback.
     if constexpr (proto)
-      forward_pb_group(&nsgd);
+      forward_pb_group(NEBTYPE_HOSTGROUP_ADD, it->second.get());
     else
-      forward_group(&nsgd);
+      forward_group(NEBTYPE_HOSTGROUP_ADD, it->second.get());
 
     // Dump host group members.
     for (host_map_unsafe::const_iterator hit{it->second->members.begin()},
          hend{it->second->members.end()};
          hit != hend; ++hit) {
-      // Fill callback struct.
-      nebstruct_group_member_data nsgmd;
-      memset(&nsgmd, 0, sizeof(nsgmd));
-      nsgmd.type = NEBTYPE_HOSTGROUPMEMBER_ADD;
-      nsgmd.object_ptr = hit->second;
-      nsgmd.group_ptr = it->second.get();
-
       // Callback.
       if constexpr (proto)
-        forward_pb_group_member(&nsgmd);
+        forward_pb_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, hit->second,
+                                it->second.get());
       else
-        forward_group_member(&nsgmd);
+        forward_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, hit->second,
+                             it->second.get());
     }
   }
 
@@ -2813,17 +3149,11 @@ static void send_service_group_list() {
            it{com::centreon::engine::servicegroup::servicegroups.begin()},
        end{com::centreon::engine::servicegroup::servicegroups.end()};
        it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_group_data nsgd;
-    memset(&nsgd, 0, sizeof(nsgd));
-    nsgd.type = NEBTYPE_SERVICEGROUP_ADD;
-    nsgd.object_ptr = it->second.get();
-
     // Callback.
     if constexpr (proto)
-      forward_pb_group(&nsgd);
+      forward_pb_group(NEBTYPE_SERVICEGROUP_ADD, it->second.get());
     else
-      forward_group(&nsgd);
+      forward_group(NEBTYPE_SERVICEGROUP_ADD, it->second.get());
 
     // Dump service group members.
     for (service_map_unsafe::const_iterator sit{it->second->members.begin()},
@@ -2838,9 +3168,11 @@ static void send_service_group_list() {
 
       // Callback.
       if constexpr (proto)
-        forward_pb_group_member(&nsgmd);
+        forward_pb_group_member(NEBTYPE_SERVICEGROUPMEMBER_ADD, sit->second,
+                                it->second.get());
       else
-        forward_group_member(&nsgmd);
+        forward_group_member(NEBTYPE_SERVICEGROUPMEMBER_ADD, sit->second,
+                             it->second.get());
     }
   }
 

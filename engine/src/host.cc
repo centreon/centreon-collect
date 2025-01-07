@@ -1586,7 +1586,7 @@ int host::handle_async_check_result_3x(
 
   /* send data to event broker */
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
-                    nullptr, const_cast<char*>(get_plugin_output().c_str()));
+                    nullptr);
   return OK;
 }
 
@@ -1769,7 +1769,7 @@ int host::run_async_check(int check_options,
   // Send broker event.
   timeval start_time{0, 0};
   int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, this,
-                              checkable::check_active, nullptr, nullptr);
+                              checkable::check_active, nullptr);
 
   // Host check was cancel by NEB module. Reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
@@ -1828,7 +1828,7 @@ int host::run_async_check(int check_options,
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this, checkable::check_active,
-                    processed_cmd.c_str(), nullptr);
+                    processed_cmd.c_str());
 
   // Restore latency.
   set_latency(old_latency);
@@ -2645,7 +2645,6 @@ int host::notify_contact(nagios_macros* mac,
   /* process all the notification commands this user has */
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_host_notification_commands()) {
-
     /* get the raw command line */
     get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
                            raw_command, macro_options);
@@ -2736,7 +2735,6 @@ int host::notify_contact(nagios_macros* mac,
           "after {} seconds",
           cntct->get_name(), processed_command, notification_timeout);
     }
-
   }
 
   /* get end time */

@@ -1782,9 +1782,6 @@ int cmd_change_object_int_var(int cmd, char* args) {
         default:
           break;
       }
-
-      /* update the status log with the contact info */
-      cnct->second->update_status_info(false);
       break;
 
     default:
@@ -2076,9 +2073,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
           cnct->second->get_modified_host_attributes() | hattr);
       cnct->second->set_modified_service_attributes(
           cnct->second->get_modified_service_attributes() | sattr);
-
-      /* update the status log with the contact info */
-      cnct->second->update_status_info(false);
       break;
 
     default:
@@ -2167,7 +2161,6 @@ int cmd_change_object_custom_var(int cmd, char* args) {
         it->second.update(varvalue);
 
       cnct_it->second->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
-      cnct_it->second->update_status_info(false);
     } break;
     default:
       break;
@@ -2484,9 +2477,6 @@ void enable_contact_host_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_host_notifications_enabled(true);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* disables host notifications for a contact */
@@ -2503,9 +2493,6 @@ void disable_contact_host_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_host_notifications_enabled(false);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* enables service notifications for a contact */
@@ -2522,9 +2509,6 @@ void enable_contact_service_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_service_notifications_enabled(true);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* disables service notifications for a contact */
@@ -2541,9 +2525,6 @@ void disable_contact_service_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_service_notifications_enabled(false);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* schedules downtime for all hosts "beyond" a given host */

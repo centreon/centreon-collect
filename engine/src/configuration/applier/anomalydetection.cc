@@ -139,8 +139,9 @@ void applier::anomalydetection::add_object(
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad, it->first,
-                             it->second.value(), &tv);
+      broker_custom_variable<engine::service>(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                              ad, it->first, it->second.value(),
+                                              &tv);
     }
   }
 
@@ -236,8 +237,8 @@ void applier::anomalydetection::add_object(
 
     if (c.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad, cv.name(),
-                             cv.value(), &tv);
+      broker_custom_variable<engine::service>(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                              ad, cv.name(), cv.value(), &tv);
     }
   }
 
@@ -478,8 +479,9 @@ void applier::anomalydetection::modify_object(
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first, c.second.value(), &tv);
+        broker_custom_variable<engine::service>(
+            NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(), c.first,
+            c.second.value(), &tv);
       }
     }
     s->custom_variables.clear();
@@ -490,8 +492,9 @@ void applier::anomalydetection::modify_object(
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.first, c.second.value(), &tv);
+        broker_custom_variable<engine::service>(
+            NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(), c.first,
+            c.second.value(), &tv);
       }
     }
   }
@@ -658,8 +661,9 @@ void applier::anomalydetection::modify_object(
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
-                               c.first.c_str(), c.second.value().c_str(), &tv);
+        broker_custom_variable<engine::service>(
+            NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(), c.first.c_str(),
+            c.second.value().c_str(), &tv);
       }
     }
     s->custom_variables.clear();
@@ -669,8 +673,9 @@ void applier::anomalydetection::modify_object(
 
       if (c.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
-                               c.name(), c.value(), &tv);
+        broker_custom_variable<engine::service>(
+            NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(), c.name(), c.value(),
+            &tv);
       }
     }
   }

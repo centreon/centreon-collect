@@ -30,34 +30,6 @@ typedef struct nebstruct_adaptive_dependency_data_struct {
   void* object_ptr;
 } nebstruct_adaptive_dependency_data;
 
-/* Custom variable structure. */
-typedef struct nebstruct_custom_variable_struct {
-  int type;
-  struct timeval timestamp = {};
-  std::string_view var_name;
-  std::string_view var_value;
-  void* object_ptr = nullptr;
-} nebstruct_custom_variable_data;
-
-/* Downtime data structure. */
-typedef struct nebstruct_downtime_struct {
-  int type;
-  int attr;
-  struct timeval timestamp;
-  int downtime_type;
-  uint64_t host_id;
-  uint64_t service_id;
-  time_t entry_time;
-  char const* author_name;
-  char const* comment_data;
-  time_t start_time;
-  time_t end_time;
-  int fixed;
-  unsigned long duration;
-  unsigned long triggered_by;
-  unsigned long downtime_id;
-} nebstruct_downtime_data;
-
 /* Event handler structure. */
 typedef struct nebstruct_event_handler_struct {
   int type;

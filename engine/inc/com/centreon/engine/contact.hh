@@ -56,7 +56,6 @@ class contact {
   contact& operator=(contact const& other) = delete;
   bool operator==(contact const& other) = delete;
   bool operator!=(contact const& other) = delete;
-  void update_status_info(bool aggregated_dump);
 
   // Base properties.
   std::string const& get_address(int index) const;

@@ -3477,8 +3477,6 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
         return 1;
     }
 
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -3769,9 +3767,6 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
         temp_contact->get_modified_host_attributes() | hattr);
     temp_contact->set_modified_service_attributes(
         temp_contact->get_modified_service_attributes() | sattr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
 
     return 0;
   });
