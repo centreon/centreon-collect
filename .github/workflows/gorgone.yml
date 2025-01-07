@@ -326,7 +326,7 @@ jobs:
 
   deliver-rpm:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package, robot-test-gorgone]
+    needs: [get-environment, unit-test-perl, robot-test-gorgone]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
@@ -356,7 +356,7 @@ jobs:
 
   deliver-deb:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package, robot-test-gorgone]
+    needs: [get-environment, unit-test-perl, robot-test-gorgone]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
