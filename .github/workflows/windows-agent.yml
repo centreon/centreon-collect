@@ -49,7 +49,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@26da2259ee7690e63b5410d7451b2938d08ce1f9 # v4.0.0
+      - uses: jfrog/setup-jfrog-cli@f0a84f35b0e0bd21838c5fb3e6788072d6540d13 # v4.5.5
         env:
           JF_URL: https://centreon.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
