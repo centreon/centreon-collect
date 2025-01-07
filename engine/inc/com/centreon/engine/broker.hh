@@ -335,21 +335,6 @@ void broker_adaptive_service_data(int type,
                                   int flags,
                                   com::centreon::engine::service* svc,
                                   unsigned long modattr);
-void broker_adaptive_timeperiod_data(int type,
-                                     int flags,
-                                     int attr,
-                                     com::centreon::engine::timeperiod* tp,
-                                     int command_type,
-                                     struct timeval const* timestamp);
-void broker_aggregated_status_data(int type,
-                                   int flags,
-                                   int attr,
-                                   struct timeval const* timestamp);
-void broker_command_data(int type,
-                         int flags,
-                         int attr,
-                         com::centreon::engine::commands::command* cmd,
-                         struct timeval const* timestamp);
 void broker_comment_data(int type,
                          com::centreon::engine::comment::type comment_type,
                          com::centreon::engine::comment::e_type entry_type,

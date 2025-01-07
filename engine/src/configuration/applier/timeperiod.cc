@@ -98,11 +98,6 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   // Create time period.
   auto tp = std::make_shared<engine::timeperiod>(obj);
   engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
-
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, tp.get(), CMD_NONE, &tv);
 }
 #endif
 
@@ -257,11 +252,6 @@ void applier::timeperiod::modify_object(
     tp->set_exclusions(new_obj.exclude());
     to_modify->mutable_exclude()->CopyFrom(new_obj.exclude());
   }
-
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, tp, CMD_NONE, &tv);
 }
 #endif
 
@@ -303,12 +293,6 @@ void applier::timeperiod::remove_object(ssize_t idx) {
   timeperiod_map::iterator it =
       engine::timeperiod::timeperiods.find(obj.timeperiod_name());
   if (it != engine::timeperiod::timeperiods.end() && it->second) {
-    // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_timeperiod_data(NEBTYPE_TIMEPERIOD_DELETE, NEBFLAG_NONE,
-                                    NEBATTR_NONE, it->second.get(), CMD_NONE,
-                                    &tv);
-
     // Erase time period (will effectively delete the object).
     engine::timeperiod::timeperiods.erase(it);
   }

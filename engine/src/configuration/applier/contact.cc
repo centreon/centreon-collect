@@ -516,9 +516,6 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
         ++it;
     }
   }
-
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
 }
 #endif
 

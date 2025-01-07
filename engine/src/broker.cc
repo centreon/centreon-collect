@@ -15,12 +15,12 @@
  *
  * For more information : contact@centreon.com
  */
-
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/neb/acknowledgement.hh"
+#include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -711,7 +711,7 @@ void broker_adaptive_host_data(int type,
  */
 static void forward_service(int type,
                             int flags,
-                            uint64_t modified_attribute,
+                            uint64_t modified_attribute [[maybe_unused]],
                             const engine::service* s) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service event");
@@ -1199,53 +1199,169 @@ void broker_adaptive_service_data(int type,
     forward_pb_service(type, flags, modattr, svc);
 }
 
-/**
- *  Sends adaptive timeperiod updates to broker.
- *
- *  @param[in] type         Type.
- *  @param[in] flags        Flags.
- *  @param[in] attr         Attributes.
- *  @param[in] tp           Target timeperiod.
- *  @param[in] command_type Command type.
- *  @param[in] timestamp    Timestamp.
- */
-void broker_adaptive_timeperiod_data(int type __attribute__((unused)),
-                                     int flags __attribute__((unused)),
-                                     int attr __attribute__((unused)),
-                                     timeperiod* tp __attribute__((unused)),
-                                     int command_type __attribute__((unused)),
-                                     struct timeval const* timestamp
-                                     __attribute__((unused))) {}
+static void forward_comment(int type,
+                            com::centreon::engine::comment::type comment_type,
+                            com::centreon::engine::comment::e_type entry_type,
+                            uint64_t host_id,
+                            uint64_t service_id,
+                            time_t entry_time,
+                            const char* author_name,
+                            const char* comment_text,
+                            bool persistent,
+                            com::centreon::engine::comment::src source,
+                            bool expires,
+                            time_t expire_time,
+                            uint64_t comment_id) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating comment event");
+
+  try {
+    // In/Out variables.
+    auto comment{std::make_shared<com::centreon::broker::neb::comment>()};
+
+    // Fill output var.
+    if (author_name)
+      comment->author = common::check_string_utf8(author_name);
+    if (comment_text)
+      comment->data = common::check_string_utf8(comment_text);
+    comment->comment_type = comment_type;
+    if (NEBTYPE_COMMENT_DELETE == type)
+      comment->deletion_time = time(nullptr);
+    comment->entry_time = entry_time;
+    comment->entry_type = entry_type;
+    if (comment->entry_type == 4)
+      neb_logger->debug(
+          "callbacks: comment about acknowledgement entry_time:{} - "
+          "deletion_time:{} - host_id:{} - service_id:{}",
+          comment->entry_time, comment->deletion_time, comment->host_id,
+          comment->service_id);
+    comment->expire_time = expire_time;
+    comment->expires = expires;
+    if (service_id) {
+      comment->host_id = host_id;
+      comment->service_id = service_id;
+      if (!comment->host_id)
+        throw exceptions::msg_fmt(
+            "comment created from a service with host_id/service_id 0");
+    } else {
+      comment->host_id = host_id;
+      if (comment->host_id == 0)
+        throw exceptions::msg_fmt("comment created from a host with host_id 0");
+    }
+    comment->poller_id = cbm->poller_id();
+    comment->internal_id = comment_id;
+    comment->persistent = persistent;
+    comment->source = source;
+
+    // Send event.
+    cbm->write(comment);
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating comment event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
 
 /**
- *  Brokers aggregated status dumps.
+ *  @brief Function that process comment data.
  *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes
- *  @param[in] timestamp Timestamp.
+ *  This function is called by Nagios when some comment data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_COMMENT_DATA).
+ *  @param[in] data          A pointer to a nebstruct_comment_data containing
+ *                           the comment data.
+ *
+ *  @return 0 on success.
  */
-void broker_aggregated_status_data(int type __attribute__((unused)),
-                                   int flags __attribute__((unused)),
-                                   int attr __attribute__((unused)),
-                                   struct timeval const* timestamp
-                                   __attribute__((unused))) {}
+static void forward_pb_comment(
+    int type,
+    com::centreon::engine::comment::type comment_type,
+    com::centreon::engine::comment::e_type entry_type,
+    uint64_t host_id,
+    uint64_t service_id,
+    time_t entry_time,
+    const char* author_name,
+    const char* comment_text,
+    bool persistent,
+    com::centreon::engine::comment::src source,
+    bool expires,
+    time_t expire_time,
+    uint64_t comment_id) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb comment event");
 
-/**
- *  Send command data to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] cmd       The command.
- *  @param[in] timestamp Timestamp.
- */
-void broker_command_data(int type __attribute__((unused)),
-                         int flags __attribute__((unused)),
-                         int attr __attribute__((unused)),
-                         commands::command* cmd __attribute__((unused)),
-                         struct timeval const* timestamp
-                         __attribute__((unused))) {}
+  auto h{std::make_shared<com::centreon::broker::neb::pb_comment>()};
+  com::centreon::broker::Comment& comment = h.get()->mut_obj();
+
+  // Fill output var.
+  if (author_name)
+    comment.set_author(common::check_string_utf8(author_name));
+  if (comment_text)
+    comment.set_data(common::check_string_utf8(comment_text));
+  comment.set_type(comment_type == com::centreon::engine::comment::type::host
+                       ? com::centreon::broker::Comment_Type_HOST
+                       : com::centreon::broker::Comment_Type_SERVICE);
+  if (NEBTYPE_COMMENT_DELETE == type) {
+    comment.set_deletion_time(time(nullptr));
+    neb_logger->debug("callbacks: comment with deletion time {}",
+                      comment.deletion_time());
+  }
+  comment.set_entry_time(entry_time);
+  switch (entry_type) {
+    case com::centreon::engine::comment::e_type::user:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_USER);
+      neb_logger->debug("callbacks: comment from a user");
+      break;
+    case com::centreon::engine::comment::e_type::downtime:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_DOWNTIME);
+      neb_logger->debug("callbacks: comment about downtime");
+      break;
+    case com::centreon::engine::comment::e_type::flapping:
+      comment.set_entry_type(com::centreon::broker::Comment_EntryType_FLAPPING);
+      neb_logger->debug("callbacks: comment about flapping");
+      break;
+    case com::centreon::engine::comment::e_type::acknowledgment:
+      comment.set_entry_type(
+          com::centreon::broker::Comment_EntryType_ACKNOWLEDGMENT);
+      neb_logger->debug("callbacks: comment about acknowledgement");
+      break;
+    default:
+      break;
+  }
+  comment.set_expire_time(expire_time);
+  comment.set_expires(expires);
+  if (service_id) {
+    if (!host_id) {
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "comment created from a service with host_id/service_id 0");
+      return;
+    }
+    comment.set_host_id(host_id);
+    comment.set_service_id(service_id);
+  } else {
+    if (host_id == 0) {
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "comment created from a host with host_id 0");
+      return;
+    }
+    comment.set_host_id(host_id);
+    comment.set_service_id(0);
+  }
+  comment.set_instance_id(cbm->poller_id());
+  comment.set_internal_id(comment_id);
+  comment.set_persistent(persistent);
+  comment.set_source(source == com::centreon::engine::comment::src::internal
+                         ? com::centreon::broker::Comment_Src_INTERNAL
+                         : com::centreon::broker::Comment_Src_EXTERNAL);
+
+  // Send event.
+  cbm->write(h);
+}
 
 /**
  *  Send comment data to broker.
@@ -1278,32 +1394,18 @@ void broker_comment_data(int type,
                          time_t expire_time,
                          unsigned long comment_id) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_COMMENT_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_COMMENT_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_comment_data ds;
-  ds.type = type;
-  ds.comment_type = comment_type;
-  ds.entry_type = entry_type;
-  ds.host_id = host_id;
-  ds.service_id = service_id;
-  ds.entry_time = entry_time;
-  ds.author_name = author_name;
-  ds.comment_data = comment_data;
-  ds.persistent = persistent;
-  ds.source = source;
-  ds.expires = expires;
-  ds.expire_time = expire_time;
-  ds.comment_id = comment_id;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_COMMENT_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_comment(type, comment_type, entry_type, host_id, service_id,
+                       entry_time, author_name, comment_data, persistent,
+                       source, expires, expire_time, comment_id);
+  else
+    forward_comment(type, comment_type, entry_type, host_id, service_id,
+                    entry_time, author_name, comment_data, persistent, source,
+                    expires, expire_time, comment_id);
 }
 
 /**

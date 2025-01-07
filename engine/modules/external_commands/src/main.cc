@@ -154,19 +154,19 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
           "Bailing out due to errors encountered while trying to initialize "
           "the external command file ... (PID={})",
           getpid());
-      return (1);
+      return 1;
     }
 
     // Register callbacks.
     if (neb_register_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA, gl_mod_handle,
                               0, callback_external_command)) {
-      throw(engine_error() << "register callback failed");
+      throw engine_error() << "register callback failed";
     }
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
     runtime_logger->error("external command runtime error '{}'.", e.what());
-    return (1);
+    return 1;
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
