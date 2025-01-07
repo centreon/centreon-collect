@@ -148,8 +148,8 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
     if (open_command_file() != OK) {
       engine_logger(log_process_info | log_runtime_error, basic)
           << "Bailing out due to errors encountered while trying to "
-          << "initialize the external command file ... "
-          << "(PID=" << getpid() << ")";
+             "initialize the external command file ... "
+             "(PID=" << getpid() << ")";
       process_logger->info(
           "Bailing out due to errors encountered while trying to initialize "
           "the external command file ... (PID={})",
