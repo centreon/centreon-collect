@@ -8,6 +8,9 @@ perl-libs/                     @centreon/owners-perl
 selinux/**                     @centreon/owners-pipelines
 
 tests/**                       @centreon/owners-robot-e2e
+.github/scripts/*robot*        @centreon/owners-robot-e2e
 
 gorgone/docs/                  @centreon/owners-doc
 gorgone/tests/robot/tests      @centreon/owners-robot-e2e
+
+*.ps1                          @centreon/owners-cpp
