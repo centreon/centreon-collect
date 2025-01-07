@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2024-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@
 #ifndef CCB_NEB_CBMOD_HH
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
-#include "com/centreon/engine/nebstructs.hh"
+#include "bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/data.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -32,6 +33,11 @@ class cbmod {
   std::shared_ptr<spdlog::logger> _neb_logger;
   std::unique_ptr<cbmodimpl> _impl;
   std::filesystem::path _proto_conf;
+  bool _use_protobuf;
+
+  // Acknowledgements list.
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
+      _acknowledgements;
 
  public:
   cbmod(const std::string& config_file, const std::string& proto_conf);
@@ -41,6 +47,10 @@ class cbmod {
   void write(const std::shared_ptr<io::data>& msg);
   uint64_t poller_id() const;
   const std::string& poller_name() const;
+  const bbdo::bbdo_version bbdo_version() const;
+  bool use_protobuf() const;
+  void add_acknowledgement(const std::shared_ptr<neb::acknowledgement>& ack);
+  void add_acknowledgement(const std::shared_ptr<neb::pb_acknowledgement>& ack);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker

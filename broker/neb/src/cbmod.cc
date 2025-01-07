@@ -20,9 +20,11 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/tag.hh"
 #include "common/log_v2/log_v2.hh"
@@ -48,7 +50,9 @@ class cbmodimpl {
 cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)},
       _impl{new cbmodimpl},
-      _proto_conf{proto_conf} {
+      _proto_conf{proto_conf},
+      _use_protobuf{
+          config::applier::state::instance().get_bbdo_version().major_v > 2} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
   com::centreon::broker::config::state s{p.parse(config_file)};
@@ -84,6 +88,30 @@ const std::string& cbmod::poller_name() const {
 
 void cbmod::write(const std::shared_ptr<io::data>& msg) {
   _impl->mut_publisher().write(msg);
+}
+
+const bbdo::bbdo_version cbmod::bbdo_version() const {
+  return config::applier::state::instance().get_bbdo_version();
+}
+
+/**
+ * @brief Tells us if neb events are sent using protobuf or not.
+ *
+ * @return True if we use protobuf to send them (bbdo version >= 3.0.0).
+ */
+bool cbmod::use_protobuf() const {
+  return _use_protobuf;
+}
+
+void cbmod::add_acknowledgement(
+    const std::shared_ptr<neb::acknowledgement>& ack) {
+  _acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = ack;
+}
+
+void cbmod::add_acknowledgement(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack) {
+  Acknowledgement& obj = static_cast<Acknowledgement&>(ack->mut_obj());
+  _acknowledgements[std::make_pair(obj.host_id(), obj.service_id())] = ack;
 }
 
 }  // namespace com::centreon::broker::neb

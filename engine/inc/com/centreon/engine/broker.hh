@@ -316,52 +316,23 @@
 #define NEBATTR_DOWNTIME_STOP_NORMAL 1
 #define NEBATTR_DOWNTIME_STOP_CANCELLED 2
 
-void broker_acknowledgement_data(
-    int type,
-    acknowledgement_resource_type acknowledgement_type,
-    void* data,
-    const char* ack_author,
-    const char* ack_data,
-    int subtype,
-    int notify_contacts,
-    int persistent_comment);
-void broker_adaptive_contact_data(int type,
-                                  int flags,
-                                  int attr,
-                                  com::centreon::engine::contact* cntct,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp);
-void broker_adaptive_severity_data(int type, void* data);
-void broker_adaptive_tag_data(int type, void* data);
-void broker_adaptive_dependency_data(int type, void* data);
-void broker_adaptive_escalation_data(int type,
-                                     int flags,
-                                     int attr,
-                                     void* data,
-                                     struct timeval const* timestamp);
+template <typename R>
+void broker_acknowledgement_data(R* data,
+                                 const char* ack_author,
+                                 const char* ack_data,
+                                 int subtype,
+                                 bool notify_contacts,
+                                 bool persistent_comment);
+
+void broker_adaptive_severity_data(int type,
+                                   com::centreon::engine::severity* es);
+void broker_adaptive_tag_data(int type, com::centreon::engine::tag* data);
 void broker_adaptive_host_data(int type,
                                int flags,
-                               int attr,
                                com::centreon::engine::host* hst,
-                               unsigned long modattr);
-void broker_adaptive_program_data(int type,
-                                  int flags,
-                                  int attr,
-                                  int command_type,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp);
+                               uint64_t modattr);
 void broker_adaptive_service_data(int type,
                                   int flags,
-                                  int attr,
                                   com::centreon::engine::service* svc,
                                   unsigned long modattr);
 void broker_adaptive_timeperiod_data(int type,

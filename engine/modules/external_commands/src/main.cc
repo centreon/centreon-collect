@@ -171,7 +171,7 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
     runtime_logger->error("external command runtime error `unknown'.");
-    return (1);
+    return 1;
   }
 
   return 0;

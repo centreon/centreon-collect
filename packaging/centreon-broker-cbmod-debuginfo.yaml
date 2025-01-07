@@ -16,7 +16,7 @@ license: "Apache-2.0"
 
 contents:
   - src: "../build/broker/neb/cbmod.so.debug"
-    dst: "/usr/lib/debug/usr/lib64/nagios/cbmod.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/cbmod.so.debug"
     file_info:
       mode: 0644
 

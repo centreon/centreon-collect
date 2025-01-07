@@ -1,77 +1,34 @@
-/*
-** Copyright 2003-2007 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2003-2007 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2025 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_NEBSTRUCTS_HH
 #define CCE_NEBSTRUCTS_HH
 
 #include "com/centreon/engine/comment.hh"
 
-/* Acknowledgement structure. */
-typedef struct nebstruct_acknowledgement_struct {
-  int type;
-  acknowledgement_resource_type acknowledgement_type;
-  uint64_t host_id;
-  uint64_t service_id;
-  int state;
-  const char* author_name;
-  const char* comment_data;
-  int is_sticky;
-  int persistent_comment;
-  int notify_contacts;
-} nebstruct_acknowledgement_data;
-
-/* Adaptive severity data structure. */
-typedef struct nebstruct_adaptive_severity_data_struct {
-  int type;
-  void* object_ptr;
-} nebstruct_adaptive_severity_data;
-
-/* Adaptive tag data structure. */
-typedef struct nebstruct_adaptive_tag_data_struct {
-  int type;
-  void* object_ptr;
-} nebstruct_adaptive_tag_data;
-
 /* Adaptive dependency data structure. */
 typedef struct nebstruct_adaptive_dependency_data_struct {
   int type;
   void* object_ptr;
 } nebstruct_adaptive_dependency_data;
-
-/* Adaptive host data structure. */
-typedef struct nebstruct_adaptive_host_data_struct {
-  int type;
-  int flags;
-  int attr;
-  unsigned long modified_attribute;
-  void* object_ptr;
-} nebstruct_adaptive_host_data;
-
-/* Adaptive service data structure. */
-typedef struct nebstruct_adaptive_service_data_struct {
-  int type;
-  int flags;
-  int attr;
-  unsigned long modified_attribute;
-  void* object_ptr;
-} nebstruct_adaptive_service_data;
 
 /* Comment data structure. */
 typedef struct nebstruct_comment_struct {
