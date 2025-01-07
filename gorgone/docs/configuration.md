@@ -100,6 +100,22 @@ configuration:
       proxy_name: proxy
 ```
 
+## *centreon vault*
+
+Centreon Vault is a tool that secures the passwords present in the Centreon configuration.\
+
+It stores passwords in a vault and retrieves them when needed by each component.\
+
+Gorgone allows you to use a vault to store any string in the configuration. It cannot store an array or a hash.
+
+
+To use Vault, read the official documentation to set up Vault and the configuration file in `/var/lib/centreon/vault/vault.json`\
+
+Then replace any password present in the Gorgone configuration with a Vault string. See the official format here : 
+
+
+https://github.com/centreon/centreon-collect/blob/develop/perl-libs/lib/centreon/common/centreonvault.pm#L391
+
 ## *modules*
 
 See the *configuration* titles of the modules documentations listed [here](../docs/modules.md).

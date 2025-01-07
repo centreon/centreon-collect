@@ -228,7 +228,8 @@ native_check_cpu<nb_metric>::native_check_cpu(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -237,7 +238,8 @@ native_check_cpu<nb_metric>::native_check_cpu(
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
 
       _nb_core(std::thread::hardware_concurrency()),
       _cpu_detailed(false),
@@ -293,9 +295,6 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
     });
   }
 }
-
-constexpr std::array<std::string_view, 4> _sz_status = {
-    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
 
 /**
  * @brief called at measure timer expiration
@@ -379,7 +378,7 @@ e_status native_check_cpu<nb_metric>::_compute(
         } else {
           output->push_back(' ');
         }
-        *output += _sz_status[cpu_status.second];
+        *output += status_label[cpu_status.second];
         delta[cpu_status.first].dump(cpu_status.first, summary_labels, output);
       }
     }

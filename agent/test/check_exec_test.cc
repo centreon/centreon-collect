@@ -17,12 +17,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <memory>
+#include "check.hh"
 
 #include "check_exec.hh"
 
 using namespace com::centreon::agent;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define ECHO_PATH "tests\\echo.bat"
 #define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
@@ -59,7 +61,8 @@ TEST(check_exec_test, echo) {
           outputs = output;
         }
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -86,7 +89,8 @@ TEST(check_exec_test, timeout) {
         status = statuss;
         outputs = output;
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   int pid = check->get_pid();
@@ -101,7 +105,7 @@ TEST(check_exec_test, timeout) {
   ASSERT_GT(pid, 0);
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-#ifdef _WINDOWS
+#ifdef _WIN32
   auto process_handle =
       OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
   ASSERT_NE(process_handle, nullptr);
@@ -137,14 +141,15 @@ TEST(check_exec_test, bad_command) {
         SPDLOG_INFO("end of {}", command_line);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
   cond.wait(l);
   ASSERT_EQ(status, 3);
   ASSERT_EQ(outputs.size(), 1);
-#ifdef _WINDOWS
+#ifdef _WIN32
   // message is language dependant
   ASSERT_GE(outputs.begin()->size(), 20);
 #else
@@ -170,7 +175,8 @@ TEST(check_exec_test, recurse_not_lock) {
           caller->start_check(std::chrono::seconds(1));
         } else
           cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::mutex mut;

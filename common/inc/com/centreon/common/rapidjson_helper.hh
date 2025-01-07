@@ -244,6 +244,9 @@ class rapidjson_helper {
       return (member->value.*original_getter)();
     }
     if (member->value.IsString()) {
+      if (!*member->value.GetString()) {
+        return default_value;
+      }
       return_type ret;
       if (!simple_ato(member->value.GetString(), &ret)) {
         throw exceptions::msg_fmt("field {} is not a {} string", field_name,

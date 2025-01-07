@@ -49,6 +49,16 @@ TEST(string_check_utf8, cp1252) {
 }
 
 /*
+ * Given a string encoded in CP-1252
+ * Then the check_string_utf8 function converts it to UTF-8.
+ */
+TEST(string_check_utf8, cp1252_bis) {
+  std::string txt("Service de plateforme des appareils connect\xe9s");
+  ASSERT_EQ(check_string_utf8(txt),
+            "Service de plateforme des appareils connectés");
+}
+
+/*
  * Given a string encoded in ISO-8859-15
  * Then the check_string_utf8 function converts it to UTF-8.
  */

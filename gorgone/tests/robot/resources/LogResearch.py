@@ -129,7 +129,7 @@ def ctn_find_in_log(log: str, date, content, regex=False):
 
 
 def ctn_extract_date_from_log(line: str):
-    p = re.compile(r"(^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})")
+    p = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})")
     m = p.match(line)
     if m is None:
         return None
