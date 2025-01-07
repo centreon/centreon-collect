@@ -512,7 +512,7 @@ bool state_helper::apply_extended_conf(
  * @param pb_config The protobuf configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void state_helper::expand_conf(configuration::error_cnt& err) {
+void state_helper::expand(configuration::error_cnt& err) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
 
   absl::flat_hash_map<std::string, configuration::Host> m_host;
