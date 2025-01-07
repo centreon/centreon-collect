@@ -324,4 +324,41 @@ bool host_helper::insert_customvariable(std::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
+
+/**
+ * @brief Expand the hosts.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void host_helper::_expand_hosts(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all hosts.
+  for (auto& host_cfg : *s.mutable_hosts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *host_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+
+    for (auto& grp : host_cfg.hostgroups().data()) {
+      auto it = hgs.find(grp);
+      if (it != hgs.end()) {
+        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
+      } else {
+        err.config_errors++;
+        throw msg_fmt(
+            "Could not add host '{}' to non-existing host group '{}'\n",
+            host_cfg.host_name(), grp);
+      }
+    }
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

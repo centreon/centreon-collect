@@ -38,7 +38,7 @@ class state_helper : public message_helper {
                            const rapidjson::Document& json_doc,
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
-  void expand();
+  void expand_conf(configuration::error_cnt& err);
   static void diff(const State& old_state,
                    const State& new_state,
                    const std::shared_ptr<spdlog::logger>& logger,

@@ -34,6 +34,20 @@ class servicegroup_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+  static void _expand_servicegroups(
+      configuration::State& s,
+      configuration::error_cnt& err,
+      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+          m_servicegroups);
+
+ private:
+  static void _resolve_members(
+      configuration::State& s,
+      configuration::Servicegroup* sg_conf,
+      absl::flat_hash_set<std::string_view>& resolved,
+      const absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+          sg_by_name,
+      configuration::error_cnt& err);
 };
 }  // namespace com::centreon::engine::configuration
 

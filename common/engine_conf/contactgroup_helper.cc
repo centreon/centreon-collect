@@ -80,4 +80,53 @@ void contactgroup_helper::_init() {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
   obj->mutable_obj()->set_register_(true);
 }
+
+/**
+ * @brief Expand the contactgroups.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void contactgroup_helper::_expand_contactgroups(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+        m_contactgroups) {
+  absl::flat_hash_set<std::string_view> resolved;
+
+  for (auto& cg : *s.mutable_contactgroups())
+    _resolve_members(s, cg, resolved, err, m_contactgroups);
+}
+void contactgroup_helper::_resolve_members(
+    configuration::State& s,
+    configuration::Contactgroup& obj,
+    absl::flat_hash_set<std::string_view>& resolved,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+        m_contactgroups) {
+  if (resolved.contains(obj.contactgroup_name()))
+    return;
+
+  resolved.emplace(obj.contactgroup_name());
+  if (!obj.contactgroup_members().data().empty()) {
+    for (auto& cg_name : obj.contactgroup_members().data()) {
+      auto it = m_contactgroups.find(cg_name);
+
+      if (it == m_contactgroups.end()) {
+        err.config_errors++;
+        throw msg_fmt(
+            "Error: Could not add non-existing contact group member '{}' to "
+            "contactgroup '{}'",
+            cg_name, obj.contactgroup_name());
+      }
+
+      Contactgroup& inner_cg = *it->second;
+      _resolve_members(s, inner_cg, resolved, err, m_contactgroups);
+      for (auto& c_name : inner_cg.members().data())
+        fill_string_group(obj.mutable_members(), c_name);
+    }
+    obj.mutable_contactgroup_members()->clear_data();
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

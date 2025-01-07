@@ -1684,7 +1684,7 @@ void stream::_load_state(engine::configuration::State* const state,
     logger->info("Unable to parse the configuration '{}': {}",
                  (dir / "centengine.test").string(), e.what());
   }
-  new_state_hlp.expand();
+  new_state_hlp.expand_conf(err);
 }
 
 /**

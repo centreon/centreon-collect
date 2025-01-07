@@ -23,8 +23,17 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/anomalydetection_helper.hh"
+#include "common/engine_conf/contact_helper.hh"
+#include "common/engine_conf/contactgroup_helper.hh"
+#include "common/engine_conf/host_helper.hh"
+#include "common/engine_conf/hostdependency_helper.hh"
+#include "common/engine_conf/hostescalation_helper.hh"
+#include "common/engine_conf/service_helper.hh"
+#include "common/engine_conf/servicedependency_helper.hh"
+#include "common/engine_conf/serviceescalation_helper.hh"
+#include "common/engine_conf/servicegroup_helper.hh"
 #include "common/engine_conf/tag_helper.hh"
-#include "severity_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
 using ::google::protobuf::Descriptor;
@@ -500,26 +509,60 @@ bool state_helper::apply_extended_conf(
 }
 
 /**
- * @brief In Engine, the configuration::applier::state resolves many things on
- * configuration objects. On Broker side, we don't have it yet. So this is why
- * we have this helper to resolve some things on the State object, for example:
- * - host_id on services
+ * @brief Expand configuration objects.
  *
+ * @param pb_config The protobuf configuration state to expand.
+ * @param err The error count object to update in case of errors.
  */
-void state_helper::expand() {
-  State* pb_config = static_cast<State*>(mut_obj());
-  // In configuration files, host_id are not set to services. So we need to set
-  // them later.
-  absl::flat_hash_map<std::string, uint64_t> hosts;
+void state_helper::expand_conf(configuration::error_cnt& err) {
+  configuration::State& pb_config = *static_cast<State*>(mut_obj());
 
-  for (const auto& h : pb_config->hosts()) {
-    hosts[h.host_name()] = h.host_id();
+  absl::flat_hash_map<std::string, configuration::Host> m_host;
+  for (auto& h : pb_config.hosts()) {
+    m_host.emplace(h.host_name(), h);
   }
-  for (auto& s : *pb_config->mutable_services()) {
-    auto found = hosts.find(s.host_name());
-    if (found != hosts.end())
-      s.set_host_id(found->second);
+
+  absl::flat_hash_map<std::string, configuration::Contactgroup*>
+      m_contactgroups;
+  for (auto& cg : *pb_config.mutable_contactgroups()) {
+    m_contactgroups.emplace(cg.contactgroup_name(), &cg);
   }
+
+  absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
+  for (auto& hg : *pb_config.mutable_hostgroups()) {
+    m_hostgroups.emplace(hg.hostgroup_name(), &hg);
+  }
+
+  absl::flat_hash_map<std::string, configuration::Servicegroup*>
+      m_servicegroups;
+  for (auto& sg : *pb_config.mutable_servicegroups())
+    m_servicegroups.emplace(sg.servicegroup_name(), &sg);
+
+  // Expand contacts
+  contact_helper::_expand_contacts(pb_config, err, m_contactgroups);
+  // Expand contactgroups
+  contactgroup_helper::_expand_contactgroups(pb_config, err, m_contactgroups);
+  // Expand hosts
+  host_helper::_expand_hosts(pb_config, err, m_hostgroups);
+  // Expand services
+  service_helper::_expand_services(pb_config, err, m_host, m_servicegroups);
+  // Expand anomalydetection
+  anomalydetection_helper::_expand_anomalydetections(pb_config, err);
+
+  // Expand servicegroups
+  servicegroup_helper::_expand_servicegroups(pb_config, err, m_servicegroups);
+
+  // Expand hostdependencies.
+  hostdependency_helper::_expand_hostdependencies(pb_config, err, m_hostgroups);
+  // Expand servicedependencies.
+  servicedependency_helper::_expand_servicedependencies(
+      pb_config, err, m_hostgroups, m_servicegroups);
+
+  // Expand hostescalations
+  hostescalation_helper::_expand_hostescalations(pb_config, err, m_hostgroups);
+  // Expand serviceescalations
+  serviceescalation_helper::_expand_serviceescalations(
+      pb_config, err, m_hostgroups, m_servicegroups);
 }
 
 /**
