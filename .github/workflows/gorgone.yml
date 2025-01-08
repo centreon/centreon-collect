@@ -6,6 +6,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      unit_tests:
+        description: 'Execute the unit tests'
+        required: true
+        default: true
+        type: boolean
   pull_request:
     types:
       - opened
@@ -274,7 +280,7 @@ jobs:
 
   deliver-rpm:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package]
+    needs: [get-environment, test-gorgone]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
@@ -304,7 +310,7 @@ jobs:
 
   deliver-deb:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package]
+    needs: [get-environment, test-gorgone]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
