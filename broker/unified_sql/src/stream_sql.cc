@@ -1766,7 +1766,7 @@ void stream::_process_pb_instance_configuration(
       engine::configuration::parser p;
       try {
         p.parse(poller_dir / "centengine.cfg", &state, err);
-        state_hlp.resolve(&state);
+        state_hlp.expand(err);
 
         if (_store_in_hosts_services) {
           if (!_eh_update) {

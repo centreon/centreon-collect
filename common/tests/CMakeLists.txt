@@ -20,6 +20,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
     crypto/base64.cc
+    engine_conf/expand_conf.cc
+    file_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -29,7 +31,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
-    file_test.cc
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
@@ -41,8 +42,12 @@ else()
     ${TESTS_SOURCES})
 endif()
 
+set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")                   
+
 target_compile_definitions(
-  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test")
+  ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
+  -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
+  )
 
 set_target_properties(
   ut_common
@@ -70,6 +75,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
+            engine_conf
             ctncrypto
             centreon_http
             centreon_process

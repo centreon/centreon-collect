@@ -19,7 +19,6 @@
 #include "common/engine_conf/severity_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
