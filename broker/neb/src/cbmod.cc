@@ -50,9 +50,7 @@ class cbmodimpl {
 cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)},
       _impl{new cbmodimpl},
-      _proto_conf{proto_conf},
-      _use_protobuf{
-          config::applier::state::instance().get_bbdo_version().major_v > 2} {
+      _proto_conf{proto_conf} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
   com::centreon::broker::config::state s{p.parse(config_file)};
@@ -67,6 +65,8 @@ cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
   s.mut_log_conf().allow_only_atomic_changes(true);
   com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
                                                s);
+  _use_protobuf =
+      config::applier::state::instance().get_bbdo_version().major_v > 2;
   try {
     log_v2::instance().apply(s.log_conf());
   } catch (const std::exception& e) {
