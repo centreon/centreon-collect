@@ -331,22 +331,12 @@ bool host_helper::insert_customvariable(std::string_view key,
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void host_helper::_expand_hosts(
+void host_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
   // Browse all hosts.
   for (auto& host_cfg : *s.mutable_hosts()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *host_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
     for (auto& grp : host_cfg.hostgroups().data()) {
       auto it = hgs.find(grp);
       if (it != hgs.end()) {

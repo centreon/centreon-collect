@@ -252,6 +252,8 @@ class message_helper {
         retval = std::make_unique<state_helper>(
             static_cast<const state_helper&>(other));
         break;
+      default:
+        break;
     }
     retval->_obj = obj;
     return retval;

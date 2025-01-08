@@ -22,8 +22,6 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-#include "common/engine_conf/anomalydetection_helper.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -537,30 +535,68 @@ void state_helper::expand(configuration::error_cnt& err) {
     m_servicegroups.emplace(sg.servicegroup_name(), &sg);
 
   // Expand contacts
-  contact_helper::_expand_contacts(pb_config, err, m_contactgroups);
+  contact_helper::expand(pb_config, err, m_contactgroups);
   // Expand contactgroups
-  contactgroup_helper::_expand_contactgroups(pb_config, err, m_contactgroups);
+  contactgroup_helper::expand(pb_config, err, m_contactgroups);
   // Expand hosts
-  host_helper::_expand_hosts(pb_config, err, m_hostgroups);
+  host_helper::expand(pb_config, err, m_hostgroups);
   // Expand services
-  service_helper::_expand_services(pb_config, err, m_host, m_servicegroups);
-  // Expand anomalydetection
-  anomalydetection_helper::_expand_anomalydetections(pb_config, err);
+  service_helper::expand(pb_config, err, m_host, m_servicegroups);
 
   // Expand servicegroups
-  servicegroup_helper::_expand_servicegroups(pb_config, err, m_servicegroups);
+  servicegroup_helper::expand(pb_config, err, m_servicegroups);
 
   // Expand hostdependencies.
-  hostdependency_helper::_expand_hostdependencies(pb_config, err, m_hostgroups);
+  hostdependency_helper::expand(pb_config, err, m_hostgroups);
   // Expand servicedependencies.
-  servicedependency_helper::_expand_servicedependencies(
-      pb_config, err, m_hostgroups, m_servicegroups);
+  servicedependency_helper::expand(pb_config, err, m_hostgroups,
+                                   m_servicegroups);
 
   // Expand hostescalations
-  hostescalation_helper::_expand_hostescalations(pb_config, err, m_hostgroups);
+  hostescalation_helper::expand(pb_config, err, m_hostgroups);
   // Expand serviceescalations
-  serviceescalation_helper::_expand_serviceescalations(
-      pb_config, err, m_hostgroups, m_servicegroups);
+  serviceescalation_helper::expand(pb_config, err, m_hostgroups,
+                                   m_servicegroups);
+  // Expand custom variables
+  state_helper::_expand_cv(pb_config);
 }
 
+void state_helper::_expand_cv(configuration::State& s) {
+  absl::flat_hash_set<std::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all anomalydetections.
+  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *ad_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+  // Browse all contacts.
+  for (auto& c : *s.mutable_contacts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *c.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+  // Browse all hosts.
+  for (auto& host_cfg : *s.mutable_hosts()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *host_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+  // Browse all services.
+  for (auto& service_cfg : *s.mutable_services()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *service_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+  }
+}
 }  // namespace com::centreon::engine::configuration

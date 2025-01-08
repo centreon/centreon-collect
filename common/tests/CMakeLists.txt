@@ -20,6 +20,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
     crypto/base64.cc
+    engine_conf/expand_conf.cc
+    file_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -29,8 +31,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     utf8_test.cc
-    file_test.cc
-    engine_conf/expand_conf.cc
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
@@ -75,7 +75,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
-            cce_core
+            engine_conf
             ctncrypto
             centreon_http
             centreon_process
@@ -123,5 +123,3 @@ set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(ut_common PRIVATE
                           ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
-                          
-

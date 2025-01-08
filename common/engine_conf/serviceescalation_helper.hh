@@ -36,7 +36,7 @@ class serviceescalation_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
-  static void _expand_serviceescalations(
+  static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
       absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,

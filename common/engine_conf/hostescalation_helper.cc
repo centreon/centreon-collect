@@ -143,7 +143,7 @@ void hostescalation_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void hostescalation_helper::_expand_hostescalations(
+void hostescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {

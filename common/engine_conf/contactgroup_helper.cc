@@ -87,7 +87,7 @@ void contactgroup_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void contactgroup_helper::_expand_contactgroups(
+void contactgroup_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Contactgroup*>&
@@ -97,6 +97,25 @@ void contactgroup_helper::_expand_contactgroups(
   for (auto& cg : *s.mutable_contactgroups())
     _resolve_members(s, cg, resolved, err, m_contactgroups);
 }
+
+/**
+ * @brief Resolves the members of a contact group by recursively processing its
+ * member groups.
+ *
+ * This function ensures that all members of a contact group, including those in
+ * nested groups, are resolved and added to the contact group's member list. It
+ * also handles errors when a non-existing contact group member is encountered.
+ *
+ * @param s The current configuration state.
+ * @param obj The contact group object whose members are to be resolved.
+ * @param resolved A set of already resolved contact group names to avoid
+ * circular dependencies.
+ * @param err A structure to count configuration errors.
+ * @param m_contactgroups A map of contact group names to their corresponding
+ * contact group objects.
+ *
+ * @throws msg_fmt If a non-existing contact group member is encountered.
+ */
 void contactgroup_helper::_resolve_members(
     configuration::State& s,
     configuration::Contactgroup& obj,

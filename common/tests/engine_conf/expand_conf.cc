@@ -24,17 +24,10 @@
 #include <rapidjson/writer.h>
 #include <filesystem>
 
-#include "common/engine_conf/anomalydetection_helper.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/state_helper.hh"
 
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/contactgroup_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostescalation_helper.hh"
-#include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 #define CONFIG_PATH "./tests/config0/"
@@ -86,7 +79,7 @@ TEST_F(Pb_Expand, host) {
   for (auto& hg : *pb_config.mutable_hostgroups()) {
     m_hostgroups.emplace(hg.hostgroup_name(), &hg);
   }
-  host_helper::_expand_hosts(pb_config, err, m_hostgroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -227,7 +220,7 @@ TEST_F(Pb_Expand, service) {
   for (auto& sg : *pb_config.mutable_servicegroups())
     m_servicegroups.emplace(sg.servicegroup_name(), &sg);
 
-  service_helper::_expand_services(pb_config, err, m_host, m_servicegroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -373,7 +366,7 @@ TEST_F(Pb_Expand, contact) {
     m_contactgroups[cg.contactgroup_name()] = &cg;
   }
 
-  contact_helper::_expand_contacts(pb_config, err, m_contactgroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -426,7 +419,8 @@ TEST_F(Pb_Expand, contact) {
        doc1["contactgroups"][0]["members"]["data"].GetArray()) {
     if (item.GetString() == std::string("John_Doe") ||
         item.GetString() == std::string("U2") ||
-        item.GetString() == std::string("U3")) {
+        item.GetString() == std::string("U3") ||
+        item.GetString() == std::string("U4")) {
       found = true;
     } else {
       found = false;
@@ -449,7 +443,7 @@ TEST_F(Pb_Expand, contactgroup) {
   for (auto& cg : *pb_config.mutable_contactgroups()) {
     m_contactgroups[cg.contactgroup_name()] = &cg;
   }
-  contactgroup_helper::_expand_contactgroups(pb_config, err, m_contactgroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -486,7 +480,8 @@ TEST_F(Pb_Expand, contactgroup) {
   bool found = false;
   for (const auto& item :
        doc1["contactgroups"][0]["members"]["data"].GetArray()) {
-    if (item.GetString() == std::string("U2") ||
+    if (item.GetString() == std::string("John_Doe") ||
+        item.GetString() == std::string("U2") ||
         item.GetString() == std::string("U3") ||
         item.GetString() == std::string("U4")) {
       found = true;
@@ -517,8 +512,7 @@ TEST_F(Pb_Expand, serviceescalation) {
   for (auto& sg : *pb_config.mutable_servicegroups())
     m_servicegroups.emplace(sg.servicegroup_name(), &sg);
 
-  serviceescalation_helper::_expand_serviceescalations(
-      pb_config, err, m_hostgroups, m_servicegroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -591,7 +585,7 @@ TEST_F(Pb_Expand, hostescalation) {
   for (auto& hg : *pb_config.mutable_hostgroups()) {
     m_hostgroups.emplace(hg.hostgroup_name(), &hg);
   }
-  hostescalation_helper::_expand_hostescalations(pb_config, err, m_hostgroups);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;
@@ -642,7 +636,7 @@ TEST_F(Pb_Expand, anomalydetection) {
   configuration::parser p;
 
   p.parse("/tmp/etc/centreon-engine/config0/centengine.cfg", &pb_config, err);
-  anomalydetection_helper::_expand_anomalydetections(pb_config, err);
+  state_hlp.expand(err);
 
   google::protobuf::util::JsonPrintOptions options;
   options.always_print_primitive_fields = true;

@@ -203,7 +203,7 @@ void servicedependency_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void servicedependency_helper::_expand_servicedependencies(
+void servicedependency_helper::expand(
     State& s,
     error_cnt& err [[maybe_unused]],
     absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,

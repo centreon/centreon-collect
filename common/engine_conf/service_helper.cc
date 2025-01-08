@@ -283,24 +283,13 @@ bool service_helper::insert_customvariable(std::string_view key,
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void service_helper::_expand_services(
+void service_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Host> m_host,
     absl::flat_hash_map<std::string, configuration::Servicegroup*> sgs) {
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
   // Browse all services.
   for (auto& service_cfg : *s.mutable_services()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *service_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
     // Browse service groups.
     for (auto& sg_name : service_cfg.servicegroups().data()) {
       // Find service group.

@@ -22,7 +22,6 @@
 #include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
-using fmt::format;
 
 namespace com::centreon::engine::configuration {
 
@@ -86,7 +85,7 @@ void servicegroup_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void servicegroup_helper::_expand_servicegroups(
+void servicegroup_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Servicegroup*>&
@@ -144,5 +143,4 @@ void servicegroup_helper::_resolve_members(
   sg_conf->clear_servicegroup_members();
   resolved.emplace(sg_conf->servicegroup_name());
 }
-
 }  // namespace com::centreon::engine::configuration

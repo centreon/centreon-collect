@@ -28,6 +28,7 @@ namespace com::centreon::engine::configuration {
 
 class state_helper : public message_helper {
   void _init();
+  static void _expand_cv(configuration::State& s);
 
  public:
   state_helper(State* obj);

@@ -169,7 +169,7 @@ void hostdependency_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void hostdependency_helper::_expand_hostdependencies(
+void hostdependency_helper::expand(
     State& s,
     error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {

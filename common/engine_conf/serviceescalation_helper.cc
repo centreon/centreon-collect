@@ -158,7 +158,7 @@ void serviceescalation_helper::_init() {
  * @param s The configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void serviceescalation_helper::_expand_serviceescalations(
+void serviceescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
     absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
