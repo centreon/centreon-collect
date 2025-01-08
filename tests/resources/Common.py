@@ -2022,3 +2022,20 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
     logger.console(f"unexpected result: {result}")
     return False
 
+
+def ctn_get_nb_process(exe:str):
+    """
+    ctn_get_nb_process
+
+    get the number of process with a specific executable
+    Args:
+        exe: executable to search
+    Returns: number of process
+    """
+
+    counter = 0
+
+    for p in psutil.process_iter():
+        if exe in p.name() or exe in ' '.join(p.cmdline()):
+            counter += 1
+    return counter

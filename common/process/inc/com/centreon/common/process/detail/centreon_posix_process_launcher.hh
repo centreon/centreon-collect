@@ -189,6 +189,10 @@ struct centreon_posix_default_launcher {
         BOOST_PROCESS_V2_ASSIGN_EC(ec, child_error, system_category())
 
       if (ec) {
+        if (pid > 0) {
+          ::kill(pid, SIGKILL);
+          ::waitpid(pid, nullptr, 0);
+        }
         detail::on_error(*this, executable, argv, ec, inits...);
         return basic_process<Executor>{exec};
       }
