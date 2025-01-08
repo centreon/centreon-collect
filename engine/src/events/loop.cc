@@ -544,10 +544,6 @@ void loop::_dispatching() {
       _sleep_event.run_time = current_time;
       _sleep_event.event_data = (void*)&stime;
 
-      // Send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_SLEEP, NEBFLAG_NONE, NEBATTR_NONE,
-                         &_sleep_event, nullptr);
-
       auto t2 = std::chrono::system_clock::now();
       auto laps = t2 - t1;
       if (laps < delay) {
@@ -966,9 +962,6 @@ void loop::remove_downtime(uint64_t downtime_id) {
     if ((*it)->event_type != timed_event::EVENT_SCHEDULED_DOWNTIME)
       continue;
     if (((uint64_t)(*it)->event_data) == downtime_id) {
-      // send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                         it->get(), nullptr);
       _event_list_high.erase(it);
       break;
     }
@@ -1114,11 +1107,6 @@ void loop::resort_event_list(loop::priority priority) {
                const std::unique_ptr<timed_event>& second) {
               return first->run_time < second->run_time;
             });
-
-  // send event data to broker.
-  for (auto& evt : *list)
-    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                       evt.get(), nullptr);
 }
 
 /**

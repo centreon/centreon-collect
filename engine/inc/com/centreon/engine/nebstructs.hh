@@ -119,22 +119,6 @@ typedef struct nebstruct_process_struct {
   int flags;
 } nebstruct_process_data;
 
-/* Program status structure. */
-typedef struct nebstruct_program_status_struct {
-  time_t last_command_check;
-  int notifications_enabled;
-  int active_service_checks_enabled;
-  int passive_service_checks_enabled;
-  int active_host_checks_enabled;
-  int passive_host_checks_enabled;
-  int event_handlers_enabled;
-  int flap_detection_enabled;
-  int obsess_over_hosts;
-  int obsess_over_services;
-  std::string global_host_event_handler;
-  std::string global_service_event_handler;
-} nebstruct_program_status_data;
-
 /* Relation data structure. */
 typedef struct nebstruct_relation_struct {
   int type;

@@ -29,6 +29,7 @@
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
+#include "com/centreon/broker/neb/instance_status.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -4274,6 +4275,27 @@ static void send_instance_configuration() {
   }
 }
 
+static void send_initial_configuration() {
+  // if (config::applier::state::instance().broker_needs_update()) {
+  SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+  if (proto_conf.empty()) {
+    send_severity_list();
+  }
+  send_tag_list();
+  send_host_list<false>();
+  send_service_list<false>();
+  send_custom_variables_list<false>();
+  send_downtimes_list<false>();
+  send_host_parents_list<false>();
+  send_host_group_list<false>();
+  send_service_group_list<false>();
+  //    } else {
+  //      SPDLOG_LOGGER_INFO(_neb_logger,
+  //                         "init: No need to send poller configuration");
+  //  }
+  send_instance_configuration<false>();
+}
+
 static void send_initial_pb_configuration() {
   // if (config::applier::state::instance().broker_needs_update()) {
   SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
@@ -4330,7 +4352,10 @@ void broker_program_state(int type, int flags) {
       inst.set_start_time(start_time);
 
       cbm->write(inst_obj);
-      send_initial_pb_configuration();
+      if (cbm->use_protobuf())
+        send_initial_pb_configuration();
+      else
+        send_initial_configuration();
     } break;
     case NEBTYPE_PROCESS_DIFFSTATE: {
       // Output variable.
@@ -4341,7 +4366,10 @@ void broker_program_state(int type, int flags) {
 
       // Send initial event and then configuration.
       cbm->write(inst_obj);
-      send_initial_pb_configuration();
+      if (cbm->use_protobuf())
+        send_initial_pb_configuration();
+      else
+        send_initial_configuration();
     } break;
     // The code to apply is in broker/neb/src/callbacks.cc: 2459
     default:
@@ -4354,55 +4382,224 @@ void broker_program_state(int type, int flags) {
   neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);
 }
 
+static void forward_program_status(time_t last_command_check,
+                                   int notifications_enabled,
+                                   int active_service_checks_enabled,
+                                   int passive_service_checks_enabled,
+                                   int active_host_checks_enabled,
+                                   int passive_host_checks_enabled,
+                                   int event_handlers_enabled,
+                                   int flap_detection_enabled,
+                                   int obsess_over_hosts,
+                                   int obsess_over_services,
+                                   std::string global_host_event_handler,
+                                   std::string global_service_event_handler) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating instance status event");
+  try {
+    // In/Out variables.
+    auto is = std::make_shared<com::centreon::broker::neb::instance_status>();
+
+    // Fill output var.
+    is->poller_id = cbm->poller_id();
+    is->active_host_checks_enabled = active_host_checks_enabled;
+    is->active_service_checks_enabled = active_service_checks_enabled;
+    is->check_hosts_freshness = check_host_freshness;
+    is->check_services_freshness = check_service_freshness;
+    is->event_handler_enabled = event_handlers_enabled;
+    is->flap_detection_enabled = flap_detection_enabled;
+    if (!global_host_event_handler.empty())
+      is->global_host_event_handler =
+          common::check_string_utf8(global_host_event_handler);
+    if (!global_service_event_handler.empty())
+      is->global_service_event_handler =
+          common::check_string_utf8(global_service_event_handler);
+    is->last_alive = time(nullptr);
+    is->last_command_check = last_command_check;
+    is->notifications_enabled = notifications_enabled;
+    is->obsess_over_hosts = obsess_over_hosts;
+    is->obsess_over_services = obsess_over_services;
+    is->passive_host_checks_enabled = passive_host_checks_enabled;
+    is->passive_service_checks_enabled = passive_service_checks_enabled;
+
+    // Send event.
+    cbm->write(is);
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_program_status(
+    time_t last_command_check,
+    int notifications_enabled,
+    int active_service_checks_enabled,
+    int passive_service_checks_enabled,
+    int active_host_checks_enabled,
+    int passive_host_checks_enabled,
+    int event_handlers_enabled,
+    int flap_detection_enabled,
+    int obsess_over_hosts,
+    int obsess_over_services,
+    std::string global_host_event_handler,
+    std::string global_service_event_handler) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb instance status event");
+
+  // In/Out variables.
+  auto is_obj =
+      std::make_shared<com::centreon::broker::neb::pb_instance_status>();
+  com::centreon::broker::InstanceStatus& is = is_obj->mut_obj();
+
+  // Fill output var.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb instance status event "
+                      "global_service_event_handler={}",
+                      global_host_event_handler);
+
+  is.set_instance_id(cbm->poller_id());
+  is.set_active_host_checks(active_host_checks_enabled);
+  is.set_active_service_checks(active_service_checks_enabled);
+  is.set_check_hosts_freshness(check_host_freshness);
+  is.set_check_services_freshness(check_service_freshness);
+  is.set_event_handlers(event_handlers_enabled);
+  is.set_flap_detection(flap_detection_enabled);
+  if (!global_host_event_handler.empty())
+    is.set_global_host_event_handler(
+        common::check_string_utf8(global_host_event_handler));
+  if (!global_service_event_handler.empty())
+    is.set_global_service_event_handler(
+        common::check_string_utf8(global_service_event_handler));
+  is.set_last_alive(time(nullptr));
+  is.set_last_command_check(last_command_check);
+  is.set_notifications(notifications_enabled);
+  is.set_obsess_over_hosts(obsess_over_hosts);
+  is.set_obsess_over_services(obsess_over_services);
+  is.set_passive_host_checks(passive_host_checks_enabled);
+  is.set_passive_service_checks(passive_service_checks_enabled);
+
+  // Send event.
+  cbm->write(is_obj);
+}
+
 /**
  *  Sends program status updates to broker.
  */
 void broker_program_status() {
-#ifdef LEGACY_CONF
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_program_status_data ds;
-  ds.last_command_check = last_command_check;
-  ds.notifications_enabled = config->enable_notifications();
-  ds.active_service_checks_enabled = config->execute_service_checks();
-  ds.passive_service_checks_enabled = config->accept_passive_service_checks();
-  ds.active_host_checks_enabled = config->execute_host_checks();
-  ds.passive_host_checks_enabled = config->accept_passive_host_checks();
-  ds.event_handlers_enabled = config->enable_event_handlers();
-  ds.flap_detection_enabled = config->enable_flap_detection();
-  ds.obsess_over_hosts = config->obsess_over_hosts();
-  ds.obsess_over_services = config->obsess_over_services();
-  ds.global_host_event_handler = config->global_host_event_handler();
-  ds.global_service_event_handler = config->global_service_event_handler();
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
-#else
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
 
-  // Fill struct with relevant data.
-  nebstruct_program_status_data ds;
-  ds.last_command_check = last_command_check;
-  ds.notifications_enabled = pb_config.enable_notifications();
-  ds.active_service_checks_enabled = pb_config.execute_service_checks();
-  ds.passive_service_checks_enabled = pb_config.accept_passive_service_checks();
-  ds.active_host_checks_enabled = pb_config.execute_host_checks();
-  ds.passive_host_checks_enabled = pb_config.accept_passive_host_checks();
-  ds.event_handlers_enabled = pb_config.enable_event_handlers();
-  ds.flap_detection_enabled = pb_config.enable_flap_detection();
-  ds.obsess_over_hosts = pb_config.obsess_over_hosts();
-  ds.obsess_over_services = pb_config.obsess_over_services();
-  ds.global_host_event_handler = pb_config.global_host_event_handler();
-  ds.global_service_event_handler = pb_config.global_service_event_handler();
-
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
-#endif
+  if (cbm->use_protobuf())
+    forward_pb_program_status(
+        last_command_check, pb_config.enable_notifications(),
+        pb_config.execute_service_checks(),
+        pb_config.accept_passive_service_checks(),
+        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
+        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
+        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
+        pb_config.global_host_event_handler(),
+        pb_config.global_service_event_handler());
+  else
+    forward_program_status(
+        last_command_check, pb_config.enable_notifications(),
+        pb_config.execute_service_checks(),
+        pb_config.accept_passive_service_checks(),
+        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
+        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
+        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
+        pb_config.global_host_event_handler(),
+        pb_config.global_service_event_handler());
+}
+
+static void forward_relation(int type,
+                             const engine::host* hst,
+                             const engine::service* svc,
+                             const engine::host* dep_hst,
+                             const engine::service* dep_svc) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst && !svc && !dep_svc) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent =
+              std::make_shared<com::centreon::broker::neb::host_parent>();
+          new_host_parent->enabled = type != NEBTYPE_PARENT_DELETE;
+          new_host_parent->host_id = host_id;
+          new_host_parent->parent_id = parent_id;
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger, "callbacks: host {} is parent of host {}",
+              new_host_parent->parent_id, new_host_parent->host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+}
+
+/**
+ *  @brief Function that process relation data.
+ *
+ *  This function is called by Engine when some relation data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_RELATION_DATA).
+ *  @param[in] data          Pointer to a nebstruct_relation_data
+ *                           containing the relationship.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_relation(int type,
+                                const engine::host* hst,
+                                const engine::service* svc,
+                                const engine::host* dep_hst,
+                                const engine::service* dep_svc) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst && !svc && !dep_svc) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent{
+              std::make_shared<com::centreon::broker::neb::pb_host_parent>()};
+          new_host_parent->mut_obj().set_enabled(type != NEBTYPE_PARENT_DELETE);
+          new_host_parent->mut_obj().set_child_id(host_id);
+          new_host_parent->mut_obj().set_parent_id(parent_id);
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: pb host {} is parent of host {}",
+                              parent_id, host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
 }
 
 /**
@@ -4415,46 +4612,22 @@ void broker_program_status() {
  *  @param[in] dep_svc   Dependant service object (might be null).
  */
 void broker_relation_data(int type,
-                          host* hst,
-                          com::centreon::engine::service* svc,
-                          host* dep_hst,
-                          com::centreon::engine::service* dep_svc) {
+                          const engine::host* hst,
+                          const engine::service* svc,
+                          const engine::host* dep_hst,
+                          const engine::service* dep_svc) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_RELATION_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_RELATION_DATA))
     return;
-#endif
   if (!hst || !dep_hst)
     return;
 
-  // Fill struct with relevant data.
-  nebstruct_relation_data ds;
-  ds.type = type;
-  ds.hst = hst;
-  ds.svc = svc;
-  ds.dep_hst = dep_hst;
-  ds.dep_svc = dep_svc;
-
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_RELATION_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_relation(type, hst, svc, dep_hst, dep_svc);
+  else
+    forward_relation(type, hst, svc, dep_hst, dep_svc);
 }
-
-/**
- *  Brokers retention data.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] timestamp Timestamp.
- */
-void broker_retention_data(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
 
 /**
  *  Send service check data to broker.
@@ -4528,79 +4701,6 @@ void broker_service_status(int type,
 }
 
 /**
- *  Send state change data to broker.
- *
- *  @param[in] type             Type.
- *  @param[in] flags            Flags.
- *  @param[in] attr             Attributes.
- *  @param[in] statechange_type State change type.
- *  @param[in] data             Data.
- *  @param[in] state            State.
- *  @param[in] state_type       State type.
- *  @param[in] current_attempt  Current attempt.
- *  @param[in] max_attempts     Max attempts.
- *  @param[in] timestamp        Timestamp.
- */
-void broker_statechange_data(int type __attribute__((unused)),
-                             int flags __attribute__((unused)),
-                             int attr __attribute__((unused)),
-                             int statechange_type __attribute__((unused)),
-                             void* data __attribute__((unused)),
-                             int state __attribute__((unused)),
-                             int state_type __attribute__((unused)),
-                             int current_attempt __attribute__((unused)),
-                             int max_attempts __attribute__((unused)),
-                             struct timeval const* timestamp
-                             __attribute__((unused))) {}
-
-/**
- *  Send system command data to broker.
- *
- *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
- *  @param[in] cmd           Command.
- *  @param[in] output        Output.
- *  @param[in] timestamp     Timestamp.
- */
-void broker_system_command(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval start_time __attribute__((unused)),
-                           struct timeval end_time __attribute__((unused)),
-                           double exectime __attribute__((unused)),
-                           int timeout __attribute__((unused)),
-                           int early_timeout __attribute__((unused)),
-                           int retcode __attribute__((unused)),
-                           const char* cmd __attribute__((unused)),
-                           const char* output __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
-
-/**
- *  Send timed event data to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] event     Target event.
- *  @param[in] timestamp Timestamp.
- */
-void broker_timed_event(int type __attribute__((unused)),
-                        int flags __attribute__((unused)),
-                        int attr __attribute__((unused)),
-                        com::centreon::engine::timed_event* event
-                        __attribute__((unused)),
-                        struct timeval const* timestamp
-                        __attribute__((unused))) {}
-
-/**
  *  Gets timestamp for use by broker.
  *
  *  @param[in] timestamp Timestamp.
@@ -4611,7 +4711,7 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp) {
     gettimeofday(&tv, NULL);
   else
     tv = *timestamp;
-  return (tv);
+  return tv;
 }
 
 /**

@@ -82,12 +82,6 @@ int my_system_r(nagios_macros* mac,
   // time to start command.
   gettimeofday(&start_time, nullptr);
 
-  // send event broker.
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_time, end_time, *exectime, timeout,
-                        *early_timeout, service::state_ok,
-                        const_cast<char*>(cmd.c_str()), nullptr, nullptr);
-
   commands::raw raw_cmd("system", cmd);
   commands::result res;
   raw_cmd.run(cmd, *mac, timeout, res);
@@ -111,12 +105,6 @@ int my_system_r(nagios_macros* mac,
       commands_logger,
       "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
       *exectime, *early_timeout, result, output);
-
-  // send event broker.
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_time, end_time, *exectime, timeout,
-                        *early_timeout, result, const_cast<char*>(cmd.c_str()),
-                        const_cast<char*>(output.c_str()), nullptr);
 
   return result;
 }
