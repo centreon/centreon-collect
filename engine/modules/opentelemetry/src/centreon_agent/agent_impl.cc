@@ -57,14 +57,18 @@ agent_impl<bireactor_class>::agent_impl(
     const std::string_view class_name,
     const agent_config::pointer& conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    bool reversed,
+    const agent_stat::pointer& stats)
     : _io_context(io_context),
       _class_name(class_name),
+      _reversed(reversed),
       _conf(conf),
       _metric_handler(handler),
       _write_pending(false),
       _logger(logger),
-      _alive(true) {
+      _alive(true),
+      _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
@@ -76,6 +80,9 @@ agent_impl<bireactor_class>::agent_impl(
  */
 template <class bireactor_class>
 agent_impl<bireactor_class>::~agent_impl() {
+  if (_agent_info && _agent_info->has_init()) {
+    _stats->remove_agent(_agent_info->init(), _reversed, this);
+  }
   SPDLOG_LOGGER_DEBUG(_logger, "delete {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
@@ -216,6 +223,7 @@ void agent_impl<bireactor_class>::on_request(
       agent_conf = _conf;
       _last_sent_config.reset();
     }
+    _stats->add_agent(_agent_info->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
     calc_and_send_config_if_needed(agent_conf);
   }

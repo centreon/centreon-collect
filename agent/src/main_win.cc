@@ -17,6 +17,7 @@
  */
 #include <windows.h>
 
+#include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
@@ -31,6 +32,7 @@
 
 #include "config.hh"
 #include "drive_size.hh"
+#include "ntdll.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
 
@@ -220,15 +222,18 @@ int _main(bool service_start) {
     return -1;
   }
 
-  if (conf.use_reverse_connection()) {
-    _streaming_server = streaming_server::load(g_io_context, g_logger,
-                                               grpc_conf, conf.get_host());
-  } else {
-    _streaming_client = streaming_client::load(g_io_context, g_logger,
-                                               grpc_conf, conf.get_host());
-  }
-
   try {
+    load_nt_dll();
+    read_os_version();
+
+    if (conf.use_reverse_connection()) {
+      _streaming_server = streaming_server::load(g_io_context, g_logger,
+                                                 grpc_conf, conf.get_host());
+    } else {
+      _streaming_client = streaming_client::load(g_io_context, g_logger,
+                                                 grpc_conf, conf.get_host());
+    }
+
     g_io_context->run();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_CRITICAL(g_logger, "unhandled exception: {}", e.what());

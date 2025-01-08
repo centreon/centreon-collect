@@ -288,14 +288,16 @@ otl_server::otl_server(
     const grpc_config::pointer& conf,
     const centreon_agent::agent_config::pointer& agent_config,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    const centreon_agent::agent_stat::pointer& agent_stats)
 
     : common::grpc::grpc_server_base(conf, logger),
       _service(detail::metric_service::load(handler, logger)),
       _agent_service(centreon_agent::agent_service::load(io_context,
                                                          agent_config,
                                                          handler,
-                                                         logger)) {}
+                                                         logger,
+                                                         agent_stats)) {}
 
 /**
  * @brief Destroy the otl server::otl server object
@@ -317,9 +319,10 @@ otl_server::pointer otl_server::load(
     const grpc_config::pointer& conf,
     const centreon_agent::agent_config::pointer& agent_config,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger) {
-  otl_server::pointer ret(
-      new otl_server(io_context, conf, agent_config, handler, logger));
+    const std::shared_ptr<spdlog::logger>& logger,
+    const centreon_agent::agent_stat::pointer& agent_stats) {
+  otl_server::pointer ret(new otl_server(io_context, conf, agent_config,
+                                         handler, logger, agent_stats));
   ret->start();
   return ret;
 }

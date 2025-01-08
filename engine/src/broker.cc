@@ -1124,4 +1124,15 @@ void broker_bench(unsigned id,
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
 }
+
+/**
+ * @brief send agent usage statistics to broker
+ *
+ * @param stats
+ */
+void broker_agent_stats(nebstruct_agent_stats_data& stats) {
+  // Fill struct with relevant data.
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_AGENT_STATS, &stats);
+}
 }
