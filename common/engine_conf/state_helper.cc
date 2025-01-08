@@ -17,7 +17,6 @@
  *
  */
 #include "common/engine_conf/state_helper.hh"
-#include <fmt/format.h>
 #include <google/protobuf/descriptor.h>
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"

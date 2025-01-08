@@ -20,7 +20,6 @@
 #include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 #ifdef LEGACY_CONF
 #error host_helper should not be compiled in this context.

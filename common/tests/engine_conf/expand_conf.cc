@@ -19,10 +19,8 @@
 
 #include <google/protobuf/util/json_util.h>
 #include <gtest/gtest.h>
-#include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#include <filesystem>
 
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state.pb.h"

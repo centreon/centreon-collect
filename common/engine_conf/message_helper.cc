@@ -18,8 +18,6 @@
  */
 #include "common/engine_conf/message_helper.hh"
 
-#include <absl/strings/str_split.h>
-
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
 using ::google::protobuf::Reflection;
