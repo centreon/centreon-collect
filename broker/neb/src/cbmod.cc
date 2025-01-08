@@ -22,6 +22,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/nebstructs.hh"
@@ -105,13 +106,46 @@ bool cbmod::use_protobuf() const {
 
 void cbmod::add_acknowledgement(
     const std::shared_ptr<neb::acknowledgement>& ack) {
-  _acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = ack;
+  auto new_ack = std::make_shared<neb::pb_acknowledgement>();
+  auto& obj = new_ack->mut_obj();
+  obj.set_host_id(ack->host_id);
+  obj.set_service_id(ack->service_id);
+  obj.set_instance_id(ack->poller_id);
+  obj.set_type(
+      static_cast<Acknowledgement_ResourceType>(ack->acknowledgement_type));
+  obj.set_author(ack->author);
+  obj.set_comment_data(ack->comment);
+  obj.set_sticky(ack->is_sticky);
+  obj.set_notify_contacts(ack->notify_contacts);
+  obj.set_entry_time(ack->entry_time);
+  obj.set_deletion_time(ack->deletion_time);
+  obj.set_persistent_comment(ack->persistent_comment);
+  obj.set_state(ack->state);
+
+  _acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = new_ack;
 }
 
 void cbmod::add_acknowledgement(
     const std::shared_ptr<neb::pb_acknowledgement>& ack) {
-  Acknowledgement& obj = static_cast<Acknowledgement&>(ack->mut_obj());
+  const Acknowledgement& obj = static_cast<const Acknowledgement&>(ack->obj());
   _acknowledgements[std::make_pair(obj.host_id(), obj.service_id())] = ack;
 }
 
+std::shared_ptr<neb::pb_acknowledgement> cbmod::find_acknowledgement(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  auto it = _acknowledgements.find(std::make_pair(host_id, service_id));
+  if (it != _acknowledgements.end()) {
+    return it->second;
+  }
+  return nullptr;
+}
+
+void cbmod::remove_acknowledgement(uint64_t host_id, uint64_t service_id) {
+  _acknowledgements.erase(std::make_pair(host_id, service_id));
+}
+
+size_t cbmod::acknowledgements_count() const {
+  return _acknowledgements.size();
+}
 }  // namespace com::centreon::broker::neb

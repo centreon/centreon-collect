@@ -30,6 +30,7 @@
 #include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
@@ -2717,31 +2718,1144 @@ int broker_host_check(int type,
   return OK;
 }
 
+static void forward_host_status(const engine::host* hst,
+                                uint32_t attributes [[maybe_unused]]) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host status event");
+
+  try {
+    // In/Out variables.
+    auto host_status =
+        std::make_shared<com::centreon::broker::neb::host_status>();
+
+    // Fill output var.
+    host_status->acknowledged = hst->problem_has_been_acknowledged();
+    host_status->acknowledgement_type = hst->get_acknowledgement();
+    host_status->active_checks_enabled = hst->active_checks_enabled();
+    if (!hst->check_command().empty())
+      host_status->check_command =
+          common::check_string_utf8(hst->check_command());
+    host_status->check_interval = hst->check_interval();
+    if (!hst->check_period().empty())
+      host_status->check_period = hst->check_period();
+    host_status->check_type = hst->get_check_type();
+    host_status->current_check_attempt = hst->get_current_attempt();
+    host_status->current_state =
+        (hst->has_been_checked() ? hst->get_current_state()
+                                 : 4);  // Pending state.
+    host_status->downtime_depth = hst->get_scheduled_downtime_depth();
+    if (!hst->event_handler().empty())
+      host_status->event_handler =
+          common::check_string_utf8(hst->event_handler());
+    host_status->event_handler_enabled = hst->event_handler_enabled();
+    host_status->execution_time = hst->get_execution_time();
+    host_status->flap_detection_enabled = hst->flap_detection_enabled();
+    host_status->has_been_checked = hst->has_been_checked();
+    if (hst->name().empty())
+      throw exceptions::msg_fmt("unnamed host");
+    {
+      host_status->host_id = engine::get_host_id(hst->name());
+      if (host_status->host_id == 0)
+        throw exceptions::msg_fmt("could not find ID of host '{}'",
+                                  hst->name());
+    }
+    host_status->is_flapping = hst->get_is_flapping();
+    host_status->last_check = hst->get_last_check();
+    host_status->last_hard_state = hst->get_last_hard_state();
+    host_status->last_hard_state_change = hst->get_last_hard_state_change();
+    host_status->last_notification = hst->get_last_notification();
+    host_status->notification_number = hst->get_notification_number();
+    host_status->last_state_change = hst->get_last_state_change();
+    host_status->last_time_down = hst->get_last_time_down();
+    host_status->last_time_unreachable = hst->get_last_time_unreachable();
+    host_status->last_time_up = hst->get_last_time_up();
+    host_status->last_update = time(nullptr);
+    host_status->latency = hst->get_latency();
+    host_status->max_check_attempts = hst->max_check_attempts();
+    host_status->next_check = hst->get_next_check();
+    host_status->next_notification = hst->get_next_notification();
+    host_status->no_more_notifications = hst->get_no_more_notifications();
+    host_status->notifications_enabled = hst->get_notifications_enabled();
+    host_status->obsess_over = hst->obsess_over();
+    if (!hst->get_plugin_output().empty()) {
+      host_status->output = common::check_string_utf8(hst->get_plugin_output());
+      host_status->output.append("\n");
+    }
+    if (!hst->get_long_plugin_output().empty())
+      host_status->output.append(
+          common::check_string_utf8(hst->get_long_plugin_output()));
+    host_status->passive_checks_enabled = hst->passive_checks_enabled();
+    host_status->percent_state_change = hst->get_percent_state_change();
+    if (!hst->get_perf_data().empty())
+      host_status->perf_data = common::check_string_utf8(hst->get_perf_data());
+    host_status->retry_interval = hst->retry_interval();
+    host_status->should_be_scheduled = hst->get_should_be_scheduled();
+    host_status->state_type =
+        (hst->has_been_checked() ? hst->get_state_type()
+                                 : engine::notifier::hard);
+
+    // Send event(s).
+    cbm->write(host_status);
+
+    // Acknowledgement event.
+    auto ack = cbm->find_acknowledgement(host_status->host_id, 0u);
+    if (ack && !host_status->acknowledged) {
+      if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+            || (!ack->obj().sticky() &&
+                host_status->current_state !=
+                    static_cast<short>(ack->obj().state())))) {
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        cbm->write(ack);
+      }
+      cbm->remove_acknowledgement(host_status->host_id, 0u);
+    }
+    neb_logger->debug("Still {} running acknowledgements",
+                      cbm->acknowledgements_count());
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating host status event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_host_status(const host* hst,
+                                   uint32_t attributes) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      neb_logger,
+      "callbacks: generating pb host status check result event protobuf");
+
+  auto handle_acknowledgement = [](uint16_t state, auto& hscr) {
+    auto ack = cbm->find_acknowledgement(hscr.host_id(), 0u);
+    if (ack && hscr.acknowledgement_type() == AckType::NONE) {
+      neb_logger->debug("acknowledgement found on host {}", hscr.host_id());
+      if (!(!state  // !(OK or (normal ack and NOK))
+            || (!ack->obj().sticky() && state != ack->obj().state()))) {
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        cbm->write(ack);
+      }
+      cbm->remove_acknowledgement(hscr.host_id(), 0u);
+    }
+  };
+
+  uint16_t state =
+      hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.
+
+  if (attributes != engine::host::STATUS_ALL) {
+    auto h{std::make_shared<
+        com::centreon::broker::neb::pb_adaptive_host_status>()};
+    com::centreon::broker::AdaptiveHostStatus& host = h.get()->mut_obj();
+    if (attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
+      host.set_host_id(hst->host_id());
+      host.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
+    }
+    if (attributes & engine::host::STATUS_NOTIFICATION_NUMBER) {
+      host.set_host_id(hst->host_id());
+      host.set_notification_number(hst->get_notification_number());
+    }
+    if (attributes & engine::host::STATUS_ACKNOWLEDGEMENT) {
+      host.set_host_id(hst->host_id());
+      host.set_acknowledgement_type(hst->get_acknowledgement());
+    }
+    cbm->write(h);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, host);
+  } else {
+    auto h{std::make_shared<com::centreon::broker::neb::pb_host_status>()};
+    com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
+
+    hscr.set_host_id(hst->host_id());
+    if (hscr.host_id() == 0)
+      SPDLOG_LOGGER_ERROR(neb_logger, "could not find ID of host '{}'",
+                          hst->name());
+
+    hscr.set_acknowledgement_type(hst->get_acknowledgement());
+    hscr.set_check_type(
+        static_cast<com::centreon::broker::HostStatus_CheckType>(
+            hst->get_check_type()));
+    hscr.set_check_attempt(hst->get_current_attempt());
+    hscr.set_state(static_cast<com::centreon::broker::HostStatus_State>(state));
+    hscr.set_execution_time(hst->get_execution_time());
+    hscr.set_checked(hst->has_been_checked());
+    hscr.set_flapping(hst->get_is_flapping());
+    hscr.set_last_check(hst->get_last_check());
+    hscr.set_last_hard_state(
+        static_cast<com::centreon::broker::HostStatus_State>(
+            hst->get_last_hard_state()));
+    hscr.set_last_hard_state_change(hst->get_last_hard_state_change());
+    hscr.set_last_notification(hst->get_last_notification());
+    hscr.set_notification_number(hst->get_notification_number());
+    hscr.set_last_state_change(hst->get_last_state_change());
+    hscr.set_last_time_down(hst->get_last_time_down());
+    hscr.set_last_time_unreachable(hst->get_last_time_unreachable());
+    hscr.set_last_time_up(hst->get_last_time_up());
+    hscr.set_latency(hst->get_latency());
+    hscr.set_next_check(hst->get_next_check());
+    hscr.set_next_host_notification(hst->get_next_notification());
+    hscr.set_no_more_notifications(hst->get_no_more_notifications());
+    if (!hst->get_plugin_output().empty())
+      hscr.set_output(common::check_string_utf8(hst->get_plugin_output()));
+    if (!hst->get_long_plugin_output().empty())
+      hscr.set_output(common::check_string_utf8(hst->get_long_plugin_output()));
+
+    hscr.set_percent_state_change(hst->get_percent_state_change());
+    if (!hst->get_perf_data().empty())
+      hscr.set_perfdata(common::check_string_utf8(hst->get_perf_data()));
+    hscr.set_should_be_scheduled(hst->get_should_be_scheduled());
+    hscr.set_state_type(
+        static_cast<com::centreon::broker::HostStatus_StateType>(
+            hst->has_been_checked() ? hst->get_state_type()
+                                    : engine::notifier::hard));
+    hscr.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
+
+    // Send event(s).
+    cbm->write(h);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, hscr);
+  }
+  neb_logger->debug("Still {} running acknowledgements",
+                    cbm->acknowledgements_count());
+}
+
 /**
  *  Sends host status updates to broker.
  *
- *  @param[in] type      Type.
  *  @param[in] hst       Host.
  *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_host_status(int type, host* hst, uint32_t attributes) {
+void broker_host_status(const host* hst, uint32_t attributes) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_host_status_data ds;
-  ds.type = type;
-  ds.object_ptr = hst;
-  ds.attributes = attributes;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_HOST_STATUS_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_host_status(hst, attributes);
+  else
+    forward_host_status(hst, attributes);
+}
+
+#define test_fail(name)                                                \
+  if (ait == args.end()) {                                             \
+    neb_logger->error("Missing " name " in log message '{}'", output); \
+    return;                                                            \
+  }
+
+#define test_fail_and_not_empty(name)                                  \
+  if (ait == args.end()) {                                             \
+    neb_logger->error("Missing " name " in log message '{}'", output); \
+    return;                                                            \
+  }                                                                    \
+  if (ait->empty()) {                                                  \
+    return;                                                            \
+  }
+
+/**
+ * @brief Get the id of a log status.
+ *
+ * @param status A string corresponding to the state of the resource.
+ *
+ * @return A status code.
+ */
+static int status_id(const std::string_view& status) {
+  int retval;
+  if (status == "DOWN" || status == "WARNING")
+    retval = 1;
+  else if (status == "UNREACHABLE" || status == "CRITICAL")
+    retval = 2;
+  else if (status == "UNKNOWN")
+    retval = 3;
+  else if (status == "PENDING")
+    retval = 4;
+  else
+    retval = 0;
+  return retval;
+}
+
+/**
+ *  Get the id of a log type.
+ */
+static com::centreon::broker::LogEntry_LogType type_id(
+    const std::string_view& type) {
+  com::centreon::broker::LogEntry_LogType id;
+  if (type == "HARD")
+    id = com::centreon::broker::LogEntry_LogType_HARD;
+  else
+    id = com::centreon::broker::LogEntry_LogType_SOFT;
+  return id;
+}
+
+/**
+ *  Get the notification status of a log.
+ */
+static int notification_status_id(const std::string_view& status) {
+  int retval;
+  size_t pos_start = status.find_first_of('(');
+  if (pos_start != std::string::npos) {
+    size_t pos_end = status.find_first_of(')', pos_start);
+    std::string_view nstatus = status.substr(pos_start, pos_end - pos_start);
+    retval = status_id(nstatus);
+  } else
+    retval = status_id(status);
+  return retval;
+}
+
+/**
+ *  Extract Nagios-formated log data to the C++ object.
+ *
+ *  Return true on success.
+ */
+static void set_log_data(com::centreon::broker::neb::log_entry& le,
+                         const std::string& output) {
+  /**
+   * @brief The only goal of this internal class is to fill host_id and
+   * service_id when destructor is called ie on each returns
+   * macro used in this function can do a return false
+   *
+   */
+  class fill_obj_on_exit {
+    com::centreon::broker::neb::log_entry& _to_fill;
+
+   public:
+    fill_obj_on_exit(com::centreon::broker::neb::log_entry& to_fill)
+        : _to_fill(to_fill) {}
+    ~fill_obj_on_exit() {
+      if (!_to_fill.host_name.empty()) {
+        _to_fill.host_id = engine::get_host_id(_to_fill.host_name);
+        if (!_to_fill.service_description.empty()) {
+          _to_fill.service_id = engine::get_service_id(
+              _to_fill.host_name, _to_fill.service_description);
+        }
+      }
+    }
+  };
+
+  // try to fill host_id and service_id whereever function exits
+  fill_obj_on_exit on_exit_executor(le);
+
+  // First part is the log description.
+  auto s = absl::StrSplit(output, absl::MaxSplits(':', 1));
+  auto it = s.begin();
+  auto typ = *it;
+  ++it;
+  auto lasts = *it;
+  lasts = absl::StripLeadingAsciiWhitespace(lasts);
+  auto args = absl::StrSplit(lasts, ';');
+  auto ait = args.begin();
+
+  if (typ == "SERVICE ALERT") {
+    le.msg_type = com::centreon::broker::LogEntry_MsgType_SERVICE_ALERT;
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("service description");
+    le.service_description = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "HOST ALERT") {
+    le.msg_type = com::centreon::broker::neb::log_entry::host_alert;
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "SERVICE NOTIFICATION") {
+    le.msg_type = com::centreon::broker::neb::log_entry::service_notification;
+
+    test_fail("notification contact");
+    le.notification_contact = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("service description");
+    le.service_description = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = notification_status_id(*ait);
+    ++ait;
+
+    test_fail("notification command");
+    le.notification_cmd = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "HOST NOTIFICATION") {
+    le.msg_type = com::centreon::broker::neb::log_entry::host_notification;
+
+    test_fail("notification contact");
+    le.notification_contact = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = notification_status_id(*ait);
+    ++ait;
+
+    test_fail("notification command");
+    le.notification_cmd = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "INITIAL HOST STATE") {
+    le.msg_type = com::centreon::broker::neb::log_entry::host_initial_state;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = notification_status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "INITIAL SERVICE STATE") {
+    le.msg_type = com::centreon::broker::neb::log_entry::service_initial_state;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("service description");
+    le.service_description = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "EXTERNAL COMMAND") {
+    test_fail("acknowledge type");
+    auto& data = *ait;
+    ++ait;
+    if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
+      le.msg_type =
+          com::centreon::broker::neb::log_entry::service_acknowledge_problem;
+      test_fail("host name");
+      le.host_name = {ait->data(), ait->size()};
+      ++ait;
+
+      test_fail("service description");
+      le.service_description = {ait->data(), ait->size()};
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le.notification_contact = {ait->data(), ait->size()};
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le.output = {ait->data(), ait->size()};
+    } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
+      le.msg_type =
+          com::centreon::broker::neb::log_entry::host_acknowledge_problem;
+
+      test_fail("host name");
+      le.host_name = {ait->data(), ait->size()};
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le.notification_contact = {ait->data(), ait->size()};
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le.output = {ait->data(), ait->size()};
+    } else {
+      le.msg_type = com::centreon::broker::neb::log_entry::other;
+      le.output = {output};
+    }
+  } else if (typ == "HOST EVENT HANDLER") {
+    le.msg_type = com::centreon::broker::neb::log_entry::host_event_handler;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "SERVICE EVENT HANDLER") {
+    le.msg_type = com::centreon::broker::neb::log_entry::service_event_handler;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("service description");
+    le.service_description = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "GLOBAL HOST EVENT HANDLER") {
+    le.msg_type =
+        com::centreon::broker::neb::log_entry::global_host_event_handler;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
+    le.msg_type =
+        com::centreon::broker::neb::log_entry::global_service_event_handler;
+
+    test_fail("host name");
+    le.host_name = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("service description");
+    le.service_description = {ait->data(), ait->size()};
+    ++ait;
+
+    test_fail("status");
+    le.status = status_id(*ait);
+    ++ait;
+
+    test_fail("log type");
+    le.log_type = type_id(*ait);
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le.retry = retry;
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le.output = {ait->data(), ait->size()};
+  } else if (typ == "Warning") {
+    le.msg_type = com::centreon::broker::neb::log_entry::warning;
+    le.output = {lasts.data(), lasts.size()};
+  } else {
+    le.msg_type = com::centreon::broker::neb::log_entry::other;
+    le.output = output;
+  }
+}
+
+/**
+ *  Extract Nagios-formated log data to the C++ object.
+ *
+ *  Return true on success.
+ */
+static void set_pb_log_data(com::centreon::broker::neb::pb_log_entry& le,
+                            const std::string& output) {
+  auto& le_obj = le.mut_obj();
+
+  /**
+   * @brief The only goal of this internal class is to fill host_id and
+   * service_id when destructor is called ie on each returns
+   * macro used in this function can do a return false
+   *
+   */
+  class fill_obj_on_exit {
+    com::centreon::broker::LogEntry& _to_fill;
+
+   public:
+    fill_obj_on_exit(com::centreon::broker::LogEntry& to_fill)
+        : _to_fill(to_fill) {}
+    ~fill_obj_on_exit() {
+      if (!_to_fill.host_name().empty()) {
+        _to_fill.set_host_id(engine::get_host_id(_to_fill.host_name()));
+        if (!_to_fill.service_description().empty()) {
+          _to_fill.set_service_id(engine::get_service_id(
+              _to_fill.host_name(), _to_fill.service_description()));
+        }
+      }
+    }
+  };
+
+  // try to fill host_id and service_id whereever function exits
+  fill_obj_on_exit on_exit_executor(le_obj);
+
+  // First part is the log description.
+  auto s = absl::StrSplit(output, absl::MaxSplits(':', 1));
+  auto it = s.begin();
+  auto typ = *it;
+  ++it;
+  auto lasts = *it;
+  lasts = absl::StripLeadingAsciiWhitespace(lasts);
+  auto args = absl::StrSplit(lasts, ';');
+  auto ait = args.begin();
+
+  if (typ == "SERVICE ALERT") {
+    le_obj.set_msg_type(com::centreon::broker::LogEntry_MsgType_SERVICE_ALERT);
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "HOST ALERT") {
+    le_obj.set_msg_type(com::centreon::broker::LogEntry_MsgType_HOST_ALERT);
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "SERVICE NOTIFICATION") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_SERVICE_NOTIFICATION);
+
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "HOST NOTIFICATION") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_HOST_NOTIFICATION);
+
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "INITIAL HOST STATE") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_HOST_INITIAL_STATE);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "INITIAL SERVICE STATE") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_SERVICE_INITIAL_STATE);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "EXTERNAL COMMAND") {
+    test_fail("acknowledge type");
+    auto& data = *ait;
+    ++ait;
+    if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
+      le_obj.set_msg_type(
+          com::centreon::broker::LogEntry_MsgType_SERVICE_ACKNOWLEDGE_PROBLEM);
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
+      ++ait;
+
+      test_fail("service description");
+      le_obj.set_service_description(ait->data(), ait->size());
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le_obj.set_output(ait->data(), ait->size());
+    } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
+      le_obj.set_msg_type(
+          com::centreon::broker::LogEntry_MsgType_HOST_ACKNOWLEDGE_PROBLEM);
+
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le_obj.set_output(ait->data(), ait->size());
+    } else {
+      le_obj.set_msg_type(com::centreon::broker::LogEntry_MsgType_OTHER);
+      le_obj.set_output(output);
+    }
+  } else if (typ == "HOST EVENT HANDLER") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_HOST_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "SERVICE EVENT HANDLER") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_SERVICE_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "GLOBAL HOST EVENT HANDLER") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_GLOBAL_HOST_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
+    le_obj.set_msg_type(
+        com::centreon::broker::LogEntry_MsgType_GLOBAL_SERVICE_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      neb_logger->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "Warning") {
+    le_obj.set_msg_type(com::centreon::broker::LogEntry_MsgType_WARNING);
+    le_obj.set_output(lasts.data(), lasts.size());
+  } else {
+    le_obj.set_msg_type(com::centreon::broker::LogEntry_MsgType_OTHER);
+    le_obj.set_output(output);
+  }
+}
+
+/**
+ *  @brief Function that process log data.
+ *
+ *  This function is called by Nagios when some log data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_LOG_DATA).
+ *  @param[in] data          A pointer to a nebstruct_log_data containing the
+ *                           log data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_log(const char* data, time_t entry_time) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating log event");
+
+  try {
+    // In/Out variables.
+    auto le = std::make_shared<com::centreon::broker::neb::log_entry>();
+
+    // Fill output var.
+    le->c_time = entry_time;
+    le->poller_name = cbm->poller_name();
+    if (data) {
+      le->output = common::check_string_utf8(data);
+      set_log_data(*le, le->output.c_str());
+    }
+
+    // Send event.
+    cbm->write(le);
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+/**
+ *  @brief Function that process log data.
+ *
+ *  This function is called by Nagios when some log data are available.
+ *
+ *  @param[in] callback_type Type of the callback (NEBCALLBACK_LOG_DATA).
+ *  @param[in] data          A pointer to a nebstruct_log_data containing the
+ *                           log data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_log(const char* data, time_t entry_time) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+
+  try {
+    // In/Out variables.
+    auto le{std::make_shared<com::centreon::broker::neb::pb_log_entry>()};
+    auto& le_obj = le->mut_obj();
+
+    le_obj.set_ctime(entry_time);
+    le_obj.set_instance_name(cbm->poller_name());
+    if (data) {
+      std::string output = common::check_string_utf8(data);
+      le_obj.set_output(output);
+      set_pb_log_data(*le, output);
+    }
+    // Send event.
+    cbm->write(le);
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
 }
 
 /**
@@ -2750,60 +3864,17 @@ void broker_host_status(int type, host* hst, uint32_t attributes) {
  *  @param[in] data       Log entry.
  *  @param[in] entry_time Entry time.
  */
-void broker_log_data(char* data, time_t entry_time) {
+void broker_log_data(const char* data, time_t entry_time) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
-      !config->log_legacy_enabled())
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
       !pb_config.log_legacy_enabled())
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_log_data ds;
-  ds.entry_time = entry_time;
-  ds.data = data;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_LOG_DATA, &ds);
-}
-
-/**
- *  Send notification data to broker.
- *
- *  @param[in] type              Type.
- *  @param[in] flags             Flags.
- *  @param[in] attr              Attributes.
- *  @param[in] notification_type Notification type.
- *  @param[in] reason_type       Reason type.
- *  @param[in] start_time        Start time.
- *  @param[in] end_time          End time.
- *  @param[in] data              Data.
- *  @param[in] ack_author        Acknowledgement author.
- *  @param[in] ack_data          Acknowledgement data.
- *  @param[in] escalated         Is notification escalated ?
- *  @param[in] contacts_notified Are contacts notified ?
- *  @param[in] timestamp         Timestamp.
- *
- *  @return Return value can override notification.
- */
-int broker_notification_data(int type [[maybe_unused]],
-                             int flags [[maybe_unused]],
-                             int attr [[maybe_unused]],
-                             unsigned int notification_type [[maybe_unused]],
-                             int reason_type [[maybe_unused]],
-                             struct timeval start_time [[maybe_unused]],
-                             struct timeval end_time [[maybe_unused]],
-                             void* data [[maybe_unused]],
-                             char const* ack_author [[maybe_unused]],
-                             char const* ack_data [[maybe_unused]],
-                             int escalated [[maybe_unused]],
-                             int contacts_notified [[maybe_unused]],
-                             struct timeval const* timestamp [[maybe_unused]]) {
-  return 0;
+  if (cbm->use_protobuf())
+    forward_pb_log(data, entry_time);
+  else
+    forward_log(data, entry_time);
 }
 
 /**
@@ -3183,7 +4254,8 @@ static void send_service_group_list() {
 template <bool proto>
 static void send_instance_configuration() {
   neb_logger->info(
-      "init: sending initial instance configuration loading event, poller id: "
+      "init: sending initial instance configuration loading event, poller "
+      "id: "
       "{}",
       cbm->poller_id());
   if constexpr (proto) {
