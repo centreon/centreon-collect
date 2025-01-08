@@ -110,6 +110,11 @@ class mysql_error {
     delete_resources_tags = 74,
     clean_resources = 75,
     delete_poller = 76,
+    update_hosts_enabled = 77,
+    update_services_enabled = 78,
+    update_hosts_resources_enabled = 79,
+    update_services_resources_enabled = 80,
+    insert_update_agent_information = 81
   };
 
   static constexpr const char* msg[]{
@@ -191,7 +196,11 @@ class mysql_error {
       "could not delete entry in resources_tags table: ",
       "could not clean the resources table: ",
       "could not delete poller: ",
-  };
+      "could not update the enabled flag in hosts table: ",
+      "could not update the enabled flag in services table: ",
+      "could not update the enabled flag in resources table for host: ",
+      "could not update the enabled flag in resources table for service: ",
+      "could not insert or update agent_information table: "};
 
   mysql_error() : _active(false) {}
   mysql_error(mysql_error const& other) = delete;
