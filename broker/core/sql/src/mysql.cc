@@ -17,6 +17,7 @@
  */
 
 #include <absl/strings/str_split.h>
+#include <boost/stacktrace.hpp>
 
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -269,6 +270,14 @@ int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
  * @param stmt The statement to prepare.
  */
 void mysql::prepare_statement(const mysql_stmt_base& stmt) {
+  // FIXME DBO: this code is just to debug a problem with an empty query.
+  auto q = absl::StripAsciiWhitespace(stmt.get_query());
+  if (q.empty()) {
+    std::stringstream ss;
+    ss << boost::stacktrace::stacktrace();
+    _logger->error("mysql: empty query in statement to prepare: {}", ss.str());
+    throw msg_fmt("prepare_statement with empty query");
+  }
   _check_errors();
   for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
            it(_connection.begin()),
@@ -290,6 +299,14 @@ void mysql::prepare_statement(const mysql_stmt_base& stmt) {
  */
 mysql_stmt mysql::prepare_query(std::string const& query,
                                 mysql_bind_mapping const& bind_mapping) {
+  // FIXME DBO: this code is just to debug a problem with an empty query.
+  auto q = absl::StripAsciiWhitespace(query);
+  if (q.empty()) {
+    std::stringstream ss;
+    ss << boost::stacktrace::stacktrace();
+    _logger->error("mysql: empty query to prepare: {}", ss.str());
+    throw msg_fmt("prepare_statement with empty query");
+  }
   mysql_stmt retval(query, bind_mapping);
   prepare_statement(retval);
 
