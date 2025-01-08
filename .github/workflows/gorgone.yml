@@ -6,12 +6,6 @@ concurrency:
 
 on:
   workflow_dispatch:
-    inputs:
-      unit_tests:
-        description: 'Execute the unit tests'
-        required: true
-        default: true
-        type: boolean
   pull_request:
     types:
       - opened
