@@ -53,7 +53,7 @@ class agent_impl
   std::shared_ptr<agent::MessageToAgent> _last_sent_config
       ABSL_GUARDED_BY(_protect);
 
-  static std::set<std::shared_ptr<agent_impl>> _instances
+  static std::set<std::shared_ptr<agent_impl>>* _instances
       ABSL_GUARDED_BY(_instances_m);
   static absl::Mutex _instances_m;
 

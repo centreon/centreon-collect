@@ -164,7 +164,8 @@ int main(int argc, char* argv[]) {
 
   g_logger->flush_on(spdlog::level::warn);
 
-  spdlog::flush_every(std::chrono::seconds(1));
+  // don't use it because spdlog mutex would hang child process
+  // spdlog::flush_every(std::chrono::seconds(1));
 
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
