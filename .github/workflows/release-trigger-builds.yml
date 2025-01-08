@@ -8,7 +8,7 @@ on:
         description: "Cloud release branch to trigger"
         required: true
       dispatch_content:
-        description: "Regular (only centreon named components) or Full (every component, including php and extra libs)"
+        description: "Regular (only centreon named components) or Full (every component, including docker builders, php and extra libs)"
         required: true
         type: choice
         options:
@@ -48,8 +48,8 @@ jobs:
           #COMPONENTS_OSS_FULL=("awie" "dsm" "gorgone" "ha" "open-tickets" "web")
           #COMPONENTS_MODULES=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm")
           #COMPONENTS_MODULES_FULL=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm" "php-pecl-gnupg" "sourceguardian-loader")
-          COMPONENTS_COLLECT=("Centreon collect" "gorgone")
-          COMPONENTS_COLLECT_FULL=("Centreon collect" "gorgone")
+          COMPONENTS_COLLECT=("Centreon collect" "centreon-common" "gorgone" "Centreon Monitoring Agent Windows build and packaging")
+          COMPONENTS_COLLECT_FULL=("Centreon collect" "centreon-common" "gorgone" "Centreon Monitoring Agent Windows build and packaging" "docker-builder" "docker-gorgone-testing" "libzmq" "lua-curl")
           RUNS_URL=""
 
           # Accept release prefixed or develop branches, nothing else
@@ -62,7 +62,7 @@ jobs:
           fi
 
           if [[ "${{ inputs.dispatch_content }}" == "FULL" ]]; then
-            echo "Requested ${{ inputs.dispatch_content }} content, triggering all component workflows."
+            echo "Requested ${{ inputs.dispatch_content }} content, triggering all components and docker builders, php and extra libs."
             for COMPONENT in "${COMPONENTS_COLLECT_FULL[@]}"; do
               gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
