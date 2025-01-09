@@ -3,6 +3,7 @@
 gorgone/                       @centreon/owners-perl
 perl-libs/                     @centreon/owners-perl
 
+.version*                      @centreon/owners-pipelines
 .github/**                     @centreon/owners-pipelines
 **/packaging/**                @centreon/owners-pipelines
 selinux/**                     @centreon/owners-pipelines
