@@ -26,14 +26,13 @@
 #include "com/centreon/broker/neb/callback.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::neb {
 
-namespace neb {
 // Forward declaration.
 class acknowledgement;
 
 // Sender object.
-//extern multiplexing::publisher gl_publisher;
+// extern multiplexing::publisher gl_publisher;
 
 // Registered callbacks.
 extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
@@ -125,8 +124,6 @@ using pb_otl_metrics = io::protobuf<
     opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest,
     make_type(io::storage, storage::de_pb_otl_metrics)>;
 
-}  // namespace neb
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::neb
 
 #endif  // !CCB_NEB_INTERNAL_HH

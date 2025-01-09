@@ -19,6 +19,7 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 #include "bbdo/neb.pb.h"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
@@ -33,8 +34,10 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/common.hh"
@@ -49,6 +52,7 @@
 #include "com/centreon/engine/string.hh"
 #include "common.h"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::engine;
 using namespace com::centreon;
 
@@ -80,7 +84,7 @@ static void forward_acknowledgement(const char* author_name,
 
   try {
     // In/Out variables.
-    auto ack = std::make_shared<com::centreon::broker::neb::acknowledgement>();
+    auto ack = std::make_shared<neb::acknowledgement>();
 
     if constexpr (std::is_same_v<R, engine::service>) {
       ack->acknowledgement_type = short(acknowledgement_resource_type::SERVICE);
@@ -142,7 +146,7 @@ static void forward_pb_acknowledgement(const char* author_name,
                       "callbacks: generating pb acknowledgement event");
 
   // In/Out variables.
-  auto ack{std::make_shared<com::centreon::broker::neb::pb_acknowledgement>()};
+  auto ack{std::make_shared<neb::pb_acknowledgement>()};
   auto& ack_obj = ack->mut_obj();
 
   if constexpr (std::is_same_v<R, com::centreon::engine::service>) {
@@ -232,7 +236,7 @@ void broker_adaptive_severity_data(int type, engine::severity* es) {
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating protobuf severity event");
 
-  auto s{std::make_shared<com::centreon::broker::neb::pb_severity>()};
+  auto s{std::make_shared<neb::pb_severity>()};
   com::centreon::broker::Severity& sv = s.get()->mut_obj();
   switch (type) {
     case NEBTYPE_SEVERITY_ADD:
@@ -279,7 +283,7 @@ void broker_adaptive_tag_data(int type, engine::tag* et) {
   /* Make callbacks. */
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating protobuf tag event");
 
-  auto t{std::make_shared<com::centreon::broker::neb::pb_tag>()};
+  auto t{std::make_shared<neb::pb_tag>()};
   com::centreon::broker::Tag& tg = t.get()->mut_obj();
   switch (type) {
     case NEBTYPE_TAG_ADD:
@@ -339,7 +343,7 @@ static void forward_host(int type,
   // In/Out variables.
   if (flags & NEBATTR_BBDO3_ONLY)
     return;
-  auto my_host = std::make_shared<com::centreon::broker::neb::host>();
+  auto my_host = std::make_shared<neb::host>();
 
   // Set host parameters.
   my_host->acknowledged = h->problem_has_been_acknowledged();
@@ -481,9 +485,9 @@ static void forward_pb_host(int type,
 
   if (type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
       modified_attribute != MODATTR_ALL) {
-    std::shared_ptr<com::centreon::broker::neb::pb_adaptive_host> h;
+    std::shared_ptr<neb::pb_adaptive_host> h;
     // auto h =
-    // std::make_shared<com::centreon::broker::neb::pb_adaptive_host>();
+    // std::make_shared<neb::pb_adaptive_host>();
     auto& hst = h->mut_obj();
     if (modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
       hst.set_notify(eh->get_notifications_enabled());
@@ -533,7 +537,7 @@ static void forward_pb_host(int type,
                           "callbacks: host '{}' has no ID (yet) defined",
                           (!eh->name().empty() ? eh->name() : "(unknown)"));
   } else {
-    auto h = std::make_shared<com::centreon::broker::neb::pb_host>();
+    auto h = std::make_shared<neb::pb_host>();
     auto& host = h->mut_obj();
 
     // Set host parameters.
@@ -724,7 +728,7 @@ static void forward_service(int type,
     // In/Out variables.
     if (flags & NEBATTR_BBDO3_ONLY)
       return;
-    auto my_service{std::make_shared<com::centreon::broker::neb::service>()};
+    auto my_service{std::make_shared<neb::service>()};
 
     // Fill output var.
     my_service->acknowledged = s->problem_has_been_acknowledged();
@@ -937,7 +941,7 @@ static void forward_pb_service(int type,
                       modified_attribute);
   if (type == NEBTYPE_ADAPTIVESERVICE_UPDATE &&
       modified_attribute != MODATTR_ALL) {
-    auto s{std::make_shared<com::centreon::broker::neb::pb_adaptive_service>()};
+    auto s{std::make_shared<neb::pb_adaptive_service>()};
     bool done = false;
     com::centreon::broker::AdaptiveService& srv = s.get()->mut_obj();
     if (modified_attribute & MODATTR_NOTIFICATIONS_ENABLED) {
@@ -1023,7 +1027,7 @@ static void forward_pb_service(int type,
           !es->get_hostname().empty() ? es->get_hostname() : "(unknown)",
           !es->description().empty() ? es->description() : "(unknown)");
   } else {
-    auto s{std::make_shared<com::centreon::broker::neb::pb_service>()};
+    auto s{std::make_shared<neb::pb_service>()};
     com::centreon::broker::Service& srv = s.get()->mut_obj();
 
     // Fill output var.
@@ -1221,7 +1225,7 @@ static void forward_comment(int type,
 
   try {
     // In/Out variables.
-    auto comment{std::make_shared<com::centreon::broker::neb::comment>()};
+    auto comment{std::make_shared<neb::comment>()};
 
     // Fill output var.
     if (author_name)
@@ -1298,7 +1302,7 @@ static void forward_pb_comment(
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb comment event");
 
-  auto h{std::make_shared<com::centreon::broker::neb::pb_comment>()};
+  auto h{std::make_shared<neb::pb_comment>()};
   com::centreon::broker::Comment& comment = h.get()->mut_obj();
 
   // Fill output var.
@@ -1437,8 +1441,7 @@ static void forward_custom_variable(int type,
             // Fill custom variable event.
             uint64_t host_id = engine::get_host_id(object_ptr->name());
             if (host_id != 0) {
-              auto new_cvar = std::make_shared<
-                  com::centreon::broker::neb::custom_variable>();
+              auto new_cvar = std::make_shared<neb::custom_variable>();
               new_cvar->enabled = true;
               new_cvar->host_id = host_id;
               new_cvar->modified = false;
@@ -1466,8 +1469,7 @@ static void forward_custom_variable(int type,
           if (object_ptr && !object_ptr->name().empty()) {
             uint32_t host_id = engine::get_host_id(object_ptr->name());
             if (host_id != 0) {
-              auto old_cvar{std::make_shared<
-                  com::centreon::broker::neb::custom_variable>()};
+              auto old_cvar{std::make_shared<neb::custom_variable>()};
               old_cvar->enabled = false;
               old_cvar->host_id = host_id;
               old_cvar->name = common::check_string_utf8(var_name);
@@ -1501,8 +1503,7 @@ static void forward_custom_variable(int type,
             p = engine::get_host_and_service_id(object_ptr->get_hostname(),
                                                 object_ptr->description());
             if (p.first && p.second) {
-              auto new_cvar{std::make_shared<
-                  com::centreon::broker::neb::custom_variable>()};
+              auto new_cvar{std::make_shared<neb::custom_variable>()};
               new_cvar->enabled = true;
               new_cvar->host_id = p.first;
               new_cvar->modified = false;
@@ -1535,8 +1536,7 @@ static void forward_custom_variable(int type,
                 engine::get_host_and_service_id(object_ptr->get_hostname(),
                                                 object_ptr->description())};
             if (p.first && p.second) {
-              auto old_cvar{std::make_shared<
-                  com::centreon::broker::neb::custom_variable>()};
+              auto old_cvar{std::make_shared<neb::custom_variable>()};
               old_cvar->enabled = false;
               old_cvar->host_id = p.first;
               old_cvar->modified = true;
@@ -1580,8 +1580,8 @@ static void forward_pb_custom_variable(int type,
                       "callbacks: generating custom variable event {} value:{}",
                       var_name, var_value);
 
-  auto cv = std::make_shared<com::centreon::broker::neb::pb_custom_variable>();
-  com::centreon::broker::neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
+  auto cv = std::make_shared<neb::pb_custom_variable>();
+  neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
   bool ok_to_send = false;
   if (!var_name.empty() && !var_value.empty()) {
     // Host custom variable.
@@ -1742,7 +1742,7 @@ static void forward_downtime(int type,
 
   try {
     // In/Out variables.
-    auto downtime{std::make_shared<com::centreon::broker::neb::downtime>()};
+    auto downtime{std::make_shared<neb::downtime>()};
 
     // Fill output var.
     if (author_name)
@@ -1848,7 +1848,7 @@ static void forward_pb_downtime(int type,
     return;
 
   // In/Out variables.
-  auto d{std::make_shared<com::centreon::broker::neb::pb_downtime>()};
+  auto d{std::make_shared<neb::pb_downtime>()};
   com::centreon::broker::Downtime& downtime = d.get()->mut_obj();
 
   // Fill output var.
@@ -2010,8 +2010,7 @@ static void forward_external_command(int type,
           uint64_t host_id = engine::get_host_id(host);
           if (host_id != 0) {
             // Fill custom variable.
-            auto cvs = std::make_shared<
-                com::centreon::broker::neb::custom_variable_status>();
+            auto cvs = std::make_shared<neb::custom_variable_status>();
             cvs->host_id = host_id;
             cvs->modified = true;
             cvs->name = var_name;
@@ -2057,8 +2056,7 @@ static void forward_external_command(int type,
               engine::get_host_and_service_id(host, service)};
           if (p.first && p.second) {
             // Fill custom variable.
-            auto cvs{std::make_shared<
-                com::centreon::broker::neb::custom_variable_status>()};
+            auto cvs{std::make_shared<neb::custom_variable_status>()};
             cvs->host_id = p.first;
             cvs->modified = true;
             cvs->name = var_name;
@@ -2109,8 +2107,7 @@ static void forward_pb_external_command(int type,
           uint64_t host_id = engine::get_host_id(host);
           if (host_id != 0) {
             // Fill custom variable.
-            auto cvs = std::make_shared<
-                com::centreon::broker::neb::pb_custom_variable_status>();
+            auto cvs = std::make_shared<neb::pb_custom_variable_status>();
             com::centreon::broker::CustomVariable& data = cvs->mut_obj();
             data.set_host_id(host_id);
             data.set_modified(true);
@@ -2153,8 +2150,7 @@ static void forward_pb_external_command(int type,
               engine::get_host_and_service_id(host, service)};
           if (p.first && p.second) {
             // Fill custom variable.
-            auto cvs = std::make_shared<
-                com::centreon::broker::neb::pb_custom_variable_status>();
+            auto cvs = std::make_shared<neb::pb_custom_variable_status>();
             com::centreon::broker::CustomVariable& data = cvs->mut_obj();
             data.set_host_id(p.first);
             data.set_modified(true);
@@ -2224,7 +2220,7 @@ static void forward_group(int type, const G* group_data) {
     assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
            NEBTYPE_HOSTGROUP_DELETE == type);
     if (!group_data->get_group_name().empty()) {
-      auto new_hg = std::make_shared<com::centreon::broker::neb::host_group>();
+      auto new_hg = std::make_shared<neb::host_group>();
       new_hg->poller_id = cbm->poller_id();
       new_hg->id = group_data->get_id();
       new_hg->enabled =
@@ -2252,8 +2248,7 @@ static void forward_group(int type, const G* group_data) {
            NEBTYPE_SERVICEGROUP_UPDATE == type ||
            NEBTYPE_SERVICEGROUP_DELETE == type);
     if (!group_data->get_group_name().empty()) {
-      auto new_sg =
-          std::make_shared<com::centreon::broker::neb::service_group>();
+      auto new_sg = std::make_shared<neb::service_group>();
       new_sg->poller_id = cbm->poller_id();
       new_sg->id = group_data->get_id();
       new_sg->enabled =
@@ -2303,8 +2298,7 @@ static void forward_pb_group(int type, const G* group_data) {
         group_data->get_group_name(), group_data->get_id(), type);
 
     if (!group_data->get_group_name().empty()) {
-      auto new_hg{
-          std::make_shared<com::centreon::broker::neb::pb_host_group>()};
+      auto new_hg{std::make_shared<neb::pb_host_group>()};
       auto& obj = new_hg->mut_obj();
       obj.set_poller_id(cbm->poller_id());
       obj.set_hostgroup_id(group_data->get_id());
@@ -2345,8 +2339,7 @@ static void forward_pb_group(int type, const G* group_data) {
         group_data->get_group_name(), group_data->get_id(), type);
 
     if (!group_data->get_group_name().empty()) {
-      auto new_sg =
-          std::make_shared<com::centreon::broker::neb::pb_service_group>();
+      auto new_sg = std::make_shared<neb::pb_service_group>();
       auto& obj = new_sg->mut_obj();
       obj.set_poller_id(cbm->poller_id());
       obj.set_servicegroup_id(group_data->get_id());
@@ -2413,8 +2406,7 @@ static void forward_group_member(int type, R* object, G* group) {
            type == NEBTYPE_HOSTGROUPMEMBER_DELETE);
     if (!object->name().empty() && !group->get_group_name().empty()) {
       // Output variable.
-      auto hgm =
-          std::make_shared<com::centreon::broker::neb::host_group_member>();
+      auto hgm = std::make_shared<neb::host_group_member>();
       hgm->group_id = group->get_id();
       hgm->group_name = common::check_string_utf8(group->get_group_name());
       hgm->poller_id = cbm->poller_id();
@@ -2449,8 +2441,7 @@ static void forward_group_member(int type, R* object, G* group) {
     if (!object->description().empty() && !group->get_group_name().empty() &&
         !object->get_hostname().empty()) {
       // Output variable.
-      auto sgm{
-          std::make_shared<com::centreon::broker::neb::service_group_member>()};
+      auto sgm{std::make_shared<neb::service_group_member>()};
       sgm->group_id = group->get_id();
       sgm->group_name = common::check_string_utf8(group->get_group_name());
       sgm->poller_id = cbm->poller_id();
@@ -2507,8 +2498,7 @@ static void forward_pb_group_member(int type, const R* object, const G* group) {
            NEBTYPE_HOSTGROUPMEMBER_DELETE == type);
     if (!object->name().empty() && !group->get_group_name().empty()) {
       // Output variable.
-      auto hgmp{
-          std::make_shared<com::centreon::broker::neb::pb_host_group_member>()};
+      auto hgmp{std::make_shared<neb::pb_host_group_member>()};
       com::centreon::broker::HostGroupMember& hgm = hgmp->mut_obj();
       hgm.set_hostgroup_id(group->get_id());
       hgm.set_name(common::check_string_utf8(group->get_group_name()));
@@ -2546,8 +2536,7 @@ static void forward_pb_group_member(int type, const R* object, const G* group) {
     if (!object->description().empty() && !group->get_group_name().empty() &&
         !object->get_hostname().empty()) {
       // Output variable.
-      auto sgmp{std::make_shared<
-          com::centreon::broker::neb::pb_service_group_member>()};
+      auto sgmp{std::make_shared<neb::pb_service_group_member>()};
       com::centreon::broker::ServiceGroupMember& sgm = sgmp->mut_obj();
       sgm.set_servicegroup_id(group->get_id());
       sgm.set_name(common::check_string_utf8(group->get_group_name()));
@@ -2621,7 +2610,7 @@ static void forward_host_check(int type,
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
 
-  auto host_check = std::make_shared<com::centreon::broker::neb::host_check>();
+  auto host_check = std::make_shared<neb::host_check>();
 
   // Fill output var.
   if (cmdline) {
@@ -2668,8 +2657,7 @@ static void forward_pb_host_check(int type,
     SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
   }
 
-  auto host_check =
-      std::make_shared<com::centreon::broker::neb::pb_host_check>();
+  auto host_check = std::make_shared<neb::pb_host_check>();
 
   // Fill output var.
   if (cmdline) {
@@ -2726,8 +2714,7 @@ static void forward_host_status(const engine::host* hst,
 
   try {
     // In/Out variables.
-    auto host_status =
-        std::make_shared<com::centreon::broker::neb::host_status>();
+    auto host_status = std::make_shared<neb::host_status>();
 
     // Fill output var.
     host_status->acknowledged = hst->problem_has_been_acknowledged();
@@ -2847,8 +2834,7 @@ static void forward_pb_host_status(const host* hst,
       hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.
 
   if (attributes != engine::host::STATUS_ALL) {
-    auto h{std::make_shared<
-        com::centreon::broker::neb::pb_adaptive_host_status>()};
+    auto h{std::make_shared<neb::pb_adaptive_host_status>()};
     com::centreon::broker::AdaptiveHostStatus& host = h.get()->mut_obj();
     if (attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
       host.set_host_id(hst->host_id());
@@ -2867,7 +2853,7 @@ static void forward_pb_host_status(const host* hst,
     // Acknowledgement event.
     handle_acknowledgement(state, host);
   } else {
-    auto h{std::make_shared<com::centreon::broker::neb::pb_host_status>()};
+    auto h{std::make_shared<neb::pb_host_status>()};
     com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
 
     hscr.set_host_id(hst->host_id());
@@ -3012,8 +2998,7 @@ static int notification_status_id(const std::string_view& status) {
  *
  *  Return true on success.
  */
-static void set_log_data(com::centreon::broker::neb::log_entry& le,
-                         const std::string& output) {
+static void set_log_data(neb::log_entry& le, const std::string& output) {
   /**
    * @brief The only goal of this internal class is to fill host_id and
    * service_id when destructor is called ie on each returns
@@ -3021,11 +3006,10 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
    *
    */
   class fill_obj_on_exit {
-    com::centreon::broker::neb::log_entry& _to_fill;
+    neb::log_entry& _to_fill;
 
    public:
-    fill_obj_on_exit(com::centreon::broker::neb::log_entry& to_fill)
-        : _to_fill(to_fill) {}
+    fill_obj_on_exit(neb::log_entry& to_fill) : _to_fill(to_fill) {}
     ~fill_obj_on_exit() {
       if (!_to_fill.host_name.empty()) {
         _to_fill.host_id = engine::get_host_id(_to_fill.host_name);
@@ -3082,7 +3066,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "HOST ALERT") {
-    le.msg_type = com::centreon::broker::neb::log_entry::host_alert;
+    le.msg_type = neb::log_entry::host_alert;
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
     ++ait;
@@ -3109,7 +3093,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "SERVICE NOTIFICATION") {
-    le.msg_type = com::centreon::broker::neb::log_entry::service_notification;
+    le.msg_type = neb::log_entry::service_notification;
 
     test_fail("notification contact");
     le.notification_contact = {ait->data(), ait->size()};
@@ -3134,7 +3118,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "HOST NOTIFICATION") {
-    le.msg_type = com::centreon::broker::neb::log_entry::host_notification;
+    le.msg_type = neb::log_entry::host_notification;
 
     test_fail("notification contact");
     le.notification_contact = {ait->data(), ait->size()};
@@ -3155,7 +3139,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "INITIAL HOST STATE") {
-    le.msg_type = com::centreon::broker::neb::log_entry::host_initial_state;
+    le.msg_type = neb::log_entry::host_initial_state;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3183,7 +3167,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "INITIAL SERVICE STATE") {
-    le.msg_type = com::centreon::broker::neb::log_entry::service_initial_state;
+    le.msg_type = neb::log_entry::service_initial_state;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3219,8 +3203,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     auto& data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
-      le.msg_type =
-          com::centreon::broker::neb::log_entry::service_acknowledge_problem;
+      le.msg_type = neb::log_entry::service_acknowledge_problem;
       test_fail("host name");
       le.host_name = {ait->data(), ait->size()};
       ++ait;
@@ -3241,8 +3224,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
       test_fail_and_not_empty("output");
       le.output = {ait->data(), ait->size()};
     } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
-      le.msg_type =
-          com::centreon::broker::neb::log_entry::host_acknowledge_problem;
+      le.msg_type = neb::log_entry::host_acknowledge_problem;
 
       test_fail("host name");
       le.host_name = {ait->data(), ait->size()};
@@ -3260,11 +3242,11 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
       test_fail_and_not_empty("output");
       le.output = {ait->data(), ait->size()};
     } else {
-      le.msg_type = com::centreon::broker::neb::log_entry::other;
+      le.msg_type = neb::log_entry::other;
       le.output = {output};
     }
   } else if (typ == "HOST EVENT HANDLER") {
-    le.msg_type = com::centreon::broker::neb::log_entry::host_event_handler;
+    le.msg_type = neb::log_entry::host_event_handler;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3292,7 +3274,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "SERVICE EVENT HANDLER") {
-    le.msg_type = com::centreon::broker::neb::log_entry::service_event_handler;
+    le.msg_type = neb::log_entry::service_event_handler;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3324,8 +3306,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "GLOBAL HOST EVENT HANDLER") {
-    le.msg_type =
-        com::centreon::broker::neb::log_entry::global_host_event_handler;
+    le.msg_type = neb::log_entry::global_host_event_handler;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3353,8 +3334,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
-    le.msg_type =
-        com::centreon::broker::neb::log_entry::global_service_event_handler;
+    le.msg_type = neb::log_entry::global_service_event_handler;
 
     test_fail("host name");
     le.host_name = {ait->data(), ait->size()};
@@ -3386,10 +3366,10 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
     test_fail_and_not_empty("output");
     le.output = {ait->data(), ait->size()};
   } else if (typ == "Warning") {
-    le.msg_type = com::centreon::broker::neb::log_entry::warning;
+    le.msg_type = neb::log_entry::warning;
     le.output = {lasts.data(), lasts.size()};
   } else {
-    le.msg_type = com::centreon::broker::neb::log_entry::other;
+    le.msg_type = neb::log_entry::other;
     le.output = output;
   }
 }
@@ -3399,8 +3379,7 @@ static void set_log_data(com::centreon::broker::neb::log_entry& le,
  *
  *  Return true on success.
  */
-static void set_pb_log_data(com::centreon::broker::neb::pb_log_entry& le,
-                            const std::string& output) {
+static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   auto& le_obj = le.mut_obj();
 
   /**
@@ -3806,7 +3785,7 @@ static void forward_log(const char* data, time_t entry_time) {
 
   try {
     // In/Out variables.
-    auto le = std::make_shared<com::centreon::broker::neb::log_entry>();
+    auto le = std::make_shared<neb::log_entry>();
 
     // Fill output var.
     le->c_time = entry_time;
@@ -3841,7 +3820,7 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 
   try {
     // In/Out variables.
-    auto le{std::make_shared<com::centreon::broker::neb::pb_log_entry>()};
+    auto le{std::make_shared<neb::pb_log_entry>()};
     auto& le_obj = le->mut_obj();
 
     le_obj.set_ctime(entry_time);
@@ -3943,8 +3922,7 @@ static void forward_host_parent(nebstruct_relation_data* relation) {
       int parent_id = relation->hst->host_id();
       if (host_id && parent_id) {
         // Generate parent event.
-        auto new_host_parent{
-            std::make_shared<com::centreon::broker::neb::host_parent>()};
+        auto new_host_parent{std::make_shared<neb::host_parent>()};
         new_host_parent->enabled = (relation->type != NEBTYPE_PARENT_DELETE);
         new_host_parent->host_id = host_id;
         new_host_parent->parent_id = parent_id;
@@ -3986,8 +3964,7 @@ static void forward_pb_host_parent(nebstruct_relation_data* relation) {
       int parent_id = relation->hst->host_id();
       if (host_id && parent_id) {
         // Generate parent event.
-        auto new_host_parent{
-            std::make_shared<com::centreon::broker::neb::pb_host_parent>()};
+        auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
         new_host_parent->mut_obj().set_enabled(relation->type !=
                                                NEBTYPE_PARENT_DELETE);
         new_host_parent->mut_obj().set_child_id(host_id);
@@ -4260,15 +4237,13 @@ static void send_instance_configuration() {
       "{}",
       cbm->poller_id());
   if constexpr (proto) {
-    auto ic = std::make_shared<
-        com::centreon::broker::neb::pb_instance_configuration>();
+    auto ic = std::make_shared<neb::pb_instance_configuration>();
     auto& obj = ic->mut_obj();
     obj.set_loaded(true);
     obj.set_poller_id(cbm->poller_id());
     cbm->write(ic);
   } else {
-    auto ic =
-        std::make_shared<com::centreon::broker::neb::instance_configuration>();
+    auto ic = std::make_shared<neb::instance_configuration>();
     ic->loaded = true;
     ic->poller_id = cbm->poller_id();
     cbm->write(ic);
@@ -4336,7 +4311,7 @@ void broker_program_state(int type, int flags) {
   ds.type = type;
   ds.flags = flags;
 
-  auto inst_obj = std::make_shared<com::centreon::broker::neb::pb_instance>();
+  auto inst_obj = std::make_shared<neb::pb_instance>();
   com::centreon::broker::Instance& inst = inst_obj->mut_obj();
   inst.set_engine("Centreon Engine");
   inst.set_pid(getpid());
@@ -4399,7 +4374,7 @@ static void forward_program_status(time_t last_command_check,
                       "callbacks: generating instance status event");
   try {
     // In/Out variables.
-    auto is = std::make_shared<com::centreon::broker::neb::instance_status>();
+    auto is = std::make_shared<neb::instance_status>();
 
     // Fill output var.
     is->poller_id = cbm->poller_id();
@@ -4449,8 +4424,7 @@ static void forward_pb_program_status(
                       "callbacks: generating pb instance status event");
 
   // In/Out variables.
-  auto is_obj =
-      std::make_shared<com::centreon::broker::neb::pb_instance_status>();
+  auto is_obj = std::make_shared<neb::pb_instance_status>();
   com::centreon::broker::InstanceStatus& is = is_obj->mut_obj();
 
   // Fill output var.
@@ -4532,8 +4506,7 @@ static void forward_relation(int type,
         int parent_id = hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
-          auto new_host_parent =
-              std::make_shared<com::centreon::broker::neb::host_parent>();
+          auto new_host_parent = std::make_shared<neb::host_parent>();
           new_host_parent->enabled = type != NEBTYPE_PARENT_DELETE;
           new_host_parent->host_id = host_id;
           new_host_parent->parent_id = parent_id;
@@ -4582,8 +4555,7 @@ static void forward_pb_relation(int type,
         int parent_id = hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
-          auto new_host_parent{
-              std::make_shared<com::centreon::broker::neb::pb_host_parent>()};
+          auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
           new_host_parent->mut_obj().set_enabled(type != NEBTYPE_PARENT_DELETE);
           new_host_parent->mut_obj().set_child_id(host_id);
           new_host_parent->mut_obj().set_parent_id(parent_id);
@@ -4629,6 +4601,91 @@ void broker_relation_data(int type,
     forward_relation(type, hst, svc, dep_hst, dep_svc);
 }
 
+static void forward_service_check(int type,
+                                  const engine::service* svc,
+                                  int check_type,
+                                  const char* cmdline) noexcept {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
+  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+    return;
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service check event");
+
+  try {
+    // In/Out variables.
+    auto service_check = std::make_shared<neb::service_check>();
+    // Fill output var.
+    if (cmdline) {
+      service_check->active_checks_enabled = svc->active_checks_enabled();
+      service_check->check_type = check_type;
+      service_check->command_line = common::check_string_utf8(cmdline);
+      if (!svc->host_id())
+        throw exceptions::msg_fmt("host without id");
+      if (!svc->service_id())
+        throw exceptions::msg_fmt("service without id");
+      service_check->host_id = svc->host_id();
+      service_check->service_id = svc->service_id();
+      service_check->next_check = svc->get_next_check();
+
+      // Send event.
+      cbm->write(service_check);
+    }
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating service check event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_service_check(int type,
+                                     const engine::service* svc,
+                                     int check_type,
+                                     const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
+  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+    return;
+
+  // Log message.
+  if (neb_logger->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event host {} "
+                        "service {} command_line={}",
+                        svc->host_id(), svc->service_id(),
+                        cmdline ? cmdline : "");
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event");
+  }
+
+  // In/Out variables.
+  auto service_check = std::make_shared<neb::pb_service_check>();
+  // Fill output var.
+  if (cmdline) {
+    auto& obj = service_check->mut_obj();
+    obj.set_active_checks_enabled(svc->active_checks_enabled());
+    obj.set_check_type(
+        check_type == com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    obj.set_command_line(common::check_string_utf8(cmdline));
+    obj.set_host_id(svc->host_id());
+    obj.set_service_id(svc->service_id());
+    obj.set_next_check(svc->get_next_check());
+
+    // Send event.
+    cbm->write(service_check);
+  }
+}
+
 /**
  *  Send service check data to broker.
  *
@@ -4640,35 +4697,265 @@ void broker_relation_data(int type,
  *  @return Return value can override service check.
  */
 int broker_service_check(int type,
-                         com::centreon::engine::service* svc,
+                         const engine::service* svc,
                          int check_type,
                          const char* cmdline) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_SERVICE_CHECKS))
-    return OK;
-#else
   if (!(pb_config.event_broker_options() & BROKER_SERVICE_CHECKS))
     return OK;
-#endif
   if (!svc)
     return ERROR;
 
-  // Fill struct with relevant data.
-  nebstruct_service_check_data ds;
-  ds.type = type;
-  ds.host_id = svc->host_id();
-  ds.service_id = svc->service_id();
-  ds.object_ptr = svc;
-  ds.check_type = check_type;
-  ds.command_line = cmdline;
-  ds.output = const_cast<char*>(svc->get_plugin_output().c_str());
-
   // Make callbacks.
-  int return_code;
-  return_code = neb_make_callbacks(NEBCALLBACK_SERVICE_CHECK_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_service_check(type, svc, check_type, cmdline);
+  else
+    forward_service_check(type, svc, check_type, cmdline);
 
-  return return_code;
+  return 0;
+}
+
+static void forward_service_status(const engine::service* svc,
+                                   uint32_t attributes
+                                   [[maybe_unused]]) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service status event");
+
+  try {
+    // In/Out variables.
+    auto service_status{std::make_shared<neb::service_status>()};
+
+    // Fill output var.
+    service_status->acknowledged = svc->problem_has_been_acknowledged();
+    service_status->acknowledgement_type = svc->get_acknowledgement();
+    service_status->active_checks_enabled = svc->active_checks_enabled();
+    if (!svc->check_command().empty())
+      service_status->check_command =
+          common::check_string_utf8(svc->check_command());
+    service_status->check_interval = svc->check_interval();
+    if (!svc->check_period().empty())
+      service_status->check_period = svc->check_period();
+    service_status->check_type = svc->get_check_type();
+    service_status->current_check_attempt = svc->get_current_attempt();
+    service_status->current_state =
+        (svc->has_been_checked() ? svc->get_current_state()
+                                 : 4);  // Pending state.
+    service_status->downtime_depth = svc->get_scheduled_downtime_depth();
+    if (!svc->event_handler().empty())
+      service_status->event_handler =
+          common::check_string_utf8(svc->event_handler());
+    service_status->event_handler_enabled = svc->event_handler_enabled();
+    service_status->execution_time = svc->get_execution_time();
+    service_status->flap_detection_enabled = svc->flap_detection_enabled();
+    service_status->has_been_checked = svc->has_been_checked();
+    service_status->is_flapping = svc->get_is_flapping();
+    service_status->last_check = svc->get_last_check();
+    service_status->last_hard_state = svc->get_last_hard_state();
+    service_status->last_hard_state_change = svc->get_last_hard_state_change();
+    service_status->last_notification = svc->get_last_notification();
+    service_status->notification_number = svc->get_notification_number();
+    service_status->last_state_change = svc->get_last_state_change();
+    service_status->last_time_critical = svc->get_last_time_critical();
+    service_status->last_time_ok = svc->get_last_time_ok();
+    service_status->last_time_unknown = svc->get_last_time_unknown();
+    service_status->last_time_warning = svc->get_last_time_warning();
+    service_status->last_update = time(nullptr);
+    service_status->latency = svc->get_latency();
+    service_status->max_check_attempts = svc->max_check_attempts();
+    service_status->next_check = svc->get_next_check();
+    service_status->next_notification = svc->get_next_notification();
+    service_status->no_more_notifications = svc->get_no_more_notifications();
+    service_status->notifications_enabled = svc->get_notifications_enabled();
+    service_status->obsess_over = svc->obsess_over();
+    if (!svc->get_plugin_output().empty()) {
+      service_status->output =
+          common::check_string_utf8(svc->get_plugin_output());
+      service_status->output.append("\n");
+    }
+    if (!svc->get_long_plugin_output().empty())
+      service_status->output.append(
+          common::check_string_utf8(svc->get_long_plugin_output()));
+
+    service_status->passive_checks_enabled = svc->passive_checks_enabled();
+    service_status->percent_state_change = svc->get_percent_state_change();
+    if (!svc->get_perf_data().empty())
+      service_status->perf_data =
+          common::check_string_utf8(svc->get_perf_data());
+    service_status->retry_interval = svc->retry_interval();
+    if (svc->get_hostname().empty())
+      throw exceptions::msg_fmt("unnamed host");
+    if (svc->description().empty())
+      throw exceptions::msg_fmt("unnamed service");
+    service_status->host_name = common::check_string_utf8(svc->get_hostname());
+    service_status->service_description =
+        common::check_string_utf8(svc->description());
+    {
+      std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
+          svc->get_hostname(), svc->description())};
+      service_status->host_id = p.first;
+      service_status->service_id = p.second;
+      if (!service_status->host_id || !service_status->service_id)
+        throw exceptions::msg_fmt("could not find ID of service ('{}', '{}')",
+                                  service_status->host_name,
+                                  service_status->service_description);
+    }
+    service_status->should_be_scheduled = svc->get_should_be_scheduled();
+    service_status->state_type =
+        (svc->has_been_checked() ? svc->get_state_type()
+                                 : engine::notifier::hard);
+
+    // Send event(svc).
+    cbm->write(service_status);
+
+    // Acknowledgement event.
+    auto ack = cbm->find_acknowledgement(service_status->host_id,
+                                         service_status->service_id);
+    if (ack && !service_status->acknowledged) {
+      neb_logger->debug("acknowledgement found on service ({}:{})",
+                        service_status->host_id, service_status->service_id);
+      auto& ack_obj = ack->mut_obj();
+      if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
+            ||
+            (!ack_obj.sticky() && service_status->current_state !=
+                                      static_cast<short>(ack_obj.state())))) {
+        ack_obj.set_deletion_time(time(nullptr));
+        cbm->write(std::move(ack));
+      }
+      cbm->remove_acknowledgement(service_status->host_id,
+                                  service_status->service_id);
+    }
+    neb_logger->debug("Still {} running acknowledgements",
+                      cbm->acknowledgements_count());
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating service status event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_service_status(const engine::service* svc,
+                                      uint32_t attributes) noexcept {
+  SPDLOG_LOGGER_DEBUG(
+      neb_logger, "callbacks: generating pb service status check result event");
+
+  neb_logger->debug(
+      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}, "
+      "last check {}",
+      svc->host_id(), svc->service_id(),
+      static_cast<uint32_t>(svc->get_current_state()), attributes,
+      static_cast<uint32_t>(svc->get_check_type()), svc->get_last_check());
+
+  auto handle_acknowledgement = [](uint16_t state, auto& r) {
+    neb_logger->debug("Looking for acknowledgement on service ({}:{})",
+                      r.host_id(), r.service_id());
+    auto ack = cbm->find_acknowledgement(r.host_id(), r.service_id());
+    if (ack && r.acknowledgement_type() == AckType::NONE) {
+      neb_logger->debug("acknowledgement found on service ({}:{})", r.host_id(),
+                        r.service_id());
+      auto& ack_obj = ack->mut_obj();
+      if (!(!state  // !(OK or (normal ack and NOK))
+            || (!ack_obj.sticky() && state != ack_obj.state()))) {
+        ack_obj.set_deletion_time(time(nullptr));
+        cbm->write(std::move(ack));
+      }
+      cbm->remove_acknowledgement(r.host_id(), r.service_id());
+    }
+  };
+  uint16_t state =
+      svc->has_been_checked() ? svc->get_current_state() : 4;  // Pending state.
+  if (attributes != engine::service::STATUS_ALL) {
+    auto as = std::make_shared<neb::pb_adaptive_service_status>();
+    AdaptiveServiceStatus& asscr = as.get()->mut_obj();
+    fill_service_type(asscr, svc);
+    if (attributes & engine::service::STATUS_DOWNTIME_DEPTH) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
+    }
+    if (attributes & engine::service::STATUS_NOTIFICATION_NUMBER) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_notification_number(svc->get_notification_number());
+    }
+    if (attributes & engine::service::STATUS_ACKNOWLEDGEMENT) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_acknowledgement_type(svc->get_acknowledgement());
+    }
+    cbm->write(as);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, asscr);
+  } else {
+    auto s{std::make_shared<neb::pb_service_status>()};
+    ServiceStatus& sscr = s.get()->mut_obj();
+
+    fill_service_type(sscr, svc);
+    sscr.set_host_id(svc->host_id());
+    sscr.set_service_id(svc->service_id());
+    if (svc->host_id() == 0 || svc->service_id() == 0)
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "could not find ID of service ('{}', '{}')",
+                          svc->get_hostname(), svc->description());
+
+    sscr.set_acknowledgement_type(svc->get_acknowledgement());
+
+    sscr.set_check_type(
+        static_cast<ServiceStatus_CheckType>(svc->get_check_type()));
+    sscr.set_check_attempt(svc->get_current_attempt());
+    sscr.set_state(static_cast<ServiceStatus_State>(state));
+    sscr.set_execution_time(svc->get_execution_time());
+    sscr.set_checked(svc->has_been_checked());
+    sscr.set_flapping(svc->get_is_flapping());
+    sscr.set_last_check(svc->get_last_check());
+    sscr.set_last_hard_state(
+        static_cast<ServiceStatus_State>(svc->get_last_hard_state()));
+    sscr.set_last_hard_state_change(svc->get_last_hard_state_change());
+    sscr.set_last_notification(svc->get_last_notification());
+    sscr.set_notification_number(svc->get_notification_number());
+    sscr.set_last_state_change(svc->get_last_state_change());
+    sscr.set_last_time_critical(svc->get_last_time_critical());
+    sscr.set_last_time_ok(svc->get_last_time_ok());
+    sscr.set_last_time_unknown(svc->get_last_time_unknown());
+    sscr.set_last_time_warning(svc->get_last_time_warning());
+    sscr.set_latency(svc->get_latency());
+    sscr.set_next_check(svc->get_next_check());
+    sscr.set_next_notification(svc->get_next_notification());
+    sscr.set_no_more_notifications(svc->get_no_more_notifications());
+    if (!svc->get_plugin_output().empty())
+      sscr.set_output(common::check_string_utf8(svc->get_plugin_output()));
+    if (!svc->get_long_plugin_output().empty())
+      sscr.set_long_output(
+          common::check_string_utf8(svc->get_long_plugin_output()));
+    sscr.set_percent_state_change(svc->get_percent_state_change());
+    if (!svc->get_perf_data().empty()) {
+      sscr.set_perfdata(common::check_string_utf8(svc->get_perf_data()));
+      SPDLOG_LOGGER_TRACE(
+          neb_logger, "callbacks: service ({}, {}) has perfdata <<{}>>",
+          svc->host_id(), svc->service_id(), svc->get_perf_data());
+    } else {
+      SPDLOG_LOGGER_TRACE(neb_logger,
+                          "callbacks: service ({}, {}) has no perfdata",
+                          svc->host_id(), svc->service_id());
+    }
+    sscr.set_should_be_scheduled(svc->get_should_be_scheduled());
+    sscr.set_state_type(static_cast<ServiceStatus_StateType>(
+        svc->has_been_checked() ? svc->get_state_type()
+                                : engine::notifier::hard));
+    sscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
+
+    // Send event(s).
+    cbm->write(s);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, sscr);
+  }
+  neb_logger->debug("Still {} running acknowledgements",
+                    cbm->acknowledgements_count());
 }
 
 /**
@@ -4678,26 +4965,16 @@ int broker_service_check(int type,
  *  @param[in] svc       Target service.
  *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_service_status(int type,
-                           com::centreon::engine::service* svc,
-                           uint32_t attributes) {
+void broker_service_status(const engine::service* svc, uint32_t attributes) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_service_status_data ds;
-  ds.type = type;
-  ds.object_ptr = svc;
-  ds.attributes = attributes;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_service_status(svc, attributes);
+  else
+    forward_service_status(svc, attributes);
 }
 
 /**
@@ -4720,12 +4997,21 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp) {
  *  @param[in] id      id.
  *  @param[in] time_create       message creation
  */
-void broker_bench(unsigned id,
+void broker_bench(uint32_t id,
                   const std::chrono::system_clock::time_point& mess_create) {
-  // Fill struct with relevant data.
-  nebstruct_bench_data ds = {id, mess_create};
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb_bench event");
+
+  auto event = std::make_shared<com::centreon::broker::bbdo::pb_bench>();
+  auto& obj = event->mut_obj();
+  obj.set_id(id);
+  if (mess_create != std::chrono::system_clock::time_point::min()) {
+    com::centreon::broker::TimePoint* caller_tp = event->mut_obj().add_points();
+    caller_tp->set_name("client");
+    caller_tp->set_function("callback_pb_bench");
+    common::time_point_to_google_ts(mess_create, *caller_tp->mutable_time());
+  }
+  cbm->write(std::move(event));
 }
 
 /**
@@ -4738,10 +5024,7 @@ void broker_bench(unsigned id,
  */
 std::unique_ptr<com::centreon::engine::configuration::DiffState>
 broker_get_diff_state() {
-  std::unique_ptr<com::centreon::engine::configuration::DiffState> retval;
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GET_DIFF_STATE, &retval);
-  return retval;
+  return cbm->diff_state();
 }
 
 /**
@@ -4752,17 +5035,9 @@ broker_get_diff_state() {
  * @return A boolean.
  */
 bool broker_has_diff_state() {
-  static time_t limit = time(nullptr) + 5;
-  static bool retval = false;
-  time_t now = time(nullptr);
-  if (now >= limit) {
-    limit = now + 5;
-    neb_make_callbacks(NEBCALLBACK_HAS_DIFF_STATE, &retval);
-  }
-  return retval;
+  return cbm->has_diff_state();
 }
 
 void broker_set_conf_version(const std::string& version) {
-  neb_make_callbacks(NEBCALLBACK_SET_CONF_VERSION,
-                     const_cast<std::string*>(&version));
+  cbm->set_conf_version(version);
 }

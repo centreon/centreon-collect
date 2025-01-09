@@ -394,11 +394,10 @@ void broker_relation_data(int type,
                           const com::centreon::engine::host* dep_hst,
                           const com::centreon::engine::service* dep_svc);
 int broker_service_check(int type,
-                         com::centreon::engine::service* svc,
+                         const com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
-void broker_service_status(int type,
-                           com::centreon::engine::service* svc,
+void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);
 

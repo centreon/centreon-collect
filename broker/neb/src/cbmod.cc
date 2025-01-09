@@ -148,4 +148,29 @@ void cbmod::remove_acknowledgement(uint64_t host_id, uint64_t service_id) {
 size_t cbmod::acknowledgements_count() const {
   return _acknowledgements.size();
 }
+
+/**
+ * @brief Get the Engine Configuration difference to apply to Engine. This
+ * function is only called from Engine, in fact from the cbmod.
+ *
+ * @return The Engine Configuration difference.
+ */
+std::unique_ptr<com::centreon::engine::configuration::DiffState>
+cbmod::diff_state() {
+  return config::applier::state::instance().diff_state();
+}
+
+/**
+ * @brief Return True if a difference of engine configuration is available.
+ *
+ * @return A boolean.
+ */
+bool cbmod::has_diff_state() const {
+  return config::applier::state::instance().has_diff_state();
+}
+
+void cbmod::set_conf_version(const std::string& conf_version) {
+  config::applier::state::instance().set_engine_conf(conf_version);
+}
+
 }  // namespace com::centreon::broker::neb

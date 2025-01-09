@@ -23,6 +23,7 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "state.pb.h"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -36,6 +37,10 @@ class cbmod {
   std::unique_ptr<cbmodimpl> _impl;
   std::filesystem::path _proto_conf;
   bool _use_protobuf;
+
+  // Engine case
+  mutable absl::Mutex _diff_state_m;
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
 
   // Acknowledgements list.
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
@@ -59,6 +64,12 @@ class cbmod {
       uint64_t service_id) const;
   void remove_acknowledgement(uint64_t host_id, uint64_t service_id);
   size_t acknowledgements_count() const;
+  void set_diff_state(
+      std::unique_ptr<com::centreon::engine::configuration::DiffState>&&
+          diff_state);
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  bool has_diff_state() const;
+  void set_conf_version(const std::string& conf_version);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
