@@ -18,13 +18,13 @@
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
-using com::centreon::broker::misc::string::debug_buf;
+using com::centreon::common::debug_buf;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static const boost::system::error_code _eof_error =

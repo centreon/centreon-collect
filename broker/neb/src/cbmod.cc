@@ -77,7 +77,11 @@ cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
   com::centreon::broker::config::applier::state::instance().apply(s);
 }
 
-cbmod::~cbmod() noexcept = default;
+cbmod::~cbmod() noexcept {
+  _neb_logger->info("cbmod: destruction...");
+  config::applier::deinit();
+  _neb_logger->info("cbmod: destruction... Done");
+}
 
 uint64_t cbmod::poller_id() const {
   return config::applier::state::instance().poller_id();

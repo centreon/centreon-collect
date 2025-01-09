@@ -1988,7 +1988,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    apply_log_config(new_cfg);
+    // apply_log_config(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
@@ -2443,7 +2443,7 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    apply_log_config(new_cfg);
+    // apply_log_config(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);

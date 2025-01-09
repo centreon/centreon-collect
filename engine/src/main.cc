@@ -437,7 +437,9 @@ int main(int argc, char* argv[]) {
         mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
         // Load broker modules.
+        configuration::applier::state::instance().apply_log_config(pb_config);
         cbm = std::make_unique<cbmod>(broker_config, proto_conf);
+
         for (auto& m : pb_config.broker_module()) {
           std::pair<std::string, std::string> p =
               absl::StrSplit(m, absl::MaxSplits(' ', 1));
@@ -535,9 +537,9 @@ int main(int argc, char* argv[]) {
 
   // Unload singletons and global objects.
 
+  cbm.reset();
   g_io_context->stop();
   com::centreon::common::pool::unload();
-  cbm.reset();
 
   return retval;
 }

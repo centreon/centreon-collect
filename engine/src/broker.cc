@@ -3847,7 +3847,7 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 void broker_log_data(const char* data, time_t entry_time) {
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
-      !pb_config.log_legacy_enabled())
+      !pb_config.log_legacy_enabled() || !cbm)
     return;
 
   // Make callbacks.
@@ -4353,8 +4353,6 @@ void broker_program_state(int type, int flags) {
 
   neb_logger->debug("callbacks: instance '{}' running {}", inst.name(),
                     inst.running());
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);
 }
 
 static void forward_program_status(time_t last_command_check,
