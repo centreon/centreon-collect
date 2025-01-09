@@ -6,6 +6,7 @@
 gorgone/                       @centreon/owners-perl
 gorgone/docs/                  @centreon/owners-doc
 
+.version*                      @centreon/owners-pipelines
 .github/**                     @centreon/owners-pipelines
 **/packaging/**                @centreon/owners-pipelines
 **/selinux/**                  @centreon/owners-pipelines
