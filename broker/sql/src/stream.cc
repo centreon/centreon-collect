@@ -19,17 +19,11 @@
 #include "com/centreon/broker/sql/stream.hh"
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

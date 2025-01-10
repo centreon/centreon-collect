@@ -109,6 +109,15 @@ bool bulk_queries::ready() {
 }
 
 /**
+ * @brief Force the bind to be ready in term of time. If there is nothing to
+ * write, it won't be ready.
+ */
+void bulk_queries::force_ready() {
+  std::lock_guard<std::mutex> lck(_queue_m);
+  _next_time = 0;
+}
+
+/**
  * @brief Size of the queue
  *
  * @return a size.

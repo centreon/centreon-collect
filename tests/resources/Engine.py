@@ -34,7 +34,7 @@ from array import array
 from dateutil import parser
 import datetime
 from os import makedirs, chmod
-from os.path import exists, dirname
+from os.path import exists, dirname, basename
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 import db_conf
@@ -83,6 +83,7 @@ class EngineInstance:
         self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
+        self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
         self.build_configs(hosts, srv_by_host)
@@ -205,6 +206,7 @@ class EngineInstance:
     def _create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
+        self.host_cmd[hid] = f"checkh{hid}"
         a = hid % 255
         q = hid // 255
         b = q % 255
@@ -299,15 +301,15 @@ class EngineInstance:
 
         Create Bam Command
         """
-        retval = """define command {
+        retval = f"""define command {{
   command_name                   centreon-bam-check
-  command_line                   $CENTREONPLUGINS$/check_centreon_bam -i $ARG1$
-                }
+  command_line                   {ENGINE_HOME}/check_centreon_bam -i $ARG1$
+                }}
 
-define command {
+define command {{
   command_name                   centreon-bam-host-alive
   command_line                   /usr/lib64/nagios/plugins//check_ping -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1
-}
+}}
 """
         config_dir = "{}/config0".format(CONF_DIR)
         with open(f"{config_dir}/centreon-bam-command.cfg", "a+") as ff:
@@ -764,11 +766,12 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "notif.pl"]:
+            for file in ["check.pl", "notif.pl", "check_centreon_bam"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
                       stat.S_IRGRP | stat.S_IXGRP)
+            shutil.copyfile(dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
@@ -894,9 +897,9 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         lines = f.readlines()
 
     if file == "serviceTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -922,9 +925,9 @@ def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, fil
         lines = f.readlines()
 
     if file == "serviceTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -953,8 +956,8 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             i -= 1
@@ -983,8 +986,8 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1017,8 +1020,8 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1062,9 +1065,9 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1161,9 +1164,9 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
     if file == "contactTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1190,9 +1193,9 @@ def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, fil
         lines = f.readlines()
 
     if file == "contactTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1227,19 +1230,19 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         lines = f.readlines()
     found = False
     if file == "hostgroups.cfg":
-        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
     elif file == "servicegroups.cfg":
-        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
     elif file == "contactgroups.cfg":
-        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
     elif file == "commands.cfg":
-        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
     elif file == "connectors.cfg":
-        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
     elif file == "escalations.cfg":
-        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
         logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
         return
@@ -1273,20 +1276,20 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
         lines = f.readlines()
 
     if file == "hostgroups.cfg":
-        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
     elif file == "servicegroups.cfg":
-        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
     elif file == "contactgroups.cfg":
-        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
     elif file == "commands.cfg":
-        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
     elif file == "connectors.cfg":
-        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
     elif file == "escalations.cfg":
-        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
         if file[-13:] == "Templates.cfg":
-            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+            r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
         logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
         return
@@ -1324,7 +1327,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1345,7 +1348,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;;dependency_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1365,7 +1368,7 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     serv_begin = re.compile(r"^define service {$")
     serv_end = re.compile(r"^}$")
     serv_begin_idx = 0
@@ -1402,7 +1405,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     host_begin = re.compile(r"^define host {$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
@@ -1841,6 +1844,20 @@ def ctn_get_service_command_id(service: int):
     """
     global engine
     return engine.service_cmd[service][8:]
+
+
+def ctn_get_host_command(host: int):
+    """
+    Get the command of the host with the given ID.
+
+    Args:
+        host (int): ID of the host.
+
+    Returns:
+        The command name.
+    """
+    global engine
+    return engine.host_cmd[host]
 
 
 def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
@@ -2725,7 +2742,7 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
     with open(filename, "r") as ff:
         lines = ff.readlines()
 
-    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_name = re.compile(rf"^\s*id\s+{tag_id}\s*$")
     tag_begin = re.compile(r"^define tag {$")
     tag_end = re.compile(r"^}$")
     tag_begin_idx = 0
@@ -2790,6 +2807,63 @@ def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
         ff.writelines(lines)
 
 
+def ctn_set_command_connector(poller: int, cmd: str, conn: str):
+    """
+    Set the connector for a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        conn (str): Connector name.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    for i, line in enumerate(lines):
+        m = r.match(line)
+        if m:
+            lines.insert(i + 1, f"    connector          {conn}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
+    """
+    Set the check command of a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        check_cmd (str): the check command.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    r_cmd = re.compile(r"^\s*command_line")
+    r_end = re.compile(r"^\s*}\s*$")
+    in_cmd = False
+    for i, line in enumerate(lines):
+        if not in_cmd:
+            m = r.match(line)
+            if m:
+                in_cmd = True
+        else:
+            m = r_cmd.match(line)
+            if m:
+                lines[i] = f"    command_line                    {check_cmd}\n"
+                in_cmd = False
+                break
+            m = r_end.match(line)
+            if m:
+                lines.insert(i, f"    command_line                    {check_cmd}\n")
+                break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
 def ctn_set_services_passive(poller: int, srv_regex):
     """
     Set passive a list of services.
@@ -2801,7 +2875,7 @@ def ctn_set_services_passive(poller: int, srv_regex):
 
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*service_description\s*({srv_regex})$")
+    r = re.compile(rf"^\s*service_description\s*({srv_regex})$")
     rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
     rc = re.compile(r"^\s*}\s*$")
     desc = ""
@@ -2836,7 +2910,7 @@ def ctn_set_hosts_passive(poller: int, host_regex):
 
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*host_name\s*({host_regex})$")
+    r = re.compile(rf"^\s*host_name\s*({host_regex})$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m:
@@ -2920,56 +2994,6 @@ def ctn_remove_severities_from_hosts(poller: int):
     out = [line for line in lines if not r.match(line)]
     with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
         ff.writelines(out)
-
-
-def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
-    """
-    Search a check, retrieve command index and return check result.
-    Then it searchs the string "connector::run: id=\d+",
-    and then search "connector::_recv_query_execute: id=\d+,"
-    and return this line.
-
-    Args:
-        debug_file_path (str): path of the debug log file
-        str_to_search (str): string after which we will start connector::run search
-        timeout (int, optional): Defaults to TIMEOUT.
-
-    *Example:*
-
-    | ${search_result} | `Check Search` | /var/log/centreon-engine/centengine.debug | connector::run: id=1090 |
-    | Should Contain | ${search_result} | connector::_recv_query_execute: id=1090, |
-
-    Returns:
-        A string.
-    """
-    limit = time.time() + timeout
-    r_query_execute = "none"
-    while time.time() < limit:
-        cmd_executed = False
-        with open(debug_file_path, 'r') as f:
-            lines = f.readlines()
-            for first_ind in range(len(lines)):
-                find_index = lines[first_ind].find(str_to_search + ' ')
-                if (find_index > 0):
-                    cmd_executed = True
-                    for second_ind in range(first_ind, len(lines)):
-                        # search cmd_id
-                        m = re.search(
-                            r"connector::run:\s+id=(\d+)", lines[second_ind])
-                        if m is not None:
-                            cmd_id = m.group(1)
-                            r_query_execute = rf".*\s+connector::_recv_query_execute:\s+id={cmd_id}, .*output=(.*)$"
-                            for third_ind in range(second_ind, len(lines)):
-                                logger.console(lines[third_ind])
-                                m = re.match(r_query_execute, lines[third_ind])
-                                if m is not None:
-                                    return m.group(1)
-        time.sleep(1)
-
-    if not cmd_executed:
-        return f"_recv_query_execute not found on '{r_query_execute}'"
-    else:
-        return f"ctn_check_search doesn't find <<{str_to_search}>>"
 
 
 def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
@@ -3919,6 +3943,7 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
+
 
 
 def ctn_randomword(length):

@@ -22,6 +22,7 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "common/log_v2/log_v2.hh"
@@ -161,7 +162,7 @@ stream::stream(const database_config& dbcfg,
       _queues_timer{com::centreon::common::pool::io_context()},
       _stop_check_queues{false},
       _check_queues_stopped{false},
-      _center{stats::center::instance_ptr()},
+      _center{config::applier::state::instance().center()},
       _stats{_center->register_conflict_manager()},
       _group_clean_timer{com::centreon::common::pool::io_context()},
       _loop_timer{com::centreon::common::pool::io_context()},
@@ -255,6 +256,27 @@ stream::~stream() noexcept {
   /* Let's wait a little if one of the timers is working during the cancellation
    */
   absl::MutexLock lck(&_barrier_timer_m);
+  /* If there are data to write, we write them, so we force their readyness. */
+  if (_hscr_bind)
+    _hscr_bind->force_ready();
+  if (_sscr_bind)
+    _sscr_bind->force_ready();
+  if (_hscr_resources_bind)
+    _hscr_resources_bind->force_ready();
+  if (_sscr_resources_bind)
+    _sscr_resources_bind->force_ready();
+  if (_perfdata_query)
+    _perfdata_query->force_ready();
+  _cv.force_ready();
+  _cvs.force_ready();
+  if (_downtimes)
+    _downtimes->force_ready();
+  if (_comments)
+    _comments->force_ready();
+  if (_logs)
+    _logs->force_ready();
+  boost::system::error_code ec;
+  _check_queues(ec);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 

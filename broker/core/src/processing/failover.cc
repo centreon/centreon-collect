@@ -92,14 +92,17 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
  */
 void failover::exit() {
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' exit.", _name);
-  std::unique_lock<std::mutex> lck(_state_m);
+  absl::MutexLock lck(&_state_m);
   if (_state != not_started) {
     if (!_should_exit) {
       _should_exit = true;
       SPDLOG_LOGGER_TRACE(_logger, "Waiting for {} to be stopped", _name);
 
-      _state_cv.wait(
-          lck, [this] { return _state == stopped || _state == not_started; });
+      _state_m.Await(absl::Condition(
+          +[](failover* f) {
+            return f->_state == stopped || f->_state == not_started;
+          },
+          this));
     }
     if (_thread.joinable())
       _thread.join();
@@ -139,7 +142,7 @@ time_t failover::get_retry_interval() const noexcept {
  *  Thread core function.
  */
 void failover::_run() {
-  std::unique_lock<std::mutex> lck(_state_m);
+  absl::MutexLock lck(&_state_m);
   // Initial log.
   SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is starting",
                       _name);
@@ -153,7 +156,6 @@ void failover::_run() {
         "developers",
         _name);
     _state = stopped;
-    _state_cv.notify_all();
     return;
   }
 
@@ -178,8 +180,7 @@ void failover::_run() {
   };
 
   _state = running;
-  lck.unlock();
-  _state_cv.notify_all();
+  _state_m.Unlock();
   // Thread should be aware of external exit requests.
   do {
     // This try/catch block handles any error of the current thread
@@ -485,9 +486,8 @@ void failover::_run() {
   SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is exiting",
                       _name);
 
-  lck.lock();
+  _state_m.Lock();
   _state = stopped;
-  _state_cv.notify_all();
 }
 
 /**
@@ -601,12 +601,13 @@ uint32_t failover::_get_queued_events() const {
  */
 void failover::start() {
   SPDLOG_LOGGER_DEBUG(_logger, "start failover '{}'.", _name);
-  std::unique_lock<std::mutex> lck(_state_m);
+  absl::MutexLock lck(&_state_m);
   if (_state != running) {
     _should_exit = false;
     _thread = std::thread(&failover::_run, this);
     pthread_setname_np(_thread.native_handle(), "proc_failover");
-    _state_cv.wait(lck, [this] { return _state != not_started; });
+    _state_m.Await(absl::Condition(
+        +[](failover* f) { return f->_state != not_started; }, this));
   }
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' started.", _name);
 }

@@ -48,7 +48,6 @@ namespace com::centreon::broker::stats {
  *   value value.
  */
 class center {
-  static std::shared_ptr<center> _instance;
   BrokerStats _stats ABSL_GUARDED_BY(_stats_m);
   mutable absl::Mutex _stats_m;
   int _json_stats_file_creation;
@@ -56,9 +55,6 @@ class center {
  public:
   center();
 
-  static std::shared_ptr<center> instance_ptr();
-  static void load();
-  static void unload();
   std::string to_string() ABSL_LOCKS_EXCLUDED(_stats_m);
 
   EngineStats* register_engine() ABSL_LOCKS_EXCLUDED(_stats_m);

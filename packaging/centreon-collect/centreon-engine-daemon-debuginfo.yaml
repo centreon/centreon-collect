@@ -37,9 +37,11 @@ overrides:
     conflicts:
       - centreon-engine-debuginfo
       - centreon-engine-extcommands-debuginfo
+      - centreon-engine-bench-debuginfo
     replaces:
       - centreon-engine-debuginfo
       - centreon-engine-extcommands-debuginfo
+      - centreon-engine-bench-debuginfo
     provides:
       - centreon-engine-debuginfo
       - centreon-engine-extcommands-debuginfo
@@ -48,12 +50,12 @@ overrides:
       - centreon-engine-daemon (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-dbgsym
-      - centreon-engine-dbgsym
       - centreon-engine-extcommands-dbgsym
+      - centreon-engine-bench-dbgsym
     replaces:
       - centreon-engine-dbgsym
-      - centreon-engine-dbgsym
       - centreon-engine-extcommands-dbgsym
+      - centreon-engine-bench-dbgsym
     provides:
       - centreon-engine-dbgsym
       - centreon-engine-dbgsym

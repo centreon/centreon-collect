@@ -18,10 +18,13 @@
 
 #include "com/centreon/broker/persistent_cache.hh"
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include <unistd.h>
+
+#include <cerrno>
+
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;

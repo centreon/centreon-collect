@@ -440,6 +440,7 @@ Services_and_bulks_${id}
     ...    1    1020
     ...    2    150
 
+
 EBMSSMDBD
     [Documentation]    1000 services are configured with 100 metrics each.
     ...    The rrd output is removed from the broker configuration.
@@ -586,7 +587,6 @@ EBMSSMPART
     Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
 
     Ctn Init Data Bin Without Partition
-
 
 *** Keywords ***
 Ctn Test Clean

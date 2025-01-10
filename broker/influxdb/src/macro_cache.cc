@@ -20,10 +20,6 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
-#include "com/centreon/broker/neb/host.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

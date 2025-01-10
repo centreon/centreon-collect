@@ -397,7 +397,7 @@ BABOOCOMPL_RESTART
 
         # A restart of cbd should not alter the boolean rules content.
         Ctn Restart Broker
-        ${content}    Create List    Inherited downtimes and BA states restored
+        ${content}    Create List    BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
@@ -491,7 +491,7 @@ BABOOCOMPL_RELOAD
 
         # A restart of cbd should not alter the boolean rules content.
         Ctn Reload Broker
-        ${content}    Create List    Inherited downtimes and BA states restored
+        ${content}    Create List    BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
@@ -523,3 +523,4 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+    Disconnect From Database
