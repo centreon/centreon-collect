@@ -40,30 +40,15 @@ void enable_flap_detection_routines() {
   functions_logger->trace("enable_flap_detection_routines()");
 
   /* bail out if we're already set */
-#ifdef LEGACY_CONF
-  if (config->enable_flap_detection())
-    return;
-#else
   if (pb_config.enable_flap_detection())
     return;
-#endif
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
-
-  /* send data to event broker */
-  broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, CMD_NONE, attr,
-                               modified_host_process_attributes, attr,
-                               modified_service_process_attributes, NULL);
 
   /* update program status */
   update_program_status(false);
@@ -87,30 +72,15 @@ void disable_flap_detection_routines() {
   functions_logger->trace("disable_flap_detection_routines()");
 
   /* bail out if we're already set */
-#ifdef LEGACY_CONF
-  if (!config->enable_flap_detection())
-    return;
-#else
   if (!pb_config.enable_flap_detection())
     return;
-#endif
 
   /* set the attribute modified flag */
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(false);
-#else
   pb_config.set_enable_flap_detection(false);
-#endif
-
-  /* send data to event broker */
-  broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, CMD_NONE, attr,
-                               modified_host_process_attributes, attr,
-                               modified_service_process_attributes, NULL);
 
   /* update program status */
   update_program_status(false);

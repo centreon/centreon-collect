@@ -37,10 +37,6 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -55,34 +51,18 @@ class ServiceNotification : public TestEngine {
     error_cnt err;
 
     configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-    configuration::contact ctct{new_configuration_contact("admin", true)};
-    configuration::contact ctct1{
-        new_configuration_contact("admin1", false, "c,r")};
-#else
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     configuration::Contact ctct1{
         new_pb_configuration_contact("admin1", false, "c,r")};
-#endif
     ct_aply.add_object(ctct);
     ct_aply.add_object(ctct1);
-#ifdef LEGACY_CONF
-    ct_aply.expand_objects(*config);
-#else
     ct_aply.expand_objects(pb_config);
-#endif
     ct_aply.resolve_object(ctct, err);
     ct_aply.resolve_object(ctct1, err);
 
-#ifdef LEGACY_CONF
-    configuration::host hst{new_configuration_host("test_host", "admin")};
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin,admin1")};
-#else
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::Service svc{
         new_pb_configuration_service("test_host", "test_svc", "admin,admin1")};
-#endif
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
@@ -149,11 +129,7 @@ TEST_F(ServiceNotification,
   /* We are using a local time() function defined in tests/timeperiod/utils.cc.
    * If we call time(), it is not the glibc time() function that will be called.
    */
-#ifdef LEGACY_CONF
-  config->enable_notifications(false);
-#else
   pb_config.set_enable_notifications(false);
-#endif
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
@@ -217,11 +193,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationForcedWithNotificationDisabled) {
-#ifdef LEGACY_CONF
-  config->enable_notifications(false);
-#else
   pb_config.set_enable_notifications(false);
-#endif
   std::unique_ptr<engine::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
@@ -757,50 +729,26 @@ TEST_F(ServiceNotification, NormalRecoveryTwoTimes) {
 TEST_F(ServiceNotification, ServiceEscalationCG) {
   init_macros();
   configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-  configuration::contact ctct{new_configuration_contact("test_contact", false)};
-#else
   configuration::Contact ctct{
       new_pb_configuration_contact("test_contact", false)};
-#endif
   ct_aply.add_object(ctct);
-#ifdef LEGACY_CONF
-  ct_aply.expand_objects(*config);
-#else
   ct_aply.expand_objects(pb_config);
-#endif
   error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
   configuration::applier::contactgroup cg_aply;
-#ifdef LEGACY_CONF
-  configuration::contactgroup cg{
-      new_configuration_contactgroup("test_cg", "test_contact")};
-#else
   configuration::Contactgroup cg;
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
-#endif
   cg_aply.add_object(cg);
-#ifdef LEGACY_CONF
-  cg_aply.expand_objects(*config);
-#else
   cg_aply.expand_objects(pb_config);
-#endif
   cg_aply.resolve_object(cg, err);
 
   configuration::applier::serviceescalation se_aply;
-#ifdef LEGACY_CONF
-  configuration::serviceescalation se{
-      new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
-  se_aply.add_object(se);
-  se_aply.expand_objects(*config);
-#else
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   se_aply.expand_objects(pb_config);
-#endif
   se_aply.resolve_object(se, err);
 
   int now{50000};
@@ -1027,11 +975,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   id = _svc->get_next_notification_id();
   _svc->set_notification_period_ptr(tperiod.get());
   _svc->set_notifications_enabled(true);
-#ifdef LEGACY_CONF
-  config->enable_notifications(false);
-#else
   pb_config.set_enable_notifications(false);
-#endif
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
                          notifier::notification_option_none),
             OK);

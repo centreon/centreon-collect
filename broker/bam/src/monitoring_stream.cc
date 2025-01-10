@@ -28,6 +28,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -66,7 +67,8 @@ monitoring_stream::monitoring_stream(
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
-      _forced_svc_checks_timer{com::centreon::common::pool::io_context()} {
+      _forced_svc_checks_timer{com::centreon::common::pool::io_context()},
+      _forced_svc_checks_timer_stopped{false} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;
@@ -119,12 +121,19 @@ int32_t monitoring_stream::stop() {
                 retval);
   /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
+  _forced_svc_checks_timer_stopped = true;
   {
     _logger->info(
         "bam: monitoring_stream - waiting for forced service checks to be "
         "done");
     std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-    _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
+    time_t delay = time(nullptr) - _last_forced_svc_check;
+    if (delay <= 1)
+      delay = 1;
+    else
+      delay = 0;
+    /* This delay is just to avoid duplicates in rrd files. */
+    _forced_svc_checks_timer.expires_after(std::chrono::seconds(delay));
     _forced_svc_checks_timer.async_wait(
         [this, &p](const boost::system::error_code& ec) {
           _explicitly_send_forced_svc_checks(ec);
@@ -498,10 +507,6 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
               "host name and service description were not found",
               status->ba_id);
         } else {
-          time_t now = time(nullptr);
-          std::string cmd(
-              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
-                          ba_svc_name.first, ba_svc_name.second, now));
           _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
@@ -525,10 +530,6 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
               "host name and service description were not found",
               status.ba_id());
         } else {
-          time_t now = time(nullptr);
-          std::string cmd(
-              fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n", now,
-                          ba_svc_name.first, ba_svc_name.second, now));
           _write_forced_svc_check(ba_svc_name.first, ba_svc_name.second);
         }
       }
@@ -572,8 +573,8 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}",
-          dwn.obj().ba_id(), now);
+          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}, in downtime {})",
+          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
       if (dwn.obj().in_downtime())
         cmd = fmt::format(
             "[{}] "
@@ -740,12 +741,14 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
       misc::fifo_client fc(_ext_cmd_file);
       SPDLOG_LOGGER_DEBUG(_logger, "BAM: {} forced checks to schedule",
                           _timer_forced_svc_checks.size());
-      for (auto& p : _timer_forced_svc_checks) {
-        time_t now = time(nullptr);
+      for (auto it = _timer_forced_svc_checks.begin();
+           it != _timer_forced_svc_checks.end();) {
+        _last_forced_svc_check = time(nullptr);
         std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
-                                    now, p.first, p.second, now)};
+                                    _last_forced_svc_check, it->first,
+                                    it->second, _last_forced_svc_check)};
         _logger->debug("writing '{}' into {}", cmd, _ext_cmd_file);
-        if (fc.write(cmd) < 0) {
+        if (fc.write(cmd) < 0 && !_forced_svc_checks_timer_stopped) {
           _logger->error(
               "BAM: could not write forced service check to command file '{}'",
               _ext_cmd_file);
@@ -755,6 +758,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
                         this, std::placeholders::_1));
           break;
         }
+	else {
+	  _logger->trace("BAM: forced service check sent");
+	  it = _timer_forced_svc_checks.erase(it);
+	}
       }
     }
   }

@@ -29,13 +29,8 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -50,32 +45,18 @@ class HostFlappingNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-    configuration::contact ctct{new_configuration_contact("admin", true)};
-    ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
-#else
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     ct_aply.expand_objects(pb_config);
-#endif
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::host hst_aply;
-#ifdef LEGACY_CONF
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
-    hst.parse("contacts", "admin");
-#else
     configuration::Host hst;
     configuration::host_helper hst_hlp(&hst);
     hst.set_host_name("test_host");
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
     hst_hlp.hook("contacts", "admin");
-#endif
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
@@ -85,14 +66,6 @@ class HostFlappingNotification : public TestEngine {
     _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
-#ifdef LEGACY_CONF
-    configuration::host hst_child;
-    hst_child.parse("host_name", "child_host");
-    hst_child.parse("parents", "test_host");
-    hst_child.parse("address", "127.0.0.1");
-    hst_child.parse("_HOST_ID", "13");
-    hst_child.parse("contacts", "admin");
-#else
     configuration::Host hst_child;
     configuration::host_helper hst_child_hlp(&hst_child);
     hst_child.set_host_name("child_host");
@@ -100,7 +73,6 @@ class HostFlappingNotification : public TestEngine {
     hst_child_hlp.hook("parents", "test_host");
     hst_child.set_host_id(13);
     hst_child_hlp.hook("contacts", "admin");
-#endif
     hst_aply.add_object(hst_child);
     hst_aply.resolve_object(hst_child, err);
 
@@ -184,12 +156,6 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
    */
   set_time(43000);
   _host->set_notification_interval(2);
-#ifdef LEGACY_CONF
-  std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
-  for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].emplace_back(0, 86400);
-#else
   configuration::Timeperiod tp;
   configuration::timeperiod_helper tp_hlp(&tp);
   tp.set_timeperiod_name("tperiod");
@@ -210,7 +176,6 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
   add_day(saturday);
 
   std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
-#endif
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -246,12 +211,6 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
    */
   set_time(43000);
   _host->set_notification_interval(2);
-#ifdef LEGACY_CONF
-  std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
-  for (uint32_t i = 0; i < tperiod->days.size(); ++i)
-    tperiod->days[i].emplace_back(0, 86400);
-#else
   configuration::Timeperiod tp;
   configuration::timeperiod_helper tp_hlp(&tp);
   tp.set_timeperiod_name("tperiod");
@@ -272,7 +231,6 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
   add_day(saturday);
 
   std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
-#endif
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -302,11 +260,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlapping) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _host->set_flap_detection_enabled(true);
   _host->add_flap_detection_on(engine::host::up);
   _host->add_flap_detection_on(engine::host::down);
@@ -367,11 +321,7 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlappingWithHostParentDown) {
-#ifdef LEGACY_CONF
-  config->enable_flap_detection(true);
-#else
   pb_config.set_enable_flap_detection(true);
-#endif
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);

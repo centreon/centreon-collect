@@ -28,38 +28,22 @@ class anomalydetection;
 
 // Forward declaration.
 namespace configuration {
-#ifdef LEGACY_CONF
-class state;
-#else
 class State;
-#endif
 }  // namespace configuration
 
 namespace retention {
 namespace applier {
 class anomalydetection {
  public:
-#ifdef LEGACY_CONF
-  static void apply(configuration::state const& config,
-                    list_anomalydetection const& lst,
-                    bool scheduling_info_is_ok);
-#else
   static void apply(const configuration::State& config,
                     const list_anomalydetection& lst,
                     bool scheduling_info_is_ok);
-#endif
+
  private:
-#ifdef LEGACY_CONF
-  static void _update(configuration::state const& config,
-                      retention::anomalydetection const& state,
-                      com::centreon::engine::anomalydetection& obj,
-                      bool scheduling_info_is_ok);
-#else
   static void _update(const configuration::State& config,
                       const retention::anomalydetection& state,
                       com::centreon::engine::anomalydetection& obj,
                       bool scheduling_info_is_ok);
-#endif
 };
 }  // namespace applier
 }  // namespace retention

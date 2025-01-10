@@ -458,7 +458,7 @@ std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
   broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
                        downtime::host_downtime, hst->host_id(), 0, entry_time,
                        author, comment_data, start_time, end_time, fixed,
-                       triggered_by, duration, new_downtime_id, nullptr);
+                       triggered_by, duration, new_downtime_id);
   return retval;
 }
 
@@ -497,7 +497,7 @@ std::shared_ptr<service_downtime> downtime_manager::add_new_service_downtime(
                        downtime::service_downtime, svc->host_id(),
                        svc->service_id(), entry_time, author.c_str(),
                        comment_data.c_str(), start_time, end_time, fixed,
-                       triggered_by, duration, new_downtime_id, nullptr);
+                       triggered_by, duration, new_downtime_id);
   return retval;
 }
 
@@ -589,12 +589,8 @@ int downtime_manager::schedule_downtime(downtime::type type,
 /* registers scheduled downtime (schedules it, adds comments, etc.) */
 int downtime_manager::register_downtime(downtime::type type,
                                         uint64_t downtime_id) {
-  engine_logger(dbg_functions, basic)
-      << "downtime_manager::register_downtime()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "downtime_manager::register_downtime()");
-  engine_logger(dbg_downtime, basic)
-      << "register downtime(type: " << type << ", id: " << downtime_id << ")";
   SPDLOG_LOGGER_TRACE(downtimes_logger, "register downtime(type: {}, id: {})",
                       static_cast<uint32_t>(type), downtime_id);
   /* find the downtime entry in memory */

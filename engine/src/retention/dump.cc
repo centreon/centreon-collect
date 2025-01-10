@@ -127,17 +127,10 @@ std::ostream& dump::comments(std::ostream& os) {
  */
 std::ostream& dump::contact(std::ostream& os,
                             com::centreon::engine::contact const& obj) {
-#ifdef LEGACY_CONF
-  uint32_t retained_contact_host_attribute_mask =
-      config->retained_contact_host_attribute_mask();
-  uint32_t retained_contact_service_attribute_mask =
-      config->retained_contact_service_attribute_mask();
-#else
   uint32_t retained_contact_host_attribute_mask =
       pb_config.retained_contact_host_attribute_mask();
   uint32_t retained_contact_service_attribute_mask =
       pb_config.retained_contact_service_attribute_mask();
-#endif
 
   os << "contact {\n"
         "contact_name="
@@ -279,13 +272,8 @@ std::ostream& dump::header(std::ostream& os) {
  */
 std::ostream& dump::host(std::ostream& os,
                          com::centreon::engine::host const& obj) {
-#ifdef LEGACY_CONF
-  uint32_t retained_host_attribute_mask =
-      config->retained_host_attribute_mask();
-#else
   uint32_t retained_host_attribute_mask =
       pb_config.retained_host_attribute_mask();
-#endif
   os << "host {\n"
         "host_name="
      << obj.name()
@@ -484,82 +472,6 @@ std::ostream& dump::info(std::ostream& os) {
   return os;
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Dump retention of program.
- *
- *  @param[out] os The output stream.
- *
- *  @return The output stream.
- */
-std::ostream& dump::program(std::ostream& os) {
-  os << "program {\n"
-        "active_host_checks_enabled="
-     << config->execute_host_checks()
-     << "\n"
-        "active_service_checks_enabled="
-     << config->execute_service_checks()
-     << "\n"
-        "check_host_freshness="
-     << config->check_host_freshness()
-     << "\n"
-        "check_service_freshness="
-     << config->check_service_freshness()
-     << "\n"
-        "enable_event_handlers="
-     << config->enable_event_handlers()
-     << "\n"
-        "enable_flap_detection="
-     << config->enable_flap_detection()
-     << "\n"
-        "enable_notifications="
-     << config->enable_notifications()
-     << "\n"
-        "global_host_event_handler="
-     << config->global_host_event_handler().c_str()
-     << "\n"
-        "global_service_event_handler="
-     << config->global_service_event_handler().c_str()
-     << "\n"
-        "modified_host_attributes="
-     << (modified_host_process_attributes &
-         ~config->retained_process_host_attribute_mask())
-     << "\n"
-        "modified_service_attributes="
-     << (modified_service_process_attributes &
-         ~config->retained_process_host_attribute_mask())
-     << "\n"
-        "next_comment_id="
-     << comment::get_next_comment_id()
-     << "\n"
-        "next_event_id="
-     << next_event_id
-     << "\n"
-        "next_notification_id="
-     << next_notification_id
-     << "\n"
-        "next_problem_id="
-     << next_problem_id
-     << "\n"
-        "obsess_over_hosts="
-     << config->obsess_over_hosts()
-     << "\n"
-        "obsess_over_services="
-     << config->obsess_over_services()
-     << "\n"
-        "passive_host_checks_enabled="
-     << config->accept_passive_host_checks()
-     << "\n"
-        "passive_service_checks_enabled="
-     << config->accept_passive_service_checks()
-     << "\n"
-        "process_performance_data="
-     << config->process_performance_data()
-     << "\n"
-        "}\n";
-  return os;
-}
-#else
 /**
  *  Dump retention of program.
  *
@@ -634,7 +546,6 @@ std::ostream& dump::program(std::ostream& os) {
         "}\n";
   return os;
 }
-#endif
 
 /**
  *  Save all data.
@@ -644,29 +555,15 @@ std::ostream& dump::program(std::ostream& os) {
  *  @return True on success, otherwise false.
  */
 bool dump::save(std::string const& path) {
-#ifdef LEGACY_CONF
-  if (!config->retain_state_information())
-    return true;
-#else
   if (!pb_config.retain_state_information())
     return true;
-#endif
 
-  // send data to event broker
-  broker_retention_data(NEBTYPE_RETENTIONDATA_STARTSAVE, NEBFLAG_NONE,
-                        NEBATTR_NONE, NULL);
-
-  bool ret(false);
+  bool ret = false;
   try {
     std::ofstream stream(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!stream.is_open())
-#ifdef LEGACY_CONF
-      throw engine_error() << "Cannot open retention file '"
-                           << config->state_retention_file() << "'";
-#else
       throw engine_error() << "Cannot open retention file '"
                            << pb_config.state_retention_file() << "'";
-#endif
     dump::header(stream);
     dump::info(stream);
     dump::program(stream);
@@ -682,9 +579,6 @@ bool dump::save(std::string const& path) {
     runtime_logger->error(e.what());
   }
 
-  // send data to event broker.
-  broker_retention_data(NEBTYPE_RETENTIONDATA_ENDSAVE, NEBFLAG_NONE,
-                        NEBATTR_NONE, NULL);
   return ret;
 }
 
@@ -824,13 +718,8 @@ std::ostream& dump::service(std::ostream& os,
      << obj.max_check_attempts()
      << "\n"
         "modified_attributes="
-#ifdef LEGACY_CONF
-     << (obj.get_modified_attributes() &
-         ~config->retained_host_attribute_mask())
-#else
      << (obj.get_modified_attributes() &
          ~pb_config.retained_host_attribute_mask())
-#endif
      << "\n"
         "next_check="
      << static_cast<unsigned long>(obj.get_next_check())

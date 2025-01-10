@@ -59,43 +59,22 @@ add_library(
                ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
 target_link_libraries(cerpc protobuf)
 
-if(LEGACY_ENGINE)
-  # mod_enginerpc target.
-  add_library(
-    enginerpc_legacy STATIC
-    # Sources.
-    engine_impl.cc enginerpc.cc
-    # Headers.
-    "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+# mod_enginerpc target.
+add_library(
+  ${ENGINERPC} STATIC
+  # Sources.
+  engine_impl.cc enginerpc.cc
+  # Headers.
+  "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-  add_dependencies(enginerpc_legacy centreon_common)
-  target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
+add_dependencies(${ENGINERPC} centreon_common)
 
-  # Prettier name.
-  set_property(
-    TARGET enginerpc_legacy
-    PROPERTY PREFIX ""
-    PROPERTY POSITION_INDEPENDENT_CODE ON)
-  # Link target with libraries.
-  target_link_libraries(enginerpc_legacy cerpc centreon_common spdlog::spdlog)
-else()
-  # mod_enginerpc target.
-  add_library(
-    ${ENGINERPC} STATIC
-    # Sources.
-    engine_impl.cc enginerpc.cc
-    # Headers.
-    "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
 
-  add_dependencies(${ENGINERPC} centreon_common)
-
-  target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
-
-  # Prettier name.
-  set_property(
-    TARGET ${ENGINERPC}
-    PROPERTY PREFIX ""
-    PROPERTY POSITION_INDEPENDENT_CODE ON)
-  # Link target with libraries.
-  target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
-endif()
+# Prettier name.
+set_property(
+  TARGET ${ENGINERPC}
+  PROPERTY PREFIX ""
+  PROPERTY POSITION_INDEPENDENT_CODE ON)
+# Link target with libraries.
+target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
