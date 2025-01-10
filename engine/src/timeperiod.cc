@@ -38,34 +38,6 @@ using namespace com::centreon::engine::string;
 timeperiod_map timeperiod::timeperiods;
 
 /**
- *  Create a new timeperiod in memory.
- *
- *  @param[in] name  Time period name.
- *  @param[in] alias Time period alias.
- *
- */
-#ifdef LEGACY_CONF
-timeperiod::timeperiod(std::string const& name, std::string const& alias)
-    : _name{name}, _alias{alias} {
-  if (name.empty() || alias.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Name or alias for timeperiod is NULL";
-    config_logger->error("Error: Name or alias for timeperiod is NULL");
-    throw engine_error() << "Could not register time period '" << name << "'";
-  }
-
-  // Check if the timeperiod already exist.
-  timeperiod_map::const_iterator it{timeperiod::timeperiods.find(name)};
-  if (it != timeperiod::timeperiods.end()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Timeperiod '" << name << "' has already been defined";
-    config_logger->error("Error: Timeperiod '{}' has already been defined",
-                         name);
-    throw engine_error() << "Could not register time period '" << name << "'";
-  }
-}
-#else
-/**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
  *
  * @param obj The configuration protobuf object.
@@ -151,7 +123,6 @@ void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
   fill_exceptions(array.month_week_day(), 3);
   fill_exceptions(array.week_day(), 4);
 }
-#endif
 
 void timeperiod::set_name(std::string const& name) {
   _name = name;
@@ -1247,7 +1218,6 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   }
 }
 
-#ifndef LEGACY_CONF
 void timeperiod::set_days(const configuration::DaysArray& array) {
   for (auto& d : days)
     d.clear();
@@ -1267,4 +1237,3 @@ void timeperiod::set_days(const configuration::DaysArray& array) {
   for (auto& r : array.saturday())
     days[6].emplace_back(r.range_start(), r.range_end());
 }
-#endif

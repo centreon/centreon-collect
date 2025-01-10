@@ -19,7 +19,6 @@
 #ifndef CCB_INSTANCE_BROADCAST_HH
 #define CCB_INSTANCE_BROADCAST_HH
 
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 

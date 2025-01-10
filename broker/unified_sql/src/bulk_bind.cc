@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2023 Centreon
+ * Copyright 2022-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,6 +79,17 @@ bool bulk_bind::ready(int32_t conn) {
   }
   _logger->trace(" => bind not ready");
   return false;
+}
+
+/**
+ * @brief Force the bind to be ready in term of time. If there is nothing to
+ * write, the bind won't be ready.
+ */
+void bulk_bind::force_ready() {
+  absl::MutexLock lck(&_queue_m);
+  for (auto& t : _next_time) {
+    t = 0;
+  }
 }
 
 /**

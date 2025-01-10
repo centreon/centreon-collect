@@ -25,6 +25,7 @@
 #include "bbdo/remove_graph_message.pb.h"
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 

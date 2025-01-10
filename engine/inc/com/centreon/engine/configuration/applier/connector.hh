@@ -20,9 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/connector_helper.hh"
-#endif
 
 namespace com::centreon::engine {
 
@@ -44,21 +42,12 @@ class connector {
   ~connector() noexcept = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(configuration::connector const& obj);
-  void modify_object(const configuration::connector& obj);
-  void remove_object(configuration::connector const& obj);
-  void expand_objects(configuration::state& s);
-  void resolve_object(configuration::connector const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Connector& obj);
   void modify_object(configuration::Connector* to_modify,
                      const configuration::Connector& new_obj);
   void remove_object(ssize_t idx);
   void expand_objects(configuration::State& s);
-  void resolve_object(const configuration::Connector& obj,
-                      error_cnt& err);
-#endif
+  void resolve_object(const configuration::Connector& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

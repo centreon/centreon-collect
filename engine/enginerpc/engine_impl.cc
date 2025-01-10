@@ -1773,11 +1773,9 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->set_last_acknowledgement(current_time);
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::HOST,
-        static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_host.get(), request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
@@ -1836,11 +1834,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::SERVICE,
-        static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_service.get(),
+                                request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_service->notify(notifier::reason_acknowledgement,
@@ -3272,7 +3269,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
                                       CHECK_OPTION_NONE);
         }
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
 
         /* We need check result to handle next check */
         temp_host->update_status();
@@ -3284,7 +3281,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(
             temp_host->get_modified_attributes() | attr);
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -3294,7 +3291,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
             temp_host->get_modified_attributes() | attr);
 
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_host->get_state_type() == notifier::hard &&
@@ -3311,7 +3308,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         temp_host->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
 
       default:
@@ -3385,8 +3382,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* We need check result to handle next check */
         temp_service->update_status();
@@ -3398,8 +3394,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -3409,8 +3404,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
 
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_service->get_state_type() == notifier::hard &&
@@ -3427,8 +3421,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeServiceObjectIntVar";
@@ -3484,16 +3477,6 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
         return 1;
     }
 
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, attr,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -3559,21 +3542,12 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     /* update the variable */
     switch (request->mode()) {
       case ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER:
-#ifdef LEGACY_CONF
-        config->global_host_event_handler(request->charval());
-#else
         pb_config.set_global_host_event_handler(request->charval());
-#endif
         global_host_event_handler_ptr = cmd_found->second.get();
         attr = MODATTR_EVENT_HANDLER_COMMAND;
         /* set the modified host attribute */
         modified_host_process_attributes |= attr;
 
-        /* send data to event broker */
-        broker_adaptive_program_data(
-            NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            CMD_NONE, attr, modified_host_process_attributes, MODATTR_NONE,
-            modified_service_process_attributes, nullptr);
         /* update program status */
         update_program_status(false);
         break;
@@ -3585,7 +3559,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         temp_host->add_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_COMMAND:
         temp_host->set_check_command(request->charval());
@@ -3593,7 +3567,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_COMMAND;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD:
         temp_host->set_check_period(request->charval());
@@ -3601,7 +3575,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_CHECK_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       case ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD:
         temp_host->set_notification_period(request->charval());
@@ -3609,7 +3583,7 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         attr = MODATTR_NOTIFICATION_TIMEPERIOD;
         /* send data to event broker */
         broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                  NEBATTR_NONE, temp_host.get(), attr);
+                                  temp_host.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeHostObjectCharVar";
@@ -3681,11 +3655,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
     /* update the variable */
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER) {
-#ifdef LEGACY_CONF
-      config->global_service_event_handler(request->charval());
-#else
       pb_config.set_global_service_event_handler(request->charval());
-#endif
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
     } else if (request->mode() == ChangeObjectChar_Mode_CHANGE_EVENT_HANDLER) {
@@ -3716,12 +3686,6 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
       /* set the modified service attribute */
       modified_service_process_attributes |= attr;
 
-      /* send data to event broker */
-      broker_adaptive_program_data(
-          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, CMD_NONE,
-          MODATTR_NONE, modified_host_process_attributes, attr,
-          modified_service_process_attributes, nullptr);
-
       /* update program status */
       update_program_status(false);
     } else {
@@ -3730,7 +3694,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, temp_service.get(), attr);
+                                   temp_service.get(), attr);
     }
     return 0;
   });
@@ -3795,17 +3759,6 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
         temp_contact->get_modified_host_attributes() | hattr);
     temp_contact->set_modified_service_attributes(
         temp_contact->get_modified_service_attributes() | sattr);
-
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, MODATTR_NONE,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
 
     return 0;
   });

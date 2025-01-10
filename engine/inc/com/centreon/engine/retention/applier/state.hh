@@ -26,26 +26,18 @@ namespace com::centreon::engine {
 
 // Forward declaration.
 namespace configuration {
-#ifdef LEGACY_CONF
-class state;
-#else
 class State;
-#endif
 }
 
 namespace retention {
 namespace applier {
 class state {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state& config, retention::state const& state);
-#else
   void apply(configuration::State& config, retention::state const& state);
-#endif
 };
 }  // namespace applier
 }  // namespace retention
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_STATE_HH

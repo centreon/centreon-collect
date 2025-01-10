@@ -24,13 +24,8 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/file_stream.hh"
 #include "com/centreon/process.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/parser.hh"
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
-#endif
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -159,17 +154,6 @@ void diagnostic::generate(std::string const& cfg_file,
   // Parse configuration file.
   std::cout << "Diagnostic: Parsing configuration file '" << cfg_file << "'"
             << std::endl;
-#ifdef LEGACY_CONF
-  configuration::state conf;
-  try {
-    configuration::error_cnt err;
-    configuration::parser parsr;
-    parsr.parse(cfg_file, conf, err);
-  } catch (std::exception const& e) {
-    std::cerr << "Diagnostic: configuration file '" << cfg_file
-              << "' parsing failed: " << e.what() << std::endl;
-  }
-#else
   configuration::State conf;
   try {
     configuration::error_cnt err;
@@ -179,7 +163,6 @@ void diagnostic::generate(std::string const& cfg_file,
     std::cerr << "Diagnostic: configuration file '" << cfg_file
               << "' parsing failed: " << e.what() << std::endl;
   }
-#endif
 
   // Create temporary configuration directory.
   std::string tmp_cfg_dir(tmp_dir + "/cfg/");

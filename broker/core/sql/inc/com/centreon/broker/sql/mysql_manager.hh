@@ -19,8 +19,6 @@
 #define CCB_MYSQL_MANAGER_HH
 
 #include "com/centreon/broker/sql/mysql.hh"
-#include "com/centreon/broker/sql/mysql_error.hh"
-#include "com/centreon/broker/stats/center.hh"
 
 namespace com::centreon::broker {
 

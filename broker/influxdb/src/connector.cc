@@ -19,12 +19,7 @@
 #include "com/centreon/broker/influxdb/connector.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
-#include "com/centreon/broker/neb/host.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
