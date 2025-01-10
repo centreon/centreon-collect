@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2024-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,6 +71,24 @@ cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
   } catch (const std::exception& e) {
     log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
   }
+
+  com::centreon::broker::config::applier::state::instance().apply(s);
+}
+
+/**
+ * @brief Constructor of the cbmod class. Useful in unit tests.
+ */
+cbmod::cbmod()
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
+      _impl{new cbmodimpl},
+      _proto_conf{""} {
+  com::centreon::broker::config::state s;
+  s.poller_id(1);
+  s.poller_name("test");
+  com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
+                                               s);
+  _use_protobuf =
+      config::applier::state::instance().get_bbdo_version().major_v > 2;
 
   com::centreon::broker::config::applier::state::instance().apply(s);
 }

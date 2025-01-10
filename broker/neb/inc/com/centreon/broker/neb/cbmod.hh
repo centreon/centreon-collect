@@ -48,13 +48,15 @@ class cbmod {
       _acknowledgements;
 
  public:
+  cbmod();
   cbmod(const std::string& config_file, const std::string& proto_conf);
-  ~cbmod() noexcept;
   cbmod& operator=(const cbmod&) = delete;
 
-  void write(const std::shared_ptr<io::data>& msg);
-  uint64_t poller_id() const;
-  const std::string& poller_name() const;
+  virtual ~cbmod() noexcept;
+  virtual void write(const std::shared_ptr<io::data>& msg);
+  virtual uint64_t poller_id() const;
+  virtual const std::string& poller_name() const;
+
   const bbdo::bbdo_version bbdo_version() const;
   bool use_protobuf() const;
   void add_acknowledgement(const std::shared_ptr<neb::acknowledgement>& ack);
