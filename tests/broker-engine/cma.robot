@@ -899,7 +899,7 @@ BEOTEL_CENTREON_AGENT_CEIP
     ...    Given Engine connected to Broker
     ...    When an agent connects to Engine
     ...	  Then a message is sent to Broker that results in a new row in the "centreon_storage.agent_information" table.
-
+ 
     [Tags]    broker    engine    opentelemetry    MON-145030
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
