@@ -204,7 +204,6 @@ jobs:
                "build/broker/watchdog/cbwd"
                "build/engine/centengine"
                "build/engine/centenginestats"
-               "build/engine/modules/bench/centengine_bench_passive"
                "build/connectors/perl/centreon_connector_perl"
                "build/connectors/ssh/centreon_connector_ssh"
                "build/ccc/ccc"
