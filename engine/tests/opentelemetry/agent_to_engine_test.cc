@@ -24,7 +24,14 @@
 #include <gtest/gtest.h>
 
 #include <rapidjson/document.h>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
+namespace multi_index = boost::multi_index;
+
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_stat.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
@@ -140,8 +147,10 @@ class agent_to_engine_test : public TestEngine {
   void start_server(const grpc_config::pointer& listen_endpoint,
                     const centreon_agent::agent_config::pointer& agent_conf,
                     const metric_handler_type& handler) {
-    _server = otl_server::load(_agent_io_context, listen_endpoint, agent_conf,
-                               handler, spdlog::default_logger());
+    _server = otl_server::load(
+        _agent_io_context, listen_endpoint, agent_conf, handler,
+        spdlog::default_logger(),
+        std::make_shared<centreon_agent::agent_stat>(_agent_io_context));
   }
 };
 

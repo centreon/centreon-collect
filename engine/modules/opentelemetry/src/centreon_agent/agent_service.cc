@@ -37,14 +37,17 @@ class server_bireactor
                    const agent_config::pointer& conf,
                    const otel_request_handler& handler,
                    const std::shared_ptr<spdlog::logger>& logger,
-                   const std::string& peer)
+                   const std::string& peer,
+                   agent_stat::pointer& stats)
       : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
                                              agent::MessageToAgent>>(
             io_context,
             "agent_server",
             conf,
             handler,
-            logger),
+            logger,
+            false,
+            stats),
         _peer(peer) {
     SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
   }
@@ -84,11 +87,13 @@ agent_service::agent_service(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const agent_config::pointer& conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats)
     : _io_context(io_context),
       _conf(conf),
       _metric_handler(handler),
-      _logger(logger) {
+      _logger(logger),
+      _stats(stats) {
   if (!_conf) {
     _conf = std::make_shared<agent_config>(60, 100, 10, 30);
     SPDLOG_LOGGER_INFO(logger,
@@ -109,9 +114,10 @@ std::shared_ptr<agent_service> agent_service::load(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const agent_config::pointer& conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger) {
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats) {
   std::shared_ptr<agent_service> ret = std::make_shared<agent_service>(
-      io_context, conf, std::move(handler), logger);
+      io_context, conf, std::move(handler), logger, stats);
   ret->init();
   return ret;
 }
@@ -144,7 +150,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
   {
     absl::MutexLock l(&_conf_m);
     new_reactor = std::make_shared<server_bireactor>(
-        _io_context, _conf, _metric_handler, _logger, context->peer());
+        _io_context, _conf, _metric_handler, _logger, context->peer(), _stats);
   }
   server_bireactor::register_stream(new_reactor);
   new_reactor->start_read();

@@ -63,6 +63,8 @@ message AgentInfo {
     //host name of the computer of the agent
     string host=1;
     Version centreon_version=2;
+    string os=3; //can be alma, windows, etc
+    string os_version=4;
 }
 
 //Agent configuration sent by Engine

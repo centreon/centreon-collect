@@ -46,7 +46,8 @@ class otl_server : public common::grpc::grpc_server_base {
              const grpc_config::pointer& conf,
              const centreon_agent::agent_config::pointer& agent_config,
              const metric_handler& handler,
-             const std::shared_ptr<spdlog::logger>& logger);
+             const std::shared_ptr<spdlog::logger>& logger,
+             const centreon_agent::agent_stat::pointer& agent_stats);
   void start();
 
  public:
@@ -59,7 +60,8 @@ class otl_server : public common::grpc::grpc_server_base {
       const grpc_config::pointer& conf,
       const centreon_agent::agent_config::pointer& agent_config,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger);
+      const std::shared_ptr<spdlog::logger>& logger,
+      const centreon_agent::agent_stat::pointer& agent_stats);
 
   void update_agent_config(
       const centreon_agent::agent_config::pointer& agent_config);

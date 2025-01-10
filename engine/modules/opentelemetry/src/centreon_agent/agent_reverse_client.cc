@@ -31,8 +31,12 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 agent_reverse_client::agent_reverse_client(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
-    : _io_context(io_context), _metric_handler(handler), _logger(logger) {}
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats)
+    : _io_context(io_context),
+      _metric_handler(handler),
+      _logger(logger),
+      _agent_stats(stats) {}
 
 /**
  * @brief Destroy the agent reverse client::agent reverse client object
@@ -112,7 +116,7 @@ agent_reverse_client::_create_new_client_connection(
   auto insert_res = _agents.try_emplace(
       agent_endpoint,
       to_agent_connector::load(agent_endpoint, _io_context, agent_conf,
-                               _metric_handler, _logger));
+                               _metric_handler, _logger, _agent_stats));
   return insert_res.first;
 }
 

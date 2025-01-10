@@ -388,6 +388,8 @@ class stream : public io::stream {
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
 
+  database::mysql_stmt _agent_information_insert_update;
+
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
@@ -446,7 +448,7 @@ class stream : public io::stream {
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
-
+  void _process_agent_stats(const std::shared_ptr<io::data>& d);
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
   void _check_and_update_index_cache(const Service& ss);
 

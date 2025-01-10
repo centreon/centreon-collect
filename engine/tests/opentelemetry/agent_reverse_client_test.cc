@@ -17,7 +17,11 @@
  */
 
 #include <gtest/gtest.h>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_stat.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
@@ -39,8 +43,14 @@ struct fake_connector : public to_agent_connector {
                  const std::shared_ptr<boost::asio::io_context>& io_context,
                  const centreon_agent::agent_config::pointer& agent_conf,
                  const metric_handler& handler,
-                 const std::shared_ptr<spdlog::logger>& logger)
-      : to_agent_connector(conf, io_context, agent_conf, handler, logger) {}
+                 const std::shared_ptr<spdlog::logger>& logger,
+                 const agent_stat::pointer& stats)
+      : to_agent_connector(conf,
+                           io_context,
+                           agent_conf,
+                           handler,
+                           logger,
+                           stats) {}
 
   void start() override {
     all_fake.emplace(std::static_pointer_cast<grpc_config>(get_conf()),
@@ -52,9 +62,10 @@ struct fake_connector : public to_agent_connector {
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const centreon_agent::agent_config::pointer& agent_conf,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger) {
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats) {
     std::shared_ptr<to_agent_connector> ret = std::make_shared<fake_connector>(
-        conf, io_context, agent_conf, handler, logger);
+        conf, io_context, agent_conf, handler, logger, stats);
     ret->start();
     return ret;
   }
@@ -73,17 +84,19 @@ class my_agent_reverse_client : public agent_reverse_client {
   my_agent_reverse_client(
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger)
-      : agent_reverse_client(io_context, handler, logger) {}
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats)
+      : agent_reverse_client(io_context, handler, logger, stats) {}
 
   agent_reverse_client::config_to_client::iterator
   _create_new_client_connection(
       const grpc_config::pointer& agent_endpoint,
       const agent_config::pointer& agent_conf) override {
     return _agents
-        .try_emplace(agent_endpoint,
-                     fake_connector::load(agent_endpoint, _io_context,
-                                          agent_conf, _metric_handler, _logger))
+        .try_emplace(
+            agent_endpoint,
+            fake_connector::load(agent_endpoint, _io_context, agent_conf,
+                                 _metric_handler, _logger, _agent_stats))
         .first;
   }
 
@@ -94,7 +107,8 @@ class my_agent_reverse_client : public agent_reverse_client {
 
 TEST(agent_reverse_client, update_config) {
   my_agent_reverse_client to_test(
-      g_io_context, [](const metric_request_ptr&) {}, spdlog::default_logger());
+      g_io_context, [](const metric_request_ptr&) {}, spdlog::default_logger(),
+      std::make_shared<agent_stat>(g_io_context));
 
   ASSERT_TRUE(fake_connector::all_fake.empty());
 
