@@ -109,6 +109,7 @@ def ctn_check_connection(port: int, pid1: int, pid2: int):
         r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
     p_v6 = re.compile(
         r"::1\]*:(\d+)\s+.*::1\]*:(\d+)\s+.*,pid=(\d+)")
+    logger.console(f"Checking connection on port {port} between PIDs {pid1} and {pid2}")
     while time.time() < limit:
         out = getoutput("ss -plant")
         lst = out.split('\n')

@@ -603,7 +603,7 @@ stream::~stream() {
  * @return The number of events to acknowledge.
  */
 int32_t stream::stop() {
-  _logger->trace("bbdo::stream stop {}", static_cast<void*>(this));
+  _logger->debug("bbdo::stream stop {}", static_cast<void*>(this));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
    * Here, the user wants to stop me/ I need to ask broker how many

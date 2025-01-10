@@ -4306,11 +4306,6 @@ void broker_program_state(int type, int flags) {
   if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
     return;
 
-  // Fill struct with relevant data.
-  nebstruct_process_data ds;
-  ds.type = type;
-  ds.flags = flags;
-
   auto inst_obj = std::make_shared<neb::pb_instance>();
   com::centreon::broker::Instance& inst = inst_obj->mut_obj();
   inst.set_engine("Centreon Engine");

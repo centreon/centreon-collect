@@ -119,7 +119,6 @@ class EngineInstance:
                 "#cfg_file={2}/config{0}/meta_host.cfg\n"
                 "#cfg_file={2}/config{0}/meta_services.cfg\n"
                 "broker_module=/usr/lib64/centreon-engine/externalcmd.so\n"
-                "broker_module=/usr/lib64/nagios/cbmod.so {4}/centreon-broker/central-module{0}.json\n"
                 "interval_length=60\n"
                 "use_timezone=:Europe/Paris\n"
                 "resource_file={2}/config{0}/resource.cfg\n"

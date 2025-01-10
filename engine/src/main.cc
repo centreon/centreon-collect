@@ -436,6 +436,9 @@ int main(int argc, char* argv[]) {
         program_start = std::time(nullptr);
         mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
+        // Handle signals (interrupts).
+        setup_sighandler();
+
         // Load broker modules.
         configuration::applier::state::instance().apply_log_config(pb_config);
         cbm = std::make_unique<cbmod>(broker_config, proto_conf);
@@ -453,9 +456,6 @@ int main(int argc, char* argv[]) {
 
         // Apply configuration.
         configuration::applier::state::instance().apply(pb_config, err, &state);
-
-        // Handle signals (interrupts).
-        setup_sighandler();
 
         // Initialize status data.
         initialize_status_data();

@@ -186,9 +186,9 @@ Ctn Start Engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
-            Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END
     END
 
@@ -230,7 +230,7 @@ Ctn Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Ctn Stop Engine
-    Log To Console    "stop centengine"
+    Log To Console    Stop centengine
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         Send Signal To Process    SIGTERM    e${idx}
@@ -239,7 +239,7 @@ Ctn Stop Engine
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
-            Log To Console    "fail to stop centengine"
+            Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
             Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}

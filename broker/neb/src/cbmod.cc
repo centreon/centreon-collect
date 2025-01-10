@@ -42,8 +42,6 @@ class cbmodimpl {
   cbmodimpl() {}
   cbmodimpl& operator=(const cbmodimpl&) = delete;
 
-  void process_data(const nebstruct_process_data* ds,
-                    const std::string& program_version);
   const multiplexing::publisher& publisher() const { return _publisher; }
   multiplexing::publisher& mut_publisher() { return _publisher; }
 };
