@@ -21,7 +21,7 @@
 add_library(bbdo STATIC acceptor.cc connector.cc factory.cc
                         internal.cc stream.cc)
 
-add_dependencies(bbdo target_common target_bbdo target_extcmd)
+add_dependencies(bbdo target_common target_bbdo target_extcmd opentelemetry-proto-files)
 target_precompile_headers(bbdo PRIVATE precomp_inc/precomp.hh)
 
 set_target_properties(bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)

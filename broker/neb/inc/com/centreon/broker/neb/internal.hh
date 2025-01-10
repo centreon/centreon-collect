@@ -23,7 +23,6 @@
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-//#include "com/centreon/broker/neb/callback.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker::neb {
