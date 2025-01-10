@@ -130,9 +130,11 @@ overrides:
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
+      - centreon-engine-bench
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-devel
+      - centreon-engine-bench
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -145,9 +147,11 @@ overrides:
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
