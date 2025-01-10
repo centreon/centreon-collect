@@ -23,6 +23,8 @@
 option(LEGACY_ENGINE
        "Enable this option to compile the old Engine version." OFF)
 
+option(OFF_LINE
+       "If there is no network, don't try to download opentelemetry proto files")
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
@@ -121,16 +123,18 @@ set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
 include(GNUInstallDirs)
 
 #import opentelemetry-proto
-add_custom_command(
-  OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
-    ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
-  COMMENT "get opentelemetry proto files from git repository"
-  COMMAND /bin/rm -rf  ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
-  WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
-)
+if (NOT OFF_LINE)
+  add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
+      ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
+      ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/common/v1/common.proto
+      ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto
+    COMMENT "get opentelemetry proto files from git repository"
+    COMMAND /bin/rm -rf  ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    COMMAND git ARGS clone --depth=1 --single-branch https://github.com/open-telemetry/opentelemetry-proto.git ${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    WORKING_DIRECTORY  ${CMAKE_SOURCE_DIR}
+  )
+endif()
 
 add_custom_target(opentelemetry-proto-files DEPENDS  ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/collector/metrics/v1/metrics_service.proto
     ${CMAKE_SOURCE_DIR}/opentelemetry-proto/opentelemetry/proto/metrics/v1/metrics.proto
