@@ -97,7 +97,7 @@ add_dependencies(
   pb_neb_lib
   pb_common_lib
   pb_header_lib
-  opentelemetry-proto-files)
+  pb_open_telemetry_lib)
 
 target_link_libraries(nebbase
   -L${PROTOBUF_LIB_DIR}
