@@ -88,6 +88,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
@@ -156,7 +157,7 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
 # Modules directories.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
-set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
+set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64")
 
 # User.
 if(WITH_USER_BROKER)
