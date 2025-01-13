@@ -516,13 +516,6 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
         ++it;
     }
   }
-
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_adaptive_contact_data(NEBTYPE_CONTACT_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, c, CMD_NONE, MODATTR_ALL,
-                               MODATTR_ALL, MODATTR_ALL, MODATTR_ALL,
-                               MODATTR_ALL, MODATTR_ALL, &tv);
 }
 #endif
 
@@ -579,13 +572,6 @@ void applier::contact::remove_object(ssize_t idx) {
 
     for (auto& it_c : cntct->get_parent_groups())
       it_c.second->get_members().erase(obj.contact_name());
-
-    // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_contact_data(NEBTYPE_CONTACT_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, cntct, CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, MODATTR_ALL, MODATTR_ALL,
-                                 MODATTR_ALL, MODATTR_ALL, &tv);
 
     // Erase contact object (this will effectively delete the object).
     engine::contact::contacts.erase(it);

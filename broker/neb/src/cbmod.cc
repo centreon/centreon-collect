@@ -46,15 +46,11 @@ class cbmodimpl {
   multiplexing::publisher& mut_publisher() { return _publisher; }
 };
 
-cbmod::cbmod(const std::string& config_file, const std::string& proto_conf)
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl},
-      _proto_conf{proto_conf} {
+cbmod::cbmod(const std::string& config_file)
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
   com::centreon::broker::config::state s{p.parse(config_file)};
-
-  bool new_generation = !proto_conf.empty();
 
   // Initialization.
   /* This is a little hack to avoid to replace the log file set by

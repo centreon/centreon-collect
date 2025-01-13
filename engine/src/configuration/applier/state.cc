@@ -968,7 +968,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.modify_object(p.first, *p.second);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -983,7 +983,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.remove_object(idx);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -997,7 +997,7 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
         aplyr.add_object(*obj);
       } catch (const std::exception& e) {
         ++err.config_errors;
-        events_logger->info(e.what());
+        config_logger->info(e.what());
       }
     }
   }
@@ -1884,7 +1884,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    apply_log_config(new_cfg);
+    // apply_log_config(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
@@ -2309,7 +2309,7 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    apply_log_config(new_cfg);
+    // apply_log_config(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);

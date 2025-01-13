@@ -1782,17 +1782,6 @@ int cmd_change_object_int_var(int cmd, char* args) {
         default:
           break;
       }
-
-      /* send data to event broker */
-      broker_adaptive_contact_data(
-          NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          cnct->second.get(), cmd, attr,
-          cnct->second->get_modified_attributes(), hattr,
-          cnct->second->get_modified_host_attributes(), sattr,
-          cnct->second->get_modified_service_attributes(), nullptr);
-
-      /* update the status log with the contact info */
-      cnct->second->update_status_info(false);
       break;
 
     default:
@@ -2095,17 +2084,6 @@ int cmd_change_object_char_var(int cmd, char* args) {
           cnct->second->get_modified_host_attributes() | hattr);
       cnct->second->set_modified_service_attributes(
           cnct->second->get_modified_service_attributes() | sattr);
-
-      /* send data to event broker */
-      broker_adaptive_contact_data(
-          NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          cnct->second.get(), cmd, attr,
-          cnct->second->get_modified_attributes(), hattr,
-          cnct->second->get_modified_host_attributes(), sattr,
-          cnct->second->get_modified_service_attributes(), nullptr);
-
-      /* update the status log with the contact info */
-      cnct->second->update_status_info(false);
       break;
 
     default:
@@ -2194,7 +2172,6 @@ int cmd_change_object_custom_var(int cmd, char* args) {
         it->second.update(varvalue);
 
       cnct_it->second->add_modified_attributes(MODATTR_CUSTOM_VARIABLE);
-      cnct_it->second->update_status_info(false);
     } break;
     default:
       break;
@@ -2523,16 +2500,6 @@ void enable_contact_host_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_host_notifications_enabled(true);
-
-  /* send data to event broker */
-  broker_adaptive_contact_data(
-      NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, cntct,
-      CMD_NONE, MODATTR_NONE, cntct->get_modified_attributes(), attr,
-      cntct->get_modified_host_attributes(), MODATTR_NONE,
-      cntct->get_modified_service_attributes(), nullptr);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* disables host notifications for a contact */
@@ -2549,16 +2516,6 @@ void disable_contact_host_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_host_notifications_enabled(false);
-
-  /* send data to event broker */
-  broker_adaptive_contact_data(
-      NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, cntct,
-      CMD_NONE, MODATTR_NONE, cntct->get_modified_attributes(), attr,
-      cntct->get_modified_host_attributes(), MODATTR_NONE,
-      cntct->get_modified_service_attributes(), nullptr);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* enables service notifications for a contact */
@@ -2575,16 +2532,6 @@ void enable_contact_service_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_service_notifications_enabled(true);
-
-  /* send data to event broker */
-  broker_adaptive_contact_data(
-      NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, cntct,
-      CMD_NONE, MODATTR_NONE, cntct->get_modified_attributes(), MODATTR_NONE,
-      cntct->get_modified_host_attributes(), attr,
-      cntct->get_modified_service_attributes(), nullptr);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* disables service notifications for a contact */
@@ -2601,16 +2548,6 @@ void disable_contact_service_notifications(contact* cntct) {
 
   /* enable the host notifications... */
   cntct->set_service_notifications_enabled(false);
-
-  /* send data to event broker */
-  broker_adaptive_contact_data(
-      NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, cntct,
-      CMD_NONE, MODATTR_NONE, cntct->get_modified_attributes(), MODATTR_NONE,
-      cntct->get_modified_host_attributes(), attr,
-      cntct->get_modified_service_attributes(), nullptr);
-
-  /* update the status log to reflect the new contact state */
-  cntct->update_status_info(false);
 }
 
 /* schedules downtime for all hosts "beyond" a given host */
@@ -2662,9 +2599,7 @@ void acknowledge_host_problem(host* hst,
   hst->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
-                              acknowledgement_resource_type::HOST, (void*)hst,
-                              ack_author.c_str(), ack_data.c_str(), type,
+  broker_acknowledgement_data(hst, ack_author.c_str(), ack_data.c_str(), type,
                               notify, persistent);
 
   /* send out an acknowledgement notification */
@@ -2703,10 +2638,8 @@ void acknowledge_service_problem(service* svc,
   svc->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
-                              acknowledgement_resource_type::SERVICE,
-                              (void*)svc, ack_author.c_str(), ack_data.c_str(),
-                              type, notify, persistent);
+  broker_acknowledgement_data(svc, ack_author.c_str(), ack_data.c_str(), type,
+                              notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)
