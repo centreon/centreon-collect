@@ -2562,25 +2562,25 @@ static void forward_pb_group_member(int type, const R* object, const G* group) {
  *  @param[in] object    Member (host or service).
  *  @param[in] group     Group (host or service).
  */
-void broker_group_member(int type, void* object, void* group) {
+template <typename G, typename R>
+void broker_group_member(int type, const R* object, const G* group) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_GROUP_MEMBER_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_GROUP_MEMBER_DATA))
     return;
-#endif
-
-  // Fill struct will relevant data.
-  nebstruct_group_member_data ds;
-  ds.type = type;
-  ds.object_ptr = object;
-  ds.group_ptr = group;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GROUP_MEMBER_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_group_member(type, object, group);
+  else
+    forward_group_member(type, object, group);
 }
+
+template void broker_group_member(int type,
+                                  const engine::host* object,
+                                  const engine::hostgroup* group);
+template void broker_group_member(int type,
+                                  const engine::service* object,
+                                  const engine::servicegroup* group);
 
 /**
  *  Send host check data to broker.
