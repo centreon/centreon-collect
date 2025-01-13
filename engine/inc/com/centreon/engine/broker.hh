@@ -329,7 +329,6 @@ void broker_adaptive_host_data(int type,
                                int flags,
                                com::centreon::engine::host* hst,
                                uint64_t modattr);
-void broker_adaptive_dependency_data(int type, void* data);
 void broker_adaptive_escalation_data(int type,
                                      int flags,
                                      int attr,
