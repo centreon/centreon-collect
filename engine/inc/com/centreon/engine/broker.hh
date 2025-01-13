@@ -346,7 +346,6 @@ void broker_comment_data(int type,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id);
-void broker_contact_status(int type, com::centreon::engine::contact* cntct);
 void broker_custom_variable(int type,
                             void* data,
                             std::string_view&& varname,

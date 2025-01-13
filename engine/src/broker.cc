@@ -1402,31 +1402,6 @@ void broker_comment_data(int type,
 }
 
 /**
- *  Sends contact status updates to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] cntct     Target contact.
- */
-void broker_contact_status(int type, contact* cntct) {
-  // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
-  if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_service_status_data ds;
-  ds.type = type;
-  ds.object_ptr = cntct;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_CONTACT_STATUS_DATA, &ds);
-}
-
-/**
  *  Sends host custom variables updates to broker.
  *
  *  @param[in] type      Type.
