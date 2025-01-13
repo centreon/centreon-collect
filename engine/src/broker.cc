@@ -260,23 +260,62 @@ void broker_adaptive_severity_data(int type, engine::severity* es) {
  * @param type      Type.
  * @param data      Target tag.
  */
-void broker_adaptive_tag_data(int type, void* data) {
+void broker_adaptive_tag_data(int type, engine::tag* et) {
   /* Config check. */
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
-#endif
-
-  /* Fill struct with relevant data. */
-  nebstruct_adaptive_tag_data ds;
-  ds.type = type;
-  ds.object_ptr = data;
 
   /* Make callbacks. */
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_TAG_DATA, &ds);
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating protobuf tag event");
+
+  auto t{std::make_shared<neb::pb_tag>()};
+  com::centreon::broker::Tag& tg = t.get()->mut_obj();
+  switch (type) {
+    case NEBTYPE_TAG_ADD:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: new tag");
+      tg.set_action(com::centreon::broker::Tag_Action_ADD);
+      break;
+    case NEBTYPE_TAG_DELETE:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: removed tag");
+      tg.set_action(com::centreon::broker::Tag_Action_DELETE);
+      break;
+    case NEBTYPE_TAG_UPDATE:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: modified tag");
+      tg.set_action(com::centreon::broker::Tag_Action_MODIFY);
+      break;
+    default:
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "callbacks: protobuf tag event action must be among ADD, MODIFY "
+          "or DELETE");
+      return;
+  }
+  tg.set_id(et->id());
+  tg.set_poller_id(cbm->poller_id());
+  switch (et->type()) {
+    case engine::tag::hostcategory:
+      tg.set_type(com::centreon::broker::HOSTCATEGORY);
+      break;
+    case engine::tag::servicecategory:
+      tg.set_type(com::centreon::broker::SERVICECATEGORY);
+      break;
+    case engine::tag::hostgroup:
+      tg.set_type(com::centreon::broker::HOSTGROUP);
+      break;
+    case engine::tag::servicegroup:
+      tg.set_type(com::centreon::broker::SERVICEGROUP);
+      break;
+    default:
+      SPDLOG_LOGGER_ERROR(
+          neb_logger,
+          "callbacks: protobuf tag event type must be among HOSTCATEGORY, "
+          "SERVICECATEGORY, HOSTGROUP or SERVICEGROUP");
+      return;
+  }
+  tg.set_name(et->name());
+
+  // Send event(t).
+  cbm->write(t);
 }
 
 /**
