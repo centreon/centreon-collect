@@ -27,7 +27,7 @@
 
 namespace com::centreon::broker::bbdo {
 /**
- *  @class stream stream.hh "com/centreon/broker/bbdo/stream.hh"
+ *  @class stream stream.hh "broker/core/bbdo/stream.hh"
  *  @brief BBDO stream.
  *
  *  The class converts data to NEB events back and forth.

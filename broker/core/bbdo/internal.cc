@@ -16,15 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bbdo/internal.hh"
-
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
-#include "com/centreon/broker/io/events.hh"
+#include "broker/core/bbdo/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

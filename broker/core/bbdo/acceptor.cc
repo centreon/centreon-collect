@@ -16,16 +16,16 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bbdo/acceptor.hh"
+#include "acceptor.hh"
 
 #include <cassert>
 
-#include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
+#include "internal.hh"
+#include "stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
