@@ -324,7 +324,7 @@ void broker_acknowledgement_data(R* data,
 
 void broker_adaptive_severity_data(int type,
                                    com::centreon::engine::severity* es);
-void broker_adaptive_tag_data(int type, void* data);
+void broker_adaptive_tag_data(int type, com::centreon::engine::tag* data);
 void broker_adaptive_dependency_data(int type, void* data);
 void broker_adaptive_escalation_data(int type,
                                      int flags,
