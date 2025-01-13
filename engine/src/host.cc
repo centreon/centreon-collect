@@ -2621,9 +2621,7 @@ int host::notify_contact(nagios_macros* mac,
   bool early_timeout = false;
   double exectime;
   struct timeval start_time, end_time;
-  struct timeval method_start_time, method_end_time;
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
-  int neb_result;
 
   engine_logger(dbg_functions, basic) << "notify_contact_of_host()";
   SPDLOG_LOGGER_TRACE(functions_logger, "notify_contact_of_host()");
@@ -2644,37 +2642,9 @@ int host::notify_contact(nagios_macros* mac,
   /* get start time */
   gettimeofday(&start_time, nullptr);
 
-  /* send data to event broker */
-  end_time.tv_sec = 0L;
-  end_time.tv_usec = 0L;
-  neb_result = broker_contact_notification_data(
-      NEBTYPE_CONTACTNOTIFICATION_START, NEBFLAG_NONE, NEBATTR_NONE,
-      host_notification, type, start_time, end_time, (void*)this, cntct,
-      not_author.c_str(), not_data.c_str(), escalated, nullptr);
-  if (NEBERROR_CALLBACKCANCEL == neb_result)
-    return ERROR;
-  else if (NEBERROR_CALLBACKOVERRIDE == neb_result)
-    return OK;
-
   /* process all the notification commands this user has */
   for (std::shared_ptr<commands::command> const& cmd :
        cntct->get_host_notification_commands()) {
-    /* get start time */
-    gettimeofday(&method_start_time, nullptr);
-
-    /* send data to event broker */
-    method_end_time.tv_sec = 0L;
-    method_end_time.tv_usec = 0L;
-    neb_result = broker_contact_notification_method_data(
-        NEBTYPE_CONTACTNOTIFICATIONMETHOD_START, NEBFLAG_NONE, NEBATTR_NONE,
-        host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
-        nullptr);
-    if (NEBERROR_CALLBACKCANCEL == neb_result)
-      break;
-    else if (NEBERROR_CALLBACKOVERRIDE == neb_result)
-      continue;
-
     /* get the raw command line */
     get_raw_command_line_r(mac, cmd, cmd->get_command_line().c_str(),
                            raw_command, macro_options);
@@ -2765,16 +2735,6 @@ int host::notify_contact(nagios_macros* mac,
           "after {} seconds",
           cntct->get_name(), processed_command, notification_timeout);
     }
-
-    /* get end time */
-    gettimeofday(&method_end_time, nullptr);
-
-    /* send data to event broker */
-    broker_contact_notification_method_data(
-        NEBTYPE_CONTACTNOTIFICATIONMETHOD_END, NEBFLAG_NONE, NEBATTR_NONE,
-        host_notification, type, method_start_time, method_end_time,
-        (void*)this, cntct, not_author.c_str(), not_data.c_str(), escalated,
-        nullptr);
   }
 
   /* get end time */
@@ -2782,12 +2742,6 @@ int host::notify_contact(nagios_macros* mac,
 
   /* update the contact's last host notification time */
   cntct->set_last_host_notification(start_time.tv_sec);
-
-  /* send data to event broker */
-  broker_contact_notification_data(
-      NEBTYPE_CONTACTNOTIFICATION_END, NEBFLAG_NONE, NEBATTR_NONE,
-      host_notification, type, start_time, end_time, (void*)this, cntct,
-      not_author.c_str(), not_data.c_str(), escalated, nullptr);
 
   return OK;
 }
