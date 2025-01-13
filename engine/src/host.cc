@@ -2326,7 +2326,7 @@ void host::clear_flap(double percent_change,
  * STATUS_ALL).
  */
 void host::update_status(uint32_t attributes) {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this, attributes);
+  broker_host_status(this, attributes);
 }
 
 /**
