@@ -384,19 +384,6 @@ int broker_host_check(int type,
 void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
 void broker_log_data(const char* data, time_t entry_time);
-int broker_notification_data(int type,
-                             int flags,
-                             int attr,
-                             unsigned int notification_type,
-                             int reason_type,
-                             struct timeval start_time,
-                             struct timeval end_time,
-                             void* data,
-                             char const* ack_author,
-                             char const* ack_data,
-                             int escalated,
-                             int contacts_notified,
-                             struct timeval const* timestamp);
 void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,

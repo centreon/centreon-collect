@@ -3843,41 +3843,6 @@ void broker_log_data(const char* data, time_t entry_time) {
 }
 
 /**
- *  Send notification data to broker.
- *
- *  @param[in] type              Type.
- *  @param[in] flags             Flags.
- *  @param[in] attr              Attributes.
- *  @param[in] notification_type Notification type.
- *  @param[in] reason_type       Reason type.
- *  @param[in] start_time        Start time.
- *  @param[in] end_time          End time.
- *  @param[in] data              Data.
- *  @param[in] ack_author        Acknowledgement author.
- *  @param[in] ack_data          Acknowledgement data.
- *  @param[in] escalated         Is notification escalated ?
- *  @param[in] contacts_notified Are contacts notified ?
- *  @param[in] timestamp         Timestamp.
- *
- *  @return Return value can override notification.
- */
-int broker_notification_data(int type [[maybe_unused]],
-                             int flags [[maybe_unused]],
-                             int attr [[maybe_unused]],
-                             unsigned int notification_type [[maybe_unused]],
-                             int reason_type [[maybe_unused]],
-                             struct timeval start_time [[maybe_unused]],
-                             struct timeval end_time [[maybe_unused]],
-                             void* data [[maybe_unused]],
-                             char const* ack_author [[maybe_unused]],
-                             char const* ack_data [[maybe_unused]],
-                             int escalated [[maybe_unused]],
-                             int contacts_notified [[maybe_unused]],
-                             struct timeval const* timestamp [[maybe_unused]]) {
-  return 0;
-}
-
-/**
  *  Sends program data (starts, restarts, stops, etc.) to broker.
  *
  *  @param[in] type      Type.
