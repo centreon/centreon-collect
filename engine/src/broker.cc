@@ -3843,79 +3843,677 @@ void broker_log_data(const char* data, time_t entry_time) {
 }
 
 /**
+ * @brief When centengine is started, send severities in bulk.
+ */
+static void send_severity_list() {
+  /* Start log message. */
+  neb_logger->info("init: beginning severity dump");
+
+  for (auto it = com::centreon::engine::severity::severities.begin(),
+            end = com::centreon::engine::severity::severities.end();
+       it != end; ++it) {
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, it->second.get());
+  }
+}
+
+/**
+ * @brief When centengine is started, send tags in bulk.
+ */
+static void send_tag_list() {
+  /* Start log message. */
+  neb_logger->info("init: beginning tag dump");
+
+  for (auto it = com::centreon::engine::tag::tags.begin(),
+            end = com::centreon::engine::tag::tags.end();
+       it != end; ++it) {
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, it->second.get());
+  }
+}
+
+/**
+ *  Send to the global publisher the list of hosts within Nagios.
+ */
+template <bool proto>
+static void send_host_list() {
+  // Start log message.
+  neb_logger->info("init: beginning host dump");
+
+  // Loop through all hosts.
+  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
+       end{com::centreon::engine::host::hosts.end()};
+       it != end; ++it) {
+    // Callback.
+    if constexpr (proto)
+      forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
+    else
+      forward_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
+  }
+
+  // End log message.
+  neb_logger->info("init: end of host dump");
+}
+
+static void forward_host_parent(nebstruct_relation_data* relation) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
+
+  // Host parent.
+  if (NEBTYPE_PARENT_ADD == relation->type ||
+      NEBTYPE_PARENT_DELETE == relation->type) {
+    if (relation->hst && relation->dep_hst && !relation->svc &&
+        !relation->dep_svc) {
+      // Find host IDs.
+      int host_id = relation->dep_hst->host_id();
+      int parent_id = relation->hst->host_id();
+      if (host_id && parent_id) {
+        // Generate parent event.
+        auto new_host_parent{std::make_shared<neb::host_parent>()};
+        new_host_parent->enabled = (relation->type != NEBTYPE_PARENT_DELETE);
+        new_host_parent->host_id = host_id;
+        new_host_parent->parent_id = parent_id;
+
+        // Send event.
+        SPDLOG_LOGGER_DEBUG(
+            neb_logger, "callbacks: host {} is parent of host {}",
+            new_host_parent->parent_id, new_host_parent->host_id);
+        cbm->write(new_host_parent);
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Function that process relation data.
+ *
+ *  This function is called by Engine when some relation data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_RELATION_DATA).
+ *  @param[in] data          Pointer to a nebstruct_relation_data
+ *                           containing the relationship.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_host_parent(nebstruct_relation_data* relation) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
+
+  // Host parent.
+  if ((NEBTYPE_PARENT_ADD == relation->type) ||
+      (NEBTYPE_PARENT_DELETE == relation->type)) {
+    if (relation->hst && relation->dep_hst && !relation->svc &&
+        !relation->dep_svc) {
+      // Find host IDs.
+      int host_id = relation->dep_hst->host_id();
+      int parent_id = relation->hst->host_id();
+      if (host_id && parent_id) {
+        // Generate parent event.
+        auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
+        new_host_parent->mut_obj().set_enabled(relation->type !=
+                                               NEBTYPE_PARENT_DELETE);
+        new_host_parent->mut_obj().set_child_id(host_id);
+        new_host_parent->mut_obj().set_parent_id(parent_id);
+
+        // Send event.
+        SPDLOG_LOGGER_DEBUG(neb_logger,
+                            "callbacks: pb host {} is parent of host {}",
+                            parent_id, host_id);
+        cbm->write(new_host_parent);
+      }
+    }
+  }
+}
+
+template <bool proto>
+static void send_service_list() {
+  // Start log message.
+  neb_logger->info("init: beginning service dump");
+
+  // Loop through all services.
+  for (service_map::const_iterator
+           it{com::centreon::engine::service::services.begin()},
+       end{com::centreon::engine::service::services.end()};
+       it != end; ++it) {
+    // Callback.
+    if constexpr (proto)
+      forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
+    else
+      forward_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
+  }
+
+  // End log message.
+  neb_logger->info("init: end of services dump");
+}
+
+/**
+ * @brief Send the list of custom variables to the global publisher.
+ *
+ * @tparam proto True if the protocol is protobuf, false otherwise.
+ */
+template <bool proto>
+static void send_custom_variables_list() {
+  // Start log message.
+  neb_logger->info("init: beginning custom variables dump");
+
+  // Iterate through all hosts.
+  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
+       end{com::centreon::engine::host::hosts.end()};
+       it != end; ++it) {
+    // Send all custom variables.
+    for (com::centreon::engine::map_customvar::const_iterator
+             cit{it->second->custom_variables.begin()},
+         cend{it->second->custom_variables.end()};
+         cit != cend; ++cit) {
+      std::string name{cit->first};
+      if (cit->second.is_sent()) {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+
+        // Callback.
+        if constexpr (proto)
+          forward_pb_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                                     it->second.get(), name,
+                                     cit->second.value(), &now);
+        else
+          forward_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
+                                  it->second.get(), name, cit->second.value(),
+                                  &now);
+      }
+    }
+  }
+
+  // Iterate through all services.
+  for (service_map::iterator
+           it{com::centreon::engine::service::services.begin()},
+       end{com::centreon::engine::service::services.end()};
+       it != end; ++it) {
+    // Send all custom variables.
+    for (com::centreon::engine::map_customvar::const_iterator
+             cit{it->second->custom_variables.begin()},
+         cend{it->second->custom_variables.end()};
+         cit != cend; ++cit) {
+      std::string name{cit->first};
+      if (cit->second.is_sent()) {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+
+        // Callback.
+        if constexpr (proto)
+          forward_pb_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                     it->second.get(), name,
+                                     cit->second.value(), &now);
+        else
+          forward_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
+                                  it->second.get(), name, cit->second.value(),
+                                  &now);
+      }
+    }
+  }
+}
+
+template <bool proto>
+static void send_downtimes_list() {
+  // Start log message.
+  neb_logger->info("init: beginning downtimes dump");
+
+  std::multimap<
+      time_t,
+      std::shared_ptr<com::centreon::engine::downtimes::downtime>> const& dts{
+      com::centreon::engine::downtimes::downtime_manager::instance()
+          .get_scheduled_downtimes()};
+  // Iterate through all downtimes.
+  for (const auto& p : dts) {
+    // Callback.
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    if constexpr (proto)
+      forward_pb_downtime(
+          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
+          p.second->get_type() ==
+                  com::centreon::engine::downtimes::downtime::service_downtime
+              ? std::static_pointer_cast<
+                    com::centreon::engine::downtimes::service_downtime>(
+                    p.second)
+                    ->service_id()
+              : 0,
+          p.second->get_entry_time(), p.second->get_author().c_str(),
+          p.second->get_comment().c_str(), p.second->get_start_time(),
+          p.second->get_end_time(), p.second->is_fixed(),
+          p.second->get_triggered_by(), p.second->get_duration(),
+          p.second->get_downtime_id(), &now);
+    else
+      forward_downtime(
+          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
+          p.second->get_type() ==
+                  com::centreon::engine::downtimes::downtime::service_downtime
+              ? std::static_pointer_cast<
+                    com::centreon::engine::downtimes::service_downtime>(
+                    p.second)
+                    ->service_id()
+              : 0,
+          p.second->get_entry_time(), p.second->get_author().c_str(),
+          p.second->get_comment().c_str(), p.second->get_start_time(),
+          p.second->get_end_time(), p.second->is_fixed(),
+          p.second->get_triggered_by(), p.second->get_duration(),
+          p.second->get_downtime_id(), &now);
+  }
+
+  // End log message.
+  neb_logger->info("init: end of downtimes dump");
+}
+
+template <bool proto>
+static void send_host_parents_list() {
+  // Start log message.
+  neb_logger->info("init: beginning host parents dump");
+
+  try {
+    // Loop through all hosts.
+    for (const auto& [_, sptr_host] : com::centreon::engine::host::hosts) {
+      // Loop through all parents.
+      for (const auto& [_, sptr_host_parent] : sptr_host->parent_hosts) {
+        // Fill callback struct.
+        nebstruct_relation_data nsrd;
+        memset(&nsrd, 0, sizeof(nsrd));
+        nsrd.type = NEBTYPE_PARENT_ADD;
+        nsrd.hst = sptr_host_parent.get();
+        nsrd.dep_hst = sptr_host.get();
+
+        // Callback.
+        if constexpr (proto)
+          forward_pb_host_parent(&nsrd);
+        else
+          forward_host_parent(&nsrd);
+      }
+    }
+  } catch (std::exception const& e) {
+    neb_logger->error("init: error occurred while dumping host parents: {}",
+                      e.what());
+  } catch (...) {
+    neb_logger->error(
+        "init: unknown error occurred while dumping host parents");
+  }
+
+  // End log message.
+  neb_logger->info("init: end of host parents dump");
+}
+
+template <bool proto>
+static void send_host_group_list() {
+  // Start log message.
+  neb_logger->info("init: beginning host group dump");
+
+  // Loop through all host groups.
+  for (hostgroup_map::const_iterator
+           it{com::centreon::engine::hostgroup::hostgroups.begin()},
+       end{com::centreon::engine::hostgroup::hostgroups.end()};
+       it != end; ++it) {
+    // Callback.
+    if constexpr (proto)
+      forward_pb_group(NEBTYPE_HOSTGROUP_ADD, it->second.get());
+    else
+      forward_group(NEBTYPE_HOSTGROUP_ADD, it->second.get());
+
+    // Dump host group members.
+    for (host_map_unsafe::const_iterator hit{it->second->members.begin()},
+         hend{it->second->members.end()};
+         hit != hend; ++hit) {
+      // Callback.
+      if constexpr (proto)
+        forward_pb_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, hit->second,
+                                it->second.get());
+      else
+        forward_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, hit->second,
+                             it->second.get());
+    }
+  }
+
+  // End log message.
+  neb_logger->info("init: end of host group dump");
+}
+
+template <bool proto>
+static void send_service_group_list() {
+  // Start log message.
+  neb_logger->info("init: beginning service group dump");
+
+  // Loop through all service groups.
+  for (servicegroup_map::const_iterator
+           it{com::centreon::engine::servicegroup::servicegroups.begin()},
+       end{com::centreon::engine::servicegroup::servicegroups.end()};
+       it != end; ++it) {
+    // Callback.
+    if constexpr (proto)
+      forward_pb_group(NEBTYPE_SERVICEGROUP_ADD, it->second.get());
+    else
+      forward_group(NEBTYPE_SERVICEGROUP_ADD, it->second.get());
+
+    // Dump service group members.
+    for (service_map_unsafe::const_iterator sit{it->second->members.begin()},
+         send{it->second->members.end()};
+         sit != send; ++sit) {
+      // Fill callback struct.
+      nebstruct_group_member_data nsgmd;
+      memset(&nsgmd, 0, sizeof(nsgmd));
+      nsgmd.type = NEBTYPE_SERVICEGROUPMEMBER_ADD;
+      nsgmd.object_ptr = sit->second;
+      nsgmd.group_ptr = it->second.get();
+
+      // Callback.
+      if constexpr (proto)
+        forward_pb_group_member(NEBTYPE_SERVICEGROUPMEMBER_ADD, sit->second,
+                                it->second.get());
+      else
+        forward_group_member(NEBTYPE_SERVICEGROUPMEMBER_ADD, sit->second,
+                             it->second.get());
+    }
+  }
+
+  // End log message.
+  neb_logger->info("init: end of service groups dump");
+}
+
+template <bool proto>
+static void send_instance_configuration() {
+  neb_logger->info(
+      "init: sending initial instance configuration loading event, poller "
+      "id: "
+      "{}",
+      cbm->poller_id());
+  if constexpr (proto) {
+    auto ic = std::make_shared<neb::pb_instance_configuration>();
+    auto& obj = ic->mut_obj();
+    obj.set_loaded(true);
+    obj.set_poller_id(cbm->poller_id());
+    cbm->write(ic);
+  } else {
+    auto ic = std::make_shared<neb::instance_configuration>();
+    ic->loaded = true;
+    ic->poller_id = cbm->poller_id();
+    cbm->write(ic);
+  }
+}
+
+template <bool proto>
+static void send_initial_configuration() {
+  // if (config::applier::state::instance().broker_needs_update()) {
+  SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+  send_severity_list();
+  send_tag_list();
+  send_host_list<proto>();
+  send_service_list<proto>();
+  send_custom_variables_list<proto>();
+  send_downtimes_list<proto>();
+  send_host_parents_list<proto>();
+  send_host_group_list<proto>();
+  send_service_group_list<proto>();
+  //    } else {
+  //      SPDLOG_LOGGER_INFO(_neb_logger,
+  //                         "init: No need to send poller configuration");
+  //  }
+  send_instance_configuration<proto>();
+}
+
+/**
  *  Sends program data (starts, restarts, stops, etc.) to broker.
  *
  *  @param[in] type      Type.
  *  @param[in] flags     Flags.
  */
 void broker_program_state(int type, int flags) {
+  // Input variables.
+  static time_t start_time;
+
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_PROGRAM_STATE))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
     return;
-#endif
 
-  // Fill struct with relevant data.
-  nebstruct_process_data ds;
-  ds.type = type;
-  ds.flags = flags;
+  auto inst_obj = std::make_shared<neb::pb_instance>();
+  com::centreon::broker::Instance& inst = inst_obj->mut_obj();
+  inst.set_engine("Centreon Engine");
+  inst.set_pid(getpid());
+  inst.set_version(get_program_version());
 
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROCESS_DATA, &ds);
+  switch (type) {
+    case NEBTYPE_PROCESS_EVENTLOOPSTART: {
+      neb_logger->debug("callbacks: generating process start event");
+      inst.set_instance_id(cbm->poller_id());
+      inst.set_running(true);
+      inst.set_name(cbm->poller_name());
+      start_time = time(nullptr);
+      inst.set_start_time(start_time);
+
+      cbm->write(inst_obj);
+      if (cbm->use_protobuf())
+        send_initial_configuration<true>();
+      else
+        send_initial_configuration<false>();
+    } break;
+    // The code to apply is in broker/neb/src/callbacks.cc: 2459
+    default:
+      break;
+  }
+
+  neb_logger->debug("callbacks: instance '{}' running {}", inst.name(),
+                    inst.running());
+}
+
+static void forward_program_status(time_t last_command_check,
+                                   int notifications_enabled,
+                                   int active_service_checks_enabled,
+                                   int passive_service_checks_enabled,
+                                   int active_host_checks_enabled,
+                                   int passive_host_checks_enabled,
+                                   int event_handlers_enabled,
+                                   int flap_detection_enabled,
+                                   int obsess_over_hosts,
+                                   int obsess_over_services,
+                                   std::string global_host_event_handler,
+                                   std::string global_service_event_handler) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating instance status event");
+  try {
+    // In/Out variables.
+    auto is = std::make_shared<neb::instance_status>();
+
+    // Fill output var.
+    is->poller_id = cbm->poller_id();
+    is->active_host_checks_enabled = active_host_checks_enabled;
+    is->active_service_checks_enabled = active_service_checks_enabled;
+    is->check_hosts_freshness = check_host_freshness;
+    is->check_services_freshness = check_service_freshness;
+    is->event_handler_enabled = event_handlers_enabled;
+    is->flap_detection_enabled = flap_detection_enabled;
+    if (!global_host_event_handler.empty())
+      is->global_host_event_handler =
+          common::check_string_utf8(global_host_event_handler);
+    if (!global_service_event_handler.empty())
+      is->global_service_event_handler =
+          common::check_string_utf8(global_service_event_handler);
+    is->last_alive = time(nullptr);
+    is->last_command_check = last_command_check;
+    is->notifications_enabled = notifications_enabled;
+    is->obsess_over_hosts = obsess_over_hosts;
+    is->obsess_over_services = obsess_over_services;
+    is->passive_host_checks_enabled = passive_host_checks_enabled;
+    is->passive_service_checks_enabled = passive_service_checks_enabled;
+
+    // Send event.
+    cbm->write(is);
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_program_status(
+    time_t last_command_check,
+    int notifications_enabled,
+    int active_service_checks_enabled,
+    int passive_service_checks_enabled,
+    int active_host_checks_enabled,
+    int passive_host_checks_enabled,
+    int event_handlers_enabled,
+    int flap_detection_enabled,
+    int obsess_over_hosts,
+    int obsess_over_services,
+    std::string global_host_event_handler,
+    std::string global_service_event_handler) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb instance status event");
+
+  // In/Out variables.
+  auto is_obj = std::make_shared<neb::pb_instance_status>();
+  com::centreon::broker::InstanceStatus& is = is_obj->mut_obj();
+
+  // Fill output var.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb instance status event "
+                      "global_service_event_handler={}",
+                      global_host_event_handler);
+
+  is.set_instance_id(cbm->poller_id());
+  is.set_active_host_checks(active_host_checks_enabled);
+  is.set_active_service_checks(active_service_checks_enabled);
+  is.set_check_hosts_freshness(check_host_freshness);
+  is.set_check_services_freshness(check_service_freshness);
+  is.set_event_handlers(event_handlers_enabled);
+  is.set_flap_detection(flap_detection_enabled);
+  if (!global_host_event_handler.empty())
+    is.set_global_host_event_handler(
+        common::check_string_utf8(global_host_event_handler));
+  if (!global_service_event_handler.empty())
+    is.set_global_service_event_handler(
+        common::check_string_utf8(global_service_event_handler));
+  is.set_last_alive(time(nullptr));
+  is.set_last_command_check(last_command_check);
+  is.set_notifications(notifications_enabled);
+  is.set_obsess_over_hosts(obsess_over_hosts);
+  is.set_obsess_over_services(obsess_over_services);
+  is.set_passive_host_checks(passive_host_checks_enabled);
+  is.set_passive_service_checks(passive_service_checks_enabled);
+
+  // Send event.
+  cbm->write(is_obj);
 }
 
 /**
  *  Sends program status updates to broker.
  */
 void broker_program_status() {
-#ifdef LEGACY_CONF
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-
-  // Fill struct with relevant data.
-  nebstruct_program_status_data ds;
-  ds.last_command_check = last_command_check;
-  ds.notifications_enabled = config->enable_notifications();
-  ds.active_service_checks_enabled = config->execute_service_checks();
-  ds.passive_service_checks_enabled = config->accept_passive_service_checks();
-  ds.active_host_checks_enabled = config->execute_host_checks();
-  ds.passive_host_checks_enabled = config->accept_passive_host_checks();
-  ds.event_handlers_enabled = config->enable_event_handlers();
-  ds.flap_detection_enabled = config->enable_flap_detection();
-  ds.obsess_over_hosts = config->obsess_over_hosts();
-  ds.obsess_over_services = config->obsess_over_services();
-  ds.global_host_event_handler = config->global_host_event_handler();
-  ds.global_service_event_handler = config->global_service_event_handler();
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
-#else
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
 
-  // Fill struct with relevant data.
-  nebstruct_program_status_data ds;
-  ds.last_command_check = last_command_check;
-  ds.notifications_enabled = pb_config.enable_notifications();
-  ds.active_service_checks_enabled = pb_config.execute_service_checks();
-  ds.passive_service_checks_enabled = pb_config.accept_passive_service_checks();
-  ds.active_host_checks_enabled = pb_config.execute_host_checks();
-  ds.passive_host_checks_enabled = pb_config.accept_passive_host_checks();
-  ds.event_handlers_enabled = pb_config.enable_event_handlers();
-  ds.flap_detection_enabled = pb_config.enable_flap_detection();
-  ds.obsess_over_hosts = pb_config.obsess_over_hosts();
-  ds.obsess_over_services = pb_config.obsess_over_services();
-  ds.global_host_event_handler = pb_config.global_host_event_handler();
-  ds.global_service_event_handler = pb_config.global_service_event_handler();
-
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
-#endif
+  if (cbm->use_protobuf())
+    forward_pb_program_status(
+        last_command_check, pb_config.enable_notifications(),
+        pb_config.execute_service_checks(),
+        pb_config.accept_passive_service_checks(),
+        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
+        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
+        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
+        pb_config.global_host_event_handler(),
+        pb_config.global_service_event_handler());
+  else
+    forward_program_status(
+        last_command_check, pb_config.enable_notifications(),
+        pb_config.execute_service_checks(),
+        pb_config.accept_passive_service_checks(),
+        pb_config.execute_host_checks(), pb_config.accept_passive_host_checks(),
+        pb_config.enable_event_handlers(), pb_config.enable_flap_detection(),
+        pb_config.obsess_over_hosts(), pb_config.obsess_over_services(),
+        pb_config.global_host_event_handler(),
+        pb_config.global_service_event_handler());
+}
+
+static void forward_relation(int type,
+                             const engine::host* hst,
+                             const engine::service* svc,
+                             const engine::host* dep_hst,
+                             const engine::service* dep_svc) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst && !svc && !dep_svc) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent = std::make_shared<neb::host_parent>();
+          new_host_parent->enabled = type != NEBTYPE_PARENT_DELETE;
+          new_host_parent->host_id = host_id;
+          new_host_parent->parent_id = parent_id;
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger, "callbacks: host {} is parent of host {}",
+              new_host_parent->parent_id, new_host_parent->host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+}
+
+/**
+ *  @brief Function that process relation data.
+ *
+ *  This function is called by Engine when some relation data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_RELATION_DATA).
+ *  @param[in] data          Pointer to a nebstruct_relation_data
+ *                           containing the relationship.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_relation(int type,
+                                const engine::host* hst,
+                                const engine::service* svc,
+                                const engine::host* dep_hst,
+                                const engine::service* dep_svc) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst && !svc && !dep_svc) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
+          new_host_parent->mut_obj().set_enabled(type != NEBTYPE_PARENT_DELETE);
+          new_host_parent->mut_obj().set_child_id(host_id);
+          new_host_parent->mut_obj().set_parent_id(parent_id);
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: pb host {} is parent of host {}",
+                              parent_id, host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
 }
 
 /**
@@ -3928,31 +4526,21 @@ void broker_program_status() {
  *  @param[in] dep_svc   Dependant service object (might be null).
  */
 void broker_relation_data(int type,
-                          host* hst,
-                          com::centreon::engine::service* svc,
-                          host* dep_hst,
-                          com::centreon::engine::service* dep_svc) {
+                          const engine::host* hst,
+                          const engine::service* svc,
+                          const engine::host* dep_hst,
+                          const engine::service* dep_svc) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_RELATION_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_RELATION_DATA))
     return;
-#endif
   if (!hst || !dep_hst)
     return;
 
-  // Fill struct with relevant data.
-  nebstruct_relation_data ds;
-  ds.type = type;
-  ds.hst = hst;
-  ds.svc = svc;
-  ds.dep_hst = dep_hst;
-  ds.dep_svc = dep_svc;
-
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_RELATION_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_relation(type, hst, svc, dep_hst, dep_svc);
+  else
+    forward_relation(type, hst, svc, dep_hst, dep_svc);
 }
 
 /**
