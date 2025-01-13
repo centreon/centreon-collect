@@ -2528,8 +2528,7 @@ void host::update_performance_data() {
  */
 void host::update_adaptive_data() {
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_BBDO3_ONLY, this,
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, this,
                             get_modified_attributes());
 }
 
@@ -2823,8 +2822,8 @@ void host::disable_flap_detection() {
   set_flap_detection_enabled(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, this,
+                            attr);
 
   /* handle the details... */
   handle_flap_detection_disabled();
@@ -2853,8 +2852,8 @@ void host::enable_flap_detection() {
   set_flap_detection_enabled(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, this, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, this,
+                            attr);
 
   /* check for flapping */
   check_for_flapping(false, false, true);
