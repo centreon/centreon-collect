@@ -160,8 +160,8 @@ void applier::host::add_object(const configuration::host& obj) {
   }
 
   // Notify event broker.
-  broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                            h.get(), MODATTR_ALL);
+  broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, h.get(),
+                            MODATTR_ALL);
 }
 #else
 /**
@@ -268,8 +268,8 @@ void applier::host::add_object(const configuration::Host& obj) {
   }
 
   // Notify event broker.
-  broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                            h.get(), MODATTR_ALL);
+  broker_adaptive_host_data(NEBTYPE_HOST_ADD, NEBFLAG_NONE, h.get(),
+                            MODATTR_ALL);
 }
 #endif
 
@@ -505,7 +505,7 @@ void applier::host::modify_object(configuration::host const& obj) {
     it_obj->second->set_severity(nullptr);
 
   // Notify event broker.
-  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
                             it_obj->second.get(), MODATTR_ALL);
 }
 #else
@@ -745,7 +745,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
     h->set_severity(nullptr);
 
   // Notify event broker.
-  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
                             it_obj->second.get(), MODATTR_ALL);
 }
 #endif
@@ -791,7 +791,7 @@ void applier::host::remove_object(configuration::host const& obj) {
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
                                    NEBATTR_NONE, it_s->second, MODATTR_ALL);
 
-    broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
+    broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE,
                               it->second.get(), MODATTR_ALL);
 
     // Erase host object (will effectively delete the object).
@@ -842,7 +842,7 @@ void applier::host::remove_object(ssize_t idx) {
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
                                    NEBATTR_NONE, it_s->second, MODATTR_ALL);
 
-    broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
+    broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE,
                               it->second.get(), MODATTR_ALL);
 
     // Erase host object (will effectively delete the object).

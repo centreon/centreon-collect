@@ -1625,7 +1625,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                     CHECK_OPTION_NONE);
       }
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, attr);
+                                temp_host, attr);
 
       /* We need check result to handle next check */
       temp_host->update_status();
@@ -1637,7 +1637,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
                                          attr);
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, attr);
+                                temp_host, attr);
       break;
 
     case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
@@ -1647,7 +1647,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                          attr);
 
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, attr);
+                                temp_host, attr);
 
       /* adjust current attempt number if in a hard state */
       if (temp_host->get_state_type() == notifier::hard &&
@@ -1732,7 +1732,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(attr);
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, attr);
+                                temp_host, attr);
       break;
 
     case CMD_CHANGE_SVC_MODATTR:
@@ -2074,7 +2074,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, attr);
+                                temp_host, attr);
       break;
 
     case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
@@ -2392,8 +2392,8 @@ void enable_host_notifications(host* hst) {
   hst->set_notifications_enabled(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* disables notifications for a host */
@@ -2411,8 +2411,8 @@ void disable_host_notifications(host* hst) {
   hst->set_notifications_enabled(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* enables notifications for all hosts and services "beyond" a given host */
@@ -3006,8 +3006,8 @@ void enable_passive_host_checks(host* hst) {
   hst->set_accept_passive_checks(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* disables passive host checks for a particular host */
@@ -3025,8 +3025,8 @@ void disable_passive_host_checks(host* hst) {
   hst->set_accept_passive_checks(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* enables event handlers on a program-wide basis */
@@ -3152,8 +3152,8 @@ void enable_host_event_handler(host* hst) {
   hst->set_event_handler_enabled(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* disables the event handler for a particular host */
@@ -3171,8 +3171,8 @@ void disable_host_event_handler(host* hst) {
   hst->set_event_handler_enabled(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* disables checks of a particular host */
@@ -3191,8 +3191,8 @@ void disable_host_checks(host* hst) {
   hst->set_should_be_scheduled(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* enables checks of a particular host */
@@ -3230,8 +3230,8 @@ void enable_host_checks(host* hst) {
     hst->schedule_check(hst->get_next_check(), CHECK_OPTION_NONE);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -3629,8 +3629,8 @@ void start_obsessing_over_host(host* hst) {
   hst->set_obsess_over(true);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 /* stop obsessing over a particular host */
@@ -3648,8 +3648,8 @@ void stop_obsessing_over_host(host* hst) {
   hst->set_obsess_over(false);
 
   /* send data to event broker */
-  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, attr);
+  broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE, hst,
+                            attr);
 }
 
 void new_thresholds_file(char* filename) {
