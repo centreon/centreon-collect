@@ -213,23 +213,45 @@ template void broker_acknowledgement_data<com::centreon::engine::host>(
  * @param type      Type.
  * @param data      Target severity.
  */
-void broker_adaptive_severity_data(int type, void* data) {
+void broker_adaptive_severity_data(int type, engine::severity* es) {
   /* Config check. */
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
     return;
-#endif
 
-  /* Fill struct with relevant data. */
-  nebstruct_adaptive_severity_data ds;
-  ds.type = type;
-  ds.object_ptr = data;
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating protobuf severity event");
 
-  /* Make callbacks. */
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_SEVERITY_DATA, &ds);
+  auto s{std::make_shared<neb::pb_severity>()};
+  com::centreon::broker::Severity& sv = s.get()->mut_obj();
+  switch (type) {
+    case NEBTYPE_SEVERITY_ADD:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: new severity");
+      sv.set_action(com::centreon::broker::Severity_Action_ADD);
+      break;
+    case NEBTYPE_SEVERITY_DELETE:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: removed severity");
+      sv.set_action(com::centreon::broker::Severity_Action_DELETE);
+      break;
+    case NEBTYPE_SEVERITY_UPDATE:
+      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: modified severity");
+      sv.set_action(com::centreon::broker::Severity_Action_MODIFY);
+      break;
+    default:
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "callbacks: protobuf severity event action must be "
+                          "among ADD, MODIFY "
+                          "or DELETE");
+      return;
+  }
+  sv.set_id(es->id());
+  sv.set_poller_id(cbm->poller_id());
+  sv.set_level(es->level());
+  sv.set_icon_id(es->icon_id());
+  sv.set_name(es->name());
+  sv.set_type(static_cast<com::centreon::broker::Severity_Type>(es->type()));
+
+  // Send event(s).
+  cbm->write(s);
 }
 
 /**
