@@ -142,11 +142,6 @@ void applier::serviceescalation::add_object(
   engine::serviceescalation::serviceescalations.insert(
       {{se->get_hostname(), se->get_description()}, se});
 
-  // Notify event broker.
-  timeval tv{get_broker_timestamp(nullptr)};
-  broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, se.get(), &tv);
-
   // Add contact groups to service escalation.
   for (auto& cg : obj.contactgroups().data()) {
     se->get_contactgroups().insert({cg, nullptr});
@@ -422,12 +417,6 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
        it != end; ++it) {
     if (it->second->internal_key() == key) {
       // We have the serviceescalation to remove.
-
-      // Notify event broker.
-      timeval tv(get_broker_timestamp(nullptr));
-      broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_DELETE,
-                                      NEBFLAG_NONE, NEBATTR_NONE,
-                                      it->second.get(), &tv);
 
       if (service_exists) {
         config_logger->debug(
