@@ -156,7 +156,7 @@ sub getHGMonthAvailability {
 	$query .= " STRAIGHT_JOIN mod_bi_hostcategories hc ON (s.hc_name=hc.hc_name AND s.hc_id=hc.hc_id)";
 	$query .= " STRAIGHT_JOIN mod_bi_servicecategories sc ON (s.sc_id=sc.sc_id AND s.sc_name=sc.sc_name)";
 	$query .= " WHERE t.year = YEAR('".$start."') AND t.month = MONTH('".$start."') and t.hour=0";
-	$query .= " GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id";
+	$query .= " GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id, hc.id, hg.id, sc.id";
 	my $sth = $db->query({ query => $query });
 
 	my @data = ();
@@ -194,9 +194,9 @@ sub getHGMonthAvailability_optimised {
 	$query .= "STRAIGHT_JOIN mod_bi_hostcategories hc ON (s.hc_name=hc.hc_name AND s.hc_id=hc.hc_id) ";
 	$query .= "STRAIGHT_JOIN mod_bi_servicecategories sc ON (s.sc_id=sc.sc_id AND s.sc_name=sc.sc_name)";
 	$query .= " WHERE YEAR(from_unixtime(time_id)) = YEAR('".$start."') AND MONTH(from_unixtime(time_id))  = MONTH('".$start."') and hour(from_unixtime(time_id)) = 0 ";
-	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id ) availability ";
+	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, sa.liveservice_id, hc.id, sc.id, hg.id ) availability ";
 	$query .= "LEFT JOIN (  SELECT s.hg_id,s.hc_id,s.sc_id,e.modbiliveservice_id, ";
-	$query .= "SUM(IF(state=1,1,0)) as warningEvents,   SUM(IF(state=2,1,0)) as criticalEvents,  ";
+	$query .= "SUM(IF(state=1,1,0)) as warningEvents,   SUM(IF(state=2,1,0)) as criticalEvents, ";
 	$query .= "SUM(IF(state=3,1,0)) as unknownEvents  FROM mod_bi_servicestateevents e ";
 	$query .= "STRAIGHT_JOIN mod_bi_services s ON (e.modbiservice_id = s.id)  ";
 	$query .= "STRAIGHT_JOIN mod_bi_hostgroups hg ON (s.hg_name=hg.hg_name AND s.hg_id=hg.hg_id)  ";
@@ -204,7 +204,7 @@ sub getHGMonthAvailability_optimised {
 	$query .= "STRAIGHT_JOIN mod_bi_servicecategories sc ON (s.sc_id=sc.sc_id AND s.sc_name=sc.sc_name) ";
 	$query .= "AND s.id = e.modbiservice_id   AND start_time < UNIX_TIMESTAMP('".$end."') ";
 	$query .= "AND end_time > UNIX_TIMESTAMP('".$start."')   AND e.state in (1,2,3) ";
-	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, e.modbiliveservice_id ) events  ";
+	$query .= "GROUP BY s.hg_id, s.hc_id, s.sc_id, e.modbiliveservice_id) events  ";
 	$query .= "ON availability.hg_id = events.hg_id AND availability.hc_id = events.hc_id ";
 	$query .= "AND availability.sc_id = events.sc_id ";
 	$query .= "AND availability.liveservice_id = events.modbiliveservice_id";
