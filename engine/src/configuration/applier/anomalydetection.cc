@@ -145,8 +145,8 @@ void applier::anomalydetection::add_object(
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               ad, MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, ad,
+                               MODATTR_ALL);
 }
 #else
 /**
@@ -242,8 +242,8 @@ void applier::anomalydetection::add_object(
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               ad, MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, ad,
+                               MODATTR_ALL);
 }
 #endif
 
@@ -497,8 +497,8 @@ void applier::anomalydetection::modify_object(
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
+                               MODATTR_ALL);
 }
 #else
 /**
@@ -676,8 +676,8 @@ void applier::anomalydetection::modify_object(
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
+                               MODATTR_ALL);
 }
 #endif
 
@@ -725,8 +725,8 @@ void applier::anomalydetection::remove_object(
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
+    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE, ad.get(),
+                                 MODATTR_ALL);
 
     // Unregister anomalydetection.
     engine::anomalydetection::services.erase({host_name, service_description});
@@ -771,8 +771,8 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
+    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE, ad.get(),
+                                 MODATTR_ALL);
 
     // Unregister anomalydetection.
     engine::anomalydetection::services.erase({host_name, service_description});

@@ -3382,8 +3382,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(
             temp_service->get_modified_attributes() | attr);
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* We need check result to handle next check */
         temp_service->update_status();
@@ -3395,8 +3394,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
 
       case ChangeObjectInt_Mode_MAX_ATTEMPTS:
@@ -3406,8 +3404,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
             temp_service->get_modified_attributes() | attr);
 
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
 
         /* adjust current attempt number if in a hard state */
         if (temp_service->get_state_type() == notifier::hard &&
@@ -3424,8 +3421,7 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_modified_attributes(attr);
         /* send data to event broker */
         broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE,
-                                     NEBFLAG_NONE, NEBATTR_NONE,
-                                     temp_service.get(), attr);
+                                     NEBFLAG_NONE, temp_service.get(), attr);
         break;
       default:
         err = "no mode informed for method ChangeServiceObjectIntVar";
@@ -3717,7 +3713,7 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
 
       /* send data to event broker */
       broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, temp_service.get(), attr);
+                                   temp_service.get(), attr);
     }
     return 0;
   });

@@ -346,7 +346,6 @@ void broker_adaptive_program_data(int type,
                                   struct timeval const* timestamp);
 void broker_adaptive_service_data(int type,
                                   int flags,
-                                  int attr,
                                   com::centreon::engine::service* svc,
                                   unsigned long modattr);
 void broker_adaptive_timeperiod_data(int type,
