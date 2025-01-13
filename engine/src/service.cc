@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
@@ -3119,7 +3118,7 @@ void service::enable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, this, attr);
+                               this, attr);
 
   /* check for flapping */
   check_for_flapping(false, true);
@@ -3156,7 +3155,7 @@ void service::disable_flap_detection() {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, this, attr);
+                               this, attr);
 
   /* handle the details... */
   handle_flap_detection_disabled();
@@ -3182,8 +3181,7 @@ void service::update_status(uint32_t status_attributes) {
 void service::update_adaptive_data() {
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_BBDO3_ONLY, this,
-                               get_modified_attributes());
+                               this, get_modified_attributes());
 }
 
 /* checks viability of performing a service check */
