@@ -378,10 +378,9 @@ template <typename G, typename R>
 void broker_group_member(int type, const R* object, const G* group);
 
 int broker_host_check(int type,
-                      com::centreon::engine::host* hst,
+                      const com::centreon::engine::host* hst,
                       int check_type,
-                      const char* cmdline,
-                      char* output);
+                      const char* cmdline);
 void broker_host_status(int type,
                         com::centreon::engine::host* hst,
                         uint32_t attributes);
