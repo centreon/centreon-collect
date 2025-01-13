@@ -2582,6 +2582,85 @@ template void broker_group_member(int type,
                                   const engine::service* object,
                                   const engine::servicegroup* group);
 
+static void forward_host_check(int type,
+                               const engine::host* hst,
+                               int check_type,
+                               const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the host status. */
+  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+    return;
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
+
+  auto host_check = std::make_shared<neb::host_check>();
+
+  // Fill output var.
+  if (cmdline) {
+    host_check->active_checks_enabled = hst->active_checks_enabled();
+    host_check->check_type = check_type;
+    host_check->command_line = common::check_string_utf8(cmdline);
+    host_check->host_id = hst->host_id();
+    host_check->next_check = hst->get_next_check();
+
+    // Send event.
+    cbm->write(host_check);
+  }
+}
+
+/**
+ *  @brief Function that process host check data.
+ *
+ *  This function is called by Nagios when some host check data are available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_HOST_CHECK_DATA).
+ *  @param[in] data          A pointer to a nebstruct_host_check_data
+ *                           containing the host check data.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_host_check(int type,
+                                  const engine::host* hst,
+                                  int check_type,
+                                  const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the host status. */
+  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+    return;
+
+  // Log message.
+  if (neb_logger->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating host check event for {} command_line={}",
+        hst->name(), cmdline);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host check event");
+  }
+
+  auto host_check = std::make_shared<neb::pb_host_check>();
+
+  // Fill output var.
+  if (cmdline) {
+    auto& obj = host_check->mut_obj();
+    obj.set_active_checks_enabled(hst->active_checks_enabled());
+    obj.set_check_type(
+        check_type == com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    host_check->mut_obj().set_command_line(common::check_string_utf8(cmdline));
+    host_check->mut_obj().set_host_id(hst->host_id());
+    host_check->mut_obj().set_next_check(hst->get_next_check());
+
+    // Send event.
+    cbm->write(host_check);
+  }
+}
+
 /**
  *  Send host check data to broker.
  *
@@ -2594,36 +2673,23 @@ template void broker_group_member(int type,
  *  @return Return value can override host check.
  */
 int broker_host_check(int type,
-                      host* hst,
+                      const engine::host* hst,
                       int check_type,
-                      char const* cmdline,
-                      char* output) {
+                      const char* cmdline) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_HOST_CHECKS))
-    return OK;
-#else
   if (!(pb_config.event_broker_options() & BROKER_HOST_CHECKS))
     return OK;
-#endif
+
   if (!hst)
     return ERROR;
 
-  // Fill struct with relevant data.
-  nebstruct_host_check_data ds;
-  ds.type = type;
-  ds.host_name = const_cast<char*>(hst->name().c_str());
-  ds.object_ptr = hst;
-  ds.check_type = check_type;
-  ds.command_line = cmdline;
-  ds.output = output;
-
   // Make callbacks.
-  int return_code;
-  return_code = neb_make_callbacks(NEBCALLBACK_HOST_CHECK_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_host_check(type, hst, check_type, cmdline);
+  else
+    forward_host_check(type, hst, check_type, cmdline);
 
-  // Free data.
-  return return_code;
+  return OK;
 }
 
 /**
