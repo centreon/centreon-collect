@@ -16,12 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/multiplexing/muxer.hh"
 #include <absl/time/time.h>
 
 #include <cassert>
 
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
