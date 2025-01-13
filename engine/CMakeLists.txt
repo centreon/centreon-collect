@@ -32,6 +32,8 @@ endif()
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
+add_definitions("-DSPDLOG_FMT_EXTERNAL")
+
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
