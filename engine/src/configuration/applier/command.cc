@@ -275,11 +275,6 @@ void applier::command::modify_object(configuration::Command* to_modify,
       }
     }
   }
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  commands::command* c = it_obj->second.get();
-  broker_command_data(NEBTYPE_COMMAND_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, c,
-                      &tv);
 }
 #endif
 
@@ -330,13 +325,6 @@ void applier::command::remove_object(ssize_t idx) {
   std::unordered_map<std::string, std::shared_ptr<commands::command> >::iterator
       it = commands::command::commands.find(obj.command_name());
   if (it != commands::command::commands.end()) {
-    commands::command* cmd(it->second.get());
-
-    // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
-    broker_command_data(NEBTYPE_COMMAND_DELETE, NEBFLAG_NONE, NEBATTR_NONE, cmd,
-                        &tv);
-
     // Erase command (will effectively delete the object).
     commands::command::commands.erase(it);
   } else
