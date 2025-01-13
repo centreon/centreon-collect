@@ -49,7 +49,7 @@ class cbmod {
 
  public:
   cbmod();
-  cbmod(const std::string& config_file, const std::string& proto_conf);
+  cbmod(const std::string& config_file);
   cbmod& operator=(const cbmod&) = delete;
 
   virtual ~cbmod() noexcept;

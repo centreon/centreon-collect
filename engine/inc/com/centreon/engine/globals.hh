@@ -21,18 +21,13 @@
 #ifndef CCE_GLOBALS_HH
 #define CCE_GLOBALS_HH
 
-#include <stdio.h>
-
+#include "com/centreon/broker/neb/cbmod.hh"
 #include "com/centreon/engine/circular_buffer.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
-#endif
 #include "common/log_v2/log_v2.hh"
 
 /* Start/Restart statistics */
@@ -47,6 +42,7 @@ extern std::shared_ptr<spdlog::logger> events_logger;
 extern std::shared_ptr<spdlog::logger> external_command_logger;
 extern std::shared_ptr<spdlog::logger> functions_logger;
 extern std::shared_ptr<spdlog::logger> macros_logger;
+extern std::shared_ptr<spdlog::logger> neb_logger;
 extern std::shared_ptr<spdlog::logger> notifications_logger;
 extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
@@ -58,6 +54,7 @@ extern com::centreon::engine::configuration::state* config;
 extern com::centreon::engine::configuration::State pb_config;
 #endif
 extern std::string config_file;
+extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
 extern com::centreon::engine::commands::command*
