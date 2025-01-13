@@ -374,7 +374,9 @@ void broker_external_command(int type,
 template <typename G>
 void broker_group(int type, const G* group);
 
-void broker_group_member(int type, void* object, void* group);
+template <typename G, typename R>
+void broker_group_member(int type, const R* object, const G* group);
+
 int broker_host_check(int type,
                       com::centreon::engine::host* hst,
                       int check_type,
