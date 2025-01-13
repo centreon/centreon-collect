@@ -163,4 +163,12 @@ size_t cbmod::acknowledgements_count() const {
   return _acknowledgements.size();
 }
 
+cbmod::private_downtime_params& cbmod::get_downtime(uint32_t downtime_id) {
+  return _downtimes[downtime_id];
+}
+
+void cbmod::remove_downtime(uint32_t downtime_id) {
+  _downtimes.erase(downtime_id);
+}
+
 }  // namespace com::centreon::broker::neb
