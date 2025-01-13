@@ -59,12 +59,6 @@ void enable_flap_detection_routines() {
   pb_config.set_enable_flap_detection(true);
 #endif
 
-  /* send data to event broker */
-  broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, CMD_NONE, attr,
-                               modified_host_process_attributes, attr,
-                               modified_service_process_attributes, NULL);
-
   /* update program status */
   update_program_status(false);
 
@@ -105,12 +99,6 @@ void disable_flap_detection_routines() {
 #else
   pb_config.set_enable_flap_detection(false);
 #endif
-
-  /* send data to event broker */
-  broker_adaptive_program_data(NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, CMD_NONE, attr,
-                               modified_host_process_attributes, attr,
-                               modified_service_process_attributes, NULL);
 
   /* update program status */
   update_program_status(false);
