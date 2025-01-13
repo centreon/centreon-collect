@@ -64,22 +64,6 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
   struct timeval start_time;
   gettimeofday(&start_time, nullptr);
 
-  struct timeval end_time {
-    0L, 0L
-  };
-
-  /* send data to event broker */
-  int neb_result{broker_notification_data(
-      NEBTYPE_NOTIFICATION_START, NEBFLAG_NONE, NEBATTR_NONE,
-      _parent->get_notifier_type(), _type, start_time, end_time, (void*)_parent,
-      _author.c_str(), _message.c_str(), _escalated, 0, nullptr)};
-
-  if (neb_result == NEBERROR_CALLBACKCANCEL)
-    return ERROR;
-  else if (neb_result == NEBERROR_CALLBACKOVERRIDE) {
-    return OK;
-  }
-
   nagios_macros* mac(get_global_macros());
 
   /* Grab the macro variables */
@@ -193,16 +177,6 @@ int notification::execute(std::unordered_set<contact*> const& to_notify) {
       }
     }
   }
-
-  /* get the time we finished */
-  gettimeofday(&end_time, nullptr);
-
-  /* send data to event broker */
-  broker_notification_data(NEBTYPE_NOTIFICATION_END, NEBFLAG_NONE, NEBATTR_NONE,
-                           _parent->get_notifier_type(), _type, start_time,
-                           end_time, (void*)_parent, _author.c_str(),
-                           _message.c_str(), _escalated, contacts_notified,
-                           nullptr);
 
   engine_logger(dbg_notifications, basic)
       << contacts_notified << " contacts were notified.";
