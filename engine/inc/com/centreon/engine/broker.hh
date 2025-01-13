@@ -387,10 +387,10 @@ void broker_log_data(const char* data, time_t entry_time);
 void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,
-                          com::centreon::engine::host* hst,
-                          com::centreon::engine::service* svc,
-                          com::centreon::engine::host* dep_hst,
-                          com::centreon::engine::service* dep_svc);
+                          const com::centreon::engine::host* hst,
+                          const com::centreon::engine::service* svc,
+                          const com::centreon::engine::host* dep_hst,
+                          const com::centreon::engine::service* dep_svc);
 void broker_retention_data(int type,
                            int flags,
                            int attr,
