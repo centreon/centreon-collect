@@ -3191,57 +3191,6 @@ int neb::callback_pb_service_check(int, void* data) {
 }
 
 /**
- * @brief Process adaptive severity data.
- *
- * @param callback_type Callback type (NEBCALLBACK_ADAPTIVE_SEVERITY_DATA).
- * @param data A pointer to a nebstruct_adaptive_severity_data.
- *
- * @return 0 on success.
- */
-int32_t neb::callback_severity(int callback_type [[maybe_unused]],
-                               void* data) noexcept {
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating protobuf severity event");
-
-  nebstruct_adaptive_severity_data* ds =
-      static_cast<nebstruct_adaptive_severity_data*>(data);
-  const engine::severity* es{static_cast<engine::severity*>(ds->object_ptr)};
-
-  auto s{std::make_shared<neb::pb_severity>()};
-  Severity& sv = s.get()->mut_obj();
-  switch (ds->type) {
-    case NEBTYPE_SEVERITY_ADD:
-      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: new severity");
-      sv.set_action(Severity_Action_ADD);
-      break;
-    case NEBTYPE_SEVERITY_DELETE:
-      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: removed severity");
-      sv.set_action(Severity_Action_DELETE);
-      break;
-    case NEBTYPE_SEVERITY_UPDATE:
-      SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: modified severity");
-      sv.set_action(Severity_Action_MODIFY);
-      break;
-    default:
-      SPDLOG_LOGGER_ERROR(neb_logger,
-                          "callbacks: protobuf severity event action must be "
-                          "among ADD, MODIFY "
-                          "or DELETE");
-      return 1;
-  }
-  sv.set_id(es->id());
-  sv.set_poller_id(config::applier::state::instance().poller_id());
-  sv.set_level(es->level());
-  sv.set_icon_id(es->icon_id());
-  sv.set_name(es->name());
-  sv.set_type(static_cast<com::centreon::broker::Severity_Type>(es->type()));
-
-  // Send event(s).
-  gl_publisher.write(s);
-  return 0;
-}
-
-/**
  * @brief Process adaptive tag data.
  *
  * @param callback_type Callback type (NEBCALLBACK_ADAPTIVE_SEVERITY_DATA).
