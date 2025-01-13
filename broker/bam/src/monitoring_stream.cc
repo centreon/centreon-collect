@@ -28,6 +28,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service.hh"

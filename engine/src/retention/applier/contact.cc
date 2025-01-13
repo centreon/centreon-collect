@@ -273,8 +273,5 @@ void applier::contact::_update(const configuration::State& config,
       obj->set_modified_attributes(obj->get_modified_attributes() -
                                    MODATTR_CUSTOM_VARIABLE);
   }
-
-  // update contact status.
-  obj->update_status_info(false);
 }
 #endif
