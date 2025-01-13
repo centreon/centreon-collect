@@ -2195,6 +2195,165 @@ void broker_external_command(int type,
   neb_make_callbacks(NEBCALLBACK_EXTERNAL_COMMAND_DATA, &ds);
 }
 
+template <typename G>
+static void forward_group(int type, const G* group_data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
+
+  // Host group.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
+           NEBTYPE_HOSTGROUP_DELETE == type);
+    if (!group_data->get_group_name().empty()) {
+      auto new_hg = std::make_shared<neb::host_group>();
+      new_hg->poller_id = cbm->poller_id();
+      new_hg->id = group_data->get_id();
+      new_hg->enabled =
+          type == NEBTYPE_HOSTGROUP_ADD ||
+          (type == NEBTYPE_HOSTGROUP_UPDATE && !group_data->members.empty());
+      new_hg->name = common::check_string_utf8(group_data->get_group_name());
+
+      // Send host group event.
+      if (new_hg->id) {
+        if (new_hg->enabled)
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger, "callbacks: new host group {} ('{}') on instance {}",
+              new_hg->id, new_hg->name, new_hg->poller_id);
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: disable host group {} ('{}') on instance {}",
+              new_hg->id, new_hg->name, new_hg->poller_id);
+        cbm->write(new_hg);
+      }
+    }
+  } else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    // Service group.
+    assert(NEBTYPE_SERVICEGROUP_ADD == type ||
+           NEBTYPE_SERVICEGROUP_UPDATE == type ||
+           NEBTYPE_SERVICEGROUP_DELETE == type);
+    if (!group_data->get_group_name().empty()) {
+      auto new_sg = std::make_shared<neb::service_group>();
+      new_sg->poller_id = cbm->poller_id();
+      new_sg->id = group_data->get_id();
+      new_sg->enabled =
+          type == NEBTYPE_SERVICEGROUP_ADD ||
+          (type == NEBTYPE_SERVICEGROUP_UPDATE && !group_data->members.empty());
+      new_sg->name = common::check_string_utf8(group_data->get_group_name());
+
+      // Send service group event.
+      if (new_sg->id) {
+        if (new_sg->enabled)
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: new service group {} ('{}) on instance {}",
+              new_sg->id, new_sg->name, new_sg->poller_id);
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: disable service group {} ('{}) on instance {}",
+              new_sg->id, new_sg->name, new_sg->poller_id);
+        cbm->write(new_sg);
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Function that process group data.
+ *
+ *  This function is called by Engine when some group data is available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_GROUP_DATA).
+ *  @param[in] data          Pointer to a nebstruct_group_data
+ *                           containing the group data.
+ *
+ *  @return 0 on success.
+ */
+template <typename G>
+static void forward_pb_group(int type, const G* group_data) {
+  // Host group.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
+           NEBTYPE_HOSTGROUP_DELETE == type);
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        group_data->get_group_name(), group_data->get_id(), type);
+
+    if (!group_data->get_group_name().empty()) {
+      auto new_hg{std::make_shared<neb::pb_host_group>()};
+      auto& obj = new_hg->mut_obj();
+      obj.set_poller_id(cbm->poller_id());
+      obj.set_hostgroup_id(group_data->get_id());
+      obj.set_enabled(
+          type == NEBTYPE_HOSTGROUP_ADD ||
+          (type == NEBTYPE_HOSTGROUP_UPDATE && !group_data->members.empty()));
+      obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+
+      // Send host group event.
+      if (group_data->get_id()) {
+        if (new_hg->obj().enabled())
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: new pb host group {} ('{}' {} "
+                              "members) on instance {}",
+                              group_data->get_id(), new_hg->obj().name(),
+                              group_data->members.size(),
+                              new_hg->obj().poller_id());
+        else
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: disable pb host group {} ('{}' {} "
+                              "members) on instance {}",
+                              group_data->get_id(), new_hg->obj().name(),
+                              group_data->members.size(),
+                              new_hg->obj().poller_id());
+
+        cbm->write(new_hg);
+      }
+    }
+  }
+  // Service group.
+  else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    assert(NEBTYPE_SERVICEGROUP_ADD == type ||
+           NEBTYPE_SERVICEGROUP_UPDATE == type ||
+           NEBTYPE_SERVICEGROUP_DELETE == type);
+    SPDLOG_LOGGER_DEBUG(
+        neb_logger,
+        "callbacks: generating pb host group {} (id: {}) event type:{}",
+        group_data->get_group_name(), group_data->get_id(), type);
+
+    if (!group_data->get_group_name().empty()) {
+      auto new_sg = std::make_shared<neb::pb_service_group>();
+      auto& obj = new_sg->mut_obj();
+      obj.set_poller_id(cbm->poller_id());
+      obj.set_servicegroup_id(group_data->get_id());
+      obj.set_enabled(type == NEBTYPE_SERVICEGROUP_ADD ||
+                      (type == NEBTYPE_SERVICEGROUP_UPDATE &&
+                       !group_data->members.empty()));
+      obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+
+      // Send service group event.
+      if (group_data->get_id()) {
+        if (new_sg->obj().enabled())
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: new pb service group {} ('{}) on instance {}",
+              group_data->get_id(), new_sg->obj().name(),
+              new_sg->obj().poller_id());
+        else
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks:: disable pb service group {} ('{}) on instance {}",
+              group_data->get_id(), new_sg->obj().name(),
+              new_sg->obj().poller_id());
+
+        cbm->write(new_sg);
+      }
+    }
+  }
+}
+
 /**
  *  Send group update to broker.
  *
@@ -2202,23 +2361,198 @@ void broker_external_command(int type,
  *  @param[in] data      Host group or service group.
 
  */
-void broker_group(int type, void* data) {
+template <typename G>
+void broker_group(int type, const G* group) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_GROUP_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_GROUP_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_group_data ds;
-  ds.type = type;
-  ds.object_ptr = data;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_GROUP_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_group(type, group);
+  else
+    forward_group(type, group);
+}
+
+template void broker_group(int type, const engine::hostgroup* group);
+template void broker_group(int type, const engine::servicegroup* group);
+/* This implementation is ready but in fact it does nothing */
+template void broker_group(int type, const engine::contactgroup* group);
+
+template <typename G, typename R>
+static void forward_group_member(int type, R* object, G* group) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group member event");
+
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    // Host group member.
+    static_assert(std::is_same_v<R, engine::host>);
+    assert(type == NEBTYPE_HOSTGROUPMEMBER_ADD ||
+           type == NEBTYPE_HOSTGROUPMEMBER_DELETE);
+    if (!object->name().empty() && !group->get_group_name().empty()) {
+      // Output variable.
+      auto hgm = std::make_shared<neb::host_group_member>();
+      hgm->group_id = group->get_id();
+      hgm->group_name = common::check_string_utf8(group->get_group_name());
+      hgm->poller_id = cbm->poller_id();
+      uint32_t host_id = engine::get_host_id(object->name());
+      if (host_id != 0 && hgm->group_id != 0) {
+        hgm->host_id = host_id;
+        if (type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: host {} is not a member of group "
+                              "{} on instance {} "
+                              "anymore",
+                              hgm->host_id, hgm->group_id, hgm->poller_id);
+          hgm->enabled = false;
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: host {} is a member of group {} on instance {}",
+              hgm->host_id, hgm->group_id, hgm->poller_id);
+          hgm->enabled = true;
+        }
+
+        // Send host group member event.
+        if (hgm->host_id && hgm->group_id)
+          cbm->write(hgm);
+      }
+    }
+  } else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    // Service group member.
+    static_assert(std::is_same_v<R, engine::service>);
+    assert(type == NEBTYPE_SERVICEGROUPMEMBER_ADD ||
+           type == NEBTYPE_SERVICEGROUPMEMBER_DELETE);
+    if (!object->description().empty() && !group->get_group_name().empty() &&
+        !object->get_hostname().empty()) {
+      // Output variable.
+      auto sgm{std::make_shared<neb::service_group_member>()};
+      sgm->group_id = group->get_id();
+      sgm->group_name = common::check_string_utf8(group->get_group_name());
+      sgm->poller_id = cbm->poller_id();
+      sgm->host_id = object->host_id();
+      sgm->service_id = object->service_id();
+      if (sgm->host_id && sgm->service_id && sgm->group_id) {
+        if (type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({},{}) is not a member of group {} on "
+              "instance {} anymore",
+              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
+          sgm->enabled = false;
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({}, {}) is a member of group {} on "
+              "instance {}",
+              sgm->host_id, sgm->service_id, sgm->group_id, sgm->poller_id);
+          sgm->enabled = true;
+        }
+
+        // Send service group member event.
+        if (sgm->host_id && sgm->service_id && sgm->group_id)
+          cbm->write(sgm);
+      }
+    }
+  }
+}
+
+/**
+ *  @brief Function that process group membership.
+ *
+ *  This function is called by Engine when some group membership data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_GROUPMEMBER_DATA).
+ *  @param[in] data          Pointer to a nebstruct_group_member_data
+ *                           containing membership data.
+ *
+ *  @return 0 on success.
+ */
+template <typename G, typename R>
+static void forward_pb_group_member(int type, const R* object, const G* group) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb group member event");
+
+  // Host group member.
+  if constexpr (std::is_same_v<G, engine::hostgroup>) {
+    static_assert(std::is_same_v<R, engine::host>);
+    assert(NEBTYPE_HOSTGROUPMEMBER_ADD == type ||
+           NEBTYPE_HOSTGROUPMEMBER_DELETE == type);
+    if (!object->name().empty() && !group->get_group_name().empty()) {
+      // Output variable.
+      auto hgmp{std::make_shared<neb::pb_host_group_member>()};
+      com::centreon::broker::HostGroupMember& hgm = hgmp->mut_obj();
+      hgm.set_hostgroup_id(group->get_id());
+      hgm.set_name(common::check_string_utf8(group->get_group_name()));
+      hgm.set_poller_id(cbm->poller_id());
+      uint32_t host_id = object->host_id();
+      if (host_id != 0 && hgm.hostgroup_id() != 0) {
+        hgm.set_host_id(host_id);
+        if (type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: host {} is not a member of group "
+                              "{} on instance {} "
+                              "anymore",
+                              hgm.host_id(), hgm.hostgroup_id(),
+                              hgm.poller_id());
+          hgm.set_enabled(false);
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: host {} is a member of group {} on instance {}",
+              hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
+          hgm.set_enabled(true);
+        }
+
+        // Send host group member event.
+        if (hgm.host_id() && hgm.hostgroup_id())
+          cbm->write(hgmp);
+      }
+    }
+  }
+  // Service group member.
+  else if constexpr (std::is_same_v<G, engine::servicegroup>) {
+    static_assert(std::is_same_v<R, engine::service>);
+    assert(type == NEBTYPE_SERVICEGROUPMEMBER_ADD ||
+           type == NEBTYPE_SERVICEGROUPMEMBER_DELETE);
+    if (!object->description().empty() && !group->get_group_name().empty() &&
+        !object->get_hostname().empty()) {
+      // Output variable.
+      auto sgmp{std::make_shared<neb::pb_service_group_member>()};
+      com::centreon::broker::ServiceGroupMember& sgm = sgmp->mut_obj();
+      sgm.set_servicegroup_id(group->get_id());
+      sgm.set_name(common::check_string_utf8(group->get_group_name()));
+      sgm.set_poller_id(cbm->poller_id());
+      sgm.set_host_id(object->host_id());
+      sgm.set_service_id(object->service_id());
+      if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id()) {
+        if (type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({},{}) is not a member of group {} on "
+              "instance {} anymore",
+              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+              sgm.poller_id());
+          sgm.set_enabled(false);
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger,
+              "callbacks: service ({}, {}) is a member of group {} on "
+              "instance {}",
+              sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+              sgm.poller_id());
+          sgm.set_enabled(true);
+        }
+
+        // Send service group member event.
+        if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id())
+          cbm->write(sgmp);
+      }
+    }
+  }
 }
 
 /**

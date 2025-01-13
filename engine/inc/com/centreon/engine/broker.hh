@@ -371,7 +371,9 @@ void broker_external_command(int type,
                              int command_type,
                              char* command_args,
                              struct timeval const* timestamp);
-void broker_group(int type, void* data);
+template <typename G>
+void broker_group(int type, const G* group);
+
 void broker_group_member(int type, void* object, void* group);
 int broker_host_check(int type,
                       com::centreon::engine::host* hst,
