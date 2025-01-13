@@ -1193,31 +1193,6 @@ void broker_adaptive_service_data(int type,
 }
 
 /**
- *  Send adaptive dependency updates to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] data      Target dependency.
- */
-void broker_adaptive_dependency_data(int type, void* data) {
-  // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-#else
-  if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_adaptive_dependency_data ds;
-  ds.type = type;
-  ds.object_ptr = data;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &ds);
-}
-
-/**
  *  Sends adaptative escalation updates to broker.
  *
  *  @param[in] type      Type.

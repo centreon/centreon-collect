@@ -213,9 +213,6 @@ void applier::servicedependency::add_object(
   engine::servicedependency::servicedependencies.insert(
       {{sd->get_dependent_hostname(), sd->get_dependent_service_description()},
        sd});
-
-  // Notify event broker.
-  broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_ADD, sd.get());
 }
 #endif
 
@@ -466,11 +463,6 @@ void applier::servicedependency::remove_object(ssize_t idx) {
           std::make_tuple(obj.dependent_hosts().data(0),
                           obj.dependent_service_description().data(0), key));
   if (it != engine::servicedependency::servicedependencies.end()) {
-    // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
-                                    it->second.get());
-
     // Remove service dependency from its list.
     engine::servicedependency::servicedependencies.erase(it);
   }
