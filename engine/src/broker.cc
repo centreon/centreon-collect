@@ -2692,31 +2692,225 @@ int broker_host_check(int type,
   return OK;
 }
 
+static void forward_host_status(const engine::host* hst,
+                                uint32_t attributes [[maybe_unused]]) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host status event");
+
+  try {
+    // In/Out variables.
+    auto host_status = std::make_shared<neb::host_status>();
+
+    // Fill output var.
+    host_status->acknowledged = hst->problem_has_been_acknowledged();
+    host_status->acknowledgement_type = hst->get_acknowledgement();
+    host_status->active_checks_enabled = hst->active_checks_enabled();
+    if (!hst->check_command().empty())
+      host_status->check_command =
+          common::check_string_utf8(hst->check_command());
+    host_status->check_interval = hst->check_interval();
+    if (!hst->check_period().empty())
+      host_status->check_period = hst->check_period();
+    host_status->check_type = hst->get_check_type();
+    host_status->current_check_attempt = hst->get_current_attempt();
+    host_status->current_state =
+        (hst->has_been_checked() ? hst->get_current_state()
+                                 : 4);  // Pending state.
+    host_status->downtime_depth = hst->get_scheduled_downtime_depth();
+    if (!hst->event_handler().empty())
+      host_status->event_handler =
+          common::check_string_utf8(hst->event_handler());
+    host_status->event_handler_enabled = hst->event_handler_enabled();
+    host_status->execution_time = hst->get_execution_time();
+    host_status->flap_detection_enabled = hst->flap_detection_enabled();
+    host_status->has_been_checked = hst->has_been_checked();
+    if (hst->name().empty())
+      throw exceptions::msg_fmt("unnamed host");
+    {
+      host_status->host_id = engine::get_host_id(hst->name());
+      if (host_status->host_id == 0)
+        throw exceptions::msg_fmt("could not find ID of host '{}'",
+                                  hst->name());
+    }
+    host_status->is_flapping = hst->get_is_flapping();
+    host_status->last_check = hst->get_last_check();
+    host_status->last_hard_state = hst->get_last_hard_state();
+    host_status->last_hard_state_change = hst->get_last_hard_state_change();
+    host_status->last_notification = hst->get_last_notification();
+    host_status->notification_number = hst->get_notification_number();
+    host_status->last_state_change = hst->get_last_state_change();
+    host_status->last_time_down = hst->get_last_time_down();
+    host_status->last_time_unreachable = hst->get_last_time_unreachable();
+    host_status->last_time_up = hst->get_last_time_up();
+    host_status->last_update = time(nullptr);
+    host_status->latency = hst->get_latency();
+    host_status->max_check_attempts = hst->max_check_attempts();
+    host_status->next_check = hst->get_next_check();
+    host_status->next_notification = hst->get_next_notification();
+    host_status->no_more_notifications = hst->get_no_more_notifications();
+    host_status->notifications_enabled = hst->get_notifications_enabled();
+    host_status->obsess_over = hst->obsess_over();
+    if (!hst->get_plugin_output().empty()) {
+      host_status->output = common::check_string_utf8(hst->get_plugin_output());
+      host_status->output.append("\n");
+    }
+    if (!hst->get_long_plugin_output().empty())
+      host_status->output.append(
+          common::check_string_utf8(hst->get_long_plugin_output()));
+    host_status->passive_checks_enabled = hst->passive_checks_enabled();
+    host_status->percent_state_change = hst->get_percent_state_change();
+    if (!hst->get_perf_data().empty())
+      host_status->perf_data = common::check_string_utf8(hst->get_perf_data());
+    host_status->retry_interval = hst->retry_interval();
+    host_status->should_be_scheduled = hst->get_should_be_scheduled();
+    host_status->state_type =
+        (hst->has_been_checked() ? hst->get_state_type()
+                                 : engine::notifier::hard);
+
+    // Send event(s).
+    cbm->write(host_status);
+
+    // Acknowledgement event.
+    auto ack = cbm->find_acknowledgement(host_status->host_id, 0u);
+    if (ack && !host_status->acknowledged) {
+      if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+            || (!ack->obj().sticky() &&
+                host_status->current_state !=
+                    static_cast<short>(ack->obj().state())))) {
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        cbm->write(ack);
+      }
+      cbm->remove_acknowledgement(host_status->host_id, 0u);
+    }
+    neb_logger->debug("Still {} running acknowledgements",
+                      cbm->acknowledgements_count());
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating host status event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_host_status(const host* hst,
+                                   uint32_t attributes) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      neb_logger,
+      "callbacks: generating pb host status check result event protobuf");
+
+  auto handle_acknowledgement = [](uint16_t state, auto& hscr) {
+    auto ack = cbm->find_acknowledgement(hscr.host_id(), 0u);
+    if (ack && hscr.acknowledgement_type() == AckType::NONE) {
+      neb_logger->debug("acknowledgement found on host {}", hscr.host_id());
+      if (!(!state  // !(OK or (normal ack and NOK))
+            || (!ack->obj().sticky() && state != ack->obj().state()))) {
+        ack->mut_obj().set_deletion_time(time(nullptr));
+        cbm->write(ack);
+      }
+      cbm->remove_acknowledgement(hscr.host_id(), 0u);
+    }
+  };
+
+  uint16_t state =
+      hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.
+
+  if (attributes != engine::host::STATUS_ALL) {
+    auto h{std::make_shared<neb::pb_adaptive_host_status>()};
+    com::centreon::broker::AdaptiveHostStatus& host = h.get()->mut_obj();
+    if (attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
+      host.set_host_id(hst->host_id());
+      host.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
+    }
+    if (attributes & engine::host::STATUS_NOTIFICATION_NUMBER) {
+      host.set_host_id(hst->host_id());
+      host.set_notification_number(hst->get_notification_number());
+    }
+    if (attributes & engine::host::STATUS_ACKNOWLEDGEMENT) {
+      host.set_host_id(hst->host_id());
+      host.set_acknowledgement_type(hst->get_acknowledgement());
+    }
+    cbm->write(h);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, host);
+  } else {
+    auto h{std::make_shared<neb::pb_host_status>()};
+    com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
+
+    hscr.set_host_id(hst->host_id());
+    if (hscr.host_id() == 0)
+      SPDLOG_LOGGER_ERROR(neb_logger, "could not find ID of host '{}'",
+                          hst->name());
+
+    hscr.set_acknowledgement_type(hst->get_acknowledgement());
+    hscr.set_check_type(
+        static_cast<com::centreon::broker::HostStatus_CheckType>(
+            hst->get_check_type()));
+    hscr.set_check_attempt(hst->get_current_attempt());
+    hscr.set_state(static_cast<com::centreon::broker::HostStatus_State>(state));
+    hscr.set_execution_time(hst->get_execution_time());
+    hscr.set_checked(hst->has_been_checked());
+    hscr.set_flapping(hst->get_is_flapping());
+    hscr.set_last_check(hst->get_last_check());
+    hscr.set_last_hard_state(
+        static_cast<com::centreon::broker::HostStatus_State>(
+            hst->get_last_hard_state()));
+    hscr.set_last_hard_state_change(hst->get_last_hard_state_change());
+    hscr.set_last_notification(hst->get_last_notification());
+    hscr.set_notification_number(hst->get_notification_number());
+    hscr.set_last_state_change(hst->get_last_state_change());
+    hscr.set_last_time_down(hst->get_last_time_down());
+    hscr.set_last_time_unreachable(hst->get_last_time_unreachable());
+    hscr.set_last_time_up(hst->get_last_time_up());
+    hscr.set_latency(hst->get_latency());
+    hscr.set_next_check(hst->get_next_check());
+    hscr.set_next_host_notification(hst->get_next_notification());
+    hscr.set_no_more_notifications(hst->get_no_more_notifications());
+    if (!hst->get_plugin_output().empty())
+      hscr.set_output(common::check_string_utf8(hst->get_plugin_output()));
+    if (!hst->get_long_plugin_output().empty())
+      hscr.set_output(common::check_string_utf8(hst->get_long_plugin_output()));
+
+    hscr.set_percent_state_change(hst->get_percent_state_change());
+    if (!hst->get_perf_data().empty())
+      hscr.set_perfdata(common::check_string_utf8(hst->get_perf_data()));
+    hscr.set_should_be_scheduled(hst->get_should_be_scheduled());
+    hscr.set_state_type(
+        static_cast<com::centreon::broker::HostStatus_StateType>(
+            hst->has_been_checked() ? hst->get_state_type()
+                                    : engine::notifier::hard));
+    hscr.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
+
+    // Send event(s).
+    cbm->write(h);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, hscr);
+  }
+  neb_logger->debug("Still {} running acknowledgements",
+                    cbm->acknowledgements_count());
+}
+
 /**
  *  Sends host status updates to broker.
  *
- *  @param[in] type      Type.
  *  @param[in] hst       Host.
  *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_host_status(int type, host* hst, uint32_t attributes) {
+void broker_host_status(const host* hst, uint32_t attributes) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_host_status_data ds;
-  ds.type = type;
-  ds.object_ptr = hst;
-  ds.attributes = attributes;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_HOST_STATUS_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_host_status(hst, attributes);
+  else
+    forward_host_status(hst, attributes);
 }
 
 /**
