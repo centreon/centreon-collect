@@ -381,8 +381,7 @@ int broker_host_check(int type,
                       const com::centreon::engine::host* hst,
                       int check_type,
                       const char* cmdline);
-void broker_host_status(int type,
-                        com::centreon::engine::host* hst,
+void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
 void broker_log_data(char* data, time_t entry_time);
 int broker_notification_data(int type,
