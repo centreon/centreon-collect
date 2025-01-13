@@ -1963,6 +1963,207 @@ void broker_downtime_data(int type,
                      triggered_by, duration, downtime_id, timestamp);
 }
 
+static void forward_external_command(int type,
+                                     int command_type,
+                                     char* command_args,
+                                     const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+
+  if (type == NEBTYPE_EXTERNALCOMMAND_START) {
+    if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating host custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        std::list<std::string> l{
+            absl::StrSplit(common::check_string_utf8(command_args), ';')};
+        if (l.size() != 3)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid host custom variable command");
+        else {
+          std::list<std::string>::iterator it(l.begin());
+          std::string host{std::move(*it)};
+          ++it;
+          std::string var_name{std::move(*it)};
+          ++it;
+          std::string var_value{std::move(*it)};
+
+          // Find host ID.
+          uint64_t host_id = engine::get_host_id(host);
+          if (host_id != 0) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<neb::custom_variable_status>();
+            cvs->host_id = host_id;
+            cvs->modified = true;
+            cvs->name = var_name;
+            cvs->service_id = 0;
+            if (timestamp)
+              cvs->update_time = timestamp->tv_sec;
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              cvs->update_time = now.tv_sec;
+            }
+            cvs->value = var_value;
+
+            // Send event.
+            cbm->write(cvs);
+          }
+        }
+      }
+    } else if (command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating service custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        std::list<std::string> l{
+            absl::StrSplit(common::check_string_utf8(command_args), ';')};
+        if (l.size() != 4)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid service custom variable command");
+        else {
+          std::list<std::string>::iterator it{l.begin()};
+          std::string host{std::move(*it)};
+          ++it;
+          std::string service{std::move(*it)};
+          ++it;
+          std::string var_name{std::move(*it)};
+          ++it;
+          std::string var_value{std::move(*it)};
+
+          // Find host/service IDs.
+          std::pair<uint64_t, uint64_t> p{
+              engine::get_host_and_service_id(host, service)};
+          if (p.first && p.second) {
+            // Fill custom variable.
+            auto cvs{std::make_shared<neb::custom_variable_status>()};
+            cvs->host_id = p.first;
+            cvs->modified = true;
+            cvs->name = var_name;
+            cvs->service_id = p.second;
+            if (timestamp)
+              cvs->update_time = timestamp->tv_sec;
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              cvs->update_time = now.tv_sec;
+            }
+            cvs->value = var_value;
+
+            // Send event.
+            cbm->write(cvs);
+          }
+        }
+      }
+    }
+  }
+}
+
+static void forward_pb_external_command(int type,
+                                        int command_type,
+                                        char* command_args,
+                                        const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+
+  if (type == NEBTYPE_EXTERNALCOMMAND_START) {
+    auto args = absl::StrSplit(common::check_string_utf8(command_args), ';');
+    size_t args_size = std::distance(args.begin(), args.end());
+    auto split_iter = args.begin();
+    if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating host custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        if (args_size != 3)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger, "callbacks: invalid host custom variable command {}",
+              command_args);
+        else {
+          std::string host(*(split_iter++));
+          // Find host ID.
+          uint64_t host_id = engine::get_host_id(host);
+          if (host_id != 0) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<neb::pb_custom_variable_status>();
+            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            data.set_host_id(host_id);
+            data.set_modified(true);
+            data.set_name(split_iter->data(), split_iter->length());
+            ++split_iter;
+            if (timestamp)
+              data.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              data.set_update_time(now.tv_sec);
+            }
+            data.set_value(split_iter->data(), split_iter->length());
+
+            // Send event.
+            cbm->write(cvs);
+          } else {
+            SPDLOG_LOGGER_ERROR(neb_logger, "callbacks: unknown host {} ",
+                                host);
+          }
+        }
+      }
+    } else if (command_type == CMD_CHANGE_CUSTOM_SVC_VAR) {
+      SPDLOG_LOGGER_DEBUG(
+          neb_logger,
+          "callbacks: generating service custom variable update event");
+
+      // Split argument string.
+      if (command_args) {
+        if (args_size != 4)
+          SPDLOG_LOGGER_ERROR(
+              neb_logger,
+              "callbacks: invalid service custom variable command {}",
+              command_args);
+        else {
+          std::string host(*(split_iter++));
+          std::string service(*(split_iter++));
+          // Find host/service IDs.
+          std::pair<uint64_t, uint64_t> p{
+              engine::get_host_and_service_id(host, service)};
+          if (p.first && p.second) {
+            // Fill custom variable.
+            auto cvs = std::make_shared<neb::pb_custom_variable_status>();
+            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            data.set_host_id(p.first);
+            data.set_modified(true);
+            data.set_name(split_iter->data(), split_iter->length());
+            ++split_iter;
+            data.set_service_id(p.second);
+            if (timestamp)
+              data.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              data.set_update_time(now.tv_sec);
+            }
+            data.set_value(split_iter->data(), split_iter->length());
+
+            // Send event.
+            cbm->write(cvs);
+          } else {
+            SPDLOG_LOGGER_ERROR(neb_logger,
+                                "callbacks: unknown host  {} service {}", host,
+                                service);
+          }
+        }
+      }
+    }
+  }
+}
+
 /**
  *  Sends external commands to broker.
  *
@@ -1976,13 +2177,8 @@ void broker_external_command(int type,
                              char* command_args,
                              struct timeval const* timestamp) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
     return;
-#endif
 
   // Fill struct with relevant data.
   nebstruct_external_command_data ds;
@@ -1992,6 +2188,10 @@ void broker_external_command(int type,
   ds.command_args = command_args;
 
   // Make callbacks.
+  if (cbm->use_protobuf())
+    forward_pb_external_command(type, command_type, command_args, timestamp);
+  else
+    forward_external_command(type, command_type, command_args, timestamp);
   neb_make_callbacks(NEBCALLBACK_EXTERNAL_COMMAND_DATA, &ds);
 }
 
