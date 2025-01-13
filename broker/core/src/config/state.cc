@@ -17,8 +17,7 @@
  */
 
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::config;

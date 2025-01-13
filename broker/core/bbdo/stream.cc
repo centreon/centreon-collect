@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
@@ -28,10 +28,8 @@
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/file.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -600,7 +598,7 @@ stream::~stream() {
  * @return The number of events to acknowledge.
  */
 int32_t stream::stop() {
-  _logger->trace("bbdo::stream stop {}", static_cast<void*>(this));
+  _logger->debug("bbdo::stream stop {}", static_cast<void*>(this));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
    * Here, the user wants to stop me/ I need to ask broker how many
@@ -935,7 +933,7 @@ void stream::negotiate(stream::negotiation_type neg) {
                  proto_it = io::protocols::instance().begin(),
                  proto_end = io::protocols::instance().end();
              proto_it != proto_end; ++proto_it) {
-          if (boost::iequals(proto_it->first, ext->name())) {
+          if (absl::EqualsIgnoreCase(proto_it->first, ext->name())) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
                     _substream, neg == negotiate_second, ext->options())};
@@ -1091,6 +1089,7 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
     case pb_engine_configuration::static_type(): {
       const EngineConfiguration& ec =
           std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+      /* Here, we are Broker and peer is Engine. */
       if (config::applier::state::instance().peer_type() == common::BROKER &&
           _peer_type == common::ENGINE) {
         SPDLOG_LOGGER_INFO(
