@@ -1402,6 +1402,266 @@ void broker_comment_data(int type,
 }
 
 /**
+ * @brief process custom variable data.
+ *
+ * @param cvar custom variable data.
+ */
+template <typename R>
+static void forward_custom_variable(int type,
+                                    R* object_ptr,
+                                    const std::string_view& var_name,
+                                    const std::string_view& var_value,
+                                    const struct timeval* timestamp) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating custom variable event");
+
+  // Input variable.
+  if (!var_name.empty() && !var_value.empty()) {
+    // Host custom variable.
+    if constexpr (std::is_same_v<R, engine::host>) {
+      switch (type) {
+        case NEBTYPE_HOSTCUSTOMVARIABLE_ADD: {
+          if (object_ptr && !object_ptr->name().empty()) {
+            // Fill custom variable event.
+            uint64_t host_id = engine::get_host_id(object_ptr->name());
+            if (host_id != 0) {
+              auto new_cvar = std::make_shared<neb::custom_variable>();
+              new_cvar->enabled = true;
+              new_cvar->host_id = host_id;
+              new_cvar->modified = false;
+              new_cvar->name = common::check_string_utf8(var_name);
+              new_cvar->var_type = 0;
+              if (timestamp)
+                new_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                new_cvar->update_time = now.tv_sec;
+              }
+              new_cvar->value = common::check_string_utf8(var_value);
+              new_cvar->default_value = common::check_string_utf8(var_value);
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger, "callbacks: new custom variable '{}' on host {}",
+                  new_cvar->name, new_cvar->host_id);
+              cbm->write(new_cvar);
+            }
+          }
+        } break;
+        case NEBTYPE_HOSTCUSTOMVARIABLE_DELETE: {
+          if (object_ptr && !object_ptr->name().empty()) {
+            uint32_t host_id = engine::get_host_id(object_ptr->name());
+            if (host_id != 0) {
+              auto old_cvar{std::make_shared<neb::custom_variable>()};
+              old_cvar->enabled = false;
+              old_cvar->host_id = host_id;
+              old_cvar->name = common::check_string_utf8(var_name);
+              old_cvar->var_type = 0;
+              if (timestamp)
+                old_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                old_cvar->update_time = now.tv_sec;
+              }
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on host {}",
+                  old_cvar->name, old_cvar->host_id);
+              cbm->write(old_cvar);
+            }
+          }
+        } break;
+      }
+    } else if constexpr (std::is_same_v<R, engine::service>) {
+      // Service custom variable.
+      switch (type) {
+        case NEBTYPE_SERVICECUSTOMVARIABLE_ADD: {
+          if (object_ptr && !object_ptr->description().empty() &&
+              !object_ptr->get_hostname().empty()) {
+            // Fill custom variable event.
+            std::pair<uint32_t, uint32_t> p;
+            p = engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                                object_ptr->description());
+            if (p.first && p.second) {
+              auto new_cvar{std::make_shared<neb::custom_variable>()};
+              new_cvar->enabled = true;
+              new_cvar->host_id = p.first;
+              new_cvar->modified = false;
+              new_cvar->name = common::check_string_utf8(var_name);
+              new_cvar->service_id = p.second;
+              new_cvar->var_type = 1;
+              if (timestamp)
+                new_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                new_cvar->update_time = now.tv_sec;
+              }
+              new_cvar->value = common::check_string_utf8(var_value);
+              new_cvar->default_value = common::check_string_utf8(var_value);
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: new custom variable '{}' on service ({}, {})",
+                  new_cvar->name, new_cvar->host_id, new_cvar->service_id);
+              cbm->write(new_cvar);
+            }
+          }
+        } break;
+        case NEBTYPE_SERVICECUSTOMVARIABLE_DELETE: {
+          if (object_ptr && !object_ptr->description().empty() &&
+              !object_ptr->get_hostname().empty()) {
+            const std::pair<uint64_t, uint64_t> p{
+                engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                                object_ptr->description())};
+            if (p.first && p.second) {
+              auto old_cvar{std::make_shared<neb::custom_variable>()};
+              old_cvar->enabled = false;
+              old_cvar->host_id = p.first;
+              old_cvar->modified = true;
+              old_cvar->name = common::check_string_utf8(var_name);
+              old_cvar->service_id = p.second;
+              old_cvar->var_type = 1;
+              if (timestamp)
+                old_cvar->update_time = timestamp->tv_sec;
+              else {
+                struct timeval now;
+                gettimeofday(&now, NULL);
+                old_cvar->update_time = now.tv_sec;
+              }
+
+              // Send custom variable event.
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on service ({},{})",
+                  old_cvar->name, old_cvar->host_id, old_cvar->service_id);
+              cbm->write(old_cvar);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @brief process custom variable data.
+ *
+ * @param cvar custom variable data.
+ */
+template <typename R>
+static void forward_pb_custom_variable(int type,
+                                       R* object_ptr,
+                                       const std::string_view& var_name,
+                                       const std::string_view& var_value,
+                                       const struct timeval* timestamp) {
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating custom variable event {} value:{}",
+                      var_name, var_value);
+
+  auto cv = std::make_shared<neb::pb_custom_variable>();
+  neb::pb_custom_variable::pb_type& obj = cv->mut_obj();
+  bool ok_to_send = false;
+  if (!var_name.empty() && !var_value.empty()) {
+    // Host custom variable.
+    if constexpr (std::is_same_v<R, engine::host>) {
+      if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type ||
+          NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == type) {
+        if (object_ptr && !object_ptr->name().empty()) {
+          uint64_t host_id = engine::get_host_id(object_ptr->name());
+          if (host_id != 0) {
+            std::string name(common::check_string_utf8(var_name));
+            bool add = NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type;
+            obj.set_enabled(add);
+            obj.set_host_id(host_id);
+            obj.set_modified(!add);
+            obj.set_name(name);
+            obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
+            if (timestamp)
+              obj.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              obj.set_update_time(now.tv_sec);
+            }
+            if (add) {
+              std::string value(common::check_string_utf8(var_value));
+              obj.set_value(value);
+              obj.set_default_value(value);
+              SPDLOG_LOGGER_DEBUG(neb_logger,
+                                  "callbacks: new custom variable '{}' with "
+                                  "value '{}' on host {}",
+                                  name, value, host_id);
+            } else {
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on host {}", name,
+                  host_id);
+            }
+            ok_to_send = true;
+          }
+        }
+      }
+    } else if constexpr (std::is_same_v<R, engine::service>) {
+      // Service custom variable.
+      if (NEBTYPE_SERVICECUSTOMVARIABLE_ADD == type ||
+          NEBTYPE_SERVICECUSTOMVARIABLE_DELETE == type) {
+        if (object_ptr && !object_ptr->description().empty() &&
+            !object_ptr->get_hostname().empty()) {
+          // Fill custom variable event.
+          std::pair<uint64_t, uint64_t> p;
+          p = engine::get_host_and_service_id(object_ptr->get_hostname(),
+                                              object_ptr->description());
+          if (p.first && p.second) {
+            std::string name(common::check_string_utf8(var_name));
+            bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == type;
+            obj.set_enabled(add);
+            obj.set_host_id(p.first);
+            obj.set_modified(!add);
+            obj.set_service_id(p.second);
+            obj.set_name(name);
+            obj.set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
+            if (timestamp)
+              obj.set_update_time(timestamp->tv_sec);
+            else {
+              struct timeval now;
+              gettimeofday(&now, NULL);
+              obj.set_update_time(now.tv_sec);
+            }
+            if (add) {
+              std::string value(common::check_string_utf8(var_value));
+              obj.set_value(value);
+              obj.set_default_value(value);
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: new custom variable '{}' on service ({}, {})",
+                  name, p.first, p.second);
+
+            } else {
+              SPDLOG_LOGGER_DEBUG(
+                  neb_logger,
+                  "callbacks: deleted custom variable '{}' on service ({},{})",
+                  name, p.first, p.second);
+            }
+            ok_to_send = true;
+          }
+        }
+      }
+    }
+  }
+  // Send event.
+  if (ok_to_send) {
+    cbm->write(cv);
+  }
+}
+
+/**
  *  Sends host custom variables updates to broker.
  *
  *  @param[in] type      Type.
@@ -1410,32 +1670,40 @@ void broker_comment_data(int type,
  *  @param[in] varvalue  Variable value.
  *  @param[in] timestamp Timestamp.
  */
+template <typename R>
 void broker_custom_variable(int type,
-                            void* data,
-                            std::string_view&& varname,
-                            std::string_view&& varvalue,
-                            struct timeval const* timestamp) {
+                            R* resource,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
+                            const struct timeval* timestamp) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_custom_variable_data ds{
-      .type = type,
-      .timestamp = get_broker_timestamp(timestamp),
-      .var_name = varname,
-      .var_value = varvalue,
-      .object_ptr = data,
-  };
 
   // Make callback.
-  neb_make_callbacks(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_custom_variable(type, resource, varname, varvalue, timestamp);
+  else
+    forward_custom_variable(type, resource, varname, varvalue, timestamp);
 }
+
+template void broker_custom_variable(int type,
+                                     engine::host* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
+template void broker_custom_variable(int type,
+                                     engine::service* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
+
+/** This implementation is ready but in fact never used */
+template void broker_custom_variable(int type,
+                                     engine::contact* resource,
+                                     const std::string_view& varname,
+                                     const std::string_view& varvalue,
+                                     const struct timeval* timestamp);
 
 /**
  *  Send downtime data to broker.
