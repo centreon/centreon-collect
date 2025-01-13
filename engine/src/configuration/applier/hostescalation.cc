@@ -97,7 +97,8 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  config_logger->debug("Creating new escalation for host '{}'.", obj.hosts().data(0));
+  config_logger->debug("Creating new escalation for host '{}'.",
+                       obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
   auto* new_obj = pb_config.add_hostescalations();
@@ -109,25 +110,17 @@ void applier::hostescalation::add_object(
   auto he = std::make_shared<engine::hostescalation>(
       obj.hosts().data(0), obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
-      ((obj.escalation_options() & action_he_down)
-           ? notifier::down
-           : notifier::none) |
-          ((obj.escalation_options() &
-            action_he_unreachable)
+      ((obj.escalation_options() & action_he_down) ? notifier::down
+                                                   : notifier::none) |
+          ((obj.escalation_options() & action_he_unreachable)
                ? notifier::unreachable
                : notifier::none) |
-          ((obj.escalation_options() & action_he_recovery)
-               ? notifier::up
-               : notifier::none),
+          ((obj.escalation_options() & action_he_recovery) ? notifier::up
+                                                           : notifier::none),
       key);
 
   // Add new items to the configuration state.
   engine::hostescalation::hostescalations.insert({he->get_hostname(), he});
-
-  // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_escalation_data(NEBTYPE_HOSTESCALATION_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, he.get(), &tv);
 
   // Add contact groups to host escalation.
   for (auto& g : obj.contactgroups().data())
@@ -369,25 +362,17 @@ void applier::hostescalation::remove_object(ssize_t idx) {
             obj.notification_interval() &&
         it->second->get_escalation_period() == obj.escalation_period() &&
         it->second->get_escalate_on(notifier::down) ==
-            static_cast<bool>(obj.escalation_options() &
-                              action_he_down) &&
+            static_cast<bool>(obj.escalation_options() & action_he_down) &&
         it->second->get_escalate_on(notifier::unreachable) ==
             static_cast<bool>(obj.escalation_options() &
                               action_he_unreachable) &&
         it->second->get_escalate_on(notifier::up) ==
-            static_cast<bool>(obj.escalation_options() &
-                              action_he_recovery)) {
+            static_cast<bool>(obj.escalation_options() & action_he_recovery)) {
       // We have the hostescalation to remove.
-
-      // Notify event broker.
-      timeval tv(get_broker_timestamp(nullptr));
-      broker_adaptive_escalation_data(NEBTYPE_HOSTESCALATION_DELETE,
-                                      NEBFLAG_NONE, NEBATTR_NONE,
-                                      it->second.get(), &tv);
 
       if (host_exists) {
         config_logger->debug("Host '{}' found - removing escalation from it.",
-                      host_name);
+                             host_name);
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
@@ -454,7 +439,8 @@ void applier::hostescalation::resolve_object(
  *  @param[in] obj  Hostescalation object.
  */
 void applier::hostescalation::resolve_object(
-    const configuration::Hostescalation& obj, error_cnt& err) {
+    const configuration::Hostescalation& obj,
+    error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving a host escalation.");
 
