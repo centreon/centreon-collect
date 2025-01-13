@@ -22,7 +22,6 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
-#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -315,31 +314,14 @@
 #define NEBATTR_DOWNTIME_STOP_NORMAL 1
 #define NEBATTR_DOWNTIME_STOP_CANCELLED 2
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
+template <typename R>
+void broker_acknowledgement_data(R* data,
+                                 const char* ack_author,
+                                 const char* ack_data,
+                                 int subtype,
+                                 bool notify_contacts,
+                                 bool persistent_comment);
 
-void broker_acknowledgement_data(
-    int type,
-    acknowledgement_resource_type acknowledgement_type,
-    void* data,
-    const char* ack_author,
-    const char* ack_data,
-    int subtype,
-    int notify_contacts,
-    int persistent_comment);
-void broker_adaptive_contact_data(int type,
-                                  int flags,
-                                  int attr,
-                                  com::centreon::engine::contact* cntct,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp);
 void broker_adaptive_severity_data(int type, void* data);
 void broker_adaptive_tag_data(int type, void* data);
 void broker_adaptive_dependency_data(int type, void* data);
@@ -524,9 +506,5 @@ void broker_bench(unsigned id,
 struct nebstruct_agent_stats_data;
 
 void broker_agent_stats(nebstruct_agent_stats_data& stats);
-
-#ifdef __cplusplus
-}
-#endif /* C++ */
 
 #endif /* !CCE_BROKER_HH */

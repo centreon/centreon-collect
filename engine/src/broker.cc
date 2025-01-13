@@ -1,123 +1,211 @@
 /**
- * Copyright 2002-2010      Ethan Galstad
- * Copyright 2010           Nagios Core Development Team
- * Copyright 2011-2013,2020-2024 Centreon
+ * Copyright 2009-2025 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
  */
-
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
 #include <unistd.h>
+#include "bbdo/neb.pb.h"
+#include "broker/core/bbdo/internal.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
+#include "com/centreon/broker/neb/comment.hh"
+#include "com/centreon/broker/neb/custom_variable.hh"
+#include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/host_check.hh"
+#include "com/centreon/broker/neb/host_group.hh"
+#include "com/centreon/broker/neb/host_group_member.hh"
+#include "com/centreon/broker/neb/host_parent.hh"
+#include "com/centreon/broker/neb/instance_configuration.hh"
+#include "com/centreon/broker/neb/instance_status.hh"
+#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/log_entry.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/service_check.hh"
+#include "com/centreon/broker/neb/service_group.hh"
+#include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/common/time.hh"
+#include "com/centreon/common/utf8.hh"
+#include "com/centreon/engine/anomalydetection.hh"
+#include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/string.hh"
+#include "common.h"
 
+using namespace com::centreon::broker;
 using namespace com::centreon::engine;
+using namespace com::centreon;
 
-extern "C" {
+template <typename R>
+static void forward_acknowledgement(const char* author_name,
+                                    const char* comment_data,
+                                    int subtype,
+                                    bool notify_contacts,
+                                    bool persistent_comment,
+                                    R* resource) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating acknowledgement event");
+
+  try {
+    // In/Out variables.
+    auto ack = std::make_shared<neb::acknowledgement>();
+
+    if constexpr (std::is_same_v<R, engine::service>) {
+      ack->acknowledgement_type = short(acknowledgement_resource_type::SERVICE);
+      ack->service_id = resource->service_id();
+    } else {
+      ack->acknowledgement_type = short(acknowledgement_resource_type::HOST);
+    }
+    assert(resource->host_id());
+    ack->host_id = resource->host_id();
+    if (author_name)
+      ack->author = common::check_string_utf8(author_name);
+    if (comment_data)
+      ack->comment = common::check_string_utf8(comment_data);
+    ack->entry_time = time(nullptr);
+    ack->poller_id = cbm->poller_id();
+    ack->is_sticky = subtype == AckType::STICKY;
+    ack->notify_contacts = notify_contacts;
+    ack->persistent_comment = persistent_comment;
+    ack->state = resource->get_current_state();
+
+    // Store acknowledgement.
+    cbm->add_acknowledgement(ack);
+
+    // Send event.
+    cbm->write(ack);
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating acknowledgement event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+/**
+ *  @brief Function that process acknowledgement data.
+ *
+ *  This function is called by Nagios when some acknowledgement data are
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_ACKNOWLEDGEMENT_DATA).
+ *  @param[in] data          A pointer to a nebstruct_acknowledgement_data
+ *                           containing the acknowledgement data.
+ *
+ *  @return 0 on success.
+ */
+template <typename R>
+static void forward_pb_acknowledgement(const char* author_name,
+                                       const char* comment_data,
+                                       int subtype,
+                                       bool notify_contacts,
+                                       bool persistent_comment,
+                                       R* resource) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb acknowledgement event");
+
+  // In/Out variables.
+  auto ack{std::make_shared<neb::pb_acknowledgement>()};
+  auto& ack_obj = ack->mut_obj();
+
+  if constexpr (std::is_same_v<R, com::centreon::engine::service>) {
+    ack_obj.set_type(
+        com::centreon::broker::Acknowledgement_ResourceType_SERVICE);
+    ack_obj.set_service_id(resource->service_id());
+  } else {
+    ack_obj.set_type(com::centreon::broker::Acknowledgement_ResourceType_HOST);
+  }
+  assert(resource->host_id());
+  ack_obj.set_host_id(resource->host_id());
+  // Fill output var.
+  if (author_name)
+    ack_obj.set_author(common::check_string_utf8(author_name));
+  if (comment_data)
+    ack_obj.set_comment_data(common::check_string_utf8(comment_data));
+  ack_obj.set_entry_time(time(nullptr));
+  ack_obj.set_instance_id(cbm->poller_id());
+  ack_obj.set_sticky(subtype == AckType::STICKY);
+  ack_obj.set_notify_contacts(notify_contacts);
+  ack_obj.set_persistent_comment(persistent_comment);
+  ack_obj.set_state(resource->get_current_state());
+
+  cbm->add_acknowledgement(ack);
+
+  // Send event.
+  cbm->write(ack);
+}
 
 /**
  *  Send acknowledgement data to broker.
  *
- *  @param[in] type                 Type.
- *  @param[in] acknowledgement_type Type (host or service).
- *  @param[in] data                 Data.
+ *  @param[in] data                 A pointer to a service or host class.
  *  @param[in] ack_author           Author.
  *  @param[in] ack_data             Acknowledgement text.
- *  @param[in] subtype              Subtype.
+ *  @param[in] subtype              Subtype to know if the acknowledgement is
+ * sticky.
  *  @param[in] notify_contacts      Should we notify contacts.
  *  @param[in] persistent_comment   Persistent comment
  */
-void broker_acknowledgement_data(
-    int type,
-    acknowledgement_resource_type acknowledgement_type,
-    void* data,
+template <typename R>
+void broker_acknowledgement_data(R* data,
+                                 const char* ack_author,
+                                 const char* ack_data,
+                                 int subtype,
+                                 bool notify_contacts,
+                                 bool persistent_comment) {
+  // Config check.
+  if (!(pb_config.event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
+    return;
+
+  if (cbm->use_protobuf())
+    forward_pb_acknowledgement(ack_author, ack_data, subtype, notify_contacts,
+                               persistent_comment, data);
+  else
+    forward_acknowledgement(ack_author, ack_data, subtype, notify_contacts,
+                            persistent_comment, data);
+}
+
+template void broker_acknowledgement_data<com::centreon::engine::service>(
+    com::centreon::engine::service* data,
     const char* ack_author,
     const char* ack_data,
     int subtype,
-    int notify_contacts,
-    int persistent_comment) {
-  // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
-    return;
-#else
-  if (!(pb_config.event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
-    return;
-#endif
+    bool notify_contacts,
+    bool persistent_comment);
 
-  // Fill struct with relevant data.
-  host* temp_host(NULL);
-  com::centreon::engine::service* temp_service(NULL);
-  nebstruct_acknowledgement_data ds;
-  ds.type = type;
-  ds.acknowledgement_type = acknowledgement_type;
-  if (acknowledgement_type == acknowledgement_resource_type::SERVICE) {
-    temp_service = (com::centreon::engine::service*)data;
-    ds.host_id = temp_service->host_id();
-    ds.service_id = temp_service->service_id();
-    ds.state = temp_service->get_current_state();
-  } else {
-    temp_host = (host*)data;
-    ds.host_id = temp_host->host_id();
-    ds.service_id = 0;
-    ds.state = temp_host->get_current_state();
-  }
-  ds.author_name = ack_author;
-  ds.comment_data = ack_data;
-  ds.is_sticky = (subtype == AckType::STICKY);
-  ds.notify_contacts = notify_contacts;
-  ds.persistent_comment = persistent_comment;
-
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_ACKNOWLEDGEMENT_DATA, &ds);
-}
-
-/**
- *  Sends adaptive contact updates to broker.
- *
- *  @param[in] type         Type.
- *  @param[in] flags        Flags.
- *  @param[in] attr         Attributes.
- *  @param[in] cntct        Target contact.
- *  @param[in] command_type Command type.
- *  @param[in] modattr      Global contact modified attributes.
- *  @param[in] modattrs     Target contact modified attributes.
- *  @param[in] modhattr     Global contact modified host attributes.
- *  @param[in] modhattrs    Target contact modified attributes.
- *  @param[in] modsattr     Global contact modified service attributes.
- *  @param[in] modsattrs    Target contact modified service attributes.
- *  @param[in] timestamp    Timestamp.
- */
-void broker_adaptive_contact_data(
-    int type __attribute__((unused)),
-    int flags __attribute__((unused)),
-    int attr __attribute__((unused)),
-    contact* cntct __attribute__((unused)),
-    int command_type __attribute__((unused)),
-    unsigned long modattr __attribute__((unused)),
-    unsigned long modattrs __attribute__((unused)),
-    unsigned long modhattr __attribute__((unused)),
-    unsigned long modhattrs __attribute__((unused)),
-    unsigned long modsattr __attribute__((unused)),
-    unsigned long modsattrs __attribute__((unused)),
-    struct timeval const* timestamp __attribute__((unused))) {}
+template void broker_acknowledgement_data<com::centreon::engine::host>(
+    com::centreon::engine::host* data,
+    const char* ack_author,
+    const char* ack_data,
+    int subtype,
+    bool notify_contacts,
+    bool persistent_comment);
 
 /**
  * @brief Send adaptive severity updates to broker.
@@ -1134,5 +1222,4 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats) {
   // Fill struct with relevant data.
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_AGENT_STATS, &stats);
-}
 }

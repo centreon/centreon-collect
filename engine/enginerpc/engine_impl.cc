@@ -1773,11 +1773,9 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->set_last_acknowledgement(current_time);
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::HOST,
-        static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_host.get(), request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_host->notify(notifier::reason_acknowledgement, request->ack_author(),
@@ -1836,11 +1834,10 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->set_last_acknowledgement(current_time);
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
-    broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::SERVICE,
-        static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
-        request->ack_data().c_str(), request->type(), request->notify(),
-        request->persistent());
+    broker_acknowledgement_data(temp_service.get(),
+                                request->ack_author().c_str(),
+                                request->ack_data().c_str(), request->type(),
+                                request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
       temp_service->notify(notifier::reason_acknowledgement,
@@ -3484,16 +3481,6 @@ grpc::Status engine_impl::ChangeContactObjectIntVar(
         return 1;
     }
 
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, attr,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -3795,17 +3782,6 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
         temp_contact->get_modified_host_attributes() | hattr);
     temp_contact->set_modified_service_attributes(
         temp_contact->get_modified_service_attributes() | sattr);
-
-    /* send data to event broker */
-    broker_adaptive_contact_data(
-        NEBTYPE_ADAPTIVECONTACT_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-        temp_contact.get(), CMD_NONE, MODATTR_NONE,
-        temp_contact->get_modified_attributes(), hattr,
-        temp_contact->get_modified_host_attributes(), sattr,
-        temp_contact->get_modified_service_attributes(), nullptr);
-
-    /* update the status log with the contact info */
-    temp_contact->update_status_info(false);
 
     return 0;
   });

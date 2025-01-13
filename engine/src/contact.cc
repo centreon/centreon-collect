@@ -601,13 +601,6 @@ std::shared_ptr<contact> add_contact(
     obj->set_retain_nonstatus_information(retain_nonstatus_information > 0);
     obj->set_retain_status_information(retain_status_information > 0);
     obj->set_service_notifications_enabled(service_notifications_enabled > 0);
-
-    // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_contact_data(NEBTYPE_CONTACT_ADD, NEBFLAG_NONE,
-                                 NEBATTR_NONE, obj.get(), CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, MODATTR_ALL, MODATTR_ALL,
-                                 MODATTR_ALL, MODATTR_ALL, &tv);
   } catch (...) {
     obj.reset();
   }
@@ -778,18 +771,6 @@ bool contact::get_service_notifications_enabled() const {
 
 void contact::set_service_notifications_enabled(bool enabled) {
   _service_notifications_enabled = enabled;
-}
-
-/**
- *  Updates contact status info.
- *
- *  @param aggregated_dump
- *
- */
-void contact::update_status_info(bool aggregated_dump) {
-  /* send data to event broker (non-aggregated dumps only) */
-  if (!aggregated_dump)
-    broker_contact_status(NEBTYPE_CONTACTSTATUS_UPDATE, this);
 }
 
 std::list<std::shared_ptr<commands::command> > const&
