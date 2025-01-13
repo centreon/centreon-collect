@@ -170,8 +170,8 @@ void applier::service::add_object(configuration::service const& obj) {
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               svc, MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, svc,
+                               MODATTR_ALL);
 }
 #else
 /**
@@ -289,8 +289,8 @@ void applier::service::add_object(const configuration::Service& obj) {
   }
 
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               svc, MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, svc,
+                               MODATTR_ALL);
 }
 #endif
 
@@ -584,8 +584,8 @@ void applier::service::modify_object(configuration::service const& obj) {
     }
   }
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
+                               MODATTR_ALL);
 }
 #else
 /**
@@ -803,8 +803,8 @@ void applier::service::modify_object(configuration::Service* old_obj,
     }
   }
   // Notify event broker.
-  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), MODATTR_ALL);
+  broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
+                               MODATTR_ALL);
 }
 #endif
 
@@ -860,7 +860,7 @@ void applier::service::remove_object(configuration::service const& obj) {
 
     // Notify event broker.
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, svc.get(), MODATTR_ALL);
+                                 svc.get(), MODATTR_ALL);
 
     // Unregister service.
     engine::service::services.erase({host_name, service_description});
@@ -921,7 +921,7 @@ void applier::service::remove_object(ssize_t idx) {
 
     // Notify event broker.
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, svc.get(), MODATTR_ALL);
+                                 svc.get(), MODATTR_ALL);
 
     // Unregister service.
     engine::service::services.erase({host_name, service_description});

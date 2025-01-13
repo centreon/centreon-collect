@@ -789,7 +789,7 @@ void applier::host::remove_object(configuration::host const& obj) {
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, it_s->second, MODATTR_ALL);
+                                   it_s->second, MODATTR_ALL);
 
     broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE,
                               it->second.get(), MODATTR_ALL);
@@ -840,7 +840,7 @@ void applier::host::remove_object(ssize_t idx) {
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
       broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                   NEBATTR_NONE, it_s->second, MODATTR_ALL);
+                                   it_s->second, MODATTR_ALL);
 
     broker_adaptive_host_data(NEBTYPE_HOST_DELETE, NEBFLAG_NONE,
                               it->second.get(), MODATTR_ALL);
