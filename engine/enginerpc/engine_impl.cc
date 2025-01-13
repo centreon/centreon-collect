@@ -3552,11 +3552,6 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
         /* set the modified host attribute */
         modified_host_process_attributes |= attr;
 
-        /* send data to event broker */
-        broker_adaptive_program_data(
-            NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-            CMD_NONE, attr, modified_host_process_attributes, MODATTR_NONE,
-            modified_service_process_attributes, nullptr);
         /* update program status */
         update_program_status(false);
         break;
@@ -3698,12 +3693,6 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_GLOBAL_EVENT_HANDLER) {
       /* set the modified service attribute */
       modified_service_process_attributes |= attr;
-
-      /* send data to event broker */
-      broker_adaptive_program_data(
-          NEBTYPE_ADAPTIVEPROGRAM_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, CMD_NONE,
-          MODATTR_NONE, modified_host_process_attributes, attr,
-          modified_service_process_attributes, nullptr);
 
       /* update program status */
       update_program_status(false);
