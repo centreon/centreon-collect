@@ -346,11 +346,12 @@ void broker_comment_data(int type,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id);
+template <typename R>
 void broker_custom_variable(int type,
-                            void* data,
-                            std::string_view&& varname,
-                            std::string_view&& varvalue,
-                            struct timeval const* timestamp);
+                            R* resource,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
+                            const struct timeval* timestamp);
 void broker_downtime_data(int type,
                           int attr,
                           int downtime_type,
