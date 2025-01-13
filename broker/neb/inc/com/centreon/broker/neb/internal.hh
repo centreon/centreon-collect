@@ -23,21 +23,12 @@
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/callback.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::neb {
 
-namespace neb {
 // Forward declaration.
 class acknowledgement;
-
-// Sender object.
-extern multiplexing::publisher gl_publisher;
-
-// Registered callbacks.
-extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
 using pb_downtime =
     io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;
@@ -129,8 +120,6 @@ using pb_otl_metrics = io::protobuf<
 using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
 
-}  // namespace neb
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::neb
 
 #endif  // !CCB_NEB_INTERNAL_HH

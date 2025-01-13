@@ -24,7 +24,6 @@
 
 #include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
-#include "nagios.h"
 
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
@@ -53,12 +52,14 @@ std::shared_ptr<spdlog::logger> events_logger;
 std::shared_ptr<spdlog::logger> external_command_logger;
 std::shared_ptr<spdlog::logger> functions_logger;
 std::shared_ptr<spdlog::logger> macros_logger;
+std::shared_ptr<spdlog::logger> neb_logger;
 std::shared_ptr<spdlog::logger> notifications_logger;
 std::shared_ptr<spdlog::logger> process_logger;
 std::shared_ptr<spdlog::logger> runtime_logger;
 std::shared_ptr<spdlog::logger> otl_logger;
 
 std::string config_file;
+std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);
 char* global_service_event_handler(NULL);
