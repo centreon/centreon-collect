@@ -48,6 +48,20 @@ class cbmod {
       _acknowledgements;
 
  public:
+  // Downtime internal structure.
+  struct private_downtime_params {
+    bool cancelled;
+    time_t deletion_time;
+    time_t end_time;
+    bool started;
+    time_t start_time;
+  };
+
+ private:
+  // Unstarted downtimes.
+  static std::unordered_map<uint32_t, private_downtime_params> _downtimes;
+
+ public:
   cbmod();
   cbmod(const std::string& config_file);
   cbmod& operator=(const cbmod&) = delete;
@@ -66,6 +80,8 @@ class cbmod {
       uint64_t service_id) const;
   void remove_acknowledgement(uint64_t host_id, uint64_t service_id);
   size_t acknowledgements_count() const;
+  private_downtime_params& get_downtime(uint32_t downtime_id);
+  void remove_downtime(uint32_t downtime_id);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
