@@ -16,12 +16,12 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/bbdo/connector.hh"
+#include "broker/core/bbdo/connector.hh"
 
 #include <cassert>
 
-#include "com/centreon/broker/bbdo/internal.hh"
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/internal.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
