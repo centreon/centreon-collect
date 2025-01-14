@@ -26,9 +26,8 @@
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/unique_array_ptr.hh"
 #include "spdlog/details/null_mutex.h"
-namespace com::centreon::engine {
+namespace com::centreon::engine::logging {
 
-namespace logging {
 template <typename Mutex>
 class broker_sink : public spdlog::sinks::base_sink<Mutex> {
  protected:
@@ -40,11 +39,9 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
     // before sending it to its final destination:
     if (this->should_log(msg.level)) {
       std::string message{fmt::to_string(msg.payload)};
-      nebstruct_log_data ds{.entry_time = time(nullptr),
-                            .data = message.c_str()};
 
       // Make callbacks.
-      neb_make_callbacks(NEBCALLBACK_LOG_DATA, &ds);
+      broker_log_data(message.c_str(), time(nullptr));
     }
   }
 
@@ -54,7 +51,6 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
 using broker_sink_mt = broker_sink<std::mutex>;
 using broker_sink_st = broker_sink<spdlog::details::null_mutex>;
 
-}  // namespace logging
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::logging
 
 #endif  // !CCE_LOGGING_BROKER_SINK_HH
