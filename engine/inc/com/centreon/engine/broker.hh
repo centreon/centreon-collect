@@ -395,8 +395,7 @@ int broker_service_check(int type,
                          const com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
-void broker_service_status(int type,
-                           com::centreon::engine::service* svc,
+void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
 void broker_statechange_data(int type,
                              int flags,
