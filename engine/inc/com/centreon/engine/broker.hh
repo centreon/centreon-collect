@@ -391,12 +391,8 @@ void broker_relation_data(int type,
                           const com::centreon::engine::service* svc,
                           const com::centreon::engine::host* dep_hst,
                           const com::centreon::engine::service* dep_svc);
-void broker_retention_data(int type,
-                           int flags,
-                           int attr,
-                           struct timeval const* timestamp);
 int broker_service_check(int type,
-                         com::centreon::engine::service* svc,
+                         const com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
 void broker_service_status(int type,
