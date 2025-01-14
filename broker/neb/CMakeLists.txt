@@ -165,7 +165,7 @@ set_property(TARGET cbmod PROPERTY POSITION_INDEPENDENT_CODE ON)
 #
 set_target_properties(cbmod PROPERTIES PREFIX "")
 target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(cbmod fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase)
+target_link_libraries(cbmod fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase log_v2 centreon_common)
 #target_link_libraries(cbmod fmt::fmt "-Wl,--whole-archive" rokerbase multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf nebbase)
 get_property(
   CBMOD_DEFINES
