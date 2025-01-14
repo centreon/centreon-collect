@@ -23,9 +23,8 @@
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/pool.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;
@@ -48,8 +47,8 @@ std::ostream& operator<<(std::ostream& st,
   if (to_dump.IsInitialized()) {
     if (to_dump.has_buffer()) {
       st << "buff: "
-         << com::centreon::broker::misc::string::debug_buf(
-                to_dump.buffer().data(), to_dump.buffer().length(), 20);
+         << com::centreon::common::debug_buf(to_dump.buffer().data(),
+                                             to_dump.buffer().length(), 20);
     } else {
       std::string dump{to_dump.ShortDebugString()};
       if (dump.size() > 200) {
@@ -76,9 +75,9 @@ std::ostream& operator<<(std::ostream& st,
   if (to_dump.to_dump.IsInitialized()) {
     if (to_dump.to_dump.has_buffer()) {
       st << "buff: "
-         << com::centreon::broker::misc::string::debug_buf(
-                to_dump.to_dump.buffer().data(),
-                to_dump.to_dump.buffer().length(), 100);
+         << com::centreon::common::debug_buf(to_dump.to_dump.buffer().data(),
+                                             to_dump.to_dump.buffer().length(),
+                                             100);
     } else {
       st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
     }
