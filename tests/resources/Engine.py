@@ -34,7 +34,7 @@ from array import array
 from dateutil import parser
 import datetime
 from os import makedirs, chmod
-from os.path import exists, dirname
+from os.path import exists, dirname, basename
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 import db_conf
@@ -810,6 +810,8 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
         srv_by_host (int, optional): Defaults to 20.
     """
     global engine
+    global BBDO2
+    BBDO2 = True
     engine = EngineInstance(num, hosts, srv_by_host)
 
 
@@ -3856,6 +3858,7 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
+
 
 
 def ctn_randomword(length):
