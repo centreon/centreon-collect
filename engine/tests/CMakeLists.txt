@@ -54,7 +54,7 @@ if(WITH_TESTING)
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
                if (LEGACY_ENGINE)
-  target_link_libraries(bin_connector_test_run cce_core pthread)
+  target_link_libraries(bin_connector_test_run cce_core pthread log_v2)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 else()
   target_link_libraries(bin_connector_test_run cce_core pthread)
