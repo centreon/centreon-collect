@@ -22,7 +22,7 @@ BESS1
     Ctn Start Engine
 
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -161,7 +161,7 @@ BESS_GRPC1
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
