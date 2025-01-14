@@ -53,7 +53,7 @@ void loop::clear() {
   _event_list_low.clear();
   _event_list_high.clear();
 
-  _need_reload = 0;
+  _need_reload = false;
   _reload_running = false;
 }
 
@@ -90,7 +90,7 @@ void loop::run() {
 /**
  *  Default constructor.
  */
-loop::loop() : _need_reload(0), _reload_running(false) {}
+loop::loop() : _need_reload(false), _reload_running(false) {}
 
 #ifdef LEGACY_CONF
 static void apply_conf(std::atomic<bool>* reloading) {
@@ -118,6 +118,13 @@ static void apply_conf(std::atomic<bool>* reloading) {
   process_logger->info("Reload configuration finished.");
 }
 #else
+/**
+ * @brief Reload the configuration and apply its difference with the current
+ * one.
+ *
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
 static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
@@ -162,7 +169,7 @@ void loop::_dispatching() {
 
     if (sighup) {
       com::centreon::logging::engine::instance().reopen();
-      ++_need_reload;
+      _need_reload = true;
       sighup = false;
     }
 
@@ -180,7 +187,7 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
       }
-      _need_reload = 0;
+      _need_reload = false;
     }
 
     // Get the current time.
@@ -486,10 +493,6 @@ void loop::_dispatching() {
       // Populate fake "sleep" event.
       _sleep_event.run_time = current_time;
       _sleep_event.event_data = (void*)&stime;
-
-      // Send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_SLEEP, NEBFLAG_NONE, NEBATTR_NONE,
-                         &_sleep_event, nullptr);
 
       auto t2 = std::chrono::system_clock::now();
       auto laps = t2 - t1;
@@ -909,9 +912,6 @@ void loop::remove_downtime(uint64_t downtime_id) {
     if ((*it)->event_type != timed_event::EVENT_SCHEDULED_DOWNTIME)
       continue;
     if (((uint64_t)(*it)->event_data) == downtime_id) {
-      // send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                         it->get(), nullptr);
       _event_list_high.erase(it);
       break;
     }
@@ -1057,11 +1057,6 @@ void loop::resort_event_list(loop::priority priority) {
                const std::unique_ptr<timed_event>& second) {
               return first->run_time < second->run_time;
             });
-
-  // send event data to broker.
-  for (auto& evt : *list)
-    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                       evt.get(), nullptr);
 }
 
 /**

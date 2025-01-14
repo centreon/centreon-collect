@@ -4920,79 +4920,6 @@ void broker_service_status(const engine::service* svc, uint32_t attributes) {
 }
 
 /**
- *  Send state change data to broker.
- *
- *  @param[in] type             Type.
- *  @param[in] flags            Flags.
- *  @param[in] attr             Attributes.
- *  @param[in] statechange_type State change type.
- *  @param[in] data             Data.
- *  @param[in] state            State.
- *  @param[in] state_type       State type.
- *  @param[in] current_attempt  Current attempt.
- *  @param[in] max_attempts     Max attempts.
- *  @param[in] timestamp        Timestamp.
- */
-void broker_statechange_data(int type __attribute__((unused)),
-                             int flags __attribute__((unused)),
-                             int attr __attribute__((unused)),
-                             int statechange_type __attribute__((unused)),
-                             void* data __attribute__((unused)),
-                             int state __attribute__((unused)),
-                             int state_type __attribute__((unused)),
-                             int current_attempt __attribute__((unused)),
-                             int max_attempts __attribute__((unused)),
-                             struct timeval const* timestamp
-                             __attribute__((unused))) {}
-
-/**
- *  Send system command data to broker.
- *
- *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
- *  @param[in] cmd           Command.
- *  @param[in] output        Output.
- *  @param[in] timestamp     Timestamp.
- */
-void broker_system_command(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval start_time __attribute__((unused)),
-                           struct timeval end_time __attribute__((unused)),
-                           double exectime __attribute__((unused)),
-                           int timeout __attribute__((unused)),
-                           int early_timeout __attribute__((unused)),
-                           int retcode __attribute__((unused)),
-                           const char* cmd __attribute__((unused)),
-                           const char* output __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
-
-/**
- *  Send timed event data to broker.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] event     Target event.
- *  @param[in] timestamp Timestamp.
- */
-void broker_timed_event(int type __attribute__((unused)),
-                        int flags __attribute__((unused)),
-                        int attr __attribute__((unused)),
-                        com::centreon::engine::timed_event* event
-                        __attribute__((unused)),
-                        struct timeval const* timestamp
-                        __attribute__((unused))) {}
-
-/**
  *  Gets timestamp for use by broker.
  *
  *  @param[in] timestamp Timestamp.
@@ -5003,7 +4930,7 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp) {
     gettimeofday(&tv, NULL);
   else
     tv = *timestamp;
-  return (tv);
+  return tv;
 }
 
 /**
