@@ -432,6 +432,8 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         name (str): name of the conf broker wanted
         poller_inst (int, optional): Defaults to 1.
     """
+    global BBDO2
+    BBDO2 = True
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
@@ -2638,7 +2640,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                    f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True
