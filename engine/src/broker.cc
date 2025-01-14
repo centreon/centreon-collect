@@ -4657,6 +4657,249 @@ int broker_service_check(int type,
   return 0;
 }
 
+static void forward_service_status(const engine::service* svc,
+                                   uint32_t attributes
+                                   [[maybe_unused]]) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service status event");
+
+  try {
+    // In/Out variables.
+    auto service_status{std::make_shared<neb::service_status>()};
+
+    // Fill output var.
+    service_status->acknowledged = svc->problem_has_been_acknowledged();
+    service_status->acknowledgement_type = svc->get_acknowledgement();
+    service_status->active_checks_enabled = svc->active_checks_enabled();
+    if (!svc->check_command().empty())
+      service_status->check_command =
+          common::check_string_utf8(svc->check_command());
+    service_status->check_interval = svc->check_interval();
+    if (!svc->check_period().empty())
+      service_status->check_period = svc->check_period();
+    service_status->check_type = svc->get_check_type();
+    service_status->current_check_attempt = svc->get_current_attempt();
+    service_status->current_state =
+        (svc->has_been_checked() ? svc->get_current_state()
+                                 : 4);  // Pending state.
+    service_status->downtime_depth = svc->get_scheduled_downtime_depth();
+    if (!svc->event_handler().empty())
+      service_status->event_handler =
+          common::check_string_utf8(svc->event_handler());
+    service_status->event_handler_enabled = svc->event_handler_enabled();
+    service_status->execution_time = svc->get_execution_time();
+    service_status->flap_detection_enabled = svc->flap_detection_enabled();
+    service_status->has_been_checked = svc->has_been_checked();
+    service_status->is_flapping = svc->get_is_flapping();
+    service_status->last_check = svc->get_last_check();
+    service_status->last_hard_state = svc->get_last_hard_state();
+    service_status->last_hard_state_change = svc->get_last_hard_state_change();
+    service_status->last_notification = svc->get_last_notification();
+    service_status->notification_number = svc->get_notification_number();
+    service_status->last_state_change = svc->get_last_state_change();
+    service_status->last_time_critical = svc->get_last_time_critical();
+    service_status->last_time_ok = svc->get_last_time_ok();
+    service_status->last_time_unknown = svc->get_last_time_unknown();
+    service_status->last_time_warning = svc->get_last_time_warning();
+    service_status->last_update = time(nullptr);
+    service_status->latency = svc->get_latency();
+    service_status->max_check_attempts = svc->max_check_attempts();
+    service_status->next_check = svc->get_next_check();
+    service_status->next_notification = svc->get_next_notification();
+    service_status->no_more_notifications = svc->get_no_more_notifications();
+    service_status->notifications_enabled = svc->get_notifications_enabled();
+    service_status->obsess_over = svc->obsess_over();
+    if (!svc->get_plugin_output().empty()) {
+      service_status->output =
+          common::check_string_utf8(svc->get_plugin_output());
+      service_status->output.append("\n");
+    }
+    if (!svc->get_long_plugin_output().empty())
+      service_status->output.append(
+          common::check_string_utf8(svc->get_long_plugin_output()));
+
+    service_status->passive_checks_enabled = svc->passive_checks_enabled();
+    service_status->percent_state_change = svc->get_percent_state_change();
+    if (!svc->get_perf_data().empty())
+      service_status->perf_data =
+          common::check_string_utf8(svc->get_perf_data());
+    service_status->retry_interval = svc->retry_interval();
+    if (svc->get_hostname().empty())
+      throw exceptions::msg_fmt("unnamed host");
+    if (svc->description().empty())
+      throw exceptions::msg_fmt("unnamed service");
+    service_status->host_name = common::check_string_utf8(svc->get_hostname());
+    service_status->service_description =
+        common::check_string_utf8(svc->description());
+    {
+      std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
+          svc->get_hostname(), svc->description())};
+      service_status->host_id = p.first;
+      service_status->service_id = p.second;
+      if (!service_status->host_id || !service_status->service_id)
+        throw exceptions::msg_fmt("could not find ID of service ('{}', '{}')",
+                                  service_status->host_name,
+                                  service_status->service_description);
+    }
+    service_status->should_be_scheduled = svc->get_should_be_scheduled();
+    service_status->state_type =
+        (svc->has_been_checked() ? svc->get_state_type()
+                                 : engine::notifier::hard);
+
+    // Send event(svc).
+    cbm->write(service_status);
+
+    // Acknowledgement event.
+    auto ack = cbm->find_acknowledgement(service_status->host_id,
+                                         service_status->service_id);
+    if (ack && !service_status->acknowledged) {
+      neb_logger->debug("acknowledgement found on service ({}:{})",
+                        service_status->host_id, service_status->service_id);
+      auto& ack_obj = ack->mut_obj();
+      if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
+            ||
+            (!ack_obj.sticky() && service_status->current_state !=
+                                      static_cast<short>(ack_obj.state())))) {
+        ack_obj.set_deletion_time(time(nullptr));
+        cbm->write(std::move(ack));
+      }
+      cbm->remove_acknowledgement(service_status->host_id,
+                                  service_status->service_id);
+    }
+    neb_logger->debug("Still {} running acknowledgements",
+                      cbm->acknowledgements_count());
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating service status event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_service_status(const engine::service* svc,
+                                      uint32_t attributes) noexcept {
+  SPDLOG_LOGGER_DEBUG(
+      neb_logger, "callbacks: generating pb service status check result event");
+
+  neb_logger->debug(
+      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}, "
+      "last check {}",
+      svc->host_id(), svc->service_id(),
+      static_cast<uint32_t>(svc->get_current_state()), attributes,
+      static_cast<uint32_t>(svc->get_check_type()), svc->get_last_check());
+
+  auto handle_acknowledgement = [](uint16_t state, auto& r) {
+    neb_logger->debug("Looking for acknowledgement on service ({}:{})",
+                      r.host_id(), r.service_id());
+    auto ack = cbm->find_acknowledgement(r.host_id(), r.service_id());
+    if (ack && r.acknowledgement_type() == AckType::NONE) {
+      neb_logger->debug("acknowledgement found on service ({}:{})", r.host_id(),
+                        r.service_id());
+      auto& ack_obj = ack->mut_obj();
+      if (!(!state  // !(OK or (normal ack and NOK))
+            || (!ack_obj.sticky() && state != ack_obj.state()))) {
+        ack_obj.set_deletion_time(time(nullptr));
+        cbm->write(std::move(ack));
+      }
+      cbm->remove_acknowledgement(r.host_id(), r.service_id());
+    }
+  };
+  uint16_t state =
+      svc->has_been_checked() ? svc->get_current_state() : 4;  // Pending state.
+  if (attributes != engine::service::STATUS_ALL) {
+    auto as = std::make_shared<neb::pb_adaptive_service_status>();
+    AdaptiveServiceStatus& asscr = as.get()->mut_obj();
+    fill_service_type(asscr, svc);
+    if (attributes & engine::service::STATUS_DOWNTIME_DEPTH) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
+    }
+    if (attributes & engine::service::STATUS_NOTIFICATION_NUMBER) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_notification_number(svc->get_notification_number());
+    }
+    if (attributes & engine::service::STATUS_ACKNOWLEDGEMENT) {
+      asscr.set_host_id(svc->host_id());
+      asscr.set_service_id(svc->service_id());
+      asscr.set_acknowledgement_type(svc->get_acknowledgement());
+    }
+    cbm->write(as);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, asscr);
+  } else {
+    auto s{std::make_shared<neb::pb_service_status>()};
+    ServiceStatus& sscr = s.get()->mut_obj();
+
+    fill_service_type(sscr, svc);
+    sscr.set_host_id(svc->host_id());
+    sscr.set_service_id(svc->service_id());
+    if (svc->host_id() == 0 || svc->service_id() == 0)
+      SPDLOG_LOGGER_ERROR(neb_logger,
+                          "could not find ID of service ('{}', '{}')",
+                          svc->get_hostname(), svc->description());
+
+    sscr.set_acknowledgement_type(svc->get_acknowledgement());
+
+    sscr.set_check_type(
+        static_cast<ServiceStatus_CheckType>(svc->get_check_type()));
+    sscr.set_check_attempt(svc->get_current_attempt());
+    sscr.set_state(static_cast<ServiceStatus_State>(state));
+    sscr.set_execution_time(svc->get_execution_time());
+    sscr.set_checked(svc->has_been_checked());
+    sscr.set_flapping(svc->get_is_flapping());
+    sscr.set_last_check(svc->get_last_check());
+    sscr.set_last_hard_state(
+        static_cast<ServiceStatus_State>(svc->get_last_hard_state()));
+    sscr.set_last_hard_state_change(svc->get_last_hard_state_change());
+    sscr.set_last_notification(svc->get_last_notification());
+    sscr.set_notification_number(svc->get_notification_number());
+    sscr.set_last_state_change(svc->get_last_state_change());
+    sscr.set_last_time_critical(svc->get_last_time_critical());
+    sscr.set_last_time_ok(svc->get_last_time_ok());
+    sscr.set_last_time_unknown(svc->get_last_time_unknown());
+    sscr.set_last_time_warning(svc->get_last_time_warning());
+    sscr.set_latency(svc->get_latency());
+    sscr.set_next_check(svc->get_next_check());
+    sscr.set_next_notification(svc->get_next_notification());
+    sscr.set_no_more_notifications(svc->get_no_more_notifications());
+    if (!svc->get_plugin_output().empty())
+      sscr.set_output(common::check_string_utf8(svc->get_plugin_output()));
+    if (!svc->get_long_plugin_output().empty())
+      sscr.set_long_output(
+          common::check_string_utf8(svc->get_long_plugin_output()));
+    sscr.set_percent_state_change(svc->get_percent_state_change());
+    if (!svc->get_perf_data().empty()) {
+      sscr.set_perfdata(common::check_string_utf8(svc->get_perf_data()));
+      SPDLOG_LOGGER_TRACE(
+          neb_logger, "callbacks: service ({}, {}) has perfdata <<{}>>",
+          svc->host_id(), svc->service_id(), svc->get_perf_data());
+    } else {
+      SPDLOG_LOGGER_TRACE(neb_logger,
+                          "callbacks: service ({}, {}) has no perfdata",
+                          svc->host_id(), svc->service_id());
+    }
+    sscr.set_should_be_scheduled(svc->get_should_be_scheduled());
+    sscr.set_state_type(static_cast<ServiceStatus_StateType>(
+        svc->has_been_checked() ? svc->get_state_type()
+                                : engine::notifier::hard));
+    sscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
+
+    // Send event(s).
+    cbm->write(s);
+
+    // Acknowledgement event.
+    handle_acknowledgement(state, sscr);
+  }
+  neb_logger->debug("Still {} running acknowledgements",
+                    cbm->acknowledgements_count());
+}
+
 /**
  *  Sends service status updates to broker.
  *
@@ -4664,26 +4907,16 @@ int broker_service_check(int type,
  *  @param[in] svc       Target service.
  *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_service_status(int type,
-                           com::centreon::engine::service* svc,
-                           uint32_t attributes) {
+void broker_service_status(const engine::service* svc, uint32_t attributes) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
-#else
   if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
     return;
-#endif
-
-  // Fill struct with relevant data.
-  nebstruct_service_status_data ds;
-  ds.type = type;
-  ds.object_ptr = svc;
-  ds.attributes = attributes;
 
   // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_service_status(svc, attributes);
+  else
+    forward_service_status(svc, attributes);
 }
 
 /**
