@@ -339,7 +339,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/instance_broadcast.cc
     ${SRC_DIR}/io/data.cc
     ${SRC_DIR}/io/endpoint.cc
-    ${SRC_DIR}/io/limit_endpoint.cc
     ${SRC_DIR}/io/events.cc
     ${SRC_DIR}/io/factory.cc
     ${SRC_DIR}/io/protocols.cc
@@ -398,7 +397,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/instance_broadcast.hh
     ${INC_DIR}/io/data.hh
     ${INC_DIR}/io/endpoint.hh
-    ${INC_DIR}/io/limit_endpoint.hh
     ${INC_DIR}/io/event_info.hh
     ${INC_DIR}/io/events.hh
     ${INC_DIR}/io/factory.hh
@@ -440,6 +438,8 @@ add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
+target_include_directories(rokerbase
+                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
 target_link_libraries(
   rokerbase
   bbdo
