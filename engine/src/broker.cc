@@ -18,9 +18,7 @@
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
 #include <unistd.h>
-#include "bbdo/neb.pb.h"
 #include "broker/core/bbdo/internal.hh"
-#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -31,7 +29,6 @@
 #include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_check.hh"
@@ -40,12 +37,10 @@
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/severity.hh"
@@ -4939,12 +4934,21 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp) {
  *  @param[in] id      id.
  *  @param[in] time_create       message creation
  */
-void broker_bench(unsigned id,
+void broker_bench(uint32_t id,
                   const std::chrono::system_clock::time_point& mess_create) {
-  // Fill struct with relevant data.
-  nebstruct_bench_data ds = {id, mess_create};
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb_bench event");
+
+  auto event = std::make_shared<com::centreon::broker::bbdo::pb_bench>();
+  auto& obj = event->mut_obj();
+  obj.set_id(id);
+  if (mess_create != std::chrono::system_clock::time_point::min()) {
+    com::centreon::broker::TimePoint* caller_tp = event->mut_obj().add_points();
+    caller_tp->set_name("client");
+    caller_tp->set_function("callback_pb_bench");
+    common::time_point_to_google_ts(mess_create, *caller_tp->mutable_time());
+  }
+  cbm->write(std::move(event));
 }
 
 /**

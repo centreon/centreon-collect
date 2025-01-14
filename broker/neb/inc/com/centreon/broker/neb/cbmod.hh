@@ -20,9 +20,7 @@
 #include <filesystem>
 #include <memory>
 #include "bbdo/bbdo_version.hh"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "state.pb.h"
 
 namespace com::centreon::broker {
