@@ -33,6 +33,7 @@ set(SOURCES
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/tcp_async.cc"
   "${SRC_DIR}/tcp_connection.cc"
+  "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc"
 )
 # Headers.
 set(HEADERS
