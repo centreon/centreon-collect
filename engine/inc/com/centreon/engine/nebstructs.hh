@@ -1,124 +1,34 @@
-/*
-** Copyright 2003-2007 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2003-2007 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2014-2025 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_NEBSTRUCTS_HH
 #define CCE_NEBSTRUCTS_HH
 
-#include <string>
-#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/comment.hh"
-
-/* Acknowledgement structure. */
-typedef struct nebstruct_acknowledgement_struct {
-  int type;
-  acknowledgement_resource_type acknowledgement_type;
-  uint64_t host_id;
-  uint64_t service_id;
-  int state;
-  const char* author_name;
-  const char* comment_data;
-  int is_sticky;
-  int persistent_comment;
-  int notify_contacts;
-} nebstruct_acknowledgement_data;
-
-/* Adaptive severity data structure. */
-typedef struct nebstruct_adaptive_severity_data_struct {
-  int type;
-  void* object_ptr;
-} nebstruct_adaptive_severity_data;
-
-/* Adaptive tag data structure. */
-typedef struct nebstruct_adaptive_tag_data_struct {
-  int type;
-  void* object_ptr;
-} nebstruct_adaptive_tag_data;
 
 /* Adaptive dependency data structure. */
 typedef struct nebstruct_adaptive_dependency_data_struct {
   int type;
   void* object_ptr;
 } nebstruct_adaptive_dependency_data;
-
-/* Adaptive host data structure. */
-typedef struct nebstruct_adaptive_host_data_struct {
-  int type;
-  int flags;
-  int attr;
-  unsigned long modified_attribute;
-  void* object_ptr;
-} nebstruct_adaptive_host_data;
-
-/* Adaptive service data structure. */
-typedef struct nebstruct_adaptive_service_data_struct {
-  int type;
-  int flags;
-  int attr;
-  unsigned long modified_attribute;
-  void* object_ptr;
-} nebstruct_adaptive_service_data;
-
-/* Comment data structure. */
-typedef struct nebstruct_comment_struct {
-  int type;
-  com::centreon::engine::comment::type comment_type;
-  uint64_t host_id;
-  uint64_t service_id;
-  time_t entry_time;
-  char const* author_name;
-  char const* comment_data;
-  int persistent;
-  com::centreon::engine::comment::src source;
-  com::centreon::engine::comment::e_type entry_type;
-  int expires;
-  time_t expire_time;
-  unsigned long comment_id;
-} nebstruct_comment_data;
-
-/* Custom variable structure. */
-typedef struct nebstruct_custom_variable_struct {
-  int type;
-  struct timeval timestamp = {};
-  std::string_view var_name;
-  std::string_view var_value;
-  void* object_ptr = nullptr;
-} nebstruct_custom_variable_data;
-
-/* Downtime data structure. */
-typedef struct nebstruct_downtime_struct {
-  int type;
-  int attr;
-  struct timeval timestamp;
-  int downtime_type;
-  uint64_t host_id;
-  uint64_t service_id;
-  time_t entry_time;
-  char const* author_name;
-  char const* comment_data;
-  time_t start_time;
-  time_t end_time;
-  int fixed;
-  unsigned long duration;
-  unsigned long triggered_by;
-  unsigned long downtime_id;
-} nebstruct_downtime_data;
 
 /* Event handler structure. */
 typedef struct nebstruct_event_handler_struct {
@@ -208,22 +118,6 @@ typedef struct nebstruct_process_struct {
   int type;
   int flags;
 } nebstruct_process_data;
-
-/* Program status structure. */
-typedef struct nebstruct_program_status_struct {
-  time_t last_command_check;
-  int notifications_enabled;
-  int active_service_checks_enabled;
-  int passive_service_checks_enabled;
-  int active_host_checks_enabled;
-  int passive_host_checks_enabled;
-  int event_handlers_enabled;
-  int flap_detection_enabled;
-  int obsess_over_hosts;
-  int obsess_over_services;
-  std::string global_host_event_handler;
-  std::string global_service_event_handler;
-} nebstruct_program_status_data;
 
 /* Relation data structure. */
 typedef struct nebstruct_relation_struct {
