@@ -3168,7 +3168,7 @@ void service::disable_flap_detection() {
  * value: STATUS_ALL).
  */
 void service::update_status(uint32_t status_attributes) {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, status_attributes);
+  broker_service_status(this, status_attributes);
 }
 
 /**
