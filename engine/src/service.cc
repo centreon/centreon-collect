@@ -2298,12 +2298,6 @@ int service::handle_service_event() {
   engine_logger(dbg_functions, basic) << "handle_service_event()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
-  /* send event data to broker */
-  broker_statechange_data(NEBTYPE_STATECHANGE_END, NEBFLAG_NONE, NEBATTR_NONE,
-                          SERVICE_STATECHANGE, (void*)this, _current_state,
-                          get_state_type(), get_current_attempt(),
-                          max_check_attempts(), nullptr);
-
   /* bail out if we shouldn't be running event handlers */
 #ifdef LEGACY_CONF
   bool enable_event_handlers = config->enable_event_handlers();

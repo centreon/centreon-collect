@@ -397,33 +397,6 @@ int broker_service_check(int type,
                          const char* cmdline);
 void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
-void broker_statechange_data(int type,
-                             int flags,
-                             int attr,
-                             int statechange_type,
-                             void* data,
-                             int state,
-                             int state_type,
-                             int current_attempt,
-                             int max_attempts,
-                             struct timeval const* timestamp);
-void broker_system_command(int type,
-                           int flags,
-                           int attr,
-                           struct timeval start_time,
-                           struct timeval end_time,
-                           double exectime,
-                           int timeout,
-                           int early_timeout,
-                           int retcode,
-                           const char* cmd,
-                           const char* output,
-                           struct timeval const* timestamp);
-void broker_timed_event(int type,
-                        int flags,
-                        int attr,
-                        com::centreon::engine::timed_event* event,
-                        struct timeval const* timestamp);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
 void broker_bench(unsigned id,
