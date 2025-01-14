@@ -84,7 +84,6 @@ Ctn Stop Vault
 Ctn Start Broker
     [Arguments]    ${only_central}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
@@ -178,8 +177,8 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
+    [Arguments]    ${newGeneration}=False
     # Currently we are in BBDO2 by default.
-    Ctn Set Bbdo2    ${True}
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -193,7 +192,11 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
-        Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        IF    ${newGeneration}
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        ELSE
+            Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+        END
     END
 
 Ctn Start Engine With Extend Conf
@@ -218,8 +221,9 @@ Ctn Start Engine With Extend Conf
     END
 
 Ctn Restart Engine
-    Ctn Stop engine
-    Ctn Start engine
+    [Arguments]    ${newGeneration}=False
+    Ctn Stop Engine
+    Ctn Start Engine    ${newGeneration}
 
 Ctn Start Custom Engine
     [Arguments]    ${conf_path}    ${process_alias}
@@ -233,10 +237,10 @@ Ctn Stop Custom Engine
     ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Ctn Stop Engine
-    Log To Console    "stop centengine"
+    Log To Console    Stop centengine
     ${count}    Ctn Get Engines Count
     IF    ${count} == 0
-        Log To Console    "no engine to stop"
+        Log To Console    No engine to stop
         RETURN
     END
     FOR    ${idx}    IN RANGE    0    ${count}
@@ -246,7 +250,7 @@ Ctn Stop Engine
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
-            Log To Console    "fail to stop centengine"
+            Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
             Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}
