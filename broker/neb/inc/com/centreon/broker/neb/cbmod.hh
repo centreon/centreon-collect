@@ -21,7 +21,7 @@
 #include <memory>
 #include "bbdo/bbdo_version.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
-#include "state.pb.h"
+//#include "state.pb.h"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -37,8 +37,8 @@ class cbmod {
   bool _use_protobuf;
 
   // Engine case
-  mutable absl::Mutex _diff_state_m;
-  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+//  mutable absl::Mutex _diff_state_m;
+//  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
 
   // Acknowledgements list.
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
