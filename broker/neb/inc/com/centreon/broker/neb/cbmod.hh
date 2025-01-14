@@ -57,7 +57,7 @@ class cbmod {
 
  private:
   // Unstarted downtimes.
-  static std::unordered_map<uint32_t, private_downtime_params> _downtimes;
+  std::unordered_map<uint32_t, private_downtime_params> _downtimes;
 
  public:
   cbmod();
