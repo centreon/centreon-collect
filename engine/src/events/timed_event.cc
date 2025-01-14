@@ -452,10 +452,6 @@ int timed_event::handle_timed_event() {
   engine_logger(dbg_functions, basic) << "handle_timed_event()";
   functions_logger->trace("handle_timed_event()");
 
-  // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_EXECUTE, NEBFLAG_NONE, NEBATTR_NONE,
-                     this, nullptr);
-
   engine_logger(dbg_events, basic) << "** Timed Event ** Type: " << event_type
                                    << ", Run Time: " << my_ctime(&run_time);
   events_logger->trace("** Timed Event ** Type: {}, Run Time: {}", event_type,
