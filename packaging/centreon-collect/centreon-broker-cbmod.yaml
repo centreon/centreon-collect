@@ -25,7 +25,7 @@ contents:
       group: centreon-broker
 
   - src: "../../build/broker/neb/cbmod.so"
-    dst: "/usr/lib64/nagios/cbmod.so"
+    dst: "/usr/lib64/cbmod.so"
 
 overrides:
   rpm:
