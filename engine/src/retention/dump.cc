@@ -652,11 +652,7 @@ bool dump::save(std::string const& path) {
     return true;
 #endif
 
-  // send data to event broker
-  broker_retention_data(NEBTYPE_RETENTIONDATA_STARTSAVE, NEBFLAG_NONE,
-                        NEBATTR_NONE, NULL);
-
-  bool ret(false);
+  bool ret = false;
   try {
     std::ofstream stream(path.c_str(), std::ios::binary | std::ios::trunc);
     if (!stream.is_open())
@@ -682,9 +678,6 @@ bool dump::save(std::string const& path) {
     runtime_logger->error(e.what());
   }
 
-  // send data to event broker.
-  broker_retention_data(NEBTYPE_RETENTIONDATA_ENDSAVE, NEBFLAG_NONE,
-                        NEBATTR_NONE, NULL);
   return ret;
 }
 

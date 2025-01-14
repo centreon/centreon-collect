@@ -4543,19 +4543,90 @@ void broker_relation_data(int type,
     forward_relation(type, hst, svc, dep_hst, dep_svc);
 }
 
-/**
- *  Brokers retention data.
- *
- *  @param[in] type      Type.
- *  @param[in] flags     Flags.
- *  @param[in] attr      Attributes.
- *  @param[in] timestamp Timestamp.
- */
-void broker_retention_data(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
+static void forward_service_check(int type,
+                                  const engine::service* svc,
+                                  int check_type,
+                                  const char* cmdline) noexcept {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
+  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+    return;
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service check event");
+
+  try {
+    // In/Out variables.
+    auto service_check = std::make_shared<neb::service_check>();
+    // Fill output var.
+    if (cmdline) {
+      service_check->active_checks_enabled = svc->active_checks_enabled();
+      service_check->check_type = check_type;
+      service_check->command_line = common::check_string_utf8(cmdline);
+      if (!svc->host_id())
+        throw exceptions::msg_fmt("host without id");
+      if (!svc->service_id())
+        throw exceptions::msg_fmt("service without id");
+      service_check->host_id = svc->host_id();
+      service_check->service_id = svc->service_id();
+      service_check->next_check = svc->get_next_check();
+
+      // Send event.
+      cbm->write(service_check);
+    }
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating service check event: {}",
+        e.what());
+  }
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
+}
+
+static void forward_pb_service_check(int type,
+                                     const engine::service* svc,
+                                     int check_type,
+                                     const char* cmdline) {
+  /* For each check, this event is received three times one precheck, one
+   * initiate and one processed. We just keep the initiate one. At the
+   * processed one we also received the service status. */
+  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+    return;
+
+  // Log message.
+  if (neb_logger->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event host {} "
+                        "service {} command_line={}",
+                        svc->host_id(), svc->service_id(),
+                        cmdline ? cmdline : "");
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event");
+  }
+
+  // In/Out variables.
+  auto service_check = std::make_shared<neb::pb_service_check>();
+  // Fill output var.
+  if (cmdline) {
+    auto& obj = service_check->mut_obj();
+    obj.set_active_checks_enabled(svc->active_checks_enabled());
+    obj.set_check_type(
+        check_type == com::centreon::engine::checkable::check_type::check_active
+            ? com::centreon::broker::CheckActive
+            : com::centreon::broker::CheckPassive);
+    obj.set_command_line(common::check_string_utf8(cmdline));
+    obj.set_host_id(svc->host_id());
+    obj.set_service_id(svc->service_id());
+    obj.set_next_check(svc->get_next_check());
+
+    // Send event.
+    cbm->write(service_check);
+  }
+}
 
 /**
  *  Send service check data to broker.
@@ -4568,35 +4639,22 @@ void broker_retention_data(int type __attribute__((unused)),
  *  @return Return value can override service check.
  */
 int broker_service_check(int type,
-                         com::centreon::engine::service* svc,
+                         const engine::service* svc,
                          int check_type,
                          const char* cmdline) {
   // Config check.
-#ifdef LEGACY_CONF
-  if (!(config->event_broker_options() & BROKER_SERVICE_CHECKS))
-    return OK;
-#else
   if (!(pb_config.event_broker_options() & BROKER_SERVICE_CHECKS))
     return OK;
-#endif
   if (!svc)
     return ERROR;
 
-  // Fill struct with relevant data.
-  nebstruct_service_check_data ds;
-  ds.type = type;
-  ds.host_id = svc->host_id();
-  ds.service_id = svc->service_id();
-  ds.object_ptr = svc;
-  ds.check_type = check_type;
-  ds.command_line = cmdline;
-  ds.output = const_cast<char*>(svc->get_plugin_output().c_str());
-
   // Make callbacks.
-  int return_code;
-  return_code = neb_make_callbacks(NEBCALLBACK_SERVICE_CHECK_DATA, &ds);
+  if (cbm->use_protobuf())
+    forward_pb_service_check(type, svc, check_type, cmdline);
+  else
+    forward_service_check(type, svc, check_type, cmdline);
 
-  return return_code;
+  return 0;
 }
 
 /**
