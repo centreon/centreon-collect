@@ -146,6 +146,7 @@ void init_loggers() {
   external_command_logger = log_v2::instance().get(log_v2::EXTERNAL_COMMAND);
   functions_logger = log_v2::instance().get(log_v2::FUNCTIONS);
   macros_logger = log_v2::instance().get(log_v2::MACROS);
+  neb_logger = log_v2::instance().get(log_v2::NEB);
   notifications_logger = log_v2::instance().get(log_v2::NOTIFICATIONS);
   process_logger = log_v2::instance().get(log_v2::PROCESS);
   runtime_logger = log_v2::instance().get(log_v2::RUNTIME);
