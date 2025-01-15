@@ -809,8 +809,6 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
         srv_by_host (int, optional): Defaults to 20.
     """
     global engine
-    global BBDO2
-    BBDO2 = True
     engine = EngineInstance(num, hosts, srv_by_host)
 
 

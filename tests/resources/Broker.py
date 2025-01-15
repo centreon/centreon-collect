@@ -26,6 +26,7 @@ import pymysql.cursors
 import time
 import re
 import shutil
+import Common
 import psutil
 from subprocess import getoutput
 import subprocess as subp
@@ -432,8 +433,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         name (str): name of the conf broker wanted
         poller_inst (int, optional): Defaults to 1.
     """
-    global BBDO2
-    BBDO2 = True
+    Common.ctn_set_bbdo2(True)
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
