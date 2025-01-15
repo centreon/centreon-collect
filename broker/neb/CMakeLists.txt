@@ -94,7 +94,8 @@ add_dependencies(
   pb_header_lib
   pb_open_telemetry_lib)
 
-target_link_libraries(nebbase
+target_link_libraries(
+  nebbase
   -L${PROTOBUF_LIB_DIR}
   protobuf
   pb_neb_lib
@@ -125,48 +126,44 @@ set_target_properties("${NEB}" PROPERTIES PREFIX "")
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-add_library(
-  cbmod SHARED
-  ${SRC_DIR}/cbmod.cc
-  ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc
-  )
+add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
+                         ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
 set_property(TARGET cbmod PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-#add_library(
-#  cbmod SHARED
-#  # Sources.
-#  "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
-#  "${SRC_DIR}/callback.cc"
-#  "${SRC_DIR}/callbacks.cc"
-#  "${SRC_DIR}/initial.cc"
-#  "${SRC_DIR}/internal.cc"
-#  "${SRC_DIR}/neb.cc"
-#  "${SRC_DIR}/set_log_data.cc"
-#  # Headers.
-#  "${INC_DIR}/com/centreon/broker/neb/callback.hh"
-#  "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
-#  "${INC_DIR}/com/centreon/broker/neb/initial.hh"
-#  "${INC_DIR}/com/centreon/broker/neb/internal.hh"
-#  "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
+# add_library( cbmod SHARED # Sources.
+# "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
+# "${SRC_DIR}/callback.cc" "${SRC_DIR}/callbacks.cc" "${SRC_DIR}/initial.cc"
+# "${SRC_DIR}/internal.cc" "${SRC_DIR}/neb.cc" "${SRC_DIR}/set_log_data.cc" #
+# Headers. "${INC_DIR}/com/centreon/broker/neb/callback.hh"
+# "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
+# "${INC_DIR}/com/centreon/broker/neb/initial.hh"
+# "${INC_DIR}/com/centreon/broker/neb/internal.hh"
+# "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
 #
-#if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-#  # Flags needed to include all symbols in shared library.
-#  target_link_libraries(
-#    cbmod
-#    -L${PROTOBUF_LIB_DIR}
-#    "-Wl,--whole-archive"
-#    rokerbase
-#    multiplexing
-#    "-Wl,--no-whole-archive")
-#else()
-#  target_link_libraries(cbmod -L${PROTOBUF_LIB_DIR} "rokerbase")
-#endif()
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # Flags
+# needed to include all symbols in shared library. target_link_libraries( cbmod
+# -L${PROTOBUF_LIB_DIR} "-Wl,--whole-archive" rokerbase multiplexing
+# "-Wl,--no-whole-archive") else() target_link_libraries(cbmod
+# -L${PROTOBUF_LIB_DIR} "rokerbase") endif()
 #
 set_target_properties(cbmod PROPERTIES PREFIX "")
 target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(cbmod fmt::fmt rokerbase multiplexing pb_neb_lib pb_header_lib protobuf nebbase log_v2 centreon_common)
-#target_link_libraries(cbmod fmt::fmt "-Wl,--whole-archive" rokerbase multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf nebbase)
+target_link_libraries(
+  cbmod
+  fmt::fmt
+  rokerbase
+  multiplexing
+  pb_neb_lib
+  pb_header_lib
+  protobuf
+  nebbase
+  log_v2
+  centreon_common
+  gRPC::grpc++)
+# target_link_libraries(cbmod fmt::fmt "-Wl,--whole-archive" rokerbase
+# multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf
+# nebbase)
 get_property(
   CBMOD_DEFINES
   TARGET cbmod
@@ -174,7 +171,7 @@ get_property(
 list(APPEND CBMOD_DEFINES CBMOD)
 set_property(TARGET cbmod PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 
-#target_include_directories(cbmod PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+# target_include_directories(cbmod PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)
