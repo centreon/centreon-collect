@@ -51,7 +51,7 @@ dnf --best install -y cmake \
     perl-interpreter \
     rpm-build \
     zstd \
-    nfpm \
+    nfpm-2.41.1 \
     sudo
 
 dnf update libarchive
