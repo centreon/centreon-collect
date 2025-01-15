@@ -65,18 +65,18 @@ jobs:
         if: ${{ needs.get-environment.outputs.is_nightly == 'false' }}
         with:
           filters: |
-            trigger_delivery:
-              - '/gorgone/!(*tests)/**'
-              - '/perl-libs/!(lib)/**'
-              - '/perl-libs/lib/!(t)/**'
             trigger_unit_tests:
-              - '/gorgone/!(*tests)/**'
-              - '/gorgone/tests/unit/**'
+              - '/gorgone/**'
               - '/perl-libs/**'
             trigger_robot_tests:
-              - '/gorgone/!(*tests)/**'
+              - '/gorgone/!(tests)/**'
               - '/gorgone/tests/robot/**'
               - '/perl-libs/**'
+            trigger_delivery:
+              - '/gorgone/!(tests)/**'
+              - '/perl-libs/!(lib)/**'
+              - '/perl-libs/lib/!(t)/**'
+              - '/perl-libs/*'
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   veracode-analysis:
