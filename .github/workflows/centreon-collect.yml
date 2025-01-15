@@ -207,7 +207,6 @@ jobs:
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DLEGACY_ENGINE=Off \
-                  -DONLY_ROBOT_CMA=${{ matrix.only_cma }} \
                   -S .
 
           ninja -Cbuild
