@@ -84,6 +84,12 @@ void grpc_server_base::_init(const builder_option& options) {
     builder.SetDefaultCompressionAlgorithm(algo);
     builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
   }
+
+  if (_conf->get_max_message_length() > 0) {
+    builder.SetMaxReceiveMessageSize(_conf->get_max_message_length());
+    builder.SetMaxSendMessageSize(_conf->get_max_message_length());
+  }
+
   _server = builder.BuildAndStart();
 }
 

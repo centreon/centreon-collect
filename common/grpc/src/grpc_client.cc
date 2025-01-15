@@ -84,5 +84,12 @@ grpc_client_base::grpc_client_base(
                 conf->get_second_max_reconnect_backoff() * 1000);
   }
 
+  if (conf->get_max_message_length() > 0) {
+    args.SetInt(GRPC_ARG_MAX_RECEIVE_MESSAGE_LENGTH,
+                conf->get_max_message_length());
+    args.SetInt(GRPC_ARG_MAX_SEND_MESSAGE_LENGTH,
+                conf->get_max_message_length());
+  }
+
   _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
 }

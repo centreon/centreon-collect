@@ -45,6 +45,7 @@ class config {
   std::string _host;
   bool _reverse_connection;
   unsigned _second_max_reconnect_backoff;
+  unsigned _max_message_length;
 
   static std::unique_ptr<config> _global_conf;
 
@@ -95,6 +96,7 @@ class config {
   unsigned get_second_max_reconnect_backoff() const {
     return _second_max_reconnect_backoff;
   }
+  unsigned get_max_message_length() const { return _max_message_length; }
 };
 };  // namespace com::centreon::agent
 
