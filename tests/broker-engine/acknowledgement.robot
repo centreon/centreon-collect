@@ -122,6 +122,8 @@ BEACK3
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
