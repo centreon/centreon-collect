@@ -58,8 +58,6 @@ cbmod::cbmod(const std::string& config_file)
   s.mut_log_conf().allow_only_atomic_changes(true);
   com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
                                                s);
-  _use_protobuf =
-      config::applier::state::instance().get_bbdo_version().major_v > 2;
   try {
     log_v2::instance().apply(s.log_conf());
   } catch (const std::exception& e) {
@@ -67,6 +65,10 @@ cbmod::cbmod(const std::string& config_file)
   }
 
   com::centreon::broker::config::applier::state::instance().apply(s);
+
+  /* Once the configuration is applied, we can know if we use protobuf or not */
+  _use_protobuf =
+      config::applier::state::instance().get_bbdo_version().major_v > 2;
 }
 
 /**
