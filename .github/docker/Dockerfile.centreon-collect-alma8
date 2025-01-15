@@ -48,7 +48,7 @@ dnf install -y cmake \
     yum-utils \
     perl-interpreter \
     zstd \
-    nfpm \
+    nfpm-2.41.1 \
     openssl-devel \
     libssh2-devel \
     libcurl-devel \
