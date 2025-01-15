@@ -129,7 +129,7 @@ TEST_F(TestDiffHostgroup, DelHostgroup) {
   ASSERT_EQ(diff.hostgroups().added_size(), 0);
   ASSERT_EQ(diff.hostgroups().modified_size(), 0);
   ASSERT_EQ(diff.hostgroups().deleted_size(), 1);
-  ASSERT_EQ(diff.hostgroups().deleted(0), "hg4");
+  ASSERT_EQ(diff.hostgroups().deleted(0), 4);
 }
 
 TEST_F(TestDiffHostgroup, ModifyHostgroup) {

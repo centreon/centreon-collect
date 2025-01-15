@@ -220,7 +220,7 @@ message DiffState {
   DiffServicegroup servicegroups = 4;
 
   /* In case of all the configuration should be reloaded */
-  State state = 5;
+  State state = 6;
 }
 
 message CustomVariable {
@@ -607,15 +607,16 @@ message Hostgroup {
   uint32 hostgroup_id = 4;
   string hostgroup_name = 5;
   StringSet members = 6;
-  string notes = 7;
-  string notes_url = 8;
+  repeated uint32 hosts_ids = 7;
+  string notes = 8;
+  string notes_url = 9;
 }
 
 message DiffHostgroup{
   /* Added Hostgroup */
   repeated Hostgroup added = 1;
   /* Deleted Hostgroup given by their key */
-  repeated string deleted = 2;
+  repeated uint32 deleted = 2;
   /* Modified Hostgroup given. */
   repeated Hostgroup modified = 3;
 }

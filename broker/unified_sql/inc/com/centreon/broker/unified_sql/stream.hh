@@ -386,6 +386,8 @@ class stream : public io::stream {
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
+  database::mysql_stmt _hg_insert_update;
+  database::mysql_stmt _hgm_insert_update;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
   database::mysql_stmt _resources_host_insert;
@@ -431,8 +433,15 @@ class stream : public io::stream {
   void _process_pb_host_check(const std::shared_ptr<io::data>& d);
   void _process_host_group(const std::shared_ptr<io::data>& d);
   void _process_pb_host_group(const std::shared_ptr<io::data>& d);
+  void _update_hostgroup(const engine::configuration::Hostgroup& pb_hg,
+                         uint64_t poller_id,
+                         bool enabled);
   void _process_host_group_member(const std::shared_ptr<io::data>& d);
   void _process_pb_host_group_member(const std::shared_ptr<io::data>& d);
+  void _update_host_group_member(const engine::configuration::Hostgroup& pb_hg,
+                                 uint32_t host_id,
+                                 uint64_t poller_id,
+                                 bool enabled);
   void _process_host(const std::shared_ptr<io::data>& d);
   void _process_host_parent(const std::shared_ptr<io::data>& d);
   void _process_pb_host_parent(const std::shared_ptr<io::data>& d);

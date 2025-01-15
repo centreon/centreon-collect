@@ -1290,6 +1290,65 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Add/Update host group in the table.
+ *
+ *  @param[in] pb_hg The host group configuration.
+ *  @param[in] poller_id The poller ID.
+ *  @param[in] enabled True if the host group is enabled, false otherwise.
+ */
+void stream::_update_hostgroup(const engine::configuration::Hostgroup& pb_hg,
+                               uint64_t poller_id,
+                               bool enabled) {
+  //   // Cast object.
+
+  if (enabled) {
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "SQL: enabling host group {} ('{}' on instance {})",
+                       pb_hg.hostgroup_id(), pb_hg.hostgroup_name(), poller_id);
+
+    _hg_insert_update.bind_value_as_u32(0, pb_hg.hostgroup_id());
+    _hg_insert_update.bind_value_as_str(1, pb_hg.hostgroup_name());
+    _mysql.run_statement(_hg_insert_update,
+                         database::mysql_error::store_host_group, 0);
+    _hostgroup_cache.insert(pb_hg.hostgroup_id());
+
+    // Add group members.
+    for (const auto& member : pb_hg.hosts_ids()) {
+      _update_host_group_member(pb_hg, member, poller_id, true);
+    }
+
+  }
+  // Delete group.
+  else {
+    auto cache_ptr = cache::global_cache::instance_ptr();
+
+    if (cache_ptr) {
+      cache_ptr->remove_host_group_members(pb_hg.hostgroup_id(), poller_id);
+    }
+
+    {
+      std::string query_hgm(
+          fmt::format("DELETE hosts_hostgroups FROM hosts_hostgroups "
+                      "LEFT JOIN hosts"
+                      " ON hosts_hostgroups.host_id=hosts.host_id"
+                      " WHERE hosts_hostgroups.hostgroup_id={} AND "
+                      "hosts.instance_id={}",
+                      pb_hg.hostgroup_id(), poller_id));
+      std::string query_hg(
+          fmt::format("DELETE FROM hostgroups "
+                      "WHERE hostgroup_id={}",
+                      pb_hg.hostgroup_id()));
+
+      // delete group members
+      _mysql.run_query(query_hgm, database::mysql_error::empty, 0);
+      // delete group
+      _mysql.run_query(query_hg, database::mysql_error::empty, 0);
+      _hostgroup_cache.erase(pb_hg.hostgroup_id());
+    }
+  }
+}
+
+/**
  *  Process a host group member event.
  *
  *  @param[in] e Uncasted host group member.
@@ -1503,6 +1562,49 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
                      conn);
     _add_action(conn, actions::hostgroups);
+  }
+}
+
+/**
+ *  Add/Update host group member in the table.
+ *
+ *  @param[in] pb_hg The host group configuration.
+ *  @param[in] host_id The host ID.
+ *  @param[in] poller_id The poller ID.
+ *  @param[in] enabled True if the host group member is enabled, false
+ * otherwise.
+ */
+void stream::_update_host_group_member(
+    const engine::configuration::Hostgroup& pb_hg,
+    uint32_t host_id,
+    uint64_t poller_id,
+    bool enabled) {
+  // TODO : remove until update host is implemented
+  // check if host is known by any poller
+  // if (!_host_instance_known(host_id)) {
+  //   SPDLOG_LOGGER_WARN(
+  //       _logger_sql,
+  //       "SQL: host {0} not added to hostgroup {1} because host {0} is not "
+  //       "known by any poller",
+  //       pb_hg.hostgroup_id(), pb_hg.hostgroup_name());
+  //   return;
+  // }
+
+  // add to cach host group : hostgroup id , hostid, poller id
+  auto cache_ptr = cache::global_cache::instance_ptr();
+
+  if (enabled) {
+    if (cache_ptr)
+      cache_ptr->add_host_to_group(pb_hg.hostgroup_id(), host_id, poller_id);
+
+    // prepare statment
+
+    _hgm_insert_update.bind_value_as_u32(0, host_id);
+    _hgm_insert_update.bind_value_as_u32(1, pb_hg.hostgroup_id());
+    // add host_group member to db
+
+    _mysql.run_statement(_hgm_insert_update,
+                         database::mysql_error::store_host_group_member, 0);
   }
 }
 
@@ -5295,12 +5397,36 @@ void stream::_apply_diff_state(uint32_t poller_id,
     }
   }
 
+  if (ds.has_hostgroups()) {
+    // delete modified hostgroups first to avoid conflicts
+    for (const auto& hg : ds.hostgroups().modified()) {
+      _update_hostgroup(hg, poller_id, false);
+    }
+    // modified hostgroups as new ones
+    for (const auto& hg : ds.hostgroups().modified()) {
+      _update_hostgroup(hg, poller_id, true);
+    }
+    // delete hostgroups
+    for (const auto& id : ds.hostgroups().deleted()) {
+      auto hg = engine::configuration::Hostgroup();
+      hg.set_hostgroup_id(id);
+      _update_hostgroup(hg, poller_id, false);
+    }
+    // add new hostgroups
+    for (const auto& hg : ds.hostgroups().added()) {
+      _update_hostgroup(hg, poller_id, true);
+    }
+  }
+
   if (ds.has_state()) {
     for (const auto& s : ds.state().severities()) {
       _update_severities(s);
     }
     for (const auto& t : ds.state().tags()) {
       _update_tags(t, Tag_Action_ADD);
+    }
+    for (const auto& hg : ds.state().hostgroups()) {
+      _update_hostgroup(hg, poller_id, true);
     }
   }
 }

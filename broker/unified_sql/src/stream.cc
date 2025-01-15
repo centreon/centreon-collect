@@ -1222,6 +1222,16 @@ void stream::_init_statements() {
         "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
         "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id),  name=VALUES(name)");
   }
+  if (!_hg_insert_update.prepared()) {
+    _hg_insert_update = _mysql.prepare_query(
+        "INSERT INTO hostgroups (hostgroup_id, name) VALUES(?,?) ON DUPLICATE "
+        "KEY UPDATE hostgroup_id = LAST_INSERT_ID(hostgroup_id), "
+        "name=VALUES(name)");
+  }
+  if (!_hgm_insert_update.prepared()) {
+    _hgm_insert_update = _mysql.prepare_query(
+        "INSERT INTO hosts_hostgroups (host_id,hostgroup_id) VALUES(?,?)");
+  }
   if (_bulk_prepared_statement) {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         _dedicated_connections ? *_dedicated_connections : _mysql,

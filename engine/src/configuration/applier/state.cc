@@ -2284,10 +2284,8 @@ void applier::state::_processing(const configuration::DiffState& diff_state,
   _apply<DiffTag, applier::tag, Tag, std::pair<uint64_t, uint32_t>, KeyType>(
       diff_state.tags(), pb_config.mutable_tags(), key_extractor_tag, err);
 
-  auto key_extractor_hg = [](const Hostgroup& hg) {
-    return hg.hostgroup_name();
-  };
-  _apply<DiffHostgroup, applier::hostgroup, Hostgroup, std::string>(
+  auto key_extractor_hg = [](const Hostgroup& hg) { return hg.hostgroup_id(); };
+  _apply<DiffHostgroup, applier::hostgroup, Hostgroup, uint32_t>(
       diff_state.hostgroups(), pb_config.mutable_hostgroups(), key_extractor_hg,
       err);
 

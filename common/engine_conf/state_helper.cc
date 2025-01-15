@@ -563,6 +563,21 @@ void state_helper::expand_conf(configuration::error_cnt& err) {
   // Expand serviceescalations
   serviceescalation_helper::_expand_serviceescalations(
       pb_config, err, m_hostgroups, m_servicegroups);
+
+  // todo: move to expand hostgroups
+  for (auto& hg : *pb_config.mutable_hostgroups()) {
+    for (const auto& host_name : hg.members().data()) {
+      auto it = m_host.find(host_name);
+      if (it == m_host.end()) {
+        err.config_errors++;
+        throw msg_fmt(
+            "Could not add host '{}' to non-existing host group '{}'\n",
+            host_name, hg.hostgroup_name());
+      } else {
+        hg.add_hosts_ids(it->second.host_id());
+      }
+    }
+  }
 }
 
 /**
@@ -650,10 +665,8 @@ void state_helper::diff(const State& old_state,
       key_extractor_tag);
 
   // Hostgroups:
-  auto key_extractor_hg = [](const Hostgroup& hg) {
-    return hg.hostgroup_name();
-  };
-  state_helper::diff_obj<Hostgroup, std::string, DiffHostgroup>(
+  auto key_extractor_hg = [](const Hostgroup& hg) { return hg.hostgroup_id(); };
+  state_helper::diff_obj<Hostgroup, uint32_t, DiffHostgroup>(
       old_state.hostgroups(), new_state.hostgroups(), logger,
       result->mutable_hostgroups(), key_extractor_hg);
 

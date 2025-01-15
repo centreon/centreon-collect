@@ -210,12 +210,13 @@ void applier::hostgroup::modify_object(
   // Were members modified ?
   if (!MessageDifferencer::Equals(new_obj.members(), old_obj->members())) {
     // Delete all old host group members.
-    for (host_map_unsafe::iterator it(it_obj->second->members.begin()),
-         end(it_obj->second->members.end());
-         it != end; ++it) {
-      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second,
-                          it_obj->second.get());
-    }
+    if (!new_generation)
+      for (host_map_unsafe::iterator it(it_obj->second->members.begin()),
+           end(it_obj->second->members.end());
+           it != end; ++it) {
+        broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second,
+                            it_obj->second.get());
+      }
     it_obj->second->members.clear();
 
     for (auto it = new_obj.members().data().begin(),
