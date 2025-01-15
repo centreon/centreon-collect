@@ -69,11 +69,13 @@ BBDO2 = True
 import_robot_resources()
 TIMEOUT = 30
 
+
 def ctn_in_bbdo2():
     """ Check if we are in bbdo2 mode
     """
     global BBDO2
     return BBDO2
+
 
 def ctn_set_bbdo2(value: bool):
     """ Set the bbdo2 mode
