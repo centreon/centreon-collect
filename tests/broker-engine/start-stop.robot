@@ -111,12 +111,12 @@ BESS3
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
@@ -133,9 +133,9 @@ BESS4
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -249,7 +249,7 @@ BESS_GRPC4
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -336,12 +336,12 @@ BESS_CRYPTED_GRPC1
         Ctn Start Broker
         Ctn Start Engine
         ${result}    Ctn Check Connections
-        Should Be True    ${result}
+        Should Be True    ${result}    Connection between Engine and Broker not established
         ${result}    Ctn Check Poller Enabled In Database    1    10
-        Should Be True    ${result}
+        Should Be True    ${result}    Poller not visible in database
         Ctn Stop Engine
         ${result}    Ctn Check Poller Disabled In Database    1    10
-        Should Be True    ${result}
+        Should Be True    ${result}    Poller still visible in database
         Ctn Kindly Stop Broker
     END
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -425,7 +425,7 @@ BESS_CRYPTED_REVERSED_GRPC1
         Ctn Start Broker
         Ctn Start Engine
         ${result}    Ctn Check Connections
-        Should Be True    ${result}
+        Should Be True    ${result}    Connection between Engine and Broker not established
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
