@@ -19,6 +19,7 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 #include "broker/core/bbdo/internal.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -29,6 +30,7 @@
 #include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_check.hh"
@@ -50,6 +52,24 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::engine;
 using namespace com::centreon;
+
+static std::shared_ptr<neb::acknowledgement> convert_pb_ack_to_ack(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack) {
+  auto new_ack = std::make_shared<neb::acknowledgement>();
+  const Acknowledgement& obj = static_cast<const Acknowledgement&>(ack->obj());
+  new_ack->acknowledgement_type = obj.type();
+  new_ack->host_id = obj.host_id();
+  new_ack->service_id = obj.service_id();
+  new_ack->author = obj.author();
+  new_ack->comment = obj.comment_data();
+  new_ack->entry_time = obj.entry_time();
+  new_ack->deletion_time = obj.deletion_time();
+  new_ack->is_sticky = obj.sticky();
+  new_ack->notify_contacts = obj.notify_contacts();
+  new_ack->persistent_comment = obj.persistent_comment();
+  new_ack->state = obj.state();
+  return new_ack;
+}
 
 template <typename R>
 static void forward_acknowledgement(const char* author_name,
@@ -1221,8 +1241,7 @@ static void forward_comment(int type,
       neb_logger->debug(
           "callbacks: comment about acknowledgement entry_time:{} - "
           "deletion_time:{} - host_id:{} - service_id:{}",
-          comment->entry_time, comment->deletion_time, comment->host_id,
-          comment->service_id);
+          comment->entry_time, comment->deletion_time, host_id, service_id);
     comment->expire_time = expire_time;
     comment->expires = expires;
     if (service_id) {
@@ -2772,8 +2791,11 @@ static void forward_host_status(const engine::host* hst,
             || (!ack->obj().sticky() &&
                 host_status->current_state !=
                     static_cast<short>(ack->obj().state())))) {
+        neb_logger->debug(
+            "Set deletion time for host acknowledgement on host {}",
+            host_status->host_id);
         ack->mut_obj().set_deletion_time(time(nullptr));
-        cbm->write(ack);
+        cbm->write(convert_pb_ack_to_ack(std::move(ack)));
       }
       cbm->remove_acknowledgement(host_status->host_id, 0u);
     }
@@ -2803,8 +2825,11 @@ static void forward_pb_host_status(const host* hst,
       neb_logger->debug("acknowledgement found on host {}", hscr.host_id());
       if (!(!state  // !(OK or (normal ack and NOK))
             || (!ack->obj().sticky() && state != ack->obj().state()))) {
+        neb_logger->debug(
+            "Set deletion time for host acknowledgement on host status {}",
+            hscr.host_id());
         ack->mut_obj().set_deletion_time(time(nullptr));
-        cbm->write(ack);
+        cbm->write(std::move(ack));
       }
       cbm->remove_acknowledgement(hscr.host_id(), 0u);
     }
@@ -4760,8 +4785,12 @@ static void forward_service_status(const engine::service* svc,
             ||
             (!ack_obj.sticky() && service_status->current_state !=
                                       static_cast<short>(ack_obj.state())))) {
+        neb_logger->debug(
+            "Set deletion time for service acknowledgement on service status "
+            "{}:{}",
+            service_status->host_id, service_status->service_id);
         ack_obj.set_deletion_time(time(nullptr));
-        cbm->write(std::move(ack));
+        cbm->write(convert_pb_ack_to_ack(std::move(ack)));
       }
       cbm->remove_acknowledgement(service_status->host_id,
                                   service_status->service_id);
@@ -4801,6 +4830,10 @@ static void forward_pb_service_status(const engine::service* svc,
       auto& ack_obj = ack->mut_obj();
       if (!(!state  // !(OK or (normal ack and NOK))
             || (!ack_obj.sticky() && state != ack_obj.state()))) {
+        neb_logger->debug(
+            "Set deletion time for service acknowledgement on pb service "
+            "status {}:{}",
+            r.host_id(), r.service_id());
         ack_obj.set_deletion_time(time(nullptr));
         cbm->write(std::move(ack));
       }
