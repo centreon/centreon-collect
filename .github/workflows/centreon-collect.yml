@@ -18,11 +18,6 @@ on:
         required: true
         default: false
         type: boolean
-      legacy_engine:
-        description: 'Compile Engine with legacy configuration library'
-        required: true
-        default: false
-        type: boolean
       packages_in_artifact:
         description: 'Save packages in artifacts'
         required: true
@@ -150,7 +145,6 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
-      LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine != 'true' && 'OFF' || 'ON' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -212,7 +206,7 @@ jobs:
                   -DWITH_MODULE_SIMU=On \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=${LEGACY_ENGINE} \
+                  -DLEGACY_ENGINE=Off \
                   -DONLY_ROBOT_CMA=${{ matrix.only_cma }} \
                   -S .
 
