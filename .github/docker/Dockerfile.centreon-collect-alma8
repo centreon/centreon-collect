@@ -49,7 +49,7 @@ dnf install -y cmake \
     perl-interpreter \
     rpm-build \
     zstd \
-    nfpm
+    nfpm-2.41.1
 
 dnf update libarchive
 
