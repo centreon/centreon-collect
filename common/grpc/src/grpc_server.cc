@@ -86,6 +86,8 @@ void grpc_server_base::_init(const builder_option& options) {
   }
 
   if (_conf->get_max_message_length() > 0) {
+    SPDLOG_LOGGER_DEBUG(_logger, "server set max message length to {}",
+                        _conf->get_max_message_length());
     builder.SetMaxReceiveMessageSize(_conf->get_max_message_length());
     builder.SetMaxSendMessageSize(_conf->get_max_message_length());
   }

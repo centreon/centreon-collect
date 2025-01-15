@@ -17,10 +17,10 @@
  */
 
 #include "scheduler.hh"
-#include <memory>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
+#include "config.hh"
 #ifdef _WIN32
 #include "check_memory.hh"
 #include "check_service.hh"
@@ -256,7 +256,7 @@ void scheduler::_check_handler(
     unsigned status,
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
-  SPDLOG_LOGGER_TRACE(_logger, "end check for service {} command {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "end check for service {} command {}",
                       check->get_service(), check->get_command_line());
 
   // conf has changed => no repush for next check
@@ -368,6 +368,18 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 
   for (const com::centreon::common::perfdata& perf : perfdata) {
     _add_metric_to_scope(now, perf, scope_metrics);
+  }
+  if (!_average_metric_length &&
+      _current_request->otel_request().resource_metrics_size() > 10) {
+    _average_metric_length =
+        _current_request->ByteSizeLong() /
+        _current_request->otel_request().resource_metrics_size();
+  }
+  if (_current_request->otel_request().resource_metrics_size() *
+          _average_metric_length >
+      2 * 1024 * 1024) {
+    _metric_sender(_current_request);
+    _init_export_request();
   }
 }
 

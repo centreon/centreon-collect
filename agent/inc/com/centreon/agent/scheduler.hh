@@ -84,6 +84,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // last received configuration
   engine_to_agent_request_ptr _conf;
 
+  // As protobuf length measure can be expensive, we estimate length by multiply
+  // this length by number of metrics
+  unsigned _average_metric_length;
+
   void _start();
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
@@ -196,7 +200,8 @@ scheduler::scheduler(
       _send_timer(*io_context),
       _check_timer(*io_context),
       _check_builder(builder),
-      _conf(config) {}
+      _conf(config),
+      _average_metric_length(0) {}
 
 /**
  * @brief create and start a new scheduler
