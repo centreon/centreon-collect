@@ -4656,7 +4656,12 @@ static void forward_service_status(const engine::service* svc,
                                    uint32_t attributes
                                    [[maybe_unused]]) noexcept {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service status event");
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating service status event: state: {}, "
+                      "check_type: {}, has_been_checked: {}",
+                      static_cast<int>(svc->get_current_state()),
+                      static_cast<int>(svc->get_check_type()),
+                      svc->has_been_checked());
 
   try {
     // In/Out variables.
@@ -4674,9 +4679,9 @@ static void forward_service_status(const engine::service* svc,
       service_status->check_period = svc->check_period();
     service_status->check_type = svc->get_check_type();
     service_status->current_check_attempt = svc->get_current_attempt();
-    service_status->current_state =
-        (svc->has_been_checked() ? svc->get_current_state()
-                                 : 4);  // Pending state.
+    service_status->current_state = svc->has_been_checked()
+                                        ? svc->get_current_state()
+                                        : 4;  // Pending state.
     service_status->downtime_depth = svc->get_scheduled_downtime_depth();
     if (!svc->event_handler().empty())
       service_status->event_handler =
