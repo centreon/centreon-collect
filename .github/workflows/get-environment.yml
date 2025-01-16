@@ -328,7 +328,7 @@ jobs:
           fi
         shell: bash
 
-      - name: "Get release: 1 for testing / stable, <date>.<commit_sha> for others"
+      - name: "Get release: 1 for testing / stable, <date> for others"
         id: get_release
         run: |
           if [[ "${{ steps.get_stability.outputs.stability }}" == "testing" || "${{ steps.get_stability.outputs.stability }}" == "stable" ]]; then
