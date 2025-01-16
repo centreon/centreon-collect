@@ -419,6 +419,16 @@ Ctn Process Service Result Hard
         Sleep    1s
     END
 
+Ctn Process Host Result Hard
+    [Arguments]    ${host}    ${state}    ${output}
+    FOR    ${idx}    IN RANGE    3
+        Ctn Process Host Check Result
+        ...    ${host}
+        ...    ${state}
+        ...    ${output}
+        Sleep    1s
+    END
+
 
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1

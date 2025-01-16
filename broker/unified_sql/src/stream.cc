@@ -1368,8 +1368,10 @@ void stream::_init_statements() {
       "has_graph=?,"                  // 7: perfdata != ""
       "last_check_type=?,"            // 8: check_type
       "last_check=?,"                 // 9: last_check
-      "output=? "                     // 10: output
-      "WHERE id=? AND parent_id=0");  // 11: host_id
+      "output=?,"                     // 10: output
+      "flapping=?,"                   // 11: is_flapping
+      "percent_state_change=? "       // 12: percent_state_change
+      "WHERE id=? AND parent_id=0");  // 13: host_id
 
   const std::string sscr_resources_query(
       "UPDATE resources SET "
