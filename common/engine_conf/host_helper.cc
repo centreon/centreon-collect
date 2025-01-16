@@ -20,7 +20,6 @@
 #include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 #ifdef LEGACY_CONF
 #error host_helper should not be compiled in this context.
@@ -324,4 +323,31 @@ bool host_helper::insert_customvariable(std::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
+
+/**
+ * @brief Expand the hosts.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void host_helper::expand(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
+  // Browse all hosts.
+  for (auto& host_cfg : *s.mutable_hosts()) {
+    for (auto& grp : host_cfg.hostgroups().data()) {
+      auto it = hgs.find(grp);
+      if (it != hgs.end()) {
+        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
+      } else {
+        err.config_errors++;
+        throw msg_fmt(
+            "Could not add host '{}' to non-existing host group '{}'\n",
+            host_cfg.host_name(), grp);
+      }
+    }
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

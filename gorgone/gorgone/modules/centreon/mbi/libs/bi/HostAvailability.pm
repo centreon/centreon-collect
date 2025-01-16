@@ -151,7 +151,7 @@ sub getHGMonthAvailability {
 	$query .= " STRAIGHT_JOIN mod_bi_hostgroups hg ON (h.hg_name=hg.hg_name AND h.hg_id=hg.hg_id)";
 	$query .= " STRAIGHT_JOIN mod_bi_hostcategories hc ON (h.hc_name=hc.hc_name AND h.hc_id=hc.hc_id)";
 	$query .= " WHERE t.year = YEAR('".$start."') AND t.month = MONTH('".$start."') and t.hour=0";
-	$query .= " GROUP BY h.hg_id, h.hc_id, ha.liveservice_id";
+	$query .= " GROUP BY h.hg_id, h.hc_id,hc.id,hg.id,  ha.liveservice_id";
 	my $sth = $db->query({ query => $query });
 	
 	$self->{"logger"}->writeLog("DEBUG","[HOST] Calculating MTBF/MTRS/MTBSI for Host");	

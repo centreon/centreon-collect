@@ -83,11 +83,12 @@ VIAddVersionKey "ProductVersion" "${VERSIONMAJOR}.${VERSIONMINOR}.${VERSIONBUILD
 
 InstallDir "$PROGRAMFILES64\${COMPANYNAME}\${APPNAME}"
 !define PLUGINS_DIR "$PROGRAMFILES64\${COMPANYNAME}\Plugins"
+!define PLUGINS_FULL_PATH "${PLUGINS_DIR}\centreon_plugins.exe"
 
 !define HELPURL "https://www.centreon.com/"
 
 Var plugins_url
-
+Var plugins_download_failure
 
 
 !macro verify_user_is_admin
@@ -126,20 +127,17 @@ Function get_plugins_url
     ClearErrors
     inetc::get /header "Accept: application/vnd.github+json" ${NSCLIENT_URL} $json_content_path /End
     ${If} ${Errors}
-        MessageBox MB_OK|MB_ICONSTOP "Failed to get plugin information from ${NSCLIENT_URL}"
-        Abort
+        MessageBox MB_YESNO "Failed to get latest Centreon plugins from ${NSCLIENT_URL}.$\nDo you want to install local Centreon plugins (version ${PLUGINS_VERSION})?" /SD IDYES IDYES continue_with_embedded_plugins IDNO continue_without_plugins
     ${EndIf}
     Pop $0
     ${If} $0 != "OK"
-        MessageBox MB_OK|MB_ICONSTOP "Failed to get plugin information from ${NSCLIENT_URL}: $0"
-        Abort
+        MessageBox MB_YESNO "Failed to get latest Centreon plugins from ${NSCLIENT_URL}.$\nDo you want to install local Centreon plugins (version ${PLUGINS_VERSION})?" /SD IDYES IDYES continue_with_embedded_plugins IDNO continue_without_plugins
     ${EndIf}
 
     #parse json response
     nsJSON::Set /file $json_content_path
     ${If} ${Errors}
-        MessageBox MB_OK|MB_ICONSTOP "bad json received from  ${NSCLIENT_URL}"
-        Abort
+        MessageBox MB_YESNO "Bad json received from  ${NSCLIENT_URL}.$\nDo you want to install local Centreon plugins (version ${PLUGINS_VERSION})?" /SD IDYES IDYES continue_with_embedded_plugins IDNO continue_without_plugins
     ${EndIf}
 
     nsJSON::Get /count `assets` /end
@@ -158,8 +156,13 @@ Function get_plugins_url
         ${EndIf}        
     ${Next}
 
-    MessageBox MB_OK|MB_ICONSTOP "No Plugins Asset found at ${NSCLIENT_URL}"
-    Abort
+    MessageBox MB_YESNO "No Plugins found at ${NSCLIENT_URL} $\nDo you want to install local Centreon plugins (version ${PLUGINS_VERSION})?" /SD IDYES IDYES continue_with_embedded_plugins IDNO continue_without_plugins
+    continue_without_plugins:
+        StrCpy $plugins_download_failure 2
+        Return
+    continue_with_embedded_plugins:
+        StrCpy $plugins_download_failure 1
+        Return
 
 FunctionEnd
 
@@ -167,14 +170,56 @@ FunctionEnd
   * @brief this section download plugings from the asset of the last centreon-nsclient-build release
 */
 Section "Plugins" PluginsInstSection
-    Call get_plugins_url
     CreateDirectory ${PLUGINS_DIR}
-    DetailPrint "download plugins from $plugins_url"
-    inetc::get /caption "plugins"  /banner "Downloading plugins..." "$plugins_url" "${PLUGINS_DIR}/centreon_plugins.exe"
-    ${If} ${Silent}
-        System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
-        System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
-        FileWrite $0 "Centreon plugins installed$\n"
+    ${IfNot} ${Silent}
+        Call get_plugins_url
+        ${If} $plugins_download_failure == 1
+            DetailPrint "Install centreon plugins version ${PLUGINS_VERSION}"
+            File /oname=${PLUGINS_FULL_PATH} "centreon_plugins.exe"
+        ${ElseIf} $plugins_download_failure == 2
+            DetailPrint 'centreon plugins not installed'
+        ${Else}
+            DetailPrint "download plugins from $plugins_url"
+            ClearErrors
+            inetc::get /caption "plugins"  /banner "Downloading plugins..." "$plugins_url" "${PLUGINS_DIR}/centreon_plugins.exe"
+            ${If} ${Errors}
+                MessageBox MB_YESNO "Failed to download latest Centreon plugins.$\nDo you want to install local Centreon plugins (version ${PLUGINS_VERSION})?" /SD IDYES IDYES ui_continue_with_embedded_plugins IDNO ui_continue_without_plugins
+                ui_continue_with_embedded_plugins:
+                    File /oname=${PLUGINS_FULL_PATH} "centreon_plugins.exe"
+                    DetailPrint "Local Centreon plugins (version ${PLUGINS_VERSION}) installed"
+                ui_continue_without_plugins:
+                    DetailPrint 'Centreon plugins have not been installed'
+            ${EndIf}
+        ${EndIf}
+
+    ${Else}
+        ${If} $silent_install_plugins == 2
+            File /oname=${PLUGINS_FULL_PATH} "centreon_plugins.exe"
+            System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+            System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+            FileWrite $0 "Local Centreon plugins (version ${PLUGINS_VERSION}) installed$\n"
+        ${Else}
+            Call get_plugins_url
+            ${If} $plugins_download_failure > 0
+                File /oname=${PLUGINS_FULL_PATH} "centreon_plugins.exe"
+                System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+                System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+                FileWrite $0 "Failed to download latest Centreon plugins => local Centreon plugins (version ${PLUGINS_VERSION}) installed$\n"
+            ${Else}
+                ClearErrors
+                inetc::get /caption "plugins"  /banner "Downloading plugins..." "$plugins_url" "${PLUGINS_DIR}/centreon_plugins.exe"
+                ${If} ${Errors}
+                    File /oname=${PLUGINS_FULL_PATH} "centreon_plugins.exe"
+                    System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+                    System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+                    FileWrite $0 "Failed to download latest Centreon plugins => local Centreon plugins (version ${PLUGINS_VERSION}) installed$\n"
+                ${Else}
+                    System::Call 'kernel32::AttachConsole(i -1)i.r0' ;attach to parent console
+                    System::Call 'kernel32::GetStdHandle(i -11)i.r0' ;console attached -- get stdout
+                    FileWrite $0 "Centreon plugins installed$\n"
+                ${EndIf}
+            ${EndIf}
+        ${EndIf}
     ${EndIf}
 SectionEnd
 
@@ -243,7 +288,8 @@ function .onInit
         SetErrorLevel 0
         ${GetParameters} $cmdline_parameters
         Strcpy $1 "--install_cma        Set this flag if you want to install centreon monitoring agent$\n\
---install_plugins    Set this flag if you want to install centreon plugins$\n"
+--install_plugins    Set this flag if you want to download and install latest version of centreon plugins$\n\
+--install_embedded_plugins Set this flag if you want to install the plugins embedded in the installer$\n"
         Call show_help
         Call show_version
         Call silent_verify_admin
@@ -257,7 +303,7 @@ function .onInit
             SectionSetFlags ${CMAInstSection} 0
         ${EndIf}
 
-        ${If} $silent_install_plugins == 1
+        ${If} $silent_install_plugins > 0
             SectionSetFlags ${PluginsInstSection} ${SF_SELECTED}
         ${Else}
             SectionSetFlags ${PluginsInstSection} 0
@@ -279,7 +325,7 @@ Function setup_cma_show
 FunctionEnd
 
 /**
-  * @brief show cma log dialogbox ig user has choosen to install cma
+  * @brief show cma log dialogbox if user has choosen to install cma
 */
 Function setup_log_show
     ${If} ${SectionIsSelected} ${CMAInstSection}
@@ -288,7 +334,7 @@ Function setup_log_show
 FunctionEnd
 
 /**
-  * @brief show cma encryption dialogbox ig user has choosen to install cma
+  * @brief show cma encryption dialogbox if user has choosen to install cma
 */
 Function setup_cma_encryption_show
     ${If} ${SectionIsSelected} ${CMAInstSection}

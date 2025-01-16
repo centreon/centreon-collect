@@ -122,7 +122,7 @@ void service_enumerator::_enumerate_services(
     if (success || GetLastError() == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
       for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
-        if (start_auto) {
+        if constexpr (start_auto) {
           QUERY_SERVICE_CONFIGA serv_conf;
           if (!_query_service_config(serv->lpServiceName, serv_conf, logger)) {
             continue;
@@ -546,13 +546,14 @@ check_service::check_service(
                         stat),
       _filter(args),
       _enumerator(_enumerator_constructor()) {
-  if (!args.IsObject()) {
-    return;
-  }
   _measure_to_status.emplace(
       std::make_tuple(e_service_metric::nb_service_metric,
                       e_service_metric::nb_service_metric, e_status::ok),
       std::make_unique<w_service_info_to_status>());
+
+  if (!args.IsObject()) {
+    return;
+  }
 
   for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
        ++member_iter) {

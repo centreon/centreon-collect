@@ -70,6 +70,8 @@ int callback_pb_bench(int callback_type, void* data);
 
 int callback_otl_metrics(int callback_type, void* data);
 
+int callback_agent_stats(int callback_type, void* data);
+
 void unregister_callbacks();
 
 }  // namespace neb

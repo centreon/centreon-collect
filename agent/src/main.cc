@@ -20,6 +20,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
 
@@ -163,7 +164,8 @@ int main(int argc, char* argv[]) {
 
   g_logger->flush_on(spdlog::level::warn);
 
-  spdlog::flush_every(std::chrono::seconds(1));
+  // don't use it because spdlog mutex would hang child process
+  // spdlog::flush_every(std::chrono::seconds(1));
 
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
@@ -189,6 +191,8 @@ int main(int argc, char* argv[]) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
   }
+
+  read_os_version();
 
   if (conf.use_reverse_connection()) {
     _streaming_server = streaming_server::load(g_io_context, g_logger,

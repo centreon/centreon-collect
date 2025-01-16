@@ -28,7 +28,12 @@ class bireactor
     : public bireactor_class,
       public std::enable_shared_from_this<bireactor<bireactor_class>> {
  private:
-  static std::set<std::shared_ptr<bireactor>> _instances;
+  /**
+   * @brief we store reactor instances in this container until OnDone is called
+   * by grpc layers. We allocate this container and never free this because
+   * threads terminate in unknown order.
+   */
+  static std::set<std::shared_ptr<bireactor>>* _instances;
   static std::mutex _instances_m;
 
   bool _write_pending;

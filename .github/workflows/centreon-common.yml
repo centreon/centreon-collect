@@ -45,9 +45,6 @@ jobs:
           - package_extension: deb
             image: centreon-collect-debian-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: centreon-collect-ubuntu-jammy
-            distrib: jammy
 
     runs-on: ubuntu-24.04
 
@@ -135,7 +132,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, jammy]
+        distrib: [bookworm]
 
     steps:
       - name: Checkout sources
