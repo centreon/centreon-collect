@@ -24,6 +24,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+#include <spdlog/spdlog.h>
 #include "otl_check_result_builder.hh"
 
 #include "centreon_agent/agent_check_result_builder.hh"

@@ -118,7 +118,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       scope_metric_request& scope_metric,
       const std::string& metric_name);
 
-  void _add_metric_to_scope(uint64_t now,
+  void _add_metric_to_scope(uint64_t check_start,
+                            uint64_t now,
                             const com::centreon::common::perfdata& perf,
                             scope_metric_request& scope_metric);
 
