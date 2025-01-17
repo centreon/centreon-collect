@@ -157,7 +157,7 @@ sub IstemplateLooping {
 	my $row = $sth->fetchrow_hashref();
 
 	my $parentId = $row->{"service_template_model_stm_id"};
-	
+
 	my $isLooping = 0;
 	my $hasParent = 0;
 
@@ -167,7 +167,7 @@ sub IstemplateLooping {
 		$hasParent = 1;
 		push(@parent_templates, $parentId);# add used template to array
 	}
-	
+
 	while($hasParent){
 		my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_id = $parentId LIMIT 1";
 		my $sth = $db->query({ query => $query });
