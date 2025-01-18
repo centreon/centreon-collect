@@ -46,7 +46,7 @@ BSSU2
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BSS3
-    [Documentation]    Start-Stop one instance of broker and no coredump
+    [Documentation]    Start-Stop one instance of broker 5 times and no coredump
     [Tags]    broker    start-stop
     Ctn Config Broker    central
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
