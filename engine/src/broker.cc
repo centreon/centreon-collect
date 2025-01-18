@@ -3913,78 +3913,6 @@ static void send_host_list() {
   neb_logger->info("init: end of host dump");
 }
 
-static void forward_host_parent(nebstruct_relation_data* relation) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
-
-  // Host parent.
-  if (NEBTYPE_PARENT_ADD == relation->type ||
-      NEBTYPE_PARENT_DELETE == relation->type) {
-    if (relation->hst && relation->dep_hst && !relation->svc &&
-        !relation->dep_svc) {
-      // Find host IDs.
-      int host_id = relation->dep_hst->host_id();
-      int parent_id = relation->hst->host_id();
-      if (host_id && parent_id) {
-        // Generate parent event.
-        auto new_host_parent{std::make_shared<neb::host_parent>()};
-        new_host_parent->enabled = (relation->type != NEBTYPE_PARENT_DELETE);
-        new_host_parent->host_id = host_id;
-        new_host_parent->parent_id = parent_id;
-
-        // Send event.
-        SPDLOG_LOGGER_DEBUG(
-            neb_logger, "callbacks: host {} is parent of host {}",
-            new_host_parent->parent_id, new_host_parent->host_id);
-        cbm->write(new_host_parent);
-      }
-    }
-  }
-}
-
-/**
- *  @brief Function that process relation data.
- *
- *  This function is called by Engine when some relation data is
- *  available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_RELATION_DATA).
- *  @param[in] data          Pointer to a nebstruct_relation_data
- *                           containing the relationship.
- *
- *  @return 0 on success.
- */
-static void forward_pb_host_parent(nebstruct_relation_data* relation) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
-
-  // Host parent.
-  if ((NEBTYPE_PARENT_ADD == relation->type) ||
-      (NEBTYPE_PARENT_DELETE == relation->type)) {
-    if (relation->hst && relation->dep_hst && !relation->svc &&
-        !relation->dep_svc) {
-      // Find host IDs.
-      int host_id = relation->dep_hst->host_id();
-      int parent_id = relation->hst->host_id();
-      if (host_id && parent_id) {
-        // Generate parent event.
-        auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
-        new_host_parent->mut_obj().set_enabled(relation->type !=
-                                               NEBTYPE_PARENT_DELETE);
-        new_host_parent->mut_obj().set_child_id(host_id);
-        new_host_parent->mut_obj().set_parent_id(parent_id);
-
-        // Send event.
-        SPDLOG_LOGGER_DEBUG(neb_logger,
-                            "callbacks: pb host {} is parent of host {}",
-                            parent_id, host_id);
-        cbm->write(new_host_parent);
-      }
-    }
-  }
-}
-
 template <bool proto>
 static void send_service_list() {
   // Start log message.
@@ -4123,6 +4051,87 @@ static void send_downtimes_list() {
   neb_logger->info("init: end of downtimes dump");
 }
 
+static void forward_relation(int type,
+                             const engine::host* hst,
+                             const engine::host* dep_hst) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent = std::make_shared<neb::host_parent>();
+          new_host_parent->enabled = type != NEBTYPE_PARENT_DELETE;
+          new_host_parent->host_id = host_id;
+          new_host_parent->parent_id = parent_id;
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(
+              neb_logger, "callbacks: host {} is parent of host {}",
+              new_host_parent->parent_id, new_host_parent->host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+}
+
+/**
+ *  @brief Function that process relation data.
+ *
+ *  This function is called by Engine when some relation data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_RELATION_DATA).
+ *  @param[in] data          Pointer to a nebstruct_relation_data
+ *                           containing the relationship.
+ *
+ *  @return 0 on success.
+ */
+static void forward_pb_relation(int type,
+                                const engine::host* hst,
+                                const engine::host* dep_hst) noexcept {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
+
+  try {
+    // Host parent.
+    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
+      if (hst && dep_hst) {
+        // Find host IDs.
+        int host_id = dep_hst->host_id();
+        int parent_id = hst->host_id();
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
+          new_host_parent->mut_obj().set_enabled(type != NEBTYPE_PARENT_DELETE);
+          new_host_parent->mut_obj().set_child_id(host_id);
+          new_host_parent->mut_obj().set_parent_id(parent_id);
+
+          // Send event.
+          SPDLOG_LOGGER_DEBUG(neb_logger,
+                              "callbacks: pb host {} is parent of host {}",
+                              parent_id, host_id);
+          cbm->write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+}
+
 template <bool proto>
 static void send_host_parents_list() {
   // Start log message.
@@ -4133,18 +4142,13 @@ static void send_host_parents_list() {
     for (const auto& [_, sptr_host] : com::centreon::engine::host::hosts) {
       // Loop through all parents.
       for (const auto& [_, sptr_host_parent] : sptr_host->parent_hosts) {
-        // Fill callback struct.
-        nebstruct_relation_data nsrd;
-        memset(&nsrd, 0, sizeof(nsrd));
-        nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.hst = sptr_host_parent.get();
-        nsrd.dep_hst = sptr_host.get();
-
         // Callback.
         if constexpr (proto)
-          forward_pb_host_parent(&nsrd);
+          forward_pb_relation(NEBTYPE_PARENT_ADD, sptr_host_parent.get(),
+                              sptr_host.get());
         else
-          forward_host_parent(&nsrd);
+          forward_relation(NEBTYPE_PARENT_ADD, sptr_host_parent.get(),
+                           sptr_host.get());
       }
     }
   } catch (std::exception const& e) {
@@ -4451,91 +4455,6 @@ void broker_program_status() {
         pb_config.global_service_event_handler());
 }
 
-static void forward_relation(int type,
-                             const engine::host* hst,
-                             const engine::service* svc,
-                             const engine::host* dep_hst,
-                             const engine::service* dep_svc) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating relation event");
-
-  try {
-    // Host parent.
-    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
-      if (hst && dep_hst && !svc && !dep_svc) {
-        // Find host IDs.
-        int host_id = dep_hst->host_id();
-        int parent_id = hst->host_id();
-        if (host_id && parent_id) {
-          // Generate parent event.
-          auto new_host_parent = std::make_shared<neb::host_parent>();
-          new_host_parent->enabled = type != NEBTYPE_PARENT_DELETE;
-          new_host_parent->host_id = host_id;
-          new_host_parent->parent_id = parent_id;
-
-          // Send event.
-          SPDLOG_LOGGER_DEBUG(
-              neb_logger, "callbacks: host {} is parent of host {}",
-              new_host_parent->parent_id, new_host_parent->host_id);
-          cbm->write(new_host_parent);
-        }
-      }
-    }
-  }
-  // Avoid exception propagation to C code.
-  catch (...) {
-  }
-}
-
-/**
- *  @brief Function that process relation data.
- *
- *  This function is called by Engine when some relation data is
- *  available.
- *
- *  @param[in] callback_type Type of the callback
- *                           (NEBCALLBACK_RELATION_DATA).
- *  @param[in] data          Pointer to a nebstruct_relation_data
- *                           containing the relationship.
- *
- *  @return 0 on success.
- */
-static void forward_pb_relation(int type,
-                                const engine::host* hst,
-                                const engine::service* svc,
-                                const engine::host* dep_hst,
-                                const engine::service* dep_svc) {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
-
-  try {
-    // Host parent.
-    if (NEBTYPE_PARENT_ADD == type || NEBTYPE_PARENT_DELETE == type) {
-      if (hst && dep_hst && !svc && !dep_svc) {
-        // Find host IDs.
-        int host_id = dep_hst->host_id();
-        int parent_id = hst->host_id();
-        if (host_id && parent_id) {
-          // Generate parent event.
-          auto new_host_parent{std::make_shared<neb::pb_host_parent>()};
-          new_host_parent->mut_obj().set_enabled(type != NEBTYPE_PARENT_DELETE);
-          new_host_parent->mut_obj().set_child_id(host_id);
-          new_host_parent->mut_obj().set_parent_id(parent_id);
-
-          // Send event.
-          SPDLOG_LOGGER_DEBUG(neb_logger,
-                              "callbacks: pb host {} is parent of host {}",
-                              parent_id, host_id);
-          cbm->write(new_host_parent);
-        }
-      }
-    }
-  }
-  // Avoid exception propagation to C code.
-  catch (...) {
-  }
-}
-
 /**
  *  Send relationship data to broker.
  *
@@ -4553,14 +4472,14 @@ void broker_relation_data(int type,
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_RELATION_DATA))
     return;
-  if (!hst || !dep_hst)
+  if (!hst || !dep_hst || svc || dep_svc)
     return;
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_relation(type, hst, svc, dep_hst, dep_svc);
+    forward_pb_relation(type, hst, dep_hst);
   else
-    forward_relation(type, hst, svc, dep_hst, dep_svc);
+    forward_relation(type, hst, dep_hst);
 }
 
 static void forward_service_check(int type,
