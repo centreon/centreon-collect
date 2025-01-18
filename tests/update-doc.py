@@ -95,11 +95,11 @@ On AlmaLinux, the following commands should work to initialize your robot tests:
 ```bash
 dnf install "Development Tools" python3-devel -y
 
-pip3 install -U robotframework \
-        robotframework-databaselibrary \
-        robotframework-examples pymysql \
-        robotframework-requests psutil \
-        robotframework-httpctrl boto3 \
+pip3 install -U robotframework \\
+        robotframework-databaselibrary \\
+        robotframework-examples pymysql \\
+        robotframework-requests psutil \\
+        robotframework-httpctrl boto3 \\
         GitPython unqlite py-cpuinfo
 
 
@@ -123,22 +123,26 @@ dnf install perl-HTTP-Daemon-SSL
 dnf install perl-JSON
 ```
 
-Then you can initialize the tests with the following commands:
+To work with gRPC, we also need to install some python modules.
+
+On rpm based system, we have to install:
+```
+yum install python3-devel -y
+```
+
+On deb based system, we have to install:
+```
+apt-get install python3-dev
+```
+
+And then we can install the required python modules:
+```
+pip3 install grpcio grpcio_tools
+```
+
+Now it should be possible to initialize the tests with the following commands:
 
 ```bash
-./init-proto.sh
-./init-sql.sh
-```
-
-On other rpm based distributions, you can try the following commands to initialize your robot tests:
-
-```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql robotframework-requests
-
-yum install python3-devel -y
-
-pip3 install grpcio grpcio_tools
-
 ./init-proto.sh
 ./init-sql.sh
 ```
@@ -176,7 +180,7 @@ for k in keys:
     name = name.replace('_', ' ').capitalize()
     out.write(f"### {name}\n")
     if isinstance(dico[k], str):
-        out.write(f"{idx}. [x] **{k}**: {dico[k]}\n")
+        out.write(f"{idx}. **{k}**: {dico[k]}\n")
         idx += 1
         count += 1
     else:
@@ -185,7 +189,7 @@ for k in keys:
         idx = 1
         for kk in tests:
             if isinstance(dico[k][kk], str):
-                out.write(f"{idx}. [x] **{kk}**: {dico[k][kk]}\n")
+                out.write(f"{idx}. **{kk}**: {dico[k][kk]}\n")
                 idx += 1
                 count += 1
             else:
