@@ -283,6 +283,7 @@ int main(int argc, char* argv[]) {
         // Read in the configuration files (main config file,
         // resource and object config files).
         configuration::error_cnt err;
+	cbm = std::make_unique<cbmod>();
         configuration::State pb_config;
         {
           configuration::parser p;
