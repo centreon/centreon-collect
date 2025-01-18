@@ -80,6 +80,7 @@ class cbmod {
   size_t acknowledgements_count() const;
   private_downtime_params& get_downtime(uint32_t downtime_id);
   void remove_downtime(uint32_t downtime_id);
+  void reload();
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
