@@ -173,4 +173,20 @@ void cbmod::remove_downtime(uint32_t downtime_id) {
   _downtimes.erase(downtime_id);
 }
 
+void cbmod::reload() {
+  if (com::centreon::broker::config::applier::state::instance()
+          .get_bbdo_version()
+          .major_v > 2) {
+    auto ic = std::make_shared<neb::pb_instance_configuration>();
+    auto& obj = ic->mut_obj();
+    obj.set_loaded(true);
+    obj.set_poller_id(config::applier::state::instance().poller_id());
+    write(ic);
+  } else {
+    auto ic = std::make_shared<neb::instance_configuration>();
+    ic->loaded = true;
+    ic->poller_id = config::applier::state::instance().poller_id();
+    write(ic);
+  }
+}
 }  // namespace com::centreon::broker::neb
