@@ -1560,6 +1560,7 @@ void applier::state::_processing(configuration::State& new_cfg,
 
       broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
     } else {
+      cbm->reload();
       neb_reload_all_modules();
     }
 
