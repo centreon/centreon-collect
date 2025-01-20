@@ -12,9 +12,9 @@ Test Teardown       Ctn Save Logs If Failed
 *** Test Cases ***
 BEACK1
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it.
-    ...                The centreon_storage.acknowledgements table is then updated with this acknowledgement.
-    ...                The service is newly set to OK. And the acknowledgement in database is deleted from engine
-    ...                but still open on the database.
+    ...    The centreon_storage.acknowledgements table is then updated with this acknowledgement.
+    ...    The service is newly set to OK. And the acknowledgement in database is deleted from engine
+    ...    but still open on the database.
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -23,7 +23,7 @@ BEACK1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
