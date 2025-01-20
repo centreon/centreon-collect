@@ -13,11 +13,6 @@ on:
         default: true
         type: boolean
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
     paths:
       - ".version"
       - ".version.centreon-gorgone"
@@ -80,23 +75,6 @@ jobs:
               - '/perl-libs/lib/!(t)/**'
               - '/perl-libs/*'
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
-  veracode-analysis:
-    needs: [get-environment]
-    if: ${{ needs.get-environment.outputs.is_targeting_feature_branch != 'true' && github.event.pull_request.draft != 'true' }}
-    uses: ./.github/workflows/veracode-analysis.yml
-    with:
-      module_directory: gorgone
-      module_name: centreon-gorgone
-      major_version: ${{ needs.get-environment.outputs.major_version }}
-      minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
-    secrets:
-      veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
-      veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
-      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   unit-test-perl:
     needs: [get-environment, changes]

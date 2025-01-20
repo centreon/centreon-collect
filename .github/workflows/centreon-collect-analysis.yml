@@ -1,0 +1,48 @@
+name: centreon-collect-analysis
+run-name: |
+  (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true')) &&
+  format('{0} nightly {1}', github.workflow, github.ref_name) ||
+  ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      nightly_manual_trigger:
+        description: 'Set to true for nightly run'
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    - cron: '30 0 * * 1-5'
+  pull_request:
+
+jobs:
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
+    with:
+      version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+
+  veracode-analysis:
+    needs: [get-environment]
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   github.event_name == 'schedule' &&
+    #   github.ref_name == 'develop'
+
+    uses: ./.github/workflows/veracode-analysis.yml
+    with:
+      module_name: centreon-collect
+      major_version: ${{ needs.get-environment.outputs.major_version }}
+      minor_version: ${{ needs.get-environment.outputs.minor_version }}
+      img_version: ${{ needs.get-environment.outputs.img_version }}
+    secrets:
+      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
+      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
+      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
