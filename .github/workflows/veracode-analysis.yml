@@ -55,6 +55,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" && -n "${{ github.event.pull_request.number }}" && -n "${{ github.event.pull_request.draft }}" && "${{ github.event.pull_request.draft }}" == "false" ]] || [[ "$DEVELOPMENT_STAGE" != "Development" ]]; then
             SKIP_ANALYSIS="false"
           fi
+          SKIP_ANALYSIS="false"
 
           echo "development_stage=$DEVELOPMENT_STAGE" >> $GITHUB_OUTPUT
           echo "skip_analysis=$SKIP_ANALYSIS" >> $GITHUB_OUTPUT
