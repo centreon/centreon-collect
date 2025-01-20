@@ -64,13 +64,10 @@ jobs:
       module_name: centreon-gorgone
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
       veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   set-skip-label:
     needs: [get-environment, veracode-analysis]
