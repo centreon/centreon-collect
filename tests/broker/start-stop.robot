@@ -135,6 +135,7 @@ START_STOP_CBD
         Should Be Equal    "${output}"    "()"    at least one host state is null
     END
 
+    Disconnect From Database
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Stop Broker
 
