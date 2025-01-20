@@ -19,7 +19,7 @@ BAWORST
     ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -109,6 +109,7 @@ BAWORST
 
     ${res}    Ctn Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
     Should Be True    ${res}    central-bam-reporting not connected
+    Disconnect From Database
 
     Ctn Reload Engine
     Ctn Reload Broker
@@ -158,7 +159,7 @@ BAWORST2
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -243,7 +244,7 @@ BABEST_SERVICE_CRITICAL
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -346,7 +347,7 @@ BA_IMPACT_2KPI_SERVICES
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -451,7 +452,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -553,7 +554,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -659,7 +660,7 @@ BA_BOOL_KPI
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -705,8 +706,9 @@ BEPB_DIMENSION_BV_EVENT
     Execute SQL String
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
 
+    Disconnect From Database
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -737,8 +739,9 @@ BEPB_DIMENSION_BA_EVENT
     Execute SQL String
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
 
+    Disconnect From Database
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -770,8 +773,9 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
 
+    Disconnect From Database
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -787,8 +791,9 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     @{query_results}    Query    SELECT bv_id FROM mod_bam_reporting_relations_ba_bv WHERE bv_id=456 and ba_id=1
 
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
+    Disconnect From Database
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    ${True}
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -806,8 +811,9 @@ BEPB_DIMENSION_TIMEPERIOD
     Execute SQL String
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 
+    Disconnect From Database
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -832,7 +838,7 @@ BEPB_DIMENSION_KPI_EVENT
     Ctn Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${expected}    Catenate    (('bool test',    ${baid_svcid[0]}
@@ -850,6 +856,7 @@ BEPB_DIMENSION_KPI_EVENT
     END
 
     Should Be Equal As Strings    ${output}    ${expected}    mod_bam_reporting_kpi not filled
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -863,7 +870,7 @@ BEPB_KPI_STATUS
     Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${start}    Get Current Date    result_format=epoch
 
@@ -886,6 +893,7 @@ BEPB_KPI_STATUS
     ${output}    Fetch From Left    ${output}    ,
 
     Should Be True    (${output} + 0.999) >= ${start}
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -899,12 +907,13 @@ BEPB_BA_DURATION_EVENT
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
+    Disconnect From Database
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     # KPI set to critical
     ${start_event}    Ctn Get Round Current Date
@@ -926,7 +935,7 @@ BEPB_BA_DURATION_EVENT
     END
 
     IF    "${output}" == "()"
-	Log To Console    "Bad return for this test, the content of the table is"
+        Log To Console    "Bad return for this test, the content of the table is"
         ${output}    Query
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations
         Log To Console    ${output}
@@ -938,6 +947,7 @@ BEPB_BA_DURATION_EVENT
     Should Be True    ${output[0][1]} > ${output[0][0]}
     Should Be True    ${output[0][0]} >= ${start_event}
     Should Be True    ${output[0][1]} <= ${end_event}
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -954,9 +964,10 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+    Disconnect From Database
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
@@ -969,6 +980,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Should Be True
     ...    len("""${output}""") > 5
     ...    "centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -986,7 +998,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -1017,7 +1029,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1063,7 +1075,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1078,7 +1090,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1124,7 +1136,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
@@ -1182,7 +1194,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_IMPACT_IMPACT
     [Documentation]    A BA of type impact is defined with two BAs of type impact
@@ -1263,7 +1275,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_DISABLED
     [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
@@ -1303,6 +1315,7 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+    Disconnect From Database
 
 Ctn BAM Init
     Ctn Clear Commands Status

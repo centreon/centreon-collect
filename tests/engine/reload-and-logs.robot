@@ -26,14 +26,18 @@ ERL
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    Log To Console    centengine.log should exist
     File Should Exist    ${VarRoot}/log/centreon-engine/config0/centengine.log
 
+    Log To Console    centengine.log is removed
     Remove File    ${VarRoot}/log/centreon-engine/config0/centengine.log
 
     Sleep    5s
 
+    Log To Console    After 5s, centengine.log should not exist
     File Should Not Exist    ${VarRoot}/log/centreon-engine/config0/centengine.log
     Ctn Reload Engine
+    Log To Console    After centengine reload, centengine.log should exist again.
 
     Wait Until Created    ${VarRoot}/log/centreon-engine/config0/centengine.log    timeout=30s
     Ctn Stop Engine
