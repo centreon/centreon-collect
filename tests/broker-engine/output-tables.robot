@@ -272,3 +272,87 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Ctn Stop engine
     Ctn Kindly Stop Broker
+
+BE_FLAPPING_SERVICE_RESOURCE
+    [Documentation]    With BBDO 3, flapping detection must be set in services and resources tables.
+    [Tags]    broker    engine    protobuf    MON-154773
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    0    enable_flap_detection    1
+    Ctn Set Services Passive    ${0}    service_1
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    low_flap_threshold    10
+    Ctn Engine Config Set Value In Services    0    service_1    high_flap_threshold    20
+    Ctn Engine Config Set Value In Services    0    service_1    flap_detection_options    all
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    DELETE FROM services
+    Execute SQL String    DELETE FROM resources
+    Execute SQL String    DELETE FROM hosts
+
+    Ctn Clear Retention
+
+    Ctn Start Broker    
+    Ctn Start engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    # generate flapping
+    FOR    ${index}    IN RANGE    21
+        Ctn Process Service Result Hard    host_1    service_1    2    flapping
+        Ctn Process Service Check Result    host_1    service_1    0    flapping
+        Sleep    1s
+    END
+
+    ${result}    Ctn Check Service Flapping   host_1    service_1    30    5    50
+    Should Be True    ${result}   The service or resource (host_1,service_1) is not flapping as expected
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    
+
+
+BE_FLAPPING_HOST_RESOURCE
+    [Documentation]    With BBDO 3, flapping detection must be set in hosts and resources tables.
+    [Tags]    broker    engine    protobuf    MON-154773
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Engine Config Set Value    0    enable_flap_detection    1
+    Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Set Value In Hosts    0    host_1    flap_detection_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    low_flap_threshold    10
+    Ctn Engine Config Set Value In Hosts    0    host_1    high_flap_threshold    20
+    Ctn Engine Config Set Value In Hosts    0    host_1    flap_detection_options    all
+    Ctn Broker Config Log    central    sql    trace
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    DELETE FROM services
+    Execute SQL String    DELETE FROM resources
+    Execute SQL String    DELETE FROM hosts
+
+    Ctn Clear Retention
+
+    Ctn Start Broker    
+    Ctn Start engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    # generate flapping
+    FOR    ${index}    IN RANGE    21
+        Ctn Process Host Result Hard    host_1    2    flapping
+        Ctn Process Host Check Result    host_1    0    flapping
+        Sleep    1s
+    END
+
+    ${result}    Ctn Check Host Flapping   host_1    30    5    50
+    Should Be True    ${result}   The host or resource host_1 is not flapping as expected
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    
