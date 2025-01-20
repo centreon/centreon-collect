@@ -941,17 +941,12 @@ BEEXTCMD23
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Disable Host Check    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
