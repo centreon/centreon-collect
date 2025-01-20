@@ -55,12 +55,12 @@ jobs:
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
-          - package_extension: deb
-            image: centreon-collect-ubuntu-jammy
-            distrib: jammy
-            lua_version: 5.3
-            runner: ubuntu-24.04
-            arch: amd64
+          # - package_extension: deb
+          #   image: centreon-collect-ubuntu-jammy
+          #   distrib: jammy
+          #   lua_version: 5.3
+          #   runner: ubuntu-24.04
+          #   arch: amd64
           - package_extension: deb
             image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm

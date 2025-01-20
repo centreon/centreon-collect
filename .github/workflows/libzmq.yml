@@ -89,10 +89,10 @@ jobs:
             distrib: bookworm
             runner: ubuntu-24.04
             arch: amd64
-          - image: packaging-nfpm-jammy
-            distrib: jammy
-            runner: ubuntu-24.04
-            arch: amd64
+          # - image: packaging-nfpm-jammy
+          #   distrib: jammy
+          #   runner: ubuntu-24.04
+          #   arch: amd64
 
     runs-on: ${{ matrix.runner }}
 
