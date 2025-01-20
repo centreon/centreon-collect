@@ -28,7 +28,7 @@ BEACK1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    debug
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
