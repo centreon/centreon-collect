@@ -1004,11 +1004,9 @@ static void forward_pb_service(int type,
           neb_logger, "callbacks: adaptive service field {} not implemented.",
           modified_attribute);
     }
-    std::pair<uint64_t, uint64_t> p{
-        engine::get_host_and_service_id(es->get_hostname(), es->description())};
-    if (p.first && p.second) {
-      srv.set_host_id(p.first);
-      srv.set_service_id(p.second);
+    if (es->host_id() && es->service_id()) {
+      srv.set_host_id(es->host_id());
+      srv.set_service_id(es->service_id());
       // Send service event.
       SPDLOG_LOGGER_DEBUG(neb_logger,
                           "callbacks: new service {} ('{}') on host {}",
@@ -1154,10 +1152,8 @@ static void forward_pb_service(int type,
     }
 
     // Search host ID and service ID.
-    std::pair<uint64_t, uint64_t> p;
-    p = engine::get_host_and_service_id(es->get_hostname(), es->description());
-    srv.set_host_id(p.first);
-    srv.set_service_id(p.second);
+    srv.set_host_id(es->host_id());
+    srv.set_service_id(es->service_id());
     if (srv.host_id() && srv.service_id())
       SPDLOG_LOGGER_DEBUG(neb_logger,
                           "callbacks: service ({}, {}) has a severity id {}",
@@ -1200,9 +1196,9 @@ void broker_adaptive_service_data(int type,
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_service(type, flags, modattr, svc);
-  else
     forward_pb_service(type, flags, modattr, svc);
+  else
+    forward_service(type, flags, modattr, svc);
 }
 
 static void forward_comment(int type,
