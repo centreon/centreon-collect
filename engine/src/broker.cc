@@ -485,9 +485,7 @@ static void forward_pb_host(int type,
 
   if (type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
       modified_attribute != MODATTR_ALL) {
-    std::shared_ptr<neb::pb_adaptive_host> h;
-    // auto h =
-    // std::make_shared<neb::pb_adaptive_host>();
+    auto h = std::make_shared<neb::pb_adaptive_host>();
     auto& hst = h->mut_obj();
     if (modified_attribute & MODATTR_NOTIFICATIONS_ENABLED)
       hst.set_notify(eh->get_notifications_enabled());
@@ -524,7 +522,7 @@ static void forward_pb_host(int type,
       assert(1 == 0);
     }
 
-    uint64_t host_id = engine::get_host_id(eh->name());
+    uint64_t host_id = eh->host_id();
     if (host_id != 0) {
       hst.set_host_id(host_id);
 
@@ -662,7 +660,7 @@ static void forward_pb_host(int type,
     }
 
     // Find host ID.
-    uint64_t host_id = engine::get_host_id(host.name());
+    uint64_t host_id = eh->host_id();
     if (host_id != 0) {
       host.set_host_id(host_id);
 
@@ -1982,7 +1980,8 @@ static void forward_external_command(int type,
                                      char* command_args,
                                      const struct timeval* timestamp) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data: {}",
+                      command_args);
 
   if (type == NEBTYPE_EXTERNALCOMMAND_START) {
     if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
@@ -2083,7 +2082,7 @@ static void forward_pb_external_command(int type,
                                         char* command_args,
                                         const struct timeval* timestamp) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: pb external command data");
 
   if (type == NEBTYPE_EXTERNALCOMMAND_START) {
     auto args = absl::StrSplit(common::check_string_utf8(command_args), ';');
