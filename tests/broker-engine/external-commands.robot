@@ -316,7 +316,7 @@ BEEXTCMD8
     END
 
 BEEXTCMD9
-    [Documentation]    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0
+    [Documentation]    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS with bbdo3.0
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -324,18 +324,13 @@ BEEXTCMD9
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
-    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
         Ctn Clear Retention
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+	Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
