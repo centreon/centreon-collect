@@ -25,7 +25,7 @@ BEEXTCMD1
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -45,7 +45,8 @@ BEEXTCMD1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -62,7 +63,7 @@ BEEXTCMD2
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -82,7 +83,8 @@ BEEXTCMD2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -97,18 +99,13 @@ BEEXTCMD3
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    trace
-    Ctn Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Ctn Clear Retention
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Start Broker
-        Ctn Start engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -121,7 +118,8 @@ BEEXTCMD3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -139,7 +137,7 @@ BEEXTCMD4
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -157,7 +155,8 @@ BEEXTCMD4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -176,7 +175,7 @@ BEEXTCMD5
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -196,7 +195,8 @@ BEEXTCMD5
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -213,7 +213,7 @@ BEEXTCMD6
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -233,7 +233,8 @@ BEEXTCMD6
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -254,7 +255,7 @@ BEEXTCMD7
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -272,7 +273,8 @@ BEEXTCMD7
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -290,7 +292,7 @@ BEEXTCMD8
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -308,7 +310,8 @@ BEEXTCMD8
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -327,7 +330,7 @@ BEEXTCMD9
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -357,7 +360,8 @@ BEEXTCMD9
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -374,7 +378,7 @@ BEEXTCMD10
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -394,7 +398,8 @@ BEEXTCMD10
             IF    "${output}" == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -415,7 +420,7 @@ BEEXTCMD11
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -442,7 +447,8 @@ BEEXTCMD11
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -460,7 +466,7 @@ BEEXTCMD12
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -478,8 +484,9 @@ BEEXTCMD12
             IF    "${output}" == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -500,7 +507,7 @@ BEEXTCMD13
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -518,8 +525,9 @@ BEEXTCMD13
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -537,7 +545,7 @@ BEEXTCMD14
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -555,8 +563,9 @@ BEEXTCMD14
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -577,7 +586,7 @@ BEEXTCMD15
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -595,8 +604,9 @@ BEEXTCMD15
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -614,7 +624,7 @@ BEEXTCMD16
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -632,8 +642,9 @@ BEEXTCMD16
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -654,7 +665,7 @@ BEEXTCMD17
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -674,8 +685,9 @@ BEEXTCMD17
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -693,7 +705,7 @@ BEEXTCMD18
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -713,8 +725,9 @@ BEEXTCMD18
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -735,7 +748,7 @@ BEEXTCMD19
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -755,8 +768,9 @@ BEEXTCMD19
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -774,7 +788,7 @@ BEEXTCMD20
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -794,8 +808,9 @@ BEEXTCMD20
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -817,7 +832,7 @@ BEEXTCMD21
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -864,8 +879,9 @@ BEEXTCMD21
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -884,7 +900,7 @@ BEEXTCMD22
         ...    external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -913,8 +929,9 @@ BEEXTCMD22
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -934,7 +951,7 @@ BEEXTCMD23
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -999,7 +1016,8 @@ BEEXTCMD23
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Ctn Stop engine
+	Disconnect From Database
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1016,7 +1034,7 @@ BEEXTCMD24
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1063,8 +1081,9 @@ BEEXTCMD24
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1084,7 +1103,7 @@ BEEXTCMD25
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1113,8 +1132,9 @@ BEEXTCMD25
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1131,7 +1151,7 @@ BEEXTCMD26
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1160,8 +1180,9 @@ BEEXTCMD26
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1181,7 +1202,7 @@ BEEXTCMD27
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1210,8 +1231,9 @@ BEEXTCMD27
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1228,7 +1250,7 @@ BEEXTCMD28
     FOR    ${use_grpc}    IN RANGE    0    1
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1257,8 +1279,9 @@ BEEXTCMD28
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
 
@@ -1280,7 +1303,7 @@ BEEXTCMD29
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
@@ -1327,7 +1350,8 @@ BEEXTCMD29
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
+	Disconnect From Database
 
-        Ctn Stop engine
+        Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
