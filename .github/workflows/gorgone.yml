@@ -16,7 +16,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-gorgone"
-      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
       - "!gorgone/tests/**"
@@ -31,7 +30,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-gorgone"
-      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
       - "!gorgone/tests/**"
