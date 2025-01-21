@@ -50,9 +50,8 @@ class failover : public endpoint {
 
   std::thread _thread;
   enum _running_state { not_started, running, stopped };
-  _running_state _state;
-  mutable std::mutex _state_m;
-  std::condition_variable _state_cv;
+  _running_state _state ABSL_GUARDED_BY(_state_m);
+  mutable absl::Mutex _state_m;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _run();
