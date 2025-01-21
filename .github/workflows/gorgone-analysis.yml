@@ -20,7 +20,6 @@ on:
       - ready_for_review
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
       - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
@@ -35,7 +34,6 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
       - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
@@ -50,7 +48,7 @@ jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: .version.centreon-gorgone
+      version_file: gorgone/.version
 
   veracode-analysis:
     needs: [get-environment]
