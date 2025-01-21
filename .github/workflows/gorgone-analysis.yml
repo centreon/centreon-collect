@@ -50,7 +50,7 @@ jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: .version.centreon-gorgone
+      version_file: gorgone/.version
 
   veracode-analysis:
     needs: [get-environment]
