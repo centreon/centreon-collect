@@ -1215,13 +1215,10 @@ BA_IMPACT_IMPACT
     Ctn Add Ba Kpi    ${child1_ba[0]}    ${parent_ba[0]}    90    2    3
     Ctn Add Ba Kpi    ${child2_ba[0]}    ${parent_ba[0]}    10    2    3
 
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${start}    Get Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     FOR    ${state}    ${value}    IN
     ...    OK    0
