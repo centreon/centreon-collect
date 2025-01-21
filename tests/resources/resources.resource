@@ -132,11 +132,15 @@ Ctn Kindly Stop Broker
         ELSE
 	    ${Bbdo2}   Ctn In Bbdo2
             IF    not ${Bbdo2}
-		Log To Console    "We are in BBDO3, so we also check RRD duplicates"
-                Log To Console    "central broker stopped"
-                # We have to check if central RRD logs contain errors about data sent in the past.
-                ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+	        IF    not ${only_central}
+		    Log To Console    "We are in BBDO3, so we also check RRD duplicates"
+		    Log To Console    "central broker stopped"
+		    # We have to check if central RRD logs contain errors about data sent in the past.
+		    ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+		    Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+		ELSE
+		    Log To Console    "Broker RRD was not started, so we don't check RRD duplicates"
+		END
 	    ELSE
 		Log To Console    "We are in BBDO2, so we don't check RRD duplicates"
             END
