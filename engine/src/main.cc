@@ -22,6 +22,7 @@
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
+#include <sys/resource.h>
 #include <unistd.h>
 #include <forward_list>
 #include <random>
@@ -92,6 +93,40 @@ std::shared_ptr<asio::io_context> g_io_context(
   "    version. Make sure to read the documentation regarding the config\n"  \
   "    files, as well as the version changelog to find out what has\n"       \
   "    changed.\n"
+
+/**
+ * @brief increase soft limit of opened file descriptors
+ *
+ * @param soft_fd_limit
+ */
+static void increase_fd_limit(uint32_t soft_fd_limit) {
+  struct rlimit rlim;
+  if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+    if (soft_fd_limit > rlim.rlim_max) {
+      SPDLOG_LOGGER_ERROR(
+          process_logger,
+          "Soft limit of opened file descriptors {} is greater than hard "
+          "limit {}, we will set it to hard limit",
+          soft_fd_limit, rlim.rlim_max);
+      soft_fd_limit = rlim.rlim_max;
+    }
+    rlim.rlim_cur = soft_fd_limit;
+    if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+      SPDLOG_LOGGER_ERROR(process_logger,
+                          "Failed to set soft limit of opened file descriptors "
+                          "to {}",
+                          soft_fd_limit);
+    } else {
+      SPDLOG_LOGGER_INFO(process_logger,
+                         "Soft limit of opened file descriptors set to {}",
+                         soft_fd_limit);
+    }
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        process_logger,
+        "Failed to get current limit of opened file descriptors");
+  }
+}
 
 /**
  *  Centreon Engine entry point.
@@ -507,6 +542,9 @@ int main(int argc, char* argv[]) {
           port = generate_port();
 
         const std::string& listen_address = pb_config.rpc_listen_address();
+        uint32_t max_fd = pb_config.max_file_descriptors();
+        if (max_fd)
+          increase_fd_limit(max_fd);
 
         std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
             new enginerpc(listen_address, port), [](enginerpc* rpc) {

@@ -2142,3 +2142,23 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
     logger.console(f"unexpected result: {result}")
     return False
 
+def get_process_limit(pid:int, limit:str):
+    """
+    get_process_limit
+
+    Get a limit of a process
+    Args:
+        pid: process id
+        limit: limit to get
+
+    Returns: limit value
+    """
+    try:
+        with open(f"/proc/{pid}/limits") as f:
+            for line in f:
+                if limit in line:
+                    fields = line.split()
+                    return int(fields[len(fields) - 3]), int(fields[len(fields) - 2])
+    except:
+        return -1, -1
+    return -1, -1
