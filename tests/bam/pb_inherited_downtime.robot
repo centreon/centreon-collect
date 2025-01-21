@@ -152,7 +152,7 @@ BEBAMIDTU2
     ${result}    Ctn Number Of Downtimes Is    0    60
     Should Be True    ${result}    We should have no more downtime
 
-    Log To Console    Broker is stopped (end of BEBAMIDT2)
+    Log To Console    Broker is stopped (end of BEBAMIDTU2)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
