@@ -455,7 +455,8 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+      github.repository == 'centreon/centreon-collect' &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
