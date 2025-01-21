@@ -106,7 +106,7 @@ runs:
         # + REPO ESR (22.10 ONLY)
         elif [[ ${{ inputs.release_cloud }} -eq 0 ]]; then
           echo "[DEBUG] : NOT Release cloud + ${{ inputs.release_type }}, using rpm-standard and rpm-standard-esr."
-          ROOT_REPO_PATHS="rpm-standard rpm-standard-esr"
+          ROOT_REPO_PATHS=("rpm-standard" "rpm-standard-esr")
           UPLOAD_REPO_PATH="${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/"
 
         # ANYTHING ELSE
