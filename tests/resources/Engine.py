@@ -299,15 +299,15 @@ class EngineInstance:
 
         Create Bam Command
         """
-        retval = """define command {
+        retval = f"""define command {{
   command_name                   centreon-bam-check
-  command_line                   $CENTREONPLUGINS$/check_centreon_bam -i $ARG1$
-                }
+  command_line                   {ENGINE_HOME}/check_centreon_bam -i $ARG1$
+                }}
 
-define command {
+define command {{
   command_name                   centreon-bam-host-alive
   command_line                   /usr/lib64/nagios/plugins//check_ping -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1
-}
+}}
 """
         config_dir = "{}/config0".format(CONF_DIR)
         with open(f"{config_dir}/centreon-bam-command.cfg", "a+") as ff:
@@ -764,7 +764,7 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "notif.pl"]:
+            for file in ["check.pl", "notif.pl", "check_centreon_bam"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
