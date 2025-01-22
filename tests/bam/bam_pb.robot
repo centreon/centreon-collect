@@ -18,13 +18,9 @@ BAWORST
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
     ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
@@ -158,12 +154,9 @@ BAWORST2
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -243,12 +236,9 @@ BABEST_SERVICE_CRITICAL
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
@@ -346,12 +336,9 @@ BA_IMPACT_2KPI_SERVICES
     Ctn Add Service Kpi    host_16    service_303    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # service_302 critical service_303 warning => ba warning 30%
     Ctn Process Service Result Hard    host_16    service_302    2    output critical for service_302
@@ -451,12 +438,9 @@ BA_RATIO_PERCENT_BA_SERVICE
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -553,12 +537,9 @@ BA_RATIO_NUMBER_BA_SERVICE
     Ctn Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -659,12 +640,9 @@ BA_BOOL_KPI
     ...    100
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # 302 warning and 303 critical    => ba critical
     Ctn Process Service Result Hard
@@ -870,9 +848,9 @@ BEPB_KPI_STATUS
     Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-
-    ${start}    Get Current Date    result_format=epoch
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -913,10 +891,11 @@ BEPB_BA_DURATION_EVENT
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
     Ctn Start Broker    True
+    ${start_event}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start_event}
 
     # KPI set to critical
-    ${start_event}    Ctn Get Round Current Date
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Ctn Check Service Resource Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -1027,13 +1006,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
     Ctn Add Service Kpi    host_16    service_304    ${id_ba__sid[0]}    40    30    20
 
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    ${start}    Get Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # all serv ok => ba ok
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
@@ -1089,12 +1065,9 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Add Service Kpi    host_16    service_305    ${id_ba__sid[0]}    40    30    20
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # all serv ok => ba ok
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
@@ -1150,12 +1123,9 @@ BA_CHANGED
     ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # Both services ${state} => The BA parent is ${state}
     Ctn Process Service Result Hard
