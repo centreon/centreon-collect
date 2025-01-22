@@ -393,7 +393,7 @@ int cmd_schedule_check(int cmd, char* args) {
   /* schedule the host check */
   if (cmd == CMD_SCHEDULE_HOST_CHECK || cmd == CMD_SCHEDULE_FORCED_HOST_CHECK)
     temp_host->schedule_check(delay_time,
-                              (cmd == CMD_SCHEDULE_FORCED_HOST_CHECK)
+                              cmd == CMD_SCHEDULE_FORCED_HOST_CHECK
                                   ? CHECK_OPTION_FORCE_EXECUTION
                                   : CHECK_OPTION_NONE);
 
@@ -406,13 +406,13 @@ int cmd_schedule_check(int cmd, char* args) {
       if (!it->second)
         continue;
       it->second->schedule_check(delay_time,
-                                 (cmd == CMD_SCHEDULE_FORCED_HOST_SVC_CHECKS)
+                                 cmd == CMD_SCHEDULE_FORCED_HOST_SVC_CHECKS
                                      ? CHECK_OPTION_FORCE_EXECUTION
                                      : CHECK_OPTION_NONE);
     }
   } else
     found->second->schedule_check(delay_time,
-                                  (cmd == CMD_SCHEDULE_FORCED_SVC_CHECK)
+                                  cmd == CMD_SCHEDULE_FORCED_SVC_CHECK
                                       ? CHECK_OPTION_FORCE_EXECUTION
                                       : CHECK_OPTION_NONE);
 
