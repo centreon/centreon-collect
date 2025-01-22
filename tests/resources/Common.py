@@ -924,6 +924,12 @@ def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout
 
 
 def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
+    """ check if the expected number of downtimes is present in the database.
+
+    Args:
+        nb: Expected number of downtimes
+        timeout: timeout in seconds
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -938,6 +944,7 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute(
                     "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
+                logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['count(*)'] is not None:
                     if result[0]['count(*)'] == int(nb):
                         return True
