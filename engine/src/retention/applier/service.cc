@@ -632,6 +632,8 @@ void applier::service::update(const configuration::State& config,
 
   // update service status.
   obj.update_adaptive_data();
-  obj.update_status();
+  // FIXME DBO: update_status should not be called here since it is in retention
+  // so already sent.
+  //obj.update_status();
 }
 #endif
