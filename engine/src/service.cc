@@ -2833,9 +2833,9 @@ int service::run_async_check_local(int check_options,
 /**
  *  Schedules an immediate or delayed service check.
  *
- *  @param[in] svc         Target service.
  *  @param[in] check_time  Desired check time.
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
+ *  @param no_update_stats_now	If true, the status will not be updated now.
  *
  * @return A boolean telling if service_status has been sent or if
  * no_update_status_now is true, if it should be sent.
@@ -2892,7 +2892,7 @@ bool service::schedule_check(time_t check_time,
       // The new event is also forced and its execution time is earlier
       // than the original, so use it instead.
       if ((options & CHECK_OPTION_FORCE_EXECUTION) &&
-          (check_time < temp_event->run_time)) {
+          check_time < temp_event->run_time) {
         use_original_event = false;
         engine_logger(dbg_checks, most)
             << "New service check event is forced and occurs before the "
