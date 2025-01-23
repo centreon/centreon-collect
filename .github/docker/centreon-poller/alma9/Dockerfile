@@ -15,6 +15,8 @@ RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
 
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
+dnf install -y dnf-plugins-core
+
 if [[ "${IS_CLOUD}" == "true" ]]; then
   dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el9/centreon-${VERSION}-internal.repo
   sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
