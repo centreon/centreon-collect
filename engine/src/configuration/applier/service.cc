@@ -717,6 +717,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_config.interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  s->set_icon_id(new_obj.icon_id());
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
