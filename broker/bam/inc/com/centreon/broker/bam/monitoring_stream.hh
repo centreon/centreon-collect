@@ -96,6 +96,8 @@ class monitoring_stream : public io::stream {
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
+  time_t _last_forced_svc_check;
+  bool _forced_svc_checks_timer_stopped;
 
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);
