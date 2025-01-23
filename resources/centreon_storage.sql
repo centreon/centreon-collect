@@ -1532,7 +1532,8 @@ SET FOREIGN_KEY_CHECKS=1;
 --
 -- Agent CEIP
 --
-CREATE TABLE `centreon_storage`.`agent_information` (
+DROP TABLE IF EXISTS agent_information;
+CREATE TABLE agent_information (
   `poller_id` BIGINT(20) NOT NULL,
   `enabled` TINYINT(1) NOT NULL DEFAULT 1,
   `infos` JSON NOT NULL,
