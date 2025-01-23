@@ -16,7 +16,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-gorgone"
-      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
       - "!gorgone/tests/**"
@@ -31,7 +30,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-gorgone"
-      - ".github/workflows/gorgone.yml"
       - "gorgone/**"
       - "perl-libs/**"
       - "!gorgone/tests/**"
@@ -344,7 +342,8 @@ jobs:
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:
       matrix:
