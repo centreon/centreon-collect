@@ -1297,6 +1297,7 @@ Ctn BAM Init
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    0    log_level_checks    trace
     # This is to avoid parasite status.
     Ctn Set Services Passive    ${0}    service_30.
 
