@@ -512,6 +512,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   s->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  config->interval_length());
   s->set_recovery_notification_delay(obj.recovery_notification_delay());
+  s->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {

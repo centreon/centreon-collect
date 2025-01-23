@@ -411,6 +411,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                               config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       obj.recovery_notification_delay());
+  it_obj->second->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
