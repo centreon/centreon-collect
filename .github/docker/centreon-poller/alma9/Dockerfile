@@ -23,13 +23,13 @@ if [[ "${IS_CLOUD}" == "true" ]]; then
 else
   dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
 fi
+dnf config-manager --set-enabled 'centreon*'
 
 if [[ "$STABILITY" == "testing" ]]; then
   dnf config-manager --set-disabled 'centreon*unstable*'
 elif [[ "$STABILITY" == "stable" ]]; then
   dnf config-manager --set-disabled 'centreon*unstable*' --set-disabled 'centreon*testing*'
 fi
-dnf config-manager --set-disabled 'centreon-plugin*unstable*' --set-disabled 'centreon-plugin*testing*'
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm
 

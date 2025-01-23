@@ -6,6 +6,7 @@ fi
 
 if id centreon-broker > /dev/null 2>&1; then
   usermod -a -G centreon-engine centreon-broker
+  usermod -a -G centreon-broker centreon-engine
 fi
 
 if id centreon-gorgone > /dev/null 2>&1; then
