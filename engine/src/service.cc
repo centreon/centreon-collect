@@ -2835,7 +2835,7 @@ int service::run_async_check_local(int check_options,
  *
  *  @param[in] check_time  Desired check time.
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
- *  @param no_update_stats_now	If true, the status will not be updated now.
+ *  @param no_update_status_now	If true, the status will not be updated now.
  *
  * @return A boolean telling if service_status has been sent or if
  * no_update_status_now is true, if it should be sent.
@@ -2961,7 +2961,6 @@ bool service::schedule_check(time_t check_time,
 
   // Schedule a new event.
   if (!use_original_event) {
-    engine_logger(dbg_checks, most) << "Scheduling new service check event.";
     SPDLOG_LOGGER_DEBUG(checks_logger, "Scheduling new service check event.");
 
     // Allocate memory for a new event item.
@@ -2981,7 +2980,8 @@ bool service::schedule_check(time_t check_time,
         no_update_status_now = true;
     } catch (...) {
       // Update the status log.
-      update_status();
+      if (!no_update_status_now)
+        update_status();
       throw;
     }
   }
