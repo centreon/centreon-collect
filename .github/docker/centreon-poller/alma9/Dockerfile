@@ -33,7 +33,7 @@ dnf config-manager --set-disabled 'centreon-plugin*unstable*' --set-disabled 'ce
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm
 
-systemctl stop gorgoned
+# systemctl stop gorgoned
 systemctl stop centengine
 systemctl stop cbd
 
