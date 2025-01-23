@@ -2,7 +2,7 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/ubuntu:jammy
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN bash -e <<EOF
 
@@ -56,6 +56,18 @@ apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
+EOF
+
+#we set TARGET here because it's reset by RUN above
+ARG TRIPLET
+
+RUN bash -e <<EOF
+
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  echo "set VCPKG_FORCE_SYSTEM_BINARIES to arm"
+  export VCPKG_FORCE_SYSTEM_BINARIES=arm
+fi
+
 git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh
 mkdir /src
@@ -66,14 +78,14 @@ COPY vcpkg.json /src
 COPY overlays /overlays
 COPY custom-triplets /custom-triplets
 
-ARG TRIPLET
+
 RUN bash -e <<EOF
 
 export VCPKG_ROOT=/vcpkg
 export PATH=$VCPKG_ROOT:$PATH
 
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
-  export VCPKG_FORCE_SYSTEM_BINARIES=1
+  export VCPKG_FORCE_SYSTEM_BINARIES=arm
 fi
 vcpkg/vcpkg install --overlay-triplets=custom-triplets --triplet ${TRIPLET}-release --vcpkg-root vcpkg --x-wait-for-lock --x-manifest-root=/src --x-install-root=vcpkg_installed --overlay-ports=overlays
 
