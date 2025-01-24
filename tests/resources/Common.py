@@ -818,9 +818,8 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
                 cursor.execute(
                     f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    logger.console(
-                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
@@ -1683,21 +1682,19 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
                 confirmed = ''
                 if in_resources:
                     cursor.execute(
-                        "SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                        f"SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{host}'")
                     key = 'status'
                     confirmed = 'status_confirmed'
                 else:
                     cursor.execute(
-                        "SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                        f"SELECT state, state_type FROM hosts WHERE name='{host}'")
                     key = 'state'
                     confirmed = 'state_type'
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0:
                     if int(result[0][key]) == value and int(result[0][confirmed]) == t:
                         return True
-                    else:
-                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
-                            host, result[0][key], result[0][confirmed]))
         time.sleep(1)
     return False
 
