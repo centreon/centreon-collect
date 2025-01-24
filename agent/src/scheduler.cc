@@ -17,7 +17,6 @@
  */
 
 #include "scheduler.hh"
-#include <cstdint>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"

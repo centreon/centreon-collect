@@ -84,8 +84,9 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // last received configuration
   engine_to_agent_request_ptr _conf;
 
-  // As protobuf length measure can be expensive, we estimate length by multiply
-  // this length by number of metrics
+  // As protobuf message calculation can be expensive, we measure size of first protobuf message of ten metrics for example,
+  // then we devide it by the number of metrics and we store it in this variable
+  // For the next frames, we multiply metrics number by this variable to estimate message length
   unsigned _average_metric_length;
 
   void _start();

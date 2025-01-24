@@ -102,24 +102,27 @@ std::shared_ptr<asio::io_context> g_io_context(
 static void increase_fd_limit(uint32_t soft_fd_limit) {
   struct rlimit rlim;
   if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
-    if (soft_fd_limit > rlim.rlim_max) {
-      SPDLOG_LOGGER_ERROR(
-          process_logger,
-          "Soft limit of opened file descriptors {} is greater than hard "
-          "limit {}, we will set it to hard limit",
-          soft_fd_limit, rlim.rlim_max);
-      soft_fd_limit = rlim.rlim_max;
-    }
-    rlim.rlim_cur = soft_fd_limit;
-    if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
-      SPDLOG_LOGGER_ERROR(process_logger,
-                          "Failed to set soft limit of opened file descriptors "
-                          "to {}",
-                          soft_fd_limit);
-    } else {
-      SPDLOG_LOGGER_INFO(process_logger,
-                         "Soft limit of opened file descriptors set to {}",
-                         soft_fd_limit);
+    if (soft_fd_limit > rlim.rlim_cur) {
+      if (soft_fd_limit > rlim.rlim_max) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Soft limit of opened file descriptors {} is greater than hard "
+            "limit {}, we will set it to hard limit",
+            soft_fd_limit, rlim.rlim_max);
+        soft_fd_limit = rlim.rlim_max;
+      }
+      rlim.rlim_cur = soft_fd_limit;
+      if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Failed to set soft limit of opened file descriptors "
+            "to {}",
+            soft_fd_limit);
+      } else {
+        SPDLOG_LOGGER_INFO(process_logger,
+                           "Soft limit of opened file descriptors set to {}",
+                           soft_fd_limit);
+      }
     }
   } else {
     SPDLOG_LOGGER_ERROR(

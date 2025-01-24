@@ -17,7 +17,6 @@
  */
 
 #include "bireactor.hh"
-#include "spdlog/spdlog.h"
 
 using namespace com::centreon::agent;
 

@@ -8,7 +8,7 @@ The goal of these scripts is to reach the limit of checks number on a host (cma 
 
 The simplest is to use centreon-on-demand
 
-Then you have to open tcp ports 4317 => 6017 on poller. In case of EC2 instances, add a rule to security group:
+Then you have to open tcp ports from 4317 to 6017 on poller. In case of EC2 instances, add a rule to security group:
 
 ![image](doc-pictures/add-rule.png)
 

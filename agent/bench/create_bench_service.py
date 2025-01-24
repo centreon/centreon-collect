@@ -37,6 +37,7 @@ parser.add_argument('--cpu', '-c', type=int, default=0,
                     help='number of native cpu check.')
 parser.add_argument('--memory', '-m', type=int, default=0,
                     help='number of native memory check.')
+parser.add_argument('--plugin_storage', '-p',  type=int, default=0, help='number of centreon_plugins.exe storage check.')
 
 args = parser.parse_args()
 
@@ -148,188 +149,6 @@ define service {
     _SERVICE_ID                    112 
 }
 
-define service {
-    host_name                      Centreon-central 
-    service_description            Partitioning 
-    notification_interval          1440 
-    register                       1 
-    use                            App-Centreon-MySQL-Partitioning-custom 
-    _SERVICE_ID                    113 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Slowqueries 
-    register                       1 
-    use                            App-DB-MySQL-Slowqueries-custom 
-    _SERVICE_ID                    114 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Queries 
-    register                       1 
-    use                            App-DB-MySQL-Queries-custom 
-    _SERVICE_ID                    115 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Open-Files 
-    register                       1 
-    use                            App-DB-MySQL-Open-Files-custom 
-    _SERVICE_ID                    116 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Myisam-Keycache 
-    register                       1 
-    use                            App-DB-MySQL-Myisam-Keycache-custom 
-    _SERVICE_ID                    117 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Database-Size 
-    register                       1 
-    use                            App-DB-MySQL-Database-Size-custom 
-    _SERVICE_ID                    118 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Connections-Number 
-    register                       1 
-    use                            App-DB-MySQL-Connections-Number-custom 
-    _SERVICE_ID                    119 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Connection-Time 
-    register                       1 
-    use                            App-DB-MySQL-Connection-Time-custom 
-    _SERVICE_ID                    120 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/ 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      / 
-    _SERVICE_ID                    121 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/var/lib/mysql 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      /var/lib/mysql 
-    _SERVICE_ID                    122 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/var/cache/centreon/backup 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      /var/cache/centreon/backup 
-    _SERVICE_ID                    123 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/var/lib/centreon-broker 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      /var/lib/centreon-broker 
-    _SERVICE_ID                    124 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/var/log 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      /var/log 
-    _SERVICE_ID                    125 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Disk-/var/lib/centreon 
-    register                       1 
-    use                            OS-Linux-Disk-Generic-Name-SNMP-custom 
-    _DISKNAME                      /var/lib/centreon 
-    _SERVICE_ID                    126 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-centreontrapd 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   centreontrapd 
-    _PROCESSPATH                    
-    _SERVICE_ID                    127 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-snmptrapd 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   snmptrapd 
-    _SERVICE_ID                    128 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-rsyslogd 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   rsyslogd 
-    _SERVICE_ID                    129 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-snmpd 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   snmpd 
-    _SERVICE_ID                    130 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-broker-watchdog 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   cbwd 
-    _SERVICE_ID                    131 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            proc-postfix 
-    register                       1 
-    use                            App-Monitoring-Centreon-Process-centengine-custom 
-    _PROCESSNAME                   master 
-    _PROCESSPATH                   /usr/libexec/postfix/master 
-    _SERVICE_ID                    132 
-}
-
-define service {
-    host_name                      Centreon-central 
-    service_description            Broker-Stats 
-    register                       1 
-    use                            App-Monitoring-Centreon-Broker-Stats-Central-custom 
-    _SERVICE_ID                    133 
-}
 
 """)
         
@@ -348,7 +167,7 @@ define service {
 
 """)
 
-def create_cma_services(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: int):
+def create_cma_services(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: int, nb_plugin_storage: int):
     """
     Create services for cma agent
     param nb_cpu_check: number of cpu check
@@ -358,7 +177,7 @@ def create_cma_services(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: 
 
     create_common_services()
 
-    total_services = nb_cpu_check + nb_memory_check + nb_echo_check + 1
+    total_services = nb_cpu_check + nb_memory_check + nb_echo_check + nb_plugin_storage + 1
     echo_period = 0
     if nb_echo_check > 0:
         echo_period = total_services // nb_echo_check
@@ -368,6 +187,9 @@ def create_cma_services(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: 
     cpu_period = 0
     if nb_cpu_check > 0:
         cpu_period = total_services // nb_cpu_check
+    nb_plugin_storage_period = 0
+    if nb_plugin_storage > 0:
+        nb_plugin_storage_period = total_services // nb_plugin_storage
     with open("/etc/centreon-engine/services.cfg", "a") as ff:
 
         service_index = 10000
@@ -415,7 +237,20 @@ define service {{
 
 """)
                 service_index += 1
-        
+
+            if nb_plugin_storage_period > 0 and i % nb_plugin_storage_period == 0:
+                ff.write(f"""
+define service {{
+    host_name               host_windows
+    service_description     bench_cma_plugins_{service_index}
+    use                     generic-passive-service
+    register                1
+    check_command           CMA_centreon_windows_plugins_cpu
+    _SERVICE_ID             {service_index}
+}}
+
+""")
+                service_index += 1
 
         ff.write(f"""
 define service {{
@@ -511,7 +346,7 @@ define service {{
 """)
         
 
-def create_nsclient_services_connector(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: int):
+def create_nsclient_services_connector(nb_cpu_check: int, nb_memory_check: int, nb_echo_check: int, nb_plugin_storage: int):
     """
     create nsclient services as create_nsclient_services does but uses connector to reduce cpu footprint on poller side
     param nb_cpu_check: number of cpu check
@@ -520,7 +355,7 @@ def create_nsclient_services_connector(nb_cpu_check: int, nb_memory_check: int, 
     """
     create_common_services()
 
-    total_services = nb_cpu_check + nb_memory_check + nb_echo_check + 1
+    total_services = nb_cpu_check + nb_memory_check + nb_echo_check + nb_plugin_storage + 1
     echo_period = 0
     if nb_echo_check > 0:
         echo_period = total_services // nb_echo_check
@@ -530,6 +365,9 @@ def create_nsclient_services_connector(nb_cpu_check: int, nb_memory_check: int, 
     cpu_period = 0
     if nb_cpu_check > 0:
         cpu_period = total_services // nb_cpu_check
+    plugin_storage_period = 0
+    if nb_plugin_storage > 0:
+        plugin_storage_period = total_services // nb_plugin_storage
     with open("/etc/centreon-engine/services.cfg", "a") as ff:
 
         service_index = 10000
@@ -572,6 +410,20 @@ define service {{
     use                     generic-active-service
     register                1
     check_command           OS-Windows-NSClient05-Restapi-Cpu-Connector
+    _SERVICE_ID             {service_index}
+}}
+
+""")
+                service_index += 1
+
+            if plugin_storage_period > 0 and i % plugin_storage_period == 0:
+                ff.write(f"""
+define service {{
+    host_name               host_windows
+    service_description     bench_nsclient_plugins_{service_index}
+    use                     generic-active-service
+    register                1
+    check_command           OS-Windows-NSClient05-Restapi-Plugins-Storage-Connector
     _SERVICE_ID             {service_index}
 }}
 
@@ -760,11 +612,11 @@ This script is used to create services in the Centreon monitoring system.
 """
 
 if args.agent == "cma":
-    create_cma_services(args.cpu, args.memory, args.echo)
+    create_cma_services(args.cpu, args.memory, args.echo, args.plugin_storage)
 elif args.agent == "nsclient":
     create_nsclient_services(args.cpu, args.memory, args.echo)
 elif args.agent == "nsclient_connector":
-    create_nsclient_services_connector(args.cpu, args.memory, args.echo)
+    create_nsclient_services_connector(args.cpu, args.memory, args.echo, args.plugin_storage)
 elif args.agent == "nrpe":
     create_nrpe_services(args.cpu, args.memory, args.echo)
 elif args.agent == "nrpe_connector":
