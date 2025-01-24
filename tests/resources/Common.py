@@ -749,7 +749,7 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\" AND s.enabled=1 AND h.enabled=1")
                 result = cursor.fetchall()
                 logger.console(f"{result}")
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
