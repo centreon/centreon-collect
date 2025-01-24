@@ -741,11 +741,12 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
       misc::fifo_client fc(_ext_cmd_file);
       SPDLOG_LOGGER_DEBUG(_logger, "BAM: {} forced checks to schedule",
                           _timer_forced_svc_checks.size());
-      for (auto& p : _timer_forced_svc_checks) {
+      for (auto it = _timer_forced_svc_checks.begin();
+           it != _timer_forced_svc_checks.end();) {
         _last_forced_svc_check = time(nullptr);
         std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
-                                    _last_forced_svc_check, p.first, p.second,
-                                    _last_forced_svc_check)};
+                                    _last_forced_svc_check, it->first,
+                                    it->second, _last_forced_svc_check)};
         _logger->debug("writing '{}' into {}", cmd, _ext_cmd_file);
         if (fc.write(cmd) < 0 && !_forced_svc_checks_timer_stopped) {
           _logger->error(
@@ -757,6 +758,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
                         this, std::placeholders::_1));
           break;
         }
+	else {
+	  _logger->trace("BAM: forced service check sent");
+	  it = _timer_forced_svc_checks.erase(it);
+	}
       }
     }
   }
