@@ -298,7 +298,7 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Find host object.
   host_id_map::iterator it_obj(engine::host::hosts_by_id.find(obj.key()));
   if (it_obj == engine::host::hosts_by_id.end())
-    throw engine_error() << "Could not modify non-existing " << "host object '"
+    throw engine_error() << "Could not modify non-existing host object '"
                          << obj.host_name() << "'";
 
   // Update the global configuration set.
