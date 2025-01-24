@@ -432,6 +432,9 @@ int main(int argc, char* argv[]) {
         setup_sighandler();
 
         // Load broker modules.
+        configuration::applier::state::instance().apply_log_config(pb_config);
+        cbm = std::make_unique<cbmod>(broker_config);
+
         neb_init_callback_list();
 
         for (auto& m : pb_config.broker_module()) {
@@ -439,9 +442,6 @@ int main(int argc, char* argv[]) {
               absl::StrSplit(m, absl::MaxSplits(' ', 1));
           broker::loader::instance().add_module(p.first, p.second);
         }
-
-        configuration::applier::state::instance().apply_log_config(pb_config);
-        cbm = std::make_unique<cbmod>(broker_config);
 
         // Add broker backend.
         com::centreon::logging::engine::instance().add(
