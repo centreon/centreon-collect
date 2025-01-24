@@ -239,7 +239,7 @@ if(WITH_DAEMONS)
   endif()
 endif()
 
-if(WITH_CONFIG_FILES)
+if(WITH_CONF)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
                  "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
