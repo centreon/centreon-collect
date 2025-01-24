@@ -68,8 +68,9 @@ jobs:
         run: wsl --list --online
 
       - name: install debian
-        uses: Vampire/setup-wsl@v3
+        uses: Vampire/setup-wsl@v4
         with:
+          wsl-version: 1
           distribution: Debian
           use-cache: 'true'
           update: 'true'
