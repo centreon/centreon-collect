@@ -223,7 +223,7 @@ void loop::_dispatching() {
           static_cast<unsigned long>(current_time));
     // Else if the time advanced over the specified threshold,
     // try and compensate...
-    else if ((current_time - _last_time) >=
+    else if (current_time - _last_time >=
              static_cast<time_t>(time_change_threshold))
       compensate_for_system_time_change(
           static_cast<unsigned long>(_last_time),

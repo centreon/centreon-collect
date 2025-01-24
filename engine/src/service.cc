@@ -2843,14 +2843,8 @@ int service::run_async_check_local(int check_options,
 bool service::schedule_check(time_t check_time,
                              uint32_t options,
                              bool no_update_status_now) {
-  engine_logger(dbg_functions, basic) << "schedule_service_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_service_check()");
 
-  engine_logger(dbg_checks, basic)
-      << "Scheduling a "
-      << (options & CHECK_OPTION_FORCE_EXECUTION ? "forced" : "non-forced")
-      << ", active check of service '" << name() << "' on host '" << _hostname
-      << "' @ " << my_ctime(&check_time);
   SPDLOG_LOGGER_TRACE(
       checks_logger,
       "Scheduling a {}, active check of service '{}' on host '{}' @ {}",
@@ -2860,8 +2854,6 @@ bool service::schedule_check(time_t check_time,
   // Don't schedule a check if active checks
   // of this service are disabled.
   if (!active_checks_enabled() && !(options & CHECK_OPTION_FORCE_EXECUTION)) {
-    engine_logger(dbg_checks, basic)
-        << "Active checks of this service are disabled.";
     SPDLOG_LOGGER_TRACE(checks_logger,
                         "Active checks of this service are disabled.");
     return false;
@@ -2876,9 +2868,6 @@ bool service::schedule_check(time_t check_time,
   // the queue - what should we do?
   if (found != events::loop::instance().list_end(events::loop::low)) {
     auto& temp_event = *found;
-    engine_logger(dbg_checks, most)
-        << "Found another service check event for this service @ "
-        << my_ctime(&temp_event->run_time);
     SPDLOG_LOGGER_DEBUG(
         checks_logger,
         "Found another service check event for this service @ {}",
@@ -2894,9 +2883,6 @@ bool service::schedule_check(time_t check_time,
       if ((options & CHECK_OPTION_FORCE_EXECUTION) &&
           check_time < temp_event->run_time) {
         use_original_event = false;
-        engine_logger(dbg_checks, most)
-            << "New service check event is forced and occurs before the "
-               "existing event, so the new event will be used instead.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "New service check event is forced and occurs before the "
@@ -2908,9 +2894,6 @@ bool service::schedule_check(time_t check_time,
       // The new event is a forced check, so use it instead.
       if (options & CHECK_OPTION_FORCE_EXECUTION) {
         use_original_event = false;
-        engine_logger(dbg_checks, most)
-            << "New service check event is forced, so it will be used "
-               "instead of the existing event.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "New service check event is forced, so it will be used "
@@ -2920,9 +2903,6 @@ bool service::schedule_check(time_t check_time,
       // earlier than the original, so use it instead.
       else if (check_time < temp_event->run_time) {
         use_original_event = false;
-        engine_logger(dbg_checks, most)
-            << "New service check event occurs before the existing "
-               "(older) event, so it will be used instead.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "New service check event occurs before the existing "
@@ -2930,9 +2910,6 @@ bool service::schedule_check(time_t check_time,
       }
       // The new event is older, so override the existing one.
       else {
-        engine_logger(dbg_checks, most)
-            << "New service check event occurs after the existing event, "
-               "so we'll ignore it.";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "New service check event occurs after the existing event, "
@@ -2948,8 +2925,6 @@ bool service::schedule_check(time_t check_time,
       // Reset the next check time (it may be out of sync).
       set_next_check(temp_event->run_time);
 
-      engine_logger(dbg_checks, most)
-          << "Keeping original service check event (ignoring the new one).";
       SPDLOG_LOGGER_DEBUG(
           checks_logger,
           "Keeping original service check event (ignoring the new one).");
