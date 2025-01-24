@@ -75,7 +75,12 @@ contents:
     dst: "/usr/sbin/centengine"
 
   - src: "../../build/broker/neb/cbmod.so"
-    dst: "/usr/lib64/cbmod.so"
+    dst: "/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/broker/neb/cbmod.so"
+    dst: "/usr/lib/"
+    packager: deb
 
   - src: "../../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
