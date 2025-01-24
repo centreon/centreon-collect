@@ -25,7 +25,7 @@ contents:
       group: centreon-engine
 
   - src: "../../broker/config/central-module.json"
-    des: "/etc/centreon-broker/central-module.json"
+    dst: "/etc/centreon-broker/central-module.json"
     type: config|noreplace
     file_info:
       mode: 0664
