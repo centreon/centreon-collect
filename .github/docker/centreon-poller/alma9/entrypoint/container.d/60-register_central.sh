@@ -13,8 +13,13 @@ if getent hosts web; then
         -d "${PAYLOAD}" \
         "http://web/centreon/api/latest/platform/topology"
 
+    CENTRAL_IP_ADDRESS=$(getent hosts web | awk '{print $1;}')
+    curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+        -d "{\"linked_remote_master\":\"\",\"linked_remote_slaves\":[],\"open_broker_flow\":false,\"centreon_central_ip\":\"${CENTRAL_IP_ADDRESS}\",\"server_ip\":\"$HOSTNAME\",\"server_name\":\"$HOSTNAME\",\"server_type\":\"poller\"}" \
+        "http://web/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"
+
     API_RESPONSE=$(curl -s -X GET -i -H "accept: application/json" "http://web:8085/api/internal/thumbprint")
-    THUMBPRINT=$( echo $API_RESPONSE | grep -o '"thumbprint":\"[^\"]*' | cut -d'"' -f4)
+    THUMBPRINT=$(echo $API_RESPONSE | grep -o '"thumbprint":\"[^\"]*' | cut -d'"' -f4)
 
     cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 name:  gorgoned-$HOSTNAME
@@ -52,4 +57,8 @@ gorgone:
       command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
 
 EOF
+
+    curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+        -d "{\"action\":\"APPLYCFG\",\"values\":\"$HOSTNAME\"}" \
+        "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
 fi

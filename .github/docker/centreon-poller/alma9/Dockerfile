@@ -7,6 +7,7 @@ ARG STABILITY
 COPY --chmod=755 ./.github/docker/centreon-poller/alma9/entrypoint /usr/share/centreon
 COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
+COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -36,6 +37,14 @@ elif [[ "$STABILITY" == "stable" ]]; then
 fi
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
+
+# taken from centreon-poller-postinstall.sh
+usermod centreon-engine -a -G centreon,nagios,centreon-broker
+usermod centreon-broker -a -G centreon,nagios
+usermod nagios -a -G centreon-engine
+usermod centreon -a -G centreon-engine,centreon-broker
+usermod centreon-gorgone -a -G centreon-engine
+usermod centreon-gorgone -a -G centreon-broker
 
 systemctl stop gorgoned
 systemctl stop centengine
