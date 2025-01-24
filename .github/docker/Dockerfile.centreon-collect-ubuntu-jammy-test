@@ -2,8 +2,6 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/ubuntu:jammy
 
-#FROM ubuntu:jammy
-
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY . /tmp/collect
