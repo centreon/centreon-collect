@@ -35,9 +35,9 @@ elif [[ "$STABILITY" == "stable" ]]; then
   dnf config-manager --set-disabled 'centreon*unstable*' --set-disabled 'centreon*testing*'
 fi
 
-dnf install -y /tmp/packages-centreon/centreon-*.rpm
+dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 
-# systemctl stop gorgoned
+systemctl stop gorgoned
 systemctl stop centengine
 
 dnf clean all
