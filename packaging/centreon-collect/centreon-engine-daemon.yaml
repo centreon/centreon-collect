@@ -66,6 +66,9 @@ contents:
   - src: "../../build/engine/centengine"
     dst: "/usr/sbin/centengine"
 
+  - src: "../../build/broker/neb/cbmod.so"
+    dst: "/usr/lib64/cbmod.so"
+
   - src: "../../build/engine/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
@@ -125,16 +128,17 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
       - centreon-engine-bench
+      - centreon-broker-cbmod
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-devel
       - centreon-engine-bench
+      - centreon-broker-cbmod
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -142,16 +146,17 @@ overrides:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev
       - centreon-engine-bench
+      - centreon-broker-cbmod
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-dev
       - centreon-engine-bench
+      - centreon-broker-cbmod
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
