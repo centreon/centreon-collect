@@ -298,8 +298,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Find host object.
   host_id_map::iterator it_obj(engine::host::hosts_by_id.find(obj.key()));
   if (it_obj == engine::host::hosts_by_id.end())
-    throw engine_error() << "Could not modify non-existing "
-                         << "host object '" << obj.host_name() << "'";
+    throw engine_error() << "Could not modify non-existing host object '"
+                         << obj.host_name() << "'";
 
   // Update the global configuration set.
   configuration::host obj_old(*it_cfg);
@@ -411,6 +411,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                               config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       obj.recovery_notification_delay());
+  it_obj->second->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
@@ -630,6 +631,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_config.interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  h->set_icon_id(new_obj.icon_id());
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
