@@ -28,6 +28,7 @@
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/host_parent.hh"
+#include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -4287,34 +4288,72 @@ void broker_program_state(int type, int flags) {
   if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
     return;
 
-  auto inst_obj = std::make_shared<neb::pb_instance>();
-  com::centreon::broker::Instance& inst = inst_obj->mut_obj();
-  inst.set_engine("Centreon Engine");
-  inst.set_pid(getpid());
-  inst.set_version(get_program_version());
+  if (cbm->use_protobuf()) {
+    auto inst_obj = std::make_shared<neb::pb_instance>();
+    com::centreon::broker::Instance& inst = inst_obj->mut_obj();
+    inst.set_engine("Centreon Engine");
+    inst.set_pid(getpid());
+    inst.set_version(get_program_version());
+    inst.set_instance_id(cbm->poller_id());
+    inst.set_name(cbm->poller_name());
 
-  switch (type) {
-    case NEBTYPE_PROCESS_EVENTLOOPSTART: {
-      neb_logger->debug("callbacks: generating process start event");
-      inst.set_instance_id(cbm->poller_id());
-      inst.set_running(true);
-      inst.set_name(cbm->poller_name());
-      start_time = time(nullptr);
-      inst.set_start_time(start_time);
+    switch (type) {
+      case NEBTYPE_PROCESS_EVENTLOOPSTART: {
+        neb_logger->debug("callbacks: generating process start event");
+        inst.set_running(true);
+        start_time = time(nullptr);
+        inst.set_start_time(start_time);
 
-      cbm->write(inst_obj);
-      if (cbm->use_protobuf())
+        cbm->write(inst_obj);
         send_initial_configuration<true>();
-      else
-        send_initial_configuration<false>();
-    } break;
-    // The code to apply is in broker/neb/src/callbacks.cc: 2459
-    default:
-      break;
-  }
+      } break;
+      case NEBTYPE_PROCESS_EVENTLOOPEND: {
+        neb_logger->debug("callbacks: generating process end event");
+        inst.set_running(false);
+        inst.set_start_time(start_time);
+        inst.set_end_time(time(nullptr));
 
-  neb_logger->debug("callbacks: instance '{}' running {}", inst.name(),
-                    inst.running());
+        cbm->write(inst_obj);
+      } break;
+      // The code to apply is in broker/neb/src/callbacks.cc: 2459
+      default:
+        break;
+    }
+    neb_logger->debug("callbacks: instance '{}' running {}", inst.name(),
+                      inst.running());
+  } else {
+    auto inst = std::make_shared<neb::instance>();
+    inst->engine = "Centreon Engine";
+    inst->pid = getpid();
+    inst->version = get_program_version();
+    inst->poller_id = cbm->poller_id();
+    inst->name = cbm->poller_name();
+
+    switch (type) {
+      case NEBTYPE_PROCESS_EVENTLOOPSTART: {
+        neb_logger->debug("callbacks: generating process start event");
+        inst->is_running = true;
+        start_time = time(nullptr);
+        inst->program_start = start_time;
+
+        cbm->write(inst);
+        send_initial_configuration<false>();
+      } break;
+      // The code to apply is in broker/neb/src/callbacks.cc: 2459
+      case NEBTYPE_PROCESS_EVENTLOOPEND: {
+        neb_logger->debug("callbacks: generating process end event");
+        inst->is_running = false;
+        inst->program_start = start_time;
+        inst->program_end = time(nullptr);
+
+        cbm->write(inst);
+      } break;
+      default:
+        break;
+    }
+    neb_logger->debug("callbacks: instance '{}' running {}", inst->name,
+                      inst->is_running);
+  }
 }
 
 static void forward_program_status(time_t last_command_check,
