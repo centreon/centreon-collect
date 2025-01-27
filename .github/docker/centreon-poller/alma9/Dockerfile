@@ -4,10 +4,6 @@ ARG VERSION
 ARG IS_CLOUD
 ARG STABILITY
 
-COPY --chmod=755 ./.github/docker/centreon-poller/alma9/entrypoint /usr/share/centreon
-COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
-COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
-
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
@@ -53,6 +49,9 @@ dnf clean all
 
 EOF
 
+COPY --chmod=755 ./.github/docker/centreon-poller/alma9/entrypoint /usr/share/centreon
+COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
+COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
 COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
 # grpc central-module
