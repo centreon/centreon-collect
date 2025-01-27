@@ -19,7 +19,7 @@ dnf install -y dnf-plugins-core
 
 dnf config-manager --set-enabled crb
 
-dnf install -y epel-release
+dnf install -y epel-release initscripts
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
   dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el9/centreon-${VERSION}-internal.repo
