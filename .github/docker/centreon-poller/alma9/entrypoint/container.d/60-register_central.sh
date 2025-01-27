@@ -1,27 +1,30 @@
 #!/bin/sh
 
 if getent hosts web; then
-    API_RESPONSE=$(curl -s -X POST --insecure -H "Content-Type: application/json" \
-        -d '{"security":{"credentials":{"login":"admin", "password":"Centreon!2021"}}}' \
-        "http://web/centreon/api/latest/login")
+  API_RESPONSE=$(curl -s -X POST --insecure -H "Content-Type: application/json" \
+      -d '{"security":{"credentials":{"login":"admin", "password":"Centreon!2021"}}}' \
+      "http://web/centreon/api/latest/login")
 
-    API_TOKEN=$(echo "${API_RESPONSE}" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+  API_TOKEN=$(echo "${API_RESPONSE}" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
 
-    PAYLOAD='{"name":"'"$HOSTNAME"'","hostname":"'"$HOSTNAME"'","type":"'"poller"'","address":"'"$HOSTNAME"'","parent_address":"'"127.0.0.1"'"}'
+  PAYLOAD='{"name":"'"$HOSTNAME"'","hostname":"'"$HOSTNAME"'","type":"'"poller"'","address":"'"$HOSTNAME"'","parent_address":"'"127.0.0.1"'"}'
 
-    curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "X-AUTH-TOKEN: ${API_TOKEN}" \
-        -d "${PAYLOAD}" \
-        "http://web/centreon/api/latest/platform/topology"
+  curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "X-AUTH-TOKEN: ${API_TOKEN}" \
+      -d "${PAYLOAD}" \
+      "http://web/centreon/api/latest/platform/topology"
 
-    CENTRAL_IP_ADDRESS=$(getent hosts web | awk '{print $1;}')
-    curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
-        -d "{\"linked_remote_master\":\"\",\"linked_remote_slaves\":[],\"open_broker_flow\":false,\"centreon_central_ip\":\"${CENTRAL_IP_ADDRESS}\",\"server_ip\":\"$HOSTNAME\",\"server_name\":\"$HOSTNAME\",\"server_type\":\"poller\"}" \
-        "http://web/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"
+  CENTRAL_IP_ADDRESS=$(getent hosts web | awk '{print $1;}')
+  curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+      -d "{\"linked_remote_master\":\"\",\"linked_remote_slaves\":[],\"open_broker_flow\":false,\"centreon_central_ip\":\"${CENTRAL_IP_ADDRESS}\",\"server_ip\":\"$HOSTNAME\",\"server_name\":\"$HOSTNAME\",\"server_type\":\"poller\"}" \
+      "http://web/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"
 
-    API_RESPONSE=$(curl -s -X GET -i -H "accept: application/json" "http://web:8085/api/internal/thumbprint")
+  until [ "$THUMBPRINT" != '' ]; do
+    sleep 1
+    API_RESPONSE=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/thumbprint")
     THUMBPRINT=$(echo $API_RESPONSE | grep -o '"thumbprint":\"[^\"]*' | cut -d'"' -f4)
+  done
 
-    cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+  cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 name:  gorgoned-$HOSTNAME
 description: Configuration for poller $HOSTNAME
 gorgone:
@@ -58,7 +61,7 @@ gorgone:
 
 EOF
 
-    curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
-        -d "{\"action\":\"APPLYCFG\",\"values\":\"$HOSTNAME\"}" \
-        "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+  curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+      -d "{\"action\":\"APPLYCFG\",\"values\":\"$HOSTNAME\"}" \
+      "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
 fi
