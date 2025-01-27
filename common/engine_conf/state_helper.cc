@@ -320,7 +320,7 @@ void state_helper::_init() {
   obj->set_use_setpgid(true);
   obj->set_use_syslog(true);
   obj->set_log_v2_enabled(true);
-  obj->set_log_legacy_enabled(true);
+  obj->set_log_legacy_enabled(false);
   obj->set_log_v2_logger("file");
   obj->set_log_level_functions(LogLevel::error);
   obj->set_log_level_config(LogLevel::info);

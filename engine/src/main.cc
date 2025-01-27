@@ -386,22 +386,22 @@ int main(int argc, char* argv[]) {
       try {
         // Parse configuration.
         configuration::error_cnt err;
-        configuration::State pb_config;
+        configuration::State new_config;
         {
           configuration::parser p;
-          p.parse(config_file, &pb_config, err);
+          p.parse(config_file, &new_config, err);
         }
 
         configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                extended_conf_file.end());
 
-        configuration::extended_conf::update_state(&pb_config);
-        uint16_t port = pb_config.grpc_port();
+        configuration::extended_conf::update_state(&new_config);
+        uint16_t port = new_config.grpc_port();
 
         if (!port)
           port = generate_port();
 
-        const std::string& listen_address = pb_config.rpc_listen_address();
+        const std::string& listen_address = new_config.rpc_listen_address();
 
         std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
             new enginerpc(listen_address, port), [](enginerpc* rpc) {
@@ -414,7 +414,7 @@ int main(int argc, char* argv[]) {
         {
           retention::parser p;
           try {
-            p.parse(pb_config.state_retention_file(), state);
+            p.parse(new_config.state_retention_file(), state);
           } catch (const std::exception& e) {
             config_logger->error("{}", e.what());
             engine_logger(logging::log_config_error, logging::basic)
@@ -432,12 +432,12 @@ int main(int argc, char* argv[]) {
         setup_sighandler();
 
         // Load broker modules.
-        configuration::applier::state::instance().apply_log_config(pb_config);
+        configuration::applier::state::instance().apply_log_config(new_config);
         cbm = std::make_unique<cbmod>(broker_config);
 
         neb_init_callback_list();
 
-        for (auto& m : pb_config.broker_module()) {
+        for (auto& m : new_config.broker_module()) {
           std::pair<std::string, std::string> p =
               absl::StrSplit(m, absl::MaxSplits(' ', 1));
           broker::loader::instance().add_module(p.first, p.second);
@@ -448,7 +448,7 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(pb_config, err, &state);
+        configuration::applier::state::instance().apply(new_config, err, &state);
 
         // Initialize status data.
         initialize_status_data();
