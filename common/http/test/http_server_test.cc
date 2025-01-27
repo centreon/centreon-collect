@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <thread>
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
@@ -223,7 +224,7 @@ class http_server_test : public ::testing::TestWithParam<bool> {
       _server.reset();
     }
     // let some time to all connections die
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
   http_config::pointer create_conf() {
@@ -285,8 +286,8 @@ TEST_P(http_server_test, many_request_by_connection) {
   client::pointer client =
       client::load(g_io_context, logger, client_conf, client_creator);
 
-  std::condition_variable cond;
-  std::mutex cond_m;
+  absl::Mutex waiter;
+  bool done = false;
   std::atomic_uint resp_cpt(0);
 
   for (unsigned send_cpt = 0; send_cpt < 200; ++send_cpt) {
@@ -295,18 +296,21 @@ TEST_P(http_server_test, many_request_by_connection) {
     req->body() = fmt::format("hello server {}", send_cpt);
     req->content_length(req->body().length());
 
-    client->send(
-        req, [&cond, req, &resp_cpt](const beast::error_code& err,
-                                     const std::string& detail [[maybe_unused]],
-                                     const response_ptr& response) mutable {
-          ASSERT_FALSE(err);
-          ASSERT_EQ(req->body(), response->body());
-          if (resp_cpt.fetch_add(1) == 199)
-            cond.notify_one();
-        });
+    client->send(req, [&waiter, &done, req, &resp_cpt](
+                          const beast::error_code& err,
+                          const std::string& detail [[maybe_unused]],
+                          const response_ptr& response) mutable {
+      ASSERT_FALSE(err);
+      ASSERT_EQ(req->body(), response->body());
+      if (resp_cpt.fetch_add(1) >= 199) {
+        SPDLOG_LOGGER_INFO(logger, "notify");
+        absl::MutexLock lck(&waiter);
+        done = true;
+      }
+    });
   }
-  std::unique_lock l(cond_m);
-  cond.wait(l);
+  absl::MutexLock l(&waiter);
+  waiter.Await(absl::Condition(&done));
   SPDLOG_LOGGER_INFO(logger, "shutdown client");
   client->shutdown();
 }
@@ -346,8 +350,8 @@ TEST_P(http_server_test, many_request_and_many_connection) {
   client::pointer client =
       client::load(g_io_context, logger, client_conf, client_creator);
 
-  std::condition_variable cond;
-  std::mutex cond_m;
+  absl::Mutex waiter;
+  bool done = false;
 
   std::atomic_uint resp_cpt(0);
   for (unsigned send_cpt = 0; send_cpt < 1000; ++send_cpt) {
@@ -356,18 +360,20 @@ TEST_P(http_server_test, many_request_and_many_connection) {
     req->body() = fmt::format("hello server {}", send_cpt);
     req->content_length(req->body().length());
 
-    client->send(
-        req, [&cond, req, &resp_cpt](const beast::error_code& err,
-                                     const std::string& detail [[maybe_unused]],
-                                     const response_ptr& response) mutable {
-          ASSERT_FALSE(err);
-          ASSERT_EQ(req->body(), response->body());
-          if (resp_cpt.fetch_add(1) == 999)
-            cond.notify_one();
-        });
+    client->send(req, [&waiter, &done, req, &resp_cpt](
+                          const beast::error_code& err,
+                          const std::string& detail [[maybe_unused]],
+                          const response_ptr& response) mutable {
+      ASSERT_FALSE(err);
+      ASSERT_EQ(req->body(), response->body());
+      if (resp_cpt.fetch_add(1) >= 999) {
+        absl::MutexLock lck(&waiter);
+        done = true;
+      }
+    });
   }
-  std::unique_lock l(cond_m);
-  cond.wait(l);
+  absl::MutexLock l(&waiter);
+  waiter.Await(absl::Condition(&done));
 
   client->shutdown();
 }
