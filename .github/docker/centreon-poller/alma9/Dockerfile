@@ -41,7 +41,7 @@ dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 # usermod centreon-engine -a -G centreon,nagios,centreon-broker
 # usermod centreon-broker -a -G centreon,nagios
 # usermod nagios -a -G centreon-engine
-usermod centreon-engine -a -G centreon,centreon-broker
+usermod centreon-engine -a -G centreon,centreon-broker,centreon-gorgone
 usermod centreon-broker -a -G centreon
 usermod centreon -a -G centreon-engine,centreon-broker
 usermod centreon-gorgone -a -G centreon-engine,centreon-broker,centreon
