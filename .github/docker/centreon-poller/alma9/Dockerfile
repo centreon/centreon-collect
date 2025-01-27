@@ -7,7 +7,6 @@ ARG STABILITY
 COPY --chmod=755 ./.github/docker/centreon-poller/alma9/entrypoint /usr/share/centreon
 COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
-COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -45,8 +44,7 @@ dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 usermod centreon-engine -a -G centreon,centreon-broker
 usermod centreon-broker -a -G centreon
 usermod centreon -a -G centreon-engine,centreon-broker
-usermod centreon-gorgone -a -G centreon-engine
-usermod centreon-gorgone -a -G centreon-broker
+usermod centreon-gorgone -a -G centreon-engine,centreon-broker,centreon
 
 systemctl stop gorgoned
 systemctl stop centengine
@@ -54,6 +52,8 @@ systemctl stop centengine
 dnf clean all
 
 EOF
+
+COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
 # grpc central-module
 EXPOSE 51003
