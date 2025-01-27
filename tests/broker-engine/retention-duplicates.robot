@@ -28,7 +28,7 @@ BERD1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -42,7 +42,7 @@ BERD1
     Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
@@ -70,7 +70,7 @@ BERD2
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -80,11 +80,11 @@ BERD2
     Should Be True    ${result}    Engine and Broker not connected.
     Log To Console    Engine and Broker talk during 15s.
     Sleep    15s
-    Ctn Stop engine
-    Ctn Start engine
+    Ctn Stop Engine
+    Ctn Start Engine
     Log To Console    Engine has been restart and now they talk during 25s.
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
@@ -112,7 +112,7 @@ BERDUC1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -126,7 +126,7 @@ BERDUC1
     Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -151,7 +151,7 @@ BERDUCU1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -163,7 +163,7 @@ BERDUCU1
     Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -186,7 +186,7 @@ BERDUC2
     Ctn Config Broker    rrd
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -195,12 +195,12 @@ BERDUC2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Stop engine
+    Ctn Stop Engine
     Sleep    5s
     Ctn Clear Cache
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -225,7 +225,7 @@ BERDUCU2
     Ctn Config Broker    rrd
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -234,12 +234,12 @@ BERDUCU2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Stop engine
+    Ctn Stop Engine
     Sleep    5s
     Ctn Clear Cache
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -263,7 +263,7 @@ BERDUC3U1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
@@ -277,7 +277,7 @@ BERDUC3U1
     Ctn Clear Cache
     Ctn Start Broker
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -303,7 +303,7 @@ BERDUC3U2
     Ctn Config BBDO3    1
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the lua to be correctly initialized
     ${content}    Create List    lua: initializing the Lua virtual machine
@@ -325,12 +325,12 @@ BERDUC3U2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Sleep    5s
-    Ctn Stop engine
+    Ctn Stop Engine
     Sleep    5s
     Ctn Clear Cache
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    25s
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     ${result}    Ctn Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
@@ -360,14 +360,14 @@ BERDUCA300
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
 
     Ctn Wait For Engine To Be Ready    ${1}
 
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending stop packet to peer
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
@@ -411,13 +411,13 @@ BERDUCA301
     ${start}    Get Current Date
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
     Ctn Wait For Engine To Be Ready    ${1}
 
-    Ctn Stop engine
+    Ctn Stop Engine
     ${content}    Create List    BBDO: sending stop packet to peer
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
