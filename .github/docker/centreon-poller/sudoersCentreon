@@ -1,6 +1,6 @@
 ## BEGIN: CENTREON SUDO
 
-User_Alias      CENTREON=%@CENTREON_GROUP@
+User_Alias      CENTREON=%centreon
 Defaults:CENTREON !requiretty
 
 # centreontrapd
