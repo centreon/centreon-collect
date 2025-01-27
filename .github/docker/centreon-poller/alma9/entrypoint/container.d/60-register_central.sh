@@ -63,13 +63,10 @@ EOF
 
   systemctl start gorgoned
 
-  sleep 30
-
-  PING_OK=0
-  until [ "$PING_OK" -gt "0" ]; do
+  until [ "$PING_OK" == "ok" ]; do
     sleep 1
-    PING_OK=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/constatus" | grep -o '"ping_ok":[0-9]*' | cut -d':' -f2)
-    if [ "$PING_OK" -gt "0" ]; then
+    PING_OK=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/constatus" | grep -o '"message":"ok"' | cut -d'"' -f4)
+    if [ "$PING_OK" == "ok" ]; then
       for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
         curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
             -d "{\"action\":\"$action\",\"values\":\"$HOSTNAME\"}" \
