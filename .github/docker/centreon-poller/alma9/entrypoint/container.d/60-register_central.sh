@@ -61,7 +61,11 @@ gorgone:
 
 EOF
 
-  curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
-      -d "{\"action\":\"APPLYCFG\",\"values\":\"$HOSTNAME\"}" \
-      "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+  systemctl start gorgoned
+
+  for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
+    curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+        -d "{\"action\":\"$action\",\"values\":\"$HOSTNAME\"}" \
+        "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+  done
 fi
