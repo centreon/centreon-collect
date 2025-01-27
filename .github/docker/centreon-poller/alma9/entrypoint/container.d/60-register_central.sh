@@ -63,9 +63,18 @@ EOF
 
   systemctl start gorgoned
 
-  for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
-    curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
-        -d "{\"action\":\"$action\",\"values\":\"$HOSTNAME\"}" \
-        "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+  sleep 30
+
+  PING_OK=0
+  until [ "$PING_OK" -gt "0" ]; do
+    sleep 1
+    PING_OK=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/constatus" | grep -o '"ping_ok":[0-9]*' | cut -d':' -f2)
+    if [ "$PING_OK" -gt "0" ]; then
+      for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
+        curl -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
+            -d "{\"action\":\"$action\",\"values\":\"$HOSTNAME\"}" \
+            "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+      done
+    fi
   done
 fi
