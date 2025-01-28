@@ -35,7 +35,7 @@ jobs:
         include:
           - runner: collect
             dockerfile: packaging-centreon-collect-alma9
-            image: centreon-collect-alma9
+            image: packaging-centreon-collect-alma9
             tag: ${{ needs.get-environment.outputs.packaging_img_version }}
 
     # runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
