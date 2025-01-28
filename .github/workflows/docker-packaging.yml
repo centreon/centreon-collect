@@ -38,8 +38,8 @@ jobs:
             image: packaging-centreon-collect-alma9
             tag: ${{ needs.get-environment.outputs.packaging_img_version }}
 
-    # runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    # runs-on: ubuntu-24.04
 
     name: build container ${{ matrix.image }}
 
