@@ -82,6 +82,7 @@ class EngineInstance:
         self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
+        self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
         self.build_configs(hosts, srv_by_host)
@@ -205,6 +206,7 @@ class EngineInstance:
     def _create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
+        self.host_cmd[hid] = f"checkh{hid}"
         a = hid % 255
         q = hid // 255
         b = q % 255
@@ -1780,6 +1782,20 @@ def ctn_get_service_command_id(service: int):
     return engine.service_cmd[service][8:]
 
 
+def ctn_get_host_command(host: int):
+    """
+    Get the command of the host with the given ID.
+
+    Args:
+        host (int): ID of the host.
+
+    Returns:
+        The command name.
+    """
+    global engine
+    return engine.host_cmd[host]
+
+
 def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     """
     Update the normal check interval for a service.
@@ -2727,6 +2743,63 @@ def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
         ff.writelines(lines)
 
 
+def ctn_set_command_connector(poller: int, cmd: str, conn: str):
+    """
+    Set the connector for a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        conn (str): Connector name.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    for i, line in enumerate(lines):
+        m = r.match(line)
+        if m:
+            lines.insert(i + 1, f"    connector          {conn}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
+    """
+    Set the check command of a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        check_cmd (str): the check command.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    r_cmd = re.compile(r"^\s*command_line")
+    r_end = re.compile(r"^\s*}\s*$")
+    in_cmd = False
+    for i, line in enumerate(lines):
+        if not in_cmd:
+            m = r.match(line)
+            if m:
+                in_cmd = True
+        else:
+            m = r_cmd.match(line)
+            if m:
+                lines[i] = f"    command_line                    {check_cmd}\n"
+                in_cmd = False
+                break
+            m = r_end.match(line)
+            if m:
+                lines.insert(i, f"    command_line                    {check_cmd}\n")
+                break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
 def ctn_set_services_passive(poller: int, srv_regex):
     """
     Set passive a list of services.
@@ -2857,56 +2930,6 @@ def ctn_remove_severities_from_hosts(poller: int):
     out = [line for line in lines if not r.match(line)]
     with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
         ff.writelines(out)
-
-
-def ctn_check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
-    """
-    Search a check, retrieve command index and return check result.
-    Then it searchs the string "connector::run: id=\d+",
-    and then search "connector::_recv_query_execute: id=\d+,"
-    and return this line.
-
-    Args:
-        debug_file_path (str): path of the debug log file
-        str_to_search (str): string after which we will start connector::run search
-        timeout (int, optional): Defaults to TIMEOUT.
-
-    *Example:*
-
-    | ${search_result} | `Check Search` | /var/log/centreon-engine/centengine.debug | connector::run: id=1090 |
-    | Should Contain | ${search_result} | connector::_recv_query_execute: id=1090, |
-
-    Returns:
-        A string.
-    """
-    limit = time.time() + timeout
-    r_query_execute = "none"
-    while time.time() < limit:
-        cmd_executed = False
-        with open(debug_file_path, 'r') as f:
-            lines = f.readlines()
-            for first_ind in range(len(lines)):
-                find_index = lines[first_ind].find(str_to_search + ' ')
-                if (find_index > 0):
-                    cmd_executed = True
-                    for second_ind in range(first_ind, len(lines)):
-                        # search cmd_id
-                        m = re.search(
-                            r"connector::run:\s+id=(\d+)", lines[second_ind])
-                        if m is not None:
-                            cmd_id = m.group(1)
-                            r_query_execute = rf".*\s+connector::_recv_query_execute:\s+id={cmd_id}, .*output=(.*)$"
-                            for third_ind in range(second_ind, len(lines)):
-                                logger.console(lines[third_ind])
-                                m = re.match(r_query_execute, lines[third_ind])
-                                if m is not None:
-                                    return m.group(1)
-        time.sleep(1)
-
-    if not cmd_executed:
-        return f"_recv_query_execute not found on '{r_query_execute}'"
-    else:
-        return f"ctn_check_search doesn't find <<{str_to_search}>>"
 
 
 def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
