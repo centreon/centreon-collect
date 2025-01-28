@@ -2,7 +2,7 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:9
 
-COPY vcpkg.json /src
+COPY vcpkg.json /root/vcpkg.json
 COPY overlays /overlays
 COPY custom-triplets /custom-triplets
 
@@ -61,8 +61,7 @@ git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
 
-ls -l /src
-cat /src/vcpkg.json
+cp /root/vcpkg.json /src/vcpkg.json
 
 /vcpkg/vcpkg install \
   --overlay-triplets=custom-triplets \
