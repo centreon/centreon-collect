@@ -112,7 +112,7 @@ jobs:
   unit-test:
     needs: [get-environment]
     if: |
-      github.event.inputs.unit_tests == 'true' &&
+      (github.event.inputs.unit_tests == 'true' || needs.get-environment.outputs.is_nightly) &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:
