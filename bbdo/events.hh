@@ -110,7 +110,7 @@ enum data_element {
   de_host_check = 8,
   de_host_dependency = 9,
   de_host_group,
-  de_host_group_member,
+  de_host_group_member = 11,
   de_host,
   de_host_parent,
   de_host_status,
