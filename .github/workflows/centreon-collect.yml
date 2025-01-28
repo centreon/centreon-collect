@@ -105,10 +105,13 @@ jobs:
 
       - if: ${{ steps.day_check.outputs.day_of_week == '1' }}
         run: |
-          NIGHTLY_TARGETS=("dev-23.04.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
+          NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.04.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
           for target in "${NIGHTLY_TARGETS[@]}"; do
             echo "[INFO] - Dispatching nightly run to $target branch."
             gh workflow run centreon-collect.yml -r "$target" -f nightly_manual_trigger=true
+            if [[ "$target" != "dev-24.10.x" ]]; then
+              gh workflow run robot-nightly.yml -r "$target"
+            fi
           done
         shell: bash
         env:
