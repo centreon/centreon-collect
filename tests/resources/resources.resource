@@ -105,7 +105,7 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
     ${b1_obj}    Get Process Object   b1
@@ -131,23 +131,23 @@ Ctn Kindly Stop Broker
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         ELSE
             ${Bbdo2}   Ctn In Bbdo2
-            IF    not ${Bbdo2}
+            IF    not ${Bbdo2} and not ${no_rrd_test}
                 IF    not ${only_central}
-                    Log To Console    "We are in BBDO3, so we also check RRD duplicates"
-                    Log To Console    "central broker stopped"
-                    # We have to check if central RRD logs contain errors about data sent in the past.
-                    ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-                    IF    len("""${result}""") > 0
-                        Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
-			Ctn Save Logs
-                        Remove File    ${rrdLog}
-                    END
-                    Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+                        Log To Console    We are in BBDO3, so we also check RRD duplicates
+                        Log To Console    central broker stopped
+                        # We have to check if central RRD logs contain errors about data sent in the past.
+                        ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                        IF    len("""${result}""") > 0
+                            Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                            Ctn Save Logs
+                            Remove File    ${rrdLog}
+                        END
+                        Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
                 ELSE
-                    Log To Console    "Broker RRD was not started, so we don't check RRD duplicates"
+                    Log To Console    Broker RRD was not started, so we don't check RRD duplicates
                 END
             ELSE
-                Log To Console    "We are in BBDO2, so we don't check RRD duplicates"
+                Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
         END
     END
@@ -224,7 +224,7 @@ Ctn Start Engine With Extend Conf
         END
         Start Process
         ...    /usr/sbin/centengine
-	...    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json
+        ...    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json
         ...    --config-file\=/tmp/centengine_extend.json
         ...    ${conf}
         ...    alias=${alias}
@@ -280,14 +280,14 @@ Ctn Stop Engine
     END
 
 Ctn Stop Engine Broker And Save Logs
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
     TRY
         Ctn Stop engine
     EXCEPT
         Log    can't kindly stop engine
     END
     TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}
+        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
     EXCEPT
         Log    Can't kindly stop Broker
     END
