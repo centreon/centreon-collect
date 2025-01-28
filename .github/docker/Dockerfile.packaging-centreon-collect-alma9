@@ -57,7 +57,6 @@ dnf install --best \
 dnf install -y git
 git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
-mkdir /src
 
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
