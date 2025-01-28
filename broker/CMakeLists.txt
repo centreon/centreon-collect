@@ -157,7 +157,7 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
 # Modules directories.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
-set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64")
+set(PREFIX_CBMOD "${LIBDIR}")
 
 # User.
 if(WITH_USER_BROKER)
