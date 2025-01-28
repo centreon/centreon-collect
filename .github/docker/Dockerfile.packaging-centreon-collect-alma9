@@ -66,6 +66,8 @@ export PATH=\$VCPKG_ROOT:\$PATH
 mkdir /src
 cp /root/vcpkg.json /src/vcpkg.json
 
+rm -rf /vcpkg/ports/*
+
 /vcpkg/vcpkg install \
   --clean-after-build \
   --overlay-triplets=custom-triplets \
