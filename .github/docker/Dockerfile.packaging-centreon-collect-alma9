@@ -67,6 +67,7 @@ mkdir /src
 cp /root/vcpkg.json /src/vcpkg.json
 
 /vcpkg/vcpkg install \
+  --clean-after-build \
   --overlay-triplets=custom-triplets \
   --triplet x64-linux-release \
   --vcpkg-root vcpkg \
