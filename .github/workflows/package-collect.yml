@@ -142,6 +142,7 @@ jobs:
             export TRIPLET=x64-linux-release
           fi
 
+          rm -rf /vcpkg/ports/*
           mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
