@@ -45,6 +45,9 @@ on:
       is_nightly:
         description: "if the current workflow run is considered a nightly"
         value: ${{ jobs.get-environment.outputs.is_nightly }}
+      packaging_img_version:
+        description: "docker image version for packaging (vcpkg checksum)"
+        value: ${{ jobs.get-environment.outputs.packaging_img_version }}
       img_version:
         description: "docker image version (vcpkg checksum)"
         value: ${{ jobs.get-environment.outputs.img_version }}
@@ -74,6 +77,7 @@ jobs:
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
+      packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
       img_version: ${{ steps.get_docker_images_version.outputs.img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
@@ -413,6 +417,9 @@ jobs:
       - name: Get docker images version
         id: get_docker_images_version
         run: |
+          PACKAGING_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.packaging-*` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
+          echo "packaging_img_version=$PACKAGING_IMG_VERSION" >> $GITHUB_OUTPUT
+
           IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
           echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
 
