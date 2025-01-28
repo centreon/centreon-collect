@@ -30,6 +30,8 @@ dnf install --best \
     gcc-c++ \
     gdb \
     gettext \
+    mariadb \
+    mariadb-connector-c-devel \
     ninja-build \
     gnutls-devel \
     libgcrypt-devel \
