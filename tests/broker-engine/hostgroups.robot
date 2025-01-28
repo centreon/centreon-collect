@@ -140,12 +140,14 @@ EBNHG4
     Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
+    Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
+    log to console    Interesting date: ${start}
     Ctn Start Broker
     Ctn Start Engine
-    Sleep    3s
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
 
     Ctn Reload Broker
@@ -153,7 +155,7 @@ EBNHG4
 
     ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
-    ...    enabling membership of host 2 to host group 1
+    ...    enabling membership of host 2 to host group 1 on instance 1
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
