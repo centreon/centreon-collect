@@ -236,8 +236,11 @@ Ctn Restart Engine
     Ctn Start Engine    ${newGeneration}
 
 Ctn Start Custom Engine
-    [Arguments]    ${conf_path}    ${process_alias}
-    Start Process    /usr/sbin/centengine    ${conf_path}    alias=${process_alias}
+    [Arguments]    ${broker_conf}    ${conf_path}    ${process_alias}
+    Start Process    /usr/sbin/centengine
+    ...    -b    ${broker_conf}
+    ...    ${conf_path}
+    ...    alias=${process_alias}
 
 Ctn Stop Custom Engine
     [Arguments]    ${process_alias}
