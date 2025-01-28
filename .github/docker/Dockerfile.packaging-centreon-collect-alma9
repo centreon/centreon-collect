@@ -61,6 +61,7 @@ git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 export VCPKG_ROOT=/vcpkg
 export PATH=\$VCPKG_ROOT:\$PATH
 
+mkdir /src
 cp /root/vcpkg.json /src/vcpkg.json
 
 /vcpkg/vcpkg install \
