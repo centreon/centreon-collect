@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#                                                                               
+#
 # Copyright 2023-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,12 @@ my $dd = localtime();
 
 my $id;
 my $state;
+my $output;
 
 GetOptions(
   'id=s'    =>	\$id,
   'state=s' =>	\$state,
+  'output=s' => \$output,
 );
 
 unless (defined $id) {
@@ -46,7 +48,11 @@ unless (defined $id) {
 my $status = -1;
 
 if ($id eq 0) {
-  printf("Host check $dd");
+  if (defined $output) {
+    printf("Host check $dd: $output\n");
+  } else {
+    printf("Host check $dd\n");
+  }
   if (defined $state) {
     $status = $state;
   } else {
