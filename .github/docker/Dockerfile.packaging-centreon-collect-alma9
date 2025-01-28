@@ -73,8 +73,6 @@ cp /root/vcpkg.json /src/vcpkg.json
   --x-install-root=vcpkg_installed \
   --overlay-ports=overlays
 
-dnf remove -y git
-
 dnf clean all
 
 EOF
