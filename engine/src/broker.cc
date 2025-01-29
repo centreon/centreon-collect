@@ -3880,6 +3880,25 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 }
 
 /**
+ *  Send legacy log data to broker.
+ *
+ *  @param[in] data       Log entry.
+ *  @param[in] entry_time Entry time.
+ */
+void broker_log_data_legacy(const char* data, time_t entry_time) {
+  // Config check.
+  if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
+      (!pb_config.log_legacy_enabled()) || !cbm)
+    return;
+
+  // Make callbacks.
+  if (cbm->use_protobuf())
+    forward_pb_log(data, entry_time);
+  else
+    forward_log(data, entry_time);
+}
+
+/**
  *  Send log data to broker.
  *
  *  @param[in] data       Log entry.
@@ -3888,7 +3907,7 @@ static void forward_pb_log(const char* data, time_t entry_time) {
 void broker_log_data(const char* data, time_t entry_time) {
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
-      !pb_config.log_legacy_enabled() || !cbm)
+      !pb_config.log_v2_enabled() || !cbm)
     return;
 
   // Make callbacks.
