@@ -1730,7 +1730,10 @@ static void forward_downtime(int type,
                              unsigned long downtime_id,
                              const struct timeval* timestamp) noexcept {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating downtime event");
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating downtime event on resource "
+                      "({}:{}) start time:{} end time:{}",
+                      host_id, service_id, start_time, end_time);
   if (type == NEBTYPE_DOWNTIME_LOAD)
     return;
 
@@ -1836,7 +1839,36 @@ static void forward_pb_downtime(int type,
                                 unsigned long downtime_id,
                                 const struct timeval* timestamp) noexcept {
   // Log message.
-  neb_logger->debug("callbacks: generating pb downtime event");
+  fmt::string_view type_str;
+  switch (type) {
+    case 1100:
+      type_str = "DOWNTIME_ADD";
+      break;
+    case 1101:
+      type_str = "DOWNTIME_DELETE";
+      break;
+    case 1102:
+      type_str = "DOWNTIME_LOAD";
+      break;
+    case 1103:
+      type_str = "DOWNTIME_START";
+      break;
+    case 1104:
+      type_str = "DOWNTIME_STOP";
+      break;
+    case 1105:
+      type_str = "DOWNTIME_UPDATE";
+      break;
+  }
+  SPDLOG_LOGGER_DEBUG(
+      neb_logger,
+      "callbacks: generating pb downtime of type {} event on resource ({}:{}) "
+      "entry time:{} start time:{} end time:{} downtime type:{} fixed:{} "
+      "triggered by:{} duration:{} downtime id:{} author: {} comment: {} type: "
+      "{}",
+      type_str, host_id, service_id, entry_time, start_time, end_time,
+      downtime_type, fixed, triggered_by, duration, downtime_id, author_name,
+      comment_data, downtime_type);
 
   if (type == NEBTYPE_DOWNTIME_LOAD)
     return;
