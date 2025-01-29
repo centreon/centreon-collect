@@ -267,13 +267,6 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
         get_cpu_time_snapshot(true);
 
     time_point end_measure = std::chrono::system_clock::now() + timeout;
-    time_point end_measure_period =
-        get_start_expected() +
-        std::chrono::seconds(get_conf()->config().check_interval());
-
-    if (end_measure > end_measure_period) {
-      end_measure = end_measure_period;
-    }
 
     end_measure -= std::chrono::seconds(1);
 

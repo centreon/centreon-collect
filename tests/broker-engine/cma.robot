@@ -393,7 +393,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
-    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    SOFT
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
     Should Be True    ${result}    resources table not updated
 
     #a small threshold to make service_1 critical

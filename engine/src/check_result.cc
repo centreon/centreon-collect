@@ -122,7 +122,9 @@ void check_result::set_check_options(unsigned check_options) {
 namespace com::centreon::engine {
 
 std::ostream& operator<<(std::ostream& stream, const check_result& res) {
-  stream << " timeout=" << res.get_early_timeout()
+  stream << " start_time=" << res.get_start_time().tv_sec
+         << " finish_time=" << res.get_finish_time().tv_sec
+         << " timeout=" << res.get_early_timeout()
          << " ok=" << res.get_exited_ok()
          << " ret_code=" << res.get_return_code()
          << " output:" << res.get_output();
