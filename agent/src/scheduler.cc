@@ -17,10 +17,10 @@
  */
 
 #include "scheduler.hh"
-#include <memory>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
+#include "config.hh"
 #ifdef _WIN32
 #include "check_memory.hh"
 #include "check_service.hh"
@@ -256,7 +256,7 @@ void scheduler::_check_handler(
     unsigned status,
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
-  SPDLOG_LOGGER_TRACE(_logger, "end check for service {} command {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "end check for service {} command {}",
                       check->get_service(), check->get_command_line());
 
   // conf has changed => no repush for next check
@@ -353,6 +353,9 @@ void scheduler::_store_result_in_metrics_and_exemplars(
   uint64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
                      std::chrono::system_clock::now().time_since_epoch())
                      .count();
+  uint64_t check_start = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                             check->get_last_start().time_since_epoch())
+                             .count();
 
   auto state_metrics = _get_metric(scope_metrics, "status");
   if (!outputs.empty()) {
@@ -364,10 +367,23 @@ void scheduler::_store_result_in_metrics_and_exemplars(
   }
   auto data_point = state_metrics->mutable_gauge()->add_data_points();
   data_point->set_time_unix_nano(now);
+  data_point->set_start_time_unix_nano(check_start);
   data_point->set_as_int(status);
 
   for (const com::centreon::common::perfdata& perf : perfdata) {
-    _add_metric_to_scope(now, perf, scope_metrics);
+    _add_metric_to_scope(check_start, now, perf, scope_metrics);
+  }
+  if (!_average_metric_length &&
+      _current_request->otel_request().resource_metrics_size() > 10) {
+    _average_metric_length =
+        _current_request->ByteSizeLong() /
+        _current_request->otel_request().resource_metrics_size();
+  }
+  if (_current_request->otel_request().resource_metrics_size() *
+          _average_metric_length >
+      2 * 1024 * 1024) {
+    _metric_sender(_current_request);
+    _init_export_request();
   }
 }
 
@@ -436,6 +452,7 @@ scheduler::scope_metric_request& scheduler::_get_scope_metrics(
  * @param scope_metric
  */
 void scheduler::_add_metric_to_scope(
+    uint64_t check_start,
     uint64_t now,
     const com::centreon::common::perfdata& perf,
     scope_metric_request& scope_metric) {
@@ -444,6 +461,7 @@ void scheduler::_add_metric_to_scope(
   auto data_point = metric->mutable_gauge()->add_data_points();
   data_point->set_as_double(perf.value());
   data_point->set_time_unix_nano(now);
+  data_point->set_start_time_unix_nano(check_start);
   switch (perf.value_type()) {
     case com::centreon::common::perfdata::counter: {
       auto attrib_type = data_point->add_attributes();

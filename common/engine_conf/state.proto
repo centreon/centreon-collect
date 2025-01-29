@@ -206,6 +206,7 @@ message State {
   repeated Severity severities = 144;
   repeated Tag tags = 145;
   map<string, string> user = 146;
+  uint32 max_file_descriptors = 147;
 }
 
 message Value {
