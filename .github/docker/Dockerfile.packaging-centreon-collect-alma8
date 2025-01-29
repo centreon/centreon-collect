@@ -57,8 +57,9 @@ dnf install --best -y \
     mariadb \
     mariadb-connector-c-devel \
     ninja-build \
-    rrdtool-devel \
     openssl-devel \
+    python3 \
+    rrdtool-devel \
     zlib-devel
 
 dnf clean all
