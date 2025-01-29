@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/almalinux:9
+FROM ${REGISTRY_URL}/almalinux:9 AS centreon_collect_packaging
 
 COPY vcpkg.json /root/vcpkg.json
 COPY overlays /overlays
@@ -9,13 +9,11 @@ COPY custom-triplets /custom-triplets
 RUN bash -e <<EOF
 
 # Base dnf configuration.
-echo 'http_caching=none' >> /etc/yum.conf
-echo 'assumeyes=1' >> /etc/yum.conf
 sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
+
 dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
-
 dnf install -y epel-release
 
 echo '[goreleaser]
@@ -25,38 +23,47 @@ enabled=1
 gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
 
 dnf install --best \
-    cmake \
-    gcc \
-    gcc-c++ \
-    gdb \
-    gettext \
-    mariadb \
-    mariadb-connector-c-devel \
-    ninja-build \
-    gnutls-devel \
-    libgcrypt-devel \
+    git \
     lua-devel \
     make \
-    perl-Thread-Queue \
-    rrdtool-devel \
     selinux-policy-devel \
     yum-utils \
     perl-ExtUtils-Embed \
     perl-HTTP-Daemon-SSL \
     perl-interpreter \
     perl-JSON \
+    perl-Thread-Queue \
     procps-ng \
-    python3 \
-    python3-pip \
     nfpm-2.41.1 \
-    openssl-devel \
-    libssh2-devel \
-    libcurl-devel \
-    zlib-devel \
     sudo \
     zstd
 
-dnf install -y git
+dnf clean all
+
+EOF
+
+FROM centreon_collect_packaging AS centreon_collect_packaging_vcpkg
+
+RUN bash -e <<EOF
+
+dnf install --best -y \
+    cmake \
+    gcc \
+    gcc-c++ \
+    gdb \
+    gettext \
+    gnutls-devel \
+    libcurl-devel \
+    libgcrypt-devel \
+    libssh2-devel \
+    mariadb \
+    mariadb-connector-c-devel \
+    ninja-build \
+    rrdtool-devel \
+    openssl-devel \
+    zlib-devel
+
+
 git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
