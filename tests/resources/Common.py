@@ -874,7 +874,17 @@ def ctn_check_tags_count(value: int, timeout: int):
     return False
 
 
-def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int = TIMEOUT):
+    """ check in the database if the BA has the expected status.
+
+    Args:
+        ba_name: The name of the BA
+        status: The expected status
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the status is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -885,9 +895,9 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
+                logger.console(f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
-                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
+                    f"SELECT current_status FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
                 logger.console(f"ba: {result[0]}")
                 if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
@@ -1000,8 +1010,11 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
 
         with connection:
             with connection.cursor() as cursor:
+                first = True
                 if enabled != '0':
-                    logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    if first:
+                        logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        first = False
                     cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
@@ -1310,12 +1323,27 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth='1'")
+                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
                 if int(result[0]['count(*)']) == int(nb):
                     return True
         time.sleep(1)
+
+    connection = pymysql.connect(host=DB_HOST,
+                             user=DB_USER,
+                             password=DB_PASS,
+                             database=DB_NAME_STORAGE,
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
+            result = cursor.fetchall()
+            logger.console("Not the expected number of downtimes")
+            logger.console(f"{result}")
     return False
 
 
