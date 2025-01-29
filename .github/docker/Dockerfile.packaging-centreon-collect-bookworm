@@ -19,12 +19,9 @@ echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sourc
 
 apt-get update
 
-apt-get -y install \
-    aptitude \
+apt-get install -y \
     curl \
-    fakeroot \
     git \
-    git-buildpackage \
     libhttp-daemon-ssl-perl \
     libjson-perl \
     liblua5.3-dev \
@@ -49,7 +46,7 @@ RUN bash -e <<EOF
 
 apt-get update
 
-apt-get -y install git \
+apt-get install -y \
     cmake \
     g++ \
     gcc \
