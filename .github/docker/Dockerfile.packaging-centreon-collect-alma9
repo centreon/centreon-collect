@@ -4,7 +4,7 @@ FROM ${REGISTRY_URL}/almalinux:9 AS centreon_collect_packaging
 
 RUN bash -e <<EOF
 
-# Base dnf configuration.
+# Base dnf configuration
 sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 

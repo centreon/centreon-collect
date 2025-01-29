@@ -6,20 +6,31 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN bash -e <<EOF
 
+# Base apt configuration
+echo '
+Acquire::Retries "10";
+Acquire::https::Timeout "300";
+Acquire::http::Timeout "300";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+' > /etc/apt/apt.conf.d/99custom
+
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 
 apt-get update
 
-apt-get -y install git \
+apt-get -y install \
     aptitude \
     curl \
     fakeroot \
+    git \
     git-buildpackage \
     libhttp-daemon-ssl-perl \
     libjson-perl \
     liblua5.3-dev \
     libperl-dev \
     locales \
+    nfpm=2.41.1 \
     pkg-config \
     sudo \
     zip \
