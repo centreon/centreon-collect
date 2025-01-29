@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/almalinux:9 AS centreon_collect_packaging
+FROM ${REGISTRY_URL}/almalinux:8 AS centreon_collect_packaging
 
 RUN bash -e <<EOF
 
@@ -9,7 +9,7 @@ sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
 dnf install -y dnf-plugins-core
-dnf config-manager --set-enabled crb
+dnf config-manager --set-enabled powertools
 dnf install -y epel-release
 
 echo '[goreleaser]
@@ -33,6 +33,8 @@ dnf install --best -y \
     nfpm-2.41.1 \
     sudo \
     zstd
+
+dnf update -y libarchive
 
 dnf clean all
 

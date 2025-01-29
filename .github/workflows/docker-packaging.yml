@@ -34,10 +34,14 @@ jobs:
       matrix:
         include:
           - runner: collect
+            distrib: alma8
+          - runner: collect
             distrib: alma9
+          - runner: collect
+            distrib: bookworm
 
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
-    # runs-on: ubuntu-24.04
+    #runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    runs-on: ubuntu-24.04
 
     name: Build docker image ${{ matrix.distrib }}
 
