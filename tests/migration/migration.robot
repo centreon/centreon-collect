@@ -54,7 +54,7 @@ MIGRATION
     ${start}    Get Current Date
 
     Log To Console    Move to BBDO 3.0.0 with unified_sql
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    no_rrd_test=True
     Ctn Start Broker
     Ctn Stop Engine
     Ctn Start Engine
