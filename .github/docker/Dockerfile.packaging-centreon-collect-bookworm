@@ -29,6 +29,7 @@ apt-get install -y \
     make \
     nfpm=2.41.1 \
     sudo \
+    unzip \
     zip \
     zstd \
     perl-base
