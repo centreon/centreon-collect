@@ -98,8 +98,8 @@ jobs:
           target: centreon_collect_packaging_vcpkg
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
-          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
+            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: false
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
