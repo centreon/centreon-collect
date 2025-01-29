@@ -67,7 +67,7 @@ jobs:
         with:
           driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
 
-      - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
@@ -83,9 +83,9 @@ jobs:
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
 
-      - name: Build image ${{ env.IMAGE_BASE_NAME }}-vcpk-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      - name: Build image ${{ env.IMAGE_BASE_NAME }}-vcpk-${{ matrix.distrib }}${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
@@ -101,7 +101,7 @@ jobs:
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: false
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}:${{ needs.get-environment.outputs.packaging_img_version }}
 
   # set-skip-label:
   #   needs: [get-environment, dockerize]
