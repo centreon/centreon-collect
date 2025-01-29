@@ -47,7 +47,7 @@ jobs:
     # runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
     runs-on: ${{ matrix.runner }}
 
-    name: Build docker image ${{ matrix.distrib }}
+    name: Build docker image ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
     env:
       IMAGE_BASE_NAME: packaging-centreon-collect
