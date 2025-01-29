@@ -71,12 +71,20 @@ BEBAMIDTU1
     Ctn Kindly Stop Broker
 
 BEBAMIDTU2
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured.
+    ...    The BA is in critical state, because of its service.
+    ...    Then we set a downtime on this last one.
+    ...    Then an inherited downtime is set to the BA.
+    ...    Then Engine is restarted, Broker is restarted.
+    ...    Then the two downtimes are still there with no duplicates.
+    ...    The downtime is removed from the service,
+    ...    Then the inherited downtime is deleted.
     [Tags]    broker    downtime    engine    bam    start    stop
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
@@ -93,42 +101,42 @@ BEBAMIDTU2
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     # KPI set to critical
+    Log To Console    KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60  HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
+    Log To Console    The BA should become critical
     ${result}    Ctn Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
+    Log To Console    A downtime is put on service_314
     Ctn Schedule Service Downtime    host_16    service_314    3600
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+
+    Log To Console    An inherited downtime is propagated to the BA ba_1
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+
+    # There are still two downtimes: the one on the ba and the one on the kpi.
+    Log To Console    We should have two downtimes
+    ${result}    Ctn Number Of Downtimes Is    2    30
+    Should Be True    ${result}    We should only have two downtimes
 
     FOR    ${i}    IN RANGE    2
         # Engine is restarted
         Ctn Stop Engine
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Start Engine
-        # Let's wait for the initial service states.
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True
-        ...    ${result}
-        ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Ctn Wait For Engine To Be Ready    ${start}    1
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
@@ -138,8 +146,9 @@ BEBAMIDTU2
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
+    Log To Console    We should still have two downtimes
     ${result}    Ctn Number Of Downtimes Is    2    60
-    Should Be True    ${result}    We should only have only two downtimes
+    Should Be True    ${result}    We should only have two downtimes
 
     # The downtime is deleted
     Ctn Delete Service Downtime    host_16    service_314
