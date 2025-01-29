@@ -98,7 +98,7 @@ cp /root/vcpkg.json /src/vcpkg.json
 /vcpkg/vcpkg install \
   --clean-after-build \
   --overlay-triplets=custom-triplets \
-  --triplet ${TRIPLET}-release
+  --triplet ${TRIPLET}-release \
   --vcpkg-root vcpkg \
   --x-wait-for-lock \
   --x-manifest-root=/src \
