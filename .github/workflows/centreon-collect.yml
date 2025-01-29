@@ -246,26 +246,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - image: centreon-collect-alma8
-          #   distrib: el8
-          #   package_extension: rpm
-          #   runner: collect
-          #   arch: amd64
+          - image: centreon-collect-alma8
+            distrib: el8
+            package_extension: rpm
+            runner: collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
             runner: collect
             arch: amd64
-          # - image: centreon-collect-debian-bookworm
-          #   distrib: bookworm
-          #   package_extension: deb
-          #   runner: collect
-          #   arch: amd64
-          # - image: centreon-collect-debian-bookworm-arm64
-          #   distrib: bookworm
-          #   package_extension: deb
-          #   runner: collect-arm64
-          #   arch: arm64
+          - image: packaging-centreon-collect-debian-bookworm
+            distrib: bookworm
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: packaging-centreon-collect-debian-bookworm-arm64
+            distrib: bookworm
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
 
     uses: ./.github/workflows/package-collect.yml
 

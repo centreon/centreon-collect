@@ -2,7 +2,7 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bookworm AS centreon_collect_packaging
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN bash -e <<EOF
 
@@ -20,7 +20,6 @@ apt-get -y install git \
     liblua5.3-dev \
     libperl-dev \
     locales \
-    ninja-build \
     pkg-config \
     sudo \
     zip \
@@ -40,42 +39,24 @@ RUN bash -e <<EOF
 apt-get update
 
 apt-get -y install git \
-    aptitude \
     cmake \
-    curl \
-    fakeroot \
     g++ \
     gcc \
     gdb \
-    git-buildpackage \
     libcurl4-openssl-dev \
     libgcrypt20-dev \
     libgnutls28-dev \
-    libhttp-daemon-ssl-perl \
-    libjson-perl \
     liblua5.3-dev \
     libmariadb-dev \
     libmariadb3 \
-    libperl-dev \
     librrd-dev \
     libssh2-1-dev \
     libssl-dev \
-    locales \
-    mariadb-server \
     ninja-build \
-    openssh-server \
     openssl \
-    pkg-config \
     python3 \
-    python3-pip \
-    rrdcached \
-    rrdtool \
     strace \
-    sudo \
-    zip \
-    zlib1g-dev \
-    zstd \
-    perl-base
+    zlib1g-dev
 
 apt-get clean
 
