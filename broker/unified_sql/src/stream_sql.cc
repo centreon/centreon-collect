@@ -2931,9 +2931,9 @@ void stream::_process_pb_adaptive_host_status(
       res_query +=
           fmt::format("acknowledged='{}',",
                       hscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    if (hscr.has_notification_number())
-      res_query +=
-          fmt::format("notification_number={},", hscr.notification_number());
+    // if (hscr.has_notification_number())
+    //   res_query +=
+    //       fmt::format("notification_number={},", hscr.notification_number());
     if (hscr.has_scheduled_downtime_depth())
       res_query +=
           fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
@@ -5004,9 +5004,9 @@ void stream::_process_pb_adaptive_service_status(
       buf_res_query +=
           fmt::format("acknowledged='{}',",
                       sscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    if (sscr.has_notification_number())
-      buf_res_query +=
-          fmt::format("notification_number={},", sscr.notification_number());
+    // if (sscr.has_notification_number())
+    //   buf_res_query +=
+    //       fmt::format("notification_number={},", sscr.notification_number());
     _logger_sql->debug("service8 ({}, {}) scheduled_downtime_depth: {}",
                        sscr.host_id(), sscr.service_id(),
                        sscr.scheduled_downtime_depth());
