@@ -152,6 +152,7 @@ overrides:
   rpm:
     depends:
       - bzip2
+      - initscripts
       - perl-Libssh-Session >= 0.8
       - perl-CryptX
       - perl-Mojolicious
