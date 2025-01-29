@@ -16,9 +16,12 @@
  * For more information : contact@centreon.com
  */
 
+#include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+
+#include "log.hh"
 
 #include "agent_info.hh"
 #include "check_cpu.hh"
@@ -34,7 +37,6 @@ using namespace com::centreon::agent;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
-std::shared_ptr<spdlog::logger> g_logger;
 static std::shared_ptr<streaming_client> _streaming_client;
 
 static std::shared_ptr<streaming_server> _streaming_server;
@@ -193,6 +195,8 @@ int main(int argc, char* argv[]) {
   }
 
   read_os_version();
+
+  set_grpc_logger();
 
   if (conf.use_reverse_connection()) {
     _streaming_server = streaming_server::load(g_io_context, g_logger,
