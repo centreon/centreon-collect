@@ -7,8 +7,6 @@ Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
 
-Library    XML
-
 *** Test Cases ***
 ESS1
     [Documentation]    Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
@@ -61,7 +59,7 @@ E_FD_LIMIT
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     
     ${pid}    Get Process Id    e0
-    ${limits}    Get Process Limit    ${pid}    Max open files
+    ${limits}    Ctn Get Process Limit    ${pid}    Max open files
     
     Should Be Equal As Numbers    ${limits[0]}    1048576    Engine should have 1048576 file descriptors
 

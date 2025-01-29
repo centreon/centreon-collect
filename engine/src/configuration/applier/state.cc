@@ -17,6 +17,8 @@
  *
  */
 
+#include <sys/resource.h>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -63,6 +65,43 @@ using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
+
+/**
+ * @brief increase soft limit of opened file descriptors
+ *
+ * @param soft_fd_limit
+ */
+static void increase_fd_limit(uint32_t soft_fd_limit) {
+  struct rlimit rlim;
+  if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+    if (soft_fd_limit > rlim.rlim_cur) {
+      if (soft_fd_limit > rlim.rlim_max) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Soft limit of opened file descriptors {} is greater than hard "
+            "limit {}, we will set it to hard limit",
+            soft_fd_limit, rlim.rlim_max);
+        soft_fd_limit = rlim.rlim_max;
+      }
+      rlim.rlim_cur = soft_fd_limit;
+      if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Failed to set soft limit of opened file descriptors "
+            "to {}",
+            soft_fd_limit);
+      } else {
+        SPDLOG_LOGGER_INFO(process_logger,
+                           "Soft limit of opened file descriptors set to {}",
+                           soft_fd_limit);
+      }
+    }
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        process_logger,
+        "Failed to get current limit of opened file descriptors");
+  }
+}
 
 #ifdef LEGACY_CONF
 /**
@@ -727,6 +766,11 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.clear_user();
   for (auto& p : new_cfg.user())
     pb_config.mutable_user()->at(p.first) = p.second;
+
+  if (pb_config.max_file_descriptors() != new_cfg.max_file_descriptors()) {
+    pb_config.set_max_file_descriptors(new_cfg.max_file_descriptors());
+    increase_fd_limit(new_cfg.max_file_descriptors());
+  }
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
