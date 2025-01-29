@@ -25,9 +25,7 @@ dnf install --best -y \
     selinux-policy-devel \
     yum-utils \
     perl-ExtUtils-Embed \
-    perl-HTTP-Daemon-SSL \
     perl-interpreter \
-    perl-JSON \
     perl-Thread-Queue \
     procps-ng \
     nfpm-2.41.1 \
@@ -56,6 +54,8 @@ dnf install --best -y \
     mariadb-connector-c-devel \
     ninja-build \
     openssl-devel \
+    perl-HTTP-Daemon-SSL \
+    perl-JSON \
     python3 \
     rrdtool-devel \
     zlib-devel

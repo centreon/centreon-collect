@@ -15,6 +15,9 @@ APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 ' > /etc/apt/apt.conf.d/99custom
 
+apt-get update
+apt-get install -y ca-certificates
+
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 
 apt-get update
@@ -22,21 +25,15 @@ apt-get update
 apt-get install -y \
     curl \
     git \
-    libhttp-daemon-ssl-perl \
-    libjson-perl \
-    liblua5.3-dev \
     libperl-dev \
-    locales \
+    make \
     nfpm=2.41.1 \
-    pkg-config \
     sudo \
     zip \
     zstd \
     perl-base
 
 apt-get clean
-
-localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 EOF
 
@@ -55,18 +52,24 @@ apt-get install -y \
     libgcrypt20-dev \
     libgnutls28-dev \
     liblua5.3-dev \
+    libhttp-daemon-ssl-perl \
+    libjson-perl \
     libmariadb-dev \
     libmariadb3 \
     librrd-dev \
     libssh2-1-dev \
     libssl-dev \
+    locales \
     ninja-build \
     openssl \
+    pkg-config \
     python3 \
     strace \
     zlib1g-dev
 
 apt-get clean
+
+localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 EOF
 
