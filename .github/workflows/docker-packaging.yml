@@ -33,15 +33,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: collect
+          - runner: [self-hosted, collect]
             distrib: alma8
-          - runner: collect
+          - runner: [self-hosted, collect]
             distrib: alma9
-          - runner: collect
+          - runner: [self-hosted, collect]
+            distrib: bookworm
+          - runner: [self-hosted, collect-arm64]
             distrib: bookworm
 
-    #runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
-    runs-on: ubuntu-24.04
+    # runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    runs-on: ${{ matrix.runner }}
 
     name: Build docker image ${{ matrix.distrib }}
 
