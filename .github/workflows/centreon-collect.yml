@@ -251,7 +251,7 @@ jobs:
           #   package_extension: rpm
           #   runner: collect
           #   arch: amd64
-          - image: packaging-centreon-collect-alma9
+          - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
             runner: collect

@@ -86,7 +86,7 @@ jobs:
         with:
           file: .github/docker/Dockerfile.${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}
           context: .
-          target: centreon_collect_packaging
+          target: centreon_collect_packaging_vcpkg
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
             "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
