@@ -284,7 +284,7 @@ Ctn Stop Engine
 Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
     TRY
-        Ctn Stop engine
+        Ctn Stop Engine
     EXCEPT
         Log    can't kindly stop engine
     END
