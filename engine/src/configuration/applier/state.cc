@@ -469,6 +469,11 @@ void applier::state::_apply(configuration::state const& new_cfg,
       new_cfg.use_host_down_disable_service_checks());
   config->user(new_cfg.user());
 
+  if (config->max_file_descriptors() != new_cfg.max_file_descriptors()) {
+    config->max_file_descriptors(new_cfg.max_file_descriptors());
+    increase_fd_limit(new_cfg.max_file_descriptors());
+  }
+
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
     config->broker_module(new_cfg.broker_module());
