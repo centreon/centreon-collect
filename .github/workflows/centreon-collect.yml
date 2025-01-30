@@ -291,6 +291,7 @@ jobs:
               zstd \
               perl-base
           fi
+        shell: bash
 
       - name: Run unit tests
         run: |
