@@ -28,7 +28,6 @@ dnf install --best -y \
     psmisc \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
-    rrdcached \
     rrdtool \
     sudo \
     zstd
