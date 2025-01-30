@@ -133,13 +133,13 @@ jobs:
         distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
-            image: packaging-nfpm-alma8
+            image: packaging-centreon-collect-alma8
             distrib: el8
           - package_extension: rpm
-            image: packaging-nfpm-alma9
+            image: packaging-centreon-collect-alma9
             distrib: el9
           - package_extension: deb
-            image: packaging-nfpm-bookworm
+            image: packaging-centreon-collect-bookworm
             distrib: bookworm
 
     runs-on: ubuntu-24.04

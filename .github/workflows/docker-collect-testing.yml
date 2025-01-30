@@ -50,7 +50,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
 
-    name: build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: build docker image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
 
     env:
       IMAGE_NAME: centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
@@ -72,6 +72,10 @@ jobs:
 
       - name: Build image ${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
         with:
           file: .github/docker/Dockerfile.centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}-test
           context: .

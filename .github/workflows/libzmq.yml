@@ -34,10 +34,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-alma8
+          - image: packaging-centreon-collect-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-nfpm-alma9
+          - image: packaging-centreon-collect-alma9
             distrib: el9
             arch: amd64
 
@@ -87,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bookworm
+          - image: packaging-centreon-collect-bookworm
             distrib: bookworm
             runner: ubuntu-24.04
             arch: amd64
