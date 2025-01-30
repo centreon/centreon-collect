@@ -217,8 +217,8 @@ jobs:
         run: ${SCCACHE_PATH} --stop-server
         shell: bash
 
-      - run:
-          if command -v dnf &> /dev/null; then
+      - run: |
+          if command -v dnf; then
             dnf --best install -y cmake \
               gcc \
               gcc-c++ \
