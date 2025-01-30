@@ -17,6 +17,8 @@
  */
 #include <windows.h>
 
+#include "log.hh"
+
 #include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -50,7 +52,6 @@ using namespace com::centreon::agent;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
-std::shared_ptr<spdlog::logger> g_logger;
 static std::shared_ptr<streaming_client> _streaming_client;
 
 static std::shared_ptr<streaming_server> _streaming_server;
@@ -203,6 +204,8 @@ int _main(bool service_start) {
   g_logger->flush_on(spdlog::level::warn);
 
   spdlog::flush_every(std::chrono::seconds(1));
+
+  set_grpc_logger();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent start");
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
