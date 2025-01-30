@@ -16,6 +16,7 @@ BERD1
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -56,6 +57,7 @@ BERD2
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_level_runtime    info
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Clear Outputs Except    central    ["ipv4"]
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -97,6 +99,7 @@ BERDUC1
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -137,6 +140,7 @@ BERDUCU1
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -175,6 +179,7 @@ BERDUC2
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -212,6 +217,7 @@ BERDUCU2
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -250,6 +256,7 @@ BERDUC3U1
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Ctn Broker Config Log    central    lua    debug
@@ -289,6 +296,7 @@ BERDUC3U2
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -342,6 +350,7 @@ BERDUCA300
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
@@ -393,6 +402,7 @@ BERDUCA301
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
