@@ -273,7 +273,7 @@ jobs:
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
-      runner: ${{ matrix.runner }}
+      runner: "${{ matrix.runner }}"
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets:
