@@ -119,8 +119,8 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
           _logger, "file {} must be owned by root@centreon-engine", file_path);
     }
   }
-  if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
-    SPDLOG_LOGGER_ERROR(_logger, "file {} must have x40 right access",
+  if ((infos.st_mode & S_IRWXO) || (infos.st_mode & S_IRWXG) != S_IRGRP) {
+    SPDLOG_LOGGER_ERROR(_logger, "file {} must have 0640 right access",
                         file_path);
   }
 
