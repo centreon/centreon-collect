@@ -39,14 +39,12 @@ jobs:
             distrib: alma9
           - runner: [self-hosted, collect]
             distrib: bookworm
-          # - runner: ubuntu-24.04-arm
-          #   distrib: bookworm
           - runner: [self-hosted, collect-arm64]
             distrib: bookworm
 
     runs-on: ${{ matrix.runner }}
 
-    name: Build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
 
     env:
       IMAGE_BASE_NAME: packaging-centreon-collect
