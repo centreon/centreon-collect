@@ -50,7 +50,7 @@ jobs:
           # - runner: collect
           #   dockerfile: centreon-collect-ubuntu-jammy-test
           #   image: centreon-collect-ubuntu-jammy-test
-          #   tag: ${{ needs.get-environment.outputs.img_version }}
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
           # - runner: collect-arm64
           #   dockerfile: centreon-collect-debian-bullseye-test
           #   image: centreon-collect-debian-bullseye-arm64-test
@@ -62,7 +62,7 @@ jobs:
           # - runner: collect-arm64
           #   dockerfile: centreon-collect-ubuntu-jammy-test
           #   image: centreon-collect-ubuntu-jammy-test-arm64
-          #   tag: ${{ needs.get-environment.outputs.img_version }}
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
 
     runs-on: ${{ matrix.runner }}
 

@@ -13,9 +13,6 @@ on:
       image_test:
         required: true
         type: string
-      image_version:
-        required: true
-        type: string
       package_cache_key:
         required: true
         type: string
