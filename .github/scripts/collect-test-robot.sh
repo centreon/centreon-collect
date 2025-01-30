@@ -57,6 +57,7 @@ fi
 
 
 ulimit -c unlimited
+ulimit -S -n 524288
 echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
 #remove git dubious ownership
