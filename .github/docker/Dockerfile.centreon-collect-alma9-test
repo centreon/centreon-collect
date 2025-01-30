@@ -42,7 +42,6 @@ dnf install -y epel-release
 dnf install --best -y \
     gcc \
     gcc-c++ \
-    gdb \
     openssh-server \
     mariadb-server \
     mariadb \
