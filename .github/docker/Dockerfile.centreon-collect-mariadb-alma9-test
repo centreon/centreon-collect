@@ -23,12 +23,13 @@ dnf install --best -y \
     python3 \
     python3-devel \
     python3-pip \
-    rrdtool \
     perl-interpreter \
     procps-ng \
     psmisc \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
+    rrdcached \
+    rrdtool \
     sudo \
     zstd
 
