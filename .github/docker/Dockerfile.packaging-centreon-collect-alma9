@@ -30,6 +30,7 @@ dnf install --best -y \
     procps-ng \
     nfpm-2.41.1 \
     sudo \
+    wget \
     zstd
 
 dnf clean all

@@ -28,11 +28,12 @@ apt-get install -y \
     libperl-dev \
     make \
     nfpm=2.41.1 \
+    perl-base \
     sudo \
     unzip \
+    wget \
     zip \
-    zstd \
-    perl-base
+    zstd
 
 apt-get clean
 

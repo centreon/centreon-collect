@@ -156,18 +156,9 @@ jobs:
 
       - name: Install sccache
         run: |
-          if ! command -v wget &> /dev/null; then
-            if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
-              dnf install -y wget
-            else
-              apt-get update
-              apt-get install -y wget
-            fi
-          fi
-
-          wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+          wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
 
           ${SCCACHE_PATH} --start-server
         shell: bash
@@ -181,8 +172,6 @@ jobs:
 
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
-
-          # mv /root/.cache /github/home/
 
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
@@ -246,25 +235,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: centreon-collect-alma8
+          - image: packaging-centreon-collect-vcpkg-alma8
             distrib: el8
             package_extension: rpm
-            runner: collect
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
-            runner: collect
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
-            runner: collect
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
-            runner: collect-arm64
+            runner: [self-hosted, collect-arm64]
             arch: arm64
 
     uses: ./.github/workflows/package-collect.yml
