@@ -150,6 +150,7 @@ TestWhiteList
     ELSE
         Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    ::1
     END
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
     Create Directory    /etc/centreon-engine-whitelist
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
@@ -174,18 +175,16 @@ TestWhiteList
     ...    {"whitelist":{"regex":["/usr/lib64/nagios/plugins/check_by_ssh .+"]}}
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
     Ctn Reload Engine
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
+    Log to console    ${start}
     Ctn Schedule Forced Host Check    host_1
 
-    ${content}    Create List    'toto=127.0.0.1'
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-
     IF    "${run_env}" == "docker"
-        ${content}    Create List    'toto=127.0.0.1'
+        ${content}    Create List    toto=127.0.0.1
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=127.0.0.1' should be available.
     ELSE
-        ${content}    Create List    'toto=::1'
+        ${content}    Create List    toto=::1
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
