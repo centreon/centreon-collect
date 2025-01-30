@@ -2,8 +2,6 @@ ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:9
 
-COPY . /tmp/collect
-
 RUN --mount=type=bind,src=.,dst=/tmp/collect bash -e <<EOF
 
 # Base dnf configuration
@@ -14,51 +12,24 @@ dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
 dnf install -y epel-release
 
-# dnf install --best -y \
-#     gcc \
-#     gcc-c++ \
-#     gdb \
-#     git \
-#     openssh-server \
-#     mariadb-server \
-#     mariadb \
-#     gnutls \
-#     libgcrypt \
-#     lua \
-#     perl-ExtUtils-Embed \
-#     perl-JSON \
-#     python3 \
-#     python3-devel \
-#     python3-pip \
-#     perl-Thread-Queue \
-#     rrdtool \
-#     perl-interpreter \
-#     procps-ng \
-#     zstd \
-#     psmisc \
-#     perl-HTTP-Daemon-SSL.noarch \
-#     sudo
-
 dnf install --best -y \
     gcc \
     gcc-c++ \
-    openssh-server \
+    lua \
     mariadb-server \
     mariadb \
-    lua \
+    openssh-server \
     python3 \
     python3-devel \
     python3-pip \
     rrdtool \
     perl-interpreter \
     procps-ng \
-    zstd \
     psmisc \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
-    sudo
-
-dnf clean all
+    sudo \
+    zstd
 
 echo "install robot and dependencies"
 
@@ -69,7 +40,7 @@ cd /tmp/collect
 
 .github/scripts/collect-prepare-test-robot.sh mariadb
 
-dnf remove -y gcc gcc-c++ gdb python3-devel
+dnf remove -y gcc gcc-c++ python3-devel
 
 dnf clean all
 
