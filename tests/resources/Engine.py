@@ -896,9 +896,9 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         lines = f.readlines()
 
     if file == "serviceTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -924,9 +924,9 @@ def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, fil
         lines = f.readlines()
 
     if file == "serviceTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -955,8 +955,8 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             while i < len(lines) and lines[i] != "}":
@@ -984,8 +984,8 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1018,8 +1018,8 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1063,9 +1063,9 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1162,9 +1162,9 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
     if file == "contactTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1191,9 +1191,9 @@ def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, fil
         lines = f.readlines()
 
     if file == "contactTemplates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1228,19 +1228,19 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         lines = f.readlines()
     found = False
     if file == "hostgroups.cfg":
-        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
     elif file == "servicegroups.cfg":
-        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
     elif file == "contactgroups.cfg":
-        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
     elif file == "commands.cfg":
-        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
     elif file == "connectors.cfg":
-        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
     elif file == "escalations.cfg":
-        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
-        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
         logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
         return
@@ -1274,20 +1274,20 @@ def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
         lines = f.readlines()
 
     if file == "hostgroups.cfg":
-        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
     elif file == "servicegroups.cfg":
-        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
     elif file == "contactgroups.cfg":
-        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
     elif file == "commands.cfg":
-        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
     elif file == "connectors.cfg":
-        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
     elif file == "escalations.cfg":
-        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     elif len(file) > 13 and file[-13:] == "Templates.cfg":
         if file[-13:] == "Templates.cfg":
-            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+            r = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
         logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
         return
@@ -1325,7 +1325,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1346,7 +1346,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;;dependency_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1366,7 +1366,7 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     serv_begin = re.compile(r"^define service {$")
     serv_end = re.compile(r"^}$")
     serv_begin_idx = 0
@@ -1403,7 +1403,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     host_begin = re.compile(r"^define host {$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
@@ -2678,7 +2678,7 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
     with open(filename, "r") as ff:
         lines = ff.readlines()
 
-    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_name = re.compile(rf"^\s*id\s+{tag_id}\s*$")
     tag_begin = re.compile(r"^define tag {$")
     tag_end = re.compile(r"^}$")
     tag_begin_idx = 0
@@ -2811,7 +2811,7 @@ def ctn_set_services_passive(poller: int, srv_regex):
 
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*service_description\s*({srv_regex})$")
+    r = re.compile(rf"^\s*service_description\s*({srv_regex})$")
     rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
     rc = re.compile(r"^\s*}\s*$")
     desc = ""
@@ -2846,7 +2846,7 @@ def ctn_set_hosts_passive(poller: int, host_regex):
 
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*host_name\s*({host_regex})$")
+    r = re.compile(rf"^\s*host_name\s*({host_regex})$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m:
