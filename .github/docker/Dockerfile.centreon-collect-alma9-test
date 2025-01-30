@@ -40,9 +40,6 @@ dnf install -y epel-release
 #     sudo
 
 dnf install --best -y \
-    gcc \
-    gcc-c++ \
-    gdb \
     git \
     openssh-server \
     mariadb-server \
