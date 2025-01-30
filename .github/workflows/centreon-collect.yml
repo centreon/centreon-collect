@@ -240,22 +240,22 @@ jobs:
           - image: packaging-centreon-collect-vcpkg-alma8
             distrib: el8
             package_extension: rpm
-            runner: "[self-hosted, collect]"
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
-            runner: "[self-hosted, collect]"
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
-            runner: "[self-hosted, collect]"
+            runner: [self-hosted, collect]
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
-            runner: "[self-hosted, collect-arm64]"
+            runner: [self-hosted, collect-arm64]
             arch: arm64
 
     uses: ./.github/workflows/package-collect.yml
@@ -273,7 +273,7 @@ jobs:
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
-      runner: "${{ matrix.runner }}"
+      runner: ${{ toJSON(matrix.runner) }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets:
