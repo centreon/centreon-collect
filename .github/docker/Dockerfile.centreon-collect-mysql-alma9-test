@@ -16,6 +16,7 @@ dnf install --best -y \
     gcc \
     gcc-c++ \
     git \
+    gnutls \
     lua \
     mariadb-connector-c \
     mysql-server \

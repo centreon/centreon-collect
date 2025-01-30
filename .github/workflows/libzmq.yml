@@ -119,7 +119,7 @@ jobs:
       - name: package deb
         run: |
           apt-get update
-          apt-get install -y debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
+          apt-get install -y gcc g++ debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
           wget -O - https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz | tar zxvf -
 
           cd zeromq-4.3.5
