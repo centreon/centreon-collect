@@ -219,6 +219,39 @@ jobs:
 
       - name: Run unit tests
         run: |
+          dnf --best install -y cmake \
+            gcc \
+            gcc-c++ \
+            gdb \
+            gettext \
+            git \
+            ninja-build \
+            openssh-server \
+            mariadb-server \
+            mariadb \
+            mariadb-connector-c-devel \
+            gnutls-devel \
+            libgcrypt-devel \
+            lua-devel \
+            make \
+            perl-ExtUtils-Embed.noarch \
+            perl-JSON \
+            python3 \
+            python3-pip \
+            perl-Thread-Queue \
+            rrdtool-devel \
+            selinux-policy-devel \
+            yum-utils \
+            perl-interpreter \
+            procps-ng \
+            zstd \
+            nfpm-2.41.1 \
+            openssl-devel \
+            libssh2-devel \
+            libcurl-devel \
+            zlib-devel \
+            perl-HTTP-Daemon-SSL.noarch \
+            sudo
           tests/ut_broker --gtest_output=xml:ut_broker.xml
           # tests/ut_engine --gtest_output=xml:ut_engine.xml
           # tests/ut_clib --gtest_output=xml:ut_clib.xml
@@ -233,7 +266,7 @@ jobs:
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: unit-test-reports
-          path: "**/*ut_*.xml"
+          path: "**/ut_*.xml"
           retention-days: 1
 
   package:
