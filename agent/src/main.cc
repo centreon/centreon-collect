@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <spdlog/common.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
