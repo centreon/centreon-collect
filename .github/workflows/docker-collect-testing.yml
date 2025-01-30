@@ -69,7 +69,7 @@ jobs:
     name: Build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
 
     env:
-      IMAGE_NAME: centreon-collect-${{ matrix.distrib }}-${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
+      IMAGE_NAME: centreon-collect-${{ matrix.distrib }}${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
 
     steps:
       - name: Checkout sources
