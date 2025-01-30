@@ -40,7 +40,6 @@ dnf install -y epel-release
 #     sudo
 
 dnf install --best -y \
-    git \
     openssh-server \
     mariadb-server \
     mariadb \
@@ -67,5 +66,9 @@ pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3 robot
 cd /tmp/collect
 
 .github/scripts/collect-prepare-test-robot.sh mariadb
+
+dnf remove -y gcc gcc-c++ gdb python3-devel
+
+dnf clean all
 
 EOF
