@@ -15,6 +15,7 @@ dnf install -y epel-release
 dnf install --best -y \
     gcc \
     gcc-c++ \
+    git \
     lua \
     mariadb-server \
     mariadb \

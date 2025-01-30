@@ -10,6 +10,7 @@ apt-get -y install \
     curl \
     g++ \
     gcc \
+    git \
     libhttp-daemon-ssl-perl \
     libjson-perl \
     liblua5.3 \
@@ -40,6 +41,7 @@ cd /tmp/collect
 .github/scripts/collect-prepare-test-robot.sh mariadb
 
 apt-get remove -y gcc g++ python3-dev
+apt-get autoremove -y
 
 apt-get clean
 
