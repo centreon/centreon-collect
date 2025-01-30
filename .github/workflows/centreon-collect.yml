@@ -258,6 +258,8 @@ jobs:
             runner: [self-hosted, collect-arm64]
             arch: arm64
 
+    name: package ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+
     uses: ./.github/workflows/package-collect.yml
 
     with:
