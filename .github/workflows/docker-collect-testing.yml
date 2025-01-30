@@ -1,4 +1,4 @@
-name: docker-packaging
+name: docker-collect-testing
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -11,10 +11,10 @@ on:
       - develop
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
-      - '.github/docker/Dockerfile.packaging-*'
+      - '.github/docker/Dockerfile.centreon-collect-*-test'
   pull_request:
     paths:
-      - '.github/docker/Dockerfile.packaging-*'
+      - '.github/docker/Dockerfile.centreon-collect-*-test'
 
 jobs:
   get-environment:
@@ -34,23 +34,42 @@ jobs:
       matrix:
         include:
           - runner: [self-hosted, collect]
-            distrib: alma8
-          - runner: [self-hosted, collect]
             distrib: alma9
-          - runner: [self-hosted, collect]
-            distrib: bookworm
-          # - runner: ubuntu-24.04-arm
-          #   distrib: bookworm
-          - runner: [self-hosted, collect-arm64]
-            distrib: bookworm
+          # - runner: collect
+          #   dockerfile: centreon-collect-mysql-alma9-test
+          #   image: centreon-collect-mysql-alma9-test
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
+          # - runner: collect
+          #   dockerfile: centreon-collect-debian-bullseye-test
+          #   image: centreon-collect-debian-bullseye-test
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
+          # - runner: collect
+          #   dockerfile: centreon-collect-debian-bookworm-test
+          #   image: centreon-collect-debian-bookworm-test
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
+          # - runner: collect
+          #   dockerfile: centreon-collect-ubuntu-jammy-test
+          #   image: centreon-collect-ubuntu-jammy-test
+          #   tag: ${{ needs.get-environment.outputs.img_version }}
+          # - runner: collect-arm64
+          #   dockerfile: centreon-collect-debian-bullseye-test
+          #   image: centreon-collect-debian-bullseye-arm64-test
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
+          # - runner: collect-arm64
+          #   dockerfile: centreon-collect-debian-bookworm-test
+          #   image: centreon-collect-debian-bookworm-arm64-test
+          #   tag: ${{ needs.get-environment.outputs.test_img_version }}
+          # - runner: collect-arm64
+          #   dockerfile: centreon-collect-ubuntu-jammy-test
+          #   image: centreon-collect-ubuntu-jammy-test-arm64
+          #   tag: ${{ needs.get-environment.outputs.img_version }}
 
     runs-on: ${{ matrix.runner }}
 
     name: Build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
 
     env:
-      IMAGE_BASE_NAME: packaging-centreon-collect
-      IMAGE_SUFFIX: ${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}
+      IMAGE_NAME: centreon-collect-${{ matrix.distrib }}-${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
 
     steps:
       - name: Checkout sources
@@ -67,41 +86,18 @@ jobs:
         with:
           driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
 
-      - name: Build image ${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      - name: Build image ${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
         uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
         with:
-          file: .github/docker/Dockerfile.${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.centreon-collect-${{ matrix.distrib }}-test
           context: .
-          target: centreon_collect_packaging
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
             "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
           platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
-
-      - name: Build image ${{ env.IMAGE_BASE_NAME }}-vcpk-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
-        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: false
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
-        with:
-          file: .github/docker/Dockerfile.${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}
-          context: .
-          target: centreon_collect_packaging_vcpkg
-          build-args: |
-            "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
-          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
-          pull: false
-          push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
 
   # set-skip-label:
   #   needs: [get-environment, dockerize]
