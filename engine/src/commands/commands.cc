@@ -49,7 +49,6 @@ using namespace com::centreon::engine::logging;
 /* checks for the existence of the external command file and processes all
  * commands found in it */
 int check_for_external_commands() {
-  functions_logger->error("CHECK_FOR_EXTERNAL_COMMANDS... TEST");
   functions_logger->trace("check_for_external_commands()");
 
 #ifdef LEGACY_CONF
