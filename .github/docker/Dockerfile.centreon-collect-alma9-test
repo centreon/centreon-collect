@@ -4,18 +4,42 @@ FROM ${REGISTRY_URL}/almalinux:9
 
 COPY . /tmp/collect
 
-RUN bash -e <<EOF
+RUN --mount=type=bind,src=.,dst=/tmp/collect bash -e <<EOF
 
-# Base dnf configuration.
-echo 'http_caching=none' >> /etc/yum.conf
-echo 'assumeyes=1' >> /etc/yum.conf
+# Base dnf configuration
 sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
+echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
+
 dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
-
 dnf install -y epel-release
 
-dnf --best install -y \
+# dnf install --best -y \
+#     gcc \
+#     gcc-c++ \
+#     gdb \
+#     git \
+#     openssh-server \
+#     mariadb-server \
+#     mariadb \
+#     gnutls \
+#     libgcrypt \
+#     lua \
+#     perl-ExtUtils-Embed \
+#     perl-JSON \
+#     python3 \
+#     python3-devel \
+#     python3-pip \
+#     perl-Thread-Queue \
+#     rrdtool \
+#     perl-interpreter \
+#     procps-ng \
+#     zstd \
+#     psmisc \
+#     perl-HTTP-Daemon-SSL.noarch \
+#     sudo
+
+dnf install --best -y \
     gcc \
     gcc-c++ \
     gdb \
@@ -23,21 +47,16 @@ dnf --best install -y \
     openssh-server \
     mariadb-server \
     mariadb \
-    gnutls \
-    libgcrypt \
     lua \
-    perl-ExtUtils-Embed \
-    perl-JSON \
     python3 \
-    python3-devel \
     python3-pip \
-    perl-Thread-Queue \
     rrdtool \
     perl-interpreter \
     procps-ng \
     zstd \
     psmisc \
-    perl-HTTP-Daemon-SSL.noarch \
+    perl-HTTP-Daemon-SSL \
+    perl-JSON \
     sudo
 
 dnf clean all
@@ -50,7 +69,5 @@ pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3 robot
 cd /tmp/collect
 
 .github/scripts/collect-prepare-test-robot.sh mariadb
-
-/bin/rm -rf /tmp/collect
 
 EOF

@@ -173,6 +173,8 @@ jobs:
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
 
+          mv /root/.cache /github/home/
+
           CXXFLAGS="-Wall -Wextra" $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
