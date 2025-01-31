@@ -1,0 +1,105 @@
+name: docker-collect-testing
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+    paths:
+      - '.github/docker/Dockerfile.centreon-collect-*-test'
+      - '.github/scripts/collect-prepare-test-robot.sh'
+      - '.github/scripts/collect-setup-database.sh'
+      - 'vcpkg.json'
+      - 'resources/*.sql'
+  pull_request:
+    paths:
+      - '.github/docker/Dockerfile.centreon-collect-*-test'
+      - '.github/scripts/collect-prepare-test-robot.sh'
+      - '.github/scripts/collect-setup-database.sh'
+      - 'vcpkg.json'
+      - 'resources/*.sql'
+
+jobs:
+  get-environment:
+    if: github.repository == 'centreon/centreon-collect'
+    uses: ./.github/workflows/get-environment.yml
+    with:
+      version_file: CMakeLists.txt
+
+  dockerize:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: [self-hosted, collect]
+            distrib: alma9
+            database: mariadb
+          - runner: [self-hosted, collect]
+            distrib: alma9
+            database: mysql
+            dockerfile: centreon-collect-mysql-alma9-test
+            image: centreon-collect-mysql-alma9-test
+          - runner: [self-hosted, collect]
+            distrib: bookworm
+            database: mariadb
+          - runner: [self-hosted, collect-arm64]
+            distrib: bookworm
+            database: mariadb
+
+    runs-on: ${{ matrix.runner }}
+
+    name: build docker image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+
+    env:
+      IMAGE_NAME: centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
+        with:
+          driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
+
+      - name: Build image ${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+        with:
+          file: .github/docker/Dockerfile.centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}-test
+          context: .
+          build-args: |
+            "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
+
+  set-skip-label:
+    needs: [get-environment, dockerize]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
