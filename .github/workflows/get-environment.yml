@@ -416,9 +416,6 @@ jobs:
           PACKAGING_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.packaging-*` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
           echo "packaging_img_version=$PACKAGING_IMG_VERSION" >> $GITHUB_OUTPUT
 
-          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
-          echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
-
           TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
 
