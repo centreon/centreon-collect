@@ -17,6 +17,7 @@ dnf install --best -y \
     gcc-c++ \
     git \
     gnutls \
+    iproute \
     libgcrypt \
     lua \
     mariadb-connector-c \
@@ -31,6 +32,7 @@ dnf install --best -y \
     psmisc \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
+    perl-Thread-Queue \
     rrdtool \
     sudo \
     zstd
