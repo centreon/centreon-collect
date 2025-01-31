@@ -48,9 +48,6 @@ on:
       packaging_img_version:
         description: "docker image version for packaging (vcpkg checksum)"
         value: ${{ jobs.get-environment.outputs.packaging_img_version }}
-      img_version:
-        description: "docker image version (vcpkg checksum)"
-        value: ${{ jobs.get-environment.outputs.img_version }}
       test_img_version:
         description: "test docker image version (checksum of database sql, script and dockerfiles)"
         value: ${{ jobs.get-environment.outputs.test_img_version }}
@@ -78,7 +75,6 @@ jobs:
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
-      img_version: ${{ steps.get_docker_images_version.outputs.img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
       labels: ${{ steps.has_skip_label.outputs.labels }}
@@ -443,7 +439,7 @@ jobs:
               ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
               ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
               ['is_nightly', '${{ steps.get_nightly_status.outputs.is_nightly }}'],
-              ['img_version', '${{ steps.get_docker_images_version.outputs.img_version }}'],
+              ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
               ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
               ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],
               ['labels', '${{ steps.has_skip_label.outputs.labels }}'],
