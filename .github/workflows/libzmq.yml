@@ -32,17 +32,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-alma8
+          - image: packaging-centreon-collect-alma8
             distrib: el8
             arch: amd64
-          - image: packaging-nfpm-alma9
+          - image: packaging-centreon-collect-alma9
             distrib: el9
             arch: amd64
 
     runs-on: ubuntu-24.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -85,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-nfpm-bookworm
+          - image: packaging-centreon-collect-bookworm
             distrib: bookworm
             runner: ubuntu-24.04
             arch: amd64
@@ -97,7 +97,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
       - name: package deb
         run: |
           apt-get update
-          apt-get install -y debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
+          apt-get install -y build-essential gcc g++ debhelper dh-autoreconf dpkg-dev libkrb5-dev libnorm-dev libpgm-dev libsodium-dev libunwind8-dev libnss3-dev libgnutls28-dev libbsd-dev pkg-config asciidoc wget xmlto
           wget -O - https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz | tar zxvf -
 
           cd zeromq-4.3.5

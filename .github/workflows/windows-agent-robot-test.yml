@@ -25,13 +25,13 @@ jobs:
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
+      img_version: ${{ needs.get-environment.outputs.packaging_img_version }}
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'ON'
       packages_in_artifact: false
-      image: centreon-collect-debian-bullseye
+      image: packaging-centreon-collect-bullseye
       distrib: bullseye
       package_extension: deb
       runner: collect
