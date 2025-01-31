@@ -37,29 +37,29 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    # paths:
-    #   - ".version"
-    #   - agent/**
-    #   - bbdo/**
-    #   - broker/**
-    #   - ccc/**
-    #   - clib/**
-    #   - connectors/**
-    #   - custom-triplets/**
-    #   - engine/**
-    #   - grpc/**
-    #   - packaging/centreon-collect/**
-    #   - cmake.sh
-    #   - cmake-vcpkg.sh
-    #   - CMakeLists.txt
-    #   - CMakeListsLinux.txt
-    #   - vcpkg.json
-    #   - overlays/**
-    #   - selinux/**
-    #   - "!selinux/centreon-common/**"
-    #   - "!.veracode-exclusions"
-    #   - "!veracode.json"
-    #   - "!**/test/**"
+    paths:
+      - ".version"
+      - agent/**
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - custom-triplets/**
+      - engine/**
+      - grpc/**
+      - packaging/centreon-collect/**
+      - cmake.sh
+      - cmake-vcpkg.sh
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - vcpkg.json
+      - overlays/**
+      - selinux/**
+      - "!selinux/centreon-common/**"
+      - "!.veracode-exclusions"
+      - "!veracode.json"
+      - "!**/test/**"
   push:
     branches:
       - develop
@@ -125,11 +125,10 @@ jobs:
 
   unit-test:
     needs: [get-environment]
-    if: ${{ false }}
-    # if: |
-    #   (github.event.inputs.unit_tests == 'true' || needs.get-environment.outputs.is_nightly) &&
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   needs.get-environment.outputs.stability != 'stable'
+    if: |
+      (github.event.inputs.unit_tests == 'true' || needs.get-environment.outputs.is_nightly) &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
@@ -301,14 +300,14 @@ jobs:
 
   robot-test:
     needs: [get-environment, package]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   needs.get-environment.outputs.stability != 'stable' &&
-    #   needs.get-environment.outputs.is_nightly == 'true' &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.is_nightly == 'true' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
@@ -533,11 +532,11 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  # set-skip-label:
-  #   needs: [get-environment, deliver-rpm, deliver-deb, promote]
-  #   if: |
-  #     needs.get-environment.outputs.skip_workflow == 'false' &&
-  #     ! cancelled() &&
-  #     ! contains(needs.*.result, 'failure') &&
-  #     ! contains(needs.*.result, 'cancelled')
-  #   uses: ./.github/workflows/set-pull-request-skip-label.yml
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
