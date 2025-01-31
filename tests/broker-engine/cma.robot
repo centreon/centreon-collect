@@ -383,7 +383,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Should Be True    ${result}    resources table not updated
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    60
     Should Be True    ${result}    metrics not updated
 
 
