@@ -12,9 +12,17 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - '.github/docker/Dockerfile.centreon-collect-*-test'
+      - '.github/scripts/collect-prepare-test-robot.sh'
+      - '.github/scripts/collect-setup-database.sh'
+      - 'vcpkg.json'
+      - 'resources/*.sql'
   pull_request:
     paths:
       - '.github/docker/Dockerfile.centreon-collect-*-test'
+      - '.github/scripts/collect-prepare-test-robot.sh'
+      - '.github/scripts/collect-setup-database.sh'
+      - 'vcpkg.json'
+      - 'resources/*.sql'
 
 jobs:
   get-environment:
