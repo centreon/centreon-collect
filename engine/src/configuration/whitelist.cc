@@ -40,6 +40,8 @@ using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine::configuration {
 
+std::atomic_uint whitelist::_instance_gen = 1;
+
 const std::string command_blacklist_output(
     "UNKNOWN: this command cannot be executed because of security restrictions "
     "on the poller. A whitelist has been defined, and it does not include this "
@@ -74,8 +76,6 @@ void whitelist::init_ryml_error_handler() {
         ryml::Callbacks(nullptr, nullptr, nullptr, on_rapidyaml_error));
   });
 }
-
-static std::atomic_uint _instance_gen(1);
 
 /**
  * @brief Construct a new whitelist::whitelist object
