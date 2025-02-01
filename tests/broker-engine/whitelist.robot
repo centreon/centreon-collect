@@ -93,11 +93,12 @@ Whitelist_Host
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
+    Run    Chmod 750 -R /etc/centreon-engine-whitelist
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
-    ${content}    Create List    Configuration reloaded, main loop continuing.
+    ${content}    Create List    Reload configuration finished
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Configuration reloaded must be found in Logs
 
@@ -109,8 +110,13 @@ Whitelist_Host
 
     # matching with /tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]
     Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/check.pl --id 1 $HOSTADDRESS$
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
-    ${start}    Get Current Date
+
+    ${content}    Create List    Configuration reloaded, main loop continuing.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Configuration reloaded must be found in Logs
+
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl --id 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -118,8 +124,14 @@ Whitelist_Host
 
     # matching with /tmp/var/lib/centreon-engine/toto* * */etc/centreon-engine-whitelist/test
     Ctn Engine Config Change Command    0    1    /tmp/var/lib/centreon-engine/totozea 1 $HOSTADDRESS$
+
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
-    ${start}    Get Current Date
+
+    ${content}    Create List    Configuration reloaded, main loop continuing.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Configuration reloaded must be found in Logs
+
     Ctn Schedule Forced Host Check    host_1
     ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -278,7 +290,6 @@ Whitelist_Perl_Connector
     ...    connector::run: connector='Perl Connector', cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0 not found
-
 
 *** Keywords ***
 Ctn Whitelist Setup
