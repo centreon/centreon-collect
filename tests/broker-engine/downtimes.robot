@@ -331,6 +331,8 @@ BEDTRRD1
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
+    # We were in BBDO2 just before, so we can have RRD duplicates in logs.
+    Ctn Clear Logs
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
