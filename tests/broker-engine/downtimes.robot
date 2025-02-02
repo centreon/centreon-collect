@@ -321,6 +321,8 @@ BEDTRRD1
     ...    This test is done with BBDO 3.0.0.
     ...    Then we should not get any error in cbd RRD of kind 'ignored update error in file...'.
     [Tags]    broker    engine    services    protobuf    MON-150015
+    # We were in BBDO2 just before, so we can have RRD duplicates in logs.
+    Ctn Clear Logs
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
@@ -331,8 +333,6 @@ BEDTRRD1
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
-    # We were in BBDO2 just before, so we can have RRD duplicates in logs.
-    Ctn Clear Logs
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
