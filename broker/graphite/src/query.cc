@@ -299,7 +299,7 @@ void query::_get_metric_id(io::data const& d, std::ostream& is) {
  *  @param[out] is  The stream
  */
 void query::_get_metric_name(io::data const& d, std::ostream& is) {
-  is << _escape(static_cast<storage::pb_metric const&>(d).obj().name());
+  is << _escape(static_cast<const storage::pb_metric&>(d).obj().name());
 }
 
 /**
