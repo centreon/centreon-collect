@@ -73,6 +73,11 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "type": "integer",
             "minimum": 0,
             "maximum": 600
+        },
+        "max_message_length": {
+            "description": "maximum protobuf message length in Mo",
+            "type": "integer",
+            "minimum": 4
         }
     },
     "required": [
@@ -130,9 +135,13 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   unsigned second_max_reconnect_backoff =
       json_config.get_unsigned("second_max_reconnect_backoff", 60);
 
+  unsigned max_message_length =
+      json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
+
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
       hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
-      second_keepalive_interval, second_max_reconnect_backoff);
+      second_keepalive_interval, second_max_reconnect_backoff,
+      max_message_length);
 }
 
 /**

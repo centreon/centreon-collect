@@ -281,6 +281,7 @@ void state::_init_setter() {
          "send_recovery_notifications_anyways");
   SETTER(bool, use_host_down_disable_service_checks,
          "host_down_disable_service_checks");
+  SETTER(uint32_t, max_file_descriptors, "max_file_descriptors");
 }
 
 // Default values.
@@ -538,7 +539,8 @@ state::state()
       _use_timezone(default_use_timezone),
       _use_true_regexp_matching(default_use_true_regexp_matching),
       _send_recovery_notifications_anyways(false),
-      _host_down_disable_service_checks(false) {
+      _host_down_disable_service_checks(false),
+      _max_file_descriptors(0) {
   static absl::once_flag _init_call_once;
   absl::call_once(_init_call_once, _init_setter);
 }
@@ -705,6 +707,7 @@ state& state::operator=(state const& right) {
     _send_recovery_notifications_anyways =
         right._send_recovery_notifications_anyways;
     _host_down_disable_service_checks = right._host_down_disable_service_checks;
+    _max_file_descriptors = right._max_file_descriptors;
   }
   return *this;
 }
@@ -857,7 +860,8 @@ bool state::operator==(state const& right) const noexcept {
       _send_recovery_notifications_anyways ==
           right._send_recovery_notifications_anyways &&
       _host_down_disable_service_checks ==
-          right._host_down_disable_service_checks);
+          right._host_down_disable_service_checks &&
+      _max_file_descriptors == right._max_file_descriptors);
 }
 
 /**
@@ -4221,6 +4225,24 @@ bool state::use_host_down_disable_service_checks() const {
  */
 void state::use_host_down_disable_service_checks(bool value) {
   _host_down_disable_service_checks = value;
+}
+
+/**
+ * @brief get configured max file descriptors of the process
+ *
+ * @return uint32_t
+ */
+uint32_t state::max_file_descriptors() const {
+  return _max_file_descriptors;
+}
+
+/**
+ * @brief set the max file descriptors of the process
+ *
+ * @param value
+ */
+void state::max_file_descriptors(uint32_t value) {
+  _max_file_descriptors = value;
 }
 
 /**

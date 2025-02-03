@@ -1,0 +1,13 @@
+{
+    "max_length_grpc_log": 0,
+    "otel_server": {
+        "host": "0.0.0.0",
+        "port": 4317,
+        "max_message_length": 50
+    },
+    "centreon_agent": {
+        "max_concurrent_checks": 100000,
+        "check_interval": 60,
+        "export_period": 10
+    }
+}
