@@ -30,7 +30,7 @@ jobs:
       legacy_engine: 'OFF'
       build_debug_packages: false
       packages_in_artifact: false
-      image: packaging-centreon-collect-bullseye
+      image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
       package_extension: deb
       runner: '["self-hosted", "collect"]'
