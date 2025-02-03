@@ -1286,6 +1286,7 @@ def ctn_show_downtimes():
 
 def ctn_delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
+    did = 0
     while time.time() < now + TIMEOUT:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1304,14 +1305,22 @@ def ctn_delete_service_downtime(hst: str, svc: str):
                     break
         time.sleep(1)
 
-    logger.console(f"delete downtime internal_id={did}")
-    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    if did != 0:
+        logger.console(f"delete downtime internal_id={did}")
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(f"[{now}] DEL_SVC_DOWNTIME;{did}\n")
 
 
 def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+    """
+    Check if the number of downtimes is the expected one.
+    Args:
+        nb: The expected number of downtimes
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the number of downtimes is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1344,7 +1353,7 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
                 "SELECT * FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
             result = cursor.fetchall()
             logger.console("Not the expected number of downtimes")
-            logger.console(f"{result}")
+            logger.console(json.dumps(result, indent=4, sort_keys=True))
     return False
 
 

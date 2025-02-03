@@ -71,14 +71,16 @@ BEBAMIDTU1
     Ctn Kindly Stop Broker
 
 BEBAMIDTU2
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured.
-    ...    The BA is in critical state, because of its service.
-    ...    Then we set a downtime on this last one.
-    ...    Then an inherited downtime is set to the BA.
-    ...    Then Engine is restarted, Broker is restarted.
-    ...    Then the two downtimes are still there with no duplicates.
-    ...    The downtime is removed from the service,
-    ...    Then the inherited downtime is deleted.
+    [Documentation]    Given BBDO version 3.0.1 is in use
+    ...    And a 'worst' type BA with one service is configured
+    ...    And The BA is in critical state due to its service
+    ...    When a downtime is set on this service
+    ...    Then an inherited downtime is set to the BA
+    ...    When Engine is restarted
+    ...    And Broker is restarted
+    ...    Then both downtimes are still present with no duplicates
+    ...    When the downtime is removed from the service
+    ...    Then the inherited downtime is deleted
     [Tags]    broker    downtime    engine    bam    start    stop
     Ctn Clear Commands Status
     Ctn Config Broker    module
