@@ -33,7 +33,7 @@ jobs:
       image: packaging-centreon-collect-bullseye
       distrib: bullseye
       package_extension: deb
-      runner: collect
+      runner: '["self-hosted", "collect"]'
       arch: amd64
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true

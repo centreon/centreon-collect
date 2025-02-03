@@ -277,13 +277,13 @@ jobs:
           - image: packaging-centreon-collect-vcpkg-bullseye
             distrib: bullseye
             package_extension: deb
-            runner: collect
+            runner: [self-hosted, collect]
             arch: amd64
             only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bullseye-arm64
             distrib: bullseye
             package_extension: deb
-            runner: collect-arm64
+            runner: [self-hosted, collect-arm64]
             arch: arm64
             only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bookworm
@@ -298,16 +298,16 @@ jobs:
             runner: [self-hosted, collect-arm64]
             arch: arm64
             only_robot_cma: false
-          - image: centreon-collect-ubuntu-jammy
+          - image: packaging-centreon-collect-vcpkg-jammy
             distrib: jammy
             package_extension: deb
-            runner: collect
+            runner: [self-hosted, collect]
             arch: amd64
             only_robot_cma: true
-          - image: centreon-collect-ubuntu-jammy-arm64
+          - image: packaging-centreon-collect-vcpkg-jammy-arm64
             distrib: jammy
             package_extension: deb
-            runner: collect-arm64
+            runner: [self-hosted, collect-arm64]
             arch: arm64
             only_robot_cma: true
 
@@ -378,7 +378,7 @@ jobs:
             tests_params: '{}'
             only_robot_cma: false
           - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
+            image: centreon-collect-mariadb-bullseye-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
@@ -386,7 +386,7 @@ jobs:
             tests_params: '{}'
             only_robot_cma: true
           - distrib: bullseye
-            image: centreon-collect-debian-bullseye-test
+            image: centreon-collect-mariadb-bullseye-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
@@ -418,19 +418,19 @@ jobs:
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
             only_robot_cma: false
           - distrib: jammy
-            image: centreon-collect-ubuntu-jammy-arm64-test
+            image: centreon-collect-mariadb-jammy-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
-            test_group_name: robot_test-mariadb-ubuntu-jammy-arm64
+            test_group_name: robot_test-mariadb-jammy-arm64
             tests_params: '{}'
             only_robot_cma: true
           - distrib: jammy
-            image: centreon-collect-ubuntu-jammy-test
+            image: centreon-collect-mariadb-jammy-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
-            test_group_name: robot_test-ubuntu-jammy-amd64
+            test_group_name: robot_test-jammy-amd64
             tests_params: '{}'
             only_robot_cma: true
 
