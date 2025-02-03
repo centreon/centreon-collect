@@ -223,7 +223,7 @@ EMACROS
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_1    service_1
     Sleep    5s
 
     ${content}    Create List
@@ -305,7 +305,7 @@ EMACROS_SEMICOLON
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_1    service_1
     Sleep    5s
 
     ${content}    Create List    KEY2=VAL1;val3;
