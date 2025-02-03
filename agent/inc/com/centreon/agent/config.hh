@@ -18,7 +18,6 @@
 #ifndef CENTREON_AGENT_CONFIG_HH
 #define CENTREON_AGENT_CONFIG_HH
 
-#include <memory>
 #include "com/centreon/common/grpc/grpc_config.hh"
 
 namespace com::centreon::agent {
