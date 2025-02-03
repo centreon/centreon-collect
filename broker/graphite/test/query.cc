@@ -270,14 +270,14 @@ TEST(graphiteQuery, Except) {
   }
 
   m.mut_obj().set_metric_id(3);
-  m.mut_obj().set_name("A");
+  m.mut_obj().set_name("The.full.name.A");
 
   graphite::query q4{"test . $METRICID$ $METRIC$", "a", graphite::query::metric,
                      cache};
 
   ASSERT_THROW(q.generate_status(s), msg_fmt);
   ASSERT_THROW(q2.generate_metric(m), msg_fmt);
-  ASSERT_EQ(q4.generate_metric(m), "test_._3_A 0 0\n");
+  ASSERT_EQ(q4.generate_metric(m), "test_._3_TheafullanameaA 0 0\n");
 
   graphite::query q5{"test . $INSTANCE$", "a", graphite::query::metric, cache};
   ASSERT_EQ(q5.generate_metric(m), "");
