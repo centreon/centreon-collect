@@ -74,7 +74,7 @@ SRSAS
     ...    Then the "state" of "service_1" is changed to "CRITICAL"
     ...    And the "real_state" of "service_1" in the "services" table is set to NULL
 
-    [Tags]    broker    engine    host
+    [Tags]    broker    engine    service    MON-152343
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -123,7 +123,7 @@ HRSAS
     ...    Then the "state" of "host_1" is changed to "DOWN"
     ...    And the "real_state" of "host_1" in the "hosts" table is set to NULL
 
-    [Tags]    broker    engine    host
+    [Tags]    broker    engine    host    MON-152343
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
