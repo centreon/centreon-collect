@@ -23,7 +23,7 @@ BRGC1
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -31,7 +31,7 @@ BRGC1
     Ctn Run Reverse Bam    ${50}    ${0.2}
 
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -55,7 +55,7 @@ BRCTS1
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -63,7 +63,7 @@ BRCTS1
     Ctn Run Reverse Bam    ${150}    ${10}
 
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -89,13 +89,13 @@ BRCS1
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
     ${content}    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -121,16 +121,16 @@ BRCTSMN
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    module0    bbdo    info
-    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Map
     Sleep    5s
 
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}
 
-    # pb_service pb_host pb_service_status pb_host_status
+    # pb_service (65563) pb_host (65566) pb_service_status (65565) pb_host_status (65568)
     ${expected_events}    Create List    65563    65566    65565    65568
     ${categories}    Create List    1
     ${output}    Ctn Check Map Output    ${categories}    ${expected_events}    120
@@ -148,7 +148,7 @@ BRCTSMN
     ${ret}    Get Line Count    ${ret}
     Should Be True    ${ret} >= 50
 
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
@@ -174,7 +174,7 @@ BRCTSMNS
     Ctn Start Map
     Sleep    5s
 
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -212,4 +212,4 @@ BRCTSMNS
 
     Ctn Kindly Stop Broker
     Ctn Stop Map
-    Ctn Stop engine
+    Ctn Stop Engine
