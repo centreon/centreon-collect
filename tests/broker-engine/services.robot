@@ -64,3 +64,102 @@ SDER
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+SRSAS
+    [Documentation]
+    ...    Given the service "service_1" on "host_1" has its "real_state" set to
+    ...    "CRITICAL" in the "services" table
+    ...    and its "state" set to "WARNING"
+    ...    When the "cbd" service is started
+    ...    Then the "state" of "service_1" is changed to "CRITICAL"
+    ...    And the "real_state" of "service_1" in the "services" table is set to NULL
+
+    [Tags]    broker    engine    host
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Log To Console    Let's wait for the service to be created in the "services" table
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
+	IF    ${output} == ((1,),)    BREAK
+	Sleep    1s
+    END
+
+    Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
+    Ctn Kindly Stop Broker
+
+    Log To Console    Initializing real_state to CRITICAL and state to WARNING
+    Execute SQL String
+    ...    UPDATE services SET real_state=2, state=1 WHERE description='service_1'
+
+    Ctn Start Broker
+
+    Ctn Schedule Forced Svc Check    host_1    service_1
+
+    Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
+	IF    ${output} == ((None, 2),)    BREAK
+	Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
+    Disconnect From Database
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+HRSAS
+    [Documentation]
+    ...    Given the host "host_1" has its "real_state" set to "DOWN" in the "hosts" table
+    ...    and its "state" set to "UP"
+    ...    When the "cbd" service is started
+    ...    Then the "state" of "host_1" is changed to "DOWN"
+    ...    And the "real_state" of "host_1" in the "hosts" table is set to NULL
+
+    [Tags]    broker    engine    host
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
+	IF    ${output} == ((1,),)    BREAK
+	log to console    ${output}
+	Sleep    1s
+    END
+
+    Should Be Equal As Strings    ${output}    ((1,),)    We should have one host named host_1 in the hosts table
+    Ctn Kindly Stop Broker
+
+    Log To Console    Initializing real_state to DOWN and state to UP
+    Execute SQL String
+    ...    UPDATE hosts SET real_state=1, state=0 WHERE name='host_1';
+
+    Ctn Start Broker
+
+    Ctn Schedule Forced Host Check    host_1
+
+    Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
+	IF    ${output} == ((None, 1),)    BREAK
+	Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
+    Disconnect From Database
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
