@@ -1,4 +1,4 @@
-name: Centreon collect
+name: centreon-collect
 run-name: |
   ${{
     (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
