@@ -56,7 +56,7 @@ jobs:
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: packaging-centreon-collect-ubuntu-jammy
+            image: packaging-centreon-collect-jammy
             distrib: jammy
             lua_version: 5.3
             runner: ubuntu-24.04
