@@ -22,18 +22,21 @@ jobs:
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
       img_version: ${{ needs.get-environment.outputs.packaging_img_version }}
+      cma_major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+      cma_minor_version: ${{ needs.get-environment.outputs.cma_minor_version }}
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'OFF'
       build_debug_packages: false
       packages_in_artifact: false
-      image: packaging-centreon-collect-bullseye
+      image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
       package_extension: deb
-      runner: collect
+      runner: '["self-hosted", "collect"]'
       arch: amd64
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      only_robot_cma: true
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}

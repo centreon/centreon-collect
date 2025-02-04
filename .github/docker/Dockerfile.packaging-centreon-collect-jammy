@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/debian:bookworm AS centreon_collect_packaging
+FROM ${REGISTRY_URL}/ubuntu:jammy AS centreon_collect_packaging
 
 ENV DEBIAN_FRONTEND=noninteractive
 

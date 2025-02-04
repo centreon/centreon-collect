@@ -184,6 +184,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_process
     -L${Boost_LIBRARY_DIR_RELEASE}
     boost_program_options
+    -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
 else()

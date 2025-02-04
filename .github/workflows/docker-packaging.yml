@@ -43,6 +43,14 @@ jobs:
             distrib: bookworm
           - runner: [self-hosted, collect-arm64]
             distrib: bookworm
+          - runner: [self-hosted, collect]
+            distrib: bullseye
+          - runner: [self-hosted, collect-arm64]
+            distrib: bullseye
+          - runner: [self-hosted, collect]
+            distrib: jammy
+          - runner: [self-hosted, collect-arm64]
+            distrib: jammy
 
     runs-on: ${{ matrix.runner }}
 

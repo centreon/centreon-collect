@@ -49,6 +49,7 @@ dnf install --best -y \
     cmake \
     gcc \
     gcc-c++ \
+    libstdc++-static \
     gdb \
     gettext \
     gnutls-devel \
