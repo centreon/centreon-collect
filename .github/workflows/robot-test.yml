@@ -236,14 +236,7 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-      # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        if: ${{ inputs.distrib  == 'el7'}}
-        with:
-          python-version: '3.10'
-
       - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
-        if: ${{ inputs.distrib != 'el7' }}
         with:
           python-version: '3.10'
 

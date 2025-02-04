@@ -56,8 +56,8 @@ jobs:
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
       credentials:
-        username: ${{ secrets.registry_username }}
-        password: ${{ secrets.registry_password }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -166,8 +166,8 @@ jobs:
       - name: Create Jira ticket if nightly build failure
         uses: ./.github/actions/create-jira-ticket
         with:
-          jira_base_url: ${{ secrets.jira_base_url }}
-          jira_user_email: ${{ secrets.jira_user_email }}
-          jira_api_token: ${{ secrets.jira_api_token }}
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'
