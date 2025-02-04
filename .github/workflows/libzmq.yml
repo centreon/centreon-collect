@@ -89,7 +89,7 @@ jobs:
             distrib: bookworm
             runner: ubuntu-24.04
             arch: amd64
-          - image: packaging-nfpm-jammy
+          - image: packaging-centreon-collect-jammy
             distrib: jammy
             runner: ubuntu-24.04
             arch: amd64

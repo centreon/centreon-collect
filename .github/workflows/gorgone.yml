@@ -54,7 +54,7 @@ jobs:
             image: packaging-centreon-collect-bookworm
             distrib: bookworm
           - package_extension: deb
-            image: packaging-nfpm-jammy
+            image: packaging-centreon-collect-jammy
             distrib: jammy
 
     runs-on: ubuntu-24.04
