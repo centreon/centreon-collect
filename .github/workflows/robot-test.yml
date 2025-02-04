@@ -13,9 +13,6 @@ on:
       image_test:
         required: true
         type: string
-      image_version:
-        required: true
-        type: string
       package_cache_key:
         required: true
         type: string
@@ -34,6 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
+      only_robot_cma:
+        required: false
+        type: boolean
+        default: false
     secrets:
       registry_username:
         required: true
@@ -104,7 +105,13 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.only_robot_cma }}" == "true" ]
+          then
+            FEATURES_PATTERN="cma.robot"
+          else
+            FEATURES_PATTERN=".robot"
+          fi
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
@@ -190,7 +197,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -212,7 +219,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
@@ -250,14 +257,7 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-        # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        if: ${{ inputs.distrib  == 'el7'}}
-        with:
-          python-version: "3.10"
-
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-        if: ${{ inputs.distrib != 'el7' }}
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.10"
 
@@ -283,7 +283,7 @@ jobs:
       startsWith(github.ref_name, 'dev')
     steps:
       - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Create Jira ticket if nightly build failure
         uses: ./.github/actions/create-jira-ticket

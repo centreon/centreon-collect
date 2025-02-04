@@ -21,19 +21,22 @@ jobs:
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
+      img_version: ${{ needs.get-environment.outputs.packaging_img_version }}
+      cma_major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+      cma_minor_version: ${{ needs.get-environment.outputs.cma_minor_version }}
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'OFF'
       build_debug_packages: false
       packages_in_artifact: false
-      image: centreon-collect-debian-bullseye
+      image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
       package_extension: deb
-      runner: collect
+      runner: '["self-hosted", "collect"]'
       arch: amd64
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      only_robot_cma: true
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -136,7 +139,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: reports-cma-windows
           path: reports

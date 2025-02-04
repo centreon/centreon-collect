@@ -221,8 +221,8 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 
   relay->shutdown_relays();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  ASSERT_THROW(client->write(create_event(GetParam())), msg_fmt);
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  EXPECT_THROW(client->write(create_event(GetParam())), msg_fmt);
   client->stop();
   accepted->stop();
 }

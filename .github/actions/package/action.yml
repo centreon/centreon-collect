@@ -16,6 +16,12 @@ inputs:
   minor_version:
     description: The minor version
     required: false
+  cma_major_version:
+    description: The major version of cma
+    required: false
+  cma_minor_version:
+    description: The minor version of cma
+    required: false
   release:
     description: The package release number
     required: false
@@ -63,6 +69,7 @@ runs:
       run: |
         export MAJOR_VERSION="${{ inputs.major_version }}"
         export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
+        export CMA_VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
@@ -111,7 +118,7 @@ runs:
 
     - if: ${{ contains(github.event.pull_request.labels.*.name, 'upload-artifacts') }}
       name: Upload package artifacts
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
         path: ./*.${{ inputs.package_extension}}
