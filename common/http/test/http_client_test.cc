@@ -322,8 +322,8 @@ TEST_F(http_client_test, all_handler_called) {
   }
 
   std::unique_lock<std::mutex> l(cond_m);
-  bool res_wait = var.wait_for(l, std::chrono::seconds(10), [&]() -> bool {
-    return error_handler_cpt + success_handler_cpt == 1000;
+  var.wait_for(l, std::chrono::seconds(10), [&]() -> bool {
+    return error_handler_cpt + success_handler_cpt >= 1000;
   });
 
   SPDLOG_LOGGER_INFO(logger, "success:{}, failed:{}", success_handler_cpt,

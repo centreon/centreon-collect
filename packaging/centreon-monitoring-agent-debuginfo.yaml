@@ -2,7 +2,7 @@ name: "centreon-monitoring-agent-debuginfo"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
-version: "${VERSION}"
+version: "${CMA_VERSION}"
 release: "${RELEASE}${DIST}"
 section: "default"
 priority: "optional"
@@ -23,10 +23,10 @@ contents:
 overrides:
   rpm:
     depends:
-      - centreon-monitoring-agent = ${VERSION}-${RELEASE}${DIST}
+      - centreon-monitoring-agent = ${CMA_VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-monitoring-agent (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-monitoring-agent (= $CMA_VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-monitoring-agent-dbgsym
     replaces:

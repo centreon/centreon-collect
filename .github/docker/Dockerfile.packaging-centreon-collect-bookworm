@@ -84,7 +84,7 @@ ARG TRIPLET
 RUN bash -e <<EOF
 
 if [ "${TRIPLET}" = "arm64-linux" ] ; then
-  export VCPKG_FORCE_SYSTEM_BINARIES=1
+  export VCPKG_FORCE_SYSTEM_BINARIES=arm
 fi
 
 git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
