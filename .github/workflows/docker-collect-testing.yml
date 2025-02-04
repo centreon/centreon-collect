@@ -55,6 +55,18 @@ jobs:
           - runner: [self-hosted, collect-arm64]
             distrib: bookworm
             database: mariadb
+          - runner: [self-hosted, collect]
+            distrib: bullseye
+            database: mariadb
+          - runner: [self-hosted, collect-arm64]
+            distrib: bullseye
+            database: mariadb
+          - runner: [self-hosted, collect]
+            distrib: jammy
+            database: mariadb
+          - runner: [self-hosted, collect-arm64]
+            distrib: jammy
+            database: mariadb
 
     runs-on: ${{ matrix.runner }}
 
