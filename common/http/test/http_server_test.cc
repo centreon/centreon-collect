@@ -20,7 +20,6 @@
 #include <gtest/gtest.h>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <thread>
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;

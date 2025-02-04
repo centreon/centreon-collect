@@ -105,12 +105,13 @@ jobs:
         id: list-features
         run: |
           cd tests
-          if [ "${{ inputs.only_robot_cma }}" != "true"  ]
+          if [ "${{ inputs.only_robot_cma }}" == "true" ]
           then
-            echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+            FEATURES_PATTERN="cma.robot"
           else
-            echo "features=$(grep -Rl '*** Test Cases ***' . | grep 'cma.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+            FEATURES_PATTERN=".robot"
           fi
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]

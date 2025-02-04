@@ -243,31 +243,16 @@ jobs:
         run: rm -f packaging/centreon-collect/*debuginfo*.yaml
         shell: bash
 
+      - name: Delete packaging files not needed by cma
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb}*
+        shell: bash
+
       - name: Packages
-        if: ${{ !inputs.only_robot_cma }}
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
-          distrib: ${{ inputs.distrib }}
-          package_extension: ${{ inputs.package_extension }}
-          major_version: ${{ inputs.major_version }}
-          minor_version: ${{ inputs.minor_version }}
-          cma_major_version: ${{ inputs.cma_major_version }}
-          cma_minor_version: ${{ inputs.cma_minor_version }}
-          release: ${{ inputs.release }}
-          arch: ${{ inputs.arch }}
-          commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension}}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
-          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
-          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
-          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
-          stability: ${{ inputs.stability }}
-
-      - name: Mandatory CMA Packages
-        if: ${{ inputs.only_robot_cma }}
-        uses: ./.github/actions/package
-        with:
-          nfpm_file_pattern: "packaging/centreon-collect/centreon-broker-cb*.yaml packaging/centreon-collect/centreon-broker-core*.yaml packaging/centreon-collect/centreon-broker.yaml packaging/centreon-collect/centreon-clib*.yaml packaging/centreon-collect/centreon-engine-daemon*.yaml packaging/centreon-collect/centreon-engine*.yaml packaging/centreon-collect/centreon-engine-opentelemetry*.yaml packaging/centreon-collect/centreon-monitoring-agent*.yaml"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
