@@ -39,9 +39,9 @@ on:
       is_nightly:
         description: "if the current workflow run is considered a nightly"
         value: ${{ jobs.get-environment.outputs.is_nightly }}
-      img_version:
-        description: "docker image version (vcpkg checksum)"
-        value: ${{ jobs.get-environment.outputs.img_version }}
+      packaging_img_version:
+        description: "docker image version for packaging (vcpkg checksum)"
+        value: ${{ jobs.get-environment.outputs.packaging_img_version }}
       test_img_version:
         description: "test docker image version (checksum of database sql, script and dockerfiles)"
         value: ${{ jobs.get-environment.outputs.test_img_version }}
@@ -66,7 +66,7 @@ jobs:
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
-      img_version: ${{ steps.get_docker_images_version.outputs.img_version }}
+      packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       gorgone_docker_version: ${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
@@ -385,8 +385,8 @@ jobs:
       - name: Get docker images version
         id: get_docker_images_version
         run: |
-          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
-          echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
+          PACKAGING_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.packaging-*` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
+          echo "packaging_img_version=$PACKAGING_IMG_VERSION" >> $GITHUB_OUTPUT
 
           TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
@@ -411,7 +411,7 @@ jobs:
               ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
               ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
               ['is_nightly', '${{ steps.get_nightly_status.outputs.is_nightly }}'],
-              ['img_version', '${{ steps.get_docker_images_version.outputs.img_version }}'],
+              ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
               ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
               ['gorgone_docker_version', '${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}'],
               ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],

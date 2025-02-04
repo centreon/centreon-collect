@@ -1,4 +1,4 @@
-name: Centreon Monitoring Agent Windows build and packaging
+name: windows-agent
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

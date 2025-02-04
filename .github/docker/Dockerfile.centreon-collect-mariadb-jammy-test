@@ -4,36 +4,35 @@ FROM ${REGISTRY_URL}/ubuntu:jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY . /tmp/collect
-
-RUN bash -e <<EOF
+RUN --mount=type=bind,src=.,dst=/tmp/collect bash -e <<EOF
 
 apt-get update
 
 apt-get install -y --no-install-recommends tzdata
 
-apt-get -y install aptitude \
+apt-get -y install \
     curl \
-    fakeroot \
+    g++ \
+    gcc \
     gdb \
     git \
     git-buildpackage \
-    libgcrypt20 \
     libgnutls30 \
+    libhttp-daemon-ssl-perl \
+    libjson-perl \
+    liblua5.3 \
     libmariadb3 \
-    libperl-dev \
     libssh2-1 \
     locales \
     mariadb-server \
-    openssl \
+    perl-base \
     python3 \
     python3-pip \
     rrdtool \
     strace \
     sudo \
     zip \
-    zstd \
-    perl-base
+    zstd
 
 apt-get clean
 
@@ -46,6 +45,10 @@ cd /tmp/collect
 
 .github/scripts/collect-prepare-test-robot.sh mariadb
 
-/bin/rm -rf /tmp/collect
+apt-get remove -y gcc g++ python3-dev
+apt-get autoremove -y
+
+apt-get clean
 
 EOF
+

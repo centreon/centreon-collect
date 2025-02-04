@@ -38,31 +38,31 @@ jobs:
       matrix:
         include:
           - package_extension: rpm
-            image: centreon-collect-alma8
+            image: packaging-centreon-collect-alma8
             distrib: el8
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: rpm
-            image: centreon-collect-alma9
+            image: packaging-centreon-collect-alma9
             distrib: el9
             lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: centreon-collect-debian-bookworm
+            image: packaging-centreon-collect-bookworm
             distrib: bookworm
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: centreon-collect-ubuntu-jammy
+            image: packaging-centreon-collect-jammy
             distrib: jammy
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: centreon-collect-debian-bookworm-arm64
+            image: packaging-centreon-collect-bookworm-arm64
             distrib: bookworm
             lua_version: 5.3
             runner: ["self-hosted", "collect-arm64"]
@@ -71,7 +71,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
             cd ..
           else
             apt-get update
-            apt-get install -y make openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+            apt-get install -y make gcc openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
             cd lua-curl-src
             make LUA_IMPL=lua${{ matrix.lua_version }} LUA_INC=/usr/include/lua${{ matrix.lua_version }}
             cd ..

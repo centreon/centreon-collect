@@ -68,7 +68,7 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner)) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -91,20 +91,14 @@ jobs:
 
       - name: Install sccache
         run: |
-          if [ "${{ inputs.package_extension }}" = "deb" ]; then
-            apt-get update
-            apt-get install -y wget
-          elif [ "${{ inputs.package_extension }}" = "rpm" ]; then
-            dnf install -y wget
-          fi
           if [ "${{ inputs.arch }}" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
           elif [ "${{ inputs.arch }}" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-aarch64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-aarch64-unknown-linux-musl/sccache /usr/bin/
           fi
           ${SCCACHE_PATH} --start-server
 
@@ -139,9 +133,11 @@ jobs:
             export TRIPLET=x64-linux-release
           fi
 
-          mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
+
+          mv /root/.cache /github/home/
+
           $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
