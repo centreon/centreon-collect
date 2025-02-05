@@ -11,16 +11,18 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEBAMIDT1
-    [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical
-    ...    state, because of its service. Then we set a downtime on this last one. An inherited
-    ...    downtime is set to the BA. The downtime is removed from the service, the inherited
-    ...    downtime is then deleted.
+    [Documentation]    Given a BA of type 'worst' with one service is configured
+    ...    And The BA is in critical state due to its service
+    ...    When a downtime is set on this service
+    ...    Then an inherited downtime is set to the BA
+    ...    When the downtime is removed from the service
+    ...    Then the inherited downtime is deleted from the BA
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
-    Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To Db
@@ -66,21 +68,24 @@ BEBAMIDT1
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Ctn Stop Engine
-    Ctn Kindly Stop Broker    only_central=False
+    Ctn Kindly Stop Broker
 
 BEBAMIDT2
-    [Documentation]    A BA of type 'worst' with one service is configured.
-    ...    The BA is in critical state, because of its service.
-    ...    Then we set a downtime on this last one. An inherited downtime is set to the BA.
-    ...    Engine is restarted. Broker is restarted.
-    ...    The two downtimes are still there with no duplicates.
-    ...    The downtime is removed from the service, the inherited downtime is then deleted.
+    [Documentation]    Given a BA of type 'worst' with one service is configured
+    ...    And the BA is in critical state due to its service
+    ...    And a downtime is set on this service
+    ...    Then an inherited downtime is set to the BA
+    ...    When Engine is restarted
+    ...    And Broker is restarted
+    ...    Then both downtimes are still present with no duplicates
+    ...    When the downtime is removed from the service
+    ...    Then the inherited downtime is deleted
     [Tags]    broker    downtime    engine    bam    start    stop
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
-    Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    bam    trace
     Ctn Config Engine    ${1}
 
     Ctn Clone Engine Config To Db
