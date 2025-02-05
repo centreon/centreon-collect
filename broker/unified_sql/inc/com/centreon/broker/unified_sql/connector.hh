@@ -19,6 +19,7 @@
 #ifndef CCB_UNIFIED_SQL_CONNECTOR_HH
 #define CCB_UNIFIED_SQL_CONNECTOR_HH
 
+#include <memory>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
@@ -41,6 +42,9 @@ class connector : public io::endpoint {
   bool _store_in_resources;
   bool _store_in_hosts_services;
 
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_sto;
+
  public:
   connector();
   ~connector() noexcept = default;
@@ -59,6 +63,6 @@ class connector : public io::endpoint {
 };
 }  // namespace unified_sql
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_CONNECTOR_HH

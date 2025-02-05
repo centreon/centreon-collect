@@ -30,13 +30,11 @@ set(SQL "80-sql")
 set(SQL "${SQL}" PARENT_SCOPE)
 add_library("${SQL}" SHARED
   # Sources.
-  "${SRC_DIR}/cleanup.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
-  "${INC_DIR}/com/centreon/broker/sql/cleanup.hh"
   "${INC_DIR}/com/centreon/broker/sql/connector.hh"
   "${INC_DIR}/com/centreon/broker/sql/factory.hh"
   "${INC_DIR}/com/centreon/broker/sql/stream.hh"

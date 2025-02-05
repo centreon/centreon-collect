@@ -40,6 +40,7 @@ class mysql_bulk_stmt : public mysql_stmt_base {
  public:
   mysql_bulk_stmt(
       const std::string& query,
+      const std::shared_ptr<spdlog::logger>& logger,
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_bulk_stmt(mysql_bulk_stmt&& other) = delete;
   mysql_bulk_stmt& operator=(const mysql_bulk_stmt&) = delete;

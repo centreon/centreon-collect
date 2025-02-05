@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/io/endpoint.hh"
+#include "com/centreon/common/pool.hh"
 
 #include "com/centreon/broker/persistent_cache.hh"
 
@@ -35,7 +36,8 @@ endpoint::endpoint(bool is_accptr,
                    const multiplexing::muxer_filter& forbidden_filter)
     : _is_acceptor(is_accptr),
       _stream_mandatory_filter{mandatory_filter},
-      _stream_forbidden_filter{forbidden_filter} {}
+      _stream_forbidden_filter{forbidden_filter},
+      _io_context(com::centreon::common::pool::io_context_ptr()) {}
 
 /**
  *  Copy constructor.
@@ -46,7 +48,8 @@ endpoint::endpoint(endpoint const& other)
     : _is_acceptor(other._is_acceptor),
       _stream_mandatory_filter{other._stream_mandatory_filter},
       _stream_forbidden_filter{other._stream_forbidden_filter},
-      _from(other._from) {}
+      _from(other._from),
+      _io_context(other._io_context) {}
 
 /**
  *  Set the lower layer endpoint object of this endpoint.

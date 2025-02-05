@@ -73,6 +73,7 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
   std::atomic_bool _clear_available_con_running;
 
   std::shared_ptr<spdlog::logger> _logger;
+  std::shared_ptr<asio::io_context> _io_context;
 
   tcp_async();
 

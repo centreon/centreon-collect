@@ -19,6 +19,7 @@
 #ifndef CCB_GRPC_CONNECTOR_HH
 #define CCB_GRPC_CONNECTOR_HH
 
+#include <memory>
 #include "com/centreon/broker/io/limit_endpoint.hh"
 #include "com/centreon/common/grpc/grpc_client.hh"
 #include "grpc_config.hh"

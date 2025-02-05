@@ -19,6 +19,7 @@
 #ifndef CCB_GRPC_ACCEPTOR_HH
 #define CCB_GRPC_ACCEPTOR_HH
 
+#include <memory>
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/common/grpc/grpc_server.hh"
 #include "grpc_config.hh"
@@ -37,14 +38,19 @@ class service_impl
       public std::enable_shared_from_this<service_impl> {
   grpc_config::pointer _conf;
 
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::set<std::shared_ptr<io::stream>> _accepted;
   mutable std::mutex _accepted_m;
   std::deque<std::shared_ptr<io::stream>> _wait_to_open;
   std::condition_variable _wait_cond;
+  std::shared_ptr<asio::io_context> _io_context;
   mutable std::mutex _wait_m;
 
  public:
-  service_impl(const grpc_config::pointer& conf);
+  service_impl(const grpc_config::pointer& conf,
+               const std::shared_ptr<asio::io_context> io_context,
+               const std::shared_ptr<spdlog::logger>& logger);
 
   void init();
 

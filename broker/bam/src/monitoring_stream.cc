@@ -60,7 +60,7 @@ monitoring_stream::monitoring_stream(
       _ext_cmd_file(ext_cmd_file),
       _logger{logger},
       _applier(_logger),
-      _mysql(db_cfg.auto_commit_conf()),
+      _mysql(db_cfg.auto_commit_conf(), logger),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
@@ -640,13 +640,13 @@ void monitoring_stream::_prepare() {
         "UPDATE mod_bam SET "
         "current_level=?,acknowledged=?,downtime=?,last_state_change=?,"
         "in_downtime=?,current_status=?,comment=? WHERE ba_id=?",
-        _conf_queries_per_transaction);
+        _conf_queries_per_transaction, _logger);
     _kpi_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
         "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
         "valid=?,in_downtime=? WHERE kpi_id=?",
-        _conf_queries_per_transaction);
+        _conf_queries_per_transaction, _logger);
 
   } else {
     _ba_query = std::make_unique<database::bulk_or_multi>(

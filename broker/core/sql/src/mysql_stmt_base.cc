@@ -35,8 +35,9 @@ using com::centreon::common::log_v2::log_v2;
 /**
  * @brief Constructor.
  */
-mysql_stmt_base::mysql_stmt_base(bool bulk)
-    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {}
+mysql_stmt_base::mysql_stmt_base(bool bulk,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : _bulk(bulk), _logger(logger) {}
 
 /**
  * @brief Constructor of a mysql_stmt_base from a SQL query template. This
@@ -50,8 +51,9 @@ mysql_stmt_base::mysql_stmt_base(bool bulk)
  */
 mysql_stmt_base::mysql_stmt_base(const std::string& query,
                                  bool named,
-                                 bool bulk)
-    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {
+                                 bool bulk,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : _bulk(bulk), _logger(logger) {
   mysql_bind_mapping bind_mapping;
   std::hash<std::string> hash_fn;
   if (named) {
@@ -128,12 +130,13 @@ mysql_stmt_base::mysql_stmt_base(const std::string& query,
  */
 mysql_stmt_base::mysql_stmt_base(const std::string& query,
                                  bool bulk,
+                                 const std::shared_ptr<spdlog::logger>& logger,
                                  const mysql_bind_mapping& bind_mapping)
     : _bulk(bulk),
       _id(std::hash<std::string>{}(query)),
       _query(query),
       _bind_mapping(bind_mapping),
-      _logger{log_v2::instance().get(log_v2::SQL)} {
+      _logger(logger) {
   if (bind_mapping.empty())
     _param_count = _compute_param_count(query);
   else
