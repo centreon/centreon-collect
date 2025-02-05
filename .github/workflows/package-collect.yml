@@ -86,7 +86,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-      ONLY_ROBOT_CMA: ${{ github.event.inputs.only_robot_cma  != 'true' && 'OFF' || 'ON' }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
@@ -217,20 +217,21 @@ jobs:
       - name: Generate Mandatory CMA debug files
         if: ${{ inputs.only_robot_cma }}
         run: |
-          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
+          for file in $(find build/{broker,engine,clib} -name '*.so' -type f); do
             echo "Making a debug file of $file"
-            objcopy --merge-notes --only-keep-debug $file $file.debug
+            objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
           exe=("build/broker/cbd"
+               "build/broker/watchdog/cbwd"
                "build/engine/centengine"
                "build/engine/centenginestats"
                "build/ccc/ccc"
                "build/agent/centagent")
           for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
-            objcopy --merge-notes --only-keep-debug $file $file.debug
+            objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
@@ -239,7 +240,7 @@ jobs:
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
-          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb}*
+          rm -f packaging/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
         shell: bash
 
       - name: Packages
