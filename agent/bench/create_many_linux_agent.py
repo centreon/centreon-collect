@@ -214,7 +214,7 @@ def create_agent_config_file(host_ip:str, first_agent_index:int):
     "log_max_files":3,
     "endpoint":"{endpoint}",
     "encryption":false,
-    "certificate":"",
+    "public_cert":"",
     "private_key":"",
     "ca_certificate":"",
     "ca_name":"",
