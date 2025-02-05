@@ -24,20 +24,23 @@ import re
 
 
 def complete_doc(dico, ff):
-    f = open(ff, 'r')
-    content = f.readlines()
-    f.close()
+    with open(ff, 'r') as f:
+        content = f.readlines()
     r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
     rd = re.compile(r"\s+\.\.\.    \s*(.*)$")
 
     in_test = False
     in_documentation = False
+    gherkin = False
     test_name = ""
     for line in content:
         if in_documentation:
             m = rd.match(line)
             if m:
-                dico[test_name] += " " + m.group(1)
+                if gherkin:
+                    dico[test_name] += "\n    * " + m.group(1)
+                else:
+                    dico[test_name] += " " + m.group(1)
                 continue
             else:
                 test_name = ""
@@ -50,7 +53,12 @@ def complete_doc(dico, ff):
                 m = r.match(line)
                 if m:
                     in_documentation = True
-                    dico[test_name] = m.group(1)
+                    if m.group(1).startswith("Given") or m.group(1).startswith("When"):
+                        gherkin = True
+                        dico[test_name] = "\n    * " + m.group(1)
+                    else:
+                        gherkin = False
+                        dico[test_name] = m.group(1)
             if not line.startswith('\t') and not line.startswith("  "):
                 test_name = line.strip()
         elif line.startswith("*** Test Cases ***"):
