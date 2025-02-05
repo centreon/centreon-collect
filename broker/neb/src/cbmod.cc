@@ -90,9 +90,13 @@ cbmod::cbmod()
 }
 
 cbmod::~cbmod() noexcept {
-  _neb_logger->info("cbmod: destruction...");
+  _neb_logger->debug("cbmod: destruction...");
+  while (!_downtimes.empty()) {
+    uint64_t downtime_id = _downtimes.begin()->first;
+    remove_downtime(downtime_id);
+  }
   config::applier::deinit();
-  _neb_logger->info("cbmod: destruction... Done");
+  _neb_logger->debug("cbmod: destruction... Done");
 }
 
 uint64_t cbmod::poller_id() const {
@@ -120,6 +124,11 @@ bool cbmod::use_protobuf() const {
   return _use_protobuf;
 }
 
+/**
+ * @brief Add an acknowledgement to the cbmod list.
+ *
+ * @param ack The acknowledgement.
+ */
 void cbmod::add_acknowledgement(
     const std::shared_ptr<neb::acknowledgement>& ack) {
   auto new_ack = std::make_shared<neb::pb_acknowledgement>();
@@ -141,12 +150,26 @@ void cbmod::add_acknowledgement(
   _acknowledgements[std::make_pair(ack->host_id, ack->service_id)] = new_ack;
 }
 
+/**
+ * @brief Add an acknowledgement to the cbmod list.
+ *
+ * @param ack The acknowledgement.
+ */
 void cbmod::add_acknowledgement(
     const std::shared_ptr<neb::pb_acknowledgement>& ack) {
   const Acknowledgement& obj = static_cast<const Acknowledgement&>(ack->obj());
   _acknowledgements[std::make_pair(obj.host_id(), obj.service_id())] = ack;
 }
 
+/**
+ * @brief Find an acknowledgement from its host ID and service ID in the cbmod
+ * list.
+ *
+ * @param host_id The host ID.
+ * @param service_id The service ID.
+ *
+ * @return The acknowledgement if found, nullptr otherwise.
+ */
 std::shared_ptr<neb::pb_acknowledgement> cbmod::find_acknowledgement(
     uint64_t host_id,
     uint64_t service_id) const {
@@ -157,22 +180,171 @@ std::shared_ptr<neb::pb_acknowledgement> cbmod::find_acknowledgement(
   return nullptr;
 }
 
+/**
+ * @brief Remove an acknowledgement on resource given by its host ID and service
+ * ID from the cbmod list.
+ *
+ * @param host_id The host ID.
+ * @param service_id The service ID.
+ */
 void cbmod::remove_acknowledgement(uint64_t host_id, uint64_t service_id) {
   _acknowledgements.erase(std::make_pair(host_id, service_id));
 }
 
+/**
+ * @brief Accessor to the number of acknowledgements in the cbmod list.
+ *
+ * @return The number of acknowledgements.
+ */
 size_t cbmod::acknowledgements_count() const {
   return _acknowledgements.size();
 }
 
-cbmod::private_downtime_params& cbmod::get_downtime(uint32_t downtime_id) {
-  return _downtimes[downtime_id];
+/**
+ * @brief Add a downtime to the cbmod list.
+ *
+ * @param downtime_id The downtime ID.
+ * @param host_id The host ID.
+ * @param service_id The service ID.
+ * @param author_name The author name.
+ * @param comment_data The comment data.
+ * @param downtime_type The downtime type.
+ * @param entry_time The entry time.
+ * @param end_time The end time.
+ * @param duration The duration.
+ * @param triggered_by The downtime ID of the downtime that triggered this one.
+ * @param fixed True if the downtime is fixed.
+ */
+void cbmod::add_downtime(uint64_t downtime_id,
+                         uint64_t host_id,
+                         uint64_t service_id,
+                         const char* author_name,
+                         const char* comment_data,
+                         int downtime_type,
+                         time_t entry_time,
+                         time_t start_time,
+                         time_t end_time,
+                         uint32_t duration,
+                         uint64_t triggered_by,
+                         bool fixed) {
+  auto pb_dt = std::make_shared<pb_downtime>();
+  auto& obj = pb_dt->mut_obj();
+  obj.set_id(downtime_id);
+  obj.set_instance_id(poller_id());
+  obj.set_host_id(host_id);
+  obj.set_service_id(service_id);
+  if (author_name)
+    obj.set_author(common::check_string_utf8(author_name));
+  if (comment_data)
+    obj.set_comment_data(common::check_string_utf8(comment_data));
+  obj.set_type(
+      static_cast<com::centreon::broker::Downtime_DowntimeType>(downtime_type));
+  obj.set_duration(duration);
+  obj.set_triggered_by(triggered_by);
+  obj.set_entry_time(entry_time);
+  obj.set_actual_start_time(-1);
+  obj.set_start_time(start_time);
+  obj.set_end_time(end_time);
+  obj.set_deletion_time(-1);
+  obj.set_cancelled(false);
+  obj.set_actual_end_time(-1);
+  obj.set_fixed(fixed);
+  _downtimes[downtime_id] = pb_dt;
 }
 
-void cbmod::remove_downtime(uint32_t downtime_id) {
-  _downtimes.erase(downtime_id);
+/**
+ * @brief Translate a protobuf downtime to a legacy downtime.
+ *
+ * @param pb_dt The protobuf downtime.
+ *
+ * @return The legacy downtime.
+ */
+static std::shared_ptr<neb::downtime> translate_to_legacy_downtime(
+    const std::shared_ptr<pb_downtime>& pb_dt) {
+  auto retval = std::make_shared<neb::downtime>();
+  const Downtime& obj = static_cast<const Downtime&>(pb_dt->obj());
+  retval->actual_end_time = obj.actual_end_time();
+  retval->actual_start_time = obj.actual_start_time();
+  retval->author = obj.author();
+  retval->downtime_type = obj.type();
+  retval->deletion_time = obj.deletion_time();
+  retval->duration = obj.duration();
+  retval->end_time = obj.end_time();
+  retval->entry_time = obj.entry_time();
+  retval->fixed = obj.fixed();
+  retval->host_id = obj.host_id();
+  retval->poller_id = obj.instance_id();
+  retval->internal_id = obj.id();
+  retval->service_id = obj.service_id();
+  retval->start_time = obj.start_time();
+  retval->triggered_by = obj.triggered_by();
+  retval->was_cancelled = obj.cancelled();
+  retval->was_started = obj.started();
+  retval->comment = obj.comment_data();
+  return retval;
 }
 
+/**
+ * @brief Start a downtime.
+ *
+ * @param downtime_id The downtime ID.
+ */
+void cbmod::start_downtime(uint64_t downtime_id) {
+  auto pb_dt = _downtimes[downtime_id];
+  assert(pb_dt);
+  auto& obj = pb_dt->mut_obj();
+  obj.set_started(true);
+  obj.set_actual_start_time(time(nullptr));
+  if (_use_protobuf)
+    write(pb_dt);
+  else
+    write(translate_to_legacy_downtime(pb_dt));
+}
+
+/**
+ * @brief Stop a downtime.
+ *
+ * @param downtime_id The downtime ID.
+ * @param cancelled True if the downtime was cancelled.
+ */
+void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
+  auto pb_dt = _downtimes[downtime_id];
+  assert(pb_dt);
+  auto& obj = pb_dt->mut_obj();
+  obj.set_cancelled(cancelled);
+  obj.set_actual_end_time(time(nullptr));
+  if (_use_protobuf)
+    write(pb_dt);
+  else
+    write(translate_to_legacy_downtime(pb_dt));
+}
+
+/**
+ * @brief Remove a downtime from the cbmod list.
+ *
+ * @param downtime_id The downtime ID.
+ */
+void cbmod::remove_downtime(uint64_t downtime_id) {
+  auto found = _downtimes.find(downtime_id);
+  if (found != _downtimes.end()) {
+    auto pb_dt = found->second;
+    auto& obj = pb_dt->mut_obj();
+    if (!obj.started())
+      obj.set_cancelled(true);
+    time_t now = time(nullptr);
+    obj.set_deletion_time(now);
+    obj.set_deletion_time(now);
+    if (_use_protobuf)
+      write(pb_dt);
+    else
+      write(translate_to_legacy_downtime(pb_dt));
+    _downtimes.erase(found);
+  }
+}
+
+/**
+ * @brief When centengine is reloaded, update the cbmod.
+ */
 void cbmod::reload() {
   if (com::centreon::broker::config::applier::state::instance()
           .get_bbdo_version()
