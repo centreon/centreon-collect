@@ -471,9 +471,10 @@ void mysql_connection::_statement(mysql_task* t) {
                               "server error CR_SERVER_LOST");
           err_code = CR_SERVER_LOST;
         } else {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "connection fail to execute statement {:p}: {}",
-                              static_cast<const void*>(this), err_msg);
+          SPDLOG_LOGGER_ERROR(
+              _logger, "connection {:p} fail to execute statement {:x}: {}: {}",
+              static_cast<const void*>(this), task->statement_id, query,
+              err_msg);
         }
         if (_server_error(err_code)) {
           set_error_message(err_msg);
