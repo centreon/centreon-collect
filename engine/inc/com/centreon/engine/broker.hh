@@ -365,8 +365,7 @@ void broker_downtime_data(int type,
                           bool fixed,
                           unsigned long triggered_by,
                           unsigned long duration,
-                          unsigned long downtime_id,
-                          struct timeval const* timestamp);
+                          unsigned long downtime_id);
 void broker_external_command(int type,
                              int command_type,
                              char* command_args,
