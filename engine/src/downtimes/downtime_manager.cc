@@ -589,12 +589,8 @@ int downtime_manager::schedule_downtime(downtime::type type,
 /* registers scheduled downtime (schedules it, adds comments, etc.) */
 int downtime_manager::register_downtime(downtime::type type,
                                         uint64_t downtime_id) {
-  engine_logger(dbg_functions, basic)
-      << "downtime_manager::register_downtime()";
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "downtime_manager::register_downtime()");
-  engine_logger(dbg_downtime, basic)
-      << "register downtime(type: " << type << ", id: " << downtime_id << ")";
   SPDLOG_LOGGER_TRACE(downtimes_logger, "register downtime(type: {}, id: {})",
                       static_cast<uint32_t>(type), downtime_id);
   /* find the downtime entry in memory */

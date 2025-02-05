@@ -272,7 +272,6 @@ void timed_event::_exec_event_status_save() {
  *
  */
 void timed_event::_exec_event_scheduled_downtime() {
-  engine_logger(dbg_events, basic) << "** Scheduled Downtime Event";
   events_logger->trace("** Scheduled Downtime Event");
 
   // process scheduled downtime info.
