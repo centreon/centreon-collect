@@ -21,7 +21,7 @@
 #include <memory>
 #include "bbdo/bbdo_version.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
-//#include "state.pb.h"
+#include "com/centreon/broker/neb/downtime.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -36,28 +36,13 @@ class cbmod {
   std::filesystem::path _proto_conf;
   bool _use_protobuf;
 
-  // Engine case
-//  mutable absl::Mutex _diff_state_m;
-//  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
-
   // Acknowledgements list.
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
                       std::shared_ptr<pb_acknowledgement>>
       _acknowledgements;
 
- public:
-  // Downtime internal structure.
-  struct private_downtime_params {
-    bool cancelled;
-    time_t deletion_time;
-    time_t end_time;
-    bool started;
-    time_t start_time;
-  };
-
- private:
   // Unstarted downtimes.
-  std::unordered_map<uint32_t, private_downtime_params> _downtimes;
+  std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
 
  public:
   cbmod();
@@ -78,8 +63,21 @@ class cbmod {
       uint64_t service_id) const;
   void remove_acknowledgement(uint64_t host_id, uint64_t service_id);
   size_t acknowledgements_count() const;
-  private_downtime_params& get_downtime(uint32_t downtime_id);
-  void remove_downtime(uint32_t downtime_id);
+  void add_downtime(uint64_t downtime_id,
+                    uint64_t host_id,
+                    uint64_t service_id,
+                    const char* author_name,
+                    const char* comment_data,
+                    int downtime_type,
+                    time_t entry_time,
+                    time_t start_time,
+                    time_t end_time,
+                    uint32_t duration,
+                    uint64_t triggered_by,
+                    bool fixed);
+  void start_downtime(uint64_t downtime_id);
+  void stop_downtime(uint64_t downtime_id, bool cancelled);
+  void remove_downtime(uint64_t downtime_id);
   void reload();
 };
 }  // namespace neb
