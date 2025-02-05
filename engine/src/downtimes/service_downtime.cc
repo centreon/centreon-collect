@@ -72,7 +72,7 @@ service_downtime::~service_downtime() {
       NEBTYPE_DOWNTIME_DELETE, NEBATTR_NONE, downtime::service_downtime,
       host_id(), service_id(), _entry_time, get_author().c_str(),
       get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-      get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+      get_triggered_by(), get_duration(), get_downtime_id());
 }
 
 /**
@@ -199,7 +199,7 @@ int service_downtime::unschedule() {
         NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
         host_id(), service_id(), _entry_time, get_author().c_str(),
         get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-        get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+        get_triggered_by(), get_duration(), get_downtime_id());
 
     found->second->dec_scheduled_downtime_depth();
     found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
@@ -390,7 +390,7 @@ int service_downtime::handle() {
                          service_id(), _entry_time, get_author().c_str(),
                          get_comment().c_str(), get_start_time(),
                          get_end_time(), is_fixed(), get_triggered_by(),
-                         get_duration(), get_downtime_id(), nullptr);
+                         get_duration(), get_downtime_id());
 
     /* decrement the downtime depth variable */
     found->second->dec_scheduled_downtime_depth();
@@ -475,7 +475,7 @@ int service_downtime::handle() {
         NEBTYPE_DOWNTIME_START, NEBATTR_NONE, get_type(), host_id(),
         service_id(), _entry_time, get_author().c_str(), get_comment().c_str(),
         get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
-        get_duration(), get_downtime_id(), nullptr);
+        get_duration(), get_downtime_id());
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
@@ -562,5 +562,5 @@ void service_downtime::schedule() {
                        downtime::service_downtime, host_id(), service_id(),
                        _entry_time, _author.c_str(), _comment.c_str(),
                        _start_time, _end_time, _fixed, _triggered_by, _duration,
-                       _downtime_id, nullptr);
+                       _downtime_id);
 }
