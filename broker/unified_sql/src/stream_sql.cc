@@ -144,8 +144,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       instance_id);
   query = fmt::format(
       "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 "
-      "AND instance_id={}",
+      "cancelled=0 AND instance_id={}",
       instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
