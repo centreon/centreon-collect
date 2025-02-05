@@ -11,7 +11,13 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEBAMIDTU1
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
+    [Documentation]    Given BBDO version 3.0.1 is running
+    ...    And a BA of type 'worst' with one service is configured
+    ...    And The BA is in critical state due to its service
+    ...    When a downtime is set on this service
+    ...    Then an inherited downtime is set to the BA
+    ...    When the downtime is removed from the service
+    ...    Then the inherited downtime is deleted from the BA
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
@@ -88,7 +94,7 @@ BEBAMIDTU2
     Ctn Config Broker    rrd
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    bam    trace
-    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Log    central    sql    info
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
@@ -129,7 +135,7 @@ BEBAMIDTU2
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
-    Log To Console    We should have two downtimes
+    Log To Console    We should have two downtimes (1)
     ${result}    Ctn Number Of Downtimes Is    2    30
     Should Be True    ${result}    We should only have two downtimes
 
@@ -140,15 +146,23 @@ BEBAMIDTU2
         Ctn Start Engine
 	Ctn Wait For Engine To Be Ready    ${start}    1
 
+        Log To Console    We should have two downtimes (2)
+	${result}    Ctn Number Of Downtimes Is    2    30
+	Should Be True    ${result}    We should only have two downtimes
+
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
         Ctn Kindly Stop Broker
         Log To Console    Broker is started
         Ctn Start Broker
+
+        Log To Console    We should have two downtimes (3)
+	${result}    Ctn Number Of Downtimes Is    2    30
+	Should Be True    ${result}    We should only have two downtimes
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
-    Log To Console    We should still have two downtimes
+    Log To Console    We should still have two downtimes (4)
     ${result}    Ctn Number Of Downtimes Is    2    60
     Should Be True    ${result}    We should only have two downtimes
 
