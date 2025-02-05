@@ -4260,7 +4260,7 @@ def ctn_check_key_value_existence(data_list, key, value):
         item_dict = {}
         for prop in properties:
             k, v = prop.split(':')
-            item_dict[k.strip()] = v.strip()     
+            item_dict[k.strip()] = v.strip()
         # Check if key and value exist in the dict
         if item_dict.get('key') == key and item_dict.get('value') == value:
             return True
@@ -4277,7 +4277,7 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         file (str): The file to delete the key from.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
-    
+
     with open(filename, "r") as f:
         content = f.read()
 
@@ -4295,6 +4295,3 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
             f.write(new_content)
     else:
         logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
-
-    
-
