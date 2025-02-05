@@ -22,7 +22,6 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
-#include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_check.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -1725,119 +1724,9 @@ static void forward_downtime(int type,
                              time_t start_time,
                              time_t end_time,
                              bool fixed,
-                             unsigned long triggered_by,
-                             unsigned long duration,
-                             unsigned long downtime_id,
-                             const struct timeval* timestamp) noexcept {
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating downtime event on resource "
-                      "({}:{}) start time:{} end time:{}",
-                      host_id, service_id, start_time, end_time);
-  if (type == NEBTYPE_DOWNTIME_LOAD)
-    return;
-
-  try {
-    // In/Out variables.
-    auto downtime{std::make_shared<neb::downtime>()};
-
-    // Fill output var.
-    if (author_name)
-      downtime->author = common::check_string_utf8(author_name);
-    if (comment_data)
-      downtime->comment = common::check_string_utf8(comment_data);
-    downtime->downtime_type = downtime_type;
-    downtime->duration = duration;
-    downtime->end_time = end_time;
-    downtime->entry_time = entry_time;
-    downtime->fixed = fixed;
-    downtime->host_id = host_id;
-    downtime->service_id = service_id;
-    downtime->poller_id = cbm->poller_id();
-    downtime->internal_id = downtime_id;
-    downtime->start_time = start_time;
-    downtime->triggered_by = triggered_by;
-    auto& params = cbm->get_downtime(downtime->internal_id);
-    switch (type) {
-      case NEBTYPE_DOWNTIME_ADD:
-        params.cancelled = false;
-        params.deletion_time = -1;
-        params.end_time = -1;
-        params.started = false;
-        params.start_time = -1;
-        break;
-      case NEBTYPE_DOWNTIME_START:
-        params.started = true;
-        if (timestamp)
-          params.start_time = timestamp->tv_sec;
-        else {
-          struct timeval now;
-          gettimeofday(&now, NULL);
-          params.start_time = now.tv_sec;
-        }
-        break;
-      case NEBTYPE_DOWNTIME_STOP:
-        if (NEBATTR_DOWNTIME_STOP_CANCELLED == attr)
-          params.cancelled = true;
-        if (timestamp)
-          params.end_time = timestamp->tv_sec;
-        else {
-          struct timeval now;
-          gettimeofday(&now, NULL);
-          params.end_time = now.tv_sec;
-        }
-        break;
-      case NEBTYPE_DOWNTIME_DELETE:
-        if (!params.started)
-          params.cancelled = true;
-        if (timestamp)
-          params.deletion_time = timestamp->tv_sec;
-        else {
-          struct timeval now;
-          gettimeofday(&now, NULL);
-          params.deletion_time = now.tv_sec;
-        }
-        break;
-      default:
-        throw com::centreon::exceptions::msg_fmt(
-            "Downtime with not managed type {}.", downtime_id);
-    }
-    downtime->actual_start_time = params.start_time;
-    downtime->actual_end_time = params.end_time;
-    downtime->deletion_time = params.deletion_time;
-    downtime->was_cancelled = params.cancelled;
-    downtime->was_started = params.started;
-    if (NEBTYPE_DOWNTIME_DELETE == type)
-      cbm->remove_downtime(downtime->internal_id);
-
-    // Send event.
-    cbm->write(downtime);
-  } catch (std::exception const& e) {
-    SPDLOG_LOGGER_ERROR(
-        neb_logger,
-        "callbacks: error occurred while generating downtime event: {}",
-        e.what());
-  }
-  // Avoid exception propagation in C code.
-  catch (...) {
-  }
-}
-
-static void forward_pb_downtime(int type,
-                                int attr,
-                                int downtime_type,
-                                uint64_t host_id,
-                                uint64_t service_id,
-                                time_t entry_time,
-                                const char* author_name,
-                                const char* comment_data,
-                                time_t start_time,
-                                time_t end_time,
-                                bool fixed,
-                                unsigned long triggered_by,
-                                unsigned long duration,
-                                unsigned long downtime_id,
-                                const struct timeval* timestamp) noexcept {
+                             uint64_t triggered_by,
+                             uint32_t duration,
+                             uint64_t downtime_id) noexcept {
   // Log message.
   fmt::string_view type_str;
   switch (type) {
@@ -1873,85 +1762,36 @@ static void forward_pb_downtime(int type,
   if (type == NEBTYPE_DOWNTIME_LOAD)
     return;
 
-  // In/Out variables.
-  auto d{std::make_shared<neb::pb_downtime>()};
-  com::centreon::broker::Downtime& downtime = d.get()->mut_obj();
-
-  // Fill output var.
-  if (author_name)
-    downtime.set_author(common::check_string_utf8(author_name));
-  if (comment_data)
-    downtime.set_comment_data(common::check_string_utf8(comment_data));
-  downtime.set_id(downtime_id);
-  downtime.set_type(
-      static_cast<com::centreon::broker::Downtime_DowntimeType>(downtime_type));
-  downtime.set_duration(duration);
-  downtime.set_end_time(end_time);
-  downtime.set_entry_time(entry_time);
-  downtime.set_fixed(fixed);
-  downtime.set_host_id(host_id);
-  downtime.set_service_id(service_id);
-  downtime.set_instance_id(cbm->poller_id());
-  downtime.set_start_time(start_time);
-  downtime.set_triggered_by(triggered_by);
-  auto& params = cbm->get_downtime(downtime.id());
-  switch (type) {
-    case NEBTYPE_DOWNTIME_ADD:
-      params.cancelled = false;
-      params.deletion_time = -1;
-      params.end_time = -1;
-      params.started = false;
-      params.start_time = -1;
-      break;
-    case NEBTYPE_DOWNTIME_START:
-      params.started = true;
-      if (timestamp)
-        params.start_time = timestamp->tv_sec;
-      else {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        params.start_time = now.tv_sec;
-      }
-      break;
-    case NEBTYPE_DOWNTIME_STOP:
-      if (NEBATTR_DOWNTIME_STOP_CANCELLED == attr)
-        params.cancelled = true;
-      if (timestamp)
-        params.end_time = timestamp->tv_sec;
-      else {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        params.end_time = now.tv_sec;
-      }
-      break;
-    case NEBTYPE_DOWNTIME_DELETE:
-      if (!params.started)
-        params.cancelled = true;
-      if (timestamp)
-        params.deletion_time = timestamp->tv_sec;
-      else {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        params.deletion_time = now.tv_sec;
-      }
-      break;
-    default:
-      neb_logger->error(
-          "callbacks: error occurred while generating downtime event: "
-          "Downtime {} with not managed type.",
-          downtime_id);
-      return;
+  try {
+    switch (type) {
+      case NEBTYPE_DOWNTIME_ADD:
+        cbm->add_downtime(downtime_id, host_id, service_id, author_name,
+                          comment_data, downtime_type, entry_time, start_time,
+                          end_time, duration, triggered_by, fixed);
+        break;
+      case NEBTYPE_DOWNTIME_START:
+        cbm->start_downtime(downtime_id);
+        break;
+      case NEBTYPE_DOWNTIME_STOP:
+        cbm->stop_downtime(downtime_id,
+                           NEBATTR_DOWNTIME_STOP_CANCELLED == attr);
+        break;
+      case NEBTYPE_DOWNTIME_DELETE:
+        cbm->remove_downtime(downtime_id);
+        break;
+      default:
+        throw com::centreon::exceptions::msg_fmt(
+            "Downtime with not managed type {}.", downtime_id);
+    }
+  } catch (std::exception const& e) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger,
+        "callbacks: error occurred while generating downtime event: {}",
+        e.what());
   }
-  downtime.set_actual_start_time(params.start_time);
-  downtime.set_actual_end_time(params.end_time);
-  downtime.set_deletion_time(params.deletion_time);
-  downtime.set_cancelled(params.cancelled);
-  downtime.set_started(params.started);
-  if (NEBTYPE_DOWNTIME_DELETE == type)
-    cbm->remove_downtime(downtime.id());
-
-  // Send event.
-  cbm->write(d);
+  // Avoid exception propagation in C code.
+  catch (...) {
+  }
 }
 
 /**
@@ -1971,7 +1811,6 @@ static void forward_pb_downtime(int type,
  *  @param[in] triggered_by    ID of downtime which triggered this downtime.
  *  @param[in] duration        Duration.
  *  @param[in] downtime_id     Downtime ID.
- *  @param[in] timestamp       Timestamp.
  */
 void broker_downtime_data(int type,
                           int attr,
@@ -1986,22 +1825,15 @@ void broker_downtime_data(int type,
                           bool fixed,
                           unsigned long triggered_by,
                           unsigned long duration,
-                          unsigned long downtime_id,
-                          const struct timeval* timestamp) {
+                          unsigned long downtime_id) {
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_DOWNTIME_DATA))
     return;
 
   // Make callbacks.
-  if (cbm->use_protobuf())
-    forward_pb_downtime(type, attr, downtime_type, host_id, service_id,
-                        entry_time, author_name, comment_data, start_time,
-                        end_time, fixed, triggered_by, duration, downtime_id,
-                        timestamp);
-  else
-    forward_downtime(type, attr, downtime_type, host_id, service_id, entry_time,
-                     author_name, comment_data, start_time, end_time, fixed,
-                     triggered_by, duration, downtime_id, timestamp);
+  forward_downtime(type, attr, downtime_type, host_id, service_id, entry_time,
+                   author_name, comment_data, start_time, end_time, fixed,
+                   triggered_by, duration, downtime_id);
 }
 
 static void forward_external_command(int type,
@@ -4068,38 +3900,19 @@ static void send_downtimes_list() {
   // Iterate through all downtimes.
   for (const auto& p : dts) {
     // Callback.
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    if constexpr (proto)
-      forward_pb_downtime(
-          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
-          p.second->get_type() ==
-                  com::centreon::engine::downtimes::downtime::service_downtime
-              ? std::static_pointer_cast<
-                    com::centreon::engine::downtimes::service_downtime>(
-                    p.second)
-                    ->service_id()
-              : 0,
-          p.second->get_entry_time(), p.second->get_author().c_str(),
-          p.second->get_comment().c_str(), p.second->get_start_time(),
-          p.second->get_end_time(), p.second->is_fixed(),
-          p.second->get_triggered_by(), p.second->get_duration(),
-          p.second->get_downtime_id(), &now);
-    else
-      forward_downtime(
-          NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
-          p.second->get_type() ==
-                  com::centreon::engine::downtimes::downtime::service_downtime
-              ? std::static_pointer_cast<
-                    com::centreon::engine::downtimes::service_downtime>(
-                    p.second)
-                    ->service_id()
-              : 0,
-          p.second->get_entry_time(), p.second->get_author().c_str(),
-          p.second->get_comment().c_str(), p.second->get_start_time(),
-          p.second->get_end_time(), p.second->is_fixed(),
-          p.second->get_triggered_by(), p.second->get_duration(),
-          p.second->get_downtime_id(), &now);
+    forward_downtime(
+        NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
+        p.second->get_type() ==
+                com::centreon::engine::downtimes::downtime::service_downtime
+            ? std::static_pointer_cast<
+                  com::centreon::engine::downtimes::service_downtime>(p.second)
+                  ->service_id()
+            : 0,
+        p.second->get_entry_time(), p.second->get_author().c_str(),
+        p.second->get_comment().c_str(), p.second->get_start_time(),
+        p.second->get_end_time(), p.second->is_fixed(),
+        p.second->get_triggered_by(), p.second->get_duration(),
+        p.second->get_downtime_id());
   }
 
   // End log message.
