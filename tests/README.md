@@ -110,9 +110,31 @@ Here is the list of the currently implemented tests:
 17. **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
 18. **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
 19. **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
-20. **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
-21. **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
-22. **BEBAMIDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
+20. **BEBAMIDT1**: 
+    * Given a BA of type 'worst' with one service is configured
+    * And The BA is in critical state due to its service
+    * When a downtime is set on this service
+    * Then an inherited downtime is set to the BA
+    * When the downtime is removed from the service
+    * Then the inherited downtime is deleted from the BA
+21. **BEBAMIDT2**: 
+    * Given a BA of type 'worst' with one service is configured
+    * And the BA is in critical state due to its service
+    * And a downtime is set on this service
+    * Then an inherited downtime is set to the BA
+    * When Engine is restarted
+    * And Broker is restarted
+    * Then both downtimes are still present with no duplicates
+    * When the downtime is removed from the service
+    * Then the inherited downtime is deleted
+22. **BEBAMIDTU1**: 
+    * Given BBDO version 3.0.1 is running
+    * And a BA of type 'worst' with one service is configured
+    * And The BA is in critical state due to its service
+    * When a downtime is set on this service
+    * Then an inherited downtime is set to the BA
+    * When the downtime is removed from the service
+    * Then the inherited downtime is deleted from the BA
 23. **BEBAMIDTU2**: 
     * Given BBDO version 3.0.1 is in use
     * And a 'worst' type BA with one service is configured
@@ -282,8 +304,17 @@ Here is the list of the currently implemented tests:
 40. **BEDTMASS1**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
 41. **BEDTMASS2**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
 42. **BEDTRRD1**: A service is forced checked then a downtime is set on this service. The service is forced checked again and the downtime is removed. This test is done with BBDO 3.0.0. Then we should not get any error in cbd RRD of kind 'ignored update error in file...'.
-43. **BEDTSVCFIXED**: A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
-44. **BEDTSVCREN1**: A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
+43. **BEDTSVCFIXED**: 
+    * Given a unique downtime set on a service
+    * When the downtime is removed
+    * Then the downtime is well removed
+    * And the number of downtimes is 0
+44. **BEDTSVCREN1**: 
+    * Given a downtime set on a service
+    * When the service is renamed
+    * Then the downtime is still active on the renamed service
+    * When the downtime is removed from the renamed service
+    * Then the downtime is well removed
 45. **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
 46. **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
 47. **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
