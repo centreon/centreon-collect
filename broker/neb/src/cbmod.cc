@@ -201,6 +201,38 @@ size_t cbmod::acknowledgements_count() const {
 }
 
 /**
+ * @brief Translate a protobuf downtime to a legacy downtime.
+ *
+ * @param pb_dt The protobuf downtime.
+ *
+ * @return The legacy downtime.
+ */
+static std::shared_ptr<neb::downtime> translate_to_legacy_downtime(
+    const std::shared_ptr<pb_downtime>& pb_dt) {
+  auto retval = std::make_shared<neb::downtime>();
+  const Downtime& obj = static_cast<const Downtime&>(pb_dt->obj());
+  retval->actual_end_time = obj.actual_end_time();
+  retval->actual_start_time = obj.actual_start_time();
+  retval->author = obj.author();
+  retval->downtime_type = obj.type();
+  retval->deletion_time = obj.deletion_time();
+  retval->duration = obj.duration();
+  retval->end_time = obj.end_time();
+  retval->entry_time = obj.entry_time();
+  retval->fixed = obj.fixed();
+  retval->host_id = obj.host_id();
+  retval->poller_id = obj.instance_id();
+  retval->internal_id = obj.id();
+  retval->service_id = obj.service_id();
+  retval->start_time = obj.start_time();
+  retval->triggered_by = obj.triggered_by();
+  retval->was_cancelled = obj.cancelled();
+  retval->was_started = obj.started();
+  retval->comment = obj.comment_data();
+  return retval;
+}
+
+/**
  * @brief Add a downtime to the cbmod list.
  *
  * @param downtime_id The downtime ID.
@@ -249,39 +281,12 @@ void cbmod::add_downtime(uint64_t downtime_id,
   obj.set_cancelled(false);
   obj.set_actual_end_time(-1);
   obj.set_fixed(fixed);
+  obj.set_started(false);
   _downtimes[downtime_id] = pb_dt;
-}
-
-/**
- * @brief Translate a protobuf downtime to a legacy downtime.
- *
- * @param pb_dt The protobuf downtime.
- *
- * @return The legacy downtime.
- */
-static std::shared_ptr<neb::downtime> translate_to_legacy_downtime(
-    const std::shared_ptr<pb_downtime>& pb_dt) {
-  auto retval = std::make_shared<neb::downtime>();
-  const Downtime& obj = static_cast<const Downtime&>(pb_dt->obj());
-  retval->actual_end_time = obj.actual_end_time();
-  retval->actual_start_time = obj.actual_start_time();
-  retval->author = obj.author();
-  retval->downtime_type = obj.type();
-  retval->deletion_time = obj.deletion_time();
-  retval->duration = obj.duration();
-  retval->end_time = obj.end_time();
-  retval->entry_time = obj.entry_time();
-  retval->fixed = obj.fixed();
-  retval->host_id = obj.host_id();
-  retval->poller_id = obj.instance_id();
-  retval->internal_id = obj.id();
-  retval->service_id = obj.service_id();
-  retval->start_time = obj.start_time();
-  retval->triggered_by = obj.triggered_by();
-  retval->was_cancelled = obj.cancelled();
-  retval->was_started = obj.started();
-  retval->comment = obj.comment_data();
-  return retval;
+  if (_use_protobuf)
+    write(pb_dt);
+  else
+    write(translate_to_legacy_downtime(pb_dt));
 }
 
 /**
