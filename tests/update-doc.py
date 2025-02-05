@@ -38,7 +38,7 @@ def complete_doc(dico, ff):
             m = rd.match(line)
             if m:
                 if gherkin:
-                    dico[test_name] += "\n    * " + m.group(1)
+                    dico[test_name] += "\n      * " + m.group(1)
                 else:
                     dico[test_name] += " " + m.group(1)
                 continue
@@ -55,7 +55,10 @@ def complete_doc(dico, ff):
                     in_documentation = True
                     if m.group(1).startswith("Given") or m.group(1).startswith("When"):
                         gherkin = True
-                        dico[test_name] = "\n    * " + m.group(1)
+                        dico[test_name] = "\n      * " + m.group(1)
+                    elif m.group(1).startswith("Scenario:"):
+                        gherkin = True
+                        dico[test_name] = m.group(1)
                     else:
                         gherkin = False
                         dico[test_name] = m.group(1)
@@ -205,5 +208,6 @@ for k in keys:
                 exit(1)
         out.write("\n")
 
+out.write(f"\n{count} tests currently implemented.\n")
 out.close()
 print(f"{count} tests are documented now.")
