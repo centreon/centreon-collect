@@ -573,8 +573,8 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}",
-          dwn.obj().ba_id(), now);
+          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}, in downtime {})",
+          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
       if (dwn.obj().in_downtime())
         cmd = fmt::format(
             "[{}] "
