@@ -105,7 +105,15 @@ Here is the list of the currently implemented tests:
 12. **BA_CHANGED**: A BA of type worst is configured with one service kpi. Then it is modified so that the service kpi is replaced by a boolean rule kpi. When cbd is reloaded, the BA is well updated.
 13. **BA_DISABLED**: create a disabled BA with timeperiods and reporting filter don't create error message
 14. **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
-15. **BA_IMPACT_IMPACT**: A BA of type impact is defined with two BAs of type impact as children. The first child has an impact of 90 and the second one of 10. When they are impacting both, the parent should be critical. When they are not impacting, the parent should be ok.
+15. **BA_IMPACT_IMPACT**: 
+    * Given a Business Activity (BA) of type "impact"
+    * And it has two child BAs of type "impact"
+    * And the first child has an impact of 90
+    * And the second child has an impact of 10
+    * When both child BAs are impacting
+    * Then the parent BA should be "critical"
+    * When both child BAs are not impacting
+    * Then the parent BA should be "ok"
 16. **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
 17. **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
 18. **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -366,7 +374,10 @@ Here is the list of the currently implemented tests:
 93. **BEEXTCMD_REVERSE_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
 94. **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
 95. **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
-96. **BEHOSTCHECK**: external command CHECK_HOST_RESULT
+96. **BEHOSTCHECK**: 
+    * Given Engine and Broker configured to work with BBDO 3
+    * When a schedule forced host check command on host host_1 is launched
+    * Then the result appears in the centreon_storage resources table
 97. **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
 98. **BEINSTANCE**: Instance to bdd
 99. **BEINSTANCESTATUS**: Instance status to bdd
@@ -459,8 +470,16 @@ Here is the list of the currently implemented tests:
 186. **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
 187. **BRCS1**: Broker reverse connection stopped
 188. **BRCTS1**: Broker reverse connection too slow
-189. **BRCTSMN**: Broker connected to map with neb filter
-190. **BRCTSMNS**: Broker connected to map with neb and storage filters
+189. **BRCTSMN**: 
+    * Given Broker, Engine configured as usual
+    * And map also connected to Broker with a filter allowing only 'neb' category
+    * When Engine sends pb_service, pb_host, pb_service_status and pb_host_status
+    * Then map receives correctly them.
+190. **BRCTSMNS**: 
+    * Given Broker, Engine configured as usual
+    * And map also connected to Broker with a filter allowing 'neb' and 'storage' categories
+    * When Engine sends pb_service, pb_host, pb_service_status, pb_host_status and metrics
+    * Then Map receives correctly them.
 191. **BRGC1**: Broker good reverse connection
 192. **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
 193. **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
