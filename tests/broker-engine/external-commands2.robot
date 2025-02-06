@@ -1333,19 +1333,20 @@ BESERVCHECK
     Disconnect From Database
 
 BEHOSTCHECK
-    [Documentation]    external command CHECK_HOST_RESULT
-    [Tags]    broker    engine    host    extcmd    atoi
+    [Documentation]    Given Engine and Broker configured to work with BBDO 3
+    ...    When a schedule forced host check command on host host_1 is launched
+    ...    Then the result appears in the centreon_storage resources table
+    [Tags]    broker    engine    host    extcmd    bbdo3
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    ${start}    Ctn Get Round Current Date
     Ctn Schedule Forced Host Check    host_1
     ${result}    Ctn Check Host Check With Timeout    host_1    ${start}    30
     Should Be True    ${result}    last_check column in resources table not updated.
