@@ -73,6 +73,10 @@ void init_config_state() {
                          pb_config.log_flush_period(), pb_config.log_pid(),
                          pb_config.log_file_line());
 
+  log_conf.set_level("checks", "debug");
+  log_conf.set_level("events", "trace");
+  log_conf.set_level("notifications", "trace");
+
   log_v2::instance().apply(log_conf);
 
   // Hack to instanciate the logger.
