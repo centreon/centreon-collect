@@ -1222,11 +1222,14 @@ BA_CHANGED
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_IMPACT_IMPACT
-    [Documentation]    A BA of type impact is defined with two BAs of type impact
-    ...    as children. The first child has an impact of 90 and the
-    ...    second one of 10. When they are impacting both, the
-    ...    parent should be critical. When they are not impacting,
-    ...    the parent should be ok.
+    [Documentation]    Given a Business Activity (BA) of type "impact"
+    ...    And it has two child BAs of type "impact"
+    ...    And the first child has an impact of 90
+    ...    And the second child has an impact of 10
+    ...    When both child BAs are impacting
+    ...    Then the parent BA should be "critical"
+    ...    When both child BAs are not impacting
+    ...    Then the parent BA should be "ok"
     [Tags]    MON-34895
     Ctn Bam Init
 
@@ -1284,9 +1287,9 @@ BA_IMPACT_IMPACT
         Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent1.dot
         Wait Until Created    /tmp/parent1.dot
 
-        ${start}    Get Current Date
+        ${start}    Ctn Get Round Current Date
         Ctn Reload Broker
-        ${content}    Create List    Inherited downtimes and BA states restored
+        ${content}    Create List    BA states restored
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    It seems that no cache has been restored into BAM.
 
