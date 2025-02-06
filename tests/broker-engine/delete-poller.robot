@@ -28,8 +28,8 @@ EBDP1
     ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
@@ -56,6 +56,7 @@ EBDP1
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
@@ -81,8 +82,8 @@ EBDP2
     ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -122,6 +123,7 @@ EBDP2
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -153,8 +155,8 @@ EBDP_GRPC2
     ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -195,6 +197,7 @@ EBDP_GRPC2
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -220,8 +223,8 @@ EBDP3
     ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -255,6 +258,7 @@ EBDP3
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -282,8 +286,8 @@ EBDP4
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${4}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
@@ -331,6 +335,7 @@ EBDP4
 
     Ctn Remove Poller    51001    Poller3
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
@@ -369,8 +374,8 @@ EBDP5
     ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
@@ -402,6 +407,7 @@ EBDP5
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
@@ -423,8 +429,8 @@ EBDP6
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -466,6 +472,7 @@ EBDP6
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
@@ -491,8 +498,8 @@ EBDP7
     Ctn Start engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output with 3 pollers: ${output}
@@ -530,6 +537,7 @@ EBDP7
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE instance_id=3
         Sleep    1s
         Log To Console    Output= ${output}
@@ -558,8 +566,8 @@ EBDP8
     ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
@@ -601,6 +609,7 @@ EBDP8
     Ctn Start Broker
     Ctn Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK

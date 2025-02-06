@@ -27,14 +27,15 @@ EBSNU1
     Ctn Start Broker
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes_url FROM services WHERE description='service_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes_url FROM resources WHERE name='service_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
@@ -60,14 +61,15 @@ EBSAU2
     Ctn Start Broker
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT action_url FROM services WHERE description='service_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT action_url FROM resources WHERE name='service_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
@@ -93,14 +95,15 @@ EBSN3
     Ctn Start Broker
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes FROM services WHERE description='service_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes FROM resources WHERE name='service_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
@@ -138,10 +141,8 @@ EBSIC0
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT id,icon_id FROM resources WHERE name='service_1'
         Sleep    1s
         IF    "${output}" == "((1, 1),)"    BREAK
@@ -149,6 +150,7 @@ EBSIC0
     Should Be Equal As Strings    ${output}    ((1, 1),)    the service_1 should have icon_id=1
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT id,icon_id FROM resources WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "((1, 1),)"    BREAK
@@ -161,6 +163,7 @@ EBSIC0
     Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT id,icon_id FROM resources WHERE name='service_1'
         Sleep    1s
         IF    "${output}" == "((1, 2),)"    BREAK
@@ -168,6 +171,7 @@ EBSIC0
     Should Be Equal As Strings    ${output}    ((1, 2),)    the service_1 should have icon_id=2
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT id,icon_id FROM resources WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "((1, 2),)"    BREAK

@@ -767,6 +767,7 @@ BEOTEL_CENTREON_AGENT_CEIP
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Clear Db    metrics
+    Ctn Clear Db    agent_information
 
     Ctn Config Broker    central
     Ctn Config Broker    module

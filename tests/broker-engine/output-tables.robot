@@ -8,6 +8,7 @@ Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
 Test Teardown       Ctn Save Logs If Failed
 
+Library    Common
 
 *** Test Cases ***
 BERES1
@@ -218,10 +219,9 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    DELETE FROM services
-    Execute SQL String    DELETE FROM resources
-    Execute SQL String    DELETE FROM hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts   
 
     Ctn Clear Retention
 
@@ -229,6 +229,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Ctn Start engine
 
     FOR    ${index}    IN RANGE    300
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
         Log To Console    ${output}
@@ -252,10 +253,9 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    DELETE FROM services
-    Execute SQL String    DELETE FROM resources
-    Execute SQL String    DELETE FROM hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts   
 
     Ctn Clear Retention
 
@@ -263,6 +263,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Ctn Start engine
 
     FOR    ${index}    IN RANGE    300
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT s.notification_interval, h.notification_interval FROM services s, hosts h WHERE h.host_id=1 AND s.service_id=1
         Log To Console    ${output}
@@ -289,10 +290,9 @@ BE_FLAPPING_SERVICE_RESOURCE
     Ctn Engine Config Set Value In Services    0    service_1    high_flap_threshold    20
     Ctn Engine Config Set Value In Services    0    service_1    flap_detection_options    all
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    DELETE FROM services
-    Execute SQL String    DELETE FROM resources
-    Execute SQL String    DELETE FROM hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts   
 
     Ctn Clear Retention
 
@@ -332,10 +332,9 @@ BE_FLAPPING_HOST_RESOURCE
     Ctn Engine Config Set Value In Hosts    0    host_1    flap_detection_options    all
     Ctn Broker Config Log    central    sql    trace
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    DELETE FROM services
-    Execute SQL String    DELETE FROM resources
-    Execute SQL String    DELETE FROM hosts
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+    Ctn Clear Db    hosts   
 
     Ctn Clear Retention
 

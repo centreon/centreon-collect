@@ -162,9 +162,9 @@ BEPBCVS
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    300
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
         Log To Console    ${output}
@@ -189,9 +189,9 @@ BEPBHostParent
     ${start}    Get Current Date
     Ctn Start Broker    True
     Ctn Start engine
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
@@ -205,6 +205,7 @@ BEPBHostParent
     Ctn Reload Engine
 
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}

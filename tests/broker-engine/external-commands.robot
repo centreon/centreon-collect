@@ -33,9 +33,8 @@ BEEXTCMD1
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    300
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -70,9 +69,8 @@ BEEXTCMD2
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -111,9 +109,8 @@ BEEXTCMD3
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -147,9 +144,8 @@ BEEXTCMD4
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -184,9 +180,8 @@ BEEXTCMD5
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -221,9 +216,8 @@ BEEXTCMD6
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Retry Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.retry_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -262,9 +256,8 @@ BEEXTCMD7
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT retry_interval FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT retry_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -298,9 +291,8 @@ BEEXTCMD8
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Retry Host Check Interval    ${use_grpc}    host_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT retry_interval FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT retry_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -335,9 +327,8 @@ BEEXTCMD9
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -349,6 +340,7 @@ BEEXTCMD9
         Should Be Equal As Strings    ${output}    ((15,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT max_check_attempts FROM resources WHERE name='service_1' AND parent_name='host_1'
             ${output}    Query
             ...    SELECT max_check_attempts FROM resources WHERE name='service_1' AND parent_name='host_1'
@@ -382,9 +374,8 @@ BEEXTCMD10
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.max_check_attempts FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             ${output}    Query
@@ -423,9 +414,8 @@ BEEXTCMD11
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    15
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -435,6 +425,7 @@ BEEXTCMD11
         Should Be Equal As Strings    ${output}    ((15,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT max_check_attempts FROM resources WHERE name='host_1'
             ${output}    Query    SELECT max_check_attempts FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -468,9 +459,8 @@ BEEXTCMD12
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Max Host Check Attempts    ${use_grpc}    host_1    10
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT max_check_attempts FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -508,9 +498,8 @@ BEEXTCMD13
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT check_period FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT check_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -545,9 +534,8 @@ BEEXTCMD14
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Host Check Timeperiod    ${use_grpc}    host_1    24x6
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT check_period FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT check_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -585,9 +573,8 @@ BEEXTCMD15
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x7
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notification_period FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notification_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -622,9 +609,8 @@ BEEXTCMD16
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Host Notification Timeperiod    ${use_grpc}    host_1    24x6
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notification_period FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notification_period FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -662,9 +648,8 @@ BEEXTCMD17
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             ${output}    Query
@@ -701,9 +686,8 @@ BEEXTCMD18
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Svc Check Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.check_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             ${output}    Query
@@ -743,9 +727,8 @@ BEEXTCMD19
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x7
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             ${output}    Query
@@ -782,9 +765,8 @@ BEEXTCMD20
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Change Svc Notification Timeperiod    ${use_grpc}    host_1    service_1    24x6
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console
             ...    SELECT s.notification_period FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             ${output}    Query
@@ -825,9 +807,8 @@ BEEXTCMD21
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -837,6 +818,7 @@ BEEXTCMD21
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notifications_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -848,6 +830,7 @@ BEEXTCMD21
         Ctn Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -857,6 +840,7 @@ BEEXTCMD21
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notifications_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -892,9 +876,8 @@ BEEXTCMD22
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host And Child Notifications    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -906,6 +889,7 @@ BEEXTCMD22
         Ctn Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -942,9 +926,8 @@ BEEXTCMD23
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Check    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -954,6 +937,7 @@ BEEXTCMD23
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -963,6 +947,7 @@ BEEXTCMD23
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -974,6 +959,7 @@ BEEXTCMD23
         Ctn Enable Host Check    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -983,6 +969,7 @@ BEEXTCMD23
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -992,6 +979,7 @@ BEEXTCMD23
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1024,9 +1012,8 @@ BEEXTCMD24
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Check    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1036,6 +1023,7 @@ BEEXTCMD24
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1047,6 +1035,7 @@ BEEXTCMD24
         Ctn Enable Host Check    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1056,6 +1045,7 @@ BEEXTCMD24
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1092,9 +1082,8 @@ BEEXTCMD25
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1106,6 +1095,7 @@ BEEXTCMD25
         Ctn Enable Host Event Handler    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1139,9 +1129,8 @@ BEEXTCMD26
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Event Handler    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1153,6 +1142,7 @@ BEEXTCMD26
         Ctn Enable Host Event Handler    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT event_handler_enabled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1189,9 +1179,8 @@ BEEXTCMD27
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1203,6 +1192,7 @@ BEEXTCMD27
         Ctn Enable Host Flap Detection    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1236,9 +1226,8 @@ BEEXTCMD28
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Flap Detection    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1250,6 +1239,7 @@ BEEXTCMD28
         Ctn Enable Host Flap Detection    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT flap_detection FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT flap_detection FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1288,9 +1278,8 @@ BEEXTCMD29
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Ctn Disable Host Notifications    ${use_grpc}    host_1
 
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1300,6 +1289,7 @@ BEEXTCMD29
         Should Be Equal As Strings    ${output}    ((0,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notifications_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
@@ -1311,6 +1301,7 @@ BEEXTCMD29
         Ctn Enable Host Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
             ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -1320,6 +1311,7 @@ BEEXTCMD29
         Should Be Equal As Strings    ${output}    ((1,),)
 
         FOR    ${index}    IN RANGE    30
+            Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Log To Console    SELECT notifications_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT notifications_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
