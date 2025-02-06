@@ -311,7 +311,7 @@ endif()
         "${TESTS_DIR}/test_engine.hh"
         "${TESTS_DIR}/timeperiod/utils.hh")
     add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
-
+    target_link_libraries(ut_engine_utils PRIVATE dl)
     add_executable(ut_engine ${ut_sources})
     target_include_directories(
       ut_engine
@@ -328,8 +328,12 @@ endif()
                  RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO
                  ${CMAKE_BINARY_DIR}/tests
                  RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
-
+    
+    # Ensure ut_engine depends on ut_engine_utils
+    add_dependencies(ut_engine ut_engine_utils)
+    # Add a test with LD_PRELOAD for ut_engine
     add_test(NAME tests COMMAND ut_engine)
+    set_tests_properties(tests PROPERTIES ENVIRONMENT "LD_PRELOAD=$<TARGET_FILE:ut_engine_utils>")
 
     target_link_libraries(
       ut_engine
