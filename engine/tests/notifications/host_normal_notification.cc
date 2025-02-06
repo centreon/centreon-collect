@@ -57,8 +57,6 @@ class HostNotification : public TestEngine {
   void SetUp() override {
     init_config_state();
 
-    events_logger->set_level(spdlog::level::off);
-
     error_cnt err;
     configuration::applier::contact ct_aply;
 #ifdef LEGACY_CONF
