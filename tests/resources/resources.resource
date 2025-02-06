@@ -353,6 +353,7 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
+    Run Process    chmod    -R    666    ${failDir}
 
 Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -375,6 +376,7 @@ Ctn Dump Process
         ...    stdout=${gdb_output}
         ...    stderr=${gdb_output}
         Log To Console    Done...
+	Run Process    chmod    -R    666    ${failDir}
     END
 
 Ctn Coredump Info
@@ -393,6 +395,7 @@ Ctn Coredump Info
     ...    /tmp/core.${pid}
     ...    stdout=${output}
     ...    stderr=${output}
+    Run Process    chmod    -R    666    ${failDir}
 
 Ctn Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
@@ -402,6 +405,7 @@ Ctn Copy Coredump In Failed Dir
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
         Copy File    /tmp/core.${pid}    ${failDir}
+	Run Process    chmod    -R    666    ${failDir}
     END
 
 Ctn Wait Or Dump And Kill Process
