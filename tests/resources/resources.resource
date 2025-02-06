@@ -351,7 +351,7 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
-    Run Process    chmod    -R    666    ${failDir}
+    Run Process    chmod    -R    a+rwX    ${failDir}
 
 Ctn Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
