@@ -16,8 +16,10 @@
  * For more information : contact@centreon.com
  *
  */
+#include <dlfcn.h>
 #include <array>
 #include <cstring>
+#include <ctime>
 #include <list>
 #include <memory>
 #include <unordered_map>
@@ -379,4 +381,37 @@ extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
     tv->tv_usec = 0;
   }
   return 0;
+}
+/**
+ *  Overload of libc clock_gettime function.
+ */
+
+// Flag to control time travel
+static bool time_travel_enabled = false;
+
+// time to add
+static int time_to_add = 0;
+
+// Original clock_gettime pointer
+using clock_gettime_func = int (*)(clockid_t, struct timespec*);
+static clock_gettime_func real_clock_gettime = nullptr;
+
+// Override of clock_gettime
+extern "C" int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  if (!real_clock_gettime) {
+    real_clock_gettime = (clock_gettime_func)dlsym(RTLD_NEXT, "clock_gettime");
+  }
+
+  int result = real_clock_gettime(clk_id, tp);  // Call the real function
+
+  if (time_travel_enabled)
+    tp->tv_sec += time_to_add;  // Add time if needed
+
+  return result;
+}
+
+// Function to enable or disable time travel
+extern "C" void enable_time_travel(bool enable, int added) {
+  time_travel_enabled = enable;
+  time_to_add = added;
 }

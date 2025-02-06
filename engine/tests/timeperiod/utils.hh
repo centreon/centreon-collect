@@ -86,4 +86,8 @@ int hmtos(int h, int m);
 void set_time(time_t now);
 time_t strtotimet(std::string const& str);
 
+// Declare the external function to control time travel (control the time
+// spdlog)
+extern "C" void enable_time_travel(bool enable, int added);
+
 #endif  // !TESTS_TIMEPERIOD_UTILS_HH
