@@ -108,18 +108,20 @@ BRCS1
     ...    There should not exist queue map files.
 
 BRCTSMN
-    [Documentation]    Broker connected to map with neb filter
+    [Documentation]    Given Broker, Engine configured as usual
+    ...    And map also connected to Broker with a filter allowing only 'neb' category
+    ...    When Engine sends pb_service, pb_host, pb_service_status and pb_host_status
+    ...    Then map receives correctly them.
     [Tags]    broker    map    reverse connection
+    Ctn Clear Retention
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    event_queue_max_size    ${100000}
 
     Ctn Broker Config Output Set Json    central    centreon-broker-master-map    filters    {"category": ["neb"]}
-    Ctn Broker Config Log    central    bbdo    trace
-    Ctn Broker Config Log    central    core    trace
-    Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    module0    bbdo    info
     Ctn Start Broker
     Ctn Start Map
@@ -141,7 +143,7 @@ BRCTSMN
     # We should have exactly 1000 pb_service
     ${ret}    Grep File    /tmp/map-output.log    65563
     ${ret}    Get Line Count    ${ret}
-    Should Be True    ${ret} >= 1000
+    Should Be True    ${ret} >= 1000    We should have exactly 1000 pb services, only ${ret} here
 
     # We should have exactly 50 pb_host
     ${ret}    Grep File    /tmp/map-output.log    65566
@@ -151,14 +153,19 @@ BRCTSMN
     Ctn Stop Engine
 
 BRCTSMNS
-    [Documentation]    Broker connected to map with neb and storage filters
+    [Documentation]    Given Broker, Engine configured as usual
+    ...    And map also connected to Broker with a filter allowing 'neb' and 'storage' categories
+    ...    When Engine sends pb_service, pb_host, pb_service_status, pb_host_status and metrics
+    ...    Then Map receives correctly them.
     [Tags]    broker    map    reverse connection
     Ctn Clear Metrics
+    Ctn Clear Retention
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central_map
     Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
+    Ctn Broker Config Add Item    central    event_queue_max_size    ${100000}
 
     Ctn Broker Config Output Set Json
     ...    central
