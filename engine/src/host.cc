@@ -2697,7 +2697,7 @@ int host::notify_contact(nagios_macros* mac,
           << "HOST NOTIFICATION: " << cntct->get_name() << ';' << this->name()
           << ';' << host_notification_state << ";" << cmd->get_name() << ';'
           << this->get_plugin_output() << info;
-      notifications_logger->info("HOST NOTIFICATION: {};{};{};{};{};{}",
+      notifications_logger->info("HOST NOTIFICATION: {};{};{};{};{}{}",
                                  cntct->get_name(), this->name(),
                                  host_notification_state, cmd->get_name(),
                                  this->get_plugin_output(), info);
