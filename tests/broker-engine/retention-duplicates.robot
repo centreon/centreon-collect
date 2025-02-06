@@ -367,14 +367,12 @@ BERDUCA300
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
-
-    Ctn Wait For Engine To Be Ready    ${1}
 
     Ctn Stop Engine
     ${content}    Create List    BBDO: sending stop packet to peer
@@ -402,7 +400,6 @@ BERDUCA301
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    error
     Ctn Config Broker    central
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
