@@ -428,7 +428,7 @@ void mysql_connection::_statement(mysql_task* t) {
 
   uint32_t array_size = 1;
 
-  std::string& query = _stmt_query[task->statement_id];
+  const std::string& query = _stmt_query[task->statement_id];
   sql::stats::stmt_span stats(&_stats, task->statement_id, query);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
@@ -493,8 +493,11 @@ void mysql_connection::_statement(mysql_task* t) {
           break;
         }
 
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection {:p} attempts {}: {}",
-                            static_cast<const void*>(this), attempts, err_msg);
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "mysql_connection {:p} attempts {} to execute "
+                            "statement {:x}: {}: {}",
+                            static_cast<const void*>(this), attempts,
+                            task->statement_id, query, err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           if (_server_error(::mysql_stmt_errno(stmt)))
             set_error_message("{} {}", mysql_error::msg[task->error_code],
