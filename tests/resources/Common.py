@@ -1148,7 +1148,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
 
 def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
     """
-    ctl_check_host_check_with_timeout
+    ctn_check_host_check_with_timeout
 
     Checks that the last_check is after the start timestamp.
 
