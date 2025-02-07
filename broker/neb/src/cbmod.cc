@@ -282,6 +282,16 @@ void cbmod::add_downtime(uint64_t downtime_id,
   obj.set_actual_end_time(-1);
   obj.set_fixed(fixed);
   obj.set_started(false);
+  if (_downtimes.find(downtime_id) != _downtimes.end()) {
+    _neb_logger->error(
+        "cbmod: add_downtime: Downtime with ID {} already exists: {} - "
+        "replaced by {}",
+        downtime_id, _downtimes[downtime_id]->obj().DebugString(),
+        obj.DebugString());
+  } else {
+    _neb_logger->trace("cbmod: add_downtime: Downtime added: {}",
+                       obj.DebugString());
+  }
   _downtimes[downtime_id] = pb_dt;
   if (_use_protobuf)
     write(pb_dt);
@@ -304,6 +314,7 @@ void cbmod::start_downtime(uint64_t downtime_id) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
+  _neb_logger->trace("cbmod: downtime started: {}", obj.DebugString());
 }
 
 /**
@@ -313,8 +324,10 @@ void cbmod::start_downtime(uint64_t downtime_id) {
  * @param cancelled True if the downtime was cancelled.
  */
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
+  _neb_logger->error("cbmod: stopping downtime ID {} : 1", downtime_id);
   auto pb_dt = _downtimes[downtime_id];
   assert(pb_dt);
+  _neb_logger->error("cbmod: stopping downtime ID {} : 2", downtime_id);
   auto& obj = pb_dt->mut_obj();
   obj.set_cancelled(cancelled);
   obj.set_actual_end_time(time(nullptr));
@@ -322,6 +335,8 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
+  _neb_logger->trace("cbmod: downtime ID {} stopped: {}", downtime_id,
+                     obj.DebugString());
 }
 
 /**
@@ -343,7 +358,12 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       write(pb_dt);
     else
       write(translate_to_legacy_downtime(pb_dt));
+    _neb_logger->trace("cbmod: downtime ID {} removed: {}", downtime_id,
+                       obj.DebugString());
     _downtimes.erase(found);
+  } else {
+    _neb_logger->error("cbmod: remove_downtime: Downtime with ID {} not found",
+                       downtime_id);
   }
 }
 
