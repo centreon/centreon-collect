@@ -296,12 +296,16 @@ BEBAMIGNDTU1
     Ctn Kindly Stop Broker
 
 BEBAMIGNDTU2
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
-    ...    The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in
-    ...    critical state, because of the second critical service. Then we apply two downtimes on this
-    ...    last one. The BA state is ok because of the policy on indicators. The first downtime reaches
-    ...    its end, the BA is still OK, but when the second downtime reaches its end, the BA should be
-    ...    CRITICAL.
+    [Documentation]    Given BBDO version 3.0.1 is configured
+    ...    And a BA of type "worst" with two services is set up
+    ...    And the downtime policy on this BA is "Ignore the indicator in the calculation"
+    ...    And the BA is in a critical state due to the second critical service
+    ...    When two downtimes are applied to the second critical service
+    ...    Then the BA state should be OK due to the policy on indicators
+    ...    When the first downtime reaches its end
+    ...    Then the BA state should still be OK
+    ...    When the second downtime reaches its end
+    ...    Then the BA should be in a critical state
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
@@ -310,7 +314,6 @@ BEBAMIGNDTU2
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
 
@@ -327,8 +330,8 @@ BEBAMIGNDTU2
     ${cmd_2}    Ctn Get Service Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Ctn Set Command Status    ${cmd_2}    2
-    ${start}    Get Current Date
     Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    1
 
@@ -349,6 +352,8 @@ BEBAMIGNDTU2
 
     # Two downtimes are applied on service_314
     Ctn Schedule Service Downtime    host_16    service_314    90
+    Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
+
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    One downtime applied to service_314.
