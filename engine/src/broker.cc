@@ -4135,7 +4135,7 @@ static void send_initial_configuration() {
   send_tag_list();
   send_host_list<proto>();
   send_service_list<proto>();
-  send_custom_variables_list<proto>();
+  // send_custom_variables_list<proto>();
   send_downtimes_list<proto>();
   send_host_parents_list<proto>();
   send_host_group_list<proto>();
