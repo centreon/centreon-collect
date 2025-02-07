@@ -289,7 +289,7 @@ void cbmod::add_downtime(uint64_t downtime_id,
         downtime_id, _downtimes[downtime_id]->obj().DebugString(),
         obj.DebugString());
   } else {
-    _neb_logger->trace("cbmod: add_downtime: Downtime added: {}",
+    _neb_logger->error("cbmod: add_downtime: Downtime added: {}",
                        obj.DebugString());
   }
   _downtimes[downtime_id] = pb_dt;
@@ -314,7 +314,7 @@ void cbmod::start_downtime(uint64_t downtime_id) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->trace("cbmod: downtime started: {}", obj.DebugString());
+  _neb_logger->error("cbmod: downtime started: {}", obj.DebugString());
 }
 
 /**
@@ -335,7 +335,7 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->trace("cbmod: downtime ID {} stopped: {}", downtime_id,
+  _neb_logger->error("cbmod: downtime ID {} stopped: {}", downtime_id,
                      obj.DebugString());
 }
 
@@ -358,7 +358,7 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       write(pb_dt);
     else
       write(translate_to_legacy_downtime(pb_dt));
-    _neb_logger->trace("cbmod: downtime ID {} removed: {}", downtime_id,
+    _neb_logger->error("cbmod: downtime ID {} removed: {}", downtime_id,
                        obj.DebugString());
     _downtimes.erase(found);
   } else {
