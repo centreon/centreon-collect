@@ -353,7 +353,8 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       obj.set_cancelled(true);
     time_t now = time(nullptr);
     obj.set_deletion_time(now);
-    obj.set_deletion_time(now);
+    if (obj.actual_end_time() == static_cast<uint64_t>(-1))
+      obj.set_actual_end_time(now);
     if (_use_protobuf)
       write(pb_dt);
     else
