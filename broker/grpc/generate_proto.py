@@ -128,10 +128,11 @@ cc_file_protobuf_to_event_function = """
  * @brief this function creates a io::protobuf_object from grpc received message
  *
  * @param stream_content message received
+ * @param logger logger
  * @return std::shared_ptr<io::data> shared_ptr<io::protobuf<xxx>>, null if
  * unknown content received
  */
-std::shared_ptr<io::data> protobuf_to_event(const event_ptr & stream_content) {
+std::shared_ptr<io::data> protobuf_to_event(const event_ptr & stream_content, const std::shared_ptr<spdlog::logger> & logger) {
     switch(stream_content->content_case()) {
 """
 
@@ -143,16 +144,16 @@ cc_file_create_event_with_data_function = """
  * deleted before stream_content
  *
  * @param event to send
+ * @param logger logger
  * @return object used for send on the wire
  */
-std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
+std::shared_ptr<event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event, const std::shared_ptr<spdlog::logger> & logger) {
     std::shared_ptr<event_with_data> ret;
     switch(event->type()) {
 """
 cc_file_create_event_with_data_function_end = """
     default:
       {
-        auto logger = log_v2::instance().get(log_v2::GRPC);
         SPDLOG_LOGGER_ERROR(logger, "unknown event type: {}", *event);
       }  
     }
@@ -310,7 +311,6 @@ with open(args.cc_file, 'w') as fp:
     fp.write(cc_file_protobuf_to_event_function)
     fp.write("""        default:
       {
-        auto logger = log_v2::instance().get(log_v2::GRPC);
         SPDLOG_LOGGER_ERROR(logger, "unknown content type: {} => ignored",
                             static_cast<uint32_t>(stream_content->content_case()));
         return std::shared_ptr<io::data>();

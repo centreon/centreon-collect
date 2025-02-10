@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs 
 
 
 *** Test Cases ***
@@ -24,12 +24,13 @@ SDER
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    module0    processing    trace
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    42
+
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -47,16 +48,14 @@ SDER
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    20
         Log To Console    SELECT check_attempt from services WHERE description='service_1'
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT check_attempt from services WHERE description='service_1'
         Log To Console    ${output}
         IF    "${output}" == "((280,),)"    BREAK
         Sleep    1s
     END
-    Should Be Equal As Strings    ${output}    ((280,),)
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Should Be Equal As Strings    ${output}    ((280,),)

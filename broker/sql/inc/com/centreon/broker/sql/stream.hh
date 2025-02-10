@@ -20,7 +20,6 @@
 #define CCB_SQL_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/sql/cleanup.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 
 namespace com::centreon::broker {
@@ -34,6 +33,9 @@ namespace sql {
  */
 class stream : public io::stream {
   mysql _mysql;
+
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_storage;
 
   // Cache
   database::mysql_stmt _empty_host_groups_delete;
@@ -51,8 +53,6 @@ class stream : public io::stream {
   bool _stopped;
 
   void _process_log_issue(std::shared_ptr<io::data> const& e);
-  std::shared_ptr<spdlog::logger> _logger_sql;
-  std::shared_ptr<spdlog::logger> _logger_storage;
 
  public:
   stream(database_config const& dbcfg,

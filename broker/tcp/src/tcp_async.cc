@@ -17,9 +17,9 @@
  */
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
-#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -100,7 +100,8 @@ void tcp_async::unload() {
  */
 tcp_async::tcp_async()
     : _clear_available_con_running(false),
-      _logger{log_v2::instance().get(log_v2::TCP)} {}
+      _logger{log_v2::instance().get(log_v2::TCP)},
+      _io_context(com::centreon::common::pool::io_context_ptr()) {}
 
 /**
  * @brief Stop the timer that clears available connections.
@@ -171,7 +172,7 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
   else {
     asio::ip::tcp::resolver::query query(conf->get_host(),
                                          std::to_string(conf->get_port()));
-    asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
+    asio::ip::tcp::resolver resolver(*_io_context);
     boost::system::error_code ec;
     asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
     if (ec) {
@@ -189,8 +190,8 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
       }
     }
   }
-  auto retval{std::make_shared<asio::ip::tcp::acceptor>(
-      com::centreon::common::pool::io_context(), listen_endpoint)};
+  auto retval{
+      std::make_shared<asio::ip::tcp::acceptor>(*_io_context, listen_endpoint)};
 
   asio::ip::tcp::acceptor::reuse_address option(true);
   retval->set_option(option);
@@ -217,10 +218,8 @@ void tcp_async::_clear_available_con(boost::system::error_code ec) {
       for (auto it = _acceptor_available_con.begin();
            it != _acceptor_available_con.end();) {
         if (now >= it->second.second + 10) {
-          log_v2::instance()
-              .get(log_v2::TCP)
-              ->debug("Destroying connection to '{}'",
-                      it->second.first->peer());
+          _logger->debug("Destroying connection to '{}'",
+                         it->second.first->peer());
           it = _acceptor_available_con.erase(it);
         } else
           ++it;
@@ -251,8 +250,7 @@ void tcp_async::start_acceptor(
   _logger->trace("Start acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   if (!_timer)
-    _timer = std::make_unique<asio::steady_timer>(
-        com::centreon::common::pool::instance().io_context());
+    _timer = std::make_unique<asio::steady_timer>(*_io_context);
 
   if (!_clear_available_con_running)
     _clear_available_con_running = true;
@@ -264,8 +262,8 @@ void tcp_async::start_acceptor(
         me->_clear_available_con(err);
       });
 
-  tcp_connection::pointer new_connection = std::make_shared<tcp_connection>(
-      com::centreon::common::pool::io_context(), _logger);
+  tcp_connection::pointer new_connection =
+      std::make_shared<tcp_connection>(*_io_context, _logger);
 
   _logger->debug("Waiting for a connection");
   acceptor->async_accept(new_connection->socket(),
@@ -282,16 +280,15 @@ void tcp_async::start_acceptor(
  */
 void tcp_async::stop_acceptor(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
-  logger->debug("stop acceptor");
+  _logger->debug("stop acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   boost::system::error_code ec;
   acceptor->cancel(ec);
   if (ec)
-    logger->warn("Error while cancelling acceptor: {}", ec.message());
+    _logger->warn("Error while cancelling acceptor: {}", ec.message());
   acceptor->close(ec);
   if (ec)
-    logger->warn("Error while closing acceptor: {}", ec.message());
+    _logger->warn("Error while closing acceptor: {}", ec.message());
 }
 
 /**
@@ -306,12 +303,11 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                               const boost::system::error_code& ec,
                               const tcp_config::pointer& conf) {
   /* If we got a connection, we store it */
-  auto logger = log_v2::instance().get(log_v2::TCP);
   if (!ec) {
     boost::system::error_code ecc;
     new_connection->update_peer(ecc);
     if (ecc)
-      logger->error(
+      _logger->error(
           "tcp acceptor handling connection: unable to get peer endpoint: {}",
           ecc.message());
     else {
@@ -327,7 +323,7 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
       start_acceptor(acceptor, conf);
     }
   } else
-    logger->info("TCP acceptor interrupted: {}", ec.message());
+    _logger->info("TCP acceptor interrupted: {}", ec.message());
 }
 
 /**
@@ -340,14 +336,13 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
  */
 tcp_connection::pointer tcp_async::create_connection(
     const tcp_config::pointer& conf) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
-  logger->trace("create connection to host {}:{}", conf->get_host(),
-                conf->get_port());
+  _logger->trace("create connection to host {}:{}", conf->get_host(),
+                 conf->get_port());
   tcp_connection::pointer conn = std::make_shared<tcp_connection>(
-      com::centreon::common::pool::io_context(), _logger, conf->get_host(), conf->get_port());
+      *_io_context, _logger, conf->get_host(), conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
-  asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
+  asio::ip::tcp::resolver resolver(*_io_context);
   asio::ip::tcp::resolver::query query(conf->get_host(),
                                        std::to_string(conf->get_port()));
   asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;
@@ -365,12 +360,12 @@ tcp_connection::pointer tcp_async::create_connection(
 
   /* Connection refused */
   if (err.value() == 111) {
-    logger->error("TCP: Connection refused to {}:{}", conf->get_host(),
-                  conf->get_port());
+    _logger->error("TCP: Connection refused to {}:{}", conf->get_host(),
+                   conf->get_port());
     throw std::system_error(err);
   } else if (err) {
-    logger->error("TCP: could not connect to {}:{}", conf->get_host(),
-                  conf->get_port());
+    _logger->error("TCP: could not connect to {}:{}", conf->get_host(),
+                   conf->get_port());
     throw msg_fmt(err.message());
   } else {
     _set_sock_opt(sock, conf, _logger);

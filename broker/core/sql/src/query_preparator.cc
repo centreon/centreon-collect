@@ -133,7 +133,7 @@ mysql_stmt query_preparator::prepare_insert_into(
 
   _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, bind_mapping);
     retval.set_pb_mapping(std::move(pb_mapping));
@@ -224,7 +224,7 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
   }
   _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, bind_mapping);
   } catch (std::exception const& e) {
@@ -301,7 +301,7 @@ mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
 
   _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(insert, insert_bind_mapping);
   } catch (std::exception const& e) {
@@ -408,7 +408,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
 
   _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(insert, insert_bind_mapping);
     retval.set_pb_mapping(std::move(pb_mapping));
@@ -480,7 +480,7 @@ mysql_stmt query_preparator::prepare_update(mysql& ms) {
         std::make_pair(it->first, it->second + query_size));
 
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, query_bind_mapping);
   } catch (std::exception const& e) {
@@ -571,7 +571,7 @@ mysql_stmt query_preparator::prepare_update_table(
         std::make_pair(it->first, it->second + query_size));
 
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, query_bind_mapping);
     retval.set_pb_mapping(std::move(pb_mapping));
@@ -617,7 +617,7 @@ mysql_stmt query_preparator::prepare_delete(mysql& ms) {
   query.resize(query.size() - 5);
 
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, bind_mapping);
   } catch (std::exception const& e) {
@@ -678,7 +678,7 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
 
   _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
-  mysql_stmt retval;
+  mysql_stmt retval(_logger);
   try {
     retval = ms.prepare_query(query, bind_mapping);
     retval.set_pb_mapping(std::move(pb_mapping));

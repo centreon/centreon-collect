@@ -87,7 +87,9 @@ class client_stream : public stream_base_class {
   void shutdown() override;
 
  public:
-  client_stream(const grpc_config::pointer& conf);
+  client_stream(const grpc_config::pointer& conf,
+                const std::shared_ptr<asio::io_context> io_context,
+                const std::shared_ptr<spdlog::logger>& logger);
   ::grpc::ClientContext& get_context() { return _context; }
 };
 
@@ -96,8 +98,10 @@ class client_stream : public stream_base_class {
  *
  * @param conf
  */
-client_stream::client_stream(const grpc_config::pointer& conf)
-    : stream_base_class(conf, "client") {
+client_stream::client_stream(const grpc_config::pointer& conf,
+                             const std::shared_ptr<asio::io_context> io_context,
+                             const std::shared_ptr<spdlog::logger>& logger)
+    : stream_base_class(conf, "client", io_context, logger) {
   if (!conf->get_authorization().empty()) {
     _context.AddMetadata(authorization_header, conf->get_authorization());
   }
@@ -123,7 +127,8 @@ void client_stream::shutdown() {
  */
 std::shared_ptr<io::stream> connector::create_stream() {
   std::shared_ptr<client_stream> new_stream = std::make_shared<client_stream>(
-      std::static_pointer_cast<grpc_config>(get_conf()));
+      std::static_pointer_cast<grpc_config>(get_conf()), get_io_context(),
+      get_logger());
   client_stream::register_stream(new_stream);
   _stub->async()->exchange(&new_stream->get_context(), new_stream.get());
   new_stream->start_read();

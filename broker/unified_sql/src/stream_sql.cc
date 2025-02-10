@@ -3776,11 +3776,21 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       }
     }
 
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: update of (host: {}, service: {}, "
+                       "description: {})",
+                       s.host_id(), s.service_id(), s.description());
+
     // Process object.
     _pb_service_insupdate << *svc;
     _mysql.run_statement(_pb_service_insupdate,
                          database::mysql_error::store_service, conn);
     _add_action(conn, actions::services);
+
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: update done of (host: {}, service: {}, "
+                       "description: {})",
+                       s.host_id(), s.service_id(), s.description());
 
     _check_and_update_index_cache(s);
 

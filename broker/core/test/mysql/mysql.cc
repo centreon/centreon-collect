@@ -68,7 +68,8 @@ TEST_F(DatabaseStorageTest, NoDatabase) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 9876, "root",
                          "centreon", "centreon_storage");
   std::unique_ptr<mysql> ms;
-  ASSERT_THROW(ms.reset(new mysql(db_cfg)), msg_fmt);
+  ASSERT_THROW(ms.reset(new mysql(db_cfg, log_v2::instance().get(log_v2::SQL))),
+               msg_fmt);
 }
 
 // When there is a database
@@ -78,7 +79,8 @@ TEST_F(DatabaseStorageTest, ConnectionOk) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage");
   std::unique_ptr<mysql> ms;
-  ASSERT_NO_THROW(ms = std::make_unique<mysql>(db_cfg));
+  ASSERT_NO_THROW(ms = std::make_unique<mysql>(
+                      db_cfg, log_v2::instance().get(log_v2::SQL)));
 }
 
 //// Given a mysql object
@@ -508,7 +510,8 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
   modules.load_file("./broker/neb/10-neb.so");
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  std::unique_ptr<mysql> ms(new mysql(db_cfg));
+  std::unique_ptr<mysql> ms(
+      new mysql(db_cfg, log_v2::instance().get(log_v2::SQL)));
   query_preparator::event_unique unique;
   unique.insert("host_id");
   unique.insert("name");
@@ -1260,7 +1263,8 @@ TEST_F(DatabaseStorageTest, CustomVarStatement) {
 TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms = std::make_unique<mysql>(db_cfg);
+  auto ms =
+      std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL));
   int thread_foo(ms->choose_connection_by_name("foo"));
   int thread_bar(ms->choose_connection_by_name("bar"));
   int thread_boo(ms->choose_connection_by_name("boo"));
@@ -1282,7 +1286,7 @@ TEST_F(DatabaseStorageTest, ChooseConnectionByName) {
 TEST_F(DatabaseStorageTest, RepeatStatements) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT "
@@ -1361,7 +1365,7 @@ TEST_F(DatabaseStorageTest, RepeatStatements) {
 TEST_F(DatabaseStorageTest, CheckBulkStatement) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string version = ms->get_server_version();
   std::vector<std::string_view> arr =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
@@ -1388,7 +1392,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
     std::string query(
         "INSERT INTO ut_test (unit_name, value, warn, crit, metric) VALUES "
         "(?,?,?,?,?)");
-    mysql_bulk_stmt stmt(query);
+    mysql_bulk_stmt stmt(query, log_v2::instance().get(log_v2::SQL));
     ms->prepare_statement(stmt);
 
     constexpr int TOTAL = 200000;
@@ -1430,12 +1434,12 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
 
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   if (ms->support_bulk_statement()) {
     std::string query{
         "UPDATE ut_test SET value=?, warn=?, crit=?, metric=?, hidden=? WHERE "
         "unit_name=?"};
-    mysql_bulk_stmt s(query);
+    mysql_bulk_stmt s(query, log_v2::instance().get(log_v2::SQL));
     ms->prepare_statement(s);
     auto b = s.create_bind();
 
@@ -1505,7 +1509,8 @@ TEST_F(DatabaseStorageTest, LastInsertId) {
                   "1, 10.0, 20.0, 1, 0.0, 50.0, 18.0, '2')",
                   now));
 
-  auto ms = std::make_unique<mysql>(db_cfg);
+  auto ms =
+      std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL));
   // We force the thread 0
   std::promise<int> promise;
   std::future<int> future = promise.get_future();
@@ -1535,7 +1540,7 @@ TEST_F(DatabaseStorageTest, LastInsertId) {
 TEST_F(DatabaseStorageTest, BulkStatementWithNullStr) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   if (ms->support_bulk_statement()) {
     std::string query1{"DROP TABLE IF EXISTS ut_test"};
     std::string query2{
@@ -1551,7 +1556,7 @@ TEST_F(DatabaseStorageTest, BulkStatementWithNullStr) {
     std::string query(
         "INSERT INTO ut_test (unit_name, value, warn, crit, metric) VALUES "
         "(?,?,?,?,?)");
-    mysql_bulk_stmt stmt(query);
+    mysql_bulk_stmt stmt(query, log_v2::instance().get(log_v2::SQL));
     ms->prepare_statement(stmt);
 
     constexpr int TOTAL = 200000;
@@ -1598,7 +1603,7 @@ TEST_F(DatabaseStorageTest, BulkStatementWithNullStr) {
 TEST_F(DatabaseStorageTest, RepeatStatementsWithNull) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT "
@@ -1647,7 +1652,7 @@ TEST_F(DatabaseStorageTest, RepeatStatementsWithNull) {
 TEST_F(DatabaseStorageTest, RepeatStatementsWithBigStrings) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -1749,7 +1754,7 @@ TEST_F(DatabaseStorageTest, RepeatStatementsWithBigStrings) {
 TEST_F(DatabaseStorageTest, RepeatStatementsWithNullValues) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -1827,7 +1832,7 @@ TEST_F(DatabaseStorageTest, RepeatStatementsWithNullValues) {
 TEST_F(DatabaseStorageTest, BulkStatementsWithNullValues) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -1839,7 +1844,7 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithNullValues) {
   ms->commit();
 
   std::string query("INSERT INTO ut_test (name,b, i, u) VALUES (?,?, ?, ?)");
-  mysql_bulk_stmt stmt(query);
+  mysql_bulk_stmt stmt(query, log_v2::instance().get(log_v2::SQL));
   ms->prepare_statement(stmt);
 
   auto bb = stmt.create_bind();
@@ -1935,7 +1940,7 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithNullValues) {
 TEST_F(DatabaseStorageTest, RepeatStatementsWithBooleanValues) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -1975,7 +1980,7 @@ TEST_F(DatabaseStorageTest, RepeatStatementsWithBooleanValues) {
 TEST_F(DatabaseStorageTest, BulkStatementsWithBooleanValues) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -1987,7 +1992,7 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithBooleanValues) {
   ms->commit();
 
   std::string query("INSERT INTO ut_test (name,b, t) VALUES (?,?, ?)");
-  mysql_bulk_stmt stmt(query);
+  mysql_bulk_stmt stmt(query, log_v2::instance().get(log_v2::SQL));
   ms->prepare_statement(stmt);
 
   auto bb = stmt.create_bind();
@@ -2044,7 +2049,7 @@ static std::string row_filler2(const row& data) {
 TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -2192,7 +2197,7 @@ struct multi_event_binder {
 TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
@@ -2206,7 +2211,7 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
 
   auto inserter = std::make_unique<database::bulk_or_multi>(
       *ms, "INSERT INTO ut_test (name, value, t, e, i, u) VALUES (?,?,?,?,?,?)",
-      100000);
+      100000, log_v2::instance().get(log_v2::SQL));
 
   auto begin = std::chrono::system_clock::now();
   event_binder_index = 0;
@@ -2247,7 +2252,7 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
 TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
-  auto ms{std::make_unique<mysql>(db_cfg)};
+  auto ms{std::make_unique<mysql>(db_cfg, log_v2::instance().get(log_v2::SQL))};
   std::string query1{"DROP TABLE IF EXISTS ut_test"};
   std::string query2{
       "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "

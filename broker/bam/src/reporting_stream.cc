@@ -58,9 +58,21 @@ reporting_stream::reporting_stream(
     : io::stream("BAM-BI"),
       _ack_events(0),
       _pending_events(0),
-      _mysql(db_cfg),
+      _mysql(db_cfg, logger),
       _processing_dimensions(false),
-      _logger{logger} {
+      _logger{logger},
+      _ba_full_event_insert(logger),
+      _ba_event_update(logger),
+      _ba_duration_event_insert(logger),
+      _ba_duration_event_update(logger),
+      _kpi_full_event_insert(logger),
+      _kpi_event_link(logger),
+      _kpi_event_link_update(logger),
+      _dimension_ba_insert(logger),
+      _dimension_bv_insert(logger),
+      _dimension_ba_bv_relation_insert(logger),
+      _dimension_timeperiod_insert(logger),
+      _dimension_ba_timeperiod_insert(logger) {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();
@@ -897,7 +909,7 @@ void reporting_stream::_prepare() {
         " SET end_time=?, status=?,"
         " in_downtime=?, impact_level=?"
         " WHERE kpi_id=? AND start_time=?",
-        _mysql.get_config().get_queries_per_transaction());
+        _mysql.get_config().get_queries_per_transaction(), _logger);
   } else {
     _kpi_event_update = std::make_unique<bulk_or_multi>(
         "INSERT INTO mod_bam_reporting_kpi_events (end_time, status, "
@@ -985,7 +997,7 @@ void reporting_stream::_prepare() {
         " ?, ?, ?,"
         " ?, ?, ?,"
         " ?, ?, ?)",
-        _mysql.get_config().get_queries_per_transaction());
+        _mysql.get_config().get_queries_per_transaction(), _logger);
   } else {
     _dimension_kpi_insert = std::make_unique<bulk_or_multi>(
         "INSERT INTO mod_bam_reporting_kpi (kpi_id, kpi_name,"

@@ -32,11 +32,12 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @param[in] db_cfg  Database configuration.
  */
-mysql::mysql(database_config const& db_cfg)
+mysql::mysql(database_config const& db_cfg,
+             const std::shared_ptr<spdlog::logger>& logger)
     : _db_cfg(db_cfg),
       _pending_queries(0),
       _current_connection(0),
-      _logger{log_v2::instance().get(log_v2::SQL)} {
+      _logger(logger) {
   mysql_manager& mgr(mysql_manager::instance());
   _connection = mgr.get_connections(db_cfg);
   _logger->info("mysql connector configured with {} connection(s)",
@@ -290,7 +291,7 @@ void mysql::prepare_statement(const mysql_stmt_base& stmt) {
  */
 mysql_stmt mysql::prepare_query(std::string const& query,
                                 mysql_bind_mapping const& bind_mapping) {
-  mysql_stmt retval(query, bind_mapping);
+  mysql_stmt retval(query, _logger, bind_mapping);
   prepare_statement(retval);
 
   return retval;

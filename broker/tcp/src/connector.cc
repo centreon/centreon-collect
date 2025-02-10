@@ -48,7 +48,8 @@ static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
  */
 connector::connector(const tcp_config::pointer& conf)
     : io::limit_endpoint(false, _tcp_stream_filter, _tcp_forbidden_filter),
-      _conf(conf) {}
+      _conf(conf),
+      _logger(log_v2::instance().get(log_v2::TCP)) {}
 
 /**
  * @brief Connect to the remote host.
@@ -56,15 +57,13 @@ connector::connector(const tcp_config::pointer& conf)
  * @return The TCP connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  auto logger = log_v2::instance().get(log_v2::TCP);
-
   // Launch connection process.
-  logger->info("TCP: connecting to {}:{}", _conf->get_host(),
-               _conf->get_port());
+  _logger->info("TCP: connecting to {}:{}", _conf->get_host(),
+                _conf->get_port());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
-    logger->debug(
+    _logger->debug(
         "Unable to establish the connection to {}:{} (attempt {}): {}",
         _conf->get_host(), _conf->get_port(), _is_ready_count, e.what());
     return nullptr;
@@ -77,5 +76,5 @@ std::shared_ptr<io::stream> connector::open() {
  * @return std::shared_ptr<stream>
  */
 std::shared_ptr<io::stream> connector::create_stream() {
-  return std::make_shared<stream>(_conf);
+  return std::make_shared<stream>(_conf, _logger);
 }

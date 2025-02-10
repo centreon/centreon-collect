@@ -443,7 +443,7 @@ time_t availability_thread::_compute_next_midnight() {
 void availability_thread::_open_database() {
   // Add database connection.
   try {
-    _mysql = std::make_unique<mysql>(_db_cfg);
+    _mysql = std::make_unique<mysql>(_db_cfg, _logger);
   } catch (const std::exception& e) {
     throw msg_fmt(
         "BAM-BI: availability thread could not connect to "

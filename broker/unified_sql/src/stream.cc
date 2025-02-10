@@ -147,9 +147,13 @@ stream::stream(const database_config& dbcfg,
                uint32_t instance_timeout,
                bool store_in_data_bin,
                bool store_in_resources,
-               bool store_in_hosts_services)
+               bool store_in_hosts_services,
+               const std::shared_ptr<asio::io_context> io_context,
+               const std::shared_ptr<spdlog::logger>& logger_sql,
+               const std::shared_ptr<spdlog::logger>& logger_sto)
     : io::stream("unified_sql"),
       _state{not_started},
+      _io_context(io_context),
       _processed{0},
       _ack{0},
       _pending_events{0},
@@ -157,7 +161,7 @@ stream::stream(const database_config& dbcfg,
       _loop_timeout{loop_timeout},
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _dbcfg{dbcfg},
-      _mysql{one_db_connection_config(dbcfg)},
+      _mysql{one_db_connection_config(dbcfg), logger_sql},
       _instance_timeout{instance_timeout},
       _rebuilder{dbcfg, rrd_len ? rrd_len : 15552000, interval_length},
       _store_in_db{store_in_data_bin},
@@ -171,15 +175,15 @@ stream::stream(const database_config& dbcfg,
       _max_log_queries{_max_pending_queries},
       _next_update_metrics{std::time_t(nullptr) + 10},
       _next_loop_timeout{std::time_t(nullptr) + _loop_timeout},
-      _queues_timer{com::centreon::common::pool::io_context()},
+      _queues_timer{*io_context},
       _stop_check_queues{false},
       _check_queues_stopped{false},
       _center{stats::center::instance_ptr()},
       _stats{_center->register_conflict_manager()},
-      _group_clean_timer{com::centreon::common::pool::io_context()},
-      _loop_timer{com::centreon::common::pool::io_context()},
-      _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_sto{log_v2::instance().get(log_v2::PERFDATA)},
+      _group_clean_timer{*io_context},
+      _loop_timer{*io_context},
+      _logger_sql(logger_sql),
+      _logger_sto(logger_sto),
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -197,7 +201,56 @@ stream::stream(const database_config& dbcfg,
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)",
            _logger_sql),
-      _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+      _oldest_timestamp{std::numeric_limits<time_t>::max()},
+      _acknowledgement_insupdate(_logger_sql),
+      _pb_acknowledgement_insupdate(_logger_sql),
+      _custom_variable_delete(_logger_sql),
+      _flapping_status_insupdate(_logger_sql),
+      _host_check_update(_logger_sql),
+      _pb_host_check_update(_logger_sql),
+      _host_group_insupdate(_logger_sql),
+      _pb_host_group_insupdate(_logger_sql),
+      _host_group_member_delete(_logger_sql),
+      _host_group_member_insert(_logger_sql),
+      _pb_host_group_member_insert(_logger_sql),
+      _host_insupdate(_logger_sql),
+      _pb_host_insupdate(_logger_sql),
+      _host_parent_delete(_logger_sql),
+      _host_parent_insert(_logger_sql),
+      _pb_host_parent_delete(_logger_sql),
+      _pb_host_parent_insert(_logger_sql),
+      _host_status_update(_logger_sql),
+      _instance_insupdate(_logger_sql),
+      _pb_instance_insupdate(_logger_sql),
+      _instance_status_insupdate(_logger_sql),
+      _pb_instance_status_insupdate(_logger_sql),
+      _service_check_update(_logger_sql),
+      _pb_service_check_update(_logger_sql),
+      _service_group_insupdate(_logger_sql),
+      _pb_service_group_insupdate(_logger_sql),
+      _service_group_member_delete(_logger_sql),
+      _service_group_member_insert(_logger_sql),
+      _pb_service_group_member_delete(_logger_sql),
+      _pb_service_group_member_insert(_logger_sql),
+      _service_insupdate(_logger_sql),
+      _pb_service_insupdate(_logger_sql),
+      _service_status_update(_logger_sql),
+      _severity_insert(_logger_sql),
+      _severity_update(_logger_sql),
+      _tag_insert_update(_logger_sql),
+      _tag_delete(_logger_sql),
+      _resources_tags_insert(_logger_sql),
+      _resources_host_insert(_logger_sql),
+      _resources_host_update(_logger_sql),
+      _resources_service_insert(_logger_sql),
+      _resources_service_update(_logger_sql),
+      _resources_disable(_logger_sql),
+      _resources_tags_remove(_logger_sql),
+      _index_data_insert(_logger_sql),
+      _index_data_update(_logger_sql),
+      _index_data_query(_logger_sql),
+      _metrics_insert(_logger_sql),
+      _agent_information_insert_update(_logger_sql) {
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
@@ -224,7 +277,8 @@ stream::stream(const database_config& dbcfg,
         database_config::DATA_BIN_LOGS);  // no shared with bam connection
     dedicated_cfg.set_queries_per_transaction(1);
     dedicated_cfg.set_connections_count(nb_dedicated_connection);
-    _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
+    _dedicated_connections =
+        std::make_unique<mysql>(dedicated_cfg, _logger_sql);
   }
 
   _center->execute([stats = _stats, loop_timeout = _loop_timeout,
@@ -912,7 +966,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql, "remove graphs call");
   asio::post(com::centreon::common::pool::instance().io_context(), [this,
                                                                     data = d] {
-    mysql ms(_dbcfg);
+    mysql ms(_dbcfg, _logger_sql);
     bbdo::pb_remove_graphs* ids =
         static_cast<bbdo::pb_remove_graphs*>(data.get());
 
@@ -1224,16 +1278,16 @@ void stream::_init_statements() {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         _dedicated_connections ? *_dedicated_connections : _mysql,
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)",
-        _max_perfdata_queries, std::chrono::seconds(queue_timer_duration),
-        _max_perfdata_queries);
+        _max_perfdata_queries, _logger_sql,
+        std::chrono::seconds(queue_timer_duration), _max_perfdata_queries);
     _logs = std::make_unique<database::bulk_or_multi>(
         _dedicated_connections ? *_dedicated_connections : _mysql,
         "INSERT INTO logs "
         "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
         "notification_cmd,notification_contact,retry,service_description,"
         "status,output) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
-        _max_pending_queries);
+        _max_pending_queries, _logger_sql,
+        std::chrono::seconds(queue_timer_duration), _max_pending_queries);
     _downtimes = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
@@ -1249,8 +1303,8 @@ void stream::_init_statements() {
         "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
         "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
         "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
-        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
-        _max_pending_queries);
+        _max_pending_queries, _logger_sql,
+        std::chrono::seconds(queue_timer_duration), _max_pending_queries);
     _comments = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "INSERT INTO comments "
@@ -1264,8 +1318,8 @@ void stream::_init_statements() {
         "entry_type=VALUES(entry_type), expire_time=VALUES(expire_time),"
         "expires=VALUES(expires), persistent=VALUES(persistent),"
         "source=VALUES(source)",
-        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
-        _max_pending_queries);
+        _max_pending_queries, _logger_sql,
+        std::chrono::seconds(queue_timer_duration), _max_pending_queries);
   } else {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES", "",
@@ -1404,51 +1458,55 @@ void stream::_init_statements() {
       "WHERE id=? AND parent_id=?");  // 13, 14: service_id and host_id
   if (_store_in_hosts_services) {
     if (_bulk_prepared_statement) {
-      auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
+      auto hu =
+          std::make_unique<database::mysql_bulk_stmt>(hscr_query, _logger_sql);
       _mysql.prepare_statement(*hu);
       _hscr_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
           _max_pending_queries, *hu, _logger_sql);
       _hscr_update = std::move(hu);
 
-      auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
+      auto su =
+          std::make_unique<database::mysql_bulk_stmt>(sscr_query, _logger_sql);
       _mysql.prepare_statement(*su);
       _sscr_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
           _max_pending_queries, *su, _logger_sql);
       _sscr_update = std::move(su);
     } else {
-      _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
+      _hscr_update =
+          std::make_unique<database::mysql_stmt>(hscr_query, _logger_sql);
       _mysql.prepare_statement(*_hscr_update);
 
-      _sscr_update = std::make_unique<database::mysql_stmt>(sscr_query);
+      _sscr_update =
+          std::make_unique<database::mysql_stmt>(sscr_query, _logger_sql);
       _mysql.prepare_statement(*_sscr_update);
     }
   }
   if (_store_in_resources) {
     if (_bulk_prepared_statement) {
-      auto hu =
-          std::make_unique<database::mysql_bulk_stmt>(hscr_resources_query);
+      auto hu = std::make_unique<database::mysql_bulk_stmt>(
+          hscr_resources_query, _logger_sql);
       _mysql.prepare_statement(*hu);
       _hscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
           _max_pending_queries, *hu, _logger_sql);
       _hscr_resources_update = std::move(hu);
 
-      auto su =
-          std::make_unique<database::mysql_bulk_stmt>(sscr_resources_query);
+      auto su = std::make_unique<database::mysql_bulk_stmt>(
+          sscr_resources_query, _logger_sql);
       _mysql.prepare_statement(*su);
       _sscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
           _max_pending_queries, *su, _logger_sql);
       _sscr_resources_update = std::move(su);
     } else {
-      _hscr_resources_update =
-          std::make_unique<database::mysql_stmt>(hscr_resources_query);
+      _hscr_resources_update = std::make_unique<database::mysql_stmt>(
+          hscr_resources_query, _logger_sql);
       _mysql.prepare_statement(*_hscr_resources_update);
 
-      _sscr_resources_update =
-          std::make_unique<database::mysql_stmt>(sscr_resources_query);
+      _sscr_resources_update = std::make_unique<database::mysql_stmt>(
+          sscr_resources_query, _logger_sql);
       _mysql.prepare_statement(*_sscr_resources_update);
     }
   }

@@ -39,8 +39,9 @@ using namespace com::centreon::broker::database;
  * @param bind_mapping
  */
 mysql_bulk_stmt::mysql_bulk_stmt(const std::string& query,
+                                 const std::shared_ptr<spdlog::logger>& logger,
                                  const mysql_bind_mapping& bind_mapping)
-    : mysql_stmt_base(query, true, bind_mapping), _hist_size(10) {}
+    : mysql_stmt_base(query, true, logger, bind_mapping), _hist_size(10) {}
 
 /**
  * @brief Create a bind compatible with this mysql_bulk_stmt. It is then

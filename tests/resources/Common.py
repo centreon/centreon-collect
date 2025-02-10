@@ -1702,6 +1702,27 @@ def ctn_get_collect_version():
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"
 
+def ctn_get_cma_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda line: line.startswith("set(COLLECT_") or line.startswith("set(AGENT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(AGENT_PATCH\s*([0-9]+)")
+    for line in filtered:
+        m1 = rmaj.match(line)
+        m2 = rmin.match(line)
+        m3 = rpatch.match(line)
+        if m1:
+            maj = m1.group(1)
+        if m2:
+            mini = m2.group(1)
+        if m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
+
 
 def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
@@ -1987,11 +2008,11 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
         nb_poller (int): nb poller with at least one agent connected.
         timeout (int): The timeout value for the check.
     """
-    collect_version = ctn_get_collect_version()
+    cma_version = ctn_get_cma_version()
 
-    collect_major = int(collect_version.split(".")[0])
-    collect_minor = int(collect_version.split(".")[1])
-    collect_patch = int(collect_version.split(".")[2])
+    cma_major = int(cma_version.split(".")[0])
+    cma_minor = int(cma_version.split(".")[1])
+    cma_patch = int(cma_version.split(".")[2])
 
     limit = time.time() + timeout
     query = "SELECT infos FROM agent_information WHERE enabled = 1"
@@ -2012,7 +2033,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
                         logger.console(f"infos: {res['infos']}")
                         agent_infos = json.loads(res['infos'])
                         for by_agent_info in agent_infos:
-                            if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
+                            if by_agent_info['agent_major'] != cma_major or by_agent_info['agent_minor'] != cma_minor or by_agent_info['agent_patch'] != cma_patch:
                                 logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
                                 return False
                             nb_agent += by_agent_info['nb_agent']

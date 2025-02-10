@@ -70,7 +70,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         "Metric rebuild: Rebuild metrics event received for metrics ({})",
         ids_str);
 
-    mysql ms(_db_cfg);
+    mysql ms(_db_cfg, _logger);
     ms.run_query(
         fmt::format(
             "UPDATE index_data SET must_be_rebuild='2' WHERE id IN ({})",

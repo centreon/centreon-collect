@@ -46,14 +46,14 @@ static constexpr multiplexing::muxer_filter _tcp_forbidden_filter =
  */
 acceptor::acceptor(const tcp_config::pointer& conf)
     : io::endpoint(true, _tcp_stream_filter, _tcp_forbidden_filter),
-      _conf(conf) {}
+      _conf(conf),
+      _logger(log_v2::instance().get(log_v2::TCP)) {}
 
 /**
  *  Destructor.
  */
 acceptor::~acceptor() noexcept {
-  auto logger = log_v2::instance().get(log_v2::TCP);
-  logger->trace("acceptor destroyed");
+  _logger->trace("acceptor destroyed");
   if (_acceptor) {
     tcp_async::instance().stop_acceptor(_acceptor);
   }
@@ -84,10 +84,9 @@ std::shared_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    auto logger = log_v2::instance().get(log_v2::TCP);
-    logger->info("acceptor gets a new connection from {}", conn->peer());
+    _logger->info("acceptor gets a new connection from {}", conn->peer());
     add_child(conn->peer());
-    return std::make_shared<stream>(conn, _conf);
+    return std::make_shared<stream>(conn, _conf, _logger);
   }
   return nullptr;
 }

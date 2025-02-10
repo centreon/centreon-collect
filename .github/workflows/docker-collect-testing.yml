@@ -70,7 +70,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
 
-    name: build docker image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: build image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
 
     env:
       IMAGE_NAME: centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test

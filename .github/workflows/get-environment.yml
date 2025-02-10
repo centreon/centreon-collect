@@ -24,6 +24,12 @@ on:
       release:
         description: "release"
         value: ${{ jobs.get-environment.outputs.release }}
+      cma_major_version:
+        description: "cma major version"
+        value: ${{ jobs.get-environment.outputs.cma_major_version }}
+      cma_minor_version:
+        description: "minor version"
+        value: ${{ jobs.get-environment.outputs.cma_minor_version }}
       stability:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-environment.outputs.stability }}
@@ -61,6 +67,8 @@ jobs:
       major_version: ${{ steps.get_version.outputs.major_version }}
       minor_version: ${{ steps.get_version.outputs.minor_version }}
       release: ${{ steps.get_release.outputs.release }}
+      cma_major_version: ${{ steps.get_version.outputs.cma_major_version }}
+      cma_minor_version: ${{ steps.get_version.outputs.cma_minor_version }}
       stability: ${{ steps.get_stability.outputs.stability }}
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
@@ -297,6 +305,9 @@ jobs:
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             VERSION="$MAJOR.$MINOR"
+            CMA_MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+            CMA_MINOR=$(awk '$1 ~ "AGENT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+            CMA_VERSION="$CMA_MAJOR.$CMA_MINOR"
           else
             echo "Unable to parse version file ${{ inputs.version_file }}"
             exit 1
@@ -311,6 +322,22 @@ jobs:
           else
             echo "Cannot parse version number from ${{ inputs.version_file }}"
             exit 1
+          fi
+
+          if [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+            if grep -E '^[2-9][0-9]\.[0-9][0-9]\.[0-9]+' <<<"$CMA_VERSION" >/dev/null 2>&1 ; then
+              n=${CMA_VERSION//[!0-9]/ }
+              a=(${n//\./ })
+              echo "cma_major_version=${a[0]}.${a[1]}" >> $GITHUB_OUTPUT
+              MAJOR=${a[0]}.${a[1]}
+              echo "cma_minor_version=${a[2]}" >> $GITHUB_OUTPUT
+            else
+              echo "Cannot parse version number from ${{ inputs.version_file }}"
+              exit 1
+            fi
+          else
+            echo "cma_major_version=0.0" >> $GITHUB_OUTPUT
+            echo "cma_minor_version=0" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
@@ -407,6 +434,8 @@ jobs:
               ['major_version', '${{ steps.get_version.outputs.major_version }}'],
               ['minor_version', '${{ steps.get_version.outputs.minor_version }}'],
               ['release', '${{ steps.get_release.outputs.release }}'],
+              ['cma_major_version', '${{ steps.get_version.outputs.cma_major_version }}'],
+              ['cma_minor_version', '${{ steps.get_version.outputs.cma_minor_version }}'],
               ['stability', '${{ steps.get_stability.outputs.stability }}'],
               ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
               ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],

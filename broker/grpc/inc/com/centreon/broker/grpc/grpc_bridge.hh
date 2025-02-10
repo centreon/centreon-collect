@@ -19,14 +19,18 @@
 #ifndef CCB_GRPC_BRIDGE_HH
 #define CCB_GRPC_BRIDGE_HH
 
+#include <spdlog/logger.h>
 #include "com/centreon/broker/io/protobuf.hh"
 #include "grpc_stream.pb.h"
 
 namespace com::centreon::broker::grpc {
-std::shared_ptr<io::data> protobuf_to_event(const event_ptr& stream_content);
+std::shared_ptr<io::data> protobuf_to_event(
+    const event_ptr& stream_content,
+    const std::shared_ptr<spdlog::logger>& logger);
 
 std::shared_ptr<event_with_data> create_event_with_data(
-    const std::shared_ptr<io::data>& event);
+    const std::shared_ptr<io::data>& event,
+    const std::shared_ptr<spdlog::logger>& logger);
 
 }  // namespace com::centreon::broker::grpc
 
