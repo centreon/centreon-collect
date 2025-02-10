@@ -3821,72 +3821,6 @@ static void send_service_list() {
   neb_logger->info("init: end of services dump");
 }
 
-/**
- * @brief Send the list of custom variables to the global publisher.
- *
- * @tparam proto True if the protocol is protobuf, false otherwise.
- */
-template <bool proto>
-static void send_custom_variables_list() {
-  // Start log message.
-  neb_logger->info("init: beginning custom variables dump");
-
-  // Iterate through all hosts.
-  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
-       end{com::centreon::engine::host::hosts.end()};
-       it != end; ++it) {
-    // Send all custom variables.
-    for (com::centreon::engine::map_customvar::const_iterator
-             cit{it->second->custom_variables.begin()},
-         cend{it->second->custom_variables.end()};
-         cit != cend; ++cit) {
-      std::string name{cit->first};
-      if (cit->second.is_sent()) {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-
-        // Callback.
-        if constexpr (proto)
-          forward_pb_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
-                                     it->second.get(), name,
-                                     cit->second.value(), &now);
-        else
-          forward_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
-                                  it->second.get(), name, cit->second.value(),
-                                  &now);
-      }
-    }
-  }
-
-  // Iterate through all services.
-  for (service_map::iterator
-           it{com::centreon::engine::service::services.begin()},
-       end{com::centreon::engine::service::services.end()};
-       it != end; ++it) {
-    // Send all custom variables.
-    for (com::centreon::engine::map_customvar::const_iterator
-             cit{it->second->custom_variables.begin()},
-         cend{it->second->custom_variables.end()};
-         cit != cend; ++cit) {
-      std::string name{cit->first};
-      if (cit->second.is_sent()) {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-
-        // Callback.
-        if constexpr (proto)
-          forward_pb_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
-                                     it->second.get(), name,
-                                     cit->second.value(), &now);
-        else
-          forward_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD,
-                                  it->second.get(), name, cit->second.value(),
-                                  &now);
-      }
-    }
-  }
-}
-
 template <bool proto>
 static void send_downtimes_list() {
   // Start log message.
@@ -4135,7 +4069,6 @@ static void send_initial_configuration() {
   send_tag_list();
   send_host_list<proto>();
   send_service_list<proto>();
-  // send_custom_variables_list<proto>();
   send_downtimes_list<proto>();
   send_host_parents_list<proto>();
   send_host_group_list<proto>();
