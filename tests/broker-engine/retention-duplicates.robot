@@ -11,7 +11,17 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BERD1
-    [Documentation]    Starting/stopping Broker does not create duplicated events.
+    [Documentation]    Scenario: Starting/stopping Broker does not create duplicated events.
+...    Given  the broker configuration central  is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to with Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the broker is kindly stopped and cache is cleared
+...    And the broker is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs 
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -51,7 +61,17 @@ BERD1
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERD2
-    [Documentation]    Starting/stopping Engine does not create duplicated events.
+    [Documentation]    Scenario: Starting/stopping Engine does not create duplicated events.
+...    Given  the broker configuration central  is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to with Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped 
+...    And the engine is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs 
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -94,7 +114,17 @@ BERD2
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC1
-    [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases
+    [Documentation]    Scenario: Starting/stopping Engine does not create duplicated events in usual cases
+...    Given  the broker configuration central  is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to with Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped 
+...    And the engine is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs 
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -135,7 +165,14 @@ BERDUC1
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCU1
-    [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
+    [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql7
+...    When the Broker and Engine are started
+...    Then the Lua virtual machine should initialize without errors
+...    And the Broker and Engine logs should confirm Lua initialization
+...    When the Broker is kindly stopped 
+...    Then the cache is cleared and Broker is restarted
+...    And the Engine is stopped and Broker is kindly stopped again
+...    Then there should be no duplicated events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -173,7 +210,18 @@ BERDUCU1
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC2
-    [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases
+    [Documentation]    Scenario: Starting/stopping Engine does not create duplicated events in usual cases
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped
+...    And the cache is cleared
+...    And the engine is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Clear Retention
     Ctn Config Engine    ${1}
@@ -211,7 +259,18 @@ BERDUC2
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCU2
-    [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
+    [Documentation]    Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped
+...    And the cache is cleared
+...    And the engine is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Clear Retention
     Ctn Config Engine    ${1}
@@ -251,7 +310,18 @@ BERDUCU2
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC3U1
-    [Documentation]    Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+    [Documentation]    Scenario: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the broker is kindly stopped
+...    And the cache is cleared
+...    And the broker is restarted
+...    And the engine is stopped and broker is kindly stopped again
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
@@ -290,7 +360,18 @@ BERDUC3U1
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUC3U2
-    [Documentation]    Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+    [Documentation]    Scenario: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped
+...    And the cache is cleared
+...    And the engine is restarted
+...    And the engine is stopped and broker is kindly stopped
+...    Then the contents of /tmp/lua-engine.log and /tmp/lua.log should match
+...    And there should be no duplicate events in the logs
     [Tags]    broker    engine    start-stop    duplicate    retention
     Ctn Clear Retention
     Ctn Config Engine    ${1}
@@ -344,7 +425,17 @@ BERDUC3U2
     Should Be True    ${result}    There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
 BERDUCA300
-    [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
+    [Documentation]    Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker.
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped
+...    Then the engine should emit a stop event
+...    And the broker should receive the stop event
+...    And the broker should send an ack for handled events
+...    And the engine should receive the ack for handled events from the broker
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Ctn Clear Retention
     Ctn Config Engine    ${1}
@@ -394,7 +485,17 @@ BERDUCA300
     Ctn Kindly Stop Broker
 
 BERDUCA301
-    [Documentation]    Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
+    [Documentation]    Scenario: Starting/stopping Engine is stopped; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
+...    Given the broker configuration central is set to Lua output test-doubles-c.lua
+...    And the broker configuration module0 is set to Lua output test-doubles.lua
+...    When the broker and engine are started
+...    Then the Lua virtual machine should be initialized in both broker and engine logs
+...    And the engine and broker should be connected
+...    When the engine is stopped
+...    Then the engine should emit a stop event
+...    And the broker should receive the stop event
+...    And the broker should send an ack for handled events
+...    And the engine should receive the ack for handled events from the broker
     [Tags]    broker    engine    start-stop    duplicate    retention    unified_sql
     Ctn Clear Retention
     Ctn Config Engine    ${1}
