@@ -46,6 +46,10 @@ class cbmodimpl {
   multiplexing::publisher& mut_publisher() { return _publisher; }
 };
 
+static bool time_is_undefined(uint64_t t) {
+  return t == 0 || t == static_cast<uint64_t>(-1);
+}
+
 cbmod::cbmod(const std::string& config_file)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
@@ -324,10 +328,9 @@ void cbmod::start_downtime(uint64_t downtime_id) {
  * @param cancelled True if the downtime was cancelled.
  */
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
-  _neb_logger->error("cbmod: stopping downtime ID {} : 1", downtime_id);
+  _neb_logger->error("cbmod: stopping downtime ID {}", downtime_id);
   auto pb_dt = _downtimes[downtime_id];
   assert(pb_dt);
-  _neb_logger->error("cbmod: stopping downtime ID {} : 2", downtime_id);
   auto& obj = pb_dt->mut_obj();
   obj.set_cancelled(cancelled);
   obj.set_actual_end_time(time(nullptr));
@@ -353,7 +356,7 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       obj.set_cancelled(true);
     time_t now = time(nullptr);
     obj.set_deletion_time(now);
-    if (obj.actual_end_time() == static_cast<uint64_t>(-1))
+    if (time_is_undefined(obj.actual_end_time()))
       obj.set_actual_end_time(now);
     if (_use_protobuf)
       write(pb_dt);
