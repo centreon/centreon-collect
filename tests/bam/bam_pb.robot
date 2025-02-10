@@ -1260,11 +1260,14 @@ BA_IMPACT_IMPACT
         ...    ${value}
         ...    output ${state} for service 302
 
+	# Sometimes the parent BA emits two status with less than one second between them
+	# So we wait for 1s here to avoid the duplicate status in RRD.
+	Sleep    1s
         Ctn Process Service Result Hard
         ...    host_16
         ...    service_303
         ...    ${value}
-        ...    output ${state} for service 302
+        ...    output ${state} for service 303
 
         ${result}    Ctn Check Service Status With Timeout    host_16    service_302    ${value}    60    HARD
         Should Be True    ${result}    The service (host_16,service_302) is not ${state} as expected
@@ -1409,7 +1412,6 @@ Ctn BAM Init
     # This is to avoid parasite status.
     Ctn Set Services Passive    ${0}    service_30.
 
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clone Engine Config To Db
     Ctn Add Bam Config To Engine
     Ctn Add Bam Config To Broker    central
