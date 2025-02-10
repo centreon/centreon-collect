@@ -137,6 +137,8 @@ BAWORST
     ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
 
+    Disconnect From Database
+
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
     ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
