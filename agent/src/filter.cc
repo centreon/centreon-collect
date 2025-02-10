@@ -81,12 +81,6 @@ void label_compare_to_value::dump(std::ostream& s) const {
   s << ' ' << _label << " } " << std::endl;
 }
 
-filter_combinator::~filter_combinator() {
-  for (auto iter = _filters.begin(); iter != _filters.end(); ++iter) {
-    delete *iter;
-  }
-}
-
 filter_combinator::filter_combinator(const filter_combinator& other)
     : filter(filter_type::filter_combinator) {
   _logical = other._logical;

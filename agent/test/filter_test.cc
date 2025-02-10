@@ -55,4 +55,9 @@ TEST(filter_test, filter_combinator) {
 
   auto& res3_value = *res3;
   EXPECT_TRUE(res3);
+
+  auto res4 = bp::parse("toto < 84f && titi > 53 || uu > 2",
+                        filter_combinator_rule, bp::ws, bp::trace::on);
+
+  EXPECT_TRUE(res4);
 }
