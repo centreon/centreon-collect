@@ -953,16 +953,16 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
   auto& dt_obj = dd.obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(_logger_sql,
-                     "unified_sql: processing pb downtime event (poller: {}"
-                     ", host: {}, service: {}, start time: {}, end_time: {}, "
-                     "actual start time: {}, actual end time: {}, duration: "
-                     "{}, entry time: {}, deletion time: {})",
-                     dt_obj.instance_id(), dt_obj.host_id(),
-                     dt_obj.service_id(), dt_obj.start_time(),
-                     dt_obj.end_time(), dt_obj.actual_start_time(),
-                     dt_obj.actual_end_time(), dt_obj.duration(),
-                     dt_obj.entry_time(), dt_obj.deletion_time());
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: processing pb downtime event (poller: {}"
+      ", host: {}, service: {}, start time: {}, end_time: {}, "
+      "actual start time: {}, actual end time: {}, duration: "
+      "{}, entry time: {}, deletion time: {}, started: {}, cancelled: {})",
+      dt_obj.instance_id(), dt_obj.host_id(), dt_obj.service_id(),
+      dt_obj.start_time(), dt_obj.end_time(), dt_obj.actual_start_time(),
+      dt_obj.actual_end_time(), dt_obj.duration(), dt_obj.entry_time(),
+      dt_obj.deletion_time(), dt_obj.started(), dt_obj.cancelled());
 
   // Check if poller is valid.
   if (_is_valid_poller(dt_obj.instance_id())) {
