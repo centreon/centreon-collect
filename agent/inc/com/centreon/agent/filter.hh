@@ -29,6 +29,12 @@ struct testable {};
 
 using checker = std::function<bool(const testable&)>;
 
+namespace filters {
+class label_compare_to_value;
+}
+using checker_builder =
+    std::function<checker(const filters::label_compare_to_value&)>;
+
 /**
  * @brief abstract filter base class
  *
@@ -38,7 +44,6 @@ class filter {
   enum class filter_type : int { label_compare_to_value, filter_combinator };
 
  private:
-  checker _checker;
   filter_type _type;
 
  public:
@@ -47,10 +52,7 @@ class filter {
 
   filter_type get_type() const { return _type; }
 
-  template <class checker_class>
-  void apply_checker(checker_class&& checker) {
-    _checker = std::forward<checker_class>(checker);
-  }
+  virtual void apply_checker(const checker_builder& checker_builder) = 0;
 
   virtual void dump(std::ostream& s) const = 0;
 
@@ -58,7 +60,7 @@ class filter {
 
   static filter parse(const std::string_view& filter);
 
-  bool check(const testable& t) const { return _checker(t); }
+  virtual bool check(const testable& t) const = 0;
 };
 
 }  // namespace com::centreon::agent
@@ -88,6 +90,8 @@ class label_compare_to_value : public filter {
   std::string _unit;
 
   comparison _comparison;
+
+  checker _checker;
 
  public:
   label_compare_to_value(std::string&& label,
@@ -119,6 +123,11 @@ class label_compare_to_value : public filter {
   double get_value() const { return _value; }
   const std::string& get_unit() const { return _unit; }
   comparison get_comparison() const { return _comparison; }
+
+  bool check(const testable& t) const override { return _checker(t); }
+  void apply_checker(const checker_builder& checker_builder) override {
+    _checker = checker_builder(*this);
+  }
 };
 
 class filter_combinator : public filter {
@@ -173,6 +182,10 @@ class filter_combinator : public filter {
   std::unique_ptr<filter> clone() const override {
     return std::make_unique<filter_combinator>(*this);
   }
+
+  bool check(const testable& t) const override;
+  void apply_checker(const checker_builder& checker_builder) override;
+
   void dump(std::ostream& s) const override;
 };
 

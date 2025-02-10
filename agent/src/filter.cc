@@ -105,6 +105,30 @@ filter_combinator& filter_combinator::operator=(
   return *this;
 }
 
+bool filter_combinator::check(const testable& t) const {
+  if (_logical == logical_operator::filter_and) {
+    for (auto& subfilter : _filters) {
+      if (!subfilter->check(t)) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    for (auto& subfilter : _filters) {
+      if (subfilter->check(t)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+void filter_combinator::apply_checker(const checker_builder& checker_builder) {
+  for (auto& subfilter : _filters) {
+    subfilter->apply_checker(checker_builder);
+  }
+}
+
 void filter_combinator::dump(std::ostream& s) const {
   bool first = true;
   s << " ( ";

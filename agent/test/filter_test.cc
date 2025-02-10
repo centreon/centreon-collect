@@ -51,13 +51,39 @@ TEST(filter_test, filter_combinator) {
   std::cout << std::endl << std::endl << std::endl;
 
   auto res3 = bp::parse("toto < 84f && (titi > 53 || uu > 2)",
-                        filter_combinator_rule, bp::ws, bp::trace::on);
+                        filter_combinator_rule, bp::trace::on);
 
   auto& res3_value = *res3;
   EXPECT_TRUE(res3);
 
   auto res4 = bp::parse("toto < 84f && titi > 53 || uu > 2",
-                        filter_combinator_rule, bp::ws, bp::trace::on);
+                        filter_combinator_rule, bp::trace::on);
 
   EXPECT_TRUE(res4);
+
+  auto res5 = bp::parse("", filter_combinator_rule);
+
+  EXPECT_FALSE(res5);
+
+  auto res6 = bp::parse("toto < 84f && (titi > 53 || uu > 2",
+                        filter_combinator_rule, bp::trace::on);
+
+  EXPECT_FALSE(res6);
+
+  auto res7 = bp::parse("toto < 84f && titi > 53 || uu > 2)",
+                        filter_combinator_rule, bp::trace::on);
+
+  EXPECT_FALSE(res7);
+
+  auto res8 = bp::parse("(toto < 84f && ((titi > 53 || uu > 2)))",
+                        filter_combinator_rule, bp::trace::on);
+
+  EXPECT_TRUE(res8);
+
+  auto res9 = bp::parse("(toto < 84f    and (  ( titi>53 or uu    >    2)))",
+                        filter_combinator_rule, bp::trace::on);
+
+  EXPECT_TRUE(res9);
 }
+
+TEST(filter_test, filter_check_values) {}

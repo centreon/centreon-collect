@@ -71,7 +71,8 @@ const auto filter_combinator_rule1_def =
     *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
       (label_compare_to_value_rule | filter_combinator_rule2));
 
-const auto filter_combinator_rule2_def = '(' >> filter_combinator_rule >> ')';
+const auto filter_combinator_rule2_def =
+    '(' >> *bp::ws >> filter_combinator_rule >> *bp::ws >> ')';
 
 const auto filter_combinator_rule_def = (filter_combinator_rule1 |
                                          filter_combinator_rule2) >>
