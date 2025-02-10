@@ -1709,7 +1709,7 @@ def ctn_get_cma_version():
     filtered = filter(lambda line: line.startswith("set(COLLECT_") or line.startswith("set(AGENT_"), lines)
 
     rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
-    rmin = re.compile(r"set\(AGENT_MINOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
     rpatch = re.compile(r"set\(AGENT_PATCH\s*([0-9]+)")
     for line in filtered:
         m1 = rmaj.match(line)
