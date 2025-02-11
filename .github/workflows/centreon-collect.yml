@@ -110,7 +110,7 @@ jobs:
           for target in "${NIGHTLY_TARGETS[@]}"; do
             echo "[INFO] - Dispatching nightly run to $target branch."
             gh workflow run centreon-collect.yml -r "$target" -f nightly_manual_trigger=true
-            if [[ "$target" != "dev-24.10.x" ]]; then
+            if [[ "$target" == "dev-22.10.x" ]]; then
               gh workflow run robot-nightly.yml -r "$target"
             fi
           done
@@ -127,7 +127,7 @@ jobs:
   unit-test:
     needs: [get-environment]
     if: |
-      (github.event.inputs.unit_tests == 'true' || needs.get-environment.outputs.is_nightly) &&
+      github.event.inputs.unit_tests == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:
