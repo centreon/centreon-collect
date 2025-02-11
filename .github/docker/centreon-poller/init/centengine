@@ -18,25 +18,21 @@ service_reload() {
 
 case "$1" in
     start)
-	service_start
-	;;
-
+	    service_start
+	    ;;
     stop)
-	service_stop
-	;;
-
+	    service_stop
+	    ;;
     restart)
-	service_restart
-	;;
-
+	    service_restart
+	    ;;
     reload)
-	service_reload
-	;;
-
+	    service_reload
+	    ;;
     *)
-        echo "centenginedevscript: invalid argument"
-	exit 3
-	;;
+        echo "centengine init script: invalid argument"
+	    exit 3
+	    ;;
 esac
 
 exit 0
