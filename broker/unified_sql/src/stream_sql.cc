@@ -2554,96 +2554,95 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                        ah.host_id());
     return;
   }
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
+  if (_store_in_hosts_services) {
+    constexpr std::string_view buf("UPDATE hosts SET");
+    std::string query{buf.data(), buf.size()};
+    if (ah.has_notify())
+      query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
+    if (ah.has_active_checks())
+      query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
+    if (ah.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           ah.should_be_scheduled() ? 1 : 0);
+    if (ah.has_passive_checks())
+      query +=
+          fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
+    if (ah.has_event_handler_enabled())
+      query += fmt::format(" event_handler_enabled='{}',",
+                           ah.event_handler_enabled() ? 1 : 0);
+    if (ah.has_flap_detection())
+      query +=
+          fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
+    if (ah.has_obsess_over_host())
+      query +=
+          fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
+    if (ah.has_event_handler())
+      query += fmt::format(
+          " event_handler='{}',",
+          misc::string::escape(ah.event_handler(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_event_handler)));
+    if (ah.has_check_command())
+      query += fmt::format(
+          " check_command='{}',",
+          misc::string::escape(ah.check_command(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_check_command)));
+    if (ah.has_check_interval())
+      query += fmt::format(" check_interval={},", ah.check_interval());
+    if (ah.has_retry_interval())
+      query += fmt::format(" retry_interval={},", ah.retry_interval());
+    if (ah.has_max_check_attempts())
+      query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
+    if (ah.has_check_freshness())
+      query +=
+          fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
+    if (ah.has_check_period())
+      query += fmt::format(
+          " check_period='{}',",
+          misc::string::escape(ah.check_period(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_check_period)));
+    if (ah.has_notification_period())
+      query +=
+          fmt::format(" notification_period='{}',",
+                      misc::string::escape(
+                          ah.notification_period(),
+                          get_centreon_storage_services_col_size(
+                              centreon_storage_services_notification_period)));
 
-  constexpr std::string_view buf("UPDATE hosts SET");
-  std::string query{buf.data(), buf.size()};
-  if (ah.has_notify())
-    query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
-  if (ah.has_active_checks())
-    query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
-  if (ah.has_should_be_scheduled())
-    query += fmt::format(" should_be_scheduled='{}',",
-                         ah.should_be_scheduled() ? 1 : 0);
-  if (ah.has_passive_checks())
-    query += fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
-  if (ah.has_event_handler_enabled())
-    query += fmt::format(" event_handler_enabled='{}',",
-                         ah.event_handler_enabled() ? 1 : 0);
-  if (ah.has_flap_detection())
-    query += fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
-  if (ah.has_obsess_over_host())
-    query +=
-        fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
-  if (ah.has_event_handler())
-    query += fmt::format(
-        " event_handler='{}',",
-        misc::string::escape(ah.event_handler(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_event_handler)));
-  if (ah.has_check_command())
-    query += fmt::format(
-        " check_command='{}',",
-        misc::string::escape(ah.check_command(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_check_command)));
-  if (ah.has_check_interval())
-    query += fmt::format(" check_interval={},", ah.check_interval());
-  if (ah.has_retry_interval())
-    query += fmt::format(" retry_interval={},", ah.retry_interval());
-  if (ah.has_max_check_attempts())
-    query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-  if (ah.has_check_freshness())
-    query +=
-        fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
-  if (ah.has_check_period())
-    query += fmt::format(
-        " check_period='{}',",
-        misc::string::escape(ah.check_period(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_check_period)));
-  if (ah.has_notification_period())
-    query +=
-        fmt::format(" notification_period='{}',",
-                    misc::string::escape(
-                        ah.notification_period(),
-                        get_centreon_storage_services_col_size(
-                            centreon_storage_services_notification_period)));
+    // If nothing was added to query, we can exit immediately.
+    if (query.size() > buf.size()) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={}", ah.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_host, 0);
+      _add_action(0, actions::hosts);
+    }
+  }
 
-  // If nothing was added to query, we can exit immediately.
-  if (query.size() > buf.size()) {
-    query.resize(query.size() - 1);
-    query += fmt::format(" WHERE host_id={}", ah.host_id());
-    SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-    _mysql.run_query(query, database::mysql_error::store_host, conn);
-    _add_action(conn, actions::hosts);
+  if (_store_in_resources) {
+    constexpr std::string_view res_buf("UPDATE resources SET");
+    std::string res_query{res_buf.data(), res_buf.size()};
+    if (ah.has_notify())
+      res_query +=
+          fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
+    if (ah.has_active_checks())
+      res_query += fmt::format(" active_checks_enabled='{}',",
+                               ah.active_checks() ? 1 : 0);
+    if (ah.has_passive_checks())
+      res_query += fmt::format(" passive_checks_enabled='{}',",
+                               ah.passive_checks() ? 1 : 0);
+    if (ah.has_max_check_attempts())
+      res_query +=
+          fmt::format(" max_check_attempts={},", ah.max_check_attempts());
 
-    if (_store_in_resources) {
-      constexpr std::string_view res_buf("UPDATE resources SET");
-      std::string res_query{res_buf.data(), res_buf.size()};
-      if (ah.has_notify())
-        res_query +=
-            fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
-      if (ah.has_active_checks())
-        res_query += fmt::format(" active_checks_enabled='{}',",
-                                 ah.active_checks() ? 1 : 0);
-      if (ah.has_passive_checks())
-        res_query += fmt::format(" passive_checks_enabled='{}',",
-                                 ah.passive_checks() ? 1 : 0);
-      if (ah.has_max_check_attempts())
-        res_query +=
-            fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-
-      if (res_query.size() > res_buf.size()) {
-        res_query.resize(res_query.size() - 1);
-        res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
-                            res_query);
-        _mysql.run_query(res_query, database::mysql_error::update_resources,
-                         conn);
-        _add_action(conn, actions::resources);
-      }
+    if (res_query.size() > res_buf.size()) {
+      res_query.resize(res_query.size() - 1);
+      res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
+      _mysql.run_query(res_query, database::mysql_error::update_resources, 0);
+      _add_action(0, actions::resources);
     }
   }
 }
