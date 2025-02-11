@@ -7,11 +7,6 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
     paths:
       - "gorgone/**"
       - "!gorgone/tests/**"
@@ -38,26 +33,11 @@ jobs:
     with:
       version_file: gorgone/.version
 
-  veracode-analysis:
-    needs: [get-environment]
-    if: ${{ needs.get-environment.outputs.is_targeting_feature_branch != 'true' && github.event.pull_request.draft != 'true' }}
-    uses: ./.github/workflows/veracode-analysis.yml
-    with:
-      module_directory: gorgone
-      module_name: centreon-gorgone
-      major_version: ${{ needs.get-environment.outputs.major_version }}
-      minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
-    secrets:
-      veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
-      veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
-      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-
   package:
     needs: [get-environment]
-    if: ${{ needs.get-environment.outputs.stability != 'stable' }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
 
     strategy:
       fail-fast: false
@@ -133,6 +113,10 @@ jobs:
 
   test-gorgone:
     needs: [get-environment, package]
+    if: |
+      github.repository == 'centreon/centreon-collect' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
 
     strategy:
       fail-fast: false
@@ -233,7 +217,7 @@ jobs:
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: gorgone-debug-${{ matrix.distrib }}
           path: |
@@ -245,7 +229,12 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     steps:
       - name: Checkout sources
@@ -263,8 +252,13 @@ jobs:
 
   deliver-rpm:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) }}
+    needs: [get-environment, test-gorgone]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       matrix:
@@ -288,8 +282,13 @@ jobs:
 
   deliver-deb:
     runs-on: [self-hosted, common]
-    needs: [get-environment, package]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability) }}
+    needs: [get-environment, test-gorgone]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       matrix:
@@ -314,10 +313,13 @@ jobs:
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -338,3 +340,12 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml

@@ -95,6 +95,13 @@ Ctn Kindly Stop Broker
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
     [Arguments]    ${only_central}=False    ${bbdo2}=False
+
+    #in some case tear down calls this function whereas broker has not been started
+    ${b1_obj}    Get Process Object   b1
+    IF    "${b1_obj}" == "${None}"
+        Log To Console    "central broker not started"
+        RETURN
+    END
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
     ${result}    Wait For Process    b1    timeout=60s
@@ -208,6 +215,10 @@ Ctn Stop Custom Engine
 Ctn Stop Engine
     Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
+    IF    ${count} == 0
+        Log To Console    "no engine to stop"
+        RETURN
+    END
     FOR    ${idx}    IN RANGE    0    ${count}
         Send Signal To Process    SIGTERM    e${idx}
     END

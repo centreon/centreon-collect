@@ -158,7 +158,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: packages-centreon-monitoring-agent-windows
           path: |
@@ -170,7 +170,8 @@ jobs:
           contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled')
+          ! contains(needs.*.result, 'cancelled') &&
+          github.repository == 'centreon/centreon-collect'
         run: |
           Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.major_version }}"
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
@@ -190,7 +191,7 @@ jobs:
 
       - name: Promote testing to stable
         if: |
-          needs.get-environment.outputs.stability == 'stable' && github.event_name != 'workflow_dispatch' && ! cancelled()
+          needs.get-environment.outputs.stability == 'stable' && github.event_name != 'workflow_dispatch' && ! cancelled() && github.repository == 'centreon/centreon-collect'
         run: |
           Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.major_version }}"
           Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.minor_version }}"

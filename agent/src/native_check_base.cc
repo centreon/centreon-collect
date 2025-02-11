@@ -16,14 +16,14 @@
  * For more information : contact@centreon.com
  */
 
-#include "native_check_memory_base.hh"
+#include "native_check_base.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_memory_detail;
+using namespace com::centreon::agent::native_check_detail;
 
 /**
- * @brief construct a memory_info to status converter
+ * @brief construct a snapshot to status converter
  *
  * @tparam nb_metric
  * @param status e_warning or e_critical
@@ -34,12 +34,12 @@ using namespace com::centreon::agent::check_memory_detail;
  * @param free_threshold if true, status is set if value < threshold
  */
 template <unsigned nb_metric>
-mem_to_status<nb_metric>::mem_to_status(e_status status,
-                                        unsigned data_index,
-                                        double threshold,
-                                        unsigned total_data_index,
-                                        bool percent,
-                                        bool free_threshold)
+measure_to_status<nb_metric>::measure_to_status(e_status status,
+                                                unsigned data_index,
+                                                double threshold,
+                                                unsigned total_data_index,
+                                                bool percent,
+                                                bool free_threshold)
     : _status(status),
       _data_index(data_index),
       _threshold(threshold),
@@ -48,8 +48,8 @@ mem_to_status<nb_metric>::mem_to_status(e_status status,
       _free_threshold(free_threshold) {}
 
 template <unsigned nb_metric>
-void mem_to_status<nb_metric>::compute_status(
-    const memory_info<nb_metric>& to_test,
+void measure_to_status<nb_metric>::compute_status(
+    const snapshot<nb_metric>& to_test,
     e_status* status) const {
   if (_status <= *status) {
     return;
@@ -69,7 +69,7 @@ void mem_to_status<nb_metric>::compute_status(
 }
 
 /**
- * @brief Construct a new check check_memory_base
+ * @brief Construct a new check native_check_base
  *
  * @param io_context
  * @param logger
@@ -84,7 +84,7 @@ void mem_to_status<nb_metric>::compute_status(
  * @param handler called at measure completion
  */
 template <unsigned nb_metric>
-check_memory_base<nb_metric>::check_memory_base(
+native_check_base<nb_metric>::native_check_base(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
@@ -94,7 +94,8 @@ check_memory_base<nb_metric>::check_memory_base(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -103,7 +104,8 @@ check_memory_base<nb_metric>::check_memory_base(
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)) {}
+            std::move(handler),
+            stat) {}
 
 /**
  * @brief start a measure
@@ -111,13 +113,13 @@ check_memory_base<nb_metric>::check_memory_base(
  * @param timeout
  */
 template <unsigned nb_metric>
-void check_memory_base<nb_metric>::start_check(const duration& timeout) {
+void native_check_base<nb_metric>::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
 
   try {
-    std::shared_ptr<check_memory_detail::memory_info<nb_metric>> mem_metrics =
+    std::shared_ptr<native_check_detail::snapshot<nb_metric>> mem_metrics =
         measure();
 
     _io_context->post([me = shared_from_this(),
@@ -150,18 +152,20 @@ void check_memory_base<nb_metric>::start_check(const duration& timeout) {
  * @return e_status plugins status output
  */
 template <unsigned nb_metric>
-e_status check_memory_base<nb_metric>::compute(
-    const check_memory_detail::memory_info<nb_metric>& data,
+e_status native_check_base<nb_metric>::compute(
+    const native_check_detail::snapshot<nb_metric>& data,
     std::string* output,
     std::list<common::perfdata>* perfs) const {
   e_status status = e_status::ok;
 
-  for (const auto& mem_status : _mem_to_status) {
-    mem_status.second.compute_status(data, &status);
+  for (const auto& mem_status : _measure_to_status) {
+    mem_status.second->compute_status(data, &status);
   }
 
   *output = status_label[status];
-  data.dump_to_output(output, _output_flags);
+  data.dump_to_output(output);
+
+  const auto& metric_definitions = get_metric_definitions();
 
   for (const auto& metric : metric_definitions) {
     common::perfdata& to_add = perfs->emplace_back();
@@ -174,29 +178,33 @@ e_status check_memory_base<nb_metric>::compute(
                                                metric.total_data_index) *
                    100);
     } else {
-      to_add.unit("B");
-      to_add.min(0);
-      to_add.max(data.get_metric(metric.total_data_index));
+      if (_no_percent_unit) {
+        to_add.unit(_no_percent_unit);
+      }
+      if (metric.total_data_index != nb_metric) {
+        to_add.min(0);
+        to_add.max(data.get_metric(metric.total_data_index));
+      }
       to_add.value(data.get_metric(metric.data_index));
     }
-    // we search mem_to_status to get warning and critical thresholds
+    // we search measure_to_status to get warning and critical thresholds
     // warning
-    auto mem_to_status_search = _mem_to_status.find(std::make_tuple(
+    auto mem_to_status_search = _measure_to_status.find(std::make_tuple(
         metric.data_index, metric.total_data_index, e_status::warning));
-    if (mem_to_status_search != _mem_to_status.end()) {
+    if (mem_to_status_search != _measure_to_status.end()) {
       to_add.warning_low(0);
       to_add.warning(metric.percent
-                         ? 100 * mem_to_status_search->second.get_threshold()
-                         : mem_to_status_search->second.get_threshold());
+                         ? 100 * mem_to_status_search->second->get_threshold()
+                         : mem_to_status_search->second->get_threshold());
     }
     // critical
-    mem_to_status_search = _mem_to_status.find(std::make_tuple(
+    mem_to_status_search = _measure_to_status.find(std::make_tuple(
         metric.data_index, metric.total_data_index, e_status::critical));
-    if (mem_to_status_search != _mem_to_status.end()) {
+    if (mem_to_status_search != _measure_to_status.end()) {
       to_add.critical_low(0);
       to_add.critical(metric.percent
-                          ? 100 * mem_to_status_search->second.get_threshold()
-                          : mem_to_status_search->second.get_threshold());
+                          ? 100 * mem_to_status_search->second->get_threshold()
+                          : mem_to_status_search->second->get_threshold());
     }
   }
   return status;

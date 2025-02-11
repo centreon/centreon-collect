@@ -19,38 +19,39 @@
 #include <psapi.h>
 #include <windows.h>
 
-#include "agent/native_windows/inc/com/centreon/agent/check_memory.hh"
 #include "check_memory.hh"
-#include "native_check_memory_base.cc"
+#include "native_check_base.cc"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_memory_detail;
+using namespace com::centreon::agent::native_check_detail;
 
-namespace com::centreon::agent::check_memory_detail {
+namespace com::centreon::agent::native_check_detail {
 /**
  * @brief little struct used to format memory output (B, KB, MB or GB)
  *
  */
-struct byte_metric {
+struct byte_memory_metric {
   uint64_t byte_value;
 };
-}  // namespace com::centreon::agent::check_memory_detail
+}  // namespace com::centreon::agent::native_check_detail
 
 namespace fmt {
 
 /**
- * @brief formatter of byte_metric
+ * @brief formatter of byte_memory_metric
  *
  * @tparam
  */
 template <>
-struct formatter<com::centreon::agent::check_memory_detail::byte_metric> {
+struct formatter<
+    com::centreon::agent::native_check_detail::byte_memory_metric> {
   constexpr auto parse(format_parse_context& ctx)
       -> format_parse_context::iterator {
     return ctx.begin();
   }
-  auto format(const com::centreon::agent::check_memory_detail::byte_metric& v,
-              format_context& ctx) const -> format_context::iterator {
+  auto format(
+      const com::centreon::agent::native_check_detail::byte_memory_metric& v,
+      format_context& ctx) const -> format_context::iterator {
     if (v.byte_value < 1024) {
       return fmt::format_to(ctx.out(), "{} B", v.byte_value);
     }
@@ -79,14 +80,14 @@ struct formatter<com::centreon::agent::check_memory_detail::byte_metric> {
 };
 }  // namespace fmt
 
-namespace com::centreon::agent::check_memory_detail {
+namespace com::centreon::agent::native_check_detail {
 
 /**
  * @brief Construct a new w_memory info
  * it measures memory usage and fill _metrics
  *
  */
-w_memory_info::w_memory_info() {
+w_memory_info::w_memory_info(unsigned flags) : _output_flags(flags) {
   MEMORYSTATUSEX mem_status;
   mem_status.dwLength = sizeof(mem_status);
   if (!GlobalMemoryStatusEx(&mem_status)) {
@@ -108,7 +109,9 @@ w_memory_info::w_memory_info() {
  * @param mem_status
  */
 w_memory_info::w_memory_info(const MEMORYSTATUSEX& mem_status,
-                             const PERFORMANCE_INFORMATION& perf_mem_status) {
+                             const PERFORMANCE_INFORMATION& perf_mem_status,
+                             unsigned flags)
+    : _output_flags(flags) {
   init(mem_status, perf_mem_status);
 }
 
@@ -119,23 +122,24 @@ w_memory_info::w_memory_info(const MEMORYSTATUSEX& mem_status,
  */
 void w_memory_info::init(const MEMORYSTATUSEX& mem_status,
                          const PERFORMANCE_INFORMATION& perf_mem_status) {
-  _metrics[e_metric::phys_total] = mem_status.ullTotalPhys;
-  _metrics[e_metric::phys_free] = mem_status.ullAvailPhys;
-  _metrics[e_metric::phys_used] =
+  _metrics[e_memory_metric::phys_total] = mem_status.ullTotalPhys;
+  _metrics[e_memory_metric::phys_free] = mem_status.ullAvailPhys;
+  _metrics[e_memory_metric::phys_used] =
       mem_status.ullTotalPhys - mem_status.ullAvailPhys;
-  _metrics[e_metric::swap_total] =
+  _metrics[e_memory_metric::swap_total] =
       perf_mem_status.PageSize *
       (perf_mem_status.CommitLimit - perf_mem_status.PhysicalTotal);
-  _metrics[e_metric::swap_used] =
+  _metrics[e_memory_metric::swap_used] =
       perf_mem_status.PageSize *
       (perf_mem_status.CommitTotal + perf_mem_status.PhysicalAvailable -
        perf_mem_status.PhysicalTotal);
-  _metrics[e_metric::swap_free] =
-      _metrics[e_metric::swap_total] - _metrics[e_metric::swap_used];
-  _metrics[e_metric::virtual_total] = mem_status.ullTotalPageFile;
-  _metrics[e_metric::virtual_free] = mem_status.ullAvailPageFile;
-  _metrics[e_metric::virtual_used] =
-      _metrics[e_metric::virtual_total] - _metrics[e_metric::virtual_free];
+  _metrics[e_memory_metric::swap_free] = _metrics[e_memory_metric::swap_total] -
+                                         _metrics[e_memory_metric::swap_used];
+  _metrics[e_memory_metric::virtual_total] = mem_status.ullTotalPageFile;
+  _metrics[e_memory_metric::virtual_free] = mem_status.ullAvailPageFile;
+  _metrics[e_memory_metric::virtual_used] =
+      _metrics[e_memory_metric::virtual_total] -
+      _metrics[e_memory_metric::virtual_free];
 }
 
 /**
@@ -143,72 +147,55 @@ void w_memory_info::init(const MEMORYSTATUSEX& mem_status,
  *
  * @param output
  */
-void w_memory_info::dump_to_output(std::string* output, unsigned flags) const {
-  fmt::format_to(
-      std::back_inserter(*output),
-      "Ram total: {}, used (-buffers/cache): {} ({:.2f}%), "
-      "free: {} ({:.2f}%)",
-      byte_metric{_metrics[e_metric::phys_total]},
-      byte_metric{_metrics[e_metric::phys_used]},
-      get_proportional_value(e_metric::phys_used, e_metric::phys_total) * 100,
-      byte_metric{_metrics[e_metric::phys_free]},
-      get_proportional_value(e_metric::phys_free, e_metric::phys_total) * 100);
+void w_memory_info::dump_to_output(std::string* output) const {
+  fmt::format_to(std::back_inserter(*output),
+                 "Ram total: {}, used (-buffers/cache): {} ({:.2f}%), "
+                 "free: {} ({:.2f}%)",
+                 byte_memory_metric{_metrics[e_memory_metric::phys_total]},
+                 byte_memory_metric{_metrics[e_memory_metric::phys_used]},
+                 get_proportional_value(e_memory_metric::phys_used,
+                                        e_memory_metric::phys_total) *
+                     100,
+                 byte_memory_metric{_metrics[e_memory_metric::phys_free]},
+                 get_proportional_value(e_memory_metric::phys_free,
+                                        e_memory_metric::phys_total) *
+                     100);
 
-  if (flags & output_flags::dump_swap) {
-    fmt::format_to(
-        std::back_inserter(*output),
-        " Swap total: {}, used: {} ({:.2f}%), free: {} ({:.2f}%)",
-        byte_metric{_metrics[e_metric::swap_total]},
-        byte_metric{_metrics[e_metric::swap_used]},
-        get_proportional_value(e_metric::swap_used, e_metric::swap_total) * 100,
-        byte_metric{_metrics[e_metric::swap_free]},
-        get_proportional_value(e_metric::swap_free, e_metric::swap_total) *
-            100);
+  if (_output_flags & output_flags::dump_swap) {
+    fmt::format_to(std::back_inserter(*output),
+                   " Swap total: {}, used: {} ({:.2f}%), free: {} ({:.2f}%)",
+                   byte_memory_metric{_metrics[e_memory_metric::swap_total]},
+                   byte_memory_metric{_metrics[e_memory_metric::swap_used]},
+                   get_proportional_value(e_memory_metric::swap_used,
+                                          e_memory_metric::swap_total) *
+                       100,
+                   byte_memory_metric{_metrics[e_memory_metric::swap_free]},
+                   get_proportional_value(e_memory_metric::swap_free,
+                                          e_memory_metric::swap_total) *
+                       100);
   }
 
-  if (flags & output_flags::dump_virtual) {
+  if (_output_flags & output_flags::dump_virtual) {
     fmt::format_to(std::back_inserter(*output),
                    " Virtual total: {}, used: {} ({:.2f}%), free: {} ({:.2f}%)",
-                   byte_metric{_metrics[e_metric::virtual_total]},
-                   byte_metric{_metrics[e_metric::virtual_used]},
-                   get_proportional_value(e_metric::virtual_used,
-                                          e_metric::virtual_total) *
+                   byte_memory_metric{_metrics[e_memory_metric::virtual_total]},
+                   byte_memory_metric{_metrics[e_memory_metric::virtual_used]},
+                   get_proportional_value(e_memory_metric::virtual_used,
+                                          e_memory_metric::virtual_total) *
                        100,
-                   byte_metric{_metrics[e_metric::virtual_free]},
-                   get_proportional_value(e_metric::virtual_free,
-                                          e_metric::virtual_total) *
+                   byte_memory_metric{_metrics[e_memory_metric::virtual_free]},
+                   get_proportional_value(e_memory_metric::virtual_free,
+                                          e_memory_metric::virtual_total) *
                        100);
   }
 }
 
-/**
- * @brief metric defines
- *
- */
-const std::vector<metric_definition> metric_definitions = {
-    {"memory.usage.bytes", e_metric::phys_used, e_metric::phys_total, false},
-    {"memory.free.bytes", e_metric::phys_free, e_metric::phys_total, false},
-    {"memory.usage.percentage", e_metric::phys_used, e_metric::phys_total,
-     true},
+}  // namespace com::centreon::agent::native_check_detail
 
-    {"swap.usage.bytes", e_metric::swap_used, e_metric::swap_total, false},
-    {"swap.free.bytes", e_metric::swap_free, e_metric::swap_total, false},
-    {"swap.usage.percentage", e_metric::swap_used, e_metric::swap_total, true},
-
-    {"virtual-memory.usage.bytes", e_metric::virtual_used,
-     e_metric::virtual_total, false},
-    {"virtual-memory.free.bytes", e_metric::virtual_free,
-     e_metric::virtual_total, false},
-    {"virtual-memory.usage.percentage", e_metric::virtual_used,
-     e_metric::virtual_total, true},
-};
-
-}  // namespace com::centreon::agent::check_memory_detail
-
-using windows_mem_to_status = mem_to_status<e_metric::nb_metric>;
+using windows_mem_to_status = measure_to_status<e_memory_metric::nb_metric>;
 
 using mem_to_status_constructor =
-    std::function<windows_mem_to_status(double /*threshold*/)>;
+    std::function<std::unique_ptr<windows_mem_to_status>(double /*threshold*/)>;
 
 /**
  * @brief status threshold defines
@@ -219,149 +206,149 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
         // phys
         {"critical-usage",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::phys_used,
-                                        threshold, e_metric::phys_total, false,
-                                        false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::phys_used, threshold,
+               e_memory_metric::phys_total, false, false);
          }},
         {"warning-usage",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::phys_used,
-                                        threshold, e_metric::phys_total, false,
-                                        false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::phys_used, threshold,
+               e_memory_metric::phys_total, false, false);
          }},
         {"critical-usage-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::phys_free,
-                                        threshold, e_metric::phys_total, false,
-                                        true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::phys_free, threshold,
+               e_memory_metric::phys_total, false, true);
          }},
         {"warning-usage-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::phys_free,
-                                        threshold, e_metric::phys_total, false,
-                                        true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::phys_free, threshold,
+               e_memory_metric::phys_total, false, true);
          }},
         {"critical-usage-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::phys_used,
-                                        threshold / 100, e_metric::phys_total,
-                                        true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::phys_used, threshold / 100,
+               e_memory_metric::phys_total, true, false);
          }},
         {"warning-usage-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::phys_used,
-                                        threshold / 100, e_metric::phys_total,
-                                        true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::phys_used, threshold / 100,
+               e_memory_metric::phys_total, true, false);
          }},
         {"critical-usage-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::phys_free,
-                                        threshold / 100, e_metric::phys_total,
-                                        true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::phys_free, threshold / 100,
+               e_memory_metric::phys_total, true, true);
          }},
         {"warning-usage-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::phys_free,
-                                        threshold / 100, e_metric::phys_total,
-                                        true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::phys_free, threshold / 100,
+               e_memory_metric::phys_total, true, true);
          }},
         // swap
         {"critical-swap",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::swap_used,
-                                        threshold, e_metric::swap_total, false,
-                                        false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::swap_used, threshold,
+               e_memory_metric::swap_total, false, false);
          }},
         {"warning-swap",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::swap_used,
-                                        threshold, e_metric::swap_total, false,
-                                        false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::swap_used, threshold,
+               e_memory_metric::swap_total, false, false);
          }},
         {"critical-swap-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::swap_free,
-                                        threshold, e_metric::swap_total, false,
-                                        true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::swap_free, threshold,
+               e_memory_metric::swap_total, false, true);
          }},
         {"warning-swap-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::swap_free,
-                                        threshold, e_metric::swap_total, false,
-                                        true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::swap_free, threshold,
+               e_memory_metric::swap_total, false, true);
          }},
         {"critical-swap-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::swap_used,
-                                        threshold / 100, e_metric::swap_total,
-                                        true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::swap_used, threshold / 100,
+               e_memory_metric::swap_total, true, false);
          }},
         {"warning-swap-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::swap_used,
-                                        threshold / 100, e_metric::swap_total,
-                                        true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::swap_used, threshold / 100,
+               e_memory_metric::swap_total, true, false);
          }},
         {"critical-swap-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical, e_metric::swap_free,
-                                        threshold / 100, e_metric::swap_total,
-                                        true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::swap_free, threshold / 100,
+               e_memory_metric::swap_total, true, true);
          }},
         {"warning-swap-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning, e_metric::swap_free,
-                                        threshold / 100, e_metric::swap_total,
-                                        true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::swap_free, threshold / 100,
+               e_memory_metric::swap_total, true, true);
          }},
         // virtual memory
         {"critical-virtual",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical,
-                                        e_metric::virtual_used, threshold,
-                                        e_metric::virtual_total, false, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::virtual_used, threshold,
+               e_memory_metric::virtual_total, false, false);
          }},
         {"warning-virtual",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning,
-                                        e_metric::virtual_used, threshold,
-                                        e_metric::virtual_total, false, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::virtual_used, threshold,
+               e_memory_metric::virtual_total, false, false);
          }},
         {"critical-virtual-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical,
-                                        e_metric::virtual_free, threshold,
-                                        e_metric::virtual_total, false, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::virtual_free, threshold,
+               e_memory_metric::virtual_total, false, true);
          }},
         {"warning-virtual-free",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning,
-                                        e_metric::virtual_free, threshold,
-                                        e_metric::virtual_total, false, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::virtual_free, threshold,
+               e_memory_metric::virtual_total, false, true);
          }},
         {"critical-virtual-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical,
-                                        e_metric::virtual_used, threshold / 100,
-                                        e_metric::virtual_total, true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::virtual_used,
+               threshold / 100, e_memory_metric::virtual_total, true, false);
          }},
         {"warning-virtual-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning,
-                                        e_metric::virtual_used, threshold / 100,
-                                        e_metric::virtual_total, true, false);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::virtual_used,
+               threshold / 100, e_memory_metric::virtual_total, true, false);
          }},
         {"critical-virtual-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::critical,
-                                        e_metric::virtual_free, threshold / 100,
-                                        e_metric::virtual_total, true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::critical, e_memory_metric::virtual_free,
+               threshold / 100, e_memory_metric::virtual_total, true, true);
          }},
         {"warning-virtual-free-prct",
          [](double threshold) {
-           return windows_mem_to_status(e_status::warning,
-                                        e_metric::virtual_free, threshold / 100,
-                                        e_metric::virtual_total, true, true);
+           return std::make_unique<windows_mem_to_status>(
+               e_status::warning, e_memory_metric::virtual_free,
+               threshold / 100, e_memory_metric::virtual_total, true, true);
          }}
 
 };
@@ -389,8 +376,9 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                            const std::string& cmd_line,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
-                           check::completion_handler&& handler)
-    : check_memory_base(io_context,
+                           check::completion_handler&& handler,
+                           const checks_statistics::pointer& stat)
+    : native_check_base(io_context,
                         logger,
                         first_start_expected,
                         check_interval,
@@ -399,70 +387,42 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                         cmd_line,
                         args,
                         cnf,
-                        std::move(handler)) {
+                        std::move(handler),
+                        stat) {
+  _no_percent_unit = "B";
   if (args.IsObject()) {
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
          ++member_iter) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "swap") {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
-          if (val.GetBool()) {
-            _output_flags |= w_memory_info::output_flags::dump_swap;
-          }
-        } else {
-          SPDLOG_LOGGER_ERROR(logger, "command: {}, bad value for parameter {}",
-                              cmd_name, member_iter->name);
+        std::optional<bool> val = get_bool(
+            cmd_name, member_iter->name.GetString(), member_iter->value);
+        if (val && *val) {
+          _output_flags |= w_memory_info::output_flags::dump_swap;
         }
         continue;
       }
       if (key == "virtual") {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
-          if (val.GetBool()) {
-            _output_flags |= w_memory_info::output_flags::dump_virtual;
-          }
-        } else {
-          SPDLOG_LOGGER_ERROR(logger, "command: {}, bad value for parameter {}",
-                              cmd_name, member_iter->name);
+        std::optional<bool> val = get_bool(
+            cmd_name, member_iter->name.GetString(), member_iter->value);
+        if (val && *val) {
+          _output_flags |= w_memory_info::output_flags::dump_virtual;
         }
         continue;
       }
 
       auto mem_to_status_search = _label_to_mem_to_status.find(key);
       if (mem_to_status_search != _label_to_mem_to_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-            val.IsUint64()) {
-          windows_mem_to_status mem_checker =
-              mem_to_status_search->second(member_iter->value.GetDouble());
-          _mem_to_status.emplace(
-              std::make_tuple(mem_checker.get_data_index(),
-                              mem_checker.get_total_data_index(),
-                              mem_checker.get_status()),
-              mem_checker);
-        } else if (val.IsString()) {
-          auto to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
-            windows_mem_to_status mem_checker =
-                mem_to_status_search->second(dval);
-            _mem_to_status.emplace(
-                std::make_tuple(mem_checker.get_data_index(),
-                                mem_checker.get_total_data_index(),
-                                mem_checker.get_status()),
-                mem_checker);
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, value is not a number for parameter {}: {}",
-                cmd_name, member_iter->name, val);
-          }
-
-        } else {
-          SPDLOG_LOGGER_ERROR(logger,
-                              "command: {}, bad value for parameter {}: {}",
-                              cmd_name, member_iter->name, val);
+        std::optional<double> val = get_double(
+            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        if (val) {
+          std::unique_ptr<windows_mem_to_status> mem_checker =
+              mem_to_status_search->second(*val);
+          _measure_to_status.emplace(
+              std::make_tuple(mem_checker->get_data_index(),
+                              mem_checker->get_total_data_index(),
+                              mem_checker->get_status()),
+              std::move(mem_checker));
         }
       } else {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter {}",
@@ -476,14 +436,106 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
  * @brief create a w_memory_info
  *
  * @return std::shared_ptr<
- * check_memory_detail::memory_info<check_memory_detail::e_metric::nb_metric>>
+ * native_check_detail::snapshot<native_check_detail::e_memory_metric::nb_metric>>
  */
-std::shared_ptr<
-    check_memory_detail::memory_info<check_memory_detail::e_metric::nb_metric>>
-check_memory::measure() const {
-  return std::make_shared<check_memory_detail::w_memory_info>();
+std::shared_ptr<native_check_detail::snapshot<
+    native_check_detail::e_memory_metric::nb_metric>>
+check_memory::measure() {
+  return std::make_shared<native_check_detail::w_memory_info>(_output_flags);
+}
+
+/**
+ * @brief metric defines
+ *
+ */
+static const std::vector<native_check_detail::metric_definition>
+    metric_definitions = {
+        {"memory.usage.bytes", e_memory_metric::phys_used,
+         e_memory_metric::phys_total, false},
+        {"memory.free.bytes", e_memory_metric::phys_free,
+         e_memory_metric::phys_total, false},
+        {"memory.usage.percentage", e_memory_metric::phys_used,
+         e_memory_metric::phys_total, true},
+
+        {"swap.usage.bytes", e_memory_metric::swap_used,
+         e_memory_metric::swap_total, false},
+        {"swap.free.bytes", e_memory_metric::swap_free,
+         e_memory_metric::swap_total, false},
+        {"swap.usage.percentage", e_memory_metric::swap_used,
+         e_memory_metric::swap_total, true},
+
+        {"virtual-memory.usage.bytes", e_memory_metric::virtual_used,
+         e_memory_metric::virtual_total, false},
+        {"virtual-memory.free.bytes", e_memory_metric::virtual_free,
+         e_memory_metric::virtual_total, false},
+        {"virtual-memory.usage.percentage", e_memory_metric::virtual_used,
+         e_memory_metric::virtual_total, true},
+};
+
+const std::vector<native_check_detail::metric_definition>&
+check_memory::get_metric_definitions() const {
+  return metric_definitions;
+}
+
+void check_memory::help(std::ostream& help_stream) {
+  help_stream << R"(
+- memory params:
+    swap (default false): true: add swap to output
+    virtual (default false): true: add virtual memory to output
+    critical-usage: threshold for critical status on physical memory usage in bytes
+    warning-usage: threshold for warning status on physyical memory usage in bytes
+    critical-usage-free: threshold for critical status on free physical memory in bytes, if free memory is lower than threshold, service is critical
+    warning-usage-free: threshold for warning status on free physical memory in bytes
+    critical-usage-prct: threshold for critical status on memory usage in percentage
+    warning-usage-prct: threshold for warning status on memory usage in percentage
+    critical-usage-free-prct: threshold for critical status on free memory in percentage
+    warning-usage-free-prct: threshold for warning status on free memory in percentage
+    critical-swap: threshold for critical status on swap usage in bytes
+    warning-swap: threshold for warning status on swap usage in bytes
+    critical-swap-free: threshold for critical status on free swap in bytes
+    warning-swap-free: threshold for warning status on free swap in bytes
+    critical-swap-prct: threshold for critical status on swap usage in percentage
+    warning-swap-prct: threshold for warning status on swap usage in percentage
+    critical-swap-free-prct: threshold for critical status on free swap in percentage
+    warning-swap-free-prct: threshold for warning status on free swap in percentage
+    critical-virtual: threshold for critical status on virtual memory usage in bytes
+    warning-virtual: threshold for warning status on virtual memory usage in bytes
+    critical-virtual-free: threshold for critical status on free virtual memory in bytes
+    warning-virtual-free: threshold for warning status on free virtual memory in bytes
+    critical-virtual-prct: threshold for critical status on virtual memory usage in percentage
+    warning-virtual-prct: threshold for warning status on virtual memory usage in percentage
+    critical-virtual-free-prct: threshold for critical status on free virtual memory in percentage
+    warning-virtual-free-prct: threshold for warning status on free virtual memory in percentage
+  An example of configuration:
+  { 
+    "check": "memory",
+    "args: {
+      "swap": true,
+      "virtual": true,
+      "warning-usage-prct": 80,
+      "critical-usage-prct": 90
+    }
+  }
+  Examples of output:
+    OK: Ram total: 16 GB, used (-buffers/cache): 15.99 GB (99.96%), free: 7 MB (0.04%)
+    With swap flag:
+      OK: Ram total: 16 GB, used (-buffers/cache): 15.99 GB (99.96%), free: 7 MB (0.04%) Swap total: 44 GB, used: 4 GB (9.11%), free: 39.99 GB (90.89%)
+    With swap and virtual flag:
+      OK: Ram total: 16 GB, used (-buffers/cache): 15.99 GB (99.96%), free: 7 MB (0.04%) Swap total: 44 GB, used: 4 GB (9.11%), free: 39.99 GB (90.89%) Virtual total: 24 GB, used: 18 GB (75.00%), free: 6 GB (25.00%)
+  Metrics:
+    memory.usage.bytes
+    memory.free.bytes
+    memory.usage.percentage
+    swap.usage.bytes
+    swap.free.bytes
+    swap.usage.percentage
+    virtual-memory.usage.bytes
+    virtual-memory.free.bytes
+    virtual-memory.usage.percentage
+)";
 }
 
 namespace com::centreon::agent {
-template class check_memory_base<check_memory_detail::e_metric::nb_metric>;
+template class native_check_base<
+    native_check_detail::e_memory_metric::nb_metric>;
 }

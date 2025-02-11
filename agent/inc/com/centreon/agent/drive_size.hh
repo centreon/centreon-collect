@@ -19,12 +19,6 @@
 #ifndef CENTREON_AGENT_NATIVE_DRIVE_SIZE_BASE_HH
 #define CENTREON_AGENT_NATIVE_DRIVE_SIZE_BASE_HH
 
-#include <cstdint>
-#include <memory>
-#include "absl/base/thread_annotations.h"
-#include "absl/container/btree_set.h"
-#include "absl/synchronization/mutex.h"
-#include "boost/asio/io_context.hpp"
 #include "check.hh"
 #include "re2/re2.h"
 
@@ -261,7 +255,8 @@ class check_drive_size : public check {
                    const std::string& cmd_line,
                    const rapidjson::Value& args,
                    const engine_to_agent_request_ptr& cnf,
-                   check::completion_handler&& handler);
+                   check::completion_handler&& handler,
+                   const checks_statistics::pointer& stat);
 
   virtual ~check_drive_size() = default;
 
@@ -269,6 +264,8 @@ class check_drive_size : public check {
     return std::static_pointer_cast<check_drive_size>(
         check::shared_from_this());
   }
+
+  static void help(std::ostream& help_stream);
 
   void start_check(const duration& timeout) override;
 

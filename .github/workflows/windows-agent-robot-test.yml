@@ -8,6 +8,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 0 * * *'
+  pull_request:
+    paths:
+      - agent/**
+      - engine/modules/opentelemetry**
 
 jobs:
   get-environment:
@@ -32,7 +36,17 @@ jobs:
       package_extension: deb
       runner: collect
       arch: amd64
-    secrets: inherit
+    secrets:
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+      rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+      rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
 
   build-agent-and-execute-test:
@@ -123,7 +137,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-cma-windows
           path: reports

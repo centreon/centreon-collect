@@ -97,7 +97,8 @@ class check_exec : public check {
              const std::string& cmd_name,
              const std::string& cmd_line,
              const engine_to_agent_request_ptr& cnf,
-             check::completion_handler&& handler);
+             check::completion_handler&& handler,
+             const checks_statistics::pointer& stat);
 
   static std::shared_ptr<check_exec> load(
       const std::shared_ptr<asio::io_context>& io_context,
@@ -108,7 +109,8 @@ class check_exec : public check {
       const std::string& cmd_name,
       const std::string& cmd_line,
       const engine_to_agent_request_ptr& cnf,
-      check::completion_handler&& handler);
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat);
 
   void start_check(const duration& timeout) override;
 

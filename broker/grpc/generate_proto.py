@@ -180,7 +180,6 @@ message_parser = r'^message\s+(\w+)\s+\{'
 io_protobuf_parser = r'\/\*\s*(\w+::\w+\s*,\s*\w+::\w+)\s*,\s*(\d+)\s*\*\/'
 ignore_message = "/* Ignore */"
 
-one_of_index = 2
 message_save = []
 
 for directory in args.proto_directory:
@@ -240,7 +239,6 @@ for mess, id, index in message_save:
     # proto file
     file_message_centreon_event += f"        {mess} {mess}_ = {index};\n"
     # count index : needed for opentelemetry
-    one_of_index += 1
     lower_mess = mess.lower()
     # cc file
     cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
@@ -260,7 +258,7 @@ return std::make_shared<detail::received_protobuf<
 
 # The following message is not in bbdo protobuff files so we need to add manually.
 
-file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = {one_of_index};\n"
+file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = 1000;\n"
 
 cc_file_protobuf_to_event_function += """
         case ::stream::CentreonEvent::kExportMetricsServiceRequest:

@@ -108,3 +108,71 @@ EBSN3
     Should Be Equal As Strings    ${output}    (('${n}',),)
     Ctn Stop engine
     Ctn Kindly Stop Broker
+
+EBSIC0
+    [Documentation]    Verify that the update icon_id for host/service in cfg is well propagated to the database
+    [Tags]    broker    engine    service    MON-157503
+    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    Ctn Engine Config Set Value In Hosts
+    ...    0
+    ...    host_1
+    ...    icon_id
+    ...    1
+
+    Ctn Engine Config Set Value In Services
+    ...    0
+    ...    service_1
+    ...    icon_id
+    ...    1
+
+    ${start}    Get Current Date
+
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT id,icon_id FROM resources WHERE name='service_1'
+        Sleep    1s
+        IF    "${output}" == "((1, 1),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((1, 1),)    the service_1 should have icon_id=1
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT id,icon_id FROM resources WHERE name='host_1'
+        Sleep    1s
+        IF    "${output}" == "((1, 1),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((1, 1),)    the host_1 should have icon_id=1
+
+    Ctn Engine Config Replace Value In Hosts    0    host_1    icon_id    2
+    Ctn Engine Config Replace Value In Services    0    service_1    icon_id    2
+    
+    Ctn Reload Engine
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT id,icon_id FROM resources WHERE name='service_1'
+        Sleep    1s
+        IF    "${output}" == "((1, 2),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((1, 2),)    the service_1 should have icon_id=2
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT id,icon_id FROM resources WHERE name='host_1'
+        Sleep    1s
+        IF    "${output}" == "((1, 2),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((1, 2),)    the host_1 should have icon_id=2
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

@@ -150,7 +150,7 @@ process<use_mutex>::process(
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
-#ifdef _WINDOWS
+#ifdef _WIN32
   auto split_res = boost::program_options::split_winmain(std::string(cmd_line));
 #else
   auto split_res = boost::program_options::split_unix(std::string(cmd_line));

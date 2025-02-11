@@ -167,8 +167,7 @@ void broker_module_init(void const* arg) {
                        &neb::pb_host_status::operations, "hosts");
       e.register_event(make_type(io::neb, neb::de_pb_adaptive_host_status),
                        "AdaptiveHostStatus",
-                       &neb::pb_adaptive_host_status::operations,
-                       "hosts");
+                       &neb::pb_adaptive_host_status::operations, "hosts");
 
       e.register_event(make_type(io::neb, neb::de_pb_severity), "Severity",
                        &neb::pb_severity::operations, "severities");
@@ -228,6 +227,8 @@ void broker_module_init(void const* arg) {
                        &neb::pb_instance_configuration::operations, "no_table");
       e.register_event(neb::pb_otl_metrics::static_type(), "OTLMetrics",
                        &neb::pb_otl_metrics::operations, "otl_metrics");
+      e.register_event(neb::pb_agent_stats::static_type(), "AgentStats",
+                       &neb::pb_agent_stats::operations, "agent_information");
     }
   }
 }

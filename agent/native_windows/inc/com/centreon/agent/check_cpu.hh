@@ -19,23 +19,14 @@
 #ifndef CENTREON_AGENT_CHECK_CPU_HH
 #define CENTREON_AGENT_CHECK_CPU_HH
 
+#include "ntdll.hh"
+
 #include "native_check_cpu_base.hh"
 
 namespace com::centreon::agent {
 
 namespace check_cpu_detail {
 enum e_proc_stat_index { user = 0, system, idle, interrupt, dpc, nb_field };
-
-/**As winternl.h may be included, we define our own
- * SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION */
-struct M_SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION {
-  LARGE_INTEGER IdleTime;
-  LARGE_INTEGER KernelTime;
-  LARGE_INTEGER UserTime;
-  LARGE_INTEGER DpcTime;
-  LARGE_INTEGER InterruptTime;
-  ULONG InterruptCount;
-};
 
 /**
  * @brief this class contains all counter for one core contained in a
@@ -132,7 +123,8 @@ class check_cpu
             const std::string& cmd_line,
             const rapidjson::Value& args,
             const engine_to_agent_request_ptr& cnf,
-            check::completion_handler&& handler);
+            check::completion_handler&& handler,
+            const checks_statistics::pointer& stat);
 
   ~check_cpu();
 

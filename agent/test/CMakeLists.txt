@@ -20,6 +20,7 @@ set( SRC_COMMON
     check_test.cc 
     check_exec_test.cc
     drive_size_test.cc
+    check_health_test.cc
     scheduler_test.cc
     test_main.cc
 )
@@ -27,7 +28,11 @@ set( SRC_COMMON
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
-  set(SRC ${SRC_COMMON} check_windows_cpu_test.cc  check_windows_memory_test.cc check_uptime_test.cc)
+  set(SRC ${SRC_COMMON} 
+    check_windows_cpu_test.cc  
+    check_windows_memory_test.cc 
+    check_uptime_test.cc 
+    check_windows_service_test.cc)
 endif()
 
 
@@ -72,7 +77,7 @@ else()
     Boost::program_options
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     fmt::fmt
-    )
+    pdh)
 endif()
 
 add_dependencies(ut_agent centreon_common centagent_lib)

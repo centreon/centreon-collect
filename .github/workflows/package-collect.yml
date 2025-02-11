@@ -42,8 +42,30 @@ on:
       arch:
         required: true
         type: string
-
-
+      is_nightly:
+        required: false
+        type: string
+    secrets:
+      collect_s3_access_key:
+        required: true
+      collect_s3_secret_key:
+        required: true
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+      rpm_gpg_key:
+        required: true
+      rpm_gpg_signing_key_id:
+        required: true
+      rpm_gpg_signing_passphrase:
+        required: true
+      jira_base_url:
+        required: true
+      jira_user_email:
+        required: true
+      jira_api_token:
+        required: true
 jobs:
   package:
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner)) }}
@@ -52,14 +74,14 @@ jobs:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
       credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
 
     name: package ${{ inputs.distrib }} ${{ inputs.arch }}
 
@@ -194,9 +216,9 @@ jobs:
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension}}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
-          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
-          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
@@ -206,8 +228,25 @@ jobs:
       # set condition to true if artifacts are needed
       - if: inputs.packages_in_artifact == true
         name: Upload package artifacts
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: packages-${{ inputs.distrib }}-${{ inputs.arch }}
-          path: ./*.${{ inputs.package_extension}}
+          path: ./*.${{ inputs.package_extension }}
           retention-days: 1
+
+  create-jira-nightly-ticket:
+    needs: [package]
+    runs-on: ubuntu-24.04
+    if: |
+      inputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled()) &&
+      startsWith(github.ref_name, 'dev')
+    steps:
+      - name: Create Jira ticket if nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.jira_base_url }}
+          jira_user_email: ${{ secrets.jira_user_email }}
+          jira_api_token: ${{ secrets.jira_api_token }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'

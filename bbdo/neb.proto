@@ -841,3 +841,20 @@ message TagInfo {
   uint64 id = 1;
   TagType type = 2;
 }
+
+/* Ignore */
+message AgentInfo {
+  uint32 major = 1;
+  uint32 minor = 2;
+  uint32 patch = 3;
+  bool reverse = 4;
+  string os = 5;
+  string os_version = 6;
+  uint32 nb_agent = 7; 
+}
+
+/* io::neb, neb::de_pb_agent_stats, 57 */
+message AgentStats {
+  int64 poller_id = 1;
+  repeated AgentInfo stats = 2;
+}

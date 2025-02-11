@@ -104,8 +104,9 @@ const std::string com::centreon::broker::grpc::authorization_header(
  * @tparam bireactor_class
  */
 template <class bireactor_class>
-std::set<std::shared_ptr<stream<bireactor_class>>>
-    stream<bireactor_class>::_instances;
+std::set<std::shared_ptr<stream<bireactor_class>>>*
+    stream<bireactor_class>::_instances =
+        new std::set<std::shared_ptr<stream<bireactor_class>>>;
 
 template <class bireactor_class>
 std::mutex stream<bireactor_class>::_instances_m;
@@ -149,7 +150,7 @@ template <class bireactor_class>
 void stream<bireactor_class>::register_stream(
     const std::shared_ptr<stream<bireactor_class>>& strm) {
   std::lock_guard l(_instances_m);
-  _instances.insert(strm);
+  _instances->insert(strm);
 }
 
 /**
@@ -375,7 +376,8 @@ void stream<bireactor_class>::OnDone() {
         std::lock_guard l(_instances_m);
         SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                             static_cast<void*>(me.get()));
-        _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+        _instances->erase(
+            std::static_pointer_cast<stream<bireactor_class>>(me));
       });
 }
 
@@ -402,7 +404,8 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
         SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                             static_cast<void*>(me.get()),
                             status.error_message(), status.error_details());
-        _instances.erase(std::static_pointer_cast<stream<bireactor_class>>(me));
+        _instances->erase(
+            std::static_pointer_cast<stream<bireactor_class>>(me));
       });
 }
 

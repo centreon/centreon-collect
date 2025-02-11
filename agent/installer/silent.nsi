@@ -55,7 +55,7 @@ Function show_help
         FileWrite $0 "--hostname           The name of the host as defined in the Centreon interface.$\n"
         FileWrite $0 "--endpoint           IP address of DNS name of the poller the agent will connect to.$\n"
         FileWrite $0 "                     In case of Poller-initiated connection mode, it is the interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.$\n"
-        FileWrite $0 "                     The format is <IP or DNS name>:<port>"
+        FileWrite $0 "                     The format is <IP or DNS name>:<port>$\n"
         FileWrite $0 "--reverse            Add this flag for Poller-initiated connection mode.$\n"
         FileWrite $0 "$\n"
         FileWrite $0 "--log_type           event_log or file. In case of logging in a file, log_file param is mandatory $\n"
@@ -125,6 +125,11 @@ Function cmd_line_to_registry
         Call silent_fatal_error
     ${EndIf}
     WriteRegStr HKLM ${CMA_REG_KEY} "host" "$0"
+    ${If} ${Errors}
+        StrCpy $1 "Failed to write registry key for host"
+        Call silent_fatal_error
+    ${EndIf}
+
     ClearErrors
     ${GetOptions} $cmdline_parameters "--endpoint" $0
     ${If} ${Errors}
@@ -175,7 +180,7 @@ Function cmd_line_to_registry
         ${EndIf}
 
     ${Else}
-        WriteRegStr HKLM ${CMA_REG_KEY} "log_type"  "EventLog"
+        WriteRegStr HKLM ${CMA_REG_KEY} "log_type"  "event-log"
     ${EndIf}
     ClearErrors
     ${GetOptions} $cmdline_parameters "--log_level" $0
@@ -404,10 +409,16 @@ Function silent_update_conf
 FunctionEnd
 
 /**
-  * @brief checks --install_plugins and --install_cma cmdline flags
+  * @brief checks --install_plugins, --install_embedded_plugins and --install_cma cmdline flags
 */
 Function installer_parse_cmd_line
     Push $0
+
+    ClearErrors
+    ${GetOptions} $cmdline_parameters "--install_embedded_plugins" $0
+    ${IfNot} ${Errors}
+        StrCpy $silent_install_plugins 2
+    ${EndIf}
 
     ClearErrors
     ${GetOptions} $cmdline_parameters "--install_plugins" $0

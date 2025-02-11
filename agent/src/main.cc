@@ -20,6 +20,10 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "agent_info.hh"
+#include "check_cpu.hh"
+#include "check_health.hh"
+
 #include "config.hh"
 #include "drive_size.hh"
 #include "streaming_client.hh"
@@ -104,12 +108,16 @@ int main(int argc, char* argv[]) {
         "Usage: {} <path to json config file>\nSchema of the config "
         "file is:\n{}",
         argv[0], config::config_schema);
+    std::cout << std::endl << "Native checks options:" << std::endl;
+    check_cpu::help(std::cout);
+    check_health::help(std::cout);
     return 1;
   }
 
-  std::unique_ptr<config> conf;
   try {
-    conf = std::make_unique<config>(argv[1]);
+    // mandatory to convert arg to a string to ensure of the choice of load
+    // method by compiler
+    config::load(std::string(argv[1]));
   } catch (const std::exception& e) {
     SPDLOG_ERROR("fail to parse config file {}: {}", argv[1], e.what());
     return 1;
@@ -123,20 +131,21 @@ int main(int argc, char* argv[]) {
 
   const std::string logger_name = "centreon-monitoring-agent";
 
-  if (conf->get_log_type() == config::to_file) {
+  const config& conf = config::instance();
+  if (conf.get_log_type() == config::to_file) {
     try {
-      if (!conf->get_log_file().empty()) {
-        if (conf->get_log_files_max_size() > 0 &&
-            conf->get_log_files_max_number() > 0) {
+      if (!conf.get_log_file().empty()) {
+        if (conf.get_log_files_max_size() > 0 &&
+            conf.get_log_files_max_number() > 0) {
           g_logger = spdlog::rotating_logger_mt(
-              logger_name, conf->get_log_file(),
-              conf->get_log_files_max_size() * 0x100000,
-              conf->get_log_files_max_number());
+              logger_name, conf.get_log_file(),
+              conf.get_log_files_max_size() * 0x100000,
+              conf.get_log_files_max_number());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "
               "=> logs will not be rotated by centagent");
-          g_logger = spdlog::basic_logger_mt(logger_name, conf->get_log_file());
+          g_logger = spdlog::basic_logger_mt(logger_name, conf.get_log_file());
         }
       } else {
         SPDLOG_ERROR(
@@ -144,18 +153,19 @@ int main(int argc, char* argv[]) {
         g_logger = spdlog::stdout_color_mt(logger_name);
       }
     } catch (const std::exception& e) {
-      SPDLOG_CRITICAL("Can't log to {}: {}", conf->get_log_file(), e.what());
+      SPDLOG_CRITICAL("Can't log to {}: {}", conf.get_log_file(), e.what());
       return 2;
     }
   } else {
     g_logger = spdlog::stdout_color_mt(logger_name);
   }
 
-  g_logger->set_level(conf->get_log_level());
+  g_logger->set_level(conf.get_log_level());
 
   g_logger->flush_on(spdlog::level::warn);
 
-  spdlog::flush_every(std::chrono::seconds(1));
+  // don't use it because spdlog mutex would hang child process
+  // spdlog::flush_every(std::chrono::seconds(1));
 
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
@@ -171,23 +181,25 @@ int main(int argc, char* argv[]) {
     _signals.async_wait(signal_handler);
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
-        conf->get_endpoint(), conf->use_encryption(),
-        read_file(conf->get_public_cert_file()),
-        read_file(conf->get_private_key_file()),
-        read_file(conf->get_ca_certificate_file()), conf->get_ca_name(), true,
-        30, conf->get_second_max_reconnect_backoff());
+        conf.get_endpoint(), conf.use_encryption(),
+        read_file(conf.get_public_cert_file()),
+        read_file(conf.get_private_key_file()),
+        read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
+        conf.get_second_max_reconnect_backoff());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
     return -1;
   }
 
-  if (conf->use_reverse_connection()) {
+  read_os_version();
+
+  if (conf.use_reverse_connection()) {
     _streaming_server = streaming_server::load(g_io_context, g_logger,
-                                               grpc_conf, conf->get_host());
+                                               grpc_conf, conf.get_host());
   } else {
     _streaming_client = streaming_client::load(g_io_context, g_logger,
-                                               grpc_conf, conf->get_host());
+                                               grpc_conf, conf.get_host());
   }
 
   try {

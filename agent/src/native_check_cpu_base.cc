@@ -228,7 +228,8 @@ native_check_cpu<nb_metric>::native_check_cpu(
     const std::string& cmd_line,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler)
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -237,7 +238,8 @@ native_check_cpu<nb_metric>::native_check_cpu(
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
 
       _nb_core(std::thread::hardware_concurrency()),
       _cpu_detailed(false),

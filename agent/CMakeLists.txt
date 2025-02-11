@@ -107,6 +107,7 @@ set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
 set(NATIVE_SRC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/src")
 
 set( SRC_COMMON
+  ${NATIVE_SRC}/agent_info.cc
   ${NATIVE_SRC}/check_cpu.cc
   ${SRC_DIR}/agent.grpc.pb.cc
   ${SRC_DIR}/agent.pb.cc
@@ -114,6 +115,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
   ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
@@ -129,6 +131,8 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_memory.cc
+  ${NATIVE_SRC}/check_service.cc
+  ${NATIVE_SRC}/ntdll.cc
 )
 
 set( SRC_LINUX
@@ -193,7 +197,8 @@ else()
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     absl::any absl::log absl::base absl::bits
     Boost::program_options
-    fmt::fmt)
+    fmt::fmt
+    pdh)
 
     if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
       add_subdirectory(installer)

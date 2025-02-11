@@ -19,7 +19,6 @@
 #include <rapidjson/document.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -102,6 +101,8 @@ const std::string_view config::config_schema(R"(
 }
 
 )");
+
+std::unique_ptr<config> config::_global_conf;
 
 config::config(const std::string& path) {
   static common::json_validator validator(config_schema);

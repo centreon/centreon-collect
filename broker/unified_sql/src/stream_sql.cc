@@ -16,7 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "bbdo/neb.pb.h"
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -291,6 +294,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 1 WHERE poller_id={}", id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   } else {
     query = fmt::format(
         "UPDATE instances SET outdated=TRUE WHERE instance_id={}", id);
@@ -305,6 +312,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 0 WHERE poller_id={}", id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   }
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   SPDLOG_LOGGER_TRACE(
@@ -1640,7 +1651,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
                        hp.parent_id(), hp.child_id());
 
     // Prepare queries.
-    if (!_host_parent_insert.prepared()) {
+    if (!_pb_host_parent_insert.prepared()) {
       query_preparator::event_pb_unique unique{
           {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
           {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
@@ -4876,6 +4887,50 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       SPDLOG_LOGGER_ERROR(_logger_sql, "Bad action in tag object");
       break;
   }
+}
+
+void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing agent stats");
+  std::shared_ptr<neb::pb_agent_stats> as{
+      std::static_pointer_cast<neb::pb_agent_stats>(d)};
+
+  std::string json_infos;
+
+  const AgentStats& stats = as->obj();
+
+  using namespace rapidjson;
+  Document doc(rapidjson::kArrayType);
+
+  for (const AgentInfo& info : stats.stats()) {
+    rapidjson::Value stat(rapidjson::kObjectType);
+    stat.AddMember("agent_major", info.major(), doc.GetAllocator());
+    stat.AddMember("agent_minor", info.minor(), doc.GetAllocator());
+    stat.AddMember("agent_patch", info.patch(), doc.GetAllocator());
+    stat.AddMember("reverse", info.reverse(), doc.GetAllocator());
+    stat.AddMember("os", StringRef(info.os().c_str()), doc.GetAllocator());
+    stat.AddMember("os_version", StringRef(info.os_version().c_str()),
+                   doc.GetAllocator());
+    stat.AddMember("nb_agent", info.nb_agent(), doc.GetAllocator());
+    doc.PushBack(stat, doc.GetAllocator());
+  }
+  StringBuffer out_buff;
+  Writer<StringBuffer> writer(out_buff);
+  doc.Accept(writer);
+
+  if (!_agent_information_insert_update.prepared()) {
+    _agent_information_insert_update = _mysql.prepare_query(
+        "INSERT INTO agent_information (poller_id, enabled, infos) VALUES "
+        "(?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled), "
+        "infos=VALUES(infos)");
+  }
+  int32_t conn = _mysql.choose_connection_by_instance(stats.poller_id());
+
+  _agent_information_insert_update.bind_value_as_u32(0, stats.poller_id());
+  _agent_information_insert_update.bind_value_as_bool(1, true);
+  _agent_information_insert_update.bind_value_as_str(2, out_buff.GetString());
+  _mysql.run_statement(_agent_information_insert_update,
+                       database::mysql_error::insert_update_agent_information,
+                       conn);
 }
 
 /**

@@ -47,7 +47,7 @@
 #include <spdlog/spdlog.h>
 
 #include <boost/asio.hpp>
-#ifndef _WINDOWS
+#ifndef _WIN32
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif

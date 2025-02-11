@@ -17,9 +17,13 @@
  */
 
 #include "scheduler.hh"
+#include <memory>
+#include "check.hh"
 #include "check_cpu.hh"
-#ifdef _WINDOWS
+#include "check_health.hh"
+#ifdef _WIN32
 #include "check_memory.hh"
+#include "check_service.hh"
 #include "check_uptime.hh"
 #endif
 #include "check_exec.hh"
@@ -173,6 +177,9 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                      conf->config().check_interval());
 
   if (nb_check > 0) {
+    // raz stats in order to not keep statistics of deleted checks
+    checks_statistics::pointer stat = std::make_shared<checks_statistics>();
+
     duration time_between_check =
         std::chrono::microseconds(conf->config().check_interval() * 1000000) /
         nb_check;
@@ -200,7 +207,8 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<com::centreon::common::perfdata>& perfdata,
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
-            });
+            },
+            stat);
         last_inserted_iter = _waiting_check_queue.emplace_hint(
             last_inserted_iter, check_to_schedule);
         next += time_between_check;
@@ -302,10 +310,10 @@ void scheduler::stop() {
  * @param outputs
  */
 void scheduler::_store_result_in_metrics(
-    const check::pointer& check,
-    unsigned status,
-    const std::list<com::centreon::common::perfdata>& perfdata,
-    const std::list<std::string>& outputs) {
+    [[maybe_unused]] const check::pointer& check,
+    [[maybe_unused]] unsigned status,
+    [[maybe_unused]] const std::list<com::centreon::common::perfdata>& perfdata,
+    [[maybe_unused]] const std::list<std::string>& outputs) {
   // auto scope_metrics =
   //     get_scope_metrics(check->get_host(), check->get_service());
   // unsigned now = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -543,7 +551,8 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& conf,
-    check::completion_handler&& handler) {
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
   using namespace std::literals;
   // test native checks where cmd_lin is a json
   try {
@@ -561,20 +570,28 @@ std::shared_ptr<check> scheduler::default_check_builder(
     if (check_type == "cpu_percentage"sv) {
       return std::make_shared<check_cpu>(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler));
-#ifdef _WINDOWS
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+    } else if (check_type == "health"sv) {
+      return std::make_shared<check_health>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+#ifdef _WIN32
     } else if (check_type == "uptime"sv) {
       return std::make_shared<check_uptime>(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler));
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
     } else if (check_type == "storage"sv) {
       return std::make_shared<check_drive_size>(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler));
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
     } else if (check_type == "memory"sv) {
       return std::make_shared<check_memory>(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler));
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+    } else if (check_type == "service"sv) {
+      return std::make_shared<check_service>(
+          io_context, logger, first_start_expected, check_interval, service,
+          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #endif
     } else {
       throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
@@ -583,6 +600,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,
                             check_interval, service, cmd_name, cmd_line, conf,
-                            std::move(handler));
+                            std::move(handler), stat);
   }
 }

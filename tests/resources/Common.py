@@ -1978,3 +1978,64 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False
+
+
+def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int):
+    """
+    Check if agent_information table is filled. Collect version is also checked
+        total_nb_agent (int): total number of agents
+        nb_poller (int): nb poller with at least one agent connected.
+        timeout (int): The timeout value for the check.
+    """
+    collect_version = ctn_get_collect_version()
+
+    collect_major = int(collect_version.split(".")[0])
+    collect_minor = int(collect_version.split(".")[1])
+    collect_patch = int(collect_version.split(".")[2])
+
+    limit = time.time() + timeout
+    query = "SELECT infos FROM agent_information WHERE enabled = 1"
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result)  == nb_poller:
+                    nb_agent = 0
+                    for res in result:
+                        logger.console(f"infos: {res['infos']}")
+                        agent_infos = json.loads(res['infos'])
+                        for by_agent_info in agent_infos:
+                            if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
+                                logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
+                                return False
+                            nb_agent += by_agent_info['nb_agent']
+                    if nb_agent == total_nb_agent:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_get_nb_process(exe:str):
+    """
+    ctn_get_nb_process
+
+    get the number of process with a specific executable
+    Args:
+        exe: executable to search
+    Returns: number of process
+    """
+
+    counter = 0
+
+    for p in psutil.process_iter():
+        if exe in p.name() or exe in ' '.join(p.cmdline()):
+            counter += 1
+    return counter

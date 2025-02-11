@@ -22,11 +22,9 @@
 #include <pdhmsg.h>
 
 #include "check_cpu.hh"
-#include "native_check_cpu_base.cc"
-
 #include "com/centreon/common/rapidjson_helper.hh"
-
-#pragma comment(lib, "pdh.lib")
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "native_check_cpu_base.cc"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_cpu_detail;
@@ -34,23 +32,6 @@ using namespace com::centreon::agent::check_cpu_detail;
 /**************************************************************************
       Kernel measure method
 ***************************************************************************/
-
-namespace com::centreon::agent::check_cpu_detail {
-
-// ntdll.dll handle
-static HMODULE _ntdll = nullptr;
-
-typedef LONG(WINAPI* NtQuerySystemInformationPtr)(ULONG SystemInformationClass,
-                                                  PVOID SystemInformation,
-                                                  ULONG SystemInformationLength,
-                                                  PULONG ReturnLength);
-
-// NtQuerySystemInformation function address
-static NtQuerySystemInformationPtr _nt_query_system_information = nullptr;
-
-constexpr ULONG SystemProcessorPerformanceInformationClass = 8;
-
-}  // namespace com::centreon::agent::check_cpu_detail
 
 /**
  * @brief Construct a kernel_per_cpu_time object from a
@@ -75,29 +56,6 @@ kernel_per_cpu_time::kernel_per_cpu_time(
 }
 
 /**
- * @brief load ntdll.dll and get NtQuerySystemInformation address
- *
- */
-static void _ntdll_init() {
-  if (!_ntdll) {
-    _ntdll = LoadLibraryA("ntdll.dll");
-    if (!_ntdll) {
-      throw std::runtime_error("Failed to load ntdll.dll");
-    }
-  }
-
-  if (!_nt_query_system_information)
-    // Obtenir le pointeur de fonction NtQuerySystemInformation
-    _nt_query_system_information = (NtQuerySystemInformationPtr)GetProcAddress(
-        _ntdll, "NtQuerySystemInformation");
-  if (!_nt_query_system_information) {
-    FreeLibrary(_ntdll);
-    throw std::runtime_error(
-        "Failed to get address of NtQuerySystemInformation");
-  }
-}
-
-/**
  * @brief Construct a new kernel cpu time snapshot::kernel cpu time snapshot
  * object it loads alls CPUs time and compute the average
  *
@@ -112,9 +70,10 @@ kernel_cpu_time_snapshot::kernel_cpu_time_snapshot(unsigned nb_core) {
 
   memset(buffer.get(), 0, buffer_size);
 
-  if (_nt_query_system_information(SystemProcessorPerformanceInformationClass,
-                                   buffer.get(), buffer_size,
-                                   &return_length) != 0) {
+  if (nt_query_system_information(
+          8 /*SystemProcessorPerformanceInformationClass*/
+          ,
+          buffer.get(), buffer_size, &return_length) != 0) {
     throw std::runtime_error("Failed to get kernel cpu time");
   }
 
@@ -396,7 +355,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::string& cmd_line,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
-                     check::completion_handler&& handler)
+                     check::completion_handler&& handler,
+                     const checks_statistics::pointer& stat)
     : native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field>(
           io_context,
           logger,
@@ -407,60 +367,34 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           cmd_line,
           args,
           cnf,
-          std::move(handler))
+          std::move(handler),
+          stat)
 
 {
   try {
-    com::centreon::common::rapidjson_helper arg(args);
     if (args.IsObject()) {
       for (auto member_iter = args.MemberBegin();
            member_iter != args.MemberEnd(); ++member_iter) {
         auto cpu_to_status_search = _label_to_cpu_to_status.find(
             absl::AsciiStrToLower(member_iter->name.GetString()));
         if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-          const rapidjson::Value& val = member_iter->value;
-          if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-              val.IsUint64()) {
+          std::optional<double> threshold =
+              check::get_double(cmd_name, member_iter->name.GetString(),
+                                member_iter->value, true);
+          if (threshold) {
             check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(member_iter->value.GetDouble() /
-                                             100);
+                cpu_to_status_search->second(*threshold / 100);
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
                                 cpu_checker.is_average(),
                                 cpu_checker.get_status()),
                 cpu_checker);
-          } else if (val.IsString()) {
-            auto to_conv = val.GetString();
-            double dval;
-            if (absl::SimpleAtod(to_conv, &dval)) {
-              check_cpu_detail::cpu_to_status cpu_checker =
-                  cpu_to_status_search->second(dval / 100);
-              _cpu_to_status.emplace(
-                  std::make_tuple(cpu_checker.get_proc_stat_index(),
-                                  cpu_checker.is_average(),
-                                  cpu_checker.get_status()),
-                  cpu_checker);
-            } else {
-              SPDLOG_LOGGER_ERROR(
-                  logger,
-                  "command: {}, value is not a number for parameter {}: {}",
-                  cmd_name, member_iter->name, val);
-            }
-
-          } else {
-            SPDLOG_LOGGER_ERROR(logger,
-                                "command: {}, bad value for parameter {}: {}",
-                                cmd_name, member_iter->name, val);
           }
         } else if (member_iter->name == "use-nt-query-system-information") {
-          const rapidjson::Value& val = member_iter->value;
-          if (val.IsBool()) {
-            _use_nt_query_system_information = val.GetBool();
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, use-nt-query-system-information is not a boolean",
-                cmd_name);
+          std::optional<bool> val = get_bool(
+              cmd_name, "use-nt-query-system-information", member_iter->value);
+          if (val) {
+            _use_nt_query_system_information = *val;
           }
         } else if (member_iter->name != "cpu-detailed") {
           SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
@@ -474,9 +408,7 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
     throw;
   }
 
-  if (_use_nt_query_system_information) {
-    _ntdll_init();
-  } else {
+  if (!_use_nt_query_system_information) {
     _pdh_counters = std::make_unique<pdh_counters>();
   }
 }
@@ -524,4 +456,54 @@ e_status check_cpu::compute(
 
   return _compute(first_measure, second_measure, _sz_summary_labels.data(),
                   _sz_perfdata_name.data(), output, perfs);
+}
+
+void check_cpu::help(std::ostream& help_stream) {
+  help_stream << R"(
+- cpu params:
+    use-nt-query-system-information (default true): true: use NtQuerySystemInformation instead of performance counters
+    cpu-detailed (default false): true: add detailed cpu usage metrics
+    warning-core: threshold for warning status on core usage in percentage
+    critical-core: threshold for critical status on core usage in percentage
+    warning-average: threshold for warning status on average usage in percentage
+    critical-average: threshold for critical status on average usage in percentage
+    warning-core-user: threshold for warning status on core user usage in percentage
+    critical-core-user: threshold for critical status on core user usage in percentage
+    warning-average-user: threshold for warning status on average user usage in percentage
+    critical-average-user: threshold for critical status on average user usage in percentage
+    warning-core-system: threshold for warning status on core system usage in percentage
+    critical-core-system: threshold for critical status on core system usage in percentage
+    warning-average-system: threshold for warning status on average system usage in percentage
+    critical-average-system: threshold for critical status on average system usage in percentage
+  An example of configuration:
+  { 
+    "check": "cpu_percentage",
+    "args": {
+        "cpu-detailed": true,
+        "warning-core": 80,
+        "critical-core": 90,
+        "warning-average": 60,
+        "critical-average": 70
+    }
+  }
+  Examples of output:
+    OK: CPU(s) average usage is 50.00%
+    WARNING: CPU'0' Usage: 40.00%, User 25.00%, System 10.00%, Idle 60.00%, Interrupt 5.00%, Dpc Interrupt 1.00% CRITICAL: CPU'1' Usage: 60.00%, User 45.00%, System 10.00%, Idle 40.00%, Interrupt 5.00%, Dpc Interrupt 0.00% WARNING: CPU(s) average Usage: 50.00%, User 35.00%, System 10.00%, Idle 50.00%, Interrupt 5.00%, Dpc Interrupt 0.50%
+  Metrics:
+    Normal mode:
+      <core index>#core.cpu.utilization.percentage
+      cpu.utilization.percentage
+    cpu-detailed mode:
+      <core index>~user#core.cpu.utilization.percentage
+      <core index>~system#core.cpu.utilization.percentage
+      <core index>~idle#core.cpu.utilization.percentage
+      <core index>~interrupt#core.cpu.utilization.percentage
+      <core index>~dpc_interrupt#core.cpu.utilization.percentage
+      <code index>~used#core.cpu.utilization.percentage
+      user#cpu.utilization.percentage
+      system#cpu.utilization.percentage
+      idle#cpu.utilization.percentage
+      interrupt#cpu.utilization.percentage
+      dpc_interrupt#cpu.utilization.percentage
+)";
 }

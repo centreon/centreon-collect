@@ -53,7 +53,8 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
                            const std::string& cmd_line,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
-                           check::completion_handler&& handler)
+                           check::completion_handler&& handler,
+                           const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
             first_start_expected,
@@ -62,7 +63,8 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)),
+            std::move(handler),
+            stat),
       _second_warning_threshold(0),
       _second_critical_threshold(0) {
   com::centreon::common::rapidjson_helper arg(args);
@@ -91,6 +93,9 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
  * @param timeout unused
  */
 void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
+  if (!_start_check(timeout)) {
+    return;
+  }
   std::string output;
   common::perfdata perf;
   e_status status = compute(GetTickCount64(), &output, &perf);
@@ -156,4 +161,28 @@ e_status check_uptime::compute(uint64_t ms_uptime,
     perf->warning(_second_warning_threshold);
   }
   return status;
+}
+
+void check_uptime::help(std::ostream& help_stream) {
+  help_stream <<
+      R"(
+- uptime  params:" 
+    unit (defaults s): can be s, second, m, minute, h, hour, d, day, w, week
+    warning-uptime: warning threshold, if computer has been up for less than this time, service will be in warning state
+    critical-uptime: critical threshold
+  An example of configuration:
+  {
+    "check": "uptime",
+    "args": {
+      "unit": "day",
+      "warning-uptime": 1,
+      "critical-uptime": 2
+    }
+  }
+  Examples of output:
+    OK: System uptime is: 5d 1h 1m 1s
+    CRITICAL: System uptime is: 1d 4h 0m 0s
+  Metrics:
+    uptime
+)";
 }

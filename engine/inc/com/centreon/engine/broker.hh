@@ -22,6 +22,7 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -519,6 +520,10 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
 void broker_bench(unsigned id,
                   const std::chrono::system_clock::time_point& mess_create);
+
+struct nebstruct_agent_stats_data;
+
+void broker_agent_stats(nebstruct_agent_stats_data& stats);
 
 #ifdef __cplusplus
 }

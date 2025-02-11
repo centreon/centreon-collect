@@ -34,7 +34,7 @@
 Write-Host "Work in" $pwd.ToString()
 
 $current_dir = (pwd).Path
-$wsl_path =  "/mnt/" + $current_dir.SubString(0,1).ToLower() + "/" + $current_dir.SubString(3).replace('\','/')
+$wsl_path = "/mnt/" + $current_dir.SubString(0, 1).ToLower() + "/" + $current_dir.SubString(3).replace('\', '/')
 
 mkdir reports
 
@@ -102,29 +102,38 @@ Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList 
 
 $uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
 $d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
-$ts_uptime =  ([DateTimeOffset]$d_uptime).ToUnixTimeSeconds() #timestamp format
+$ts_uptime = ([DateTimeOffset]$d_uptime).ToUnixTimeSeconds() #timestamp format
 
 $systeminfo_data = systeminfo /FO CSV | ConvertFrom-Csv
-$memory_info = @{
-    'total' = $systeminfo_data.'Total Physical Memory'
-    'free' = $systeminfo_data.'Available Physical Memory'
-    'virtual_max' = $systeminfo_data.'Virtual Memory: Max Size'
+$snapshot = @{
+    'total'        = $systeminfo_data.'Total Physical Memory'
+    'free'         = $systeminfo_data.'Available Physical Memory'
+    'virtual_max'  = $systeminfo_data.'Virtual Memory: Max Size'
     'virtual_free' = $systeminfo_data.'Virtual Memory: Available'
 }
 
+$serv_list = Get-Service
+
+$serv_stat = @{
+    'services.running.count' = ($serv_list  | Where-Object { $_.Status -eq "Running" } | measure).Count
+    'services.stopped.count' = ($serv_list  | Where-Object { $_.Status -eq "stopped" } | measure).Count
+}
+
 $test_param = @{
-    'host'= $my_host_name
-    'ip'= $my_ip
-    'wsl_path'= $wsl_path
-    'pwsh_path'= $pwsh_path
-    'drive' = @()
-    'current_dir' = $current_dir.replace('\','/')
-    'uptime' = $ts_uptime
-    'mem_info' = $memory_info}
+    'host'        = $my_host_name
+    'ip'          = $my_ip
+    'wsl_path'    = $wsl_path
+    'pwsh_path'   = $pwsh_path
+    'drive'       = @()
+    'current_dir' = $current_dir.replace('\', '/')
+    'uptime'      = $ts_uptime
+    'mem_info'    = $snapshot
+    'serv_stat'   = $serv_stat
+}
 
-Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process {$test_param.drive += $_}
+Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process { $test_param.drive += $_ }
 
-$json_test_param =  $test_param | ConvertTo-Json -Compress
+$json_test_param = $test_param | ConvertTo-Json -Compress
 
 Write-Host "json_test_param" $json_test_param
 $quoted_json_test_param = "'" + $json_test_param + "'"

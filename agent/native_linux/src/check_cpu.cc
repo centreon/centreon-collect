@@ -183,7 +183,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::string& cmd_line,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
-                     check::completion_handler&& handler)
+                     check::completion_handler&& handler,
+                     const checks_statistics::pointer& stat)
     : native_check_cpu<check_cpu_detail::e_proc_stat_index::nb_field>(
           io_context,
           logger,
@@ -194,7 +195,8 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           cmd_line,
           args,
           cnf,
-          std::move(handler))
+          std::move(handler),
+          stat)
 
 {
   com::centreon::common::rapidjson_helper arg(args);
@@ -204,39 +206,16 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
       auto cpu_to_status_search = _label_to_cpu_to_status.find(
           absl::AsciiStrToLower(member_iter->name.GetString()));
       if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-        const rapidjson::Value& val = member_iter->value;
-        if (val.IsFloat() || val.IsInt() || val.IsUint() || val.IsInt64() ||
-            val.IsUint64()) {
+        std::optional<double> val = get_double(
+            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        if (val) {
           check_cpu_detail::cpu_to_status cpu_checker =
-              cpu_to_status_search->second(member_iter->value.GetDouble() /
-                                           100);
+              cpu_to_status_search->second(*val / 100);
           _cpu_to_status.emplace(
               std::make_tuple(cpu_checker.get_proc_stat_index(),
                               cpu_checker.is_average(),
                               cpu_checker.get_status()),
               cpu_checker);
-        } else if (val.IsString()) {
-          auto to_conv = val.GetString();
-          double dval;
-          if (absl::SimpleAtod(to_conv, &dval)) {
-            check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(dval / 100);
-            _cpu_to_status.emplace(
-                std::make_tuple(cpu_checker.get_proc_stat_index(),
-                                cpu_checker.is_average(),
-                                cpu_checker.get_status()),
-                cpu_checker);
-          } else {
-            SPDLOG_LOGGER_ERROR(
-                logger,
-                "command: {}, value is not a number for parameter {}: {}",
-                cmd_name, member_iter->name, val);
-          }
-
-        } else {
-          SPDLOG_LOGGER_ERROR(logger,
-                              "command: {}, bad value for parameter {}: {}",
-                              cmd_name, member_iter->name, val);
         }
       } else if (member_iter->name != "cpu-detailed") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
@@ -284,4 +263,34 @@ e_status check_cpu::compute(
 
   return _compute(first_measure, second_measure, _sz_summary_labels.data(),
                   _sz_perfdata_name.data(), output, perfs);
+}
+
+void check_cpu::help(std::ostream& help_stream) {
+  help_stream << R"(
+- cpu params:
+    warning-core: threshold for warning status on core usage in percentage
+    critical-core: threshold for critical status on core usage in percentage
+    warning-average: threshold for warning status on average usage in percentage
+    critical-average: threshold for critical status on average usage in percentage
+    warning-core-user: threshold for warning status on core user usage in percentage
+    critical-core-user: threshold for critical status on core user usage in percentage
+    warning-average-user: threshold for warning status on average user usage in percentage
+    critical-average-user: threshold for critical status on average user usage in percentage
+    warning-core-nice: threshold for warning status on core nice usage in percentage
+    critical-core-nice: threshold for critical status on core nice usage in percentage
+    warning-average-nice: threshold for warning status on average nice usage in percentage
+    critical-average-nice: threshold for critical status on average nice usage in percentage
+    warning-core-system: threshold for warning status on core system usage in percentage
+    critical-core-system: threshold for critical status on core system usage in percentage
+    warning-average-system: threshold for warning status on average system usage in percentage
+    critical-average-system: threshold for critical status on average system usage in percentage
+    warning-core-iowait: threshold for warning status on core iowait usage in percentage
+    critical-core-iowait: threshold for critical status on core iowait usage in percentage
+    warning-average-iowait: threshold for warning status on average iowait usage in percentage
+    critical-average-iowait: threshold for critical status on average iowait usage in percentage
+    warning-core-guest: threshold for warning status on core guest usage in percentage
+    critical-core-guest: threshold for critical status on core guest usage in percentage
+    warning-average-guest: threshold for warning status on average guest usage in percentage
+    critical-average-guest: threshold for critical status on average guest usage in percentage
+    )";
 }

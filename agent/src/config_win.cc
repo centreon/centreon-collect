@@ -18,10 +18,11 @@
 
 #include <windows.h>
 
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
+
+std::unique_ptr<config> config::_global_conf;
 
 /**
  * @brief Construct a new config::config object

@@ -27,6 +27,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
@@ -34,6 +35,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/severity.hh"
 
@@ -111,7 +113,8 @@ static struct {
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_relation},
-    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench},
+    {NEBCALLBACK_AGENT_STATS, &neb::callback_agent_stats}};
 
 static struct {
   uint32_t macro;
@@ -123,7 +126,8 @@ static struct {
     {NEBCALLBACK_GROUP_DATA, &neb::callback_pb_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_pb_group_member},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_pb_relation},
-    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench},
+    {NEBCALLBACK_AGENT_STATS, &neb::callback_agent_stats}};
 
 // Registered callbacks.
 std::list<std::unique_ptr<neb::callback>> neb::gl_registered_callbacks;
@@ -3773,6 +3777,30 @@ class otl_protobuf
  */
 int neb::callback_otl_metrics(int, void* data) {
   gl_publisher.write(std::make_shared<neb::otl_detail::otl_protobuf>(data));
+  return 0;
+}
+
+int neb::callback_agent_stats(int, void* data) {
+  nebstruct_agent_stats_data* ds =
+      static_cast<nebstruct_agent_stats_data*>(data);
+
+  auto to_send = std::make_shared<neb::pb_agent_stats>();
+
+  to_send->mut_obj().set_poller_id(
+      config::applier::state::instance().poller_id());
+
+  for (const auto& cumul_data : *ds->data) {
+    AgentInfo* to_fill = to_send->mut_obj().add_stats();
+    to_fill->set_major(cumul_data.major);
+    to_fill->set_minor(cumul_data.minor);
+    to_fill->set_patch(cumul_data.patch);
+    to_fill->set_reverse(cumul_data.reverse);
+    to_fill->set_os(cumul_data.os);
+    to_fill->set_os_version(cumul_data.os_version);
+    to_fill->set_nb_agent(cumul_data.nb_agent);
+  }
+
+  gl_publisher.write(to_send);
   return 0;
 }
 

@@ -1,7 +1,7 @@
 name: Centreon collect
 run-name: |
   ${{
-    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true'))
+    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
     && format('collect nightly {0}', github.ref_name)
     || ''
   }}
@@ -13,7 +13,7 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
-      is_nightly:
+      nightly_manual_trigger:
         description: 'Set to true for nightly run'
         required: true
         default: false
@@ -107,32 +107,18 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-
-  veracode-analysis:
-    needs: [get-environment]
-    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
-    uses: ./.github/workflows/veracode-analysis.yml
-    with:
-      module_name: centreon-collect
-      major_version: ${{ needs.get-environment.outputs.major_version }}
-      minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
-    secrets:
-      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
-      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
-      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      docker_registry_passwd: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   unit-test:
     needs: [get-environment]
-    if: ${{ github.event.inputs.unit_tests == 'true' && ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
-
+    if: |
+      github.event.inputs.unit_tests == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
         distrib: [alma8, alma9, debian-bookworm]
-
     runs-on: [self-hosted, collect]
 
     env:
@@ -240,7 +226,9 @@ jobs:
 
   package:
     needs: [get-environment]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
@@ -287,15 +275,29 @@ jobs:
       package_extension: ${{ matrix.package_extension }}
       runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
-    secrets: inherit
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+    secrets:
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+      rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+      rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   robot-test:
     needs: [get-environment, package]
     if: |
-      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.is_nightly == 'true')) &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.is_nightly == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
@@ -347,10 +349,11 @@ jobs:
       image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
       image_version: ${{ needs.get-environment.outputs.img_version }}
       package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension}}
+      package_cache_path: ./*.${{ matrix.package_extension }}
       database_type: ${{ matrix.database_type }}
-      tests_params: ${{matrix.tests_params}}
-      test_group_name: ${{matrix.test_group_name}}
+      tests_params: ${{ matrix.tests_params }}
+      test_group_name: ${{ matrix.test_group_name }}
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -358,16 +361,19 @@ jobs:
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
       xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
-
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
-      contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+      needs.get-environment.outputs.stability == 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     steps:
       - name: Checkout sources
@@ -387,10 +393,13 @@ jobs:
 
   deliver-rpm:
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
@@ -419,12 +428,28 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+
   deliver-deb:
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
@@ -451,13 +476,31 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' &&
+          github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev') &&
+          github.repository == 'centreon/centreon-collect'
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -478,3 +521,12 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
