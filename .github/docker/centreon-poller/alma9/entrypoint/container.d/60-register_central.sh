@@ -83,7 +83,7 @@ EOF
   systemctl start gorgoned
 
   until [ "$PING_OK" -gt "0" ] 2>/dev/null; do
-    sleep 1
+    sleep 5
     PING_OK=$(curl -s -X GET -H "accept: application/json" "http://${WEB_HOST}:${WEB_GORGONE_PORT}/api/internal/constatus" | grep -o '"ping_ok":[0-9]*' | cut -d':' -f2)
     if [ "$PING_OK" -gt "0" ] 2>/dev/null; then
       for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
