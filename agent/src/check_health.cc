@@ -270,8 +270,8 @@ e_status check_health::compute(std::string* output,
   } else {
     *output = "OK: ";
   }
-  fmt::format_to(std::back_inserter(*output), _info_output, get_stats().size(),
-                 average_runtime / get_stats().size());
+  fmt::vformat_to(std::back_inserter(*output), _info_output, get_stats().size(),
+                  average_runtime / get_stats().size());
 
   return ret;
 }
