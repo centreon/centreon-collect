@@ -256,6 +256,19 @@ stream::~stream() noexcept {
   /* Let's wait a little if one of the timers is working during the cancellation
    */
   absl::MutexLock lck(&_barrier_timer_m);
+  /* If there are data to write, we write them, so we force their readyness. */
+  _hscr_bind->force_ready();
+  _sscr_bind->force_ready();
+  _hscr_resources_bind->force_ready();
+  _sscr_resources_bind->force_ready();
+  _perfdata_query->force_ready();
+  _cv.force_ready();
+  _cvs.force_ready();
+  _downtimes->force_ready();
+  _comments->force_ready();
+  _logs->force_ready();
+  boost::system::error_code ec;
+  _check_queues(ec);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 

@@ -146,7 +146,8 @@ class bulk_or_multi {
 
   void on_add_row();
 
-  bool ready();
+  bool ready() const;
+  void force_ready();
 
   unsigned row_count() const { return _row_count; }
   std::chrono::seconds get_oldest_waiting_event_delay() const;
