@@ -2084,11 +2084,12 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 start = dt - datetime.timedelta(days=nb_day)
                 start = int(start.timestamp())
                 logger.console(
-                    f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
+                    f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}    : timestamp : ({start})")
                 value = int(r['metric_id']) // 2
                 status_value = index_id % 3
-                cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
+                deleted_rows = cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                     r['metric_id'], start))
+                logger.console(f"Deleted {deleted_rows} rows for metric {r['metric_id']}, and ctime >={start}.")
                 # We set the value to a constant on 180 days
                 now = int(now.timestamp())
                 logger.console(
