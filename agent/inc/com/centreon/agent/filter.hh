@@ -19,21 +19,35 @@
 #ifndef CENTREON_AGENT_FILTER_HH
 #define CENTREON_AGENT_FILTER_HH
 
+#include <absl/container/flat_hash_set.h>
 #include <memory>
 #include <tuple>
 #include <type_traits>
 #include <variant>
 namespace com::centreon::agent {
 
+/**
+ * @brief this abstract struct will be used to pass datas to the check process
+ * it contains nothing in order to be used by any check on any data
+ *
+ */
 struct testable {};
 
+/**
+ * @brief a checker is a function that will check if a testable object is
+ * matching the filter
+ *
+ */
 using checker = std::function<bool(const testable&)>;
 
-namespace filters {
-class label_compare_to_value;
-}
-using checker_builder =
-    std::function<checker(const filters::label_compare_to_value&)>;
+class filter;
+
+/**
+ * @brief a checker_builder is a function that will build a checker from a
+ * filter built checker will be stored in filter to perform checks
+ *
+ */
+using checker_builder = std::function<checker(const filter*)>;
 
 /**
  * @brief abstract filter base class
@@ -41,14 +55,21 @@ using checker_builder =
  */
 class filter {
  public:
-  enum class filter_type : int { label_compare_to_value, filter_combinator };
+  enum class filter_type : int {
+    label_compare_to_value,
+    label_in,
+    filter_combinator
+  };
 
  private:
   filter_type _type;
 
  public:
   filter(filter_type type) : _type(type) {}
+  filter(const filter&) = default;
   virtual ~filter() = default;
+
+  filter& operator=(const filter&) = default;
 
   filter_type get_type() const { return _type; }
 
@@ -72,7 +93,17 @@ std::ostream& operator<<(std::ostream& s,
 
 namespace com::centreon::agent {
 
+/**
+ * @brief The filters namespace contains classes for filtering data based on
+ * various criteria.
+ */
 namespace filters {
+
+/**
+ * @brief The goal of this filter is to check a double threshold of a label
+ * It embeds label, threshold, unit and comparison
+ * example: foo > 10.0
+ */
 class label_compare_to_value : public filter {
  public:
   enum class comparison : int {
@@ -94,15 +125,15 @@ class label_compare_to_value : public filter {
   checker _checker;
 
  public:
-  label_compare_to_value(std::string&& label,
-                         comparison compare,
-                         double value,
-                         std::string&& unit);
-
   label_compare_to_value(double value,
                          std::string&& unit,
                          comparison compare,
-                         std::string&& label)
+                         std::string&& label);
+
+  label_compare_to_value(std::string&& label,
+                         comparison compare,
+                         double value,
+                         std::string&& unit)
       : filter(filter_type::label_compare_to_value),
         _label(std::move(label)),
         _value(value),
@@ -126,18 +157,57 @@ class label_compare_to_value : public filter {
 
   bool check(const testable& t) const override { return _checker(t); }
   void apply_checker(const checker_builder& checker_builder) override {
-    _checker = checker_builder(*this);
+    _checker = checker_builder(this);
   }
 };
 
+/**
+ * @brief test if a value is in a set of values
+ * example: foo in (titi, 'tutu', tata)
+ *
+ */
+class label_in : public filter {
+ public:
+  enum class in_not { in, not_in };
+
+ private:
+  absl::flat_hash_set<std::string> _values;
+  std::string _label;
+  in_not _rule;
+
+  checker _checker;
+
+ public:
+  label_in() : filter(filter_type::label_in) {}
+
+  label_in(std::string&& label, in_not rule, std::vector<std::string>&& values);
+
+  const absl::flat_hash_set<std::string>& get_values() const { return _values; }
+  const std::string& get_label() const { return _label; }
+  in_not get_rule() const { return _rule; }
+
+  std::unique_ptr<filter> clone() const override {
+    return std::make_unique<label_in>(*this);
+  }
+
+  void dump(std::ostream& s) const override;
+
+  bool check(const testable& t) const override { return _checker(t); }
+  void apply_checker(const checker_builder& checker_builder) override {
+    _checker = checker_builder(this);
+  }
+};
+
+/**
+ * @brief the glue between filters
+ * it will be used to combine filters with logical operators and, or, && ,|| and
+ * () Example: foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux
+ * in(truc, 'machin')
+ *
+ */
 class filter_combinator : public filter {
  public:
   enum class logical_operator : int { filter_and, filter_or };
-
-  // using compar_combi = std::variant<label_compare_to_value,
-  // filter_combinator>; using ope_compar_combi = std::tuple<logical_operator,
-  // compar_combi>; using several_ope_compar_combi =
-  //     std::tuple<compar_combi, std::vector<ope_compar_combi>>;
 
   using filter_ptr = std::unique_ptr<filter>;
 
@@ -158,8 +228,13 @@ class filter_combinator : public filter {
   filter_ptr _move_filter(label_compare_to_value&& filt) {
     return std::make_unique<label_compare_to_value>(std::move(filt));
   }
+  filter_ptr _move_filter(label_in&& filt) {
+    return std::make_unique<label_in>(std::move(filt));
+  }
+
   filter_ptr _move_filter(
-      std::variant<label_compare_to_value, filter_combinator>&& filt) {
+      std::variant<label_compare_to_value, label_in, filter_combinator>&&
+          filt) {
     return std::visit(
         [this](auto&& arg) { return _move_filter(std::move(arg)); }, filt);
   }
@@ -174,6 +249,7 @@ class filter_combinator : public filter {
       : filter(filter_type::filter_combinator),
         _logical(ope),
         _filters(std::move(sub_filters)) {}
+
   filter_combinator& operator=(const filter_combinator&);
 
   template <typename T>

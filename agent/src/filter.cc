@@ -29,10 +29,24 @@ std::ostream& operator<<(std::ostream& s,
 }
 }  // namespace std
 
-label_compare_to_value::label_compare_to_value(std::string&& label,
+/*************************************************************************
+ *                                                                       *
+ *                          label_compare_to_value                        *
+ *                                                                       *
+ *************************************************************************/
+
+/**
+ * @brief Construct a new label compare to value::label compare to value object
+ *
+ * @param value threshold value
+ * @param unit %,s,....
+ * @param compare <=, != ...
+ * @param label id of the data to test
+ */
+label_compare_to_value::label_compare_to_value(double value,
+                                               std::string&& unit,
                                                comparison compare,
-                                               double value,
-                                               std::string&& unit)
+                                               std::string&& label)
     : filter(filter_type::label_compare_to_value),
       _label(std::move(label)),
       _value(value),
@@ -51,8 +65,13 @@ label_compare_to_value::label_compare_to_value(std::string&& label,
   dump(std::cout);
 }
 
+/**
+ * @brief dump object to std::ostream
+ *
+ * @param s
+ */
 void label_compare_to_value::dump(std::ostream& s) const {
-  s << ' ' << " { " << _value << ' ' << _unit << ' ';
+  s << ' ' << " { " << _label << ' ';
 
   switch (_comparison) {
     case comparison::less_than:
@@ -78,9 +97,56 @@ void label_compare_to_value::dump(std::ostream& s) const {
       break;
   }
 
-  s << ' ' << _label << " } " << std::endl;
+  s << _value << ' ' << _unit << " } " << std::endl;
 }
 
+/*************************************************************************
+ *                                                                       *
+ *                               label_in                                *
+ *                                                                       *
+ *************************************************************************/
+
+/**
+ * @brief Construct a new label in::label in object
+ *
+ * @param label id of the data to test
+ * @param rule in or not_in
+ * @param values allowed or forbidden values
+ */
+label_in::label_in(std::string&& label,
+                   in_not rule,
+                   std::vector<std::string>&& values)
+    : filter(filter_type::label_in), _label(std::move(label)), _rule(rule) {
+  for (auto&& value : values) {
+    _values.insert(std::move(value));
+  }
+}
+
+/**
+ * @brief dump object to stream s
+ *
+ * @param s
+ */
+void label_in::dump(std::ostream& s) const {
+  s << " { " << _label << ' ' << (_rule == in_not::in ? "in" : "not_in")
+    << " (";
+  for (const auto& value : _values) {
+    s << value << ", ";
+  }
+  s << ") }";
+}
+
+/*************************************************************************
+ *                                                                       *
+ *                          filter_combinator                            *
+ *                                                                       *
+ *************************************************************************/
+
+/**
+ * @brief Copy Constructor
+ *
+ * @param other
+ */
 filter_combinator::filter_combinator(const filter_combinator& other)
     : filter(filter_type::filter_combinator) {
   _logical = other._logical;
@@ -90,9 +156,20 @@ filter_combinator::filter_combinator(const filter_combinator& other)
   }
 }
 
+/**
+ * @brief Another Copy Constructor
+ *
+ * @param other
+ */
 filter_combinator::filter_combinator(filter_combinator& other)
     : filter_combinator(static_cast<const filter_combinator&>(other)) {}
 
+/**
+ * @brief = copy
+ *
+ * @param other
+ * @return filter_combinator&
+ */
 filter_combinator& filter_combinator::operator=(
     const filter_combinator& other) {
   if (this != &other) {
@@ -123,12 +200,22 @@ bool filter_combinator::check(const testable& t) const {
   }
 }
 
+/**
+ * @brief apply checker to all subfilters
+ *
+ * @param checker_builder
+ */
 void filter_combinator::apply_checker(const checker_builder& checker_builder) {
   for (auto& subfilter : _filters) {
     subfilter->apply_checker(checker_builder);
   }
 }
 
+/**
+ * @brief dump object and subobjects
+ *
+ * @param s
+ */
 void filter_combinator::dump(std::ostream& s) const {
   bool first = true;
   s << " ( ";
