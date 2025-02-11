@@ -349,6 +349,9 @@ jobs:
 
   dockerize:
     needs: [get-environment, package]
+    if: |
+      (contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) && contains(needs.get-environment.outputs.labels, 'build-docker-poller')) ||
+      needs.get-environment.outputs.is_nightly == 'true'
     runs-on: ubuntu-24.04
     env:
       project: centreon-poller
@@ -357,7 +360,7 @@ jobs:
       matrix:
         distrib: [alma9]
 
-    name: dockerize ${{ matrix.distrib }}
+    name: dockerize centreon-poller-${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
