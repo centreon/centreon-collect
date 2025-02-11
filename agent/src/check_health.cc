@@ -121,11 +121,16 @@ void check_health::_measure_timer_handler(const boost::system::error_code& err,
     return;
   }
   std::string output;
-  std::list<common::perfdata> perf;
+  std::list<com::centreon::common::perfdata> perf;
   e_status status = compute(&output, &perf);
 
   on_completion(start_check_index, status, perf, {output});
 }
+
+auto my_format_to =
+    [](auto out_iter, std::string_view format, const auto&... args) {
+      return fmt::vformat_to(out_iter, format, fmt::make_format_args(args...));
+    };
 
 /**
  * @brief calculate status, output and perfdata from statistics
@@ -135,8 +140,9 @@ void check_health::_measure_timer_handler(const boost::system::error_code& err,
  * @param perfs
  * @return e_status
  */
-e_status check_health::compute(std::string* output,
-                               std::list<common::perfdata>* perf) {
+e_status check_health::compute(
+    std::string* output,
+    std::list<com::centreon::common::perfdata>* perf) {
   e_status ret = e_status::ok;
 
   const checks_statistics& stats = get_stats();
@@ -270,8 +276,8 @@ e_status check_health::compute(std::string* output,
   } else {
     *output = "OK: ";
   }
-  fmt::vformat_to(std::back_inserter(*output), _info_output, get_stats().size(),
-                  average_runtime / get_stats().size());
+  my_format_to(std::back_inserter(*output), _info_output, get_stats().size(),
+               average_runtime / get_stats().size());
 
   return ret;
 }

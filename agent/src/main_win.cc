@@ -302,8 +302,8 @@ int main(int argc, char* argv[]) {
       "centagent.exe will start in service mode, if you launch it from command "
       "line, use --standalone flag");
 
-  SERVICE_TABLE_ENTRY DispatchTable[] = {
-      {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
+  const SERVICE_TABLE_ENTRY DispatchTable[] = {
+      {(LPSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
 
   // This call returns when the service has stopped.
   // The process should simply terminate when the call returns.

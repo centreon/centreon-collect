@@ -155,7 +155,7 @@ template <unsigned nb_metric>
 e_status native_check_base<nb_metric>::compute(
     const native_check_detail::snapshot<nb_metric>& data,
     std::string* output,
-    std::list<common::perfdata>* perfs) const {
+    std::list<com::centreon::common::perfdata>* perfs) const {
   e_status status = e_status::ok;
 
   for (const auto& mem_status : _measure_to_status) {

@@ -32,18 +32,10 @@ class msg_fmt : public std::exception {
   const std::string _msg;
 
  public:
-//#if __cplusplus >= 202002L
-#if 1
   template <typename... Args>
   explicit msg_fmt(std::string_view str, const Args&... args)
       : _msg(fmt::vformat(str, fmt::make_format_args(args...))) {}
 
-#else
-  template <typename... Args>
-  explicit msg_fmt(const std::string& str, const Args&... args)
-      : _msg(fmt::format(str, args...)) {}
-
-#endif
   msg_fmt() = delete;
   msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
   msg_fmt& operator=(const msg_fmt&) = delete;

@@ -309,7 +309,7 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
   }
 
   std::string output;
-  std::list<common::perfdata> perfs;
+  std::list<com::centreon::common::perfdata> perfs;
 
   std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> new_measure =
       get_cpu_time_snapshot(false);
