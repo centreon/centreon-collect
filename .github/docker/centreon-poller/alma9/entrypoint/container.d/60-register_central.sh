@@ -1,9 +1,17 @@
 #!/bin/sh
 
-if getent hosts web; then
+WEB_ADDR=${WEB_ADDR:-web}
+WEB_GORGONE_PORT=${WEB_GORGONE_PORT:-8085}
+WEB_API_USERNAME=${WEB_API_USERNAME:-admin}
+WEB_API_PASSWORD=${WEB_API_PASSWORD:-Centreon!2021}
+
+if getent hosts "${WEB_ADDR}"; then
+  # Set HOSTNAME if not already set
+  : "${HOSTNAME:=$(hostname)}"
+
   API_RESPONSE=$(curl -s -X POST --insecure -H "Content-Type: application/json" \
-      -d '{"security":{"credentials":{"login":"admin", "password":"Centreon!2021"}}}' \
-      "http://web/centreon/api/latest/login")
+      -d "{\"security\":{\"credentials\":{\"login\":\"${WEB_API_USERNAME}\", \"password\":\"${WEB_API_PASSWORD}\"}}}" \
+      "http://${WEB_ADDR}/centreon/api/latest/login")
 
   API_TOKEN=$(echo "${API_RESPONSE}" | grep -o '"token":"[^"]*' | cut -d'"' -f4)
 
@@ -11,16 +19,16 @@ if getent hosts web; then
 
   curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "X-AUTH-TOKEN: ${API_TOKEN}" \
       -d "${PAYLOAD}" \
-      "http://web/centreon/api/latest/platform/topology"
+      "http://${WEB_ADDR}/centreon/api/latest/platform/topology"
 
-  CENTRAL_IP_ADDRESS=$(getent hosts web | awk '{print $1;}')
+  CENTRAL_IP_ADDRESS=$(getent hosts "${WEB_ADDR}" | awk '{print $1;}')
   curl -s -X POST --insecure -i -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
       -d "{\"linked_remote_master\":\"\",\"linked_remote_slaves\":[],\"open_broker_flow\":false,\"centreon_central_ip\":\"${CENTRAL_IP_ADDRESS}\",\"server_ip\":\"$HOSTNAME\",\"server_name\":\"$HOSTNAME\",\"server_type\":\"poller\"}" \
-      "http://web/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"
+      "http://${WEB_ADDR}/centreon/api/index.php?object=centreon_configuration_remote&action=linkCentreonRemoteServer"
 
   until [ "$THUMBPRINT" != '' ]; do
     sleep 1
-    API_RESPONSE=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/thumbprint")
+    API_RESPONSE=$(curl -s -X GET -H "accept: application/json" "http://${WEB_ADDR}:${WEB_GORGONE_PORT}/api/internal/thumbprint")
     THUMBPRINT=$(echo $API_RESPONSE | grep -o '"thumbprint":\"[^\"]*' | cut -d'"' -f4)
   done
 
@@ -65,12 +73,12 @@ EOF
 
   until [ "$PING_OK" -gt "0" ] 2>/dev/null; do
     sleep 1
-    PING_OK=$(curl -s -X GET -H "accept: application/json" "http://web:8085/api/internal/constatus" | grep -o '"ping_ok":[0-9]*' | cut -d':' -f2)
+    PING_OK=$(curl -s -X GET -H "accept: application/json" "http://${WEB_ADDR}:${WEB_GORGONE_PORT}/api/internal/constatus" | grep -o '"ping_ok":[0-9]*' | cut -d':' -f2)
     if [ "$PING_OK" -gt "0" ] 2>/dev/null; then
       for action in POLLERGENERATE CFGMOVE POLLERRESTART; do
         curl -X POST --insecure -H "Content-Type: application/json" -H "centreon-auth-token: ${API_TOKEN}" \
             -d "{\"action\":\"$action\",\"values\":\"$HOSTNAME\"}" \
-            "http://web/centreon/api/index.php?action=action&object=centreon_clapi"
+            "http://${WEB_ADDR}/centreon/api/index.php?action=action&object=centreon_clapi"
       done
     fi
   done
