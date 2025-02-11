@@ -931,7 +931,11 @@ BEEXTCMD22
     END
 
 BEEXTCMD23
-    [Documentation]    external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo3.0
+    [Documentation]    Given Engine and broker configured with BBDO3
+    ...    When the external command DISABLE_HOST_CHECK on host_1 is executed
+    ...    Then the host_1 host checks should be disabled
+    ...    When the external command ENABLE_HOST_CHECK on host_1 is executed
+    ...    Then the host_1 host checks should be enabled
     [Tags]    broker    engine    host    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -951,27 +955,20 @@ BEEXTCMD23
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
+	Log To Console    We check that active checks are really disabled on host_1 in the hosts table
+	Log To Console    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
         FOR    ${index}    IN RANGE    30
-            Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
-            ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
+            IF    "${output}" == "((0, 0),)"    BREAK
             Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
         END
-        Should Be Equal As Strings    ${output}    ((0,),)
+        Should Be Equal As Strings    ${output}    ((0, 0),)
 
+	Log To Console    We check that active checks are really disabled on host_1 in the resources table
+        Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
         FOR    ${index}    IN RANGE    30
-            Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
-            Log To Console    ${output}
-            Sleep    1s
-            IF    "${output}" == "((0,),)"    BREAK
-        END
-        Should Be Equal As Strings    ${output}    ((0,),)
-
-        FOR    ${index}    IN RANGE    30
-            Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
-            ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -981,13 +978,13 @@ BEEXTCMD23
         Ctn Enable Host Check    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
-            Log To Console    SELECT active_checks FROM hosts WHERE name='host_1'
-            ${output}    Query    SELECT active_checks FROM hosts WHERE name='host_1'
+            Log To Console    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
+            IF    "${output}" == "((1, 1),)"    BREAK
         END
-        Should Be Equal As Strings    ${output}    ((1,),)
+        Should Be Equal As Strings    ${output}    ((1, 1),)
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
@@ -998,14 +995,6 @@ BEEXTCMD23
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        FOR    ${index}    IN RANGE    30
-            Log To Console    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
-            ${output}    Query    SELECT should_be_scheduled FROM hosts WHERE name='host_1'
-            Log To Console    ${output}
-            Sleep    1s
-            IF    "${output}" == "((1,),)"    BREAK
-        END
-        Should Be Equal As Strings    ${output}    ((1,),)
 	Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
