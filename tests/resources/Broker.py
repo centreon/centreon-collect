@@ -2089,18 +2089,46 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 status_value = index_id % 3
                 cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                     r['metric_id'], start))
+                connection.commit()
                 # We set the value to a constant on 180 days
                 now = int(now.timestamp())
                 logger.console(
                     f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                values = ""
+                size = 0
                 for i in range(start, now, 60 * 5):
                     if i == start:
                         logger.console(
                             "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
                                 r['metric_id'], i, value, status_value))
-                    cursor.execute(
-                        "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                            r['metric_id'], i, value, status_value))
+                    values += f"({r['metric_id']},{i},{value},'{status_value}'),"
+                    size += 1
+                    if size >= 500:
+                        for j in range(3):
+                            try:
+                                cursor.execute(
+                                    "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES {}".format(values[:-1]))
+                                values = ""
+                                size = 0
+                                break
+                            except Exception as e:
+                                if e.args[0] == 1213:
+                                    logger.console(f"Error inserting data: {e}")
+                                    time.sleep(1)
+                                else:
+                                    raise e
+                if size > 0:
+                    for i in range(3):
+                        try:
+                            cursor.execute(
+                                "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES {}".format(values[:-1]))
+                            break
+                        except Exception as e:
+                            if e.args[0] == 1213:
+                                logger.console(f"Error inserting data: {e}")
+                                time.sleep(1)
+                            else:
+                                raise e
                 connection.commit()
                 retval.add(index_id)
 
