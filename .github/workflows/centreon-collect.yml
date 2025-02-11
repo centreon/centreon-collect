@@ -1,4 +1,10 @@
 name: Centreon collect
+run-name: |
+  ${{
+    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    && format('collect nightly {0}', github.ref_name)
+    || ''
+  }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -6,6 +12,14 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      nightly_manual_trigger:
+        description: 'Set to true for nightly run'
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    - cron: '30 0 * * 1-5'
   pull_request:
     paths:
       - agent/**
@@ -61,12 +75,14 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   unit-test:
     needs: [get-environment]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     runs-on: [self-hosted, collect]
-
     strategy:
       fail-fast: false
       matrix:
@@ -94,7 +110,9 @@ jobs:
 
   package:
     needs: [get-environment]
-    if: ${{ ! contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -103,12 +121,19 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets: inherit
 
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     steps:
       - name: Checkout sources
@@ -127,7 +152,13 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
     needs: [get-environment, package]
     runs-on: [self-hosted, common]
     strategy:
@@ -156,8 +187,27 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+
   deliver-deb:
-    if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-environment.outputs.stability) }}
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
     needs: [get-environment, package]
     runs-on: [self-hosted, common]
     strategy:
@@ -190,13 +240,30 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
+      - name: Create Jira ticket if nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev') &&
+          github.repository == 'centreon/centreon-collect'
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -217,3 +284,12 @@ jobs:
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml

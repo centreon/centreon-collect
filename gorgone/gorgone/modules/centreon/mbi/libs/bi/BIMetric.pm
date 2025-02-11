@@ -83,7 +83,7 @@ sub insertMetricsIntoTable {
 	$query .= " s.`sc_id`, s.`sc_name`, s.`host_id`, s.`host_name`, `hc_id`, `hc_name`, `hg_id`, `hg_name`";
 	$query .= " FROM `mod_bi_tmp_today_services` s, `metrics` m, `index_data` i";
 	$query .= " WHERE i.id = m.index_id and i.host_id=s.host_id and i.service_id=s.service_id";
-	$query .= " group by s.hg_id, s.hc_id, s.sc_id, m.index_id, m.metric_id";
+	$query .= " group by s.hg_id, s.hc_id, s.sc_id, m.index_id, m.metric_id, m.metric_name, m.unit_name, s.service_description, s.sc_name, s.host_name, s.host_id, hc_name, s.hg_name";
 	my $sth = $db->query({ query => $query });
 	return $sth;
 }

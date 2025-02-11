@@ -1804,7 +1804,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
                        hp.parent_id(), hp.child_id());
 
     // Prepare queries.
-    if (!_host_parent_insert.prepared()) {
+    if (!_pb_host_parent_insert.prepared()) {
       query_preparator::event_pb_unique unique{
           {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
           {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
