@@ -79,8 +79,6 @@ class filter {
 
   virtual std::unique_ptr<filter> clone() const = 0;
 
-  static filter parse(const std::string_view& filter);
-
   virtual bool check(const testable& t) const = 0;
 };
 
