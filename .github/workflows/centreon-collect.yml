@@ -350,8 +350,10 @@ jobs:
   dockerize:
     needs: [get-environment, package]
     if: |
-      (contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) && contains(needs.get-environment.outputs.labels, 'build-docker-poller')) ||
-      needs.get-environment.outputs.is_nightly == 'true'
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.is_nightly == 'true' ||
+      (contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) && contains(needs.get-environment.outputs.labels, 'build-docker-poller'))
     runs-on: ubuntu-24.04
     env:
       project: centreon-poller
@@ -417,7 +419,7 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
   robot-test:
-    needs: [get-environment, dockerize]
+    needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
