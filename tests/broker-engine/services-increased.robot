@@ -85,6 +85,7 @@ Service_increased_huge_check_interval
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
 
     FOR    ${idx}    IN RANGE    60
+    	Sleep    1s
         ${index}    Ctn Get Indexes To Rebuild    2
 	IF    len(${index}) == 2
             BREAK
@@ -93,7 +94,6 @@ Service_increased_huge_check_interval
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
         END
-	Sleep    1s
     END
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics: ${metrics}
