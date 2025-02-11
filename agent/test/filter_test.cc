@@ -23,6 +23,9 @@
 #include "filter.hh"
 #include "filter_rules.hh"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::filters;
 
@@ -354,3 +357,5 @@ TEST(filter_test, filter_check_values) {
 
   EXPECT_TRUE(res12->check(to_test{}));
 }
+
+#pragma GCC diagnostic pop

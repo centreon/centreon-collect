@@ -85,6 +85,23 @@ class dummy_check : public check {
 };
 ```
 
+### About filters
+In order to parse filter grammars, we use boost parser library. With that library, you can build a tree of config objects with a few lines of code.
+Some tips:
+* Author advises to skip whitespaces during parsing. It's a bas idea as whitespace are useful to separate tokens. This is why you will see some bp::ws in rule implementations.
+* When you define a rule, you have to create the object that will receive parse result. You have two possibilities. First, you receive a tuple or a variant with all parsed fields. You can give a constructor with all of types contained in the tuple, library will do the bridge. The main difficulty is to know th variant type. In order to have the exact type, I first create a template<typename T> constructor(T&&). Then I write a test that uses this grammar, so compiler will create all needed constructor. Then a nm -C on ut_agent gives me all needed types of constructors.
+* As parsed objects need also a copy and no parameter constructor.
+* There are some unused parameters in parser library, so these warnings are disabled.
+* A piece of code in in filter_rules.hh. The goal is to reuse type less rules in centagent and ut_agent.
+
+So after parsing, boost::parser::parse will return a tree of objects. One you have your tree, you just have a configuration tree. This is the reason of check and apply_checker. In order to reuse the code for several filters, filters are not able to directly do a check. You have to:
+* define a data object that inherit from testable struct with all mandatory data for filters.
+* define a checker constructor that will be applied to tree config. This checker builder will set _checker member of each filter. 
+  Then when you will call root object::check, it will apply checker to each sub filter according to logical rules.
+
+![Filter Example](pictures/filter_example.png)
+
+
 ### native_check_cpu (linux version)
 It uses /proc/stat to measure cpu statistics. When start_check is called, a first snapshot of /proc/stat is done. Then a timer is started and will expires at max time_out or check_interval minus 1 second. When this timer expires, we do a second snapshot and create plugin output and perfdata from this difference.
 The arguments accepted by this check (in json format) are:
@@ -128,3 +145,4 @@ So it works like that:
 ### check_health
 This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
 This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.
+
