@@ -301,6 +301,12 @@ jobs:
             . .version
             . ${{ inputs.version_file }}
             VERSION="$MAJOR.$MINOR"
+          elif [[ "${{ inputs.version_file }}" =~ .version-centreon* ]]; then
+            . .version
+            . ${{ inputs.version_file }}
+            VERSION_MAJOR=`sed -e '/\[[2-9][0-9].[0-9][0-9].[0-9]+\]/p' .version | cut -d '=' -f 2`
+            VERSION_MINOR=`sed -e '/\[[0-9]+\]/p' ${{ inputs.version_file }} | cut -d '=' -f 2`
+            VERSION="$VERSION_MAJOR.$VERSION_MINOR"
           elif [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
