@@ -2937,7 +2937,13 @@ bool service::schedule_check(time_t check_time,
     // Allocate memory for a new event item.
     try {
       // Set the next service check time.
-      set_next_check(check_time);
+//      if (get_next_check() == check_time) {
+//        checks_logger->info("service::schedule_check next check unchanged: {}",
+//                            check_time);
+//        // No need to send a service status again.
+//        no_update_status_now = true;
+//      } else
+        set_next_check(check_time);
 
       // Place the new event in the event queue.
       auto new_event{std::make_unique<timed_event>(
