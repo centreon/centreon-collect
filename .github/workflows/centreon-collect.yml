@@ -377,7 +377,7 @@ jobs:
       - run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-cbmod,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
+          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
