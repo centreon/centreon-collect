@@ -368,8 +368,7 @@ void broker_downtime_data(int type,
                           unsigned long downtime_id);
 void broker_external_command(int type,
                              int command_type,
-                             char* command_args,
-                             struct timeval const* timestamp);
+                             char* command_args);
 template <typename G>
 void broker_group(int type, const G* group);
 

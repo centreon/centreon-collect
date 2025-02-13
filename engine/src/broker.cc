@@ -1839,7 +1839,7 @@ void broker_downtime_data(int type,
 static void forward_external_command(int type,
                                      int command_type,
                                      char* command_args,
-                                     const struct timeval* timestamp) {
+                                     const struct timeval& timestamp) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data: {}");
 
@@ -1873,13 +1873,7 @@ static void forward_external_command(int type,
             cvs->modified = true;
             cvs->name = var_name;
             cvs->service_id = 0;
-            if (timestamp)
-              cvs->update_time = timestamp->tv_sec;
-            else {
-              struct timeval now;
-              gettimeofday(&now, NULL);
-              cvs->update_time = now.tv_sec;
-            }
+            cvs->update_time = timestamp.tv_sec;
             cvs->value = var_value;
 
             // Send event.
@@ -1919,13 +1913,7 @@ static void forward_external_command(int type,
             cvs->modified = true;
             cvs->name = var_name;
             cvs->service_id = p.second;
-            if (timestamp)
-              cvs->update_time = timestamp->tv_sec;
-            else {
-              struct timeval now;
-              gettimeofday(&now, NULL);
-              cvs->update_time = now.tv_sec;
-            }
+            cvs->update_time = timestamp.tv_sec;
             cvs->value = var_value;
 
             // Send event.
@@ -1940,7 +1928,7 @@ static void forward_external_command(int type,
 static void forward_pb_external_command(int type,
                                         int command_type,
                                         char* command_args,
-                                        const struct timeval* timestamp) {
+                                        const struct timeval& timestamp) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: pb external command data");
 
@@ -1971,13 +1959,7 @@ static void forward_pb_external_command(int type,
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
             ++split_iter;
-            if (timestamp)
-              data.set_update_time(timestamp->tv_sec);
-            else {
-              struct timeval now;
-              gettimeofday(&now, NULL);
-              data.set_update_time(now.tv_sec);
-            }
+            data.set_update_time(timestamp.tv_sec);
             data.set_value(split_iter->data(), split_iter->length());
 
             // Send event.
@@ -2015,13 +1997,7 @@ static void forward_pb_external_command(int type,
             data.set_name(split_iter->data(), split_iter->length());
             ++split_iter;
             data.set_service_id(p.second);
-            if (timestamp)
-              data.set_update_time(timestamp->tv_sec);
-            else {
-              struct timeval now;
-              gettimeofday(&now, NULL);
-              data.set_update_time(now.tv_sec);
-            }
+            data.set_update_time(timestamp.tv_sec);
             data.set_value(split_iter->data(), split_iter->length());
 
             // Send event.
@@ -2045,10 +2021,7 @@ static void forward_pb_external_command(int type,
  *  @param[in] command_args   Command args.
  *  @param[in] timestamp      Timestamp.
  */
-void broker_external_command(int type,
-                             int command_type,
-                             char* command_args,
-                             struct timeval const* timestamp) {
+void broker_external_command(int type, int command_type, char* command_args) {
   // Config check.
   if (!(pb_config.event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
     return;
@@ -2056,15 +2029,17 @@ void broker_external_command(int type,
   // Fill struct with relevant data.
   nebstruct_external_command_data ds;
   ds.type = type;
-  ds.timestamp = get_broker_timestamp(timestamp);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  ds.timestamp = tv;
   ds.command_type = command_type;
   ds.command_args = command_args;
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_external_command(type, command_type, command_args, timestamp);
+    forward_pb_external_command(type, command_type, command_args, tv);
   else
-    forward_external_command(type, command_type, command_args, timestamp);
+    forward_external_command(type, command_type, command_args, tv);
   neb_make_callbacks(NEBCALLBACK_EXTERNAL_COMMAND_DATA, &ds);
 }
 

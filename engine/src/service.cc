@@ -1104,7 +1104,7 @@ int service::handle_async_check_result(
 #endif
 
   SPDLOG_LOGGER_TRACE(functions_logger,
-                      "handle_async_service_check_result() service {} res:{}",
+                      "service::handle_async_check_result() service {} res:{}",
                       name(), queued_check_result);
 
   /* get the current time */
@@ -1641,7 +1641,6 @@ int service::handle_async_check_result(
 
     /* else no service state change has occurred... */
     else {
-      engine_logger(dbg_checks, more) << "Service did not change state.";
       SPDLOG_LOGGER_DEBUG(checks_logger, "Service did not change state.");
     }
     /* Check if we need to send a recovery notification */
@@ -1988,11 +1987,9 @@ int service::handle_async_check_result(
   bool need_update = false;
   /* reschedule the next service check ONLY for active, scheduled checks */
   if (reschedule_check) {
-    engine_logger(dbg_checks, more) << "Rescheduling next check of service at "
-                                    << my_ctime(&next_service_check);
     SPDLOG_LOGGER_DEBUG(checks_logger,
-                        "Rescheduling next check of service at {}",
-                        my_ctime(&next_service_check));
+                        "Rescheduling next check of service ({},{}) at {}",
+                        _host_id, _service_id, my_ctime(&next_service_check));
 
     /* default is to reschedule service check unless a test below fails... */
     set_should_be_scheduled(true);
@@ -2326,8 +2323,7 @@ int service::handle_service_event() {
   clear_volatile_macros_r(mac);
 
   /* send data to event broker */
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, nullptr,
-                          nullptr);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, nullptr);
 
   return OK;
 }
@@ -2843,7 +2839,7 @@ int service::run_async_check_local(int check_options,
 bool service::schedule_check(time_t check_time,
                              uint32_t options,
                              bool no_update_status_now) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "schedule_service_check()");
+  SPDLOG_LOGGER_TRACE(functions_logger, "service::schedule_check()");
 
   SPDLOG_LOGGER_TRACE(
       checks_logger,
