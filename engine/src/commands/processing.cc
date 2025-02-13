@@ -882,14 +882,14 @@ bool processing::execute(const std::string& cmdstr) {
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
-                          const_cast<char*>(args.c_str()), nullptr);
+                          const_cast<char*>(args.c_str()));
 
   if (it != _lst_command.end())
     (*it->second.func)(command_id, entry_time, const_cast<char*>(args.c_str()));
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id,
-                          const_cast<char*>(args.c_str()), nullptr);
+                          const_cast<char*>(args.c_str()));
   return true;
 }
 
