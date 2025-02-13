@@ -101,6 +101,8 @@ So after parsing, boost::parser::parse will return a tree of objects. One you ha
 
 ![Filter Example](pictures/filter_example.png)
 
+You can find grammar elements here: [Boost Parser Cheat Sheet](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html)
+
 
 ### native_check_cpu (linux version)
 It uses /proc/stat to measure cpu statistics. When start_check is called, a first snapshot of /proc/stat is done. Then a timer is started and will expires at max time_out or check_interval minus 1 second. When this timer expires, we do a second snapshot and create plugin output and perfdata from this difference.

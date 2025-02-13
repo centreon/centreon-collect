@@ -30,6 +30,9 @@ namespace com::centreon::agent::filters {
 
 namespace bp = boost::parser;
 
+// Grammar elements are described here:
+// https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html
+
 /************************************************************************
 label_compare_to_value grammar
 

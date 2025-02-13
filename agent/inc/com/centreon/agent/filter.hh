@@ -19,11 +19,6 @@
 #ifndef CENTREON_AGENT_FILTER_HH
 #define CENTREON_AGENT_FILTER_HH
 
-#include <absl/container/flat_hash_set.h>
-#include <memory>
-#include <tuple>
-#include <type_traits>
-#include <variant>
 namespace com::centreon::agent {
 
 /**
@@ -38,7 +33,7 @@ struct testable {};
  * matching the filter
  *
  */
-using checker = std::function<bool(const testable&)>;
+using checker = std::function<bool(testable&)>;
 
 class filter;
 
@@ -47,7 +42,7 @@ class filter;
  * filter built checker will be stored in filter to perform checks
  *
  */
-using checker_builder = std::function<checker(const filter*)>;
+using checker_builder = std::function<void(filter*)>;
 
 /**
  * @brief abstract filter base class
@@ -64,6 +59,9 @@ class filter {
  private:
   filter_type _type;
 
+ protected:
+  checker _checker;
+
  public:
   filter(filter_type type) : _type(type) {}
   filter(const filter&) = default;
@@ -73,13 +71,19 @@ class filter {
 
   filter_type get_type() const { return _type; }
 
-  virtual void apply_checker(const checker_builder& checker_builder) = 0;
-
   virtual void dump(std::ostream& s) const = 0;
 
   virtual std::unique_ptr<filter> clone() const = 0;
 
-  virtual bool check(const testable& t) const = 0;
+  virtual bool check(testable& t) const { return _checker(t); }
+  virtual void apply_checker(const checker_builder& checker_builder) {
+    checker_builder(this);
+  }
+
+  template <class checker_ope>
+  void set_checker(checker_ope&& ope) {
+    _checker = std::forward<checker_ope>(ope);
+  }
 };
 
 }  // namespace com::centreon::agent
@@ -120,8 +124,6 @@ class label_compare_to_value : public filter {
 
   comparison _comparison;
 
-  checker _checker;
-
  public:
   label_compare_to_value(double value,
                          std::string&& unit,
@@ -153,11 +155,45 @@ class label_compare_to_value : public filter {
   const std::string& get_unit() const { return _unit; }
   comparison get_comparison() const { return _comparison; }
 
-  bool check(const testable& t) const override { return _checker(t); }
-  void apply_checker(const checker_builder& checker_builder) override {
-    _checker = checker_builder(this);
-  }
+  template <class value_getter>
+  void set_checker_from_getter(value_getter&& getter);
 };
+
+/**
+ * @brief this helper function will create a checker from a getter
+ *
+ * @tparam value_getter operator() must return a double
+ * @param getter lambda or struct with operator() returning a double
+ */
+template <class value_getter>
+void label_compare_to_value::set_checker_from_getter(value_getter&& getter) {
+  switch (_comparison) {
+    case comparison::equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val == gettr(t); };
+      break;
+    case comparison::not_equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val != gettr(t); };
+      break;
+    case comparison::greater_than:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val < gettr(t); };
+      break;
+    case comparison::greater_than_or_equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val <= gettr(t); };
+      break;
+    case comparison::less_than:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val > gettr(t); };
+      break;
+    case comparison::less_than_or_equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val >= gettr(t); };
+      break;
+  }
+}
 
 /**
  * @brief test if a value is in a set of values
@@ -172,8 +208,6 @@ class label_in : public filter {
   absl::flat_hash_set<std::string> _values;
   std::string _label;
   in_not _rule;
-
-  checker _checker;
 
  public:
   label_in() : filter(filter_type::label_in) {}
@@ -190,11 +224,29 @@ class label_in : public filter {
 
   void dump(std::ostream& s) const override;
 
-  bool check(const testable& t) const override { return _checker(t); }
-  void apply_checker(const checker_builder& checker_builder) override {
-    _checker = checker_builder(this);
-  }
+  template <class value_getter>
+  void set_checker_from_getter(value_getter&& getter);
 };
+
+/**
+ * @brief this helper function will create a checker from a getter
+ *
+ * @tparam value_getter return a string
+ * @param getter
+ */
+template <class value_getter>
+void label_in::set_checker_from_getter(value_getter&& getter) {
+  if (_rule == in_not::in) {
+    _checker = [values = &_values,
+                gettr = std::move(getter)](const testable& t) -> bool {
+      return values->contains(gettr(t));
+    };
+  } else
+    _checker = [values = &_values,
+                gettr = std::move(getter)](const testable& t) -> bool {
+      return !values->contains(gettr(t));
+    };
+}
 
 /**
  * @brief the glue between filters
@@ -257,7 +309,7 @@ class filter_combinator : public filter {
     return std::make_unique<filter_combinator>(*this);
   }
 
-  bool check(const testable& t) const override;
+  bool check(testable& t) const override;
   void apply_checker(const checker_builder& checker_builder) override;
 
   void dump(std::ostream& s) const override;

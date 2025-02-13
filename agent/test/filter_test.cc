@@ -189,66 +189,36 @@ TEST(filter_test, filter_check_values) {
         {"qux", 1.0},    {"quux", 1.0}};
   };
 
-  struct label_compare_to_value_test {
-    const label_compare_to_value* parent;
-    label_compare_to_value_test(const label_compare_to_value* parentt)
-        : parent(parentt) {}
-
-    bool operator()(const testable& t_in) {
-      const auto& t = static_cast<const to_test&>(t_in);
-      auto it = t.values.find(parent->get_label());
-      if (it == t.values.end()) {
-        return false;
-      }
-      switch (parent->get_comparison()) {
-        case label_compare_to_value::comparison::equal:
-          return it->second == parent->get_value();
-        case label_compare_to_value::comparison::not_equal:
-          return it->second != parent->get_value();
-        case label_compare_to_value::comparison::less_than:
-          return it->second < parent->get_value();
-        case label_compare_to_value::comparison::less_than_or_equal:
-          return it->second <= parent->get_value();
-        case label_compare_to_value::comparison::greater_than:
-          return it->second > parent->get_value();
-        case label_compare_to_value::comparison::greater_than_or_equal:
-          return it->second >= parent->get_value();
-      }
-      return false;
-    }
-  };
-
-  struct label_in_test {
-    const label_in* parent;
-    label_in_test(const label_in* parentt) : parent(parentt) {}
-
-    bool operator()(const testable& t_in) {
-      const auto& t = static_cast<const to_test&>(t_in);
-      auto it = t.values.find(parent->get_label());
-      if (it == t.values.end()) {
-        return false;
-      }
-
-      std::string sz_val = std::to_string(static_cast<int>(it->second));
-      const auto& values = parent->get_values();
-      if (parent->get_rule() == label_in::in_not::in) {
-        return values.contains(sz_val);
-
-      } else {
-        return !values.contains(sz_val);
-      }
-    }
-  };
-
-  auto checker_build = [](const filter* f) -> checker {
+  auto checker_build = [](filter* f) {
     switch (f->get_type()) {
-      case filter::filter_type::label_compare_to_value:
-        return label_compare_to_value_test(
-            static_cast<const label_compare_to_value*>(f));
-      case filter::filter_type::label_in:
-        return label_in_test(static_cast<const label_in*>(f));
+      case filter::filter_type::label_compare_to_value: {
+        label_compare_to_value* filt = static_cast<label_compare_to_value*>(f);
+        filt->set_checker_from_getter(
+            [label = filt->get_label()](const testable& t) -> double {
+              const auto& tt = static_cast<const to_test&>(t);
+              auto it = tt.values.find(label);
+              if (it == tt.values.end()) {
+                return 0.0;
+              }
+              return it->second;
+            });
+        break;
+      }
+      case filter::filter_type::label_in: {
+        label_in* filt = static_cast<label_in*>(f);
+        filt->set_checker_from_getter(
+            [label = filt->get_label()](const testable& t) -> std::string {
+              const auto& tt = static_cast<const to_test&>(t);
+              auto it = tt.values.find(label);
+              if (it == tt.values.end()) {
+                return "";
+              }
+              return std::to_string((int)it->second);
+            });
+        break;
+      }
       default:
-        return std::function<bool(const testable&)>();
+        break;
     }
   };
 
@@ -258,7 +228,8 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res1);
   res1->apply_checker(checker_build);
 
-  EXPECT_FALSE(res1->check(to_test{}));
+  to_test values;
+  EXPECT_FALSE(res1->check(values));
 
   auto res2 = bp::parse("toto < 43.0 && titi > 50", filter_combinator_rule,
                         bp::trace::on);
@@ -266,7 +237,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res2);
   res2->apply_checker(checker_build);
 
-  EXPECT_FALSE(res2->check(to_test{}));
+  EXPECT_FALSE(res2->check(values));
 
   auto res3 = bp::parse("toto < 43.0 && titi >= 50", filter_combinator_rule,
                         bp::trace::on);
@@ -274,7 +245,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res3);
   res3->apply_checker(checker_build);
 
-  EXPECT_TRUE(res3->check(to_test{}));
+  EXPECT_TRUE(res3->check(values));
 
   auto res4 = bp::parse("toto < 42.0 || titi > 50", filter_combinator_rule,
                         bp::trace::on);
@@ -282,7 +253,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res4);
   res4->apply_checker(checker_build);
 
-  EXPECT_FALSE(res4->check(to_test{}));
+  EXPECT_FALSE(res4->check(values));
 
   auto res5 = bp::parse("toto <= 42.0 && titi == 50", filter_combinator_rule,
                         bp::trace::on);
@@ -290,7 +261,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res5);
   res5->apply_checker(checker_build);
 
-  EXPECT_TRUE(res5->check(to_test{}));
+  EXPECT_TRUE(res5->check(values));
 
   auto res6 = bp::parse("foo == 10 && bar != 5.5kg", filter_combinator_rule,
                         bp::trace::on);
@@ -298,7 +269,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res6);
   res6->apply_checker(checker_build);
 
-  EXPECT_FALSE(res6->check(to_test{}));
+  EXPECT_FALSE(res6->check(values));
 
   auto res7 = bp::parse("foo == 10 && (bar != 5.5kg || baz < 3)",
                         filter_combinator_rule, bp::trace::on);
@@ -306,7 +277,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res7);
   res7->apply_checker(checker_build);
 
-  EXPECT_FALSE(res7->check(to_test{}));
+  EXPECT_FALSE(res7->check(values));
 
   auto res8 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
                         filter_combinator_rule, bp::trace::on);
@@ -314,7 +285,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res8);
   res8->apply_checker(checker_build);
 
-  EXPECT_FALSE(res8->check(to_test{}));
+  EXPECT_FALSE(res8->check(values));
 
   auto res9 = bp::parse(
       "foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
@@ -324,7 +295,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res9);
   res9->apply_checker(checker_build);
 
-  EXPECT_TRUE(res9->check(to_test{}));
+  EXPECT_TRUE(res9->check(values));
 
   auto res10 = bp::parse(
       "foo == 11 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
@@ -334,7 +305,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res10);
   res10->apply_checker(checker_build);
 
-  EXPECT_FALSE(res10->check(to_test{}));
+  EXPECT_FALSE(res10->check(values));
 
   auto res11 = bp::parse(
       "foo == 10 && (bar != 5.5kg || (baz < 3.1 && qux >  0.9)) || quux "
@@ -345,7 +316,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res11);
   res11->apply_checker(checker_build);
 
-  EXPECT_TRUE(res11->check(to_test{}));
+  EXPECT_TRUE(res11->check(values));
 
   auto res12 = bp::parse(
       "foo == 10 && (bar = 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
@@ -355,7 +326,7 @@ TEST(filter_test, filter_check_values) {
   ASSERT_TRUE(res12);
   res12->apply_checker(checker_build);
 
-  EXPECT_TRUE(res12->check(to_test{}));
+  EXPECT_TRUE(res12->check(values));
 }
 
 #pragma GCC diagnostic pop
