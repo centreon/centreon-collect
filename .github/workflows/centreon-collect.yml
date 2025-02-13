@@ -39,7 +39,6 @@ on:
   pull_request:
     paths:
       - ".version.centreon-collect"
-      - ".github/workflows/centreon-collect.yml"
       - agent/**
       - bbdo/**
       - broker/**
@@ -68,7 +67,6 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version.centreon-collect"
-      - ".github/workflows/centreon-collect.yml"
       - agent/**
       - bbdo/**
       - broker/**
