@@ -123,7 +123,7 @@ void timed_event::_exec_event_command_check() {
   events_logger->trace("** External Command Check Event");
 
   // send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, NULL, NULL);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, NULL);
 }
 
 /**

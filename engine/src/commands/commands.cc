@@ -563,8 +563,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
         << "', but the service could not be found!";
     runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on "
-        "host "
-        "'{}', but the service could not be found!",
+        "host '{}', but the service could not be found!",
         svc_description, host_name);
     return ERROR;
   }
