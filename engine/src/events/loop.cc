@@ -476,7 +476,7 @@ void loop::_dispatching() {
       if (command_check_interval == -1) {
         // Send data to event broker.
         broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
-                                nullptr, nullptr);
+                                nullptr);
       }
 
       auto t1 = std::chrono::system_clock::now();
@@ -1004,7 +1004,6 @@ timed_event_list::iterator loop::find_event(loop::priority priority,
  */
 void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
                             loop::priority priority) {
-  engine_logger(dbg_functions, basic) << "reschedule_event()";
   functions_logger->trace("reschedule_event()");
 
   // reschedule recurring events...
@@ -1021,9 +1020,8 @@ void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
 
     // normal recurring events.
     else {
-      time_t current_time(0L);
       event->run_time = event->run_time + event->event_interval;
-      time(&current_time);
+      time_t current_time = time(nullptr);
       if (event->run_time < current_time)
         event->run_time = current_time;
     }
