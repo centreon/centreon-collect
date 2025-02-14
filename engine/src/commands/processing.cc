@@ -848,22 +848,14 @@ bool processing::execute(const std::string& cmdstr) {
   // Log the external command.
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
-#ifdef LEGACY_CONF
-    bool log_passive_check = config->log_passive_checks();
-#else
     bool log_passive_check = pb_config.log_passive_checks();
-#endif
     // Passive checks are logged in checks.c.
     if (log_passive_checks) {
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
       checks_logger->info("EXTERNAL COMMAND: {};{}", command_name, args);
     }
-#ifdef LEGACY_CONF
-  } else if (config->log_external_commands()) {
-#else
   } else if (pb_config.log_external_commands()) {
-#endif
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
     SPDLOG_LOGGER_INFO(external_command_logger, "EXTERNAL COMMAND: {};{}",
@@ -912,18 +904,10 @@ void processing::_wrapper_read_state_information() {
   try {
     retention::state state;
     retention::parser p;
-#ifdef LEGACY_CONF
-    const std::string& retention_file = config->state_retention_file();
-#else
     const std::string& retention_file = pb_config.state_retention_file();
-#endif
     p.parse(retention_file, state);
     retention::applier::state app_state;
-#ifdef LEGACY_CONF
-    app_state.apply(*config, state);
-#else
     app_state.apply(pb_config, state);
-#endif
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
@@ -933,11 +917,7 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
-#ifdef LEGACY_CONF
-  retention::dump::save(config->state_retention_file());
-#else
   retention::dump::save(pb_config.state_retention_file());
-#endif
 }
 
 void processing::wrapper_enable_host_and_child_notifications(host* hst) {

@@ -18,11 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/service.hh"
-#else
 #include "common/engine_conf/service_helper.hh"
-#endif
 
 using namespace com::centreon::engine;
 

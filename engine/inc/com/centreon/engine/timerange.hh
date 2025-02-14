@@ -17,7 +17,6 @@
  */
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
-#include "common/engine_legacy_conf/daterange.hh"
 
 namespace com::centreon::engine {
 class timerange {
