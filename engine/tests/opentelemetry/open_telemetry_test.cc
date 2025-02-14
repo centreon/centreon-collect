@@ -40,10 +40,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
@@ -93,40 +89,19 @@ void open_telemetry_test::SetUpTestSuite() {
 void open_telemetry_test::SetUp() {
   configuration::error_cnt err;
   init_config_state();
-#ifdef LEGACY_CONF
-  config->contacts().clear();
-#else
   pb_config.mutable_contacts()->Clear();
-#endif
   configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-  configuration::contact ctct{new_configuration_contact("admin", true)};
-#else
   configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
-#endif
   ct_aply.add_object(ctct);
-#ifdef LEGACY_CONF
-  ct_aply.expand_objects(*config);
-#else
   ct_aply.expand_objects(pb_config);
-#endif
   ct_aply.resolve_object(ctct, err);
 
-#ifdef LEGACY_CONF
-  configuration::host hst{new_configuration_host("localhost", "admin")};
-#else
   configuration::Host hst{new_pb_configuration_host("localhost", "admin")};
-#endif
   configuration::applier::host hst_aply;
   hst_aply.add_object(hst);
 
-#ifdef LEGACY_CONF
-  configuration::service svc{
-      new_configuration_service("localhost", "check_icmp", "admin")};
-#else
   configuration::Service svc{
       new_pb_configuration_service("localhost", "check_icmp", "admin")};
-#endif
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 

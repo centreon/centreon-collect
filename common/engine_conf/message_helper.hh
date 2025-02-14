@@ -24,10 +24,6 @@
 #include <absl/strings/str_split.h>
 #include "common/engine_conf/state.pb.h"
 
-#ifdef LEGACY_CONF
-#error This library should not be compiled.
-#endif
-
 namespace com::centreon::engine::configuration {
 
 /**

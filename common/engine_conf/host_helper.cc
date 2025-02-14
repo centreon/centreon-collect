@@ -21,10 +21,6 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-#ifdef LEGACY_CONF
-#error host_helper should not be compiled in this context.
-#endif
-
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::engine::configuration {

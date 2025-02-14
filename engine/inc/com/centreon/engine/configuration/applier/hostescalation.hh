@@ -19,9 +19,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/hostescalation_helper.hh"
-#endif
 
 namespace com::centreon::engine {
 
@@ -44,20 +42,12 @@ class hostescalation {
   ~hostescalation() noexcept = default;
   hostescalation(hostescalation const&) = delete;
   hostescalation& operator=(hostescalation const&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(const configuration::hostescalation& obj);
-  void modify_object(configuration::hostescalation const& obj);
-  void remove_object(configuration::hostescalation const& obj);
-  void expand_objects(configuration::state& s);
-  void resolve_object(configuration::hostescalation const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Hostescalation& obj);
   void modify_object(configuration::Hostescalation* old_obj,
                      const configuration::Hostescalation& new_obj);
   void remove_object(ssize_t idx);
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Hostescalation& obj, error_cnt& err);
-#endif
 };
 }  // namespace applier
 }  // namespace configuration
