@@ -138,9 +138,7 @@ class label_compare_to_value : public filter {
         _label(std::move(label)),
         _value(value),
         _unit(std::move(unit)),
-        _comparison(compare) {
-    dump(std::cout);
-  }
+        _comparison(compare) {}
 
   label_compare_to_value() : filter(filter_type::label_compare_to_value) {}
 
@@ -200,12 +198,15 @@ void label_compare_to_value::set_checker_from_getter(value_getter&& getter) {
  * example: foo in (titi, 'tutu', tata)
  *
  */
+template <typename char_t>
 class label_in : public filter {
  public:
   enum class in_not { in, not_in };
 
+  using string_type = std::basic_string<char_t>;
+
  private:
-  absl::flat_hash_set<std::string> _values;
+  absl::flat_hash_set<string_type> _values;
   std::string _label;
   in_not _rule;
 
@@ -214,7 +215,7 @@ class label_in : public filter {
 
   label_in(std::string&& label, in_not rule, std::vector<std::string>&& values);
 
-  const absl::flat_hash_set<std::string>& get_values() const { return _values; }
+  const absl::flat_hash_set<string_type>& get_values() const { return _values; }
   const std::string& get_label() const { return _label; }
   in_not get_rule() const { return _rule; }
 
@@ -234,8 +235,9 @@ class label_in : public filter {
  * @tparam value_getter return a string
  * @param getter
  */
+template <typename char_t>
 template <class value_getter>
-void label_in::set_checker_from_getter(value_getter&& getter) {
+void label_in<char_t>::set_checker_from_getter(value_getter&& getter) {
   if (_rule == in_not::in) {
     _checker = [values = &_values,
                 gettr = std::move(getter)](const testable& t) -> bool {
@@ -278,13 +280,16 @@ class filter_combinator : public filter {
   filter_ptr _move_filter(label_compare_to_value&& filt) {
     return std::make_unique<label_compare_to_value>(std::move(filt));
   }
-  filter_ptr _move_filter(label_in&& filt) {
-    return std::make_unique<label_in>(std::move(filt));
+
+  template <typename char_t>
+  filter_ptr _move_filter(label_in<char_t>&& filt) {
+    return std::make_unique<label_in<char_t>>(std::move(filt));
   }
 
-  filter_ptr _move_filter(
-      std::variant<label_compare_to_value, label_in, filter_combinator>&&
-          filt) {
+  template <typename char_t>
+  filter_ptr _move_filter(std::variant<label_compare_to_value,
+                                       label_in<char_t>,
+                                       filter_combinator>&& filt) {
     return std::visit(
         [this](auto&& arg) { return _move_filter(std::move(arg)); }, filt);
   }
@@ -376,8 +381,6 @@ filter_combinator::filter_combinator(T&& sub_filters)
           logical_operator::filter_and, std::move(and_unit)));
     }
   }
-
-  dump(std::cout);
 }
 
 }  // namespace filters

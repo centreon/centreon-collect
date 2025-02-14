@@ -16,22 +16,20 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/container/flat_hash_set.h>
 #include <gtest/gtest.h>
-#include <string>
 
-#include "filter.hh"
-#include "filter_rules.hh"
+#include "filter_rules.cc"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::filters;
+namespace bp = boost::parser;
 
 TEST(filter_test, label_compare_to_value) {
   auto res =
-      bp::parse("toto < 42.0u", label_compare_to_value_rule, bp::trace::on);
+      bp::parse("toto < 42.0u", label_compare_to_value_rule, bp::trace::off);
 
   ASSERT_TRUE(res);
   EXPECT_EQ(res->get_label(), "toto");
@@ -41,7 +39,7 @@ TEST(filter_test, label_compare_to_value) {
             label_compare_to_value::comparison::less_than);
 
   auto res2 =
-      bp::parse("titi >= 100.5ms", label_compare_to_value_rule, bp::trace::on);
+      bp::parse("titi >= 100.5ms", label_compare_to_value_rule, bp::trace::off);
 
   ASSERT_TRUE(res2);
   EXPECT_EQ(res2->get_label(), "titi");
@@ -51,7 +49,7 @@ TEST(filter_test, label_compare_to_value) {
             label_compare_to_value::comparison::greater_than_or_equal);
 
   auto res3 =
-      bp::parse("foo == 10", label_compare_to_value_rule, bp::trace::on);
+      bp::parse("foo == 10", label_compare_to_value_rule, bp::trace::off);
 
   ASSERT_TRUE(res3);
   EXPECT_EQ(res3->get_label(), "foo");
@@ -60,7 +58,7 @@ TEST(filter_test, label_compare_to_value) {
   EXPECT_EQ(res3->get_comparison(), label_compare_to_value::comparison::equal);
 
   auto res4 =
-      bp::parse("bar != 5.5kg", label_compare_to_value_rule, bp::trace::on);
+      bp::parse("bar != 5.5kg", label_compare_to_value_rule, bp::trace::off);
 
   ASSERT_TRUE(res4);
   EXPECT_EQ(res4->get_label(), "bar");
@@ -72,65 +70,69 @@ TEST(filter_test, label_compare_to_value) {
 
 TEST(filter_test, filter_in) {
   auto res = bp::parse("toto in (titi,'tutu'   , 'tata')", label_in_rule,
-                       bp::trace::on);
+                       bp::trace::off);
 
   ASSERT_TRUE(res);
   EXPECT_EQ(res->get_label(), "toto");
-  EXPECT_EQ(res->get_rule(), label_in::in_not::in);
+  EXPECT_EQ(res->get_rule(), label_in<char>::in_not::in);
   EXPECT_EQ(res->get_values().size(), 3);
   EXPECT_EQ(res->get_values().count("titi"), 1);
   EXPECT_EQ(res->get_values().count("tutu"), 1);
   EXPECT_EQ(res->get_values().count("tata"), 1);
 
   auto res2 =
-      bp::parse("toto not_in (titi,tutu,tata)", label_in_rule, bp::trace::on);
+      bp::parse("toto not_in (titi,tutu,tata)", label_in_rule, bp::trace::off);
 
   ASSERT_TRUE(res2);
   EXPECT_EQ(res2->get_label(), "toto");
-  EXPECT_EQ(res2->get_rule(), label_in::in_not::not_in);
+  EXPECT_EQ(res2->get_rule(), label_in<char>::in_not::not_in);
   EXPECT_EQ(res2->get_values().size(), 3);
   EXPECT_EQ(res2->get_values().count("titi"), 1);
   EXPECT_EQ(res2->get_values().count("tutu"), 1);
   EXPECT_EQ(res2->get_values().count("tata"), 1);
 
-  auto res3 = bp::parse("toto in ('titi')", label_in_rule, bp::trace::on);
+  auto res3 = bp::parse("toto in ('titi')", label_in_rule, bp::trace::off);
 
   ASSERT_TRUE(res3);
   EXPECT_EQ(res3->get_label(), "toto");
-  EXPECT_EQ(res3->get_rule(), label_in::in_not::in);
+  EXPECT_EQ(res3->get_rule(), label_in<char>::in_not::in);
   EXPECT_EQ(res3->get_values().size(), 1);
   EXPECT_EQ(res3->get_values().count("titi"), 1);
 
-  auto res4 = bp::parse("toto not_in (titi)", label_in_rule, bp::trace::on);
+  auto res4 = bp::parse("toto not_in (titi)", label_in_rule, bp::trace::off);
 
   ASSERT_TRUE(res4);
   EXPECT_EQ(res4->get_label(), "toto");
-  EXPECT_EQ(res4->get_rule(), label_in::in_not::not_in);
+  EXPECT_EQ(res4->get_rule(), label_in<char>::in_not::not_in);
   EXPECT_EQ(res4->get_values().size(), 1);
   EXPECT_EQ(res4->get_values().count("titi"), 1);
+
+  auto res5 = bp::parse("toto not_in (titi)", label_in_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res5);
+  EXPECT_EQ(res5->get_label(), "toto");
+  EXPECT_EQ(res5->get_rule(), label_in<wchar_t>::in_not::not_in);
+  EXPECT_EQ(res5->get_values().size(), 1);
+  EXPECT_EQ(res5->get_values().count(L"titi"), 1);
 }
 
 TEST(filter_test, filter_combinator) {
-  auto res = bp::parse("toto < 42.0u", filter_combinator_rule, bp::trace::on);
+  auto res = bp::parse("toto < 42.0u", filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res);
 
-  std::cout << std::endl << std::endl << std::endl;
-
   auto res2 = bp::parse("toto < 43.0 && titi > 50", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   EXPECT_TRUE(res2);
 
-  std::cout << std::endl << std::endl << std::endl;
-
   auto res3 = bp::parse("toto < 84f && (titi > 53 || uu > 2)",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res3);
 
   auto res4 = bp::parse("toto < 84f && titi > 53 || uu > 2",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res4);
 
@@ -139,45 +141,51 @@ TEST(filter_test, filter_combinator) {
   EXPECT_FALSE(res5);
 
   auto res6 = bp::parse("toto < 84f && (titi > 53 || uu > 2",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_FALSE(res6);
 
   auto res7 = bp::parse("toto < 84f && titi > 53 || uu > 2)",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_FALSE(res7);
 
   auto res8 = bp::parse("(toto < 84f && ((titi > 53 || uu > 2)))",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res8);
 
   auto res9 = bp::parse("(toto < 84f    and (  ( titi>53 or uu    >    2)))",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res9);
 
   auto res10 = bp::parse("foo == 10 && bar != 5.5kg", filter_combinator_rule,
-                         bp::trace::on);
+                         bp::trace::off);
 
   EXPECT_TRUE(res10);
 
   auto res11 = bp::parse("foo == 10 && (bar != 5.5kg || baz < 3)",
-                         filter_combinator_rule, bp::trace::on);
+                         filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res11);
 
   auto res12 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
-                         filter_combinator_rule, bp::trace::on);
+                         filter_combinator_rule, bp::trace::off);
 
   EXPECT_TRUE(res12);
 
   auto res13 = bp::parse(
       "foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
       "'machin')",
-      filter_combinator_rule, bp::trace::on);
+      filter_combinator_rule, bp::trace::off);
   EXPECT_TRUE(res13);
+
+  auto res14 = bp::parse(
+      "foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
+      "'machin')",
+      filter_combinator_rule_w, bp::trace::off);
+  EXPECT_TRUE(res14);
 }
 
 TEST(filter_test, filter_check_values) {
@@ -205,7 +213,7 @@ TEST(filter_test, filter_check_values) {
         break;
       }
       case filter::filter_type::label_in: {
-        label_in* filt = static_cast<label_in*>(f);
+        label_in<char>* filt = static_cast<label_in<char>*>(f);
         filt->set_checker_from_getter(
             [label = filt->get_label()](const testable& t) -> std::string {
               const auto& tt = static_cast<const to_test&>(t);
@@ -223,7 +231,7 @@ TEST(filter_test, filter_check_values) {
   };
 
   auto res1 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res1);
   res1->apply_checker(checker_build);
@@ -232,7 +240,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_FALSE(res1->check(values));
 
   auto res2 = bp::parse("toto < 43.0 && titi > 50", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   ASSERT_TRUE(res2);
   res2->apply_checker(checker_build);
@@ -240,7 +248,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_FALSE(res2->check(values));
 
   auto res3 = bp::parse("toto < 43.0 && titi >= 50", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   ASSERT_TRUE(res3);
   res3->apply_checker(checker_build);
@@ -248,7 +256,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_TRUE(res3->check(values));
 
   auto res4 = bp::parse("toto < 42.0 || titi > 50", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   ASSERT_TRUE(res4);
   res4->apply_checker(checker_build);
@@ -256,7 +264,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_FALSE(res4->check(values));
 
   auto res5 = bp::parse("toto <= 42.0 && titi == 50", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   ASSERT_TRUE(res5);
   res5->apply_checker(checker_build);
@@ -264,7 +272,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_TRUE(res5->check(values));
 
   auto res6 = bp::parse("foo == 10 && bar != 5.5kg", filter_combinator_rule,
-                        bp::trace::on);
+                        bp::trace::off);
 
   ASSERT_TRUE(res6);
   res6->apply_checker(checker_build);
@@ -272,7 +280,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_FALSE(res6->check(values));
 
   auto res7 = bp::parse("foo == 10 && (bar != 5.5kg || baz < 3)",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res7);
   res7->apply_checker(checker_build);
@@ -280,7 +288,7 @@ TEST(filter_test, filter_check_values) {
   EXPECT_FALSE(res7->check(values));
 
   auto res8 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
-                        filter_combinator_rule, bp::trace::on);
+                        filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res8);
   res8->apply_checker(checker_build);
@@ -290,7 +298,7 @@ TEST(filter_test, filter_check_values) {
   auto res9 = bp::parse(
       "foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
       "'1')",
-      filter_combinator_rule, bp::trace::on);
+      filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res9);
   res9->apply_checker(checker_build);
@@ -300,7 +308,7 @@ TEST(filter_test, filter_check_values) {
   auto res10 = bp::parse(
       "foo == 11 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
       "'2')",
-      filter_combinator_rule, bp::trace::on);
+      filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res10);
   res10->apply_checker(checker_build);
@@ -311,7 +319,7 @@ TEST(filter_test, filter_check_values) {
       "foo == 10 && (bar != 5.5kg || (baz < 3.1 && qux >  0.9)) || quux "
       "in(truc, "
       "'2')",
-      filter_combinator_rule, bp::trace::on);
+      filter_combinator_rule, bp::trace::off);
 
   ASSERT_TRUE(res11);
   res11->apply_checker(checker_build);
@@ -321,7 +329,160 @@ TEST(filter_test, filter_check_values) {
   auto res12 = bp::parse(
       "foo == 10 && (bar = 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
       "'5')",
-      filter_combinator_rule, bp::trace::on);
+      filter_combinator_rule, bp::trace::off);
+
+  ASSERT_TRUE(res12);
+  res12->apply_checker(checker_build);
+
+  EXPECT_TRUE(res12->check(values));
+}
+
+TEST(filter_test, filter_check_values_w) {
+  // Add tests for checking values
+  struct to_test : public testable {
+    absl::flat_hash_map<std::wstring, double> values = {
+        {L"toto", 42.0},  {L"titi", 50.0}, {L"uu", 2.0},  {L"truc", 1.0},
+        {L"machin", 2.0}, {L"foo", 10.0},  {L"bar", 5.5}, {L"baz", 3.0},
+        {L"qux", 1.0},    {L"quux", 1.0}};
+  };
+
+  auto checker_build = [](filter* f) {
+    switch (f->get_type()) {
+      case filter::filter_type::label_compare_to_value: {
+        label_compare_to_value* filt = static_cast<label_compare_to_value*>(f);
+        filt->set_checker_from_getter(
+            [label = std::wstring(filt->get_label().begin(),
+                                  filt->get_label().end())](
+                const testable& t) -> double {
+              const auto& tt = static_cast<const to_test&>(t);
+              auto it = tt.values.find(label);
+              if (it == tt.values.end()) {
+                return 0.0;
+              }
+              return it->second;
+            });
+        break;
+      }
+      case filter::filter_type::label_in: {
+        label_in<char>* filt = static_cast<label_in<char>*>(f);
+        filt->set_checker_from_getter(
+            [label = std::wstring(filt->get_label().begin(),
+                                  filt->get_label().end())](
+                const testable& t) -> std::string {
+              const auto& tt = static_cast<const to_test&>(t);
+              auto it = tt.values.find(label);
+              if (it == tt.values.end()) {
+                return "";
+              }
+              return std::to_string((int)it->second);
+            });
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  auto res1 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
+                        filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res1);
+  res1->apply_checker(checker_build);
+
+  to_test values;
+  EXPECT_FALSE(res1->check(values));
+
+  auto res2 = bp::parse("toto < 43.0 && titi > 50", filter_combinator_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res2);
+  res2->apply_checker(checker_build);
+
+  EXPECT_FALSE(res2->check(values));
+
+  auto res3 = bp::parse("toto < 43.0 && titi >= 50", filter_combinator_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res3);
+  res3->apply_checker(checker_build);
+
+  EXPECT_TRUE(res3->check(values));
+
+  auto res4 = bp::parse("toto < 42.0 || titi > 50", filter_combinator_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res4);
+  res4->apply_checker(checker_build);
+
+  EXPECT_FALSE(res4->check(values));
+
+  auto res5 = bp::parse("toto <= 42.0 && titi == 50", filter_combinator_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res5);
+  res5->apply_checker(checker_build);
+
+  EXPECT_TRUE(res5->check(values));
+
+  auto res6 = bp::parse("foo == 10 && bar != 5.5kg", filter_combinator_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res6);
+  res6->apply_checker(checker_build);
+
+  EXPECT_FALSE(res6->check(values));
+
+  auto res7 = bp::parse("foo == 10 && (bar != 5.5kg || baz < 3)",
+                        filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res7);
+  res7->apply_checker(checker_build);
+
+  EXPECT_FALSE(res7->check(values));
+
+  auto res8 = bp::parse("foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1))",
+                        filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res8);
+  res8->apply_checker(checker_build);
+
+  EXPECT_FALSE(res8->check(values));
+
+  auto res9 = bp::parse(
+      "foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
+      "'1')",
+      filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res9);
+  res9->apply_checker(checker_build);
+
+  EXPECT_TRUE(res9->check(values));
+
+  auto res10 = bp::parse(
+      "foo == 11 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
+      "'2')",
+      filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res10);
+  res10->apply_checker(checker_build);
+
+  EXPECT_FALSE(res10->check(values));
+
+  auto res11 = bp::parse(
+      "foo == 10 && (bar != 5.5kg || (baz < 3.1 && qux >  0.9)) || quux "
+      "in(truc, "
+      "'2')",
+      filter_combinator_rule_w, bp::trace::off);
+
+  ASSERT_TRUE(res11);
+  res11->apply_checker(checker_build);
+
+  EXPECT_TRUE(res11->check(values));
+
+  auto res12 = bp::parse(
+      "foo == 10 && (bar = 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
+      "'5')",
+      filter_combinator_rule_w, bp::trace::off);
 
   ASSERT_TRUE(res12);
   res12->apply_checker(checker_build);

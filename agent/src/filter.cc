@@ -17,6 +17,7 @@
  */
 
 #include "filter.hh"
+#include <type_traits>
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::filters;
@@ -113,12 +114,19 @@ void label_compare_to_value::dump(std::ostream& s) const {
  * @param rule in or not_in
  * @param values allowed or forbidden values
  */
-label_in::label_in(std::string&& label,
-                   in_not rule,
-                   std::vector<std::string>&& values)
+template <typename char_t>
+label_in<char_t>::label_in(std::string&& label,
+                           in_not rule,
+                           std::vector<std::string>&& values)
     : filter(filter_type::label_in), _label(std::move(label)), _rule(rule) {
-  for (auto&& value : values) {
-    _values.insert(std::move(value));
+  if constexpr (std::is_same_v<char_t, char>) {
+    for (auto&& value : values) {
+      _values.insert(std::move(value));
+    }
+  } else {
+    for (const std::string& value : values) {
+      _values.emplace(value.begin(), value.end());
+    }
   }
 }
 
@@ -127,12 +135,20 @@ label_in::label_in(std::string&& label,
  *
  * @param s
  */
-void label_in::dump(std::ostream& s) const {
+template <typename char_t>
+void label_in<char_t>::dump(std::ostream& s) const {
   s << " { " << _label << ' ' << (_rule == in_not::in ? "in" : "not_in")
     << " (";
-  for (const auto& value : _values) {
-    s << value << ", ";
+  if constexpr (std::is_same_v<char_t, char>) {
+    for (const auto& value : _values) {
+      s << value << ", ";
+    }
+  } else {
+    for (const auto& value : _values) {
+      s << std::string(value.begin(), value.end()) << ", ";
+    }
   }
+
   s << ") }";
 }
 
@@ -233,3 +249,8 @@ void filter_combinator::dump(std::ostream& s) const {
   }
   s << " ) ";
 }
+
+namespace com::centreon::agent::filters {
+template class label_in<char>;
+template class label_in<wchar_t>;
+}  // namespace com::centreon::agent::filters

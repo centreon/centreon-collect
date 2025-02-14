@@ -17,9 +17,7 @@
  */
 
 #include <windows.h>
-#include <chrono>
 
-#include "absl/container/flat_hash_map.h"
 #include "check_uptime.hh"
 
 #include "com/centreon/common/rapidjson_helper.hh"

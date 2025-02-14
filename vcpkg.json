@@ -13,6 +13,7 @@
     "boost-multi-index",
     "boost-process",
     "boost-program-options",
+    "boost-flyweight",
     "rapidjson",
     "gtest",
     {

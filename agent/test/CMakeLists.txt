@@ -26,6 +26,8 @@ set( SRC_COMMON
     test_main.cc
 )
 
+
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
@@ -84,6 +86,8 @@ endif()
 add_dependencies(ut_agent centreon_common centagent_lib)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(ut_agent PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
 target_precompile_headers(ut_agent PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
