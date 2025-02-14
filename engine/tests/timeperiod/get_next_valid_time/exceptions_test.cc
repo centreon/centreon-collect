@@ -22,12 +22,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "gtest/gtest.h"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/timeperiod.hh"
-#else
 #include "common/engine_conf/timeperiod_helper.hh"
-#endif
+#include "gtest/gtest.h"
 
 #include "helper.hh"
 
@@ -85,15 +81,10 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
 
   bool wait_time_period_begin = true;
 
-#ifdef LEGACY_CONF
-  std::unique_ptr<configuration::timeperiod> conf(
-      std::make_unique<configuration::timeperiod>());
-#else
   std::unique_ptr<configuration::Timeperiod> conf(
       std::make_unique<configuration::Timeperiod>());
   std::unique_ptr<configuration::timeperiod_helper> conf_hlp =
       std::make_unique<configuration::timeperiod_helper>(conf.get());
-#endif
   while (!f.eof()) {
     std::getline(f, line);
 
@@ -108,21 +99,14 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
       if (line[0] == '}') {
         wait_time_period_begin = true;
         _applier.add_object(*conf);
-#ifdef LEGACY_CONF
-        conf = std::make_unique<configuration::timeperiod>();
-#else
         conf = std::make_unique<configuration::Timeperiod>();
         conf_hlp =
             std::make_unique<configuration::timeperiod_helper>(conf.get());
-#endif
         continue;
       }
       if (line.substr(0, 9) == "\tmonday 3") {
         std::cout << "monday 3..." << std::endl;
       }
-#ifdef LEGACY_CONF
-      conf->parse(string::trim(line));
-#else
       std::string_view line_view = absl::StripAsciiWhitespace(line);
       if (line_view[0] == '#')
         continue;
@@ -143,7 +127,6 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
         std::cout << "Unable to parse <<" << line << ">>" << std::endl;
         abort();
       }
-#endif
     }
   }
 }

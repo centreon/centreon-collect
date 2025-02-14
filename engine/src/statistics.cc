@@ -54,18 +54,6 @@ pid_t statistics::get_pid() const noexcept {
  *
  * @return A boolean telling if the struct has been filled.
  */
-#ifdef LEGACY_CONF
-bool statistics::get_external_command_buffer_stats(
-    buffer_stats& retval) const noexcept {
-  if (config->check_external_commands()) {
-    retval.used = external_command_buffer.size();
-    retval.high = external_command_buffer.high();
-    retval.total = config->external_command_buffer_slots();
-    return true;
-  } else
-    return false;
-}
-#else
 bool statistics::get_external_command_buffer_stats(
     buffer_stats& retval) const noexcept {
   if (pb_config.check_external_commands()) {
@@ -76,4 +64,3 @@ bool statistics::get_external_command_buffer_stats(
   } else
     return false;
 }
-#endif
