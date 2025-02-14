@@ -28,11 +28,7 @@
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
-#ifdef LEGACY_CONF
-configuration::state* config = nullptr;
-#else
 configuration::State pb_config;
-#endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",
