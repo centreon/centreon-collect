@@ -37,10 +37,6 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -55,34 +51,17 @@ class ServiceDowntimeNotification : public TestEngine {
     error_cnt err;
 
     configuration::applier::contact ct_aply;
-#ifdef LEGACY_CONF
-    configuration::contact ctct{new_configuration_contact("admin", true)};
-#else
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
-#endif
     ct_aply.add_object(ctct);
-#ifdef LEGACY_CONF
-    ct_aply.expand_objects(*config);
-#else
     ct_aply.expand_objects(pb_config);
-#endif
     ct_aply.resolve_object(ctct, err);
 
-#ifdef LEGACY_CONF
-    configuration::host hst{new_configuration_host("test_host", "admin")};
-#else
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
-#endif
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-#ifdef LEGACY_CONF
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin")};
-#else
     configuration::Service svc{
         new_pb_configuration_service("test_host", "test_svc", "admin")};
-#endif
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 

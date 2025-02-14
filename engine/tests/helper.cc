@@ -32,32 +32,8 @@ using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 using log_v2_config = com::centreon::common::log_v2::config;
 
-#ifdef LEGACY_CONF
-extern configuration::state* config;
-#else
 extern configuration::State pb_config;
-#endif
 
-#ifdef LEGACY_CONF
-void init_config_state() {
-  if (config == nullptr)
-    config = new configuration::state;
-
-  config->log_file_line(true);
-  config->log_file("");
-
-  log_v2_config log_conf(
-      "engine-tests", log_v2_config::logger_type::LOGGER_STDOUT,
-      config->log_flush_period(), config->log_pid(), config->log_file_line());
-
-  log_v2::instance().apply(log_conf);
-
-  // Hack to instanciate the logger.
-  configuration::applier::logging::instance().apply(*config);
-
-  checks::checker::init(true);
-}
-#else
 void init_config_state() {
   /* Cleanup */
   pb_config.Clear();
@@ -84,15 +60,9 @@ void init_config_state() {
 
   checks::checker::init(true);
 }
-#endif
 
 void deinit_config_state(void) {
-#ifdef LEGACY_CONF
-  delete config;
-  config = nullptr;
-#else
   pb_config.Clear();
-#endif
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();

@@ -82,17 +82,6 @@ void contact::set_addresses(std::vector<std::string>&& addresses) {
   _addresses = std::move(addresses);
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Set addresses.
- *
- *  @param[in] addresses  New addresses.
- */
-void contact::set_addresses(std::vector<std::string> const& addresses) {
-  _addresses = addresses;
-}
-#endif
-
 /**
  *  Return the contact alias
  *
