@@ -144,9 +144,12 @@ void label_in<char_t>::dump(std::ostream& s) const {
       s << value << ", ";
     }
   } else {
+#pragma warning(push)
+#pragma warning(disable : 4244)
     for (const auto& value : _values) {
       s << std::string(value.begin(), value.end()) << ", ";
     }
+#pragma warning(pop)
   }
 
   s << ") }";
