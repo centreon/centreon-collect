@@ -55,8 +55,11 @@ class time_period_comparator {
 
   /* days_array */
   std::array<std::list<configuration::Timerange>, 7> _timeranges;
+
+  /* The size is Daterange_TypeRange_none, because none is not taken in count in
+   * the list. The real last one is week_day of index 4 */
   std::array<std::list<configuration::Daterange>,
-             configuration::daterange::daterange_types>
+             configuration::Daterange_TypeRange_none>
       _exceptions;
 
   std::set<std::string> _exclude;
@@ -552,9 +555,10 @@ static std::ostream& operator<<(
 static std::ostream& operator<<(
     std::ostream& s,
     const std::array<std::list<configuration::Daterange>,
-                     daterange::daterange_types>& dateranges) {
+                     configuration::Daterange_TypeRange_none>& dateranges) {
   s << '[';
-  for (unsigned day_ind = 0; day_ind < daterange::daterange_types; ++day_ind)
+  for (unsigned day_ind = 0; day_ind < configuration::Daterange_TypeRange_none;
+       ++day_ind)
     s << '{' << day_label[day_ind] << ", " << dateranges[day_ind] << "},";
   s << ']';
   return s;
@@ -686,9 +690,9 @@ static bool operator==(const Daterange& dr1, const engine::daterange& dr2) {
 
 static bool operator==(
     const std::array<std::list<configuration::Daterange>,
-                     configuration::daterange::daterange_types>& exc1,
-    const std::array<std::list<engine::daterange>, daterange::daterange_types>&
-        exc2) {
+                     configuration::Daterange_TypeRange_none>& exc1,
+    const std::array<std::list<engine::daterange>,
+                     configuration::Daterange_TypeRange_none>& exc2) {
   auto compare_dateranges =
       [](int32_t idx, const std::list<configuration::Daterange>& lst1,
          const std::list<engine::daterange>& lst2) -> bool {
@@ -717,7 +721,7 @@ static bool operator==(
 
 static bool operator==(
     const std::array<std::list<configuration::Daterange>,
-                     configuration::daterange::daterange_types>& exc1,
+                     configuration::Daterange_TypeRange_none>& exc1,
     const configuration::ExceptionArray& exc2) {
   auto it_exc1 = exc1.begin();
   auto compare_dateranges =
@@ -910,7 +914,7 @@ class timeperiod_config_parser_test
  protected:
  public:
   static void SetUpTestSuite() { pb_config.Clear(); }
-  static void TearDownTestSuite(){};
+  static void TearDownTestSuite() {};
 
  protected:
   void SetUp() override {}

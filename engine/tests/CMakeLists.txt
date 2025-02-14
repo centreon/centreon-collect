@@ -53,13 +53,8 @@ if(WITH_TESTING)
 
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
-               if (LEGACY_ENGINE)
   target_link_libraries(bin_connector_test_run cce_core pthread)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-else()
-  target_link_libraries(bin_connector_test_run cce_core pthread)
-  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-endif()
 
   # Unit test executable.
   include_directories(${TESTS_DIR} ${CMAKE_BINARY_DIR})
@@ -77,307 +72,153 @@ endif()
   file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg
        DESTINATION ${CMAKE_BINARY_DIR}/tests/)
 
-  if(LEGACY_ENGINE)
-    set(ut_sources_legacy
-        # Sources.
-        "${TESTS_DIR}/parse-check-output.cc"
-        "${TESTS_DIR}/checks/service_check.cc"
-        "${TESTS_DIR}/checks/service_retention.cc"
-        "${TESTS_DIR}/checks/anomalydetection.cc"
-        "${TESTS_DIR}/commands/simple-command.cc"
-        "${TESTS_DIR}/commands/connector.cc"
-        "${TESTS_DIR}/commands/environment.cc"
-        "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
-        "${TESTS_DIR}/configuration/applier/applier-command.cc"
-        "${TESTS_DIR}/configuration/applier/applier-connector.cc"
-        "${TESTS_DIR}/configuration/applier/applier-contact.cc"
-        "${TESTS_DIR}/configuration/applier/applier-contactgroup.cc"
-        "${TESTS_DIR}/configuration/applier/applier-global.cc"
-        "${TESTS_DIR}/configuration/applier/applier-log.cc"
-        "${TESTS_DIR}/configuration/applier/applier-host.cc"
-        "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
-        "${TESTS_DIR}/configuration/applier/applier-hostdependency.cc"
-        "${TESTS_DIR}/configuration/applier/applier-hostgroup.cc"
-        "${TESTS_DIR}/configuration/applier/applier-service.cc"
-        "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
-        "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
-        "${TESTS_DIR}/configuration/applier/applier-state.cc"
-        "${TESTS_DIR}/configuration/contact.cc"
-        "${TESTS_DIR}/configuration/host.cc"
-        "${TESTS_DIR}/configuration/object.cc"
-        "${TESTS_DIR}/configuration/service.cc"
-        "${TESTS_DIR}/configuration/severity.cc"
-        "${TESTS_DIR}/configuration/tag.cc"
-        "${TESTS_DIR}/configuration/timeperiod-test.cc"
-        "${TESTS_DIR}/configuration/whitelist-test.cc"
-        "${TESTS_DIR}/contacts/contactgroup-config.cc"
-        "${TESTS_DIR}/contacts/simple-contactgroup.cc"
-        "${TESTS_DIR}/custom_vars/extcmd.cc"
-        "${TESTS_DIR}/downtimes/downtime.cc"
-        "${TESTS_DIR}/downtimes/downtime_finder.cc"
-        "${TESTS_DIR}/enginerpc/enginerpc.cc"
-        "${TESTS_DIR}/helper.cc"
-        "${TESTS_DIR}/macros/macro.cc"
-        "${TESTS_DIR}/macros/macro_hostname.cc"
-        "${TESTS_DIR}/macros/macro_service.cc"
-        "${TESTS_DIR}/external_commands/anomalydetection.cc"
-        "${TESTS_DIR}/external_commands/host.cc"
-        "${TESTS_DIR}/external_commands/service.cc"
-        "${TESTS_DIR}/main.cc"
-        "${TESTS_DIR}/loop/loop.cc"
-        "${TESTS_DIR}/notifications/host_downtime_notification.cc"
-        "${TESTS_DIR}/notifications/host_flapping_notification.cc"
-        "${TESTS_DIR}/notifications/host_normal_notification.cc"
-        "${TESTS_DIR}/notifications/host_recovery_notification.cc"
-        "${TESTS_DIR}/notifications/service_normal_notification.cc"
-        "${TESTS_DIR}/notifications/service_timeperiod_notification.cc"
-        "${TESTS_DIR}/notifications/service_flapping_notification.cc"
-        "${TESTS_DIR}/notifications/service_downtime_notification_test.cc"
-        "${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc"
-        "${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc"
-        "${TESTS_DIR}/opentelemetry/agent_to_engine_test.cc"
-        "${TESTS_DIR}/opentelemetry/grpc_config_test.cc"
-        "${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc"
-        "${TESTS_DIR}/opentelemetry/otl_server_test.cc"
-        "${TESTS_DIR}/opentelemetry/otl_converter_test.cc"
-        "${TESTS_DIR}/opentelemetry/open_telemetry_test.cc"
-        "${TESTS_DIR}/retention/host.cc"
-        "${TESTS_DIR}/retention/service.cc"
-        "${TESTS_DIR}/string/string.cc"
-        "${TESTS_DIR}/test_engine.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
-        "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
-        # # Headers.
-        "${TESTS_DIR}/test_engine.hh"
-        "${TESTS_DIR}/timeperiod/utils.hh")
+  set(ut_sources
+      # Sources.
+      ${TESTS_DIR}/parse-check-output.cc
+      ${TESTS_DIR}/checks/pb_service_check.cc
+      ${TESTS_DIR}/checks/pb_service_retention.cc
+      ${TESTS_DIR}/checks/pb_anomalydetection.cc
+      ${TESTS_DIR}/commands/pbsimple-command.cc
+      ${TESTS_DIR}/commands/connector.cc
+      ${TESTS_DIR}/commands/environment.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbanomalydetection.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbcommand.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbconnector.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbcontact.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbcontactgroup.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbglobal.cc
+      ${TESTS_DIR}/configuration/applier/applier-pblog.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbhost.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbhostescalation.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbhostdependency.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbhostgroup.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbservice.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbserviceescalation.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbservicegroup.cc
+      ${TESTS_DIR}/configuration/applier/applier-pbstate.cc
+      ${TESTS_DIR}/configuration/pbcontact.cc
+      ${TESTS_DIR}/configuration/pbhost.cc
+      ${TESTS_DIR}/configuration/pbservice.cc
+      ${TESTS_DIR}/configuration/pbseverity.cc
+      ${TESTS_DIR}/configuration/pbtag.cc
+      ${TESTS_DIR}/configuration/pbtimeperiod-test.cc
+      ${TESTS_DIR}/configuration/whitelist-test.cc
+      ${TESTS_DIR}/contacts/contactgroup-config.cc
+      ${TESTS_DIR}/contacts/simple-contactgroup.cc
+      ${TESTS_DIR}/custom_vars/pbextcmd.cc
+      ${TESTS_DIR}/downtimes/pbdowntime.cc
+      ${TESTS_DIR}/downtimes/pbdowntime_finder.cc
+      ${TESTS_DIR}/enginerpc/pbenginerpc.cc
+      ${TESTS_DIR}/helper.cc
+      ${TESTS_DIR}/macros/pbmacro.cc
+      ${TESTS_DIR}/macros/pbmacro_hostname.cc
+      ${TESTS_DIR}/macros/pbmacro_service.cc
+      ${TESTS_DIR}/external_commands/pbanomalydetection.cc
+      ${TESTS_DIR}/external_commands/pbhost.cc
+      ${TESTS_DIR}/external_commands/pbservice.cc
+      ${TESTS_DIR}/main.cc
+      ${TESTS_DIR}/loop/loop.cc
+      ${TESTS_DIR}/notifications/host_downtime_notification.cc
+      ${TESTS_DIR}/notifications/host_flapping_notification.cc
+      ${TESTS_DIR}/notifications/host_normal_notification.cc
+      ${TESTS_DIR}/notifications/host_recovery_notification.cc
+      ${TESTS_DIR}/notifications/service_normal_notification.cc
+      ${TESTS_DIR}/notifications/service_timeperiod_notification.cc
+      ${TESTS_DIR}/notifications/service_flapping_notification.cc
+      ${TESTS_DIR}/notifications/service_downtime_notification_test.cc
+      ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
+      ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
+      ${TESTS_DIR}/opentelemetry/otl_server_test.cc
+      ${TESTS_DIR}/opentelemetry/otl_converter_test.cc
+      ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc
+      ${TESTS_DIR}/retention/host.cc
+      ${TESTS_DIR}/retention/service.cc
+      ${TESTS_DIR}/string/string.cc
+      ${TESTS_DIR}/test_engine.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc
+      ${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc
+      # Headers.
+      "${TESTS_DIR}/test_engine.hh"
+      "${TESTS_DIR}/timeperiod/utils.hh")
+  add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+  target_link_libraries(ut_engine_utils PRIVATE dl)
+  add_executable(ut_engine ${ut_sources})
+  target_include_directories(
+    ut_engine
+    PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
+            ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
 
-    # utils.cc can't be compiled with precomp headers so it's compiled apart
-    add_library(ut_engine_utils_legacy STATIC
-                "${TESTS_DIR}/timeperiod/utils.cc")
+  target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
-    add_executable(ut_engine ${ut_sources_legacy})
-    target_include_directories(
-      ut_engine
-      PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
-              ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
+  set_target_properties(
+    ut_engine rpc_client_engine bin_connector_test_run
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+               RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
-    target_precompile_headers(ut_engine REUSE_FROM cce_core)
+  # Ensure ut_engine depends on ut_engine_utils
+  add_dependencies(ut_engine ut_engine_utils)
+  # Add a test with LD_PRELOAD for ut_engine
+  add_test(NAME tests COMMAND ut_engine)
+  set_tests_properties(
+    tests PROPERTIES ENVIRONMENT "LD_PRELOAD=$<TARGET_FILE:ut_engine_utils>")
 
-    set_target_properties(
-      ut_engine rpc_client_engine bin_connector_test_run
-      PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO
-                 ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
-    add_test(NAME tests_legacy COMMAND ut_engine)
+  target_link_libraries(
+    ut_engine
+    PRIVATE -L${PROTOBUF_LIB_DIR}
+            enginerpc
+            ut_engine_utils
+            "-Wl,-whole-archive"
+            cce_core
+            log_v2
+            opentelemetry
+            centagent_lib
+            "-Wl,-no-whole-archive"
+            pb_open_telemetry_lib
+            centreon_grpc
+            centreon_http
+            centreon_process
+            -L${Boost_LIBRARY_DIR_RELEASE}
+            boost_url
+            boost_program_options
+            pthread
+            ${GCOV}
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            gRPC::gpr
+            gRPC::grpc
+            gRPC::grpc++
+            gRPC::grpc++_alts
+            crypto
+            ssl
+            z
+            fmt::fmt
+            ryml::ryml
+            stdc++fs
+            dl)
 
-    target_link_libraries(
-      ut_engine
-      PRIVATE -L${PROTOBUF_LIB_DIR}
-              enginerpc_legacy
-              ut_engine_utils_legacy
-              "-Wl,-whole-archive"
-              cce_core
-              log_v2
-              opentelemetry
-              centagent_lib
-              "-Wl,-no-whole-archive"
-              pb_open_telemetry_lib
-              centreon_grpc
-              centreon_http
-              centreon_process
-              -L${Boost_LIBRARY_DIR_RELEASE}
-              boost_url
-              boost_program_options
-              pthread
-              ${GCOV}
-              GTest::gtest
-              GTest::gtest_main
-              GTest::gmock
-              GTest::gmock_main
-              gRPC::gpr
-              gRPC::grpc
-              gRPC::grpc++
-              gRPC::grpc++_alts
-              crypto
-              ssl
-              z
-              fmt::fmt
-              ryml::ryml
-              stdc++fs
-              dl)
-
-    if(WITH_COVERAGE)
-      set(COVERAGE_EXCLUDES
-          '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
-          '/usr/include/*' '*/.conan/*')
-      setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE
-                                ut_engine DEPENDENCIES ut_engine)
-      set(GCOV gcov)
-    endif()
-  else()
-    set(ut_sources
-        # Sources.
-        ${TESTS_DIR}/parse-check-output.cc
-        ${TESTS_DIR}/checks/pb_service_check.cc
-        ${TESTS_DIR}/checks/pb_service_retention.cc
-        ${TESTS_DIR}/checks/pb_anomalydetection.cc
-        ${TESTS_DIR}/commands/pbsimple-command.cc
-        ${TESTS_DIR}/commands/connector.cc
-        ${TESTS_DIR}/commands/environment.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbanomalydetection.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbcommand.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbconnector.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbcontact.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbcontactgroup.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbglobal.cc
-        ${TESTS_DIR}/configuration/applier/applier-pblog.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbhost.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbhostescalation.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbhostdependency.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbhostgroup.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbservice.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbserviceescalation.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbservicegroup.cc
-        ${TESTS_DIR}/configuration/applier/applier-pbstate.cc
-        ${TESTS_DIR}/configuration/pbcontact.cc
-        ${TESTS_DIR}/configuration/pbhost.cc
-        ${TESTS_DIR}/configuration/pbservice.cc
-        ${TESTS_DIR}/configuration/pbseverity.cc
-        ${TESTS_DIR}/configuration/pbtag.cc
-        ${TESTS_DIR}/configuration/pbtimeperiod-test.cc
-        ${TESTS_DIR}/configuration/whitelist-test.cc
-        ${TESTS_DIR}/contacts/contactgroup-config.cc
-        ${TESTS_DIR}/contacts/simple-contactgroup.cc
-        ${TESTS_DIR}/custom_vars/pbextcmd.cc
-        ${TESTS_DIR}/downtimes/pbdowntime.cc
-        ${TESTS_DIR}/downtimes/pbdowntime_finder.cc
-        ${TESTS_DIR}/enginerpc/pbenginerpc.cc
-        ${TESTS_DIR}/helper.cc
-        ${TESTS_DIR}/macros/pbmacro.cc
-        ${TESTS_DIR}/macros/pbmacro_hostname.cc
-        ${TESTS_DIR}/macros/pbmacro_service.cc
-        ${TESTS_DIR}/external_commands/pbanomalydetection.cc
-        ${TESTS_DIR}/external_commands/pbhost.cc
-        ${TESTS_DIR}/external_commands/pbservice.cc
-        ${TESTS_DIR}/main.cc
-        ${TESTS_DIR}/loop/loop.cc
-        ${TESTS_DIR}/notifications/host_downtime_notification.cc
-        ${TESTS_DIR}/notifications/host_flapping_notification.cc
-        ${TESTS_DIR}/notifications/host_normal_notification.cc
-        ${TESTS_DIR}/notifications/host_recovery_notification.cc
-        ${TESTS_DIR}/notifications/service_normal_notification.cc
-        ${TESTS_DIR}/notifications/service_timeperiod_notification.cc
-        ${TESTS_DIR}/notifications/service_flapping_notification.cc
-        ${TESTS_DIR}/notifications/service_downtime_notification_test.cc
-        ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
-        ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
-        ${TESTS_DIR}/opentelemetry/otl_server_test.cc
-        ${TESTS_DIR}/opentelemetry/otl_converter_test.cc
-        ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc
-        ${TESTS_DIR}/retention/host.cc
-        ${TESTS_DIR}/retention/service.cc
-        ${TESTS_DIR}/string/string.cc
-        ${TESTS_DIR}/test_engine.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc
-        # Headers.
-        "${TESTS_DIR}/test_engine.hh"
-        "${TESTS_DIR}/timeperiod/utils.hh")
-    add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
-    target_link_libraries(ut_engine_utils PRIVATE dl)
-    add_executable(ut_engine ${ut_sources})
-    target_include_directories(
-      ut_engine
-      PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
-              ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
-
-    target_precompile_headers(ut_engine REUSE_FROM cce_core)
-
-    set_target_properties(
-      ut_engine rpc_client_engine bin_connector_test_run
-      PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO
-                 ${CMAKE_BINARY_DIR}/tests
-                 RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
-    
-    # Ensure ut_engine depends on ut_engine_utils
-    add_dependencies(ut_engine ut_engine_utils)
-    # Add a test with LD_PRELOAD for ut_engine
-    add_test(NAME tests COMMAND ut_engine)
-    set_tests_properties(tests PROPERTIES ENVIRONMENT "LD_PRELOAD=$<TARGET_FILE:ut_engine_utils>")
-
-    target_link_libraries(
-      ut_engine
-      PRIVATE -L${PROTOBUF_LIB_DIR}
-              enginerpc
-              ut_engine_utils
-              "-Wl,-whole-archive"
-              cce_core
-              log_v2
-              opentelemetry
-              centagent_lib
-              "-Wl,-no-whole-archive"
-              pb_open_telemetry_lib
-              centreon_grpc
-              centreon_http
-              centreon_process
-              -L${Boost_LIBRARY_DIR_RELEASE}
-              boost_url
-              boost_program_options
-              pthread
-              ${GCOV}
-              GTest::gtest
-              GTest::gtest_main
-              GTest::gmock
-              GTest::gmock_main
-              gRPC::gpr
-              gRPC::grpc
-              gRPC::grpc++
-              gRPC::grpc++_alts
-              crypto
-              ssl
-              z
-              fmt::fmt
-              ryml::ryml
-              stdc++fs
-              dl)
-
-    if(WITH_COVERAGE)
-      set(COVERAGE_EXCLUDES
-          '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
-          '/usr/include/*' '*/.conan/*')
-      setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE ut_engine
-                                DEPENDENCIES ut_engine)
-      set(GCOV gcov)
-    endif()
+  if(WITH_COVERAGE)
+    set(COVERAGE_EXCLUDES
+        '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
+        '/usr/include/*' '*/.conan/*')
+    setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE ut_engine
+                              DEPENDENCIES ut_engine)
+    set(GCOV gcov)
   endif()
 endif()

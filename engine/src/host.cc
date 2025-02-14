@@ -1249,13 +1249,8 @@ int host::handle_async_check_result_3x(
   time_t current_time = std::time(nullptr);
   bool accept_passive_host_checks;
   uint32_t cached_host_check_horizon;
-#ifdef LEGACY_CONF
-  accept_passive_host_checks = config->accept_passive_host_checks();
-  cached_host_check_horizon = config->cached_host_check_horizon();
-#else
   accept_passive_host_checks = pb_config.accept_passive_host_checks();
   cached_host_check_horizon = pb_config.cached_host_check_horizon();
-#endif
 
   double execution_time =
       static_cast<double>(queued_check_result.get_finish_time().tv_sec -
@@ -1599,11 +1594,7 @@ int host::run_scheduled_check(int check_options, double latency) {
   bool time_is_valid = true;
 
   uint32_t interval_length;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-#else
   interval_length = pb_config.interval_length();
-#endif
 
   engine_logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
   SPDLOG_LOGGER_TRACE(functions_logger, "run_scheduled_host_check_3x()");
@@ -1740,11 +1731,7 @@ int host::run_async_check(int check_options,
     return ERROR;
 
   int32_t host_check_timeout;
-#ifdef LEGACY_CONF
-  host_check_timeout = config->host_check_timeout();
-#else
   host_check_timeout = pb_config.host_check_timeout();
-#endif
 
   // If this check is a rescheduled check, propagate the rescheduled check
   // flag to the host. This solves the problem when a new host check is bound
@@ -2079,17 +2066,10 @@ void host::check_for_flapping(bool update,
   float high_host_flap_threshold;
   bool enable_flap_detection;
 
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  low_host_flap_threshold = config->low_host_flap_threshold();
-  high_host_flap_threshold = config->high_host_flap_threshold();
-  enable_flap_detection = config->enable_flap_detection();
-#else
   interval_length = pb_config.interval_length();
   low_host_flap_threshold = pb_config.low_host_flap_threshold();
   high_host_flap_threshold = pb_config.high_host_flap_threshold();
   enable_flap_detection = pb_config.enable_flap_detection();
-#endif
 
   engine_logger(dbg_functions, basic) << "host::check_for_flapping()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::check_for_flapping()");
@@ -2356,15 +2336,9 @@ int host::handle_state() {
   time_t current_time;
   bool log_host_retries;
 
-#ifdef LEGACY_CONF
-  log_host_retries = config->log_host_retries();
-  bool use_host_down_disable_service_checks =
-      config->use_host_down_disable_service_checks();
-#else
   log_host_retries = pb_config.log_host_retries();
   bool use_host_down_disable_service_checks =
       pb_config.host_down_disable_service_checks();
-#endif
 
   engine_logger(dbg_functions, basic) << "handle_host_state()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_host_state()");
@@ -2506,11 +2480,7 @@ int host::handle_state() {
 void host::update_performance_data() {
   /* should we be processing performance data for anything? */
 
-#ifdef LEGACY_CONF
-  bool process_performance_data = config->process_performance_data();
-#else
   bool process_performance_data = pb_config.process_performance_data();
-#endif
   if (!process_performance_data)
     return;
 
@@ -2546,11 +2516,7 @@ bool host::verify_check_viability(int check_options,
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_check_viability_3x()");
 
   uint32_t interval_length;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-#else
   interval_length = pb_config.interval_length();
-#endif
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
       this->get_current_state() != host::state_up)
@@ -2631,13 +2597,8 @@ int host::notify_contact(nagios_macros* mac,
 
   bool log_notifications;
   uint32_t notification_timeout;
-#ifdef LEGACY_CONF
-  log_notifications = config->log_notifications();
-  notification_timeout = config->notification_timeout();
-#else
   log_notifications = pb_config.log_notifications();
   notification_timeout = pb_config.notification_timeout();
-#endif
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -2897,15 +2858,9 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   uint32_t interval_length;
   int32_t additional_freshness_latency;
   uint32_t max_host_check_spread;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  additional_freshness_latency = config->additional_freshness_latency();
-  max_host_check_spread = config->max_host_check_spread();
-#else
   interval_length = pb_config.interval_length();
   additional_freshness_latency = pb_config.additional_freshness_latency();
   max_host_check_spread = pb_config.max_host_check_spread();
-#endif
 
   engine_logger(dbg_checks, most)
       << "Checking freshness of host '" << name() << "'...";
@@ -3123,17 +3078,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
   uint32_t interval_length;
   bool log_passive_checks;
   bool enable_predictive_host_dependency_checks;
-#ifdef LEGACY_CONF
-  interval_length = config->interval_length();
-  log_passive_checks = config->log_passive_checks();
-  enable_predictive_host_dependency_checks =
-      config->enable_predictive_host_dependency_checks();
-#else
   interval_length = pb_config.interval_length();
   log_passive_checks = pb_config.log_passive_checks();
   enable_predictive_host_dependency_checks =
       pb_config.enable_predictive_host_dependency_checks();
-#endif
 
   time_t next_check{get_last_check() + check_interval() * interval_length};
   time_t preferred_time = 0L;
@@ -3735,11 +3683,7 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
   engine_logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::authorized_by_dependencies()");
 
-#ifdef LEGACY_CONF
-  bool soft_state_dependencies = config->soft_state_dependencies();
-#else
   bool soft_state_dependencies = pb_config.soft_state_dependencies();
-#endif
 
   auto p(hostdependency::hostdependencies.equal_range(name()));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
@@ -3792,11 +3736,7 @@ void host::check_result_freshness() {
   time_t current_time = 0L;
 
   bool check_host_freshness;
-#ifdef LEGACY_CONF
-  check_host_freshness = config->check_host_freshness();
-#else
   check_host_freshness = pb_config.check_host_freshness();
-#endif
 
   engine_logger(dbg_functions, basic) << "check_host_result_freshness()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_result_freshness()");
@@ -3911,13 +3851,8 @@ void host::check_for_orphaned() {
 
   int32_t host_check_timeout;
   uint32_t check_reaper_interval;
-#ifdef LEGACY_CONF
-  host_check_timeout = config->host_check_timeout();
-  check_reaper_interval = config->check_reaper_interval();
-#else
   host_check_timeout = pb_config.host_check_timeout();
   check_reaper_interval = pb_config.check_reaper_interval();
-#endif
 
   /* get the current time */
   time(&current_time);

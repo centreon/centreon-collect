@@ -35,27 +35,15 @@ namespace retention {
 namespace applier {
 class host {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state const& config,
-             list_host const& lst,
-             bool scheduling_info_is_ok);
-#else
   void apply(const configuration::State& config,
              list_host const& lst,
              bool scheduling_info_is_ok);
-#endif
+
  private:
-#ifdef LEGACY_CONF
-  void _update(configuration::state const& config,
-               retention::host const& state,
-               engine::host& obj,
-               bool scheduling_info_is_ok);
-#else
   void _update(const configuration::State& config,
                const retention::host& state,
                engine::host& obj,
                bool scheduling_info_is_ok);
-#endif
 };
 }  // namespace applier
 }  // namespace retention

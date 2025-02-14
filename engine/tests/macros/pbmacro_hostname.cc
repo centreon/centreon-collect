@@ -20,12 +20,8 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include "com/centreon/engine/globals.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
-#endif
 
 #include "../helper.hh"
 #include "../test_engine.hh"
