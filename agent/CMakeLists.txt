@@ -144,6 +144,7 @@ set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
+  ${NATIVE_SRC}/check_event_log.cc
   ${NATIVE_SRC}/check_memory.cc
   ${NATIVE_SRC}/check_service.cc
   ${NATIVE_SRC}/ntdll.cc

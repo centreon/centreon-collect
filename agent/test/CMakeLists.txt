@@ -36,6 +36,8 @@ else()
     check_windows_memory_test.cc 
     check_uptime_test.cc 
     check_windows_service_test.cc)
+
+  set_source_files_properties(filter_test.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 
