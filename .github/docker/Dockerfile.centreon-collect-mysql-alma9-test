@@ -35,6 +35,7 @@ dnf install --best -y \
     perl-Thread-Queue \
     rrdtool \
     sudo \
+    tcpdump \
     zstd
 
 dnf clean all
