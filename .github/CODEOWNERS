@@ -6,6 +6,7 @@ selinux/**                     @centreon/owners-pipelines
 
 tests/**                       @centreon/owners-robot-e2e
 
+.version*                      @centreon/owners-pipelines
 gorgone/                       @centreon/owners-perl
 gorgone/docs/                  @centreon/owners-doc
 
