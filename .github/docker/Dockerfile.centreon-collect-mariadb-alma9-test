@@ -29,7 +29,9 @@ dnf install --best -y \
     psmisc \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
+    tcpdump \
     rrdtool \
+    tcpdump \
     sudo \
     zstd
 
