@@ -94,10 +94,13 @@ Some tips:
 * There are some unused parameters in parser library, so these warnings are disabled.
 * A piece of code in in filter_rules.hh. The goal is to reuse type less rules in centagent and ut_agent.
 
-So after parsing, boost::parser::parse will return a tree of objects. One you have your tree, you just have a configuration tree. This is the reason of check and apply_checker. In order to reuse the code for several filters, filters are not able to directly do a check. You have to:
-* define a data object that inherit from testable struct with all mandatory data for filters.
-* define a checker constructor that will be applied to tree config. This checker builder will set _checker member of each filter. 
-  Then when you will call root object::check, it will apply checker to each sub filter according to logical rules.
+Filtering is done in two steps in order to be more reusable.
+- First step
+    Filtering parse filter string, it builds a tree of object composed of filter objects (label_compare_to_value, label_in...). Then you get a filter object that contains filter tree with a check method. But there is no even checking checker in this filters.
+- Second strp
+    Once you have your tree, you just have a just configuration tree. You have to:
+  * define a data object that inherit from testable struct with all mandatory data for filters.
+  * define a checker constructor that will be applied to tree config. This checker builder will set _checker member of each filter. Then when you will call root object::check, it will apply checker to each sub filter according to logical rules.
 
 ![Filter Example](pictures/filter_example.png)
 

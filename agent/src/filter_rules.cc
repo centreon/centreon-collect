@@ -14,6 +14,10 @@
  * limitations under the License.
  *
  * For more information : contact@centreon.com
+ *
+ *
+ * This file is designed to be included as a header in final parser file
+ *
  */
 
 #include "filter_rules.hh"
@@ -53,8 +57,6 @@ const auto label_compare_to_value_rule_def =
     (bp::double_ >> *bp::char_('a', 'z') >> *bp::ws >> comparison_symbols >>
      *bp::ws >> *bp::char_('a', 'z'));
 
-BOOST_PARSER_DEFINE_RULES(label_compare_to_value_rule);
-
 /************************************************************************
 label_in grammar
 
@@ -75,8 +77,6 @@ const auto label_in_rule_def =
     *(*bp::ws >> ',' >> *bp::ws >>
       (bp::quoted_string("'\"") | +bp::char_('a', 'z'))) >>
     *bp::ws >> ')';
-
-BOOST_PARSER_DEFINE_RULES(label_in_rule);
 
 /************************************************************************
 filter_combinator grammar
@@ -118,12 +118,6 @@ const auto filter_combinator_rule_def = (filter_combinator_rule1 |
                                           (filter_combinator_rule1 |
                                            filter_combinator_rule2));
 
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule1);
-
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule2);
-
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule);
-
 /**
  * wchar_t version
  */
@@ -157,10 +151,13 @@ const auto filter_combinator_rule_w_def = (filter_combinator_rule1_w |
                                             (filter_combinator_rule1_w |
                                              filter_combinator_rule2_w));
 
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule1_w);
-
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule2_w);
-
-BOOST_PARSER_DEFINE_RULES(filter_combinator_rule_w);
+BOOST_PARSER_DEFINE_RULES(label_compare_to_value_rule,
+                          label_in_rule,
+                          filter_combinator_rule1,
+                          filter_combinator_rule2,
+                          filter_combinator_rule,
+                          filter_combinator_rule1_w,
+                          filter_combinator_rule2_w,
+                          filter_combinator_rule_w);
 
 };  // namespace com::centreon::agent::filters

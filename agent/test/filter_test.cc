@@ -17,7 +17,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
 
+#include "filter.hh"
 #include "filter_rules.cc"
 
 #pragma GCC diagnostic push
@@ -364,17 +367,17 @@ TEST(filter_test, filter_check_values_w) {
         break;
       }
       case filter::filter_type::label_in: {
-        label_in<char>* filt = static_cast<label_in<char>*>(f);
+        label_in<wchar_t>* filt = static_cast<label_in<wchar_t>*>(f);
         filt->set_checker_from_getter(
             [label = std::wstring(filt->get_label().begin(),
                                   filt->get_label().end())](
-                const testable& t) -> std::string {
+                const testable& t) -> std::wstring {
               const auto& tt = static_cast<const to_test&>(t);
               auto it = tt.values.find(label);
               if (it == tt.values.end()) {
-                return "";
+                return L"";
               }
-              return std::to_string((int)it->second);
+              return std::to_wstring((int)it->second);
             });
         break;
       }
@@ -488,6 +491,26 @@ TEST(filter_test, filter_check_values_w) {
   res12->apply_checker(checker_build);
 
   EXPECT_TRUE(res12->check(values));
+
+  auto res13 = filter::create_filter(
+      "foo == 10 && (bar = 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
+      "'5')",
+      spdlog::default_logger());
+
+  ASSERT_TRUE(res13);
+  res13->apply_checker(checker_build);
+
+  EXPECT_TRUE(res13->check(values));
+}
+
+TEST(filter_test, filter_with_error) {
+  try {
+    auto res = filter::create_filter("turlutut(u", spdlog::default_logger());
+    EXPECT_FALSE(res);
+    EXPECT_FALSE(true);  // we must not pass here
+  } catch (const std::invalid_argument& e) {
+    std::cout << e.what() << std::endl;
+  }
 }
 
 #pragma GCC diagnostic pop

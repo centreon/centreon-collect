@@ -121,12 +121,65 @@ uint8_t event_data::get_level() const {
   }
 }
 
+uint16_t event_data::get_task() const {
+  if (_property_count > EvtSystemTask) {
+    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemTask].UInt16Val;
+  } else {
+    return 0;
+  }
+}
+
+int64_t event_data::get_keywords() const {
+  if (_property_count > EvtSystemKeywords) {
+    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemKeywords]
+        .Int64Val;
+  } else {
+    return 0;
+  }
+}
+
 uint64_t event_data::get_time_created() const {
   if (_property_count > EvtSystemTimeCreated) {
     return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemTimeCreated]
         .FileTimeVal;
   } else {
     return 0;
+  }
+}
+
+uint64_t event_data::get_record_id() const {
+  if (_property_count > EvtSystemEventRecordId) {
+    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemEventRecordId]
+        .UInt64Val;
+  } else {
+    return 0;
+  }
+}
+
+std::wstring_view event_data::get_computer() const {
+  if (_property_count > EvtSystemComputer) {
+    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemComputer]
+        .StringVal;
+  } else {
+    return L"";
+  }
+}
+
+std::wstring_view event_data::get_channel() const {
+  if (_property_count > EvtSystemChannel) {
+    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemChannel]
+        .StringVal;
+  } else {
+    return L"";
+  }
+}
+
+event_filter::event_filter(const std::string_view& filter_str,
+                           const std::shared_ptr<spdlog::logger>& logger)
+    : _logger(logger) {
+  _filter = filter::create_filter(filter_str, logger, true);
+  if (!_filter) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to parse filter string: {}", filter_str);
   }
 }
 

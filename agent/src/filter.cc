@@ -17,10 +17,15 @@
  */
 
 #include "filter.hh"
-#include <type_traits>
+#include <stdexcept>
+
+#include "boost/parser/error_handling.hpp"
+#include "boost/parser/parser.hpp"
+#include "filter_rules.cc"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::filters;
+namespace bp = boost::parser;
 
 namespace std {
 std::ostream& operator<<(std::ostream& s,
@@ -29,6 +34,39 @@ std::ostream& operator<<(std::ostream& s,
   return s;
 }
 }  // namespace std
+
+std::optional<filters::filter_combinator> filter::create_filter(
+    const std::string_view& filter_str,
+    const std::shared_ptr<spdlog::logger>& logger,
+    bool use_wchar,
+    bool debug) {
+  bp::trace dbg = debug ? bp::trace::on : bp::trace::off;
+
+  auto err_handler = [](const std::string& msg) {
+    throw std::invalid_argument(msg);
+  };
+
+  auto warn_handler = [filter_str, logger](const std::string& msg) {
+    SPDLOG_LOGGER_WARN(logger, "When parsing {}, a potential issue: {}",
+                       filter_str, msg);
+  };
+
+  bp::callback_error_handler cb_handler("filter.cc", err_handler, warn_handler);
+  if (use_wchar) {
+    return bp::parse(
+        filter_str,
+        bp::with_error_handler(filter_combinator_rule_w, cb_handler), dbg);
+  } else {
+    return bp::parse(filter_str,
+                     bp::with_error_handler(filter_combinator_rule, cb_handler),
+                     dbg);
+  }
+  /*  if (use_wchar) {
+      return bp::parse(filter_str, filter_combinator_rule_w, dbg);
+    } else {
+      return bp::parse(filter_str, filter_combinator_rule, dbg);
+    }*/
+}
 
 /*************************************************************************
  *                                                                       *

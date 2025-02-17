@@ -22,6 +22,7 @@
 #include <winevt.h>
 
 #include <boost/flyweight.hpp>
+#include <string_view>
 
 #include "check.hh"
 #include "filter.hh"
@@ -46,7 +47,21 @@ class event_data : public testable {
   std::wstring_view get_provider() const;
   uint16_t get_event_id() const;
   uint8_t get_level() const;
+  uint16_t get_task() const;
+  int64_t get_keywords() const;
   uint64_t get_time_created() const;
+  uint64_t get_record_id() const;
+  std::wstring_view get_computer() const;
+  std::wstring_view get_channel() const;  // file
+};
+
+class event_filter {
+  std::optional<filters::filter_combinator> _filter;
+  std::shared_ptr<spdlog::logger> _logger;
+
+ public:
+  event_filter(const std::string_view& filter_str,
+               const std::shared_ptr<spdlog::logger>& logger);
 };
 
 class event {

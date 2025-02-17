@@ -19,7 +19,12 @@
 #ifndef CENTREON_AGENT_FILTER_HH
 #define CENTREON_AGENT_FILTER_HH
 
+#include "filter.hh"
 namespace com::centreon::agent {
+
+namespace filters {
+class filter_combinator;
+};
 
 /**
  * @brief this abstract struct will be used to pass datas to the check process
@@ -84,6 +89,12 @@ class filter {
   void set_checker(checker_ope&& ope) {
     _checker = std::forward<checker_ope>(ope);
   }
+
+  static std::optional<filters::filter_combinator> create_filter(
+      const std::string_view& filter_str,
+      const std::shared_ptr<spdlog::logger>& logger,
+      bool use_wchar = false,
+      bool debug = false);
 };
 
 }  // namespace com::centreon::agent
@@ -241,7 +252,8 @@ void label_in<char_t>::set_checker_from_getter(value_getter&& getter) {
   if (_rule == in_not::in) {
     _checker = [values = &_values,
                 gettr = std::move(getter)](const testable& t) -> bool {
-      return values->contains(gettr(t));
+      auto to_test = gettr(t);
+      return values->contains(to_test);
     };
   } else
     _checker = [values = &_values,
