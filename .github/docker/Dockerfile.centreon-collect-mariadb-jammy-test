@@ -31,6 +31,7 @@ apt-get -y install \
     rrdtool \
     strace \
     sudo \
+    tcpdump \
     zip \
     zstd
 
