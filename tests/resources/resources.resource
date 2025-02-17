@@ -22,6 +22,7 @@ ${engineLog1}       ${ENGINE_LOG}/config1/centengine.log
 ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
+@{TCPDUMP_PATHS}    /usr/sbin/tcpdump    /sbin/tcpdump    /usr/bin/tcpdump    /bin/tcpdump
 
 ${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
 
@@ -353,6 +354,8 @@ Ctn Save Logs
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
+    Move Files    /tmp/mariadb.log    ${failDir}
+    Move Files    /tmp/tcpdump.pcap    ${failDir}
     Run Process    chmod    -R    a+rwX    ${failDir}
 
 Ctn Dump Process
@@ -530,3 +533,33 @@ Ctn Dump Database
     Create Directory    ${failDir}
     Run Process    mysqldump    ${DBName}    stdout=${failDir}/${file}
 
+Ctn Enable General Log
+    [Documentation]    Enable the general log of the database.
+    [Arguments]    ${file}
+    Create Directory    failed
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    ${query}    Set Variable    SET GLOBAL general_log=1;SET GLOBAL general_log_file='/tmp/${file}'
+    Run Process    mysql    -u${DBUserRoot}    -p${DBPassRoot}    -e    ${query}
+
+Ctn Disable General Log
+    [Documentation]    Disable the general log of the database.
+    ${query}    Set Variable    SET GLOBAL general_log=0
+    Run Process    mysql    -u${DBUserRoot}    -p${DBPassRoot}    -e    ${query}
+
+Ctn Start Tcpdump
+    ${file_exists}    Run Keyword And Return Status    File Should Exist    /tmp/tcpdump.pcap
+    IF    ${file_exists}
+        Remove File    /tmp/tcpdump.pcap
+    END
+    FOR    ${path}    IN    @{TCPDUMP_PATHS}
+        ${exists}    Run Keyword And Return Status    File Should Exist    ${path}
+	IF    ${exists}
+            Log To Console    ${path} -i lo -w /tmp/tcpdump.pcap
+            Start Process    ${path}    -i    lo    -w    /tmp/tcpdump.pcap    alias=tcpdump
+	    BREAK
+	END
+    END
+
+Ctn Stop Tcpdump
+    Terminate Process    tcpdump    kill=False
