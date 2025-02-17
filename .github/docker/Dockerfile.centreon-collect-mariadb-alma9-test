@@ -35,7 +35,7 @@ dnf install --best -y \
 
 echo "install robot and dependencies"
 
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
+pip3 install -U robotframework robotframework-databaselibrary==2.0.4 robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
 pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3 robotframework-requests
 
 cd /tmp/collect
