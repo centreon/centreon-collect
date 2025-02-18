@@ -558,3 +558,11 @@ Ctn Create Otl Request
     ${resources_list}    Create List    ${resource_metrics}
 
     RETURN    ${resources_list}
+
+Ctn Dump Database
+    [Documentation]    Dump the database in a file. This is useful for debugging.
+    [Arguments]    ${file}
+    Create Directory    failed
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    Run Process    mysqldump    ${DBName}    stdout=${failDir}/${file}
