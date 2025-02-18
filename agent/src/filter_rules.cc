@@ -52,10 +52,10 @@ const bp::symbols<label_compare_to_value::comparison> comparison_symbols = {
     {"=", label_compare_to_value::comparison::equal}};
 
 const auto label_compare_to_value_rule_def =
-    (+bp::char_('a', 'z') >> *bp::ws >> comparison_symbols >> *bp::ws >>
-     bp::double_ >> *bp::char_('a', 'z')) |
+    (+(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> comparison_symbols >>
+     *bp::ws >> bp::double_ >> *bp::char_('a', 'z')) |
     (bp::double_ >> *bp::char_('a', 'z') >> *bp::ws >> comparison_symbols >>
-     *bp::ws >> *bp::char_('a', 'z'));
+     *bp::ws >> +(bp::char_('a', 'z') | bp::lit('_')));
 
 /************************************************************************
 label_compare_to_string grammar
@@ -74,7 +74,9 @@ const bp::symbols<string_comparison> str_comparison_symbols = {
     {"==", string_comparison::equal},
     {"=", string_comparison::equal}};
 
-const auto label_compare_to_string_rule_def = +bp::char_('a', 'z') >> *bp::ws >>
+const auto label_compare_to_string_rule_def = +(bp::char_('a', 'z') |
+                                                bp::lit('_')) >>
+                                              *bp::ws >>
                                               str_comparison_symbols >>
                                               *bp::ws >> bp::quoted_string("'");
 
@@ -92,10 +94,12 @@ const bp::symbols<in_not> in_symbols = {{"in", in_not::in},
                                         {"not_in", in_not::not_in}};
 
 const auto label_in_rule_def =
-    +bp::char_('a', 'z') >> *bp::ws >> in_symbols >> *bp::ws >> '(' >>
-    *bp::ws >> (bp::quoted_string("'\"") | +bp::char_('a', 'z')) >>
+    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> in_symbols >> *bp::ws >>
+    '(' >> *bp::ws >>
+    (bp::quoted_string("'\"") | +(bp::char_('a', 'z') | bp::char_('0', '9'))) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") | +bp::char_('a', 'z'))) >>
+      (bp::quoted_string("'\"") |
+       +(bp::char_('a', 'z') | bp::char_('0', '9')))) >>
     *bp::ws >> ')';
 
 /************************************************************************
@@ -144,17 +148,17 @@ const auto filter_combinator_rule_def = (filter_combinator_rule1 |
  * wchar_t version
  */
 
-const auto label_compare_to_string_rule_w_def = +bp::char_('a', 'z') >>
-                                                *bp::ws >>
-                                                str_comparison_symbols >>
-                                                *bp::ws >>
-                                                bp::quoted_string("'");
+const auto label_compare_to_string_rule_w_def =
+    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >>
+    str_comparison_symbols >> *bp::ws >> bp::quoted_string("'");
 
 const auto label_in_rule_w_def =
-    +bp::char_('a', 'z') >> *bp::ws >> in_symbols >> *bp::ws >> '(' >>
-    *bp::ws >> (bp::quoted_string("'\"") | +bp::char_('a', 'z')) >>
+    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> in_symbols >> *bp::ws >>
+    '(' >> *bp::ws >>
+    (bp::quoted_string("'\"") | +(bp::char_('a', 'z') | bp::char_('0', '9'))) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") | +bp::char_('a', 'z'))) >>
+      (bp::quoted_string("'\"") |
+       +(bp::char_('a', 'z') | bp::char_('0', '9')))) >>
     *bp::ws >> ')';
 
 const auto filter_combinator_rule1_w_def =

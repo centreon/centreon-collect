@@ -22,7 +22,6 @@
 #include <winevt.h>
 
 #include <boost/flyweight.hpp>
-#include <string_view>
 
 #include "check.hh"
 #include "filter.hh"
@@ -41,18 +40,27 @@ class event_data : public testable {
   std::unique_ptr<uint8_t[]> _data;
   DWORD _property_count;
 
+ protected:
+  /**
+   * @brief Used only for tests
+   */
+  event_data() : _property_count(0) {}
+
  public:
   event_data(EVT_HANDLE render_context, EVT_HANDLE event_handle);
 
-  std::wstring_view get_provider() const;
-  uint16_t get_event_id() const;
-  uint8_t get_level() const;
-  uint16_t get_task() const;
-  int64_t get_keywords() const;
-  uint64_t get_time_created() const;
-  uint64_t get_record_id() const;
-  std::wstring_view get_computer() const;
-  std::wstring_view get_channel() const;  // file
+  ~event_data() = default;
+
+  // all getters are virtual in order to mock it in ut
+  virtual std::wstring_view get_provider() const;
+  virtual uint16_t get_event_id() const;
+  virtual uint8_t get_level() const;
+  virtual uint16_t get_task() const;
+  virtual int64_t get_keywords() const;
+  virtual uint64_t get_time_created() const;
+  virtual uint64_t get_record_id() const;
+  virtual std::wstring_view get_computer() const;
+  virtual std::wstring_view get_channel() const;  // file
 };
 
 class event_filter {
@@ -82,6 +90,8 @@ class event_filter {
  public:
   event_filter(const std::string_view& filter_str,
                const std::shared_ptr<spdlog::logger>& logger);
+
+  bool allow(event_data& data) const { return _filter.check(data); }
 };
 
 class event {

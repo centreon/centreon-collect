@@ -17,8 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <spdlog/spdlog.h>
-#include <stdexcept>
 
 #include "filter.hh"
 #include "filter_rules.cc"
