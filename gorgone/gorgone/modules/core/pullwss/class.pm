@@ -116,6 +116,9 @@ sub disconnect_zmq_socket_and_exit {
 sub send_message {
     my ($self, %options) = @_;
     my $message = HTML::Entities::encode_entities($options{message});
+        if ($options{message} =~ /SETLOGS/ or $options{message} =~ /GETLOG/) {
+            $connector->{logger}->writeLogDebug("[pullwss-evan] input msg seem like getlog: $options{message}");
+        }
     $self->{tx}->send({text => $message });
 }
 
@@ -183,6 +186,9 @@ sub wss_connect {
 
                     # We skip. Dont need to send it in gorgone-core
                     return undef if ($msg =~ /^\[ACK\]/);
+                    if ($msg =~ /SETLOGS/ or $msg =~ /GETLOG/) {
+                        $connector->{logger}->writeLogDebug("[pullwss-evan] input msg seem like getlog: $msg");
+                    }
 
                     if ($msg =~ /^\[.*\]/) {
                         $connector->{logger}->writeLogDebug('[pullwss] websocket message: ' . $msg);
@@ -283,6 +289,12 @@ sub read_zmq_events {
 
     while (!$self->{stop} and $self->{internal_socket}->has_pollin()) {
         my ($message) = $connector->read_message();
+        if ($message !~ /^\[ACK\]/) {
+            $connector->{logger}->writeLogDebug("[pullwss-evan] read message from internal: $message");
+        }
+        if ($message =~ /SETLOGS/ or $message =~ /GETLOG/i) {
+            $connector->{logger}->writeLogDebug("[pullwss-evan] message seem like setlog!: $message");
+        }
         $message = transmit_back(message => $message);
         next if (!defined($message));
 
