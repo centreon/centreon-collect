@@ -295,11 +295,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);
-    //    query = fmt::format(
-    //        "UPDATE agent_information SET enabled = 1 WHERE poller_id={}",
-    //        id);
-    //    _mysql.run_query(query, database::mysql_error::restore_instances,
-    //    conn); _add_action(conn, actions::services);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 1 WHERE poller_id={}", id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   } else {
     query = fmt::format(
         "UPDATE instances SET outdated=TRUE WHERE instance_id={}", id);
@@ -314,11 +313,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
-    //    query = fmt::format(
-    //        "UPDATE agent_information SET enabled = 0 WHERE poller_id={}",
-    //        id);
-    //    _mysql.run_query(query, database::mysql_error::restore_instances,
-    //    conn); _add_action(conn, actions::services);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 0 WHERE poller_id={}", id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   }
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   SPDLOG_LOGGER_TRACE(
@@ -5203,7 +5201,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
 }
 
 void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
-#if 0
   SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing agent stats");
   std::shared_ptr<neb::pb_agent_stats> as{
       std::static_pointer_cast<neb::pb_agent_stats>(d)};
@@ -5245,7 +5242,6 @@ void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
   _mysql.run_statement(_agent_information_insert_update,
                        database::mysql_error::insert_update_agent_information,
                        conn);
-#endif
 }
 
 /**

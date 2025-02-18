@@ -745,54 +745,54 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
 
-#BEOTEL_CENTREON_AGENT_CEIP
-#    [Documentation]    we connect an agent to engine and we expect a row in agent_information table
-#    [Tags]    broker    engine    opentelemetry    MON-145030
-#    Ctn Config Engine    ${1}    ${2}    ${2}
-#    Ctn Add Otl ServerModule
-#    ...    0
-#    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
-#    Ctn Config Add Otl Connector
-#    ...    0
-#    ...    OTEL connector
-#    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-#    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-#    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-#    Ctn Set Services Passive       0    service_[1-2]
-#
-#
-#    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
-#    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
-#
-#    Ctn Engine Config Set Value    0    log_level_checks    trace
-#
-#    Ctn Clear Db    metrics
-#
-#    Ctn Config Broker    central
-#    Ctn Config Broker    module
-#    Ctn Config Broker    rrd
-#    Ctn Config BBDO3    1
-#    Ctn Config Centreon Agent
-#    Ctn Broker Config Log    central    sql    trace
-#    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    10
-#
-#    Ctn Clear Retention
-#
-#    ${start}    Ctn Get Round Current Date
-#    Ctn Start Broker
-#    Ctn Start Engine
-#    Ctn Start Agent
-#
-#    # Let's wait for the otel server start
-#    Ctn Wait For Otel Server To Be Ready    ${start}
-#
-#    ${result}    Ctn Check Agent Information    1    1    120
-#    Should Be True    ${result}    agent_information table not updated as expected
-#
-#    Log To Console    "stop engine"
-#    Ctn Stop Engine
-#    ${result}    Ctn Check Agent Information    0    0    120
-#    Should Be True    ${result}    agent_information table not updated as expected
+BEOTEL_CENTREON_AGENT_CEIP
+   [Documentation]    we connect an agent to engine and we expect a row in agent_information table
+   [Tags]    broker    engine    opentelemetry    MON-145030
+   Ctn Config Engine    ${1}    ${2}    ${2}
+   Ctn Add Otl ServerModule
+   ...    0
+   ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+   Ctn Config Add Otl Connector
+   ...    0
+   ...    OTEL connector
+   ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+   Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
+   Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+   Ctn Set Services Passive       0    service_[1-2]
+
+
+   Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
+   Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
+
+   Ctn Engine Config Set Value    0    log_level_checks    trace
+
+   Ctn Clear Db    metrics
+
+   Ctn Config Broker    central
+   Ctn Config Broker    module
+   Ctn Config Broker    rrd
+   Ctn Config BBDO3    1
+   Ctn Config Centreon Agent
+   Ctn Broker Config Log    central    sql    trace
+   Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    10
+
+   Ctn Clear Retention
+
+   ${start}    Ctn Get Round Current Date
+   Ctn Start Broker
+   Ctn Start Engine
+   Ctn Start Agent
+
+   # Let's wait for the otel server start
+   Ctn Wait For Otel Server To Be Ready    ${start}
+
+   ${result}    Ctn Check Agent Information    1    1    120
+   Should Be True    ${result}    agent_information table not updated as expected
+
+   Log To Console    "stop engine"
+   Ctn Stop Engine
+   ${result}    Ctn Check Agent Information    0    0    120
+   Should Be True    ${result}    agent_information table not updated as expected
 
 
 BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
