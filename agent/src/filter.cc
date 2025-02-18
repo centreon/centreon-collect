@@ -35,15 +35,33 @@ std::ostream& operator<<(std::ostream& s,
 }
 }  // namespace std
 
-std::optional<filters::filter_combinator> filter::create_filter(
-    const std::string_view& filter_str,
-    const std::shared_ptr<spdlog::logger>& logger,
-    bool use_wchar,
-    bool debug) {
+void com::centreon::agent::filters::wstring_to_string(std::wstring_view in_str,
+                                                      std::string* out_str) {
+  out_str->clear();
+  out_str->reserve(in_str.size());
+  for (wchar_t c : in_str) {
+    out_str->push_back(c);
+  }
+}
+
+void com::centreon::agent::filters::string_to_wstring(std::string_view in_str,
+                                                      std::wstring* out_str) {
+  out_str->clear();
+  out_str->reserve(in_str.size());
+  for (wchar_t c : in_str) {
+    out_str->push_back(c);
+  }
+}
+
+bool filter::create_filter(const std::string_view& filter_str,
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           filters::filter_combinator* filter,
+                           bool use_wchar,
+                           bool debug) {
   bp::trace dbg = debug ? bp::trace::on : bp::trace::off;
 
-  auto err_handler = [](const std::string& msg) {
-    throw std::invalid_argument(msg);
+  auto err_handler = [filter_str, logger](const std::string& msg) {
+    SPDLOG_LOGGER_ERROR(logger, "Failt to parse {}: {}", filter_str, msg);
   };
 
   auto warn_handler = [filter_str, logger](const std::string& msg) {
@@ -55,22 +73,18 @@ std::optional<filters::filter_combinator> filter::create_filter(
   if (use_wchar) {
     return bp::parse(
         filter_str,
-        bp::with_error_handler(filter_combinator_rule_w, cb_handler), dbg);
+        bp::with_error_handler(filter_combinator_rule_w, cb_handler), *filter,
+        dbg);
   } else {
     return bp::parse(filter_str,
                      bp::with_error_handler(filter_combinator_rule, cb_handler),
-                     dbg);
+                     *filter, dbg);
   }
-  /*  if (use_wchar) {
-      return bp::parse(filter_str, filter_combinator_rule_w, dbg);
-    } else {
-      return bp::parse(filter_str, filter_combinator_rule, dbg);
-    }*/
 }
 
 /*************************************************************************
  *                                                                       *
- *                          label_compare_to_value                        *
+ *                          label_compare_to_value                       *
  *                                                                       *
  *************************************************************************/
 
@@ -137,6 +151,43 @@ void label_compare_to_value::dump(std::ostream& s) const {
   }
 
   s << _value << ' ' << _unit << " } " << std::endl;
+}
+
+/*************************************************************************
+ *                                                                       *
+ *                          label_compare_to_string                      *
+ *                                                                       *
+ *************************************************************************/
+
+/**
+ * @brief dump object to std::ostream
+ *
+ * @param s
+ */
+template <typename char_t>
+void label_compare_to_string<char_t>::dump(std::ostream& s) const {
+  s << ' ' << " { " << _label << ' ';
+
+  switch (_comparison) {
+    case string_comparison::equal:
+      s << "==";
+      break;
+    case string_comparison::not_equal:
+      s << "!=";
+      break;
+    default:
+      s << "unknown comparison";
+      break;
+  }
+
+  if constexpr (std::is_same_v<char, char_t>) {
+    s << _value;
+  } else {
+    std::string conv;
+    wstring_to_string(_value, &conv);
+    s << conv;
+  }
+  s << " } " << std::endl;
 }
 
 /*************************************************************************
@@ -294,4 +345,6 @@ void filter_combinator::dump(std::ostream& s) const {
 namespace com::centreon::agent::filters {
 template class label_in<char>;
 template class label_in<wchar_t>;
+template class label_compare_to_string<char>;
+template class label_compare_to_string<wchar_t>;
 }  // namespace com::centreon::agent::filters

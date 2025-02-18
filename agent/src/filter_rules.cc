@@ -58,6 +58,27 @@ const auto label_compare_to_value_rule_def =
      *bp::ws >> *bp::char_('a', 'z'));
 
 /************************************************************************
+label_compare_to_string grammar
+
+We expect a string likeprovider = 'Microsoft-Windows-Security-SPP'
+labels should be a lower case string
+
+**************************************************************************/
+
+/**
+ * @brief accepted operators
+ *
+ */
+const bp::symbols<string_comparison> str_comparison_symbols = {
+    {"!=", string_comparison::not_equal},
+    {"==", string_comparison::equal},
+    {"=", string_comparison::equal}};
+
+const auto label_compare_to_string_rule_def = +bp::char_('a', 'z') >> *bp::ws >>
+                                              str_comparison_symbols >>
+                                              *bp::ws >> bp::quoted_string("'");
+
+/************************************************************************
 label_in grammar
 
 We expect a string like label in (value1, 'value2', value3) or label not_in
@@ -67,9 +88,8 @@ label should be in lowercase as no quoted values
 
 **************************************************************************/
 
-const bp::symbols<label_in<char>::in_not> in_symbols = {
-    {"in", label_in<char>::in_not::in},
-    {"not_in", label_in<char>::in_not::not_in}};
+const bp::symbols<in_not> in_symbols = {{"in", in_not::in},
+                                        {"not_in", in_not::not_in}};
 
 const auto label_in_rule_def =
     +bp::char_('a', 'z') >> *bp::ws >> in_symbols >> *bp::ws >> '(' >>
@@ -105,9 +125,11 @@ const bp::symbols<filter_combinator::logical_operator>
  *
  */
 const auto filter_combinator_rule1_def =
-    (label_compare_to_value_rule | label_in_rule | filter_combinator_rule2) >>
+    (label_compare_to_value_rule | label_compare_to_string_rule |
+     label_in_rule | filter_combinator_rule2) >>
     *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
-      (label_compare_to_value_rule | label_in_rule | filter_combinator_rule2));
+      (label_compare_to_value_rule | label_compare_to_string_rule |
+       label_in_rule | filter_combinator_rule2));
 
 const auto filter_combinator_rule2_def =
     '(' >> *bp::ws >> filter_combinator_rule >> *bp::ws >> ')';
@@ -122,25 +144,25 @@ const auto filter_combinator_rule_def = (filter_combinator_rule1 |
  * wchar_t version
  */
 
-const bp::symbols<label_in<wchar_t>::in_not> in_symbols_w = {
-    {"in", label_in<wchar_t>::in_not::in},
-    {"not_in", label_in<wchar_t>::in_not::not_in}};
+const auto label_compare_to_string_rule_w_def = +bp::char_('a', 'z') >>
+                                                *bp::ws >>
+                                                str_comparison_symbols >>
+                                                *bp::ws >>
+                                                bp::quoted_string("'");
 
 const auto label_in_rule_w_def =
-    +bp::char_('a', 'z') >> *bp::ws >> in_symbols_w >> *bp::ws >> '(' >>
+    +bp::char_('a', 'z') >> *bp::ws >> in_symbols >> *bp::ws >> '(' >>
     *bp::ws >> (bp::quoted_string("'\"") | +bp::char_('a', 'z')) >>
     *(*bp::ws >> ',' >> *bp::ws >>
       (bp::quoted_string("'\"") | +bp::char_('a', 'z'))) >>
     *bp::ws >> ')';
 
-BOOST_PARSER_DEFINE_RULES(label_in_rule_w);
-
 const auto filter_combinator_rule1_w_def =
-    (label_compare_to_value_rule | label_in_rule_w |
-     filter_combinator_rule2_w) >>
+    (label_compare_to_value_rule | label_compare_to_string_rule_w |
+     label_in_rule_w | filter_combinator_rule2_w) >>
     *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
-      (label_compare_to_value_rule | label_in_rule_w |
-       filter_combinator_rule2_w));
+      (label_compare_to_value_rule | label_compare_to_string_rule_w |
+       label_in_rule_w | filter_combinator_rule2_w));
 
 const auto filter_combinator_rule2_w_def =
     '(' >> *bp::ws >> filter_combinator_rule_w >> *bp::ws >> ')';
@@ -152,7 +174,10 @@ const auto filter_combinator_rule_w_def = (filter_combinator_rule1_w |
                                              filter_combinator_rule2_w));
 
 BOOST_PARSER_DEFINE_RULES(label_compare_to_value_rule,
+                          label_compare_to_string_rule,
+                          label_compare_to_string_rule_w,
                           label_in_rule,
+                          label_in_rule_w,
                           filter_combinator_rule1,
                           filter_combinator_rule2,
                           filter_combinator_rule,

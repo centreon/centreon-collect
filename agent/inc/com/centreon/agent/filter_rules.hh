@@ -33,6 +33,10 @@ namespace bp = boost::parser;
 const bp::rule<struct label_compare_to_value_rule, label_compare_to_value>
     label_compare_to_value_rule = "label_compare_to_value";
 
+const bp::rule<struct label_compare_to_string_rule,
+               label_compare_to_string<char>>
+    label_compare_to_string_rule = "label_compare_to_string";
+
 const bp::rule<struct label_in_rule, label_in<char>> label_in_rule = "label_in";
 
 const bp::rule<struct filter_combinator_rule1, filter_combinator>
@@ -48,6 +52,10 @@ const bp::rule<struct filter_combinator_rule, filter_combinator>
  * @brief the same for wchar_t
  *
  */
+const bp::rule<struct label_compare_to_string_rule_w,
+               label_compare_to_string<wchar_t>>
+    label_compare_to_string_rule_w = "label_compare_to_string";
+
 const bp::rule<struct label_in_rule_w, label_in<wchar_t>> label_in_rule_w =
     "label_in";
 

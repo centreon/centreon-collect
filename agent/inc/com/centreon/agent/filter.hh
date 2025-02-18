@@ -19,6 +19,10 @@
 #ifndef CENTREON_AGENT_FILTER_HH
 #define CENTREON_AGENT_FILTER_HH
 
+#include <string_view>
+#include <type_traits>
+#include "absl/strings/numbers.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "filter.hh"
 namespace com::centreon::agent {
 
@@ -57,6 +61,7 @@ class filter {
  public:
   enum class filter_type : int {
     label_compare_to_value,
+    label_compare_to_string,
     label_in,
     filter_combinator
   };
@@ -90,11 +95,11 @@ class filter {
     _checker = std::forward<checker_ope>(ope);
   }
 
-  static std::optional<filters::filter_combinator> create_filter(
-      const std::string_view& filter_str,
-      const std::shared_ptr<spdlog::logger>& logger,
-      bool use_wchar = false,
-      bool debug = false);
+  static bool create_filter(const std::string_view& filter_str,
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            filters::filter_combinator* filter,
+                            bool use_wchar = false,
+                            bool debug = false);
 };
 
 }  // namespace com::centreon::agent
@@ -111,6 +116,15 @@ namespace com::centreon::agent {
  * various criteria.
  */
 namespace filters {
+
+void wstring_to_string(std::wstring_view in_str, std::string* out_str);
+void string_to_wstring(std::string_view in_str, std::wstring* out_str);
+
+/*************************************************************************
+ *                                                                       *
+ *                          label_compare_to_value                       *
+ *                                                                       *
+ *************************************************************************/
 
 /**
  * @brief The goal of this filter is to check a double threshold of a label
@@ -204,6 +218,92 @@ void label_compare_to_value::set_checker_from_getter(value_getter&& getter) {
   }
 }
 
+/*************************************************************************
+ *                                                                       *
+ *                          label_compare_to_string                      *
+ *                                                                       *
+ *************************************************************************/
+
+enum class string_comparison : int { equal, not_equal };
+
+/**
+ * @brief The goal of this filter is to check a string equal or not equal
+ * values must be quoted
+ * example: foo == 'tutu'
+ */
+template <typename char_t>
+class label_compare_to_string : public filter {
+ public:
+ private:
+  std::string _label;
+  std::basic_string<char_t> _value;
+
+  string_comparison _comparison;
+
+ public:
+  label_compare_to_string(std::string&& label,
+                          string_comparison compare,
+                          std::string&& value)
+      : filter(filter_type::label_compare_to_string),
+        _label(std::move(label)),
+        _comparison(compare) {
+    if constexpr (std::is_same_v<char, char_t>) {
+      _value = std::move(value);
+    } else {
+      string_to_wstring(value, &_value);
+    }
+  }
+
+  label_compare_to_string() : filter(filter_type::label_compare_to_string) {}
+
+  std::unique_ptr<filter> clone() const override {
+    return std::make_unique<label_compare_to_string<char_t>>(*this);
+  }
+
+  void dump(std::ostream& s) const override;
+
+  const std::string& get_label() const { return _label; }
+  std::basic_string<char_t> get_value() const { return _value; }
+  string_comparison get_comparison() const { return _comparison; }
+
+  template <class value_getter>
+  void set_checker_from_getter(value_getter&& getter);
+};
+
+/**
+ * @brief this helper function will create a checker from a getter
+ *
+ * @tparam value_getter operator() must return a double
+ * @param getter lambda or struct with operator() returning a double
+ */
+template <typename char_t>
+template <class value_getter>
+void label_compare_to_string<char_t>::set_checker_from_getter(
+    value_getter&& getter) {
+  static_assert(
+      std::is_same_v<char_t, typename std::invoke_result_t<
+                                 value_getter, const testable&>::value_type>,
+      "label_compare_to_string: char types are different");
+  switch (_comparison) {
+    case string_comparison::equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val == gettr(t); };
+      break;
+    case string_comparison::not_equal:
+      _checker = [val = _value, gettr = std::move(getter)](
+                     const testable& t) -> bool { return val != gettr(t); };
+      break;
+  }
+}
+
+/*************************************************************************
+ *                                                                       *
+ *                               label_in                                *
+ *                                                                       *
+ *************************************************************************/
+
+enum class in_not { in, not_in };
+
 /**
  * @brief test if a value is in a set of values
  * example: foo in (titi, 'tutu', tata)
@@ -212,8 +312,7 @@ void label_compare_to_value::set_checker_from_getter(value_getter&& getter) {
 template <typename char_t>
 class label_in : public filter {
  public:
-  enum class in_not { in, not_in };
-
+  using char_type = char_t;
   using string_type = std::basic_string<char_t>;
 
  private:
@@ -238,6 +337,9 @@ class label_in : public filter {
 
   template <class value_getter>
   void set_checker_from_getter(value_getter&& getter);
+
+  template <class number_getter>
+  void set_checker_from_number_getter(number_getter&& getter);
 };
 
 /**
@@ -249,6 +351,10 @@ class label_in : public filter {
 template <typename char_t>
 template <class value_getter>
 void label_in<char_t>::set_checker_from_getter(value_getter&& getter) {
+  static_assert(
+      std::is_same_v<char_t, typename std::invoke_result_t<
+                                 value_getter, const testable&>::value_type>,
+      "label_in: char types are different");
   if (_rule == in_not::in) {
     _checker = [values = &_values,
                 gettr = std::move(getter)](const testable& t) -> bool {
@@ -261,6 +367,66 @@ void label_in<char_t>::set_checker_from_getter(value_getter&& getter) {
       return !values->contains(gettr(t));
     };
 }
+
+template <typename number_type, in_not rule, typename getter_type>
+class numeric_in {
+  std::set<number_type> _values;
+  getter_type _getter;
+
+ public:
+  template <class label_in_class>
+  numeric_in(const label_in_class& parent, getter_type&& value_getter)
+      : _getter(std::move(value_getter)) {
+    if constexpr (std::is_same_v<char, typename label_in_class::char_type>) {
+      for (const auto& val : parent.get_values()) {
+        number_type to_ins;
+        if (!absl::SimpleAtoi(val, &to_ins)) {
+          throw exceptions::msg_fmt("{} unable to convert '{}' to a number",
+                                    parent.get_label(), val);
+        }
+        _values.insert(to_ins);
+      }
+    } else {
+      std::string conv;
+      for (const auto& val : parent.get_values()) {
+        wstring_to_string(val, &conv);
+        number_type to_ins;
+        if (!absl::SimpleAtoi(conv, &to_ins)) {
+          throw exceptions::msg_fmt("{} unable to convert '{}' to a number",
+                                    parent.get_label(), conv);
+        }
+        _values.insert(to_ins);
+      }
+    }
+  }
+
+  bool operator()(const testable& t) const {
+    if constexpr (rule == in_not::in) {
+      return _values.find(_getter(t)) != _values.end();
+    } else {
+      return _values.find(_getter(t)) == _values.end();
+    }
+  }
+};
+
+template <typename char_t>
+template <class number_getter>
+void label_in<char_t>::set_checker_from_number_getter(number_getter&& getter) {
+  if (_rule == in_not::in) {
+    _checker = numeric_in<std::invoke_result_t<number_getter, const testable&>,
+                          in_not::in, number_getter>(*this, std::move(getter));
+  } else {
+    _checker =
+        numeric_in<std::invoke_result_t<number_getter, const testable&>,
+                   in_not::not_in, number_getter>(*this, std::move(getter));
+  }
+}
+
+/*************************************************************************
+ *                                                                       *
+ *                          filter_combinator                            *
+ *                                                                       *
+ *************************************************************************/
 
 /**
  * @brief the glue between filters
@@ -299,7 +465,13 @@ class filter_combinator : public filter {
   }
 
   template <typename char_t>
+  filter_ptr _move_filter(label_compare_to_string<char_t>&& filt) {
+    return std::make_unique<label_compare_to_string<char_t>>(std::move(filt));
+  }
+
+  template <typename char_t>
   filter_ptr _move_filter(std::variant<label_compare_to_value,
+                                       label_compare_to_string<char_t>,
                                        label_in<char_t>,
                                        filter_combinator>&& filt) {
     return std::visit(

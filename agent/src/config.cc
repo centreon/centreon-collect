@@ -78,13 +78,13 @@ const std::string_view config::config_schema(R"(
             "type": "string",
             "minLength": 5
         },
-        "log_files_max_size": {
-            "description:": "Maximum size (in megabytes) of the log file before it will be rotated. To be valid, log_files_max_number must be also be provided",
+        "log_max_file_size": {
+            "description:": "Maximum size (in megabytes) of the log file before it will be rotated. To be valid, log_max_files must be also be provided",
             "type": "integer",
             "min": 1
         },
-        "log_files_max_number": {
-            "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
+        "log_max_files": {
+            "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_max_file_size must be also be provided",
             "type": "integer",
             "min": 1
         },
@@ -143,8 +143,8 @@ config::config(const std::string& path) {
                   ? to_file
                   : to_stdout;
   _log_file = json_config.get_string("log_file", "");
-  _log_files_max_size = json_config.get_unsigned("log_files_max_size", 0);
-  _log_files_max_number = json_config.get_unsigned("log_files_max_number", 0);
+  _log_files_max_size = json_config.get_unsigned("log_max_file_size", 0);
+  _log_files_max_number = json_config.get_unsigned("log_max_files", 0);
   _encryption = json_config.get_bool("encryption", false);
   _public_cert_file = json_config.get_string("public_cert", "");
   _private_key_file = json_config.get_string("private_key", "");

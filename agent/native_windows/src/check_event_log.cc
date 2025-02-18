@@ -16,6 +16,10 @@
  * For more information : contact@centreon.com
  */
 
+#include <stdint.h>
+#include <stdexcept>
+#include "absl/strings/numbers.h"
+#include "filter.hh"
 #pragma comment(lib, "wevtapi.lib")
 
 #include "check_event_log.hh"
@@ -68,6 +72,22 @@ static const absl::flat_hash_map<std::string_view, uint8_t> _str_to_levels{
     {"critical", 1},      {"error", 2},       {"warning", 3},
     {"warn", 3},          {"information", 4}, {"info", 4},
     {"informational", 4}, {"verbose", 5},     {"debug", 5}};
+
+static uint8_t str_to_level(const std::string_view& str) {
+  auto level_label_it = _str_to_levels.find(str);
+  if (level_label_it != _str_to_levels.end()) {
+    return level_label_it->second;
+  }
+
+  uint32_t num_str_value;
+  if (absl::SimpleAtoi(str, &num_str_value)) {
+    throw std::invalid_argument("unknown level value");
+  }
+  if (num_str_value > 0x0FF) {
+    throw std::invalid_argument("too large level value");
+  }
+  return num_str_value;
+}
 
 }  // namespace com::centreon::agent::check_event_log_detail
 
@@ -174,12 +194,177 @@ std::wstring_view event_data::get_channel() const {
   }
 }
 
+void event_filter::check_builder::operator()(filter* filt) const {
+  if (filt->get_type() == filter::filter_type::label_compare_to_value) {
+    set_label_compare_to_value(
+        static_cast<filters::label_compare_to_value*>(filt));
+  } else if (filt->get_type() == filter::filter_type::label_compare_to_string) {
+    set_label_compare_to_string(
+        static_cast<filters::label_compare_to_string<wchar_t>*>(filt));
+  } else {
+    set_label_in(static_cast<filters::label_in<wchar_t>*>(filt));
+  }
+}
+
+void event_filter::check_builder::set_label_compare_to_value(
+    filters::label_compare_to_value* filt) const {
+  if (filt->get_label() == "event_id") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_event_id();
+    });
+  } else if (filt->get_label() == "level") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_level();
+    });
+  }
+}
+
+void event_filter::check_builder::set_label_compare_to_string(
+    filters::label_compare_to_string<wchar_t>* filt) const {
+  if (filt->get_label() == "provider") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_provider();
+    });
+  } else if (filt->get_label() == "level") {
+    uint8_t level = str_to_level(
+        std::string(filt->get_value().begin(), filt->get_value().end()));
+    if (filt->get_comparison() == filters::string_comparison::equal) {
+      filt->set_checker([level](const testable& t) {
+        return static_cast<const event_data&>(t).get_level() == level;
+      });
+    } else {
+      filt->set_checker([level](const testable& t) {
+        return static_cast<const event_data&>(t).get_level() != level;
+      });
+    }
+  } else if (filt->get_label() == "keywords") {
+    if (filt->get_value() == L"auditsuccess") {
+      if (filt->get_comparison() == filters::string_comparison::equal) {
+        filt->set_checker([](const testable& t) -> bool {
+          return (static_cast<const event_data&>(t).get_keywords() &
+                  _keywords_audit_success) != 0;
+        });
+      } else {
+        filt->set_checker([](const testable& t) -> bool {
+          return (static_cast<const event_data&>(t).get_keywords() &
+                  _keywords_audit_success) == 0;
+        });
+      }
+    } else if (filt->get_value() == L"auditfailure") {
+      if (filt->get_comparison() == filters::string_comparison::equal) {
+        filt->set_checker([](const testable& t) -> bool {
+          return (static_cast<const event_data&>(t).get_keywords() &
+                  _keywords_audit_failure) != 0;
+        });
+      } else {
+        filt->set_checker([](const testable& t) -> bool {
+          return (static_cast<const event_data&>(t).get_keywords() &
+                  _keywords_audit_failure) == 0;
+        });
+      }
+    } else {
+      throw std::invalid_argument(
+          "only auditFailure and auditSuccess keywords are allowed");
+    }
+  } else if (filt->get_label() == "computer") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_computer();
+    });
+  } else if (filt->get_label() == "channel") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_channel();
+    });
+  } else {
+    throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
+  }
+}
+
+void event_filter::check_builder::set_label_in(
+    filters::label_in<wchar_t>* filt) const {
+  if (filt->get_label() == "provider") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_provider();
+    });
+  } else if (filt->get_label() == "event_id") {
+    filt->set_checker_from_number_getter([](const testable& t) {
+      return static_cast<uint32_t>(
+          static_cast<const event_data&>(t).get_event_id());
+    });
+  } else if (filt->get_label() == "level") {
+    if (filt->get_rule() == filters::in_not::in) {
+      filt->set_checker(level_in<filters::in_not::in>(*filt));
+    } else {
+      filt->set_checker(level_in<filters::in_not::not_in>(*filt));
+    }
+  } else if (filt->get_label() == "keywords") {
+    uint64_t mask = 0;
+    if (filt->get_values().contains(L"auditsuccess")) {
+      mask = _keywords_audit_success;
+    }
+    if (filt->get_values().contains(L"auditfailure")) {
+      mask = _keywords_audit_failure;
+    }
+    if (filt->get_rule() == filters::in_not::in) {
+      filt->set_checker([mask](const testable& t) -> bool {
+        return (static_cast<const event_data&>(t).get_keywords() & mask) != 0;
+      });
+    } else {
+      filt->set_checker([mask](const testable& t) -> bool {
+        return (static_cast<const event_data&>(t).get_keywords() & mask) == 0;
+      });
+    }
+  } else if (filt->get_label() == "computer") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_computer();
+    });
+  } else if (filt->get_label() == "channel") {
+    filt->set_checker_from_getter([](const testable& t) {
+      return static_cast<const event_data&>(t).get_channel();
+    });
+  } else {
+    throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
+  }
+}
+
+template <filters::in_not rule>
+event_filter::level_in<rule>::level_in(const filters::label_in<wchar_t>& filt) {
+  std::string cval;
+  for (const auto& val : filt.get_values()) {
+    filters::wstring_to_string(val, &cval);
+    _values.insert(str_to_level(cval));
+  }
+}
+
+template <filters::in_not rule>
+event_filter::level_in<rule>::level_in(
+    const filters::label_compare_to_string<wchar_t>& filt) {
+  std::string cval;
+  filters::wstring_to_string(filt.get_value(), &cval);
+  _values.insert(str_to_level(cval));
+}
+
+template <filters::in_not rule>
+bool event_filter::level_in<rule>::operator()(const testable& t) const {
+  if constexpr (rule == filters::in_not::in) {
+    return _values.find(static_cast<const event_data&>(t).get_level()) !=
+           _values.end();
+  } else {
+    return _values.find(static_cast<const event_data&>(t).get_level()) ==
+           _values.end();
+  }
+}
+
 event_filter::event_filter(const std::string_view& filter_str,
                            const std::shared_ptr<spdlog::logger>& logger)
     : _logger(logger) {
-  _filter = filter::create_filter(filter_str, logger, true);
-  if (!_filter) {
-    SPDLOG_LOGGER_ERROR(_logger, "fail to parse filter string: {}", filter_str);
+  if (!filter::create_filter(filter_str, logger, &_filter, true)) {
+    throw exceptions::msg_fmt("fail to parse filter string: {}", filter_str);
+  }
+  try {
+    _filter.apply_checker(check_builder());
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger, "wrong_value for {}: {}", filter_str, e.what());
+    throw;
   }
 }
 

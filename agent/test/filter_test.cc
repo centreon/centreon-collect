@@ -71,13 +71,63 @@ TEST(filter_test, label_compare_to_value) {
             label_compare_to_value::comparison::not_equal);
 }
 
+TEST(filter_test, label_compare_to_string) {
+  auto res = bp::parse("toto == 'hello'", label_compare_to_string_rule,
+                       bp::trace::off);
+
+  ASSERT_TRUE(res);
+  EXPECT_EQ(res->get_label(), "toto");
+  EXPECT_EQ(res->get_value(), "hello");
+  EXPECT_EQ(res->get_comparison(), string_comparison::equal);
+
+  auto res2 = bp::parse("titi != 'world'", label_compare_to_string_rule,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res2);
+  EXPECT_EQ(res2->get_label(), "titi");
+  EXPECT_EQ(res2->get_value(), "world");
+  EXPECT_EQ(res2->get_comparison(), string_comparison::not_equal);
+
+  auto res3 =
+      bp::parse("foo == 'bar'", label_compare_to_string_rule, bp::trace::off);
+
+  ASSERT_TRUE(res3);
+  EXPECT_EQ(res3->get_label(), "foo");
+  EXPECT_EQ(res3->get_value(), "bar");
+  EXPECT_EQ(res3->get_comparison(), string_comparison::equal);
+
+  auto res4 =
+      bp::parse("baz != 'qux'", label_compare_to_string_rule, bp::trace::off);
+
+  ASSERT_TRUE(res4);
+  EXPECT_EQ(res4->get_label(), "baz");
+  EXPECT_EQ(res4->get_value(), "qux");
+  EXPECT_EQ(res4->get_comparison(), string_comparison::not_equal);
+
+  auto res5 = bp::parse("quux == 'corge'", label_compare_to_string_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res5);
+  EXPECT_EQ(res5->get_label(), "quux");
+  EXPECT_EQ(res5->get_value(), L"corge");
+  EXPECT_EQ(res5->get_comparison(), string_comparison::equal);
+
+  auto res6 = bp::parse("grault != 'garply'", label_compare_to_string_rule_w,
+                        bp::trace::off);
+
+  ASSERT_TRUE(res6);
+  EXPECT_EQ(res6->get_label(), "grault");
+  EXPECT_EQ(res6->get_value(), L"garply");
+  EXPECT_EQ(res6->get_comparison(), string_comparison::not_equal);
+}
+
 TEST(filter_test, filter_in) {
   auto res = bp::parse("toto in (titi,'tutu'   , 'tata')", label_in_rule,
                        bp::trace::off);
 
   ASSERT_TRUE(res);
   EXPECT_EQ(res->get_label(), "toto");
-  EXPECT_EQ(res->get_rule(), label_in<char>::in_not::in);
+  EXPECT_EQ(res->get_rule(), in_not::in);
   EXPECT_EQ(res->get_values().size(), 3);
   EXPECT_EQ(res->get_values().count("titi"), 1);
   EXPECT_EQ(res->get_values().count("tutu"), 1);
@@ -88,7 +138,7 @@ TEST(filter_test, filter_in) {
 
   ASSERT_TRUE(res2);
   EXPECT_EQ(res2->get_label(), "toto");
-  EXPECT_EQ(res2->get_rule(), label_in<char>::in_not::not_in);
+  EXPECT_EQ(res2->get_rule(), in_not::not_in);
   EXPECT_EQ(res2->get_values().size(), 3);
   EXPECT_EQ(res2->get_values().count("titi"), 1);
   EXPECT_EQ(res2->get_values().count("tutu"), 1);
@@ -98,7 +148,7 @@ TEST(filter_test, filter_in) {
 
   ASSERT_TRUE(res3);
   EXPECT_EQ(res3->get_label(), "toto");
-  EXPECT_EQ(res3->get_rule(), label_in<char>::in_not::in);
+  EXPECT_EQ(res3->get_rule(), in_not::in);
   EXPECT_EQ(res3->get_values().size(), 1);
   EXPECT_EQ(res3->get_values().count("titi"), 1);
 
@@ -106,7 +156,7 @@ TEST(filter_test, filter_in) {
 
   ASSERT_TRUE(res4);
   EXPECT_EQ(res4->get_label(), "toto");
-  EXPECT_EQ(res4->get_rule(), label_in<char>::in_not::not_in);
+  EXPECT_EQ(res4->get_rule(), in_not::not_in);
   EXPECT_EQ(res4->get_values().size(), 1);
   EXPECT_EQ(res4->get_values().count("titi"), 1);
 
@@ -114,7 +164,7 @@ TEST(filter_test, filter_in) {
 
   ASSERT_TRUE(res5);
   EXPECT_EQ(res5->get_label(), "toto");
-  EXPECT_EQ(res5->get_rule(), label_in<wchar_t>::in_not::not_in);
+  EXPECT_EQ(res5->get_rule(), filters::in_not::not_in);
   EXPECT_EQ(res5->get_values().size(), 1);
   EXPECT_EQ(res5->get_values().count(L"titi"), 1);
 }
@@ -492,25 +542,21 @@ TEST(filter_test, filter_check_values_w) {
 
   EXPECT_TRUE(res12->check(values));
 
-  auto res13 = filter::create_filter(
+  filters::filter_combinator res13;
+  ASSERT_TRUE(filter::create_filter(
       "foo == 10 && (bar = 5.5kg || (baz < 3 && qux >  1)) || quux in(truc, "
       "'5')",
-      spdlog::default_logger());
+      spdlog::default_logger(), &res13, true, false));
 
-  ASSERT_TRUE(res13);
-  res13->apply_checker(checker_build);
+  res13.apply_checker(checker_build);
 
-  EXPECT_TRUE(res13->check(values));
+  EXPECT_TRUE(res13.check(values));
 }
 
 TEST(filter_test, filter_with_error) {
-  try {
-    auto res = filter::create_filter("turlutut(u", spdlog::default_logger());
-    EXPECT_FALSE(res);
-    EXPECT_FALSE(true);  // we must not pass here
-  } catch (const std::invalid_argument& e) {
-    std::cout << e.what() << std::endl;
-  }
+  filters::filter_combinator res;
+  EXPECT_FALSE(
+      filter::create_filter("turlutut(u", spdlog::default_logger(), &res));
 }
 
 #pragma GCC diagnostic pop

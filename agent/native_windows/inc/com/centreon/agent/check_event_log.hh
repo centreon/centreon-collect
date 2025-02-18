@@ -56,8 +56,28 @@ class event_data : public testable {
 };
 
 class event_filter {
-  std::optional<filters::filter_combinator> _filter;
+  filters::filter_combinator _filter;
   std::shared_ptr<spdlog::logger> _logger;
+
+  struct check_builder {
+    void operator()(filter* filt) const;
+    void set_label_compare_to_value(
+        filters::label_compare_to_value* filt) const;
+    void set_label_compare_to_string(
+        filters::label_compare_to_string<wchar_t>* filt) const;
+    void set_label_in(filters::label_in<wchar_t>* filt) const;
+  };
+
+  template <filters::in_not rule>
+  class level_in {
+    std::set<uint8_t> _values;
+
+   public:
+    level_in(const filters::label_in<wchar_t>& filt);
+    level_in(const filters::label_compare_to_string<wchar_t>& filt);
+
+    bool operator()(const testable& t) const;
+  };
 
  public:
   event_filter(const std::string_view& filter_str,

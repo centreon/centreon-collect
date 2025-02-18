@@ -165,6 +165,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} ${SRC_LINUX})
 else()
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+  set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 

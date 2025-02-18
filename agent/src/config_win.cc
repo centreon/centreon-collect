@@ -92,8 +92,8 @@ config::config(const std::string& registry_key) {
   }
 
   _log_file = get_sz_reg_or_default("log_file", "");
-  _log_files_max_size = get_unsigned("log_files_max_size");
-  _log_files_max_number = get_unsigned("log_files_max_number");
+  _log_files_max_size = get_unsigned("log_max_file_size");
+  _log_files_max_number = get_unsigned("log_max_files");
   _encryption = get_bool("encryption");
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
