@@ -522,3 +522,11 @@ Ctn Wait For Otel Server To Be Ready
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
 
+Ctn Dump Database
+    [Documentation]    Dump the database in a file. This is useful for debugging.
+    [Arguments]    ${file}
+    Create Directory    failed
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    Run Process    mysqldump    ${DBName}    stdout=${failDir}/${file}
+
