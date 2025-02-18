@@ -510,7 +510,9 @@ sub getlog {
     }
 
     my $query = "SELECT * FROM gorgone_history WHERE " . $filter;
-    $query .= " ORDER BY id DESC LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " ORDER BY id DESC ";
+    $query .= "LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " OFFSET " . $data->{offset} if (defined($data->{offset}) && $data->{offset} ne '');
 
     my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $query, bind_values => \@bind_values });
     if ($status == -1) {
