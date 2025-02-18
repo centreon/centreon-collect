@@ -175,7 +175,8 @@ sub init {
     );
 
     $self->init_server_keys();
-
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} = 150_000
+        if (!defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) || $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} !~ /\d+/);
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =~ /^(0|1)$/ ? $1 : 1;
 
@@ -779,14 +780,57 @@ sub router_internal_event {
                 router_type => 'internal'
             }
         );
+        # we don't want to fragment the response if the max size is configured to 0 (which would mean unlimited size)
+        # so we don't use defined() here.
+        if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) {
+            if (defined($response)
+                and defined($response->{action})
+                and $response->{action} eq "getlog"
+                and defined($response->{result})
+                and ref($response->{result}) eq "ARRAY") {
 
-        $self->send_internal_response(
-            identity      => $identity,
-            response_type => $response_type,
-            data          => $response,
-            code          => $code,
-            token         => $token
-        );
+                my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};
+                my $to_send      = { action => "getlog", id => $response->{id}, result => [] };
+                my $size         = 0;
+                for my $log (@{$response->{result}}) {
+                     if (length($log->{data}) > $max_msg_size) {
+                        $self->{logger}->writeLogError('[core] cannot send log message created at ' .
+                            $log->ctime . ', too big : ' . length($log->{data}) . ' > ' . $max_msg_size);
+                        next;
+                    }
+                    if ($size + length($log->{data}) > $max_msg_size) {
+                        $self->send_internal_response(
+                            identity      => $identity,
+                            response_type => $response_type,
+                            data          => $log,
+                            code          => $code,
+                            token         => $token
+                        );
+                        $size              = 0;
+                        $to_send->{result} = [];
+                    }
+                    push(@{$to_send->{result}}, $log->{data});
+                    $size += length($log->{data});
+                }
+                if (scalar(@{$to_send->{result}}) > 0) {
+                    $self->send_internal_response(
+                        identity      => $identity,
+                        response_type => $response_type,
+                        data          => $to_send,
+                        code          => $code,
+                        token         => $token
+                    );
+                }
+            }
+        } else {
+            $self->send_internal_response(
+                identity      => $identity,
+                response_type => $response_type,
+                data          => $response,
+                code          => $code,
+                token         => $token
+            );
+        }
     }
 }
 
