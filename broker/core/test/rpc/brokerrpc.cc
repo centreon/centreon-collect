@@ -32,9 +32,12 @@ using namespace com::centreon;
 using namespace com::centreon::broker;
 
 class BrokerRpc : public ::testing::Test {
+ protected:
+  std::shared_ptr<stats::center> _center;
+
  public:
   void SetUp() override {
-    stats::center::load();
+    _center = std::make_shared<stats::center>();
     io::protocols::load();
     io::events::load();
   }
@@ -42,7 +45,6 @@ class BrokerRpc : public ::testing::Test {
   void TearDown() override {
     io::events::unload();
     io::protocols::unload();
-    stats::center::unload();
   }
 
   std::list<std::string> execute(const std::string& command) {
@@ -91,10 +93,9 @@ TEST_F(BrokerRpc, GetMuxerStats) {
       "unacknowledged_events: "
       "1790\n"};
 
-  auto center = stats::center::instance_ptr();
-  center->update_muxer("mx1", "qufl_", 18u, 1789u);
+  _center->update_muxer("mx1", "qufl_", 18u, 1789u);
 
-  center->update_muxer("mx2", "_qufl", 18u, 1790u);
+  _center->update_muxer("mx2", "_qufl", 18u, 1790u);
 
   std::list<std::string> output = execute("GetMuxerStats mx1 mx2");
 
