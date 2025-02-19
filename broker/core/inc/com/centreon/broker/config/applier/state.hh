@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
 
 namespace com::centreon::broker::config::applier {
@@ -85,6 +86,8 @@ class state {
   std::filesystem::path _pollers_config_dir;
 
   modules _modules;
+
+  std::shared_ptr<com::centreon::broker::stats::center> _center;
 
   static stats _stats_conf;
 
@@ -151,6 +154,7 @@ class state {
   bool broker_needs_update() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
   std::string engine_configuration(uint64_t poller_id) const;
+  std::shared_ptr<com::centreon::broker::stats::center> center() const;
 };
 }  // namespace com::centreon::broker::config::applier
 

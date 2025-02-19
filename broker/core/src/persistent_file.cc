@@ -20,7 +20,7 @@
 
 #include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/compression/stream.hh"
-#include "com/centreon/broker/file/opener.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -52,7 +52,7 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
   // Set stream.
   io::stream::set_substream(bs);
   if (stats)
-    stats::center::instance_ptr()->execute(
+    config::applier::state::instance().center()->execute(
         [path, stats, max_file_size = _splitter->max_file_size()] {
           stats->set_name(path);
           stats->set_max_file_size(max_file_size);

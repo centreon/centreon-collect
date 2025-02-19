@@ -34,7 +34,8 @@ using namespace com::centreon::broker;
  */
 brokerrpc::brokerrpc(const std::string& address,
                      uint16_t port,
-                     std::string const& broker_name) {
+                     const std::string& broker_name)
+    : _service(broker_name) {
   io::events& e{io::events::instance()};
 
   /* Lets' register the rebuild_metrics bbdo event. This is needed to send the
@@ -54,7 +55,6 @@ brokerrpc::brokerrpc(const std::string& address,
   e.register_event(make_type(io::extcmd, extcmd::de_ba_info), "ba_info",
                    &extcmd::pb_ba_info::operations);
 
-  _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
