@@ -19,9 +19,6 @@
 #ifndef CENTREON_AGENT_FILTER_HH
 #define CENTREON_AGENT_FILTER_HH
 
-#include <string_view>
-#include <type_traits>
-#include "absl/strings/numbers.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "filter.hh"
 namespace com::centreon::agent {
@@ -52,6 +49,7 @@ class filter;
  *
  */
 using checker_builder = std::function<void(filter*)>;
+using visitor = std::function<void(const filter*)>;
 
 /**
  * @brief abstract filter base class
@@ -86,6 +84,9 @@ class filter {
   virtual std::unique_ptr<filter> clone() const = 0;
 
   virtual bool check(testable& t) const { return _checker(t); }
+
+  virtual void visit(const visitor& visitr) const { visitr(this); }
+
   virtual void apply_checker(const checker_builder& checker_builder) {
     checker_builder(this);
   }
@@ -263,7 +264,7 @@ class label_compare_to_string : public filter {
   void dump(std::ostream& s) const override;
 
   const std::string& get_label() const { return _label; }
-  std::basic_string<char_t> get_value() const { return _value; }
+  const std::basic_string<char_t>& get_value() const { return _value; }
   string_comparison get_comparison() const { return _comparison; }
 
   template <class value_getter>
@@ -499,11 +500,19 @@ class filter_combinator : public filter {
   }
 
   bool check(testable& t) const override;
+
+  void visit(const visitor& visitr) const override;
+
   void apply_checker(const checker_builder& checker_builder) override;
 
   void dump(std::ostream& s) const override;
 };
 
+/**
+ * @brief constructor called by boost::parse
+ * @param sub_filters a tuple containing the first filter(variant) and a vector
+ * of tuples (operator, variant)
+ */
 template <typename T>
 filter_combinator::filter_combinator(T&& sub_filters)
     : filter(filter_type::filter_combinator) {
@@ -513,8 +522,10 @@ filter_combinator::filter_combinator(T&& sub_filters)
   std::vector<std::vector<filter_ptr>> ands;
   std::vector<filter_ptr> ors;
 
+  // we will work on previous as operator is contained in the second argument
   filter_ptr previous = _move_filter(std::move(std::get<0>(sub_filters)));
 
+  // only one filter => no need of a combinator
   if (std::get<1>(sub_filters).empty()) {
     if (previous->get_type() == filter::filter_type::filter_combinator) {
       _filters = std::move(static_cast<filter_combinator&>(*previous)._filters);
@@ -554,10 +565,10 @@ filter_combinator::filter_combinator(T&& sub_filters)
     ors.emplace_back(std::move(previous));
   }
 
-  if (ors.empty()) {
+  if (ors.empty() && ands.size() == 1) {  // ony one and
     _filters = std::move(*ands.begin());
     _logical = logical_operator::filter_and;
-  } else {
+  } else {  // several ors that may contain some ands
     _filters = std::move(ors);
     _logical = logical_operator::filter_or;
     for (auto&& and_unit : ands) {

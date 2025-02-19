@@ -22,7 +22,11 @@
 #include <winevt.h>
 
 #include <boost/flyweight.hpp>
+#include <chrono>
+#include <set>
+#include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "check.hh"
 #include "filter.hh"
 
@@ -30,15 +34,21 @@ namespace com::centreon::agent {
 
 namespace check_event_log_detail {
 
-using time_point = std::chrono::time_point<std::chrono::system_clock>;
+using time_point = std::chrono::system_clock::time_point;
+using duration = std::chrono::system_clock::duration;
 
 constexpr uint64_t _keywords_filter = 0x00FFFFFFFFFFFFFFL;
 constexpr uint64_t _keywords_audit_success = 0x0020000000000000L;
 constexpr uint64_t _keywords_audit_failure = 0x0010000000000000L;
+constexpr uint64_t _keywords_audit_mask = 0x0030000000000000L;
 
+/**
+ * @brief raw event data constructed from EvtSubscribe returned handle
+ * It will be converted to event class if it's allowed by filters
+ */
 class event_data : public testable {
-  std::unique_ptr<uint8_t[]> _data;
   DWORD _property_count;
+  uint8_t* _data;
 
  protected:
   /**
@@ -47,7 +57,10 @@ class event_data : public testable {
   event_data() : _property_count(0) {}
 
  public:
-  event_data(EVT_HANDLE render_context, EVT_HANDLE event_handle);
+  event_data(EVT_HANDLE render_context,
+             EVT_HANDLE event_handle,
+             uint8_t** buffer,
+             DWORD* buffer_size);
 
   ~event_data() = default;
 
@@ -92,7 +105,16 @@ class event_filter {
                const std::shared_ptr<spdlog::logger>& logger);
 
   bool allow(event_data& data) const { return _filter.check(data); }
+
+  void dump(std::ostream& s) const { _filter.dump(s); }
+
+  void visit(const visitor& visitr) const { _filter.visit(visitr); }
 };
+
+inline std::ostream& operator<<(std::ostream& s, const event_filter& filt) {
+  filt.dump(s);
+  return s;
+}
 
 class event {
   uint64_t _id;
@@ -105,22 +127,67 @@ class event {
   e_status _status;
 
   struct computer_tag {};
-  struct file_tag {};
-  struct source_tag {};
+  struct channel_tag {};
+  struct provider_tag {};
   struct keyword_tag {};
   struct message_tag {};
 
   boost::flyweight<std::string, boost::flyweights::tag<computer_tag>> _computer;
-  boost::flyweight<std::string, boost::flyweights::tag<file_tag>> _file;
-  boost::flyweight<std::string, boost::flyweights::tag<source_tag>> _source;
+  boost::flyweight<std::string, boost::flyweights::tag<channel_tag>> _channel;
+  boost::flyweight<std::string, boost::flyweights::tag<provider_tag>> _provider;
   boost::flyweight<std::string, boost::flyweights::tag<keyword_tag>> _keyword;
   boost::flyweight<std::string, boost::flyweights::tag<message_tag>> _message;
 
  public:
-  event(EVT_HANDLE render_context, EVT_HANDLE event_handle);
+  event(const event_data& raw_data, e_status status);
+
+  bool operator<(const event& other) const { return _time < other._time; }
+
+  uint64_t id() const { return _id; }
+  time_point time() const { return _time; }
+  uint64_t audit() const { return _audit; }
+  unsigned level() const { return _level; }
+  e_status status() const { return _status; }
+  const std::string& computer() const { return _computer; }
+  const std::string& channel() const { return _channel; }
+  const std::string& provider() const { return _provider; }
+  const std::string& keyword() const { return _keyword; }
+  const std::string& message() const { return _message; }
 };
 
-struct event_container {};
+class event_container {
+  duration _scan_range;
+
+  using event_set = std::multiset<event>;
+
+  std::unique_ptr<event_filter> _primary_filter;
+  std::unique_ptr<event_filter> _warning_filter;
+  std::unique_ptr<event_filter> _critical_filter;
+
+  event_set _events ABSL_GUARDED_BY(_events_m);
+  absl::Mutex _events_m;
+
+  EVT_HANDLE _render_context;
+  EVT_HANDLE _subscription;
+
+  std::shared_ptr<spdlog::logger> _logger;
+
+  static DWORD WINAPI subscription_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action,
+                                            PVOID pContext,
+                                            EVT_HANDLE hEvent);
+
+  void on_event(EVT_HANDLE event_handle);
+
+ public:
+  event_container(const std::string_view& primary_filter,
+                  const std::string_view& warning_filter,
+                  const std::string_view& critical_filter,
+                  const std::set<std::string>& displayed_fields,
+                  const std::shared_ptr<spdlog::logger>& logger);
+  void start();
+
+  ~event_container();
+};
 
 }  // namespace check_event_log_detail
 

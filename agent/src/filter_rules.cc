@@ -29,6 +29,8 @@ namespace bp = boost::parser;
 // Grammar elements are described here:
 // https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html
 
+#define label_grammar +(bp::char_('a', 'z') | bp::char_('_'))
+
 /************************************************************************
 label_compare_to_value grammar
 
@@ -52,10 +54,10 @@ const bp::symbols<label_compare_to_value::comparison> comparison_symbols = {
     {"=", label_compare_to_value::comparison::equal}};
 
 const auto label_compare_to_value_rule_def =
-    (+(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> comparison_symbols >>
-     *bp::ws >> bp::double_ >> *bp::char_('a', 'z')) |
+    (label_grammar >> *bp::ws >> comparison_symbols >> *bp::ws >> bp::double_ >>
+     *bp::char_('a', 'z')) |
     (bp::double_ >> *bp::char_('a', 'z') >> *bp::ws >> comparison_symbols >>
-     *bp::ws >> +(bp::char_('a', 'z') | bp::lit('_')));
+     *bp::ws >> label_grammar);
 
 /************************************************************************
 label_compare_to_string grammar
@@ -74,9 +76,7 @@ const bp::symbols<string_comparison> str_comparison_symbols = {
     {"==", string_comparison::equal},
     {"=", string_comparison::equal}};
 
-const auto label_compare_to_string_rule_def = +(bp::char_('a', 'z') |
-                                                bp::lit('_')) >>
-                                              *bp::ws >>
+const auto label_compare_to_string_rule_def = label_grammar >> *bp::ws >>
                                               str_comparison_symbols >>
                                               *bp::ws >> bp::quoted_string("'");
 
@@ -90,16 +90,20 @@ label should be in lowercase as no quoted values
 
 **************************************************************************/
 
+#define label_in_value_grammar                                   \
+  +(bp::char_('a', 'z') | bp::char_('0', '9') | bp::char_('/') | \
+    bp::char_('-') | bp::char_('_'))
+
 const bp::symbols<in_not> in_symbols = {{"in", in_not::in},
-                                        {"not_in", in_not::not_in}};
+                                        {"not_in", in_not::not_in},
+                                        {"not-in", in_not::not_in},
+                                        {"notin", in_not::not_in}};
 
 const auto label_in_rule_def =
-    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> in_symbols >> *bp::ws >>
-    '(' >> *bp::ws >>
-    (bp::quoted_string("'\"") | +(bp::char_('a', 'z') | bp::char_('0', '9'))) >>
+    label_grammar >> *bp::ws >> in_symbols >> *bp::ws >> '(' >> *bp::ws >>
+    (bp::quoted_string("'\"") | label_in_value_grammar) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") |
-       +(bp::char_('a', 'z') | bp::char_('0', '9')))) >>
+      (bp::quoted_string("'\"") | label_in_value_grammar)) >>
     *bp::ws >> ')';
 
 /************************************************************************
@@ -148,17 +152,16 @@ const auto filter_combinator_rule_def = (filter_combinator_rule1 |
  * wchar_t version
  */
 
-const auto label_compare_to_string_rule_w_def =
-    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >>
-    str_comparison_symbols >> *bp::ws >> bp::quoted_string("'");
+const auto label_compare_to_string_rule_w_def = label_grammar >> *bp::ws >>
+                                                str_comparison_symbols >>
+                                                *bp::ws >>
+                                                bp::quoted_string("'");
 
 const auto label_in_rule_w_def =
-    +(bp::char_('a', 'z') | bp::lit('_')) >> *bp::ws >> in_symbols >> *bp::ws >>
-    '(' >> *bp::ws >>
-    (bp::quoted_string("'\"") | +(bp::char_('a', 'z') | bp::char_('0', '9'))) >>
+    label_grammar >> *bp::ws >> in_symbols >> *bp::ws >> '(' >> *bp::ws >>
+    (bp::quoted_string("'\"") | label_in_value_grammar) >>
     *(*bp::ws >> ',' >> *bp::ws >>
-      (bp::quoted_string("'\"") |
-       +(bp::char_('a', 'z') | bp::char_('0', '9')))) >>
+      (bp::quoted_string("'\"") | label_in_value_grammar)) >>
     *bp::ws >> ')';
 
 const auto filter_combinator_rule1_w_def =

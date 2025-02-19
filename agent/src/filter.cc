@@ -308,6 +308,12 @@ bool filter_combinator::check(testable& t) const {
   }
 }
 
+void filter_combinator::visit(visitor& visitr) {
+  for (auto& subfilter : _filters) {
+    subfilter->visit(visitr);
+  }
+}
+
 /**
  * @brief apply checker to all subfilters
  *

@@ -31,38 +31,6 @@ using namespace com::centreon::agent::check_event_log_detail;
 
 namespace com::centreon::agent::check_event_log_detail {
 
-/*event::event(EVT_HANDLE render_context, EVT_HANDLE event_handle) {
-  DWORD buffer_size = 0;
-  DWORD buffer_used = 0;
-  DWORD property_count = 0;
-
-  // Get the size of the buffer needed.
-  if (!EvtRender(render_context, event_handle, EvtRenderEventValues,
-                 buffer_size, nullptr, &buffer_used, &property_count)) {
-    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      buffer_size = buffer_used;
-    } else {
-      throw exceptions::msg_fmt("Failed to render event: {}", GetLastError());
-    }
-  }
-
-  std::unique_ptr<uint8_t[]> buffer(new uint8_t[buffer_size]);
-
-  // Render the event.
-  if (!EvtRender(render_context, event_handle, EvtRenderEventValues,
-                 buffer_size, buffer.get(), &buffer_used, &property_count)) {
-    throw exceptions::msg_fmt("Failed to render event: {}", GetLastError());
-  }
-
-  // Process the rendered event values.
-  PEVT_VARIANT values = reinterpret_cast<PEVT_VARIANT>(buffer.get());
-  // Example: Accessing the event message
-  /*if (values[EvtSystemMessage].Type == EvtVarTypeString) {
-    std::wstring message = values[EvtSystemMessage].StringVal;
-    // Do something with the message
-  }
-}*/
-
 static const absl::flat_hash_map<std::string_view, uint64_t> _str_to_keywords{
     {"auditsuccess", _keywords_audit_success},
     {"auditfailure", _keywords_audit_failure},
@@ -80,7 +48,7 @@ static uint8_t str_to_level(const std::string_view& str) {
   }
 
   uint32_t num_str_value;
-  if (absl::SimpleAtoi(str, &num_str_value)) {
+  if (!absl::SimpleAtoi(str, &num_str_value)) {
     throw std::invalid_argument("unknown level value");
   }
   if (num_str_value > 0x0FF) {
@@ -91,33 +59,53 @@ static uint8_t str_to_level(const std::string_view& str) {
 
 }  // namespace com::centreon::agent::check_event_log_detail
 
-event_data::event_data(EVT_HANDLE render_context, EVT_HANDLE event_handle) {
-  DWORD buffer_size = 0;
+/***************************************************************************
+ *                                                                       *
+ *                          event_data                                   *
+ *                                                                       *
+ ****************************************************************************/
+
+/**
+ * @brief Construct a new event_data::event_data object
+ * @param render_context a context that tell to EvtRender wich data to fetch
+ * @param event_handle handle of event
+ * @param buffer buffer to store the data, it is reused for each received event,
+ * may be reallocated
+ * @param buffer_size size of the allocated buffer
+ */
+event_data::event_data(EVT_HANDLE render_context,
+                       EVT_HANDLE event_handle,
+                       uint8_t** buffer,
+                       DWORD* buffer_size) {
   DWORD buffer_used = 0;
   _property_count = 0;
 
   // Get the size of the buffer needed.
   if (!EvtRender(render_context, event_handle, EvtRenderEventValues,
-                 buffer_size, nullptr, &buffer_used, &_property_count)) {
+                 *buffer_size, *buffer, &buffer_used, &_property_count)) {
     if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      buffer_size = buffer_used;
+      delete[] *buffer;
+      *buffer_size = buffer_used;
+      *buffer = new uint8_t[*buffer_size];
+      if (!EvtRender(render_context, event_handle, EvtRenderEventValues,
+                     *buffer_size, *buffer, &buffer_used, &_property_count)) {
+        throw exceptions::msg_fmt("Failed to render event: {}", GetLastError());
+      }
     } else {
       throw exceptions::msg_fmt("Failed to render event: {}", GetLastError());
     }
   }
-
-  _data = std::unique_ptr<uint8_t[]>(new uint8_t[buffer_size]);
-
-  // Render the event.
-  if (!EvtRender(render_context, event_handle, EvtRenderEventValues,
-                 buffer_size, _data.get(), &buffer_used, &_property_count)) {
-    throw exceptions::msg_fmt("Failed to render event: {}", GetLastError());
-  }
+  _data = *buffer;
 }
 
 std::wstring_view event_data::get_provider() const {
+  //
+  //
+  //  TODO convert to lowercase
+  //
+  //
   if (_property_count > EvtSystemProviderName) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemProviderName]
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemProviderName]
         .StringVal;
   } else {
     return L"";
@@ -126,8 +114,7 @@ std::wstring_view event_data::get_provider() const {
 
 uint16_t event_data::get_event_id() const {
   if (_property_count > EvtSystemEventID) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemEventID]
-        .UInt16Val;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemEventID].UInt16Val;
   } else {
     return 0;
   }
@@ -135,7 +122,7 @@ uint16_t event_data::get_event_id() const {
 
 uint8_t event_data::get_level() const {
   if (_property_count > EvtSystemLevel) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemLevel].ByteVal;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemLevel].ByteVal;
   } else {
     return 0;
   }
@@ -143,7 +130,7 @@ uint8_t event_data::get_level() const {
 
 uint16_t event_data::get_task() const {
   if (_property_count > EvtSystemTask) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemTask].UInt16Val;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemTask].UInt16Val;
   } else {
     return 0;
   }
@@ -151,8 +138,7 @@ uint16_t event_data::get_task() const {
 
 int64_t event_data::get_keywords() const {
   if (_property_count > EvtSystemKeywords) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemKeywords]
-        .Int64Val;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemKeywords].Int64Val;
   } else {
     return 0;
   }
@@ -160,7 +146,7 @@ int64_t event_data::get_keywords() const {
 
 uint64_t event_data::get_time_created() const {
   if (_property_count > EvtSystemTimeCreated) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemTimeCreated]
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemTimeCreated]
         .FileTimeVal;
   } else {
     return 0;
@@ -169,7 +155,7 @@ uint64_t event_data::get_time_created() const {
 
 uint64_t event_data::get_record_id() const {
   if (_property_count > EvtSystemEventRecordId) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemEventRecordId]
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemEventRecordId]
         .UInt64Val;
   } else {
     return 0;
@@ -178,8 +164,7 @@ uint64_t event_data::get_record_id() const {
 
 std::wstring_view event_data::get_computer() const {
   if (_property_count > EvtSystemComputer) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemComputer]
-        .StringVal;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemComputer].StringVal;
   } else {
     return L"";
   }
@@ -187,13 +172,17 @@ std::wstring_view event_data::get_computer() const {
 
 std::wstring_view event_data::get_channel() const {
   if (_property_count > EvtSystemChannel) {
-    return reinterpret_cast<EVT_VARIANT*>(_data.get())[EvtSystemChannel]
-        .StringVal;
+    return reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemChannel].StringVal;
   } else {
     return L"";
   }
 }
 
+/***************************************************************************
+ *                                                                       *
+ *                          event_filter                                 *
+ *                                                                       *
+ ****************************************************************************/
 void event_filter::check_builder::operator()(filter* filt) const {
   if (filt->get_type() == filter::filter_type::label_compare_to_value) {
     set_label_compare_to_value(
@@ -242,24 +231,24 @@ void event_filter::check_builder::set_label_compare_to_string(
       if (filt->get_comparison() == filters::string_comparison::equal) {
         filt->set_checker([](const testable& t) -> bool {
           return (static_cast<const event_data&>(t).get_keywords() &
-                  _keywords_audit_success) != 0;
+                  _keywords_audit_mask) == _keywords_audit_success;
         });
       } else {
         filt->set_checker([](const testable& t) -> bool {
           return (static_cast<const event_data&>(t).get_keywords() &
-                  _keywords_audit_success) == 0;
+                  _keywords_audit_mask) != _keywords_audit_success;
         });
       }
     } else if (filt->get_value() == L"auditfailure") {
       if (filt->get_comparison() == filters::string_comparison::equal) {
         filt->set_checker([](const testable& t) -> bool {
           return (static_cast<const event_data&>(t).get_keywords() &
-                  _keywords_audit_failure) != 0;
+                  _keywords_audit_mask) == _keywords_audit_failure;
         });
       } else {
         filt->set_checker([](const testable& t) -> bool {
           return (static_cast<const event_data&>(t).get_keywords() &
-                  _keywords_audit_failure) == 0;
+                  _keywords_audit_mask) != _keywords_audit_failure;
         });
       }
     } else {
@@ -302,7 +291,7 @@ void event_filter::check_builder::set_label_in(
       mask = _keywords_audit_success;
     }
     if (filt->get_values().contains(L"auditfailure")) {
-      mask = _keywords_audit_failure;
+      mask |= _keywords_audit_failure;
     }
     if (filt->get_rule() == filters::in_not::in) {
       filt->set_checker([mask](const testable& t) -> bool {
@@ -366,6 +355,125 @@ event_filter::event_filter(const std::string_view& filter_str,
     SPDLOG_LOGGER_ERROR(logger, "wrong_value for {}: {}", filter_str, e.what());
     throw;
   }
+}
+
+/***************************************************************************
+ *                                                                       *
+ *                          event                                        *
+ *                                                                       *
+ ****************************************************************************/
+event::event(const event_data& raw_data, e_status status)
+    : _id(raw_data.get_record_id()),
+      _time(std::chrono::system_clock::from_time_t(
+          raw_data.get_time_created() / 10000000 - 11644473600)),
+      _audit(raw_data.get_keywords()),
+      _level(raw_data.get_level()),
+      _status(status),
+      _computer(raw_data.get_computer()),
+      _channel(raw_data.get_channel()),
+      _provider(raw_data.get_provider()) {}
+
+/***************************************************************************
+ *                                                                       *
+ *                          event_container                              *
+ *                                                                       *
+ ****************************************************************************/
+
+event_container::event_container(const std::string_view& primary_filter,
+                                 const std::string_view& warning_filter,
+                                 const std::string_view& critical_filter,
+                                 const std::set<std::string>& displayed_fields,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : _logger(logger) {
+  _render_context = EvtCreateRenderContext(0, nullptr, EvtRenderContextValues);
+  if (_render_context == nullptr) {
+    throw exceptions::msg_fmt("Failed to create render context: {}",
+                              GetLastError());
+  }
+
+  if (!primary_filter.empty()) {
+    try {
+      _primary_filter = std::make_unique<event_filter>(primary_filter, logger);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(logger, "fail to parse event filter: {}", e.what());
+      throw;
+    }
+  }
+
+  if (!warning_filter.empty()) {
+    try {
+      _warning_filter = std::make_unique<event_filter>(warning_filter, logger);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(logger, "fail to parse warning filter: {}", e.what());
+      throw;
+    }
+  }
+
+  if (!critical_filter.empty()) {
+    try {
+      _critical_filter =
+          std::make_unique<event_filter>(critical_filter, logger);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(logger, "fail to parse critical filter: {}",
+                          e.what());
+      throw;
+    }
+  }
+
+  std::set<std::string> needed_fields = displayed_fields;
+  auto get_fields = [&needed_fields](const filter* filt) mutable {
+    if (filt->get_type() == filter::filter_type::label_compare_to_string) {
+      needed_fields.insert(
+          static_cast<const filters::label_compare_to_string<wchar_t>*>(filt)
+              ->get_label());
+
+    } else if (filt->get_type() == filter::filter_type::label_in) {
+      needed_fields.insert(
+          static_cast<const filters::label_in<wchar_t>*>(filt)->get_label());
+    }
+  };
+  if (_primary_filter != nullptr) {
+    _primary_filter->visit(get_fields);
+  }
+  if (_warning_filter != nullptr) {
+    _warning_filter->visit(get_fields);
+  }
+  if (_critical_filter != nullptr) {
+    _critical_filter->visit(get_fields);
+  }
+}
+
+event_container::~event_container() {
+  if (_subscription != nullptr) {
+    EvtClose(_subscription);
+  }
+  if (_render_context != nullptr) {
+    EvtClose(_render_context);
+  }
+}
+
+void event_container::start() {
+  std::wstring query;
+  _subscription =
+      EvtSubscribe(nullptr, nullptr, L"*", query.c_str(), _render_context, this,
+                   nullptr, EvtSubscribeStartAtOldestRecord);
+  if (_subscription == nullptr) {
+    throw exceptions::msg_fmt("Failed to subscribe to event log: {}",
+                              GetLastError());
+  }
+}
+
+DWORD WINAPI
+event_container::subscription_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action,
+                                       PVOID pContext,
+                                       EVT_HANDLE hEvent) {
+  event_container* me = reinterpret_cast<event_container*>(pContext);
+  if (action == EvtSubscribeActionError) {
+    SPDLOG_LOGGER_ERROR(me->_logger, "subscription_callback error");
+    return ERROR_SUCCESS;
+  }
+  me->on_event(hEvent);
+  return ERROR_SUCCESS;
 }
 
 check_event_log::check_event_log(
