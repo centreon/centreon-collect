@@ -427,6 +427,7 @@ Ctn Clear Metrics
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
+    Disconnect From Database
 
 Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
@@ -556,7 +557,7 @@ Ctn Start Tcpdump
         ${exists}    Run Keyword And Return Status    File Should Exist    ${path}
 	IF    ${exists}
             Log To Console    ${path} -i lo -w /tmp/tcpdump.pcap
-            Start Process    ${path}    -i    lo    -w    /tmp/tcpdump.pcap    alias=tcpdump
+            Start Process    ${path}    -i    lo    port    3306    -w    /tmp/tcpdump.pcap    alias=tcpdump
 	    BREAK
 	END
     END
