@@ -175,7 +175,7 @@ sub init {
     );
 
     $self->init_server_keys();
-    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} = 150_000
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} = 1500
         if (!defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) || $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} !~ /\d+/);
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =~ /^(0|1)$/ ? $1 : 1;
@@ -782,16 +782,19 @@ sub router_internal_event {
         );
         # we don't want to fragment the response if the max size is configured to 0 (which would mean unlimited size)
         # so we don't use defined() here.
-        if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) {
-            if (defined($response)
+        if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} and
+            (defined($response)
                 and defined($response->{action})
                 and $response->{action} eq "getlog"
                 and defined($response->{result})
-                and ref($response->{result}) eq "ARRAY") {
+                and ref($response->{result}) eq "ARRAY")
+                and scalar(@{$response->{result}}) > 1) {
+                $self->{logger}->writeLogError('[core] sent getlog using our new ways');
 
                 my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};
                 my $to_send      = { action => "getlog", id => $response->{id}, result => [] };
                 my $size         = 0;
+
                 for my $log (@{$response->{result}}) {
                      if (length($log->{data}) > $max_msg_size) {
                         $self->{logger}->writeLogError('[core] cannot send log message created at ' .
@@ -802,14 +805,16 @@ sub router_internal_event {
                         $self->send_internal_response(
                             identity      => $identity,
                             response_type => $response_type,
-                            data          => $log,
+                            data          => $to_send,
                             code          => $code,
                             token         => $token
                         );
+                        $self->{logger}->writeLogError('[core:Evan] reset size to 0 as we just sent a msg ');
                         $size              = 0;
                         $to_send->{result} = [];
                     }
-                    push(@{$to_send->{result}}, $log->{data});
+                    push(@{$to_send->{result}}, $log);
+                    $self->{logger}->writeLogError('[core:Evan] adding ' . length($log->{data}).  'bytes to the next msg.');
                     $size += length($log->{data});
                 }
                 if (scalar(@{$to_send->{result}}) > 0) {
@@ -821,7 +826,6 @@ sub router_internal_event {
                         token         => $token
                     );
                 }
-            }
         } else {
             $self->send_internal_response(
                 identity      => $identity,

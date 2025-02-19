@@ -586,18 +586,9 @@ sub setlogs {
 
     if (!defined($options{data}->{data}->{id}) || $options{data}->{data}->{id} eq '') {
         gorgone::standard::library::add_history({
-            dbh => $options{dbh},
-            code => GORGONE_ACTION_FINISH_KO, token => $options{token},
-            data => { message => 'proxy - need a id to setlogs' },
-            json_encode => 1
-        });
-        return undef;
-    }
-    if ($synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} == 0) {
-        gorgone::standard::library::add_history({
-            dbh => $options{dbh},
-            code => GORGONE_ACTION_FINISH_KO, token => $options{token},
-            data => { message => 'proxy - skip setlogs response. Maybe too much time to get response. Retry' },
+            dbh         => $options{dbh},
+            code        => GORGONE_ACTION_FINISH_KO, token => $options{token},
+            data        => { message => 'proxy - need a id to setlogs' },
             json_encode => 1
         });
         return undef;
@@ -617,8 +608,10 @@ sub setlogs {
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
     $status = $options{dbh}->transaction_mode(1);
-    return -1 if ($status == -1);
-
+    if ($status == -1){
+        $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
+        return -1;
+    }
     foreach (@{$options{data}->{data}->{result}}) {
         # wrong timestamp inserted. we skip it
         if ($_->{ctime} !~ /[0-9\.]/) {

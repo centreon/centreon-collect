@@ -43,6 +43,8 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
         if status == '':
             continue
         return status, output
+    if time.time() >= limit_date:
+        return status, output
 
     return False, api_json["data"]
 
