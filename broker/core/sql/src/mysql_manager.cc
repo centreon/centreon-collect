@@ -61,7 +61,7 @@ void mysql_manager::unload() {
  */
 mysql_manager::mysql_manager()
     : _stats_connections_timestamp(time(nullptr)),
-      _center{stats::center::instance_ptr()},
+      _center{config::applier::state::instance().center()},
       _logger{log_v2::instance().get(log_v2::SQL)} {
   _logger->trace("mysql_manager instanciation");
 }
