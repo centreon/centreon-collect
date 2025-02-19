@@ -17,9 +17,9 @@
  */
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
-#include "com/centreon/common/pool.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -77,8 +77,7 @@ void tcp_async::load() {
   if (!_instance)
     _instance = std::shared_ptr<tcp_async>(new tcp_async);
   else {
-    auto logger = log_v2::instance().get(log_v2::TCP);
-    logger->error("tcp_async instance already started.");
+    _instance->_logger->error("tcp_async instance already started.");
   }
 }
 
@@ -88,8 +87,10 @@ void tcp_async::load() {
  */
 void tcp_async::unload() {
   if (_instance) {
+    auto logger = _instance->_logger;
     _instance->stop_timer();
     _instance.reset();
+    logger->debug("tcp_async instance unloaded.");
   }
 }
 
@@ -259,10 +260,9 @@ void tcp_async::start_acceptor(
 
   _logger->debug("Reschedule available connections cleaning in 10s");
   _timer->expires_after(std::chrono::seconds(10));
-  _timer->async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        me->_clear_available_con(err);
-      });
+  _timer->async_wait([me = _instance](const boost::system::error_code& err) {
+    me->_clear_available_con(err);
+  });
 
   tcp_connection::pointer new_connection = std::make_shared<tcp_connection>(
       com::centreon::common::pool::io_context(), _logger);
@@ -344,7 +344,8 @@ tcp_connection::pointer tcp_async::create_connection(
   logger->trace("create connection to host {}:{}", conf->get_host(),
                 conf->get_port());
   tcp_connection::pointer conn = std::make_shared<tcp_connection>(
-      com::centreon::common::pool::io_context(), _logger, conf->get_host(), conf->get_port());
+      com::centreon::common::pool::io_context(), _logger, conf->get_host(),
+      conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
   asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
