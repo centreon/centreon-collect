@@ -3048,7 +3048,7 @@ static void set_log_data(neb::log_entry& le, const std::string& output) {
     le.output = {ait->data(), ait->size()};
   } else if (typ == "EXTERNAL COMMAND") {
     test_fail("acknowledge type");
-    auto& data = *ait;
+    std::string_view data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
       le.msg_type = neb::log_entry::service_acknowledge_problem;
