@@ -837,6 +837,9 @@ void mysql_connection::_run() {
   std::unique_lock<std::mutex> lck(_start_m);
   _conn = mysql_init(nullptr);
   if (!_conn) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "mysql_connection: connection initialization failed: {}",
+        ::mysql_error(_conn));
     set_error_message(::mysql_error(_conn));
     _state = finished;
     _start_condition.notify_all();
@@ -910,8 +913,10 @@ void mysql_connection::_run() {
             break;
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
-        } else
+        } else {
+	  _logger->info("SQL: Reconnection successful.");
           reconnect_failed_logged = false;
+	}
       } else {
         if (!tasks_list.empty()) {
           stats.start_activity();
