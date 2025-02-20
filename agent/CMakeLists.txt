@@ -145,8 +145,10 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_event_log.cc
+  ${NATIVE_SRC}/check_event_log_data.cc
   ${NATIVE_SRC}/check_memory.cc
   ${NATIVE_SRC}/check_service.cc
+  ${NATIVE_SRC}/windows_util.cc
   ${NATIVE_SRC}/ntdll.cc
 )
 

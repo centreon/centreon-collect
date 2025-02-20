@@ -17,10 +17,6 @@
  */
 
 #include "filter.hh"
-#include <stdexcept>
-
-#include "boost/parser/error_handling.hpp"
-#include "boost/parser/parser.hpp"
 #include "filter_rules.cc"
 
 using namespace com::centreon::agent;
@@ -35,8 +31,8 @@ std::ostream& operator<<(std::ostream& s,
 }
 }  // namespace std
 
-void com::centreon::agent::filters::wstring_to_string(std::wstring_view in_str,
-                                                      std::string* out_str) {
+void com::centreon::agent::wstring_to_string(std::wstring_view in_str,
+                                             std::string* out_str) {
   out_str->clear();
   out_str->reserve(in_str.size());
   for (wchar_t c : in_str) {
@@ -44,8 +40,8 @@ void com::centreon::agent::filters::wstring_to_string(std::wstring_view in_str,
   }
 }
 
-void com::centreon::agent::filters::string_to_wstring(std::string_view in_str,
-                                                      std::wstring* out_str) {
+void com::centreon::agent::string_to_wstring(std::string_view in_str,
+                                             std::wstring* out_str) {
   out_str->clear();
   out_str->reserve(in_str.size());
   for (wchar_t c : in_str) {
@@ -308,7 +304,7 @@ bool filter_combinator::check(testable& t) const {
   }
 }
 
-void filter_combinator::visit(visitor& visitr) {
+void filter_combinator::visit(const visitor& visitr) const {
   for (auto& subfilter : _filters) {
     subfilter->visit(visitr);
   }

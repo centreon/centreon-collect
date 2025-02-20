@@ -27,6 +27,9 @@ namespace filters {
 class filter_combinator;
 };
 
+void wstring_to_string(std::wstring_view in_str, std::string* out_str);
+void string_to_wstring(std::string_view in_str, std::wstring* out_str);
+
 /**
  * @brief this abstract struct will be used to pass datas to the check process
  * it contains nothing in order to be used by any check on any data
@@ -117,9 +120,6 @@ namespace com::centreon::agent {
  * various criteria.
  */
 namespace filters {
-
-void wstring_to_string(std::wstring_view in_str, std::string* out_str);
-void string_to_wstring(std::string_view in_str, std::wstring* out_str);
 
 /*************************************************************************
  *                                                                       *

@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "check_event_log.hh"
+#include "check_event_log_data.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_event_log_detail;
