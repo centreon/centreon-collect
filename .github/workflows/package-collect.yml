@@ -89,7 +89,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-      ONLY_ROBOT_CMA: ${{ github.event.inputs.only_robot_cma  != 'true' && 'OFF' || 'ON' }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma  != true && 'OFF' || 'ON' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
@@ -246,7 +246,7 @@ jobs:
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
-          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb}*
+          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
         shell: bash
 
       - name: Packages
