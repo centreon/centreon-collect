@@ -18,30 +18,31 @@
 
 #include <gtest/gtest.h>
 
-#include "check_event_log_data.hh"
+#include "check_event_log_container.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::check_event_log_detail;
 
 TEST(eventlog_data, event_log_event) {
-  event_container cont("System", "level in ('error', 'warning')",
-                       "level == 'warning'", "level == 'critical'",
-                       std::chrono::days(2), spdlog::default_logger());
+  event_container cont("System", "${log}-${source}-${id}",
+                       "level in ('error', 'warning')", "level == 'warning'",
+                       "level == 'critical'", std::chrono::days(2),
+                       spdlog::default_logger());
 
   cont.start();
 
   for (int ii = 0; ii < 10; ++ii) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     std::lock_guard l(cont);
-    if (!cont.get_events().empty()) {
+    if (!cont.get_warning().empty() || !cont.get_critical().empty()) {
       break;
     }
   }
 
   std::lock_guard l(cont);
-  EXPECT_FALSE(cont.get_events().empty());
+  EXPECT_FALSE(cont.get_warning().empty() && cont.get_critical().empty());
 
-  /*for (const auto& evt : cont.get_events()) {
-    std::cout << evt << std::endl;
-  }*/
+  for (const auto& evt : cont.get_warning()) {
+    std::cout << evt.first << std::endl;
+  }
 }

@@ -23,9 +23,6 @@
 
 #include <boost/flyweight.hpp>
 
-#include "boost/multi_index/indexed_by.hpp"
-#include "boost/multi_index/ordered_index.hpp"
-#include "boost/multi_index_container.hpp"
 #include "check.hh"
 #include "filter.hh"
 
@@ -168,75 +165,6 @@ class event {
 };
 
 std::ostream& operator<<(std::ostream& s, const event& evt);
-
-class event_container {
- public:
-  using event_set = boost::multi_index::multi_index_container<
-      event,
-      boost::multi_index::indexed_by<
-          boost::multi_index::ordered_non_unique<
-              BOOST_MULTI_INDEX_CONST_MEM_FUN(
-                  event,
-                  std::chrono::file_clock::time_point,
-                  time)>,
-          boost::multi_index::ordered_non_unique<
-              BOOST_MULTI_INDEX_CONST_MEM_FUN(event, e_status, status)>>>;
-
- private:
-  duration _scan_range;
-
-  std::wstring _file;
-  std::unique_ptr<event_filter> _primary_filter;
-  std::unique_ptr<event_filter> _warning_filter;
-  std::unique_ptr<event_filter> _critical_filter;
-
-  event_set _events ABSL_GUARDED_BY(_events_m);
-  unsigned _insertion_cpt ABSL_GUARDED_BY(_events_m);
-  unsigned _nb_warning ABSL_GUARDED_BY(_events_m);
-  unsigned _nb_critical ABSL_GUARDED_BY(_events_m);
-  absl::Mutex _events_m;
-
-  EVT_HANDLE _render_context;
-  EVT_HANDLE _subscription;
-
-  using provider_metadata = absl::flat_hash_map<std::wstring, EVT_HANDLE>;
-  provider_metadata _provider_metadata ABSL_GUARDED_BY(_events_m);
-
-  void* _read_event_buffer ABSL_GUARDED_BY(_events_m);
-  DWORD _buffer_size ABSL_GUARDED_BY(_events_m);
-
-  bool _need_to_decode_message_content;
-  LPWSTR _read_message_buffer ABSL_GUARDED_BY(_events_m);
-  DWORD _message_buffer_size ABSL_GUARDED_BY(_events_m);  // size in wchar_t
-
-  std::shared_ptr<spdlog::logger> _logger;
-
-  static DWORD WINAPI _subscription_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action,
-                                             PVOID p_context,
-                                             EVT_HANDLE h_event);
-
-  void _on_event(EVT_HANDLE event_handle);
-
-  LPWSTR _get_message_string(EVT_HANDLE h_metadata, EVT_HANDLE h_event);
-
- public:
-  event_container(const std::string_view& file,
-                  const std::string_view& primary_filter,
-                  const std::string_view& warning_filter,
-                  const std::string_view& critical_filter,
-                  duration scan_range,
-                  const std::shared_ptr<spdlog::logger>& logger);
-  void start();
-
-  ~event_container();
-
-  void lock() { _events_m.Lock(); }
-  void unlock() { _events_m.Unlock(); }
-
-  const event_set& get_events() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
-    return _events;
-  }
-};
 
 }  // namespace com::centreon::agent::check_event_log_detail
 
