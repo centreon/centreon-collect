@@ -4728,7 +4728,21 @@ void broker_bench(uint32_t id,
  * @param stats
  */
 void broker_agent_stats(nebstruct_agent_stats_data& stats) {
-  // Fill struct with relevant data.
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_AGENT_STATS, &stats);
+  auto to_send = std::make_shared<neb::pb_agent_stats>();
+
+  auto& obj = to_send->mut_obj();
+  obj.set_poller_id(cbm->poller_id());
+
+  for (const auto& cumul_data : *stats.data) {
+    AgentInfo* to_fill = obj.add_stats();
+    to_fill->set_major(cumul_data.major);
+    to_fill->set_minor(cumul_data.minor);
+    to_fill->set_patch(cumul_data.patch);
+    to_fill->set_reverse(cumul_data.reverse);
+    to_fill->set_os(cumul_data.os);
+    to_fill->set_os_version(cumul_data.os_version);
+    to_fill->set_nb_agent(cumul_data.nb_agent);
+  }
+
+  cbm->write(to_send);
 }
