@@ -18,10 +18,10 @@
 
 #include <gtest/gtest.h>
 
-#include "check_event_log_container.hh"
+#include "event_log/container.hh"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_event_log_detail;
+using namespace com::centreon::agent::event_log;
 
 TEST(eventlog_data, event_log_event) {
   event_container cont("System", "${log}-${source}-${id}",

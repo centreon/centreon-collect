@@ -18,10 +18,10 @@
 
 #include "windows_util.hh"
 
-#include "check_event_log_container.hh"
+#include "event_log/container.hh"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_event_log_detail;
+using namespace com::centreon::agent::event_log;
 
 event_container::event_container(const std::string_view& file,
                                  const std::string_view& unique_str,

@@ -17,7 +17,7 @@
  */
 
 #include "check_event_log.hh"
-#include "check_event_log_data.hh"
+#include "event_log/data.hh"
 
 #include "com/centreon/common/rapidjson_helper.hh"
 

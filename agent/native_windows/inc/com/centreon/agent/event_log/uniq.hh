@@ -19,9 +19,9 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_UNIQ_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_UNIQ_HH
 
-#include "check_event_log_data.hh"
+#include "event_log/data.hh"
 
-namespace com::centreon::agent::check_event_log_detail {
+namespace com::centreon::agent::event_log {
 
 class event_comparator {
   using field_event_hasher = std::function<size_t(const event&)>;
@@ -40,6 +40,6 @@ class event_comparator {
   std::size_t operator()(const event& evt) const;
 };
 
-}  // namespace com::centreon::agent::check_event_log_detail
+}  // namespace com::centreon::agent::event_log
 
 #endif

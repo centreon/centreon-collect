@@ -26,7 +26,7 @@
 #include "check.hh"
 #include "filter.hh"
 
-namespace com::centreon::agent::check_event_log_detail {
+namespace com::centreon::agent::event_log {
 
 using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
@@ -166,6 +166,6 @@ class event {
 
 std::ostream& operator<<(std::ostream& s, const event& evt);
 
-}  // namespace com::centreon::agent::check_event_log_detail
+}  // namespace com::centreon::agent::event_log
 
 #endif

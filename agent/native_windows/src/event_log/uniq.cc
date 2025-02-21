@@ -16,11 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include "check_event_log_uniq.hh"
-#include "re2/re2.h"
-#include "spdlog/spdlog.h"
+#include "event_log/uniq.hh"
 
-using namespace com::centreon::agent::check_event_log_detail;
+using namespace com::centreon::agent::event_log;
 
 re2::RE2 field_regex("\\${([^\\${}]+)}");
 

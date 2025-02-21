@@ -17,12 +17,11 @@
  */
 
 #include <gtest/gtest.h>
-#include <spdlog/spdlog.h>
 
-#include "check_event_log_data.hh"
+#include "event_log/data.hh"
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_event_log_detail;
+using namespace com::centreon::agent::event_log;
 
 struct mock_event_data : public event_data {
   std::wstring provider;

@@ -19,10 +19,10 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 
-#include "check_event_log_data.hh"
-#include "check_event_log_uniq.hh"
+#include "event_log/data.hh"
+#include "event_log/uniq.hh"
 
-namespace com::centreon::agent::check_event_log_detail {
+namespace com::centreon::agent::event_log {
 
 class event_container {
  public:
@@ -95,6 +95,6 @@ class event_container {
   }
 };
 
-}  // namespace com::centreon::agent::check_event_log_detail
+}  // namespace com::centreon::agent::event_log
 
 #endif

@@ -21,13 +21,14 @@
 #include "filter.hh"
 #pragma comment(lib, "wevtapi.lib")
 
-#include "check_event_log_data.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "event_log/data.hh"
+
 
 using namespace com::centreon::agent;
-using namespace com::centreon::agent::check_event_log_detail;
+using namespace com::centreon::agent::event_log;
 
-namespace com::centreon::agent::check_event_log_detail {
+namespace com::centreon::agent::event_log {
 
 static const absl::flat_hash_map<std::string_view, uint64_t> _str_to_keywords{
     {"auditsuccess", _keywords_audit_success},
@@ -55,7 +56,7 @@ static uint8_t str_to_level(const std::string_view& str) {
   return num_str_value;
 }
 
-}  // namespace com::centreon::agent::check_event_log_detail
+}  // namespace com::centreon::agent::event_log
 
 /***************************************************************************
  *                                                                       *
@@ -396,7 +397,7 @@ event::event(const event_data& raw_data, e_status status, std::string&& message)
       _provider(lpwcstr_to_acp(raw_data.get_provider().data())),
       _message(message) {}
 
-namespace com::centreon::agent::check_event_log_detail {
+namespace com::centreon::agent::event_log {
 std::ostream& operator<<(std::ostream& s, const event& evt) {
   s << "id:" << evt.id() << " time:" << evt.time() << " level:" << evt.level()
     << " status:" << evt.status() << " channel:" << evt.channel()
@@ -404,4 +405,4 @@ std::ostream& operator<<(std::ostream& s, const event& evt) {
   return s;
 }
 
-}  // namespace com::centreon::agent::check_event_log_detail
+}  // namespace com::centreon::agent::event_log
