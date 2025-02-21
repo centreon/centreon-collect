@@ -454,7 +454,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "EXTERNAL COMMAND") {
     test_fail("acknowledge type");
-    auto& data = *ait;
+    std::string_view data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
       le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ACKNOWLEDGE_PROBLEM);
