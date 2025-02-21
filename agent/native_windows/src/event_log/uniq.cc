@@ -35,9 +35,10 @@ event_comparator::event_comparator(
         return left.provider() == right.provider();
       });
     } else if (field == "id") {
-      _hash.emplace_back([](const event& evt) -> size_t { return evt.id(); });
+      _hash.emplace_back(
+          [](const event& evt) -> size_t { return evt.event_id(); });
       _compare.emplace_back([](const event& left, const event& right) -> bool {
-        return left.id() == right.id();
+        return left.event_id() == right.event_id();
       });
     } else if (field == "message" || field == "message") {
       _hash.emplace_back([](const event& evt) -> size_t {
@@ -57,6 +58,16 @@ event_comparator::event_comparator(
   }
   if (_compare.empty()) {
     SPDLOG_LOGGER_DEBUG(logger, "no unique sort for output");
+    _hash.emplace_back([](const event& evt) -> size_t {
+      return evt.record_id() + absl::Hash<std::string>()(evt.channel()) +
+             absl::Hash<std::string>()(evt.provider()) +
+             evt.time().time_since_epoch().count();
+    });
+    _compare.emplace_back([](const event& left, const event& right) -> bool {
+      return left.record_id() == right.record_id() &&
+             left.channel() == right.channel() &&
+             left.provider() == right.provider() && left.time() == right.time();
+    });
   }
 }
 

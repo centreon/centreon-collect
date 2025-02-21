@@ -19,11 +19,17 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_HH
 
+#include <memory>
 #include "check.hh"
+#include "event_log/container.hh"
+#include "event_log/uniq.hh"
 
 namespace com::centreon::agent {
 
 class check_event_log : public check {
+  std::unique_ptr<event_log::event_comparator> _uniq;
+  std::unique_ptr<event_log::event_container> _data;
+
  public:
   check_event_log(const std::shared_ptr<asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,

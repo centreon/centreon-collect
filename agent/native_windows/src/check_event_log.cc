@@ -20,6 +20,7 @@
 #include "event_log/data.hh"
 
 #include "com/centreon/common/rapidjson_helper.hh"
+#include "event_log/uniq.hh"
 
 using namespace com::centreon::agent;
 
@@ -48,9 +49,11 @@ check_event_log::check_event_log(
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
+      _uniq = std::make_unique<event_log::event_comparator>(
+          arg.get_string("unique-index", "${provider}${id}"), logger);
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(_logger, "check_uptime, fail to parse arguments: {}",
+    SPDLOG_LOGGER_ERROR(_logger, "check_event_log, fail to parse arguments: {}",
                         e.what());
     throw;
   }

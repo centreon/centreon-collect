@@ -111,7 +111,8 @@ inline std::ostream& operator<<(std::ostream& s, const event_filter& filt) {
 }
 
 class event {
-  uint64_t _id;
+  uint16_t _event_id;
+  uint64_t _record_id;
 
   std::chrono::file_clock::time_point _time;
 
@@ -152,7 +153,8 @@ class event {
 
   bool operator<(const event& other) const { return _time < other._time; }
 
-  uint64_t id() const { return _id; }
+  uint64_t record_id() const { return _record_id; }
+  uint16_t event_id() const { return _event_id; }
   std::chrono::file_clock::time_point time() const { return _time; }
   uint64_t audit() const { return _audit; }
   unsigned level() const { return _level; }

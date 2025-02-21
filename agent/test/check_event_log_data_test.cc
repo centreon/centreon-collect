@@ -26,7 +26,7 @@ using namespace com::centreon::agent::event_log;
 TEST(eventlog_data, event_log_event) {
   event_container cont("System", "${log}-${source}-${id}",
                        "level in ('error', 'warning')", "level == 'warning'",
-                       "level == 'critical'", std::chrono::days(2),
+                       "level == 'error'", std::chrono::days(2),
                        spdlog::default_logger());
 
   cont.start();
@@ -42,7 +42,16 @@ TEST(eventlog_data, event_log_event) {
   std::lock_guard l(cont);
   EXPECT_FALSE(cont.get_warning().empty() && cont.get_critical().empty());
 
+  std::cout << "warning" << std::endl;
   for (const auto& evt : cont.get_warning()) {
-    std::cout << evt.first << std::endl;
+    for (const auto tp: evt.second) {
+    std::cout << tp << " : " <<   evt.first << std::endl;
+    }
+  }
+  std::cout << "critical" << std::endl;
+  for (const auto& evt : cont.get_critical()) {
+    for (const auto tp: evt.second) {
+    std::cout << tp << " : " <<   evt.first << std::endl;
+    }
   }
 }

@@ -24,7 +24,6 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "event_log/data.hh"
 
-
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::event_log;
 
@@ -387,7 +386,8 @@ event_filter::event_filter(const std::string_view& filter_str,
  *                                                                       *
  ****************************************************************************/
 event::event(const event_data& raw_data, e_status status, std::string&& message)
-    : _id(raw_data.get_record_id()),
+    : _event_id(raw_data.get_event_id()),
+      _record_id(raw_data.get_record_id()),
       _time(std::chrono::file_clock::duration(raw_data.get_time_created())),
       _audit(raw_data.get_keywords()),
       _level(raw_data.get_level()),
@@ -399,7 +399,8 @@ event::event(const event_data& raw_data, e_status status, std::string&& message)
 
 namespace com::centreon::agent::event_log {
 std::ostream& operator<<(std::ostream& s, const event& evt) {
-  s << "id:" << evt.id() << " time:" << evt.time() << " level:" << evt.level()
+  s << "event_id:" << evt.event_id() << " time:" << evt.time()
+    << " level:" << evt.level() << " record_id:" << evt.record_id()
     << " status:" << evt.status() << " channel:" << evt.channel()
     << " message:" << evt.message();
   return s;

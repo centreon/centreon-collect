@@ -19,6 +19,7 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 
+#include <set>
 #include "event_log/data.hh"
 #include "event_log/uniq.hh"
 
@@ -26,10 +27,10 @@ namespace com::centreon::agent::event_log {
 
 class event_container {
  public:
-  using event_cont = absl::flat_hash_map<event,
-                                         std::chrono::file_clock::time_point,
-                                         event_comparator,
-                                         event_comparator>;
+  using time_point_set = std::multiset<std::chrono::file_clock::time_point>;
+
+  using event_cont = absl::
+      flat_hash_map<event, time_point_set, event_comparator, event_comparator>;
 
  private:
   duration _scan_range;

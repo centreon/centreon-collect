@@ -198,16 +198,16 @@ void event_container::_on_event(EVT_HANDLE h_event) {
 
     if (event_status == e_status::warning) {
       ++_nb_warning;
-      auto res_insert = _warning.emplace(std::move(to_ins), to_ins.time());
-      if (!res_insert.second && res_insert.first->second < to_ins.time()) {
-        res_insert.first->second = to_ins.time();
-      }
+      auto res_insert =
+          _warning.emplace(std::move(to_ins), time_point_set{to_ins.time()});
+      if (!res_insert.second)
+        res_insert.first->second.insert(to_ins.time());
     } else {
       ++_nb_critical;
-      auto res_insert = _critical.emplace(std::move(to_ins), to_ins.time());
-      if (!res_insert.second && res_insert.first->second < to_ins.time()) {
-        res_insert.first->second = to_ins.time();
-      }
+      auto res_insert =
+          _critical.emplace(std::move(to_ins), time_point_set{to_ins.time()});
+      if (!res_insert.second)
+        res_insert.first->second.insert(to_ins.time());
     }
 
     // every 10 events we clean oldest events
@@ -217,7 +217,16 @@ void event_container::_on_event(EVT_HANDLE h_event) {
                                        unsigned& event_counter) {
         for (auto event_iter = to_clean.begin();
              event_iter != to_clean.end();) {
-          if (event_iter->second < peremption) {
+          time_point_set& time_points = event_iter->second;
+          for (time_point_set::iterator to_check = time_points.begin();
+               !time_points.empty() && to_check != time_points.end();) {
+            if (*to_check > peremption) {
+              break;
+            }
+            to_check = time_points.erase(to_check);
+            --event_counter;
+          }
+          if (event_iter->second.empty()) {
             to_clean.erase(event_iter++);
           } else {
             ++event_iter;
