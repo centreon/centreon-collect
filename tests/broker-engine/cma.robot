@@ -852,7 +852,7 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
 
     Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
 
-TTESA0
+NON_TLS_CONNECTION_WARNING0
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308    
@@ -888,6 +888,14 @@ TTESA0
     Ctn Start Engine
     Ctn Start Agent
 
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+            ${log_path}    Set Variable    ${agentlog}
+    ELSE
+            ${log_path}    Set Variable    ${cur_dir}/reports/centagent.log
+    END
+
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
 
@@ -897,10 +905,10 @@ TTESA0
     
 
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
-    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+            ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    22    agent_format=True
+            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
 
-TTESA1
+NON_TLS_CONNECTION_WARNING_REVERSED
     [Documentation]    Given an agent starts a non-TLS connection reversed,
     ...    we expect to get a warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308 
@@ -935,6 +943,14 @@ TTESA1
     Ctn Start Engine
     Ctn Start Agent
 
+    # check if the agent is in windows or not, to get the right log path 
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+            ${log_path}    Set Variable    ${agentlog}
+    ELSE
+            ${log_path}    Set Variable    ${cur_dir}/reports/reverse_centagent.log
+    END
+
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
@@ -946,10 +962,10 @@ TTESA1
     
 
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    22    agent_format=True
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
 
-TTESA2
+NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     [Documentation]    Given agent with encrypted reversed connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308    
     Ctn Config Engine    ${1}    ${2}    ${2}
@@ -985,6 +1001,14 @@ TTESA2
     Ctn Start Engine
     Ctn Start Agent
 
+    # for win : 
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+            ${log_path}    Set Variable    ${agentlog}
+    ELSE
+            ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_reverse_centagent.log
+    END
+
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    10
@@ -995,11 +1019,11 @@ TTESA2
     Should Not Be True   ${result}   "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION."
     
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    10    agent_format=True
+    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    10    agent_format=True
     Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
 
 
-TTESA3
+NON_TLS_CONNECTION_WARNING_ENCRYPTED
     [Documentation]    Given agent with encrypted connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308 
     Ctn Config Engine    ${1}    ${2}    ${2}
@@ -1034,6 +1058,14 @@ TTESA3
     Ctn Start Engine
     Ctn Start Agent
 
+    #check if the agent is in win or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+            ${log_path}    Set Variable    ${agentlog}
+    ELSE
+            ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_centagent.log
+    END
+
     # Let's wait for the otel server start
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
@@ -1044,10 +1076,10 @@ TTESA3
     Should Not Be True   ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    10    agent_format=True
+    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    10    agent_format=True
     Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
 
-TTESAA
+NON_TLS_CONNECTION_WARNING_FULL
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
     ...    After 1 hour, we expect to get a warning message about the connection time expired
@@ -1109,7 +1141,7 @@ TTESAA
     Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
 
 
-TTESAB
+NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     [Documentation]    Given an agent starts a non-TLS connection reverse,
     ...    we expect to get a warning message.
     ...    After 1 hour, we expect to get a warning message about the connection time expired

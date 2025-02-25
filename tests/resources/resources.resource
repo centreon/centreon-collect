@@ -454,6 +454,15 @@ Ctn Start Agent
         Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
     END
 
+Ctn Workspace Win
+    ${run_env}    Ctn Run Env
+    IF    "${run_env}" == "WSL"
+        ${workspace}    Ctn Get Workspace Win
+        RETURN    ${workspace}
+    END
+    
+    RETURN    "None"
+    
 Ctn Kindly Stop Agent
     ${run_env}    Ctn Run Env
 

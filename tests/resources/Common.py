@@ -365,6 +365,14 @@ def ctn_run_env():
     """
     return os.environ.get('RUN_ENV', '')
 
+def ctn_get_workspace_win():
+    """
+    ctn_get_workspace_win
+
+    Get WINDOWS_PROJECT_PATH env variable content
+    """
+    return os.environ.get('WINDOWS_PROJECT_PATH', '')
+
 
 def ctn_start_mysql():
     if not ctn_run_env():
