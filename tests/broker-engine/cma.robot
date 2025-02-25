@@ -852,7 +852,7 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
 
     Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
 
-NON_TLS_CONNECTION_WARNING0
+NON_TLS_CONNECTION_WARNING
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308    
@@ -888,14 +888,6 @@ NON_TLS_CONNECTION_WARNING0
     Ctn Start Engine
     Ctn Start Agent
 
-    # check if the agent is in windows or not, to get the right log path
-    ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
-            ${log_path}    Set Variable    ${agentlog}
-    ELSE
-            ${log_path}    Set Variable    ${cur_dir}/reports/centagent.log
-    END
-
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
 
@@ -903,10 +895,21 @@ NON_TLS_CONNECTION_WARNING0
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ${cur_dir}/reports/centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
 
-    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-            ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    22    agent_format=True
-            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
 
 NON_TLS_CONNECTION_WARNING_REVERSED
     [Documentation]    Given an agent starts a non-TLS connection reversed,
@@ -943,14 +946,6 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     Ctn Start Engine
     Ctn Start Agent
 
-    # check if the agent is in windows or not, to get the right log path 
-    ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
-            ${log_path}    Set Variable    ${agentlog}
-    ELSE
-            ${log_path}    Set Variable    ${cur_dir}/reports/reverse_centagent.log
-    END
-
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
@@ -960,10 +955,20 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
-
-    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    22    agent_format=True
-    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ${cur_dir}/reports/reverse_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
 
 NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     [Documentation]    Given agent with encrypted reversed connection, we expect no warning message.
@@ -1018,10 +1023,20 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Not Be True   ${result}   "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION."
     
-    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    10    agent_format=True
-    Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
-
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_reverse_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
+    END
 
 NON_TLS_CONNECTION_WARNING_ENCRYPTED
     [Documentation]    Given agent with encrypted connection, we expect no warning message.
@@ -1058,14 +1073,6 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
     Ctn Start Engine
     Ctn Start Agent
 
-    #check if the agent is in win or not, to get the right log path
-    ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
-            ${log_path}    Set Variable    ${agentlog}
-    ELSE
-            ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_centagent.log
-    END
-
     # Let's wait for the otel server start
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
@@ -1075,16 +1082,27 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Not Be True   ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
-    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${log_path}    ${start}    ${content}    10    agent_format=True
-    Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    ${cur_dir} == "None"
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
 
 NON_TLS_CONNECTION_WARNING_FULL
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
     ...    After 1 hour, we expect to get a warning message about the connection time expired
     ...    and the connection killed.
-    [Tags]    agent    engine    opentelemetry    MON-159308    unstable    
+    [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
@@ -1146,7 +1164,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     ...    we expect to get a warning message.
     ...    After 1 hour, we expect to get a warning message about the connection time expired
     ...    and the connection killed.
-    [Tags]    agent    engine    opentelemetry    MON-159308    unstable 
+    [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
