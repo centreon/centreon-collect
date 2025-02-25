@@ -193,7 +193,7 @@ def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int
     return False
 
 
-def ctn_get_date(d: str):
+def ctn_get_date(d: str, agent_format:bool=False):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
     Args:
@@ -206,17 +206,20 @@ def ctn_get_date(d: str):
         ts = int(d)
         retval = datetime.fromtimestamp(int(ts))
     except ValueError:
-        retval = parser.parse(d[:-6])
+        if (not agent_format):
+                retval = parser.parse(d[:-6])
+        else:
+                retval = parser.parse(d)
     return retval
 
 
-def ctn_extract_date_from_log(line: str):
+def ctn_extract_date_from_log(line: str,agent_format:bool=False):
     p = re.compile(r"\[([^\]]*)\]")
     m = p.match(line)
     if m is None:
         return None
     try:
-        return ctn_get_date(m.group(1))
+        return ctn_get_date(m.group(1),agent_format)
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -288,17 +291,20 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     """
     verbose = True
     regex = False
+    agent_format = False
     if 'verbose' in kwargs:
         verbose = 'verbose' == 'True'
     if 'regex' in kwargs:
         regex = bool(kwargs['regex'])
+    if 'agent_format' in kwargs:
+        agent_format = bool(kwargs['agent_format'])
 
     res = []
 
     try:
         with open(log, "r") as f:
             lines = f.readlines()
-        idx = ctn_find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date,agent_format)
 
         for c in content:
             found = False
@@ -516,7 +522,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def ctn_find_line_from(lines, date):
+def ctn_find_line_from(lines, date, agent_format:bool=False):
     try:
         my_date = parser.parse(date)
     except:
@@ -528,13 +534,13 @@ def ctn_find_line_from(lines, date):
     idx = start
     while end > start:
         idx = (start + end) // 2
-        idx_d = ctn_extract_date_from_log(lines[idx])
+        idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
         while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                idx_d = ctn_extract_date_from_log(lines[idx])
+                idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
             else:
                 logger.console("We are at the first line and no date found")
                 return 0

@@ -23,6 +23,8 @@ ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
+${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
+
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
