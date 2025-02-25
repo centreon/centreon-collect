@@ -65,6 +65,10 @@ void open_telemetry::_reload() {
       this->_create_otl_server(new_conf->get_grpc_config(),
                                new_conf->get_centreon_agent_config());
     }
+    if (!new_conf->get_grpc_config()->is_crypted())
+      SPDLOG_LOGGER_WARN(_logger,
+                         "NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS "
+                         "NOT ALLOWED IN PRODUCTION");
     if (_conf && _conf->get_centreon_agent_config() &&
         *_conf->get_centreon_agent_config() !=
             *new_conf->get_centreon_agent_config()) {
@@ -97,6 +101,16 @@ void open_telemetry::_reload() {
         new_conf->get_json_grpc_log();
 
     _conf = std::move(new_conf);
+
+    for (const auto& grpc_conf :
+         _conf->get_centreon_agent_config()->get_agent_grpc_reverse_conf()) {
+      if (!grpc_conf->is_crypted())
+        SPDLOG_LOGGER_WARN(
+            _logger,
+            "NON TLS CONNECTION ARE ALLOWED FOR Agents({}) // THIS IS "
+            "NOT ALLOWED IN PRODUCTION",
+            grpc_conf->get_hostport());
+    }
 
     if (!_agent_reverse_client) {
       _agent_reverse_client =
