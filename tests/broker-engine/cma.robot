@@ -897,7 +897,7 @@ NON_TLS_CONNECTION_WARNING
     
     # check if the agent is in windows or not, to get the right log path
     ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
+    IF    '${cur_dir}' == 'None'
         # not windows 
             ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
             ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
@@ -905,7 +905,7 @@ NON_TLS_CONNECTION_WARNING
     ELSE
         # in windows ,Ctn Start Agent doesn't create the agent
         #  the agent are start in a different time, so we cant use find in the log
-        ${log_path}    Set Variable    ${cur_dir}/reports/centagent.log
+        ${log_path}    Set Variable    ../reports/centagent.log
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
@@ -957,7 +957,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     
     # check if the agent is in windows or not, to get the right log path
     ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
+    IF    '${cur_dir}' == 'None'
         # not windows 
             ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
             ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
@@ -965,7 +965,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     ELSE
         # in windows ,Ctn Start Agent doesn't create the agent
         #  the agent are start in a different time, so we cant use find in the log
-        ${log_path}    Set Variable    ${cur_dir}/reports/reverse_centagent.log
+        ${log_path}    Set Variable    ../reports/reverse_centagent.log
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
@@ -1008,10 +1008,10 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     # for win : 
     ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
+    IF    '${cur_dir}' == 'None'
             ${log_path}    Set Variable    ${agentlog}
     ELSE
-            ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_reverse_centagent.log
+            ${log_path}    Set Variable    ../reports/encrypted_reverse_centagent.log
     END
 
     # Let's wait for engine to connect to agent
@@ -1025,7 +1025,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     
     # check if the agent is in windows or not, to get the right log path
     ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
+    IF    '${cur_dir}' == 'None'
         # not windows 
             ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
             ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
@@ -1033,7 +1033,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ELSE
         # in windows ,Ctn Start Agent doesn't create the agent
         #  the agent are start in a different time, so we cant use find in the log
-        ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_reverse_centagent.log
+        ${log_path}    Set Variable    ../reports/encrypted_reverse_centagent.log
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
     END
@@ -1084,7 +1084,7 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
     
     # check if the agent is in windows or not, to get the right log path
     ${cur_dir}    Ctn Workspace Win
-    IF    ${cur_dir} == "None"
+    IF    '${cur_dir}' == 'None'
         # not windows 
             ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
             ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
@@ -1092,7 +1092,7 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
     ELSE
         # in windows ,Ctn Start Agent doesn't create the agent
         #  the agent are start in a different time, so we cant use find in the log
-        ${log_path}    Set Variable    ${cur_dir}/reports/encrypted_centagent.log
+        ${log_path}    Set Variable    ../reports/encrypted_centagent.log
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
