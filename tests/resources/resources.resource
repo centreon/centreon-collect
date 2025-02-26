@@ -461,7 +461,7 @@ Ctn Workspace Win
         RETURN    ${workspace}
     END
     
-    RETURN    "None"
+    RETURN    None
     
 Ctn Kindly Stop Agent
     ${run_env}    Ctn Run Env
