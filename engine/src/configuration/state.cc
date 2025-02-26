@@ -1051,7 +1051,7 @@ void state::allow_empty_hostgroup_assignment(bool value) {
  *  @param[in] value The new auto_reschedule_checks value.
  */
 void state::auto_reschedule_checks(bool value [[maybe_unused]]) {
-  config_logger->warn(
+  log_v2::config()->warn(
       "The option 'auto_reschedule_checks' is no longer available. This "
       "option is deprecated.");
 }
@@ -1062,7 +1062,7 @@ void state::auto_reschedule_checks(bool value [[maybe_unused]]) {
  *  @param[in] value The new auto_rescheduling_interval value.
  */
 void state::auto_rescheduling_interval(unsigned int value [[maybe_unused]]) {
-  config_logger->warn(
+  log_v2::config()->warn(
       "The option 'auto_rescheduling_interval' is no longer available. This "
       "option is deprecated.");
 }
@@ -1073,7 +1073,7 @@ void state::auto_rescheduling_interval(unsigned int value [[maybe_unused]]) {
  *  @param[in] value The new auto_rescheduling_window value.
  */
 void state::auto_rescheduling_window(unsigned int value [[maybe_unused]]) {
-  config_logger->warn(
+  log_v2::config()->warn(
       "The option 'auto_rescheduling_window' is no longer available. This "
       "option is deprecated.");
 }
