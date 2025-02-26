@@ -992,7 +992,7 @@ void state::auto_reschedule_checks(bool value [[maybe_unused]]) {
 void state::auto_rescheduling_interval(unsigned int value [[maybe_unused]]) {
   SPDLOG_LOGGER_WARN(
       _logger,
-      "The option 'auto_rescheduling_interval' is no longer available // this "
+      "The option 'auto_rescheduling_interval' is no longer available. This "
       "option is deprecated.");
 }
 
@@ -1004,7 +1004,7 @@ void state::auto_rescheduling_interval(unsigned int value [[maybe_unused]]) {
 void state::auto_rescheduling_window(unsigned int value [[maybe_unused]]) {
   SPDLOG_LOGGER_WARN(
       _logger,
-      "The option 'auto_rescheduling_window' is no longer available // this "
+      "The option 'auto_rescheduling_window' is no longer available. This "
       "option is deprecated.");
 }
 

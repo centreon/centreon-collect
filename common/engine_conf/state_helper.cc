@@ -210,7 +210,7 @@ bool state_helper::hook(std::string_view key, const std::string_view& value) {
         log_v2::instance().get(log_v2::CONFIG);
     SPDLOG_LOGGER_WARN(
         logger,
-        "The option '{}' is no longer available // this option is deprecated.",
+        "The option '{}' is no longer available. This option is deprecated.",
         key);
     return true;
   }
