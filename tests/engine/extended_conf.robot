@@ -71,21 +71,21 @@ VERIFIY_CONF
     Ctn Start Engine
     
     # look in logfile a warning that tell the auto reshucling is deprecated
-    ${content}    Create List    The option 'auto_reschedule_checks' is no longer available // this option is deprecated.
+    ${content}    Create List    The option 'auto_reschedule_checks' is no longer available. This option is deprecated.
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config0/centengine-stdout.log    ${start}    ${content}    60
         Should Be True
     ...    ${result}
     ...    A message telling auto_reschedule_checks is deprecated. should be available in config0/centengine-stdout.log.
  
     # look in logfile a warning that tell the auto reshucling is deprecated
-    ${content}    Create List    The option 'auto_rescheduling_interval' is no longer available // this option is deprecated.
+    ${content}    Create List    The option 'auto_rescheduling_interval' is no longer available. This option is deprecated.
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config0/centengine-stdout.log    ${start}    ${content}    60
         Should Be True
     ...    ${result}
     ...    A message telling auto_rescheduling_interval is deprecated. should be available in config0/centengine-stdout.log.
 
     # look in logfile a warning that tell the auto reshucling is deprecated
-    ${content}    Create List    The option 'auto_rescheduling_window' is no longer available // this option is deprecated.
+    ${content}    Create List    The option 'auto_rescheduling_window' is no longer available. This option is deprecated.
     ${result}    Ctn Find In Log With Timeout    ${ENGINE_LOG}/config0/centengine-stdout.log    ${start}    ${content}    60
         Should Be True
     ...    ${result}
