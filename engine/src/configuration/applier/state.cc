@@ -349,9 +349,6 @@ void applier::state::_apply(configuration::state const& new_cfg,
   config->admin_pager(new_cfg.admin_pager());
   config->allow_empty_hostgroup_assignment(
       new_cfg.allow_empty_hostgroup_assignment());
-  config->auto_reschedule_checks(new_cfg.auto_reschedule_checks());
-  config->auto_rescheduling_interval(new_cfg.auto_rescheduling_interval());
-  config->auto_rescheduling_window(new_cfg.auto_rescheduling_window());
   config->cached_host_check_horizon(new_cfg.cached_host_check_horizon());
   config->cached_service_check_horizon(new_cfg.cached_service_check_horizon());
   config->cfg_main(new_cfg.cfg_main());
@@ -637,10 +634,6 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.set_admin_pager(new_cfg.admin_pager());
   pb_config.set_allow_empty_hostgroup_assignment(
       new_cfg.allow_empty_hostgroup_assignment());
-  pb_config.set_auto_reschedule_checks(new_cfg.auto_reschedule_checks());
-  pb_config.set_auto_rescheduling_interval(
-      new_cfg.auto_rescheduling_interval());
-  pb_config.set_auto_rescheduling_window(new_cfg.auto_rescheduling_window());
   pb_config.set_cached_host_check_horizon(new_cfg.cached_host_check_horizon());
   pb_config.set_cached_service_check_horizon(
       new_cfg.cached_service_check_horizon());
