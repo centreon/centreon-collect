@@ -225,12 +225,10 @@ void applier::scheduler::clear() {
   _evt_hfreshness_check = nullptr;
   _evt_host_perfdata = nullptr;
   _evt_orphan_check = nullptr;
-  _evt_reschedule_checks = nullptr;
   _evt_retention_save = nullptr;
   _evt_sfreshness_check = nullptr;
   _evt_service_perfdata = nullptr;
   _evt_status_save = nullptr;
-  _old_auto_rescheduling_interval = 0;
   _old_check_reaper_interval = 0;
   _old_command_check_interval = 0;
   _old_host_freshness_check_interval = 0;
@@ -285,12 +283,10 @@ applier::scheduler::scheduler()
       _evt_hfreshness_check(nullptr),
       _evt_host_perfdata(nullptr),
       _evt_orphan_check(nullptr),
-      _evt_reschedule_checks(nullptr),
       _evt_retention_save(nullptr),
       _evt_sfreshness_check(nullptr),
       _evt_service_perfdata(nullptr),
       _evt_status_save(nullptr),
-      _old_auto_rescheduling_interval(0),
       _old_check_reaper_interval(0),
       _old_command_check_interval(0),
       _old_host_freshness_check_interval(0),
@@ -362,20 +358,6 @@ void applier::scheduler::_apply_misc_event() {
       _evt_orphan_check = _create_misc_event(
           timed_event::EVENT_ORPHAN_CHECK, now + DEFAULT_ORPHAN_CHECK_INTERVAL,
           DEFAULT_ORPHAN_CHECK_INTERVAL);
-  }
-
-  // Remove and add a host and service check rescheduling event.
-  if ((!_evt_reschedule_checks && _config->auto_reschedule_checks()) ||
-      (_evt_reschedule_checks && !_config->auto_reschedule_checks()) ||
-      (_old_auto_rescheduling_interval !=
-       _config->auto_rescheduling_interval())) {
-    _remove_misc_event(_evt_reschedule_checks);
-    if (_config->auto_reschedule_checks())
-      _evt_reschedule_checks =
-          _create_misc_event(timed_event::EVENT_RESCHEDULE_CHECKS,
-                             now + _config->auto_rescheduling_interval(),
-                             _config->auto_rescheduling_interval());
-    _old_auto_rescheduling_interval = _config->auto_rescheduling_interval();
   }
 
   // Remove and add a retention data save event if needed.
