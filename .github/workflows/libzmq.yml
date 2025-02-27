@@ -153,7 +153,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -189,7 +189,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -223,7 +223,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]

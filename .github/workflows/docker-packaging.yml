@@ -35,21 +35,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma8
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma9
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bookworm
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bookworm
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bullseye
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bullseye
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: jammy
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: jammy
 
     runs-on: ${{ matrix.runner }}

@@ -143,7 +143,7 @@ jobs:
             only_cma: "OFF"
           - distrib: jammy
             only_cma: "ON"
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
@@ -265,49 +265,49 @@ jobs:
           - image: packaging-centreon-collect-vcpkg-alma8
             distrib: el8
             package_extension: rpm
-            runner: [self-hosted, collect]
+            runner: centreon-collect
             arch: amd64
             only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
-            runner: [self-hosted, collect]
+            runner: centreon-collect
             arch: amd64
             only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-bullseye
             distrib: bullseye
             package_extension: deb
-            runner: [self-hosted, collect]
+            runner: centreon-collect
             arch: amd64
             only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bullseye-arm64
             distrib: bullseye
             package_extension: deb
-            runner: [self-hosted, collect-arm64]
+            runner: centreon-collect-arm64
             arch: arm64
             only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
-            runner: [self-hosted, collect]
+            runner: centreon-collect
             arch: amd64
             only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
-            runner: [self-hosted, collect-arm64]
+            runner: centreon-collect-arm64
             arch: arm64
             only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-jammy
             distrib: jammy
             package_extension: deb
-            runner: [self-hosted, collect]
+            runner: centreon-collect
             arch: amd64
             only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-jammy-arm64
             distrib: jammy
             package_extension: deb
-            runner: [self-hosted, collect-arm64]
+            runner: centreon-collect-arm64
             arch: arm64
             only_robot_cma: true
 
@@ -330,7 +330,7 @@ jobs:
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
-      runner: ${{ toJSON(matrix.runner) }}
+      runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: ${{ matrix.only_robot_cma }}
@@ -532,7 +532,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-sources:
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -568,7 +568,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -619,7 +619,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, robot-test]
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -685,7 +685,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]

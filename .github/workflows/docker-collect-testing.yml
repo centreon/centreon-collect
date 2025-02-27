@@ -41,30 +41,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma9
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma9
             database: mysql
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bookworm
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bookworm
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bullseye
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bullseye
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: jammy
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: jammy
             database: mariadb
 

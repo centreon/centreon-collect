@@ -35,9 +35,7 @@ jobs:
           SHELLCHECK_OPTS: "--severity=error"
         run: |
           ${{ steps.get_actionlint.outputs.executable }} \
-            -ignore 'label "ubuntu-24.04" is unknown' \
-            -ignore 'label "(common|collect|collect-arm64)" is unknown' \
-            -ignore 'label "veracode" is unknown' \
+            -ignore 'label "centreon-(ubuntu-24.04|common|collect|collect-arm64)" is unknown' \
             -ignore '"github.head_ref" is potentially untrusted' \
             -pyflakes= \
             -color
