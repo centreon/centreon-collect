@@ -312,18 +312,6 @@ void timed_event::_exec_event_hfreshness_check() {
 }
 
 /**
- *  Execute rescheduled checks.
- *
- */
-void timed_event::_exec_event_reschedule_checks() {
-  engine_logger(dbg_events, basic) << "** Reschedule Checks Event";
-  events_logger->trace("** Reschedule Checks Event");
-
-  // adjust scheduling of host and service checks.
-  events::loop::instance().adjust_check_scheduling();
-}
-
-/**
  *  Execute expire comment.
  *
  */
@@ -424,7 +412,6 @@ int timed_event::handle_timed_event() {
       &timed_event::_exec_event_expire_downtime,
       &timed_event::_exec_event_host_check,
       &timed_event::_exec_event_hfreshness_check,
-      &timed_event::_exec_event_reschedule_checks,
       &timed_event::_exec_event_expire_comment,
       &timed_event::_exec_event_expire_host_ack,
       &timed_event::_exec_event_expire_service_ack,
@@ -470,8 +457,8 @@ std::string const& timed_event::name() const noexcept {
       "EVENT_STATUS_SAVE",       "EVENT_SCHEDULED_DOWNTIME",
       "EVENT_SFRESHNESS_CHECK",  "EVENT_EXPIRE_DOWNTIME",
       "EVENT_HOST_CHECK",        "EVENT_HFRESHNESS_CHECK",
-      "EVENT_RESCHEDULE_CHECKS", "EVENT_EXPIRE_COMMENT",
-      "EVENT_EXPIRE_HOST_ACK",   "EVENT_EXPIRE_SERVICE_ACK"};
+      "EVENT_EXPIRE_COMMENT",    "EVENT_EXPIRE_HOST_ACK",
+      "EVENT_EXPIRE_SERVICE_ACK"};
 
   if (this->event_type < sizeof(event_names) / sizeof(event_names[0]))
     return event_names[this->event_type];
