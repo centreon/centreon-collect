@@ -54,11 +54,11 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
 
-    name: build docker image ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: build docker image ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
     env:
       IMAGE_BASE_NAME: packaging-centreon-collect
-      IMAGE_SUFFIX: ${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}
+      IMAGE_SUFFIX: ${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}
 
     steps:
       - name: Checkout sources
@@ -87,8 +87,8 @@ jobs:
           target: centreon_collect_packaging
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
-          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
+            "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -105,8 +105,8 @@ jobs:
           target: centreon_collect_packaging_vcpkg
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
-          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
+            "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: false
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}

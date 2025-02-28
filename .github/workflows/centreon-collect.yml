@@ -311,7 +311,7 @@ jobs:
             arch: arm64
             only_robot_cma: true
 
-    name: package ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
     uses: ./.github/workflows/package-collect.yml
 
