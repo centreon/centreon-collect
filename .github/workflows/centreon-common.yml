@@ -93,7 +93,7 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
 
   deliver-rpm:
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -123,7 +123,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [get-environment, package]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -163,7 +163,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]

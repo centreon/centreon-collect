@@ -81,7 +81,7 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"

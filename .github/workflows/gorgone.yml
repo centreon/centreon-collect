@@ -99,7 +99,7 @@ jobs:
           - package_extension: deb
             image: unit-tests-bullseye-arm64
             distrib: bullseye-arm64
-            runner_name: centreon-collect-arm64
+            runner_name: ["self-hosted", "collect-arm64"]
           - package_extension: deb
             image: unit-tests-bookworm
             distrib: bookworm
@@ -315,7 +315,7 @@ jobs:
           retention-days: 1
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -339,7 +339,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [get-environment, unit-test-perl, robot-test-gorgone, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -370,7 +370,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [get-environment, unit-test-perl, robot-test-gorgone, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -411,7 +411,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]

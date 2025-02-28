@@ -55,7 +55,7 @@ jobs:
 
   build:
     name: Binary preparation
-    runs-on: centreon-common
+    runs-on: [self-hosted, common]
     needs: [routing]
     if: needs.routing.outputs.skip_analysis == 'false'
 
