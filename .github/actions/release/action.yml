@@ -33,7 +33,7 @@ runs:
         set -eux
 
         # Variables
-        COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone" "centreon-common")
+        COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone")
         CURRENT_STABLE_BRANCH_MAJOR_VERSION=""
         declare -a TMP_STABLE_TAGS=()
         declare -a NEW_STABLE_TAGS=()
