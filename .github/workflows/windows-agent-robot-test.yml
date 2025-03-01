@@ -69,7 +69,7 @@ jobs:
         run: wsl --list --online
 
       - name: install debian
-        uses: Vampire/setup-wsl@v4
+        uses: Vampire/setup-wsl@v5
         with:
           wsl-version: 1
           distribution: Debian
