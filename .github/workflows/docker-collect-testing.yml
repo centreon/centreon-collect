@@ -41,39 +41,39 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma9
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: alma9
             database: mysql
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bookworm
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bookworm
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: bullseye
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: bullseye
             database: mariadb
-          - runner: [self-hosted, collect]
+          - runner: centreon-collect
             distrib: jammy
             database: mariadb
-          - runner: [self-hosted, collect-arm64]
+          - runner: centreon-collect-arm64
             distrib: jammy
             database: mariadb
 
     runs-on: ${{ matrix.runner }}
 
-    name: build image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(toJson(matrix.runner), 'arm') && ' arm' || '' }}
+    name: build image ${{ matrix.database }} ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
     env:
-      IMAGE_NAME: centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}${{ contains(toJson(matrix.runner), 'arm') && '-arm64' || '' }}-test
+      IMAGE_NAME: centreon-collect-${{ matrix.database }}-${{ matrix.distrib }}${{ contains(matrix.runner, 'arm') && '-arm64' || '' }}-test
 
     steps:
       - name: Checkout sources
@@ -101,8 +101,8 @@ jobs:
           context: .
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
-            "TRIPLET=${{ contains(toJson(matrix.runner), 'arm') && 'arm64-linux' || 'x64-linux' }}"
-          platforms: ${{ contains(toJson(matrix.runner), 'arm') && 'linux/arm64' || 'linux/amd64' }}
+            "TRIPLET=${{ contains(matrix.runner, 'arm') && 'arm64-linux' || 'x64-linux' }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ needs.get-environment.outputs.test_img_version }}
