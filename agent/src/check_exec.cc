@@ -281,3 +281,86 @@ void check_exec::on_completion(unsigned running_index) {
   check::on_completion(running_index, _process->get_exit_status(), perfs,
                        outputs);
 }
+
+/******************************************************************
+ * check_dummy
+ ******************************************************************/
+
+check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
+                         const std::shared_ptr<spdlog::logger>& logger,
+                         time_point first_start_expected,
+                         duration check_interval,
+                         const std::string& serv,
+                         const std::string& cmd_name,
+                         const std::string& cmd_line,
+                         const std::string& output,
+                         const engine_to_agent_request_ptr& cnf,
+                         check::completion_handler&& handler,
+                         const checks_statistics::pointer& stat)
+    : check(io_context,
+            logger,
+            first_start_expected,
+            check_interval,
+            serv,
+            cmd_name,
+            cmd_line,
+            cnf,
+            std::move(handler),
+            stat) {
+  _output = output;
+}
+
+/**
+ * @brief create and initialize a check_dummy object (don't use constructor)
+ *
+ * @tparam handler_type
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
+ * @param serv
+ * @param cmd_name
+ * @param cmd_line
+ * @param cnf   agent configuration
+ * @param handler  completion handler
+ * @return std::shared_ptr<check_dummy>
+ */
+std::shared_ptr<check_dummy> check_dummy::load(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    duration check_interval,
+    const std::string& serv,
+    const std::string& cmd_name,
+    const std::string& cmd_line,
+    const std::string& output,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
+  std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, output, cnf, std::move(handler), stat);
+  return ret;
+}
+
+/**
+ * @brief start a check, completion handler is always called asynchronously even
+ * in case of failure
+ *
+ * @param timeout
+ */
+void check_dummy::start_check(const duration& timeout) {
+  if (!check::_start_check(timeout)) {
+    return;
+  }
+
+  _io_context->post([me = check::shared_from_this(),
+                     start_check_index = _get_running_check_index(), this]() {
+    me->on_completion(
+        start_check_index, e_status::critical,
+        std::list<com::centreon::common::perfdata>(),
+        {fmt::format("unable to execute native check {} , output error : {}",
+                     me->get_command_line(), get_output())});
+  });
+}
