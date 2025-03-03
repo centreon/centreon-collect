@@ -66,13 +66,13 @@ jobs:
 
       - name: image to disk
         run: |
-          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.full_name}}
+          docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.full_name}}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: /tmp/${{inputs.image}}
+          path: ./${{inputs.image}}
           key: ${{inputs.full_name}}
 
   robot-test-list:
@@ -99,6 +99,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
+
     strategy:
       fail-fast: false
       matrix:
