@@ -24,7 +24,7 @@ on:
 
 jobs:
   package-rpm:
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
 
     strategy:
       matrix:
@@ -90,7 +90,7 @@ jobs:
           retention-days: 1
 
   package-deb:
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
     strategy:
       matrix:
         include:

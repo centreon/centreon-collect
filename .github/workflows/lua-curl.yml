@@ -198,7 +198,7 @@ jobs:
   promote:
     needs: [get-version]
     if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' && github.repository == 'centreon/centreon-collect' }}
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, bullseye]

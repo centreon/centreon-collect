@@ -33,7 +33,7 @@ jobs:
         include:
           - project: collect
 
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
 
     steps:
       - name: Checkout sources
