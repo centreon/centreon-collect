@@ -16,12 +16,28 @@ on:
       test_group_name:
         required: true
         type: string
+      is_nightly:
+        required: false
+        type: string
     secrets:
       registry_username:
         required: true
       registry_password:
         required: true
-
+      collect_s3_access_key:
+        required: true
+      collect_s3_secret_key:
+        required: true
+      xray_client_id:
+        required: true
+      xray_client_secret:
+        required: true
+      jira_base_url:
+        required: true
+      jira_user_email:
+        required: true
+      jira_api_token:
+        required: true
 jobs:
   test-image-to-cache:
     runs-on: ubuntu-24.04
@@ -54,7 +70,7 @@ jobs:
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.full_name}}
@@ -94,7 +110,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install RPM packages
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ inputs.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
@@ -125,7 +141,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -147,7 +163,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
@@ -185,14 +201,7 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-      # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        if: ${{ inputs.distrib  == 'el7'}}
-        with:
-          python-version: '3.10'
-
       - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
-        if: ${{ inputs.distrib != 'el7' }}
         with:
           python-version: '3.10'
 
@@ -207,3 +216,24 @@ jobs:
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
+          show_passed_tests: false
+
+  create-jira-nightly-ticket:
+    needs: [robot-test-list, robot-test-run, robot-test-report]
+    runs-on: ubuntu-24.04
+    if: |
+      inputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled()) &&
+      startsWith(github.ref_name, 'dev')
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+
+      - name: Create Jira ticket if nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.jira_base_url }}
+          jira_user_email: ${{ secrets.jira_user_email }}
+          jira_api_token: ${{ secrets.jira_api_token }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "robot-test"]'

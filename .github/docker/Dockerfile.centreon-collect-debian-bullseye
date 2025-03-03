@@ -37,7 +37,7 @@ apt-get -y install cmake \
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 apt-get update
-apt-get install -y nfpm
+apt-get install -y nfpm=2.41.1
 
 apt-get clean
 

@@ -21,7 +21,9 @@ on:
       stability:
         required: true
         type: string
-
+      is_nightly:
+        required: false
+        type: string
 jobs:
   package-rpm:
     runs-on: [self-hosted, collect]
@@ -70,7 +72,7 @@ jobs:
           registry_private_token: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_TOKEN }}
 
       - name: Cache RPM files
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
@@ -83,7 +85,7 @@ jobs:
           rm -rf *-debugsource*.rpm
 
       - name: Upload package artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8 # v4.3.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: packages-rpm-${{ matrix.distrib }}
           path: ./*.rpm
@@ -121,7 +123,24 @@ jobs:
           env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}" -e RELEASE="${{ inputs.release }}"
 
       - name: Use cache DEB files
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+
+  create-jira-nightly-ticket:
+    needs: [package-deb, package-rpm]
+    runs-on: ubuntu-24.04
+    if: |
+      inputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled()) &&
+      startsWith(github.ref_name, 'dev')
+    steps:
+      - name: Create Jira ticket if nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'

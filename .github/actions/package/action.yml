@@ -103,7 +103,7 @@ runs:
       shell: bash
 
     - name: Cache packages
-      uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         path: ./*.${{ inputs.package_extension }}
         key: ${{ inputs.cache_key }}
@@ -111,7 +111,7 @@ runs:
     # Update if condition to true to get packages as artifacts
     - if: ${{ false }}
       name: Upload package artifacts
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}
         path: ./*.${{ inputs.package_extension }}
