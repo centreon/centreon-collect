@@ -17,8 +17,60 @@
  */
 
 #include "check.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
+
+/**
+ * @brief calc a duration from a string like 3w or 2d1h5m30s
+ * allowed units are s, m, h , d, w no case sensitive
+ * @param duration_str  string to parse
+ * @param default_unit  when a number is given without unit we use default_unit
+ */
+duration com::centreon::agent::duration_from_string(
+    const std::string_view& duration_str,
+    char default_unit) {
+  static re2::RE2 duration_regex("(-?\\d+[sSmMhHdDwW]?)");
+
+  duration ret {0};
+  std::string_view captured;
+  std::string_view copy_str = duration_str;
+  while (RE2::Consume(&copy_str, duration_regex, &captured)) {
+    char unit = default_unit;
+    if (*captured.rbegin() > '9') {
+      unit = *captured.rbegin();
+      captured = captured.substr(0, captured.size() - 1);
+    }
+
+    int value = 0;
+    if (!absl::SimpleAtoi(captured, &value)) {
+      throw exceptions::msg_fmt("fail to parse this duration:{}", duration_str);
+    }
+    switch (unit) {
+      case 's':
+      case 'S':
+        ret += std::chrono::seconds(value);
+        break;
+      case 'm':
+      case 'M':
+        ret += std::chrono::minutes(value);
+        break;
+      case 'h':
+      case 'H':
+        ret += std::chrono::hours(value);
+        break;
+      case 'd':
+      case 'D':
+        ret += std::chrono::days(value);
+        break;
+      case 'w':
+      case 'W':
+        ret += std::chrono::weeks(value);
+        break;
+    }
+  }
+  return ret;
+}
 
 /**
  * @brief update check interval of a check
@@ -115,7 +167,8 @@ bool check::_start_check(const duration& timeout) {
                         _service);
     _io_context->post(
         [me = shared_from_this(), to_call = _completion_handler]() {
-          to_call(me, 3, std::list<com::centreon::common::perfdata>(),
+          to_call(me, e_status::unknown,
+                  std::list<com::centreon::common::perfdata>(),
                   {"a check is already running"});
         });
     return false;

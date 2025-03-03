@@ -30,6 +30,9 @@ using engine_to_agent_request_ptr =
 using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
 
+duration duration_from_string(const std::string_view& duration_str,
+                              char default_unit = 's');
+
 class checks_statistics {
   struct check_stat {
     std::string cmd_name;
@@ -188,7 +191,7 @@ class check : public std::enable_shared_from_this<check> {
 
   bool _start_check(const duration& timeout);
 
-  virtual void _on_timeout(){};
+  virtual void _on_timeout() {};
 
  public:
   using pointer = std::shared_ptr<check>;

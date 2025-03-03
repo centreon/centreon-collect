@@ -17,10 +17,31 @@
  */
 
 #include <gtest/gtest.h>
+#include <__msvc_chrono.hpp>
 
 #include "check.hh"
 
 using namespace com::centreon::agent;
+
+TEST(duration_from_str, values) {
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45s", 'd'));
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45", 's'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33m", 'd'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33", 'm'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17h", 'd'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17", 'h'));
+  EXPECT_EQ(std::chrono::days(13), duration_from_string("13d", 'd'));
+  EXPECT_EQ(std::chrono::days(13), duration_from_string("13d", 'h'));
+  EXPECT_EQ(std::chrono::days(13), duration_from_string("13", 'd'));
+  EXPECT_EQ(std::chrono::weeks(11), duration_from_string("11w", 'd'));
+  EXPECT_EQ(std::chrono::weeks(11), duration_from_string("11", 'w'));
+  EXPECT_EQ(std::chrono::weeks(-11), duration_from_string("-11", 'w'));
+  EXPECT_EQ(std::chrono::weeks(-11), duration_from_string("-11w", 'd'));
+  EXPECT_EQ(std::chrono::weeks(1) + std::chrono::days(3) +
+                std::chrono::hours(13) + std::chrono::minutes(5) +
+                std::chrono::seconds(30),
+            duration_from_string("1w3d13h5m30", 's'));
+}
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
