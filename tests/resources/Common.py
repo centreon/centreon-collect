@@ -682,7 +682,7 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
 def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     """
     brief : same as ctn_check_service_resource_status_with_timeout but with additional return
-    
+
     Check the status of a service resource within a specified timeout period.
 
     This function connects to a MySQL database and queries the status of a service resource
@@ -723,7 +723,6 @@ def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_des
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
-                    logger.console(f"output={result[0]['output']}")
                     if state_type == 'ANY':
                         return True,result[0]['output']
                     elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:

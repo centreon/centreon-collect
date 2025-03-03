@@ -1274,11 +1274,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
-
+    ...    "Error the output for invalid check command is not correct"
+ 
     ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
     Should Be True    ${result}    resources table not updated for service_2
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output err : field warning-interval is not a unsigned int string
-
+    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
+    ...    "Error the output for invalid check args is not correct"
+ 
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
