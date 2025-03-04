@@ -65,7 +65,7 @@ jobs:
             image: packaging-centreon-collect-bookworm-arm64
             distrib: bookworm
             lua_version: 5.3
-            runner: ["self-hosted", "collect-arm64"]
+            runner: centreon-collect-arm64
             arch: arm64
 
     runs-on: ${{ matrix.runner }}
@@ -206,7 +206,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
