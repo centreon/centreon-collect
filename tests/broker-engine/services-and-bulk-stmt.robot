@@ -529,6 +529,13 @@ EBMSSMPART
 
     Ctn Wait For Engine To Be Ready    ${start}    1
 
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${500}
+        ${output}    Query    SELECT COUNT(*) FROM services WHERE enabled=1
+        IF    ${output[0][0]} >= 1000    BREAK
+        Sleep    1s
+    END
+    Disconnect From Database
     ${start}    Ctn Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     Log To Console    Many service checks with 100 metrics each are processed.
