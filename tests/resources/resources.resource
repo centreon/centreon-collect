@@ -195,7 +195,7 @@ Ctn Start Engine
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
-        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${log}    Catenate    SEPARATOR=    ${ENGINE_LOG}    /config    ${idx}
         ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
         Create Directory    ${log}
         Create Directory    ${lib}
