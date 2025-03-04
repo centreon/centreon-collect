@@ -230,6 +230,19 @@ void event_filter::check_builder::set_label_compare_to_value(
     filt->set_checker_from_getter([](const testable& t) {
       return static_cast<const event_data&>(t).get_level();
     });
+  } else if (filt->get_label() == "written") {
+    filt->calc_duration();
+    filt->change_threshold_to_abs();
+    filt->set_checker_from_getter([](const testable& t) {
+      FILETIME ft;
+      SYSTEMTIME st;
+      GetSystemTime(&st);
+      SystemTimeToFileTime(&st, &ft);
+      ULARGE_INTEGER caster{.LowPart = ft.dwLowDateTime,
+                            .HighPart = ft.dwHighDateTime};
+      return caster.QuadPart -
+             static_cast<const event_data&>(t).get_time_created();
+    });
   }
 }
 

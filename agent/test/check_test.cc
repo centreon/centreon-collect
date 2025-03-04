@@ -24,6 +24,7 @@
 using namespace com::centreon::agent;
 
 TEST(duration_from_str, values) {
+  EXPECT_EQ(duration{0}, duration_from_string("", 's'));
   EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45s", 'd'));
   EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45", 's'));
   EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33m", 'd'));
@@ -37,6 +38,7 @@ TEST(duration_from_str, values) {
   EXPECT_EQ(std::chrono::weeks(11), duration_from_string("11", 'w'));
   EXPECT_EQ(std::chrono::weeks(-11), duration_from_string("-11", 'w'));
   EXPECT_EQ(std::chrono::weeks(-11), duration_from_string("-11w", 'd'));
+  EXPECT_EQ(std::chrono::weeks(11), duration_from_string("-11w", 'd', true));
   EXPECT_EQ(std::chrono::weeks(1) + std::chrono::days(3) +
                 std::chrono::hours(13) + std::chrono::minutes(5) +
                 std::chrono::seconds(30),

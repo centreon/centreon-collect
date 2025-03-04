@@ -75,6 +75,7 @@ class event_filter {
   std::shared_ptr<spdlog::logger> _logger;
 
   struct check_builder {
+    duration _min_written;
     void operator()(filter* filt) const;
     void set_label_compare_to_value(
         filters::label_compare_to_value* filt) const;

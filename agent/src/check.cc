@@ -26,13 +26,15 @@ using namespace com::centreon::agent;
  * allowed units are s, m, h , d, w no case sensitive
  * @param duration_str  string to parse
  * @param default_unit  when a number is given without unit we use default_unit
+ * @param erase_sign if true, number signs are not taken into account
  */
 duration com::centreon::agent::duration_from_string(
     const std::string_view& duration_str,
-    char default_unit) {
+    char default_unit,
+    bool erase_sign) {
   static re2::RE2 duration_regex("(-?\\d+[sSmMhHdDwW]?)");
 
-  duration ret {0};
+  duration ret{0};
   std::string_view captured;
   std::string_view copy_str = duration_str;
   while (RE2::Consume(&copy_str, duration_regex, &captured)) {
@@ -45,6 +47,9 @@ duration com::centreon::agent::duration_from_string(
     int value = 0;
     if (!absl::SimpleAtoi(captured, &value)) {
       throw exceptions::msg_fmt("fail to parse this duration:{}", duration_str);
+    }
+    if (erase_sign && value < 0) {
+      value = -value;
     }
     switch (unit) {
       case 's':

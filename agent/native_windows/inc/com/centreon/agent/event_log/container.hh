@@ -19,7 +19,6 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 
-#include <set>
 #include "event_log/data.hh"
 #include "event_log/uniq.hh"
 
@@ -33,7 +32,8 @@ class event_container {
       flat_hash_map<event, time_point_set, event_comparator, event_comparator>;
 
  private:
-  duration _scan_range;
+  duration _warning_scan_range;
+  duration _critical_scan_range;
 
   std::wstring _file;
   std::unique_ptr<event_filter> _primary_filter;

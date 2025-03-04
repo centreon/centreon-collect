@@ -31,7 +31,8 @@ using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
 
 duration duration_from_string(const std::string_view& duration_str,
-                              char default_unit = 's');
+                              char default_unit = 's',
+                              bool erase_sign = false);
 
 class checks_statistics {
   struct check_stat {

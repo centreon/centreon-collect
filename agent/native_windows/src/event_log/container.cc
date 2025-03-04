@@ -30,7 +30,8 @@ event_container::event_container(const std::string_view& file,
                                  const std::string_view& critical_filter,
                                  duration scan_range,
                                  const std::shared_ptr<spdlog::logger>& logger)
-    : _scan_range(scan_range),
+    : _warning_scan_range(scan_range),
+      _critical_scan_range(scan_range),
       _file(file.begin(), file.end()),
       _event_compare(unique_str, logger),
       _critical(0, _event_compare, _event_compare),
@@ -97,10 +98,10 @@ event_container::~event_container() {
 
 void event_container::start() {
   std::wstring query;
-  query = std::format(
-      L"Event/System[TimeCreated[timediff(@SystemTime) <= {}]]",
-      std::chrono::duration_cast<std::chrono::milliseconds>(_scan_range)
-          .count());
+  query = std::format(L"Event/System[TimeCreated[timediff(@SystemTime) <= {}]]",
+                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                          std::max(_warning_scan_range, _critical_scan_range))
+                          .count());
 
   _subscription = EvtSubscribe(nullptr, nullptr, _file.c_str(), query.c_str(),
                                nullptr, this, _subscription_callback,
@@ -212,9 +213,8 @@ void event_container::_on_event(EVT_HANDLE h_event) {
 
     // every 10 events we clean oldest events
     if (!((++_insertion_cpt) % 10)) {
-      auto peremption = std::chrono::file_clock::now() - _scan_range;
-      auto clean_oldest = [peremption](event_cont& to_clean,
-                                       unsigned& event_counter) {
+      auto clean_oldest = [](event_cont& to_clean, unsigned& event_counter,
+                             auto peremption) {
         for (auto event_iter = to_clean.begin();
              event_iter != to_clean.end();) {
           time_point_set& time_points = event_iter->second;
@@ -233,8 +233,10 @@ void event_container::_on_event(EVT_HANDLE h_event) {
           }
         }
       };
-      clean_oldest(_warning, _nb_warning);
-      clean_oldest(_critical, _nb_critical);
+      clean_oldest(_warning, _nb_warning,
+                   std::chrono::file_clock::now() - _warning_scan_range);
+      clean_oldest(_critical, _nb_critical,
+                   std::chrono::file_clock::now() - _critical_scan_range);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to read event: {}", e.what());

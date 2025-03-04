@@ -179,6 +179,10 @@ class label_compare_to_value : public filter {
   const std::string& get_unit() const { return _unit; }
   comparison get_comparison() const { return _comparison; }
 
+  void change_threshold_to_abs();
+
+  void calc_duration();
+
   template <class value_getter>
   void set_checker_from_getter(value_getter&& getter);
 };

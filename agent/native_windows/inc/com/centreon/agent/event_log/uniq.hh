@@ -23,6 +23,18 @@
 
 namespace com::centreon::agent::event_log {
 
+class unique_event {
+  using time_point_set = std::multiset<std::chrono::file_clock::time_point>;
+  event _evt;
+  mutable time_point_set _time_points;
+  std::chrono::file_clock::time_point _oldest;
+
+ public:
+  unique_event(event&& evt);
+
+  std::chrono::file_clock::time_point get_oldest() const { return _oldest; }
+};
+
 class event_comparator {
   using field_event_hasher = std::function<size_t(const event&)>;
   using field_event_compare = std::function<bool(const event&, const event&)>;

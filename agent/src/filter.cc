@@ -149,6 +149,46 @@ void label_compare_to_value::dump(std::ostream& s) const {
   s << _value << ' ' << _unit << " } " << std::endl;
 }
 
+void label_compare_to_value::calc_duration() {
+  if (!_unit.empty()) {
+    switch (_unit[0]) {
+      case 'w':
+      case 'W':
+        _value *= 86400 * 24;
+        break;
+      case 'd':
+      case 'D':
+        _value *= 86400;
+        break;
+      case 'h':
+      case 'H':
+        _value *= 3600;
+        break;
+      case 'm':
+      case 'M':
+        _value *= 60;
+        break;
+      default:
+        break;
+    }
+  }
+
+  _unit = "s";
+}
+
+void label_compare_to_value::change_threshold_to_abs() {
+  _value = abs(_value);
+  if (_comparison == comparison::greater_than) {
+    _comparison = comparison::less_than;
+  } else if (_comparison == comparison::greater_than_or_equal) {
+    _comparison = comparison::less_than_or_equal;
+  } else if (_comparison == comparison::less_than) {
+    _comparison = comparison::greater_than
+  } else if (_comparison == comparison::less_than_or_equal) {
+    _comparison = comparison::greater_than_or_equal;
+  }
+}
+
 /*************************************************************************
  *                                                                       *
  *                          label_compare_to_string                      *

@@ -17,6 +17,8 @@
  */
 
 #include "check_event_log.hh"
+#include <__msvc_chrono.hpp>
+#include "check.hh"
 #include "event_log/data.hh"
 
 #include "com/centreon/common/rapidjson_helper.hh"
@@ -49,8 +51,22 @@ check_event_log::check_event_log(
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
-      _uniq = std::make_unique<event_log::event_comparator>(
-          arg.get_string("unique-index", "${provider}${id}"), logger);
+      duration scan_range =
+          duration_from_string(arg.get_string("scan-range", ""), 's', true);
+
+      if (scan_range.count() == 0) {  // default: 24h
+        scan_range = std::chrono::days(1);
+      }
+
+      _data = std::make_unique<event_log::event_container>(
+          arg.get_string("file"),
+          arg.get_string("unique-index", "${provider}${id}"),
+          arg.get_string(
+              "filter-event",
+              "written > -60m and level in ('error', 'warning', 'critical')"),
+          arg.get_string("warning-status", "level = 'warning'"),
+          arg.get_string("critical-status", "level in ('error', 'critical')"),
+          scan_range, logger);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_event_log, fail to parse arguments: {}",

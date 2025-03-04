@@ -20,6 +20,10 @@
 
 using namespace com::centreon::agent::event_log;
 
+unique_event::unique_event(event&& evt) : _evt(evt) {
+  _time_points.insert(_evt.time());
+}
+
 re2::RE2 field_regex("\\${([^\\${}]+)}");
 
 event_comparator::event_comparator(
