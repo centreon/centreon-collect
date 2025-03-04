@@ -482,6 +482,8 @@ def ctn_clear_cache():
 def ctn_clear_logs():
     shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
     shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
+    os.makedirs(f"{VAR_ROOT}/log/centreon-engine")
+    os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):

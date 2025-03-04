@@ -24,7 +24,7 @@ BETAG1
     Ctn Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -50,7 +50,7 @@ BETAG2
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -79,7 +79,7 @@ BEUTAG1
     Ctn Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -111,7 +111,7 @@ BEUTAG2
     Ctn Clear Retention
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -121,9 +121,9 @@ BEUTAG2
     ${svc}    Ctn Create Service    ${0}    1    1
     Ctn Add Tags To Services    ${0}    group_tags    4    [${svc}]
 
-    Ctn Stop engine
+    Ctn Stop Engine
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Reload Broker
 
     # Let's wait for the external command check start
@@ -149,7 +149,7 @@ BEUTAG3
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
@@ -180,7 +180,7 @@ BEUTAG4
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
@@ -196,6 +196,7 @@ BEUTAG4
 	Log To Console    resources content: ${output}
         ${output}    Query    SELECT * FROM servicegroups
 	Log To Console    servicegroups content: ${output}
+	Disconnect From Database
     END
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag ids 4 and 5
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
@@ -224,7 +225,7 @@ BEUTAG5
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     Ctn Wait For Engine To Be Ready    ${start}	  ${1}
@@ -259,7 +260,7 @@ BEUTAG6
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -300,7 +301,7 @@ BEUTAG7
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -371,7 +372,7 @@ BEUTAG8
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -424,7 +425,7 @@ BEUTAG9
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -481,7 +482,7 @@ BEUTAG10
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -524,7 +525,12 @@ BEUTAG10
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
 BEUTAG11
-    [Documentation]    some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
+    [Documentation]    Scenario: Updating resource tags after changing several tags
+    ...    Given some services are configured with tags on two pollers
+    ...    Then the resources_tags table contains them
+    ...    When several tags are changed
+    ...    Then the resources_tags table is updated
+
     [Tags]    broker    engine    protobuf    bbdo    tags
     Ctn Config Engine    ${2}
     Ctn Create Tags File    ${0}    ${20}
@@ -540,20 +546,22 @@ BEUTAG11
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${2}
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    2
-    Ctn Broker Config Log    module0    neb    debug
-    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    module1    neb    trace
+    Ctn Broker Config Log    module0    processing    error
+    Ctn Broker Config Log    module1    processing    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module1    core    error
     Ctn Broker Config Log    central    sql    trace
+    Ctn Clear Logs
     Ctn Clear Retention
-    ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Tcpdump
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
 
     ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
     Should Be True    ${result}    First step: Service (1, 4) should have servicegroup tags 2 and 4
@@ -588,6 +596,7 @@ BEUTAG11
 
     ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
+    Ctn Stop Tcpdump
 
 BEUTAG12
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
@@ -608,7 +617,7 @@ BEUTAG12
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
@@ -663,7 +672,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Clear Retention
     Sleep    1s
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # Let's wait for the external command check start
