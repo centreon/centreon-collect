@@ -1391,6 +1391,7 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         True if the number of downtimes is the expected one, False otherwise.
     """
     limit = time.time() + timeout
+    retval = False
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1406,7 +1407,8 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
                 if int(result[0]['count(*)']) == int(nb):
-                    return True
+                    retval = True
+                    break
         time.sleep(1)
 
     connection = pymysql.connect(host=DB_HOST,
@@ -1421,9 +1423,12 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
             cursor.execute(
                 "SELECT * FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
             result = cursor.fetchall()
-            logger.console("Not the expected number of downtimes")
+            if retval:
+                logger.console("We get the expected number of downtimes")
+            else:
+                logger.console("Not the expected number of downtimes")
             logger.console(json.dumps(result, indent=4, sort_keys=True))
-    return False
+    return retval
 
 
 def ctn_clear_db(table: str):

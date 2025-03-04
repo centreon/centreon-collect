@@ -89,6 +89,8 @@ BEBAMIDTU2
     ...    Then the inherited downtime is deleted
     [Tags]    broker    downtime    engine    bam    start    stop
     Ctn Clear Commands Status
+    Ctn Clear Downtimes
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -400,3 +402,8 @@ Ctn BAM Setup
     Log To Console    Cleaning downtimes at date=${date}
     Execute SQL String
     ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+    Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE resources SET in_downtime=0
+    Disconnect From Database
+
