@@ -19,7 +19,6 @@
 #include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -637,7 +636,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             res.set(prepare_meta_result);
             bind->set_empty();
           }
-          res.set_bind(move(bind));
+          res.set_bind(std::move(bind));
           task->promise.set_value(std::move(res));
         }
         break;
