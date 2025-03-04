@@ -95,7 +95,7 @@ jobs:
       registry_private_token: ${{ secrets.HARBOR_RPM_GPG_SIGNING_REPO_TOKEN }}
 
   deliver-sources:
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     needs: [get-version, package]
     if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' && github.repository == 'centreon/centreon-collect' }}
 
@@ -114,7 +114,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     needs: [get-version, package]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) && github.repository == 'centreon/centreon-collect' }}
 
@@ -139,7 +139,7 @@ jobs:
           release_cloud: ${{ needs.get-version.outputs.release_cloud }}
 
   deliver-deb:
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     needs: [get-version, package]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) && github.repository == 'centreon/centreon-collect' }}
 
@@ -166,7 +166,7 @@ jobs:
   promote:
     needs: [get-version]
     if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' && github.repository == 'centreon/centreon-collect' }}
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el7, el8, bullseye]

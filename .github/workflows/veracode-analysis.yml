@@ -62,7 +62,7 @@ jobs:
 
   build:
     name: Binary preparation
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
     needs: [routing]
     if: needs.routing.outputs.skip_analysis == 'false'
     container:
