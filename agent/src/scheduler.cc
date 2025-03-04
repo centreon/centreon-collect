@@ -621,7 +621,8 @@ std::shared_ptr<check> scheduler::default_check_builder(
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
                                check_interval, service, cmd_name, cmd_line,
-                               e.what(), conf, std::move(handler), stat);
+                               std::string(e.what()), conf, std::move(handler),
+                               stat);
     }
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,

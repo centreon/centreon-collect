@@ -199,7 +199,7 @@ void check_exec::start_check(const duration& timeout) {
   if (!_process) {
     _io_context->post([me = check::shared_from_this(),
                        start_check_index = _get_running_check_index()]() {
-      me->on_completion(start_check_index, 3,
+      me->on_completion(start_check_index, e_status::unknown,
                         std::list<com::centreon::common::perfdata>(),
                         {"empty command"});
     });
@@ -213,7 +213,8 @@ void check_exec::start_check(const duration& timeout) {
     _io_context->post([me = check::shared_from_this(),
                        start_check_index = _get_running_check_index(), e]() {
       me->on_completion(
-          start_check_index, 3, std::list<com::centreon::common::perfdata>(),
+          start_check_index, e_status::unknown,
+          std::list<com::centreon::common::perfdata>(),
           {fmt::format("Fail to execute {} : {}", me->get_command_line(),
                        e.code().message())});
     });
@@ -222,7 +223,7 @@ void check_exec::start_check(const duration& timeout) {
                         get_service(), get_command_line(), e.what());
     _io_context->post([me = check::shared_from_this(),
                        start_check_index = _get_running_check_index(), e]() {
-      me->on_completion(start_check_index, 3,
+      me->on_completion(start_check_index, e_status::unknown,
                         std::list<com::centreon::common::perfdata>(),
                         {fmt::format("Fail to execute {} : {}",
                                      me->get_command_line(), e.what())});
@@ -306,9 +307,8 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
             cmd_line,
             cnf,
             std::move(handler),
-            stat) {
-  _output = output;
-}
+            stat),
+      _output(output) {}
 
 /**
  * @brief create and initialize a check_dummy object (don't use constructor)
