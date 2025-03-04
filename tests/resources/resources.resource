@@ -564,3 +564,11 @@ Ctn Start Tcpdump
 
 Ctn Stop Tcpdump
     Terminate Process    tcpdump    kill=False
+
+Ctn Clear Downtimes
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    #${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+    Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
+    Execute SQL String    UPDATE resources SET in_downtime=0
+    Disconnect From Database
