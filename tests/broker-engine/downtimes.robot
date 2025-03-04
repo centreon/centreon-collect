@@ -392,6 +392,4 @@ BEDTRRD1
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
     Ctn Clean Before Suite
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+    Ctn Clear Downtimes

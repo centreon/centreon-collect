@@ -771,6 +771,7 @@ define contact {
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
                       stat.S_IRGRP | stat.S_IXGRP)
+            shutil.copyfile(dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 

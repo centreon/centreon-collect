@@ -22,7 +22,7 @@ import sys, getopt
 import pymysql.cursors
 
 def init_globals():
-    with open("../db_variables.resource", "r") as f:
+    with open("/tmp/db_variables.resource", "r") as f:
         content = f.readlines()
         for line in content:
             if "DBHost" in line:
