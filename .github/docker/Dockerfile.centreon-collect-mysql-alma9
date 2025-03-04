@@ -45,7 +45,7 @@ dnf --best install -y cmake \
     rpm-build \
     procps-ng \
     zstd \
-    nfpm \
+    nfpm-2.41.1 \
     sudo
 
 pip3 install conan==1.64.0 --prefix=/usr --upgrade

@@ -312,16 +312,15 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
-        "UPDATE hosts AS h "
-        "SET h.state=h.real_state WHERE h.instance_id={} and h.real_state IS "
-        "NOT NULL",
+        "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
+        "instance_id={} AND real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
     query = fmt::format(
         "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
-        "SET s.state=s.real_state WHERE h.instance_id={} and s.real_state IS "
-        "NOT NULL",
+        "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
+        "and s.real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);
@@ -920,11 +919,10 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           misc::string::escape(dd.author,
                                get_centreon_storage_downtimes_col_size(
                                    centreon_storage_downtimes_author)),
-          dd.downtime_type, dd.deletion_time, dd.duration,
-          dd.end_time, dd.entry_time, dd.fixed,
-          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
-          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
-          dd.was_started,
+          dd.downtime_type, dd.deletion_time, dd.duration, dd.end_time,
+          dd.entry_time, dd.fixed, dd.host_id, dd.poller_id, dd.internal_id,
+          dd.service_id, dd.start_time, int64_not_minus_one{dd.triggered_by},
+          dd.was_cancelled, dd.was_started,
           misc::string::escape(dd.comment,
                                get_centreon_storage_downtimes_col_size(
                                    centreon_storage_downtimes_comment_data))));
@@ -4149,7 +4147,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       size_t output_size = misc::string::adjust_size_utf8(
-          sscr.output(), get_centreon_storage_resources_col_size(centreon_storage_resources_output));
+          sscr.output(), get_centreon_storage_resources_col_size(
+                             centreon_storage_resources_output));
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(conn))

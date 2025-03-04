@@ -13,6 +13,10 @@ on:
         type: string
         description: The package extension (deb or rpm)
         required: true
+      distrib:
+        type: string
+        description: The package distribution
+        required: true
       frontend_index_cache_key:
         type: string
         description: The index.html cache key
@@ -102,6 +106,7 @@ jobs:
           base_directory: ${{ inputs.base_directory }}
           spec_file: ${{ inputs.spec_file }}
           package_extension: ${{ inputs.package_extension }}
+          distrib: ${{ inputs.distrib }}
           frontend_index_cache_key: ${{ inputs.frontend_index_cache_key }}
           frontend_index_file: ${{ inputs.frontend_index_file }}
           frontend_static_cache_key: ${{ inputs.frontend_static_cache_key }}
@@ -121,7 +126,7 @@ jobs:
           cache_key: unsigned-${{ inputs.cache_key }}
 
       - if: ${{ inputs.package_extension == 'deb' }}
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.${{ inputs.package_extension }}
           key: ${{ inputs.cache_key }}
@@ -145,7 +150,7 @@ jobs:
 
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-      - uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.${{ inputs.package_extension }}
           key: unsigned-${{ inputs.cache_key }}
@@ -156,7 +161,7 @@ jobs:
       - run: rpmsign --addsign ./*.${{ inputs.package_extension }}
         shell: bash
 
-      - uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      - uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.${{ inputs.package_extension }}
           key: ${{ inputs.cache_key }}

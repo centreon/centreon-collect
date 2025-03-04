@@ -1,0 +1,71 @@
+name: gorgone-analysis
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      unit_tests:
+        description: 'Execute the unit tests'
+        required: true
+        default: true
+        type: boolean
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - ".version"
+      - "gorgone/**"
+      - "perl-libs/**"
+      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - ".version"
+      - "gorgone/**"
+      - "perl-libs/**"
+      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
+
+env:
+  base_directory: gorgone
+
+jobs:
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
+    with:
+      version_file: .version.centreon-gorgone
+
+  veracode-analysis:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.is_targeting_feature_branch != 'true' &&
+      github.event.pull_request.draft != 'true'
+    uses: ./.github/workflows/veracode-analysis.yml
+    with:
+      module_directory: gorgone
+      module_name: centreon-gorgone
+      major_version: ${{ needs.get-environment.outputs.major_version }}
+      minor_version: ${{ needs.get-environment.outputs.minor_version }}
+    secrets:
+      veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
+      veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
+      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+
+  set-skip-label:
+    needs: [get-environment, veracode-analysis]
+    if: needs.get-environment.outputs.skip_workflow == 'false'
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
