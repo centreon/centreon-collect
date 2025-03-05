@@ -21,11 +21,9 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::neb {
 
-namespace neb {
 /**
  *  @class downtime downtime.hh "com/centreon/broker/neb/downtime.hh"
  *  @brief Represents a downtime inside Nagios.
@@ -80,8 +78,7 @@ class downtime : public io::data {
  private:
   void _internal_copy(downtime const& other);
 };
-}  // namespace neb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::neb
 
 #endif  // !CCB_NEB_DOWNTIME_HH

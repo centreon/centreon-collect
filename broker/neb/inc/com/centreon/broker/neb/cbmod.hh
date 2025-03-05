@@ -18,10 +18,10 @@
 #ifndef CCB_NEB_CBMOD_HH
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
-#include <memory>
 #include "bbdo/bbdo_version.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
