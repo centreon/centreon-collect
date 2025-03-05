@@ -19,15 +19,12 @@
 #ifndef CCB_GRAPHITE_MACRO_CACHE_HH
 #define CCB_GRAPHITE_MACRO_CACHE_HH
 
-#include <absl/container/flat_hash_map.h>
-
 #include "com/centreon/broker/graphite/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
 
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker::graphite {
 
