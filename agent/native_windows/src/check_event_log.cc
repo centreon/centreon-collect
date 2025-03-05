@@ -15,14 +15,16 @@
  *
  * For more information : contact@centreon.com
  */
-
-#include "check_event_log.hh"
-#include <__msvc_chrono.hpp>
 #include <format>
+#include <ranges>
 #include "boost/algorithm/string/replace.hpp"
+
+
 #include "check.hh"
+#include "check_event_log.hh"
 #include "event_log/container.hh"
 #include "event_log/data.hh"
+
 
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "event_log/uniq.hh"
