@@ -4067,7 +4067,7 @@ void broker_program_state(int type, int flags [[maybe_unused]]) {
   static time_t start_time;
 
   // Config check.
-  if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
+  if (!cbm || !(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
     return;
 
   if (cbm->use_protobuf()) {
