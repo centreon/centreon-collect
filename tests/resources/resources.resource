@@ -28,9 +28,11 @@ ${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
 
 *** Keywords ***
 Ctn Config BBDO3
-    [Arguments]    ${nbEngine}    ${version}=3.0.1
+    [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False
     Ctn Config Broker Sql Output    central    unified_sql
-    Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
+    IF    not ${only_central}
+        Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
+    END
     Ctn Broker Config Add Item    central    bbdo_version    ${version}
     FOR    ${i}    IN RANGE    ${nbEngine}
         ${mod}    Catenate    SEPARATOR=    module    ${i}
