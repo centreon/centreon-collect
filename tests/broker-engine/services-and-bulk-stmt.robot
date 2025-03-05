@@ -460,7 +460,6 @@ EBMSSMPART
     Ctn Clear Metrics
     Ctn Clear Retention
     Ctn Config Engine    ${1}    ${1}    ${1000}
-    Ctn Start Tcpdump
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Config Broker    central
@@ -534,7 +533,6 @@ EBMSSMPART
     END
     Log To Console    ${output}
     Should Be True    ${output[0][0]} >= 100
-    Ctn Stop Tcpdump
 
     Ctn Init Data Bin Without Partition
 
