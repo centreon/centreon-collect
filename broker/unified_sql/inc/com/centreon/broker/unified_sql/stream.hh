@@ -363,6 +363,26 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_update;
   std::unique_ptr<bulk_bind> _sscr_bind;
 
+  /* Statement and binding to enable hosts in the hosts table. One value is
+   * set at index 0 that is the host ID. */
+  std::unique_ptr<database::mysql_stmt_base> _eh_update;
+  std::unique_ptr<bulk_bind> _eh_bind;
+
+  /* Statement and binding to enable hosts in the resources table. One value
+   * is set at index 0 that is the host ID. */
+  std::unique_ptr<database::mysql_stmt_base> _ehr_update;
+  std::unique_ptr<bulk_bind> _ehr_bind;
+
+  /* Statement and binding to enable services in the services table. One value
+   * is set at index 0 that is the service ID. */
+  std::unique_ptr<database::mysql_stmt_base> _es_update;
+  std::unique_ptr<bulk_bind> _es_bind;
+
+  /* Statement and binding to enable services in the resources table. One value
+   * is set at index 0 that is the service ID. */
+  std::unique_ptr<database::mysql_stmt_base> _esr_update;
+  std::unique_ptr<bulk_bind> _esr_bind;
+
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
@@ -387,6 +407,8 @@ class stream : public io::stream {
   database::mysql_stmt _index_data_update;
   database::mysql_stmt _index_data_query;
   database::mysql_stmt _metrics_insert;
+
+  database::mysql_stmt _agent_information_insert_update;
 
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
@@ -434,6 +456,7 @@ class stream : public io::stream {
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
   uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
+  void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
@@ -446,7 +469,7 @@ class stream : public io::stream {
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
-
+  void _process_agent_stats(const std::shared_ptr<io::data>& d);
   void _unified_sql_process_service_status(const std::shared_ptr<io::data>& d);
   void _check_and_update_index_cache(const Service& ss);
 

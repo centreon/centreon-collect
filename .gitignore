@@ -147,3 +147,5 @@ tests/resources/*_pb2.py
 tests/resources/*_pb2_grpc.py
 tests/resources/grpc_stream.proto
 tests/resources/opentelemetry
+
+compile_commands.json

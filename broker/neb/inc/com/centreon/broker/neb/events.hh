@@ -22,14 +22,12 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
-#include "com/centreon/broker/neb/custom_variable_status.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_check.hh"
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
 #include "com/centreon/broker/neb/host_parent.hh"
-#include "com/centreon/broker/neb/host_status.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
@@ -39,6 +37,5 @@
 #include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
-#include "com/centreon/broker/neb/service_status.hh"
 
 #endif  // CCB_NEB_EVENTS_HH

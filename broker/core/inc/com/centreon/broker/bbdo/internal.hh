@@ -44,6 +44,10 @@ using pb_stop =
     com::centreon::broker::io::protobuf<Stop,
                                         make_type(io::bbdo, bbdo::de_pb_stop)>;
 
+using pb_engine_configuration = com::centreon::broker::io::protobuf<
+    EngineConfiguration,
+    make_type(io::bbdo, bbdo::de_pb_engine_configuration)>;
+
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 

@@ -33,11 +33,10 @@ const std::string MSG2("foo bar baz");
 const std::string MSG3("last message with qux");
 const std::string MSG4("no this is the last message");
 
-
 class StartStop : public testing::Test {
  public:
   void SetUp() override {
-    config::applier::init(0, "test_broker", 0);
+    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
   }
 
   void TearDown() override { config::applier::deinit(); }

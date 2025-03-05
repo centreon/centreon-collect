@@ -210,13 +210,13 @@ void create_server(const std::shared_ptr<asio::io_context> & io_ctx,
         server_creator = [io_ctx, logger, conf]() {
         return std::make_shared<session_test<https_connection>>(
             io_ctx, logger, conf, https_connection::load_server_certificate);
-        };        
+        };
     }
     else {
         server_creator = [io_ctx, logger, conf]() {
         return std::make_shared<session_test<http_connection>>(
             io_ctx, logger, conf);
-        };        
+        };
     }
     auto server = http_server::load(io_ctx, logger, conf,
                              std::move(server_creator));

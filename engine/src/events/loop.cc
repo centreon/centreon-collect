@@ -174,7 +174,8 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
         reloading = true;
-        std::async(std::launch::async, apply_conf, &reloading);
+        auto future [[maybe_unused]] =
+            std::async(std::launch::async, apply_conf, &reloading);
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");

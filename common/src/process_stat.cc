@@ -17,7 +17,6 @@
  *
  */
 
-#include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception/errinfo_file_name.hpp>
 #include <boost/throw_exception.hpp>
 

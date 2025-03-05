@@ -11,43 +11,46 @@ apt-get update
 apt-get install -y --no-install-recommends tzdata
 
 apt-get -y install cmake \
-    git \
+    aptitude \
     curl \
-    gcc \
+    fakeroot \
     g++ \
+    gcc \
     gdb \
-    pkg-config \
-    ninja-build \
-    mariadb-server \
-    openssh-server \
-    libmariadb3 \
-    libmariadb-dev \
-    librrd-dev \
+    git \
+    git-buildpackage \
+    libcurl4-openssl-dev \
+    libgcrypt20-dev \
     libgnutls28-dev \
+    libhttp-daemon-ssl-perl \
+    libjson-perl \
     liblua5.3-dev \
+    libmariadb-dev \
+    libmariadb3 \
+    libperl-dev \
+    librrd-dev \
+    libssh2-1-dev \
+    libssl-dev \
+    locales \
+    mariadb-server \
+    ninja-build \
+    openssh-server \
+    openssl \
+    pkg-config \
     python3 \
     python3-pip \
-    libperl-dev \
-    libgcrypt20-dev \
-    aptitude \
-    git-buildpackage \
-    fakeroot \
-    strace \
-    locales \
-    rrdtool \
     rrdcached \
-    zstd \
-    libssl-dev \
-    libssh2-1-dev \
-    zlib1g-dev \
-    zip \
-    libcurl4-openssl-dev \
+    rrdtool \
+    strace \
     sudo \
+    zip \
+    zlib1g-dev \
+    zstd \
     perl-base
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 apt-get update
-apt-get install -y nfpm
+apt-get install -y nfpm=2.41.1
 
 apt-get clean
 

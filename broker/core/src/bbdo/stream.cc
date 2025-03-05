@@ -21,21 +21,16 @@
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
-#include <cassert>
-#include <memory>
-
-#include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
-#include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -633,7 +628,9 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
-  config::applier::state::instance().remove_poller(_poller_id);
+  if (_poller_id && !_broker_name.empty() && !_poller_name.empty())
+    config::applier::state::instance().remove_peer(_poller_id, _poller_name,
+                                                   _broker_name);
   return retval;
 }
 
@@ -757,14 +754,25 @@ void stream::negotiate(stream::negotiation_type neg) {
       _write(welcome_packet);
     } else {
       auto welcome{std::make_shared<pb_welcome>()};
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_broker_name(config::applier::state::instance().broker_name());
+      obj.set_peer_type(config::applier::state::instance().peer_type());
+      /* I know I'm Engine, and I have access to the configuration. */
+      if (!config::applier::state::instance().engine_config_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I know I'm Broker, and I have access to the php cache configuration
+       * directory. */
+      else if (!config::applier::state::instance().config_cache_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I don't know what I am. */
+      else
+        obj.set_extended_negotiation(false);
       _write(welcome);
     }
   }
@@ -801,6 +809,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   std::string peer_extensions;
+  _extended_negotiation = false;
+
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
@@ -868,14 +878,25 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
-      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
-      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
-      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
-      welcome->mut_obj().set_extensions(extensions);
-      welcome->mut_obj().set_poller_id(
-          config::applier::state::instance().poller_id());
-      welcome->mut_obj().set_poller_name(
-          config::applier::state::instance().poller_name());
+      auto& obj = welcome->mut_obj();
+      obj.mutable_version()->set_major(_bbdo_version.major_v);
+      obj.mutable_version()->set_minor(_bbdo_version.minor_v);
+      obj.mutable_version()->set_patch(_bbdo_version.patch);
+      obj.set_extensions(extensions);
+      obj.set_poller_id(config::applier::state::instance().poller_id());
+      obj.set_poller_name(config::applier::state::instance().poller_name());
+      obj.set_broker_name(config::applier::state::instance().broker_name());
+      obj.set_peer_type(config::applier::state::instance().peer_type());
+      /* I know I'm Engine, and I have access to the configuration directory. */
+      if (!config::applier::state::instance().engine_config_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I know I'm Broker, and I have access to the php cache configuration
+       * directory. */
+      else if (!config::applier::state::instance().config_cache_dir().empty())
+        obj.set_extended_negotiation(true);
+      /* I don't have access to any configuration directory. */
+      else
+        obj.set_extended_negotiation(false);
 
       _write(welcome);
       _substream->flush();
@@ -883,6 +904,14 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = w->obj().extensions();
     _poller_id = w->obj().poller_id();
     _poller_name = w->obj().poller_name();
+    _broker_name = w->obj().broker_name();
+
+    _peer_type = w->obj().peer_type();
+    if (_peer_type != common::UNKNOWN) {
+      /* We are in the bbdo stream, _poller_id, _broker_name,
+       * _extended_negotiation are informations about the peer, not us. */
+      _extended_negotiation = true;
+    }
   }
 
   // Negotiation.
@@ -949,7 +978,12 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  config::applier::state::instance().add_poller(_poller_id, _poller_name);
+  /* With old BBDO, we don't have poller_id nor poller name available. */
+  if (_poller_id > 0 && !_broker_name.empty()) {
+    config::applier::state::instance().add_peer(_poller_id, _poller_name,
+                                                _broker_name, _peer_type,
+                                                _extended_negotiation);
+  }
   SPDLOG_LOGGER_TRACE(_logger, "Negotiation done.");
 }
 
@@ -961,6 +995,174 @@ std::list<std::string> stream::get_running_config() {
     substream = substream->get_substream();
   }
   return retval;
+}
+
+/**
+ * @brief Handle a BBDO event. Events of category io::bbdo are the guardians of
+ * BBDO messages. These messages are used by the protocol itself and are always
+ * prioritized.
+ *
+ * @param d The event to handle.
+ */
+void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
+  switch (d->type()) {
+    case version_response::static_type(): {
+      auto version(std::static_pointer_cast<version_response>(d));
+      if (version->bbdo_major != _bbdo_version.major_v) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
+            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+        throw msg_fmt(
+            "BBDO: peer is using protocol version {}.{}.{} "
+            "whereas we're using protocol version {}.{}.{}",
+            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: peer is using protocol version {}.{}.{} , we're using "
+          "version "
+          "{}.{}.{}",
+          version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+
+      break;
+    }
+    case pb_welcome::static_type(): {
+      auto welcome(std::static_pointer_cast<pb_welcome>(d));
+      const auto& pb_version = welcome->obj().version();
+      if (pb_version.major() != _bbdo_version.major_v) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+            "using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+        throw msg_fmt(
+            "BBDO: peer is using protocol version {}.{}.{} "
+            "whereas we're using protocol version {}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: peer is using protocol version {}.{}.{} , we're using "
+          "version "
+          "{}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      break;
+    }
+    case ack::static_type():
+      SPDLOG_LOGGER_INFO(
+          _logger, "BBDO: received acknowledgement for {} events",
+          std::static_pointer_cast<const ack>(d)->acknowledged_events);
+      acknowledge_events(
+          std::static_pointer_cast<const ack>(d)->acknowledged_events);
+      break;
+    case pb_ack::static_type():
+      SPDLOG_LOGGER_INFO(_logger,
+                         "BBDO: received pb acknowledgement for {} events",
+                         std::static_pointer_cast<const pb_ack>(d)
+                             ->obj()
+                             .acknowledged_events());
+      acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
+                             ->obj()
+                             .acknowledged_events());
+      break;
+    case stop::static_type():
+    case pb_stop::static_type(): {
+      SPDLOG_LOGGER_INFO(
+          _logger, "BBDO: received stop from peer with ID {}",
+          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
+      send_event_acknowledgement();
+      /* Now, we send a local::pb_stop to ask unified_sql to update the
+       * database since the poller is going away. */
+      auto loc_stop = std::make_shared<local::pb_stop>();
+      auto& obj = loc_stop->mut_obj();
+      obj.set_poller_id(
+          std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
+      multiplexing::publisher pblshr;
+      pblshr.write(loc_stop);
+    } break;
+    case pb_engine_configuration::static_type(): {
+      const EngineConfiguration& ec =
+          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+      if (config::applier::state::instance().peer_type() == common::BROKER &&
+          _peer_type == common::ENGINE) {
+        SPDLOG_LOGGER_INFO(
+            _logger,
+            "BBDO: received engine configuration from Engine peer '{}'",
+            ec.broker_name());
+        bool match = check_poller_configuration(ec.poller_id(),
+                                                ec.engine_config_version());
+        auto engine_conf = std::make_shared<pb_engine_configuration>();
+        auto& obj = engine_conf->mut_obj();
+        obj.set_poller_id(config::applier::state::instance().poller_id());
+        obj.set_poller_name(config::applier::state::instance().poller_name());
+        obj.set_broker_name(config::applier::state::instance().broker_name());
+        obj.set_peer_type(common::BROKER);
+        if (match) {
+          SPDLOG_LOGGER_INFO(
+              _logger, "BBDO: engine configuration for '{}' is up to date",
+              ec.broker_name());
+          obj.set_need_update(false);
+        } else {
+          SPDLOG_LOGGER_INFO(_logger,
+                             "BBDO: engine configuration for '{}' is "
+                             "outdated",
+                             ec.broker_name());
+          /* engine_conf has a new version, it is sent to engine. And engine
+           * will send its configuration to broker. */
+          obj.set_need_update(true);
+        }
+        _write(engine_conf);
+      }
+    } break;
+    default:
+      break;
+  }
+}
+
+/**
+ * @brief Wait for a BBDO event (category io::bbdo) of a specific type. While
+ * received events are of category io::bbdo, they are handled as usual, and when
+ * the expected event is received, it is returned. The expected event is not
+ * handled.
+ *
+ * @param expected_type The expected type of the event.
+ * @param d The event that was received with the expected type.
+ * @param deadline The deadline in seconds.
+ *
+ * @return true if the expected event was received before the deadline, false
+ * otherwise.
+ */
+bool stream::_wait_for_bbdo_event(uint32_t expected_type,
+                                  std::shared_ptr<io::data>& d,
+                                  time_t deadline) {
+  for (;;) {
+    bool timed_out = !_read_any(d, deadline);
+    uint32_t event_id = !d ? 0 : d->type();
+    if (timed_out || (event_id >> 16) != io::bbdo)
+      return false;
+
+    if (event_id == expected_type)
+      return true;
+
+    _handle_bbdo_event(d);
+
+    // Control messages.
+    SPDLOG_LOGGER_DEBUG(
+        _logger,
+        "BBDO: event with ID {} was a control message, launching recursive "
+        "read",
+        event_id);
+  }
+
+  return false;
 }
 
 /**
@@ -977,100 +1179,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   // Read event.
   d.reset();
 
-  bool timed_out(!_read_any(d, deadline));
-  uint32_t event_id(!d ? 0 : d->type());
+  bool timed_out = !_read_any(d, deadline);
+  uint32_t event_id = !d ? 0 : d->type();
 
-  while (!timed_out && ((event_id >> 16) == io::bbdo)) {
-    switch (event_id) {
-      case version_response::static_type(): {
-        auto version(std::static_pointer_cast<version_response>(d));
-        if (version->bbdo_major != _bbdo_version.major_v) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-              "using protocol version {}.{}.{}",
-              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-          throw msg_fmt(
-              "BBDO: peer is using protocol version {}.{}.{} "
-              "whereas we're using protocol version {}.{}.{}",
-              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-        }
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{} , we're using "
-            "version "
-            "{}.{}.{}",
-            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
-
-        break;
-      }
-      case pb_welcome::static_type(): {
-        auto welcome(std::static_pointer_cast<pb_welcome>(d));
-        const auto& pb_version = welcome->obj().version();
-        if (pb_version.major() != _bbdo_version.major_v) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-              "using protocol version {}.{}.{}",
-              pb_version.major(), pb_version.minor(), pb_version.patch(),
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-          throw msg_fmt(
-              "BBDO: peer is using protocol version {}.{}.{} "
-              "whereas we're using protocol version {}.{}.{}",
-              pb_version.major(), pb_version.minor(), pb_version.patch(),
-              _bbdo_version.major_v, _bbdo_version.minor_v,
-              _bbdo_version.patch);
-        }
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: peer is using protocol version {}.{}.{} , we're using "
-            "version "
-            "{}.{}.{}",
-            pb_version.major(), pb_version.minor(), pb_version.patch(),
-            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
-        break;
-      }
-      case ack::static_type():
-        SPDLOG_LOGGER_INFO(
-            _logger, "BBDO: received acknowledgement for {} events",
-            std::static_pointer_cast<const ack>(d)->acknowledged_events);
-        acknowledge_events(
-            std::static_pointer_cast<const ack>(d)->acknowledged_events);
-        break;
-      case pb_ack::static_type():
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: received pb acknowledgement for {} events",
-                           std::static_pointer_cast<const pb_ack>(d)
-                               ->obj()
-                               .acknowledged_events());
-        acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
-                               ->obj()
-                               .acknowledged_events());
-        break;
-      case stop::static_type():
-      case pb_stop::static_type(): {
-        SPDLOG_LOGGER_INFO(
-            _logger, "BBDO: received stop from peer with ID {}",
-            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-        send_event_acknowledgement();
-        /* Now, we send a local::pb_stop to ask unified_sql to update the
-         * database since the poller is going away. */
-        auto loc_stop = std::make_shared<local::pb_stop>();
-        auto& obj = loc_stop->mut_obj();
-        obj.set_poller_id(
-            std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
-        multiplexing::publisher pblshr;
-        pblshr.write(loc_stop);
-      } break;
-      default:
-        break;
-    }
+  while (!timed_out && (event_id >> 16) == io::bbdo) {
+    _handle_bbdo_event(d);
 
     // Control messages.
     SPDLOG_LOGGER_DEBUG(
@@ -1139,11 +1252,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       uint32_t dest_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 12));
       uint16_t expected = misc::crc16_ccitt(pack + 2, BBDO_HEADER_SIZE - 2);
 
-      SPDLOG_LOGGER_TRACE(
-          _logger,
-          "Reading: header eventID {} sourceID {} destID {} checksum {:x} and "
-          "expected {:x}",
-          event_id, source_id, dest_id, chksum, expected);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "Reading: header eventID {} sourceID {} destID {} "
+                          "checksum {:x} and "
+                          "expected {:x}",
+                          event_id, source_id, dest_id, chksum, expected);
 
       if (expected != chksum) {
         // The packet is corrupted.
@@ -1216,11 +1329,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "There are still {} long BBDO packets that cannot be sent, this "
-              "maybe be due to a corrupted retention file.",
-              _buffer.size());
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "There are still {} long BBDO packets that "
+                              "cannot be sent, this "
+                              "maybe be due to a corrupted retention file.",
+                              _buffer.size());
           /* In case of too many long events stored in memory, we purge the
            * oldest ones. */
           while (_buffer.size() > 3) {
@@ -1270,7 +1383,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         if (_buffer.size() > 1) {
           SPDLOG_LOGGER_ERROR(
               _logger,
-              "There are {} long BBDO packets waiting for their missing parts "
+              "There are {} long BBDO packets waiting for their missing "
+              "parts "
               "in memory, this may be due to a corrupted retention file.",
               _buffer.size());
           /* In case of too many long events stored in memory, we purge the
@@ -1294,12 +1408,11 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 /**
  * @brief Fill the internal _packet vector until it reaches the given size. It
  * may be bigger. The deadline is the limit time after that an exception is
- * thrown. Even if an exception is thrown the vector may begin to be fill, it is
- * just not finished, and so no data are lost. Received packets are BBDO packets
- * or maybe pieces of BBDO packets, so we keep vectors as is because usually a
- * vector should just represent a packet.
- * In case of event serialized only by grpc stream, we store it in
- * _grpc_serialized_queue
+ * thrown. Even if an exception is thrown the vector may begin to be fill, it
+ * is just not finished, and so no data are lost. Received packets are BBDO
+ * packets or maybe pieces of BBDO packets, so we keep vectors as is because
+ * usually a vector should just represent a packet. In case of event
+ * serialized only by grpc stream, we store it in _grpc_serialized_queue
  *
  * @param size The wanted final size
  * @param deadline A time_t.
@@ -1386,17 +1499,98 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
+void stream::_negotiate_engine_conf() {
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "BBDO: instance event sent to {} - supports "
+                      "extended negotiation: {}",
+                      _broker_name, _extended_negotiation);
+  /* We are an Engine since we emit an instance event and we have an
+   * engine config directory. If the Broker supports extended negotiation,
+   * we send also an engine configuration event. And then we'll wait for
+   * an answer from Broker. */
+  if (_extended_negotiation &&
+      !config::applier::state::instance().engine_config_dir().empty()) {
+    auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
+    auto& obj = engine_conf->mut_obj();
+    obj.set_poller_id(config::applier::state::instance().poller_id());
+    obj.set_poller_name(config::applier::state::instance().poller_name());
+    obj.set_broker_name(config::applier::state::instance().broker_name());
+    obj.set_peer_type(common::ENGINE);
+
+    /* Time to fill the config version. */
+    std::error_code ec;
+    _config_version = common::hash_directory(
+        config::applier::state::instance().engine_config_dir(), ec);
+    if (ec) {
+      _logger->error(
+          "BBDO: cannot access directory '{}': {}",
+          config::applier::state::instance().engine_config_dir().string(),
+          ec.message());
+    }
+    obj.set_engine_config_version(_config_version);
+    _logger->info(
+        "BBDO: engine configuration sent to peer '{}' with version {}",
+        _broker_name, _config_version);
+    _write(engine_conf);
+    std::shared_ptr<io::data> d;
+    time_t deadline = time(nullptr) + 5;
+    bool found = _wait_for_bbdo_event(pb_engine_configuration::static_type(), d,
+                                      deadline);
+    if (!found) {
+      _logger->warn(
+          "BBDO: no engine configuration received from peer '{}' as "
+          "response",
+          _broker_name);
+      if (d) {
+        _logger->info(
+            "BBDO: received message of type {:x} instead of "
+            "pb_engine_configuration",
+            d->type());
+      } else
+        _logger->info("BBDO: no message received");
+    } else {
+      _logger->debug(
+          "BBDO: engine configuration from peer '{}' received as expected",
+          _broker_name);
+      const EngineConfiguration& ec =
+          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
+
+      if (!ec.need_update()) {
+        SPDLOG_LOGGER_INFO(_logger,
+                           "BBDO: No engine configuration update needed");
+        config::applier::state::instance().set_broker_needs_update(
+            ec.poller_id(), ec.poller_name(), ec.broker_name(), common::BROKER,
+            false);
+      } else {
+        SPDLOG_LOGGER_INFO(_logger,
+                           "BBDO: Engine configuration needs to be updated");
+        config::applier::state::instance().set_broker_needs_update(
+            ec.poller_id(), ec.poller_name(), ec.broker_name(), common::BROKER,
+            true);
+      }
+    }
+  } else {
+    /* Legacy negociation */
+    config::applier::state::instance().set_peers_ready();
+  }
+}
+
 void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
+  if (d->type() == neb::pb_instance::static_type())
+    _negotiate_engine_conf();
+
   if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
-    // Check if data exists.
     std::shared_ptr<io::raw> serialized(serialize(*d));
     if (serialized) {
       SPDLOG_LOGGER_TRACE(_logger,
-                          "BBDO: serialized event of type {} to {} bytes",
+                          "BBDO: serialized event of type {:x} to {} bytes",
                           d->type(), serialized->size());
       _substream->write(serialized);
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "BBDO: cannot serialize event of type {:x}",
+                          d->type());
     }
   } else
     _substream->write(d);
@@ -1445,4 +1639,50 @@ void stream::send_event_acknowledgement() {
     }
     _events_received_since_last_ack = 0;
   }
+}
+
+/**
+ * @brief Check if the poller configuration is up to date.
+ *
+ * @param poller_id
+ * @param expected_version
+ *
+ * @return
+ */
+bool stream::check_poller_configuration(uint64_t poller_id,
+                                        const std::string& expected_version) {
+  std::error_code ec;
+  const std::filesystem::path& pollers_conf_dir =
+      config::applier::state::instance().pollers_config_dir();
+  if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}",
+                     pollers_conf_dir.string(), ec.message());
+    std::filesystem::create_directories(pollers_conf_dir, ec);
+    if (ec) {
+      _logger->error("Cannot create directory '{}': {}",
+                     pollers_conf_dir.string(), ec.message());
+      return false;
+    }
+  }
+  auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
+  if (!std::filesystem::is_directory(poller_dir, ec)) {
+    if (ec)
+      _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
+                     ec.message());
+    std::filesystem::create_directories(poller_dir, ec);
+    if (ec)
+      _logger->error("Cannot create directory '{}': {}", poller_dir.string(),
+                     ec.message());
+    return false;
+  }
+  std::string current = common::hash_directory(poller_dir, ec);
+  if (ec) {
+    _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
+                   ec.message());
+    return false;
+  }
+  config::applier::state::instance().set_engine_configuration(poller_id,
+                                                              current);
+  return current == expected_version;
 }

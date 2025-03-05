@@ -21,9 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;

@@ -132,7 +132,11 @@ void bulk_or_multi::execute(mysql& connexion,
                             my_error::code ec,
                             int thread_id) {
   if (_bulk_stmt) {
-    if (!_bulk_bind->empty()) {
+    /* If the database connection is lost, we can have this issue */
+    if (!_bulk_bind) {
+      _bulk_bind = _bulk_stmt->create_bind();
+      _bulk_bind->reserve(_bulk_row);
+    } else if (!_bulk_bind->empty()) {
       _bulk_stmt->set_bind(std::move(_bulk_bind));
       connexion.run_statement(*_bulk_stmt, ec, thread_id);
       _bulk_bind = _bulk_stmt->create_bind();

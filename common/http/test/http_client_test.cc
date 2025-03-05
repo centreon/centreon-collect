@@ -99,11 +99,12 @@ class connection_ok : public connection_base {
     ++_request_counter;
   }
 
-  void _on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback [[maybe_unused]]) override {}
 
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override {}
-  void receive_request(request_callback_type&& callback) override {}
+  void answer(const response_ptr& response [[maybe_unused]],
+              answer_callback_type&& callback [[maybe_unused]]) override {}
+  void receive_request(request_callback_type&& callback
+                       [[maybe_unused]]) override {}
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
@@ -272,11 +273,12 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void _on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&& callback [[maybe_unused]]) override {}
 
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override {}
-  void receive_request(request_callback_type&& callback) override {}
+  void answer(const response_ptr& response [[maybe_unused]],
+              answer_callback_type&& callback [[maybe_unused]]) override {}
+  void receive_request(request_callback_type&& callback
+                       [[maybe_unused]]) override {}
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
@@ -322,7 +324,7 @@ TEST_F(http_client_test, all_handler_called) {
   }
 
   std::unique_lock<std::mutex> l(cond_m);
-  bool res_wait = var.wait_for(l, std::chrono::seconds(10), [&]() -> bool {
+  var.wait_for(l, std::chrono::seconds(10), [&]() -> bool {
     return error_handler_cpt + success_handler_cpt == 1000;
   });
 

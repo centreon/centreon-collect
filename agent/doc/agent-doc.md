@@ -22,8 +22,10 @@ We don't care about the duration of tests, we work with time points.
 In the previous example, the second check for the first service will be scheduled at 12:00:10 even if all other checks has not been yet started.
 
 In case of check duration is too long, we might exceed maximum of concurrent checks. In that case checks will be executed as soon one will be ended.
-This means that the second check may start later than the scheduled time point (12:00:10) if the other first checks are too long. The order of checks is always respected even in case of a bottleneck.
-For example, a check lambda has a start_expected to 12:00, because of bottleneck, it starts at 12:15. Next start_expected of check lambda will then be 12:15 + check_period.
+
+This means that the second check may start later than the scheduled time point (12:00:10) if the first checks take too long.
+
+When a check completes, it is inserted into _waiting_check_queue, and its start will be scheduled as soon as a slot in the queue is available (the queue is a set indexed by expected_start) minus old_start plus check_period.
 
 
 ## native checks
@@ -33,12 +35,11 @@ Then you have to override constructor and start_check method.
 All is asynchronous. When start_check is called, it must not block caller for a long time. 
 At the end of measure, it must call check::on_completion().
 That method need 4 arguments:
-* start_check_index: For long asynchronous operation, at the beginning, asynchronous job must store running_index and use it when he have to call check::on_completion(). It is useful for scheduler to check is the result is the result of the last asynchronous job start. The new class can get running index with check::_get_running_check_index()
+* start_check_index: For long asynchronous operation, at the beginning, asynchronous job must store running_index and use it when he has to call check::on_completion(). It is useful for scheduler to check if it's the result of the last asynchronous job start. The new class can get running index with check::_get_running_check_index()
+    An example, checks starts a first measure, the timeout expires, a second measure starts, the first measure ends,we don't take into account his result and we wait for the end off second one.
 * status: plugins status equivalent. Values are 0:Ok, 1: warning, 2: critical, 3: unknown (https://nagios-plugins.org/doc/guidelines.html#AEN41)
 * perfdata: a list of com::centreon::common::perfdata objects
 * outputs: equivalent of plugins output as "CPU 54% OK"
-
-BEWARE, in some cases, we can have recursion, check::on_completion can call start_check
 
 A little example:
 ```c++
@@ -48,7 +49,9 @@ class dummy_check : public check {
 
  public:
   void start_check(const duration& timeout) override {
-    check::start_check(timeout);
+    if (!check::start_check(timeout)) {
+      return;
+    }
     _command_timer.expires_from_now(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
@@ -71,6 +74,7 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::seconds(1),
               serv,
               command_name,
               command_line,
@@ -80,3 +84,47 @@ class dummy_check : public check {
         _command_timer(*g_io_context) {}
 };
 ```
+
+### native_check_cpu (linux version)
+It uses /proc/stat to measure cpu statistics. When start_check is called, a first snapshot of /proc/stat is done. Then a timer is started and will expires at max time_out or check_interval minus 1 second. When this timer expires, we do a second snapshot and create plugin output and perfdata from this difference.
+The arguments accepted by this check (in json format) are:
+* cpu-detailed: 
+  * if false, produces only average cpu usage perfdata per processor and one for the average 
+  * if true, produces per processor and average one perfdata for user, nice, system, idle, iowait, irq, soft_irq, steal, guest, guest_nice and total used counters
+
+Output is inspired from centreon local cpu and cpu-detailed plugins
+Examples of output: 
+* OK: CPU(s) average usage is 24.08%
+* CRITICAL: CPU'0' Usage: 24.66%, User 17.58%, Nice 0.00%, System 5.77%, Idle 75.34%, IOWait 0.39%, Interrupt 0.00%, Soft Irq 0.91%, Steal 0.00%, Guest 0.00%, Guest Nice 0.00% WARNING: CPU'2' Usage: 24.18%, User 17.69%, Nice 0.00%, System 5.99%, Idle 75.82%, IOWait 0.38%, Interrupt 0.00%, Soft Irq 0.12%, Steal 0.00%, Guest 0.00%, Guest Nice 0.00% CRITICAL: CPU(s) average Usage: 24.08%, User 17.65%, Nice 0.00%, System 5.80%, Idle 75.92%, IOWait 0.36%, Interrupt 0.00%, Soft Irq 0.27%, Steal 0.00%, Guest 0.00%, Guest Nice 0.00%
+  
+Example of perfdatas in not cpu-detailed mode: 
+* cpu.utilization.percentage
+* 0#core.cpu.utilization.percentage
+* 1#core.cpu.utilization.percentage
+
+Example of perfdatas in cpu-detailed mode:
+* 0~user#core.cpu.utilization.percentage
+* 0~system#core.cpu.utilization.percentage
+* 1~interrupt#core.cpu.utilization.percentage
+* iowait#cpu.utilization.percentage
+* used#cpu.utilization.percentage
+
+### native_check_cpu (windows version)
+metrics aren't the same as linux version. We collect user, idle, kernel , interrupt and dpc times.
+
+There are two methods, you can use internal microsoft function NtQuerySystemInformation. Yes Microsoft says that they can change signature or data format at any moment, but it's quite stable for many years. A trick, idle time is included un kernel time, so we subtract first from the second. Dpc time is yet included in interrupt time, so we don't sum it to calculate total time.
+The second one relies on performance data counters (pdh API), it gives us percentage despite that sum of percentage is not quite 100%. That's why the default method is the first one.
+The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
+
+### check_drive_size
+we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats. This functor is initialized in main function. drive_size thread is stopped at the end of main function.
+
+So it works like that:
+* check_drive_size post query in drive_size_thread queue
+* drive_size_thread call os_fs_stats
+* drive_size_thread post result in io_context
+* io_context calls check_drive_size::_completion_handler
+
+### check_health
+This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
+This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.

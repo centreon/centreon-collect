@@ -25,7 +25,8 @@ add_library(
   # Sources.
   log_v2.cc log_v2.hh config.hh)
 
-#set_target_properties(log_v2 PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(log_v2
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(log_v2 spdlog::spdlog stdc++fs gRPC::gpr
                       absl::raw_hash_set)

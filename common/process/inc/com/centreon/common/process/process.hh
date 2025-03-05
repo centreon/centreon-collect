@@ -48,7 +48,7 @@ class mutex<false> {};
 template <>
 class lock<false> {
  public:
-  lock(mutex<false>* dummy_mut) {}
+  lock(mutex<false>* /* dummy_mut*/) {}
 };
 
 }  // namespace detail
@@ -128,6 +128,8 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
           const std::string_view& cmd_line);
 
   virtual ~process() = default;
+
+  int get_pid();
 
   template <typename string_class>
   void write_to_stdin(const string_class& content);

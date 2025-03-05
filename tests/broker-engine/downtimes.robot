@@ -32,10 +32,8 @@ BEDTMASS1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
@@ -80,10 +78,8 @@ BEDTMASS2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
@@ -123,10 +119,7 @@ BEDTSVCREN1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
@@ -166,10 +159,8 @@ BEDTSVCFIXED
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
@@ -201,10 +192,7 @@ BEDTHOSTFIXED
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     log to console    step1
     # It's time to schedule downtimes
@@ -297,10 +285,7 @@ DTIM
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${5}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${50}

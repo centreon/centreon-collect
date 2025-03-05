@@ -18,18 +18,22 @@
 
 #include <gtest/gtest.h>
 
+#ifdef _WIN32
+#include "ntdll.hh"
+#endif
+
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:
-#ifndef _WINDOWS
   void SetUp() override {
+#ifndef _WIN32
     setenv("TZ", ":Europe/Paris", 1);
-    return;
-  }
+#else
+    com::centreon::agent::load_nt_dll();
 #endif
-
+  }
 };
 
 /**

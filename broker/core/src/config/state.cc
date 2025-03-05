@@ -369,7 +369,7 @@ std::map<std::string, std::string>& state::params() noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string> const& state::params() const noexcept {
+const std::map<std::string, std::string>& state::params() const noexcept {
   return _params;
 }
 
@@ -471,4 +471,58 @@ const state::stats_exporter_conf& state::get_stats_exporter() const {
 
 state::stats_exporter_conf& state::mut_stats_exporter() {
   return _stats_exporter_conf;
+}
+
+/**
+ * @brief Set the directory containing the Engine configuration.
+ *
+ * @param engine_config_dir The directory containing the Engine configuration.
+ */
+void state::set_engine_config_dir(const std::string& dir) {
+  _engine_config_dir = dir;
+}
+
+/**
+ * @brief Get the directory containing the Engine configuration.
+ *
+ * @return The directory containing the Engine configuration.
+ */
+const std::string& state::engine_config_dir() const noexcept {
+  return _engine_config_dir;
+}
+
+/**
+ * @brief Set the directory containing the cache configuration of the pollers.
+ *
+ * @param config_cache_dir The directory name
+ */
+void state::set_config_cache_dir(const std::string& config_cache_dir) {
+  _config_cache_dir = config_cache_dir;
+}
+
+/**
+ * @brief Get the directory containing the cache configuration of the pollers.
+ *
+ * @return The directory name
+ */
+const std::string& state::config_cache_dir() const noexcept {
+  return _config_cache_dir;
+}
+
+/**
+ * @brief Set the directory containing the pollers configurations.
+ *
+ * @param pollers_config_dir The directory name
+ */
+void state::set_pollers_config_dir(const std::string& pollers_config_dir) {
+  _pollers_config_dir = pollers_config_dir;
+}
+
+/**
+ * @brief Get the directory containing the pollers configurations.
+ *
+ * @return The directory name
+ */
+const std::string& state::pollers_config_dir() const noexcept {
+  return _pollers_config_dir;
 }

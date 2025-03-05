@@ -17,8 +17,6 @@
  *
  */
 
-#include "grpc_stream.grpc.pb.h"
-
 #include "grpc_test_include.hh"
 
 using system_clock = std::chrono::system_clock;
@@ -49,7 +47,7 @@ TEST(grpc_factory, Exception) {
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(grpc_factory, Acceptor) {
@@ -60,7 +58,7 @@ TEST(grpc_factory, Acceptor) {
 
   cfg.type = "grpc";
   cfg.params["port"] = "4343";
-  io::endpoint* endp = fact.new_endpoint(cfg, is_acceptor, cache);
+  io::endpoint* endp = fact.new_endpoint(cfg, {}, is_acceptor, cache);
 
   ASSERT_TRUE(is_acceptor);
   ASSERT_TRUE(endp->is_acceptor());
@@ -77,7 +75,7 @@ TEST(grpc_factory, BadPort) {
   cfg.type = "grpc";
   cfg.params["port"] = "a4a343";
   cfg.params["host"] = "10.12.13.22";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(grpc_factory, BadHost) {
@@ -89,10 +87,10 @@ TEST(grpc_factory, BadHost) {
   cfg.type = "grpc";
   cfg.params["port"] = "4343";
   cfg.params["host"] = " 10.12.13.22";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 
   cfg.params["host"] = "10.12.13.22 ";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(grpc_factory, Connector) {
@@ -107,7 +105,7 @@ TEST(grpc_factory, Connector) {
   std::unique_ptr<io::factory> f{new com::centreon::broker::grpc::factory};
   ASSERT_TRUE(f->has_endpoint(cfg, nullptr));
   std::unique_ptr<io::endpoint> endp{
-      fact.new_endpoint(cfg, is_acceptor, cache)};
+      fact.new_endpoint(cfg, {}, is_acceptor, cache)};
 
   ASSERT_FALSE(is_acceptor);
   ASSERT_TRUE(endp->is_connector());

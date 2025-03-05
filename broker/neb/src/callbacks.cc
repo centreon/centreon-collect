@@ -27,13 +27,16 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/severity.hh"
 
@@ -111,7 +114,8 @@ static struct {
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_relation},
-    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench},
+    {NEBCALLBACK_AGENT_STATS, &neb::callback_agent_stats}};
 
 static struct {
   uint32_t macro;
@@ -123,7 +127,8 @@ static struct {
     {NEBCALLBACK_GROUP_DATA, &neb::callback_pb_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_pb_group_member},
     {NEBCALLBACK_RELATION_DATA, &neb::callback_pb_relation},
-    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench},
+    {NEBCALLBACK_AGENT_STATS, &neb::callback_agent_stats}};
 
 // Registered callbacks.
 std::list<std::unique_ptr<neb::callback>> neb::gl_registered_callbacks;
@@ -2410,6 +2415,21 @@ int neb::callback_pb_process(int callback_type, void* data) {
   inst.set_pid(getpid());
   inst.set_version(get_program_version());
 
+  /* Here we are Engine. The idea is to know if broker is able to handle the
+   * evoluated negotiation. The goal is to send the hash of the configuration
+   * directory to the broker. */
+  auto& engine_config = config::applier::state::instance().engine_config_dir();
+  std::error_code ec;
+  if (!engine_config.empty() && std::filesystem::exists(engine_config, ec)) {
+    inst.set_engine_config_version(common::hash_directory(
+        config::applier::state::instance().engine_config_dir(), ec));
+  }
+  if (ec) {
+    SPDLOG_LOGGER_ERROR(
+        neb_logger, "callbacks: error while hashing engine configuration: {}",
+        ec.message());
+  }
+
   // Check process event type.
   process_data = static_cast<nebstruct_process_data*>(data);
   if (NEBTYPE_PROCESS_EVENTLOOPSTART == process_data->type) {
@@ -2614,12 +2634,8 @@ int neb::callback_relation(int callback_type, void* data) {
       if (relation->hst && relation->dep_hst && !relation->svc &&
           !relation->dep_svc) {
         // Find host IDs.
-        int host_id;
-        int parent_id;
-        {
-          host_id = engine::get_host_id(relation->dep_hst->name());
-          parent_id = engine::get_host_id(relation->hst->name());
-        }
+        int host_id = relation->dep_hst->host_id();
+        int parent_id = relation->hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
           auto new_host_parent{std::make_shared<host_parent>()};
@@ -2670,10 +2686,8 @@ int neb::callback_pb_relation(int callback_type [[maybe_unused]], void* data) {
       if (relation->hst && relation->dep_hst && !relation->svc &&
           !relation->dep_svc) {
         // Find host IDs.
-        int host_id;
-        int parent_id;
-        host_id = engine::get_host_id(relation->dep_hst->name());
-        parent_id = engine::get_host_id(relation->hst->name());
+        int host_id = relation->dep_hst->host_id();
+        int parent_id = relation->hst->host_id();
         if (host_id && parent_id) {
           // Generate parent event.
           auto new_host_parent{std::make_shared<pb_host_parent>()};
@@ -3429,10 +3443,11 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
       static_cast<nebstruct_service_status_data*>(data);
   const engine::service* es = static_cast<engine::service*>(ds->object_ptr);
   neb_logger->debug(
-      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}",
+      "callbacks: pb_service_status ({},{}) status {}, attributes {}, type {}, "
+      "last check {}",
       es->host_id(), es->service_id(),
       static_cast<uint32_t>(es->get_current_state()), ds->attributes,
-      static_cast<uint32_t>(es->get_check_type()));
+      static_cast<uint32_t>(es->get_check_type()), es->get_last_check());
 
   auto handle_acknowledgement = [](uint16_t state, auto& r) {
     neb_logger->debug("Looking for acknowledgement on service ({}:{})",
@@ -3779,6 +3794,30 @@ class otl_protobuf
  */
 int neb::callback_otl_metrics(int, void* data) {
   gl_publisher.write(std::make_shared<neb::otl_detail::otl_protobuf>(data));
+  return 0;
+}
+
+int neb::callback_agent_stats(int, void* data) {
+  nebstruct_agent_stats_data* ds =
+      static_cast<nebstruct_agent_stats_data*>(data);
+
+  auto to_send = std::make_shared<neb::pb_agent_stats>();
+
+  to_send->mut_obj().set_poller_id(
+      config::applier::state::instance().poller_id());
+
+  for (const auto& cumul_data : *ds->data) {
+    AgentInfo* to_fill = to_send->mut_obj().add_stats();
+    to_fill->set_major(cumul_data.major);
+    to_fill->set_minor(cumul_data.minor);
+    to_fill->set_patch(cumul_data.patch);
+    to_fill->set_reverse(cumul_data.reverse);
+    to_fill->set_os(cumul_data.os);
+    to_fill->set_os_version(cumul_data.os_version);
+    to_fill->set_nb_agent(cumul_data.nb_agent);
+  }
+
+  gl_publisher.write(to_send);
   return 0;
 }
 

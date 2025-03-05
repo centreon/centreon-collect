@@ -17,12 +17,14 @@
  */
 
 #include <gtest/gtest.h>
+#include <memory>
+#include "check.hh"
 
 #include "check_exec.hh"
 
 using namespace com::centreon::agent;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define ECHO_PATH "tests\\echo.bat"
 #define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
@@ -45,11 +47,13 @@ TEST(check_exec_test, echo) {
   std::mutex mut;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
-      [&](const std::shared_ptr<com::centreon::agent::check>& caller,
+      [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
+              caller,
           int statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& output) {
         {
           std::lock_guard l(mut);
@@ -57,7 +61,8 @@ TEST(check_exec_test, echo) {
           outputs = output;
         }
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
@@ -68,22 +73,27 @@ TEST(check_exec_test, echo) {
 }
 
 TEST(check_exec_test, timeout) {
-  command_line = SLEEP_PATH " 5";
+  command_line = SLEEP_PATH " 120";
   int status;
   std::list<std::string> outputs;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
-      [&](const std::shared_ptr<com::centreon::agent::check>& caller,
+      [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
+              caller,
           int statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& output) {
         status = statuss;
         outputs = output;
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
+
+  int pid = check->get_pid();
 
   std::mutex mut;
   std::unique_lock l(mut);
@@ -91,7 +101,21 @@ TEST(check_exec_test, timeout) {
   ASSERT_NE(status, 0);
   ASSERT_EQ(outputs.size(), 1);
 
-  ASSERT_EQ(*outputs.begin(), "Timeout at execution of " SLEEP_PATH " 5");
+  ASSERT_EQ(*outputs.begin(), "Timeout at execution of " SLEEP_PATH " 120");
+  ASSERT_GT(pid, 0);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+#ifdef _WIN32
+  auto process_handle =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  ASSERT_NE(process_handle, nullptr);
+  DWORD exit_code;
+  ASSERT_EQ(GetExitCodeProcess(process_handle, &exit_code), TRUE);
+  ASSERT_NE(exit_code, STILL_ACTIVE);
+  CloseHandle(process_handle);
+#else
+  ASSERT_EQ(kill(pid, 0), -1);
+#endif
 }
 
 TEST(check_exec_test, bad_command) {
@@ -101,11 +125,13 @@ TEST(check_exec_test, bad_command) {
   std::condition_variable cond;
   std::mutex mut;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
-      [&](const std::shared_ptr<com::centreon::agent::check>& caller,
+      [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
+              caller,
           int statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& output) {
         {
           std::lock_guard l(mut);
@@ -115,14 +141,15 @@ TEST(check_exec_test, bad_command) {
         SPDLOG_INFO("end of {}", command_line);
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
   cond.wait(l);
   ASSERT_EQ(status, 3);
   ASSERT_EQ(outputs.size(), 1);
-#ifdef _WINDOWS
+#ifdef _WIN32
   // message is language dependant
   ASSERT_GE(outputs.begin()->size(), 20);
 #else
@@ -137,17 +164,19 @@ TEST(check_exec_test, recurse_not_lock) {
   std::condition_variable cond;
   unsigned cpt = 0;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), time_point(), serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&](const std::shared_ptr<com::centreon::agent::check>& caller, int,
-          const std::list<com::centreon::common::perfdata>& perfdata,
-          const std::list<std::string>& output) {
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& output) {
         if (!cpt) {
           ++cpt;
           caller->start_check(std::chrono::seconds(1));
         } else
           cond.notify_one();
-      });
+      },
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::mutex mut;

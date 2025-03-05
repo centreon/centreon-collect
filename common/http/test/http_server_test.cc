@@ -180,7 +180,7 @@ template <class connection_class>
 void session_test<connection_class>::wait_for_request() {
   connection_class::receive_request(
       [me = shared_from_this()](const boost::beast::error_code& err,
-                                const std::string& detail,
+                                const std::string& detail [[maybe_unused]],
                                 const std::shared_ptr<request_type>& request) {
         if (err) {
           SPDLOG_LOGGER_DEBUG(me->_logger,
@@ -295,15 +295,15 @@ TEST_P(http_server_test, many_request_by_connection) {
     req->body() = fmt::format("hello server {}", send_cpt);
     req->content_length(req->body().length());
 
-    client->send(req,
-                 [&cond, req, &resp_cpt](const beast::error_code& err,
-                                         const std::string& detail,
-                                         const response_ptr& response) mutable {
-                   ASSERT_FALSE(err);
-                   ASSERT_EQ(req->body(), response->body());
-                   if (resp_cpt.fetch_add(1) == 199)
-                     cond.notify_one();
-                 });
+    client->send(
+        req, [&cond, req, &resp_cpt](const beast::error_code& err,
+                                     const std::string& detail [[maybe_unused]],
+                                     const response_ptr& response) mutable {
+          ASSERT_FALSE(err);
+          ASSERT_EQ(req->body(), response->body());
+          if (resp_cpt.fetch_add(1) == 199)
+            cond.notify_one();
+        });
   }
   std::unique_lock l(cond_m);
   cond.wait(l);
@@ -356,15 +356,15 @@ TEST_P(http_server_test, many_request_and_many_connection) {
     req->body() = fmt::format("hello server {}", send_cpt);
     req->content_length(req->body().length());
 
-    client->send(req,
-                 [&cond, req, &resp_cpt](const beast::error_code& err,
-                                         const std::string& detail,
-                                         const response_ptr& response) mutable {
-                   ASSERT_FALSE(err);
-                   ASSERT_EQ(req->body(), response->body());
-                   if (resp_cpt.fetch_add(1) == 999)
-                     cond.notify_one();
-                 });
+    client->send(
+        req, [&cond, req, &resp_cpt](const beast::error_code& err,
+                                     const std::string& detail [[maybe_unused]],
+                                     const response_ptr& response) mutable {
+          ASSERT_FALSE(err);
+          ASSERT_EQ(req->body(), response->body());
+          if (resp_cpt.fetch_add(1) == 999)
+            cond.notify_one();
+        });
   }
   std::unique_lock l(cond_m);
   cond.wait(l);

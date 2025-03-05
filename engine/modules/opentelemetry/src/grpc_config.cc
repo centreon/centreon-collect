@@ -67,6 +67,12 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "type": "integer",
             "minimum": -1,
             "maximum": 3600
+        },
+        "second_max_reconnect_backoff": {
+            "description": "maximum time between subsequent connection attempts, in seconds. Default: 60s",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 600
         }
     },
     "required": [
@@ -121,9 +127,12 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   else
     second_keepalive_interval = 30;
 
+  unsigned second_max_reconnect_backoff =
+      json_config.get_unsigned("second_max_reconnect_backoff", 60);
+
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
       hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
-      second_keepalive_interval);
+      second_keepalive_interval, second_max_reconnect_backoff);
 }
 
 /**

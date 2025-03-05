@@ -18,38 +18,29 @@
  */
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
-#include <com/centreon/broker/stats/worker.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
-#include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/builder.hh"
-#include "com/centreon/broker/stats/center.hh"
-#include "com/centreon/common/pool.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-
 
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
     stats::center::load();
     mysql_manager::load();
-    config::applier::state::load();
+    config::applier::state::load(com::centreon::common::BROKER);
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
@@ -159,10 +150,11 @@ class fact : public io::factory {
   }
 
   io::endpoint* new_endpoint(
-      config::endpoint& cfg __attribute__((__unused__)),
+      config::endpoint& cfg [[maybe_unused]],
+      const std::map<std::string, std::string>& global_params [[maybe_unused]],
       bool& is_acceptor,
-      __attribute__((__unused__)) std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const override {
+      std::shared_ptr<persistent_cache> cache
+      [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {
     endp* p{new endp()};
     is_acceptor = true;
     return p;
@@ -250,7 +242,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   io::protocols::instance().reg("CentreonRetention", test, 1, 7);
   io::protocols::instance().reg("CentreonSecondaryFailover1", test, 1, 7);
   io::protocols::instance().reg("CentreonSecondaryFailover2", test, 1, 7);
-  config::applier::endpoint::instance().apply(s.endpoints());
+  config::applier::endpoint::instance().apply(s.endpoints(), {});
 
   // Remove temporary file.
   ::remove(config_file.c_str());

@@ -19,7 +19,6 @@
 #include "common/engine_conf/hostescalation_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -67,8 +66,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostescalation_helper::hook(std::string_view key,
-                                 const std::string_view& value) {
+bool hostescalation_helper::hook(std::string_view key, std::string_view value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -93,6 +91,8 @@ bool hostescalation_helper::hook(std::string_view key,
         return false;
     }
     obj->set_escalation_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("escalation_options")->index());
     return true;
   } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
@@ -134,5 +134,47 @@ void hostescalation_helper::_init() {
   obj->set_first_notification(-2);
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
+}
+
+/**
+ * @brief Expand the hostescalations.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void hostescalation_helper::expand(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
+  std::list<std::unique_ptr<Hostescalation> > resolved;
+  for (auto& he : *s.mutable_hostescalations()) {
+    if (he.hostgroups().data().size() > 0) {
+      absl::flat_hash_set<std::string_view> host_names;
+      for (auto& hname : he.hosts().data())
+        host_names.emplace(hname);
+      for (auto& hg_name : he.hostgroups().data()) {
+        auto found_hg = m_hostgroups.find(hg_name);
+        if (found_hg != m_hostgroups.end()) {
+          for (auto& h : found_hg->second->members().data())
+            host_names.emplace(h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Could not expand non-existing host group '{}'",
+                        hg_name);
+        }
+      }
+      he.mutable_hostgroups()->clear_data();
+      he.mutable_hosts()->clear_data();
+      for (auto& n : host_names) {
+        resolved.emplace_back(std::make_unique<Hostescalation>());
+        auto& e = resolved.back();
+        e->CopyFrom(he);
+        fill_string_group(e->mutable_hosts(), n);
+      }
+    }
+  }
+  s.clear_hostescalations();
+  for (auto& e : resolved)
+    s.mutable_hostescalations()->AddAllocated(e.release());
 }
 }  // namespace com::centreon::engine::configuration

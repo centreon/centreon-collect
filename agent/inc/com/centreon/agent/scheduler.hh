@@ -37,16 +37,19 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
+      duration /* check interval */,
       const std::string& /*service*/,
       const std::string& /*cmd_name*/,
       const std::string& /*cmd_line*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
-      check::completion_handler&&)>;
+      check::completion_handler&&,
+      const checks_statistics::pointer& /*stat*/)>;
 
  private:
-  using check_queue = std::set<check::pointer, check::pointer_start_compare>;
+  using check_queue =
+      absl::btree_set<check::pointer, check::pointer_start_compare>;
 
-  check_queue _check_queue;
+  check_queue _waiting_check_queue;
   // running check counter that must not exceed max_concurrent_check
   unsigned _active_check = 0;
   bool _alive = true;
@@ -72,6 +75,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   metric_sender _metric_sender;
   asio::system_timer _send_timer;
   asio::system_timer _check_timer;
+  time_step
+      _check_time_step;  // time point used when too many checks are running
   check_builder _check_builder;
   // in order to send check_results at regular intervals, we work with absolute
   // time points that we increment
@@ -154,12 +159,14 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   static std::shared_ptr<check> default_check_builder(
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
-      time_point start_expected,
+      time_point first_start_expected,
+      duration check_interval,
       const std::string& service,
       const std::string& cmd_name,
       const std::string& cmd_line,
       const engine_to_agent_request_ptr& conf,
-      check::completion_handler&& handler);
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;
@@ -182,10 +189,10 @@ scheduler::scheduler(
     const std::shared_ptr<com::centreon::agent::MessageToAgent>& config,
     sender&& met_sender,
     chck_builder&& builder)
-    : _metric_sender(met_sender),
-      _io_context(io_context),
+    : _io_context(io_context),
       _logger(logger),
       _supervised_host(supervised_host),
+      _metric_sender(met_sender),
       _send_timer(*io_context),
       _check_timer(*io_context),
       _check_builder(builder),

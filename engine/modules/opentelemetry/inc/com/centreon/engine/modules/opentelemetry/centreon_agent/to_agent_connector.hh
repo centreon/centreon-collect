@@ -20,6 +20,7 @@
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_CLIENT_HH
 
 #include "centreon_agent/agent.grpc.pb.h"
+#include "centreon_agent/agent_stat.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
@@ -47,12 +48,15 @@ class to_agent_connector
   absl::Mutex _connection_m;
   std::shared_ptr<agent_connection> _connection ABSL_GUARDED_BY(_connection_m);
 
+  agent_stat::pointer _stats;
+
  public:
   to_agent_connector(const grpc_config::pointer& agent_endpoint_conf,
                      const std::shared_ptr<boost::asio::io_context>& io_context,
                      const agent_config::pointer& agent_conf,
                      const metric_handler& handler,
-                     const std::shared_ptr<spdlog::logger>& logger);
+                     const std::shared_ptr<spdlog::logger>& logger,
+                     const agent_stat::pointer& stats);
 
   virtual ~to_agent_connector();
 
@@ -63,7 +67,8 @@ class to_agent_connector
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const agent_config::pointer& agent_conf,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger);
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats);
 
   void refresh_agent_configuration_if_needed(
       const agent_config::pointer& new_conf);

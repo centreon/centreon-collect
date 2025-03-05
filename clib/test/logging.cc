@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2020 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2020 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <gtest/gtest.h>
 #include <stdio.h>
@@ -343,7 +343,7 @@ TEST(ClibLogging, EngineWithThread) {
 TEST(ClibLogging, FileLog) {
   static char msg[] = "Centreon Clib test";
 
-  char* tmp(com::centreon::io::file_stream::temp_path());
+  std::string tmp(com::centreon::io::file_stream::temp_path());
   {
     file f(tmp, false, false, none, false);
     f.log(1, 0, msg, sizeof(msg));
@@ -352,7 +352,7 @@ TEST(ClibLogging, FileLog) {
 
   {
     FILE* out(NULL);
-    ASSERT_TRUE((out = fopen(tmp, "w")));
+    ASSERT_TRUE((out = fopen(tmp.c_str(), "w")));
     file f(out, false, false, none, false);
     f.log(1, 0, msg, sizeof(msg));
   }
@@ -362,7 +362,7 @@ TEST(ClibLogging, FileLog) {
 TEST(ClibLogging, FileLogMultiline) {
   static unsigned int const nb_line(1024);
 
-  char* tmpfile(com::centreon::io::file_stream::temp_path());
+  std::string tmpfile(com::centreon::io::file_stream::temp_path());
 
   std::ostringstream tmp;
   std::ostringstream tmpref;

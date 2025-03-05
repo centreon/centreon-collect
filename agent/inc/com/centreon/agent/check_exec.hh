@@ -84,32 +84,37 @@ class check_exec : public check {
  protected:
   using check::completion_handler;
 
-  void _timeout_timer_handler(const boost::system::error_code& err,
-                              unsigned start_check_index) override;
+  void _on_timeout() override;
 
   void _init();
 
  public:
   check_exec(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
-             time_point exp,
+             time_point first_start_expected,
+             duration check_interval,
              const std::string& serv,
              const std::string& cmd_name,
              const std::string& cmd_line,
              const engine_to_agent_request_ptr& cnf,
-             check::completion_handler&& handler);
+             check::completion_handler&& handler,
+             const checks_statistics::pointer& stat);
 
   static std::shared_ptr<check_exec> load(
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
-      time_point exp,
+      time_point first_start_expected,
+      duration check_interval,
       const std::string& serv,
       const std::string& cmd_name,
       const std::string& cmd_line,
       const engine_to_agent_request_ptr& cnf,
-      check::completion_handler&& handler);
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat);
 
   void start_check(const duration& timeout) override;
+
+  int get_pid() const;
 
   void on_completion(unsigned running_index);
 };

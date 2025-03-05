@@ -19,8 +19,6 @@
 #ifndef CCB_IO_ENDPOINT_HH
 #define CCB_IO_ENDPOINT_HH
 
-#include <nlohmann/json.hpp>
-
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 

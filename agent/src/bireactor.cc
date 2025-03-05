@@ -29,8 +29,9 @@ using namespace com::centreon::agent;
  * @tparam bireactor_class
  */
 template <class bireactor_class>
-std::set<std::shared_ptr<bireactor<bireactor_class>>>
-    bireactor<bireactor_class>::_instances;
+std::set<std::shared_ptr<bireactor<bireactor_class>>>*
+    bireactor<bireactor_class>::_instances =
+        new std::set<std::shared_ptr<bireactor<bireactor_class>>>;
 
 template <class bireactor_class>
 std::mutex bireactor<bireactor_class>::_instances_m;
@@ -42,11 +43,11 @@ bireactor<bireactor_class>::bireactor(
     const std::string_view& class_name,
     const std::string& peer)
     : _write_pending(false),
-      _alive(true),
       _class_name(class_name),
       _peer(peer),
       _io_context(io_context),
-      _logger(logger) {
+      _logger(logger),
+      _alive(true) {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p} peer:{}", _class_name,
                       static_cast<const void*>(this), _peer);
 }
@@ -61,7 +62,7 @@ template <class bireactor_class>
 void bireactor<bireactor_class>::register_stream(
     const std::shared_ptr<bireactor>& strm) {
   std::lock_guard l(_instances_m);
-  _instances.insert(strm);
+  _instances->insert(strm);
 }
 
 template <class bireactor_class>
@@ -162,7 +163,7 @@ void bireactor<bireactor_class>::OnDone() {
     std::lock_guard l(_instances_m);
     SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone() to {}",
                         static_cast<void*>(me.get()), peer);
-    _instances.erase(std::static_pointer_cast<bireactor<bireactor_class>>(me));
+    _instances->erase(std::static_pointer_cast<bireactor<bireactor_class>>(me));
   });
 }
 
@@ -186,7 +187,7 @@ void bireactor<bireactor_class>::OnDone(const ::grpc::Status& status) {
                           static_cast<void*>(me.get()), peer,
                           status.error_message(), status.error_details());
     }
-    _instances.erase(std::static_pointer_cast<bireactor<bireactor_class>>(me));
+    _instances->erase(std::static_pointer_cast<bireactor<bireactor_class>>(me));
   });
 }
 

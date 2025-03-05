@@ -56,6 +56,9 @@ void bbdo::load() {
                    &bbdo::pb_stop::operations);
   e.register_event(make_type(io::local, local::de_pb_stop), "LocStop",
                    &local::pb_stop::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_engine_configuration),
+                   "EngineConfiguration",
+                   &bbdo::pb_engine_configuration::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

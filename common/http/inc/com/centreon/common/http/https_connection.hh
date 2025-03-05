@@ -20,6 +20,7 @@
 #ifndef CCB_HTTPS_CLIENT_CONNECTION_HH__
 #define CCB_HTTPS_CLIENT_CONNECTION_HH__
 
+#include <boost/beast/ssl.hpp>
 #include "http_connection.hh"
 
 namespace com::centreon::common::http {

@@ -33,24 +33,56 @@ import string
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
 
 
+def import_robot_resources():
+    global DB_NAME_STORAGE, VAR_ROOT, ETC_ROOT, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT
+    try:
+        BuiltIn().import_resource('db_variables.resource')
+        DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+        DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+        DB_USER = BuiltIn().get_variable_value("${DBUser}")
+        DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+        DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+        DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+
+DB_NAME_STORAGE = ""
+DB_NAME_CONF = ""
+DB_USER = ""
+DB_PASS = ""
+DB_HOST = ""
+DB_PORT = ""
+VAR_ROOT = ""
+ETC_ROOT = ""
+
+BBDO2 = True
+
+import_robot_resources()
 TIMEOUT = 30
 
-BuiltIn().import_resource('db_variables.resource')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
-DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
-DB_USER = BuiltIn().get_variable_value("${DBUser}")
-DB_PASS = BuiltIn().get_variable_value("${DBPass}")
-DB_HOST = BuiltIn().get_variable_value("${DBHost}")
-DB_PORT = BuiltIn().get_variable_value("${DBPort}")
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+def ctn_in_bbdo2():
+    """ Check if we are in bbdo2 mode
+    """
+    global BBDO2
+    return BBDO2
 
+def ctn_set_bbdo2(value: bool):
+    """ Set the bbdo2 mode
+
+    Args:
+        value (bool): The value to set
+    """
+    global BBDO2
+    BBDO2 = value
 
 def ctn_parse_tests_params():
     params = os.environ.get("TESTS_PARAMS")
@@ -190,9 +222,10 @@ def ctn_extract_date_from_log(line: str):
         return None
 
 
-#  When you use Get Current Date with exclude_millis=True
-#  it rounds result to nearest lower or upper second
 def ctn_get_round_current_date():
+    """
+    Returns the current date round to the nearest lower second as a timestamp.
+    """
     return int(time.time())
 
 
@@ -623,7 +656,9 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
-                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                    if state_type == 'ANY':
+                        return True
+                    elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
                         return True
                     elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
                         return True
@@ -1931,3 +1966,109 @@ def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
             return False
     return True
 
+
+
+def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (dict): A dictionary containing the expected performance data values.
+    """
+    limit = time.time() + timeout
+    query = f"""SELECT sub_query.metric_name, db.value FROM data_bin db JOIN
+            (SELECT m.metric_name, MAX(db.ctime) AS last_data, db.id_metric FROM data_bin db
+                JOIN metrics m ON db.id_metric = m.metric_id
+                JOIN index_data id ON id.id = m.index_id
+                WHERE id.host_name='{host}' AND id.service_description='{serv}'
+                GROUP BY m.metric_id) sub_query 
+            ON db.ctime = sub_query.last_data AND db.id_metric = sub_query.id_metric"""
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result)  == len(expected):
+                    for res in result:
+                        logger.console(f"metric: {res['metric_name']}, value: {res['value']}")
+                        metric = res['metric_name']
+                        value = float(res['value'])
+                        if metric not in expected:
+                            logger.console(f"ERROR unexpected metric: {metric}")
+                            return False
+                        if expected[metric] is not None and abs(value - expected[metric]) > precision:
+                            logger.console(f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
+                            return False
+                    return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int):
+    """
+    Check if agent_information table is filled. Collect version is also checked
+        total_nb_agent (int): total number of agents
+        nb_poller (int): nb poller with at least one agent connected.
+        timeout (int): The timeout value for the check.
+    """
+    collect_version = ctn_get_collect_version()
+
+    collect_major = int(collect_version.split(".")[0])
+    collect_minor = int(collect_version.split(".")[1])
+    collect_patch = int(collect_version.split(".")[2])
+
+    limit = time.time() + timeout
+    query = "SELECT infos FROM agent_information WHERE enabled = 1"
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result)  == nb_poller:
+                    nb_agent = 0
+                    for res in result:
+                        logger.console(f"infos: {res['infos']}")
+                        agent_infos = json.loads(res['infos'])
+                        for by_agent_info in agent_infos:
+                            if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
+                                logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
+                                return False
+                            nb_agent += by_agent_info['nb_agent']
+                    if nb_agent == total_nb_agent:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_get_nb_process(exe:str):
+    """
+    ctn_get_nb_process
+
+    get the number of process with a specific executable
+    Args:
+        exe: executable to search
+    Returns: number of process
+    """
+
+    counter = 0
+
+    for p in psutil.process_iter():
+        if exe in p.name() or exe in ' '.join(p.cmdline()):
+            counter += 1
+    return counter

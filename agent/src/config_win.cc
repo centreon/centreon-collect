@@ -18,12 +18,11 @@
 
 #include <windows.h>
 
-#include <re2/re2.h>
-
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
+
+std::unique_ptr<config> config::_global_conf;
 
 /**
  * @brief Construct a new config::config object
@@ -61,12 +60,13 @@ config::config(const std::string& registry_key) {
     return result == ERROR_SUCCESS && value;
   };
 
-  auto get_unsigned = [&](const char* value_name) -> uint32_t {
+  auto get_unsigned = [&](const char* value_name,
+                          unsigned default_value = 0) -> uint32_t {
     uint32_t value;
     DWORD size = sizeof(value);
     LSTATUS result = RegGetValueA(h_key, nullptr, value_name, RRF_RT_DWORD,
                                   nullptr, &value, &size);
-    return result == ERROR_SUCCESS ? value : 0;
+    return result == ERROR_SUCCESS ? value : default_value;
   };
 
   _endpoint = get_sz_reg_or_default("endpoint", "");
@@ -103,7 +103,9 @@ config::config(const std::string& registry_key) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = get_bool("reverse_connection");
+  _reverse_connection = get_bool("reversed_grpc_streaming");
+  _second_max_reconnect_backoff =
+      get_unsigned("second_max_reconnect_backoff", 60);
 
   RegCloseKey(h_key);
 }

@@ -73,9 +73,13 @@ class request_test : public http_tsdb::request {
     SPDLOG_LOGGER_TRACE(_logger, "delete request {}", _request_id);
   }
 
-  void add_metric(const storage::pb_metric& metric) override { ++_nb_metric; }
+  void add_metric(const storage::pb_metric& metric [[maybe_unused]]) override {
+    ++_nb_metric;
+  }
 
-  void add_status(const storage::pb_status& status) override { ++_nb_status; }
+  void add_status(const storage::pb_status& status [[maybe_unused]]) override {
+    ++_nb_status;
+  }
 
   unsigned get_request_id() const { return _request_id; }
 
@@ -171,11 +175,14 @@ class connection_send_bagot : public http::connection_base {
     }
   }
 
-  void _on_accept(http::connect_callback_type&& callback) override{};
+  void _on_accept(http::connect_callback_type&& callback
+                  [[maybe_unused]]) override{};
 
-  void answer(const http::response_ptr& response,
-              http::answer_callback_type&& callback) override {}
-  void receive_request(http::request_callback_type&& callback) override {}
+  void answer(const http::response_ptr& response [[maybe_unused]],
+              http::answer_callback_type&& callback [[maybe_unused]]) override {
+  }
+  void receive_request(http::request_callback_type&& callback
+                       [[maybe_unused]]) override {}
 
   asio::ip::tcp::socket& get_socket() { return _not_used; }
 };

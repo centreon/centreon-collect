@@ -288,8 +288,8 @@ void mysql::prepare_statement(const mysql_stmt_base& stmt) {
  *
  * @return A mysql_stmt prepared and ready to use.
  */
-mysql_stmt mysql::prepare_query(std::string const& query,
-                                mysql_bind_mapping const& bind_mapping) {
+mysql_stmt mysql::prepare_query(const std::string& query,
+                                const mysql_bind_mapping& bind_mapping) {
   mysql_stmt retval(query, bind_mapping);
   prepare_statement(retval);
 

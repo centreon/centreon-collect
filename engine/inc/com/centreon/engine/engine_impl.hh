@@ -49,14 +49,41 @@ class engine_impl final : public Engine::Service {
                                         const ::google::protobuf::Empty*,
                                         GenericValue*) override;
   grpc::Status GetHost(grpc::ServerContext* context,
-                       const HostIdentifier* request,
+                       const NameOrIdIdentifier* request,
                        EngineHost* response) override;
   grpc::Status GetContact(grpc::ServerContext* context,
-                          const ContactIdentifier* request,
+                          const NameIdentifier* request,
                           EngineContact* response) override;
   grpc::Status GetService(grpc::ServerContext* context,
                           const ServiceIdentifier* request,
                           EngineService* response) override;
+  grpc::Status GetHostGroup(grpc::ServerContext* context,
+                            const NameIdentifier*,
+                            EngineHostGroup*) override;
+  grpc::Status GetServiceGroup(grpc::ServerContext* context,
+                               const NameIdentifier* request,
+                               EngineServiceGroup* response) override;
+  grpc::Status GetContactGroup(grpc::ServerContext* context,
+                               const NameIdentifier* request,
+                               EngineContactGroup* response) override;
+  grpc::Status GetTag(grpc::ServerContext* context,
+                      const IdOrTypeIdentifier* request,
+                      EngineTag* response) override;
+  grpc::Status GetSeverity(grpc::ServerContext* context,
+                           const IdOrTypeIdentifier* request,
+                           EngineSeverity* response) override;
+  grpc::Status GetCommand(grpc::ServerContext* context,
+                          const NameIdentifier* request,
+                          EngineCommand* response) override;
+  grpc::Status GetConnector(grpc::ServerContext* context,
+                            const NameIdentifier* request,
+                            EngineConnector* response) override;
+  grpc::Status GetHostEscalation(grpc::ServerContext* context,
+                                 const NameIdentifier* request,
+                                 EngineHostEscalation* response) override;
+  grpc::Status GetServiceEscalation(grpc::ServerContext* context,
+                                    const PairNamesIdentifier* request,
+                                    EngineServiceEscalation* response) override;
   grpc::Status AddHostComment(grpc::ServerContext* context,
                               const EngineComment* request,
                               CommandSuccess* response) override;
@@ -70,10 +97,10 @@ class engine_impl final : public Engine::Service {
                                         const ServiceIdentifier* request,
                                         CommandSuccess* response) override;
   grpc::Status DeleteAllHostComments(grpc::ServerContext* context,
-                                     const HostIdentifier* request,
+                                     const NameOrIdIdentifier* request,
                                      CommandSuccess* response) override;
   grpc::Status RemoveHostAcknowledgement(grpc::ServerContext* context,
-                                         const HostIdentifier* request,
+                                         const NameOrIdIdentifier* request,
                                          CommandSuccess* response) override;
   grpc::Status RemoveServiceAcknowledgement(grpc::ServerContext* context,
                                             const ServiceIdentifier* request,
@@ -194,21 +221,21 @@ class engine_impl final : public Engine::Service {
                                ::google::protobuf::Empty*) override;
   ::grpc::Status EnableHostAndChildNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
   ::grpc::Status DisableHostAndChildNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status DisableHostNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status EnableHostNotifications(
       ::grpc::ServerContext* context,
-      const ::com::centreon::engine::HostIdentifier* request,
+      const ::com::centreon::engine::NameOrIdIdentifier* request,
       ::com::centreon::engine::CommandSuccess* response) override;
 
   ::grpc::Status DisableNotifications(
@@ -238,7 +265,7 @@ class engine_impl final : public Engine::Service {
 
   static std::pair<std::shared_ptr<com::centreon::engine::host>,
                    std::string /*error*/>
-  get_host(const ::com::centreon::engine::HostIdentifier& host_info);
+  get_host(const ::com::centreon::engine::NameOrIdIdentifier& host_info);
 
   static std::pair<std::shared_ptr<com::centreon::engine::service>,
                    std::string /*error*/>
@@ -262,5 +289,5 @@ class engine_impl final : public Engine::Service {
                          google::protobuf::Empty* response) override;
 };
 
-}
+}  // namespace com::centreon::engine
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */

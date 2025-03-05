@@ -44,11 +44,13 @@ dnf --best install -y cmake \
     perl-interpreter \
     procps-ng \
     zstd \
-    nfpm \
+    nfpm-2.41.1 \
     openssl-devel \
     libssh2-devel \
     libcurl-devel \
     zlib-devel \
+    perl-HTTP-Daemon-SSL.noarch \
+    perl-JSON \
     sudo
 
 git clone -b 2024.01.12 https://github.com/Microsoft/vcpkg.git

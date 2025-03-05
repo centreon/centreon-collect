@@ -18,6 +18,7 @@
 #ifndef CENTREON_AGENT_CONFIG_HH
 #define CENTREON_AGENT_CONFIG_HH
 
+#include <memory>
 #include "com/centreon/common/grpc/grpc_config.hh"
 
 namespace com::centreon::agent {
@@ -43,9 +44,37 @@ class config {
   std::string _ca_name;
   std::string _host;
   bool _reverse_connection;
+  unsigned _second_max_reconnect_backoff;
+
+  static std::unique_ptr<config> _global_conf;
 
  public:
+  static const config& load(const std::string& path) {
+    _global_conf = std::make_unique<config>(path);
+    return *_global_conf;
+  }
+
+  /**
+   * @brief used only for UT
+   *
+   * @param reverse_connection
+   * @return const config&
+   */
+  static const config& load(bool reverse_connection) {
+    _global_conf = std::make_unique<config>(reverse_connection);
+    return *_global_conf;
+  }
+
+  static const config& instance() { return *_global_conf; }
+
   config(const std::string& path);
+
+  /**
+   * @brief used only for UT
+   *
+   * @param reverse_connection
+   */
+  config(bool reverse_connection) : _reverse_connection(reverse_connection) {}
 
   const std::string& get_endpoint() const { return _endpoint; }
   spdlog::level::level_enum get_log_level() const { return _log_level; };
@@ -63,6 +92,9 @@ class config {
   const std::string& get_ca_name() const { return _ca_name; }
   const std::string& get_host() const { return _host; }
   bool use_reverse_connection() const { return _reverse_connection; }
+  unsigned get_second_max_reconnect_backoff() const {
+    return _second_max_reconnect_backoff;
+  }
 };
 };  // namespace com::centreon::agent
 

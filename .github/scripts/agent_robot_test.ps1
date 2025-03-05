@@ -34,7 +34,7 @@
 Write-Host "Work in" $pwd.ToString()
 
 $current_dir = (pwd).Path
-$wsl_path =  "/mnt/" + $current_dir.SubString(0,1).ToLower() + "/" + $current_dir.SubString(3).replace('\','/')
+$wsl_path = "/mnt/" + $current_dir.SubString(0, 1).ToLower() + "/" + $current_dir.SubString(3).replace('\', '/')
 
 mkdir reports
 
@@ -82,7 +82,7 @@ Start-Sleep -Seconds 1
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ""
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value 0
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4320
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reverse_connection -Value 1
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reversed_grpc_streaming -Value 1
 $agent_log_path = $current_dir + "\reports\reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
@@ -100,7 +100,45 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name lo
 
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
-wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $my_host_name $my_ip $pwsh_path ${current_dir}.replace('\','/')
+$uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
+$d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
+$ts_uptime = ([DateTimeOffset]$d_uptime).ToUnixTimeSeconds() #timestamp format
+
+$systeminfo_data = systeminfo /FO CSV | ConvertFrom-Csv
+$snapshot = @{
+    'total'        = $systeminfo_data.'Total Physical Memory'
+    'free'         = $systeminfo_data.'Available Physical Memory'
+    'virtual_max'  = $systeminfo_data.'Virtual Memory: Max Size'
+    'virtual_free' = $systeminfo_data.'Virtual Memory: Available'
+}
+
+$serv_list = Get-Service
+
+$serv_stat = @{
+    'services.running.count' = ($serv_list  | Where-Object { $_.Status -eq "Running" } | measure).Count
+    'services.stopped.count' = ($serv_list  | Where-Object { $_.Status -eq "stopped" } | measure).Count
+}
+
+$test_param = @{
+    'host'        = $my_host_name
+    'ip'          = $my_ip
+    'wsl_path'    = $wsl_path
+    'pwsh_path'   = $pwsh_path
+    'drive'       = @()
+    'current_dir' = $current_dir.replace('\', '/')
+    'uptime'      = $ts_uptime
+    'mem_info'    = $snapshot
+    'serv_stat'   = $serv_stat
+}
+
+Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process { $test_param.drive += $_ }
+
+$json_test_param = $test_param | ConvertTo-Json -Compress
+
+Write-Host "json_test_param" $json_test_param
+$quoted_json_test_param = "'" + $json_test_param + "'"
+
+wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $quoted_json_test_param
 
 #something wrong in robot test => exit 1 => failure
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {

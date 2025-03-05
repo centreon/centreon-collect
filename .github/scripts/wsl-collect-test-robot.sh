@@ -4,10 +4,12 @@ set -x
 test_file=$1
 
 export RUN_ENV=WSL
-export HOST_NAME=$2
-export USED_ADDRESS=$3
-export PWSH_PATH=$4
-export WINDOWS_PROJECT_PATH=$5
+export JSON_TEST_PARAMS=$2
+export USED_ADDRESS=`echo $JSON_TEST_PARAMS | jq -r .ip`
+export HOST_NAME=`echo $JSON_TEST_PARAMS | jq -r .host`
+export PWSH_PATH=`echo $JSON_TEST_PARAMS | jq -r .pwsh_path`
+export WINDOWS_PROJECT_PATH=`echo $JSON_TEST_PARAMS | jq -r .current_dir`
+
 
 
 #in order to connect to windows we neeed to use windows ip
@@ -17,7 +19,7 @@ echo "${USED_ADDRESS}      ${HOST_NAME}" >> /etc/hosts
 echo "##### /etc/hosts: ######"
 cat /etc/hosts
 
-echo "##### Starting tests #####"
+echo "##### Starting tests ##### with params: $JSON_TEST_PARAMS"
 cd tests
 ./init-proto.sh
 

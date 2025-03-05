@@ -1,0 +1,76 @@
+name: "centreon-monitoring-agent"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  This software is an agent used to execute commands on remote computers as nsclient does.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../agent/conf/centagent.json"
+    dst: "/etc/centreon-monitoring-agent/centagent.json"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
+
+  - src: "../../agent/scripts/centagent.service"
+    dst: "/usr/lib/systemd/system/centagent.service"
+    file_info:
+      mode: 0644
+    packager: rpm
+  - src: "../../agent/scripts/centagent.service"
+    dst: "/lib/systemd/system/centagent.service"
+    file_info:
+      mode: 0644
+    packager: deb
+
+  - src: "../../build/agent/centagent"
+    dst: "/usr/bin/centagent"
+
+  - dst: "/etc/centreon-monitoring-agent"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
+
+  - dst: "/var/log/centreon-monitoring-agent"
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-monitoring-agent
+      group: centreon-monitoring-agent
+
+overrides:
+  rpm:
+    depends:
+      - openssl-libs >= 3
+      - zlib
+  deb:
+    depends:
+      - libssl1.1 | libssl3
+      - zlib1g
+
+scripts:
+  preinstall: ./scripts/centreon-monitoring-agent-preinstall.sh
+  postinstall: ./scripts/centreon-monitoring-agent-postinstall.sh
+  preremove: ./scripts/centreon-monitoring-agent-preremove.sh
+  postremove: ./scripts/centreon-monitoring-agent-postremove.sh
+
+
+rpm:
+  summary: Centreon Collect Agent. It can be used to execute plugins remotely
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

@@ -359,6 +359,7 @@ EBDP5
     Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
@@ -416,6 +417,7 @@ EBDP6
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -483,6 +485,7 @@ EBDP7
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine

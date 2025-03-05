@@ -19,7 +19,6 @@
 #include "common/engine_conf/severity_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -50,8 +49,7 @@ severity_helper::severity_helper(Severity* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool severity_helper::hook(std::string_view key,
-                           const std::string_view& value) {
+bool severity_helper::hook(std::string_view key, std::string_view value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */

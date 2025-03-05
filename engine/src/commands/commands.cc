@@ -725,28 +725,36 @@ int cmd_process_host_check_result(int cmd, time_t check_time, char* args) {
     return ERROR;
 
   // Get the host name.
-  char* host_name(args);
+  auto split = absl::StrSplit(args, ';');
+  auto split_it = split.begin();
+
+  if (split_it == split.end())
+    return ERROR;
 
   // Get the host check return code and output.
-  char* delimiter(strchr(host_name, ';'));
-  if (!delimiter)
-    return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* output(strchr(delimiter, ';'));
-  if (output) {
-    *output = '\0';
-    ++output;
-  } else
-    output = "";
-  int return_code(strtol(delimiter, nullptr, 0));
+  std::string host_name = std::string(*split_it);
 
-  // replace \\n with \n
-  string::unescape(output);
+  int return_code;
+  ++split_it;
+
+  if (split_it == split.end())
+    return ERROR;
+
+  if (!absl::SimpleAtoi(*split_it, &return_code))
+    return ERROR;
+
+  ++split_it;
+
+  std::string output = "";
+  if (split_it != split.end()) {
+    output = split_it->data();
+    // replace \\n with \n
+    string::unescape(output);
+  }
 
   // Submit the check result.
-  return (
-      process_passive_host_check(check_time, host_name, return_code, output));
+  return process_passive_host_check(check_time, host_name.c_str(), return_code,
+                                    output.c_str());
 }
 
 /* process passive host check result */
@@ -2441,28 +2449,24 @@ void enable_and_propagate_notifications(host* hst,
     enable_host_notifications(hst);
 
   /* check all child hosts... */
-  for (host_map_unsafe::iterator it(hst->child_hosts.begin()),
-       end(hst->child_hosts.end());
-       it != end; ++it) {
-    if (it->second == nullptr)
+  for (const auto& [_, ptr_host] : hst->child_hosts) {
+    if (ptr_host == nullptr)
       continue;
 
     /* recurse... */
-    enable_and_propagate_notifications(it->second, level + 1, affect_top_host,
+    enable_and_propagate_notifications(ptr_host, level + 1, affect_top_host,
                                        affect_hosts, affect_services);
 
     /* enable notifications for this host */
     if (affect_hosts)
-      enable_host_notifications(it->second);
+      enable_host_notifications(ptr_host);
 
     /* enable notifications for all services on this host... */
     if (affect_services) {
-      for (service_map_unsafe::iterator it2(it->second->services.begin()),
-           end2(it->second->services.end());
-           it2 != end2; ++it2) {
-        if (!it2->second)
+      for (const auto& [_, ptr_srv] : ptr_host->services) {
+        if (!ptr_srv)
           continue;
-        enable_service_notifications(it2->second);
+        enable_service_notifications(ptr_srv);
       }
     }
   }
@@ -2482,28 +2486,24 @@ void disable_and_propagate_notifications(host* hst,
     disable_host_notifications(hst);
 
   /* check all child hosts... */
-  for (host_map_unsafe::iterator it(hst->child_hosts.begin()),
-       end(hst->child_hosts.begin());
-       it != end; ++it) {
-    if (!it->second)
+  for (const auto& [_, ptr_host] : hst->child_hosts) {
+    if (!ptr_host)
       continue;
 
     /* recurse... */
-    disable_and_propagate_notifications(it->second, level + 1, affect_top_host,
+    disable_and_propagate_notifications(ptr_host, level + 1, affect_top_host,
                                         affect_hosts, affect_services);
 
     /* disable notifications for this host */
     if (affect_hosts)
-      disable_host_notifications(it->second);
+      disable_host_notifications(ptr_host);
 
     /* disable notifications for all services on this host... */
     if (affect_services) {
-      for (service_map_unsafe::iterator it2(it->second->services.begin()),
-           end2(it->second->services.end());
-           it2 != end2; ++it2) {
-        if (!it2->second)
+      for (const auto& [_, ptr_srv] : ptr_host->services) {
+        if (!ptr_srv)
           continue;
-        disable_service_notifications(it2->second);
+        disable_service_notifications(ptr_srv);
       }
     }
   }
@@ -2624,20 +2624,18 @@ void schedule_and_propagate_downtime(host* temp_host,
                                      unsigned long triggered_by,
                                      unsigned long duration) {
   /* check all child hosts... */
-  for (host_map_unsafe::iterator it(temp_host->child_hosts.begin()),
-       end(temp_host->child_hosts.end());
-       it != end; ++it) {
-    if (it->second == nullptr)
+  for (const auto& [_, ptr_host] : temp_host->child_hosts) {
+    if (ptr_host == nullptr)
       continue;
 
     /* recurse... */
-    schedule_and_propagate_downtime(it->second, entry_time, author,
-                                    comment_data, start_time, end_time, fixed,
-                                    triggered_by, duration);
+    schedule_and_propagate_downtime(ptr_host, entry_time, author, comment_data,
+                                    start_time, end_time, fixed, triggered_by,
+                                    duration);
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
+        downtime::host_downtime, ptr_host->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }
