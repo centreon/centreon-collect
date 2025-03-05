@@ -267,7 +267,7 @@ jobs:
           python-version: "3.10"
 
       - run: |
-          pip3 install -U robotframework robotframework-databaselibrary==2.0.4 pymysql python-dateutil
+          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
           cd reports
           rebot -o output.xml ./*-output.xml || true
         shell: bash

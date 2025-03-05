@@ -19,7 +19,6 @@
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
