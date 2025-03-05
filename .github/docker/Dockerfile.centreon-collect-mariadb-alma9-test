@@ -37,7 +37,6 @@ dnf install --best -y \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
     python3-setuptools \
-    tcpdump \
     rrdtool \
     tcpdump \
     sudo \

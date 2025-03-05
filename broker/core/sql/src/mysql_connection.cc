@@ -20,7 +20,6 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -914,9 +913,9 @@ void mysql_connection::_run() {
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
         } else {
-	  _logger->info("SQL: Reconnection successful.");
+          _logger->info("SQL: Reconnection successful.");
           reconnect_failed_logged = false;
-	}
+        }
       } else {
         if (!tasks_list.empty()) {
           stats.start_activity();

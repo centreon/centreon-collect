@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2015, 2021-2024 Centreon
+ * Copyright 2009-2015, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,6 @@
 
 namespace com::centreon::broker {
 namespace neb {
-
-// Forward declaration.
-class acknowledgement;
 
 using pb_downtime =
     io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;

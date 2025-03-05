@@ -15,17 +15,15 @@
  *
  * For more information : contact@centreon.com
  */
-#include <fmt/format.h>
 
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/sql/mysql_result.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
