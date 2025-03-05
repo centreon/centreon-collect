@@ -679,6 +679,59 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
         time.sleep(1)
     return False
 
+def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    brief : same as ctn_check_service_resource_status_with_timeout but with additional return
+
+    Check the status of a service resource within a specified timeout period.
+
+    This function connects to a MySQL database and queries the status of a service resource
+    associated with a given hostname and service description. It repeatedly checks the status
+    until the specified timeout period is reached. The function can check for different state types
+    (SOFT, HARD, or ANY).
+
+    Args:
+        hostname (str): The name of the host.
+        service_desc (str): The description of the service.
+        status (int): The desired status to check for.
+        timeout (int): The timeout period in seconds.
+        state_type (str, optional): The type of state to check for. Defaults to "SOFT". 
+                                    Can be "SOFT", "HARD", or "ANY".
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if the desired status was found and the output message.
+               (True, output) if the desired status is found within the timeout period.
+               (False, "") if the desired status is not found within the timeout period.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status,r.status_confirmed,r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if state_type == 'ANY':
+                        return True,result[0]['output']
+                    elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                        return True,result[0]['output']
+                    elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
+                        return True,result[0]['output']
+        time.sleep(1)
+    return False,""
+
 
 def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
