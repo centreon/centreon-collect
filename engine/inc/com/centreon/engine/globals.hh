@@ -48,11 +48,9 @@ extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
 extern std::shared_ptr<spdlog::logger> otel_logger;
 
-#ifdef LEGACY_CONF
-extern com::centreon::engine::configuration::state* config;
-#else
 extern com::centreon::engine::configuration::State pb_config;
-#endif
+extern std::filesystem::path proto_conf;
+
 extern std::string config_file;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 

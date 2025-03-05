@@ -29,6 +29,7 @@ using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
 configuration::State pb_config;
+std::filesystem::path proto_conf;
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",

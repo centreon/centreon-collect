@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
       {"verify-config", no_argument, nullptr, 'v'},
       {"version", no_argument, nullptr, 'V'},
       {"config-file", required_argument, nullptr, 'c'},
+      {"prot-config", required_argument, nullptr, 'p'},
       {"broker-config", required_argument, nullptr, 'b'},
       {NULL, no_argument, nullptr, '\0'}};
 #endif  // HAVE_GETOPT_H
@@ -144,7 +145,7 @@ int main(int argc, char* argv[]) {
     // Process all command line arguments.
     int c;
 #ifdef HAVE_GETOPT_H
-    while ((c = getopt_long(argc, argv, "+hVvsxDcb:", long_options,
+    while ((c = getopt_long(argc, argv, "+hVvsxDcp:b:", long_options,
                             &option_index)) != -1) {
 #else
     while ((c = getopt(argc, argv, "+hVvsxD")) != -1) {
@@ -179,6 +180,9 @@ int main(int argc, char* argv[]) {
           if (optarg)
             extended_conf_file.emplace_back(optarg);
           break;
+        case 'p':
+          proto_conf = optarg;
+          break;
         default:
           error = true;
       }
@@ -190,7 +194,7 @@ int main(int argc, char* argv[]) {
         || optind >= argc)
       error = true;
     else {
-      // Config file is last argument specified.
+      // Config file is the last argument specified.
       config_file = argv[optind];
 
       // Make sure the config file uses an absolute path.
@@ -283,7 +287,7 @@ int main(int argc, char* argv[]) {
         // Read in the configuration files (main config file,
         // resource and object config files).
         configuration::error_cnt err;
-	cbm = std::make_unique<cbmod>();
+        cbm = std::make_unique<cbmod>();
         configuration::State pb_config;
         {
           configuration::parser p;
@@ -386,8 +390,17 @@ int main(int argc, char* argv[]) {
       try {
         // Parse configuration.
         configuration::error_cnt err;
+
+        std::filesystem::path config_path =
+            std::filesystem::path(proto_conf) / "state.prot";
+        std::ifstream f(config_path);
         configuration::State new_config;
-        {
+
+        // The serialized protobuf file takes precedence over the text file
+        // Later, the text file will be removed.
+        if (f)
+          new_config.ParseFromIstream(&f);
+        else {
           configuration::parser p;
           p.parse(config_file, &new_config, err);
         }
@@ -448,7 +461,8 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(new_config, err, &state);
+        configuration::applier::state::instance().apply(new_config, err,
+                                                        &state);
 
         // Initialize status data.
         initialize_status_data();
