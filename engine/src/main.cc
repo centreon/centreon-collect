@@ -67,7 +67,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
 #ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/parser.hh"
@@ -127,6 +126,9 @@ int main(int argc, char* argv[]) {
    * threads and we'll only be able to change loggers atomic values. */
 #ifdef LEGACY_CONF
   config = new configuration::state;
+#else
+  // init pb_config to default values
+  configuration::state_helper state_hlp(&pb_config);
 #endif
 
   init_loggers();

@@ -19,10 +19,7 @@
  */
 
 #include "host.hh"
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_split.h>
 #include "bbdo/neb.pb.h"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -56,7 +53,6 @@ std::unordered_map<std::string, host::setter_func> const host::_setters{
     {"vrml_image", SETTER(std::string const&, _set_vrml_image)},
     {"gd2_image", SETTER(std::string const&, _set_statusmap_image)},
     {"statusmap_image", SETTER(std::string const&, _set_statusmap_image)},
-    {"initial_state", SETTER(std::string const&, _set_initial_state)},
     {"check_interval", SETTER(unsigned int, _set_check_interval)},
     {"normal_check_interval", SETTER(unsigned int, _set_check_interval)},
     {"retry_interval", SETTER(unsigned int, _set_retry_interval)},
@@ -112,7 +108,6 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(broker::Host_State_UP);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -148,7 +143,6 @@ host::host(host::key_type const& key)
       _high_flap_threshold(default_high_flap_threshold),
       _host_id(key),
       _host_name(""),
-      _initial_state(default_initial_state),
       _low_flap_threshold(default_low_flap_threshold),
       _max_check_attempts(default_max_check_attempts),
       _notifications_enabled(default_notifications_enabled),
@@ -211,7 +205,6 @@ host& host::operator=(host const& other) {
     _host_name = other._host_name;
     _icon_image = other._icon_image;
     _icon_image_alt = other._icon_image_alt;
-    _initial_state = other._initial_state;
     _low_flap_threshold = other._low_flap_threshold;
     _max_check_attempts = other._max_check_attempts;
     _notes = other._notes;
@@ -270,7 +263,6 @@ bool host::operator==(host const& other) const noexcept {
          _hostgroups == other._hostgroups && _host_id == other._host_id &&
          _host_name == other._host_name && _icon_image == other._icon_image &&
          _icon_image_alt == other._icon_image_alt &&
-         _initial_state == other._initial_state &&
          _low_flap_threshold == other._low_flap_threshold &&
          _max_check_attempts == other._max_check_attempts &&
          _notes == other._notes && _notes_url == other._notes_url &&
@@ -369,8 +361,6 @@ bool host::operator<(host const& other) const noexcept {
     return _icon_image < other._icon_image;
   else if (_icon_image_alt != other._icon_image_alt)
     return _icon_image_alt < other._icon_image_alt;
-  else if (_initial_state != other._initial_state)
-    return _initial_state < other._initial_state;
   else if (_low_flap_threshold != other._low_flap_threshold)
     return _low_flap_threshold < other._low_flap_threshold;
   else if (_max_check_attempts != other._max_check_attempts)
@@ -804,15 +794,6 @@ std::string const& host::icon_image() const noexcept {
  */
 std::string const& host::icon_image_alt() const noexcept {
   return _icon_image_alt;
-}
-
-/**
- *  Get initial_state.
- *
- *  @return The initial_state.
- */
-unsigned int host::initial_state() const noexcept {
-  return _initial_state;
 }
 
 /**
@@ -1387,27 +1368,6 @@ bool host::_set_icon_image(std::string const& value) {
  */
 bool host::_set_icon_image_alt(std::string const& value) {
   _icon_image_alt = value;
-  return true;
-}
-
-/**
- *  Set initial_state value.
- *
- *  @param[in] value The new initial_state value.
- *
- *  @return True on success, otherwise false.
- */
-bool host::_set_initial_state(std::string const& value) {
-  std::string_view data(value);
-  data = absl::StripAsciiWhitespace(data);
-  if (data == "o" || data == "up")
-    _initial_state = broker::Host_State_UP;
-  else if (data == "d" || data == "down")
-    _initial_state = broker::Host_State_DOWN;
-  else if (data == "u" || data == "unreachable")
-    _initial_state = broker::Host_State_UNREACHABLE;
-  else
-    return false;
   return true;
 }
 

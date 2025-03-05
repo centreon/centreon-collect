@@ -1169,7 +1169,7 @@ sub prepare_remote_copy {
 
     sysopen(FH, $localsrc, O_RDONLY);
     binmode(FH);
-    my $buffer_size = (defined($config->{buffer_size})) ? $config->{buffer_size} : 500_000;
+    my $buffer_size = (defined($config->{buffer_size})) ? $config->{buffer_size} : 150_000;
     my $buffer;
     while (my $bytes = sysread(FH, $buffer, $buffer_size)) {
         my $action = JSON::XS->new->encode({

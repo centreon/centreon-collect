@@ -43,11 +43,8 @@
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-
 #include <boost/asio.hpp>
-#ifndef _WINDOWS
+#ifndef _WIN32
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif

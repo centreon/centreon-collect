@@ -288,19 +288,15 @@ static void send_host_parents_list(neb_sender sender = neb::callback_relation) {
 
   try {
     // Loop through all hosts.
-    for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
-         end{com::centreon::engine::host::hosts.end()};
-         it != end; ++it) {
+    for (const auto& [_, sptr_host] : com::centreon::engine::host::hosts) {
       // Loop through all parents.
-      for (host_map_unsafe::iterator pit{it->second->parent_hosts.begin()},
-           pend{it->second->parent_hosts.end()};
-           pit != pend; ++pit) {
+      for (const auto& [_, sptr_host_parent] : sptr_host->parent_hosts) {
         // Fill callback struct.
         nebstruct_relation_data nsrd;
         memset(&nsrd, 0, sizeof(nsrd));
         nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.hst = pit->second;
-        nsrd.dep_hst = it->second.get();
+        nsrd.hst = sptr_host_parent.get();
+        nsrd.dep_hst = sptr_host.get();
 
         // Callback.
         sender(NEBTYPE_PARENT_ADD, &nsrd);
@@ -434,12 +430,6 @@ static void send_pb_instance_configuration() {
   neb::gl_publisher.write(ic);
 }
 
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
-
 /**
  *  Send initial configuration to the global publisher.
  */
@@ -457,25 +447,24 @@ void neb::send_initial_configuration() {
   send_instance_configuration();
 }
 
-/**************************************
- *                                     *
- *          Global Functions           *
- *                                     *
- **************************************/
-
 /**
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
-  SPDLOG_LOGGER_INFO(neb_logger, "init: send poller pb conf");
-  send_severity_list();
-  send_tag_list();
-  send_pb_host_list();
-  send_pb_service_list();
-  send_pb_custom_variables_list();
-  send_pb_downtimes_list();
-  send_pb_host_parents_list();
-  send_pb_host_group_list();
-  send_pb_service_group_list();
+//  if (config::applier::state::instance().broker_needs_update()) {
+    SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+    send_severity_list();
+    send_tag_list();
+    send_pb_host_list();
+    send_pb_service_list();
+    send_pb_custom_variables_list();
+    send_pb_downtimes_list();
+    send_pb_host_parents_list();
+    send_pb_host_group_list();
+    send_pb_service_group_list();
+//  } else {
+//    SPDLOG_LOGGER_INFO(neb_logger,
+//                       "init: No need to send poller configuration");
+//  }
   send_pb_instance_configuration();
 }

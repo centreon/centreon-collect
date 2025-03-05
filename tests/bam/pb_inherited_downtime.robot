@@ -271,11 +271,17 @@ BEBAMIGNDTU1
     Ctn Kindly Stop Broker
 
 BEBAMIGNDTU2
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
+    ...    The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in
+    ...    critical state, because of the second critical service. Then we apply two downtimes on this
+    ...    last one. The BA state is ok because of the policy on indicators. The first downtime reaches
+    ...    its end, the BA is still OK, but when the second downtime reaches its end, the BA should be
+    ...    CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
+    Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd

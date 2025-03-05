@@ -19,7 +19,8 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 
-#include "centreon_agent/agent.grpc.pb.h"
+#include "agent_stat.hh"
+
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"
 
@@ -39,6 +40,7 @@ class agent_impl
       public std::enable_shared_from_this<agent_impl<bireactor_class>> {
   std::shared_ptr<boost::asio::io_context> _io_context;
   const std::string_view _class_name;
+  const bool _reversed;
 
   whitelist_cache _whitelist_cache;
 
@@ -51,7 +53,7 @@ class agent_impl
   std::shared_ptr<agent::MessageToAgent> _last_sent_config
       ABSL_GUARDED_BY(_protect);
 
-  static std::set<std::shared_ptr<agent_impl>> _instances
+  static std::set<std::shared_ptr<agent_impl>>* _instances
       ABSL_GUARDED_BY(_instances_m);
   static absl::Mutex _instances_m;
 
@@ -70,6 +72,9 @@ class agent_impl
  protected:
   std::shared_ptr<spdlog::logger> _logger;
   bool _alive ABSL_GUARDED_BY(_protect);
+
+  agent_stat::pointer _stats;
+
   mutable absl::Mutex _protect;
 
  public:
@@ -77,7 +82,9 @@ class agent_impl
              const std::string_view class_name,
              const agent_config::pointer& conf,
              const metric_handler& handler,
-             const std::shared_ptr<spdlog::logger>& logger);
+             const std::shared_ptr<spdlog::logger>& logger,
+             bool reversed,
+             const agent_stat::pointer& stats);
 
   virtual ~agent_impl();
 

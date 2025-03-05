@@ -20,8 +20,7 @@
 
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 
-namespace com::centreon::broker {
-namespace unified_sql {
+namespace com::centreon::broker::unified_sql {
 /**
  * @class bulk_bind "com/centreon/broker/unified_sql/bulk_bind.hh"
  * @brief Container used for a multiline statement bind. It is threadsafe and
@@ -60,9 +59,10 @@ class bulk_bind {
   const uint32_t _interval;
   const uint32_t _max_size;
   database::mysql_bulk_stmt& _stmt;
-  mutable std::mutex _queue_m;
-  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind;
-  std::vector<std::time_t> _next_time;
+  mutable absl::Mutex _queue_m;
+  std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind
+      ABSL_GUARDED_BY(_queue_m);
+  std::vector<std::time_t> _next_time ABSL_GUARDED_BY(_queue_m);
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
@@ -72,17 +72,17 @@ class bulk_bind {
             database::mysql_bulk_stmt& stmt,
             const std::shared_ptr<spdlog::logger>& logger);
   bulk_bind(const bulk_bind&) = delete;
-  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
-  void apply_to_stmt(int32_t conn);
-  bool ready(int32_t conn);
-  std::size_t size(int32_t conn = -1) const;
-  std::time_t next_time() const;
-  std::size_t connections_count() const;
-  void init_from_stmt(int32_t conn);
-  void lock();
-  void unlock();
+  std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  void apply_to_stmt(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
+  bool ready(int32_t conn) ABSL_LOCKS_EXCLUDED(_queue_m);
+  std::size_t size(int32_t conn = -1) const ABSL_LOCKS_EXCLUDED(_queue_m);
+  std::time_t next_time() const ABSL_LOCKS_EXCLUDED(_queue_m);
+  std::size_t connections_count() const ABSL_LOCKS_EXCLUDED(_queue_m);
+  void init_from_stmt(int32_t conn) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m);
+  void lock() ABSL_EXCLUSIVE_LOCK_FUNCTION(_queue_m);
+  void unlock() ABSL_UNLOCK_FUNCTION(_queue_m);
 };
-}  // namespace unified_sql
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::unified_sql
 
 #endif /* !CCB_UNIFIED_SQL_BULK_BIND_HH */

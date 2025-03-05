@@ -20,7 +20,6 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/common/pool.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace nlohmann;
 using namespace com::centreon::broker;
@@ -55,8 +54,10 @@ factory::factory()
 
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> ) const {
+    std::shared_ptr<persistent_cache>) const {
   is_acceptor = false;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(

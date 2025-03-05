@@ -59,7 +59,6 @@ service::service(const std::string& hostname,
                  const std::string& check_command,
                  bool checks_enabled,
                  bool accept_passive_checks,
-                 enum service::service_state initial_state,
                  uint32_t check_interval,
                  uint32_t retry_interval,
                  uint32_t notification_interval,
@@ -131,10 +130,10 @@ service::service(const std::string& hostname,
       _last_time_warning{0},
       _last_time_unknown{0},
       _last_time_critical{0},
-      _initial_state{initial_state},
-      _current_state{initial_state},
-      _last_hard_state{initial_state},
-      _last_state{initial_state},
+      _initial_state{service::state_ok},
+      _current_state{_initial_state},
+      _last_hard_state{_initial_state},
+      _last_state{_initial_state},
       _host_ptr{nullptr},
       _host_problem_at_last_check{false} {
   if (st == NONE) {
@@ -147,7 +146,7 @@ service::service(const std::string& hostname,
     else
       _service_type = SERVICE;
   }
-  set_current_attempt(initial_state == service::state_ok ? 1 : max_attempts);
+  set_current_attempt(1);
 }
 
 service::~service() noexcept {
@@ -563,7 +562,6 @@ std::ostream& operator<<(std::ostream& os,
  *  @param[in] description                  Service description.
  *  @param[in] display_name                 Display name.
  *  @param[in] check_period                 Check timeperiod name.
- *  @param[in] initial_state                Initial service state.
  *  @param[in] max_attempts                 Max check attempts.
  *  @param[in] accept_passive_checks        Does this service accept
  *                                          check result submission ?
@@ -636,7 +634,6 @@ com::centreon::engine::service* add_service(
     const std::string& description,
     const std::string& display_name,
     const std::string& check_period,
-    com::centreon::engine::service::service_state initial_state,
     int max_attempts,
     double check_interval,
     double retry_interval,
@@ -763,8 +760,8 @@ com::centreon::engine::service* add_service(
   // Allocate memory.
   auto obj{std::make_shared<service>(
       host_name, description, display_name.empty() ? description : display_name,
-      check_command, checks_enabled, accept_passive_checks, initial_state,
-      check_interval, retry_interval, notification_interval, max_attempts,
+      check_command, checks_enabled, accept_passive_checks, check_interval,
+      retry_interval, notification_interval, max_attempts,
       first_notification_delay, recovery_notification_delay,
       notification_period, notifications_enabled, is_volatile, check_period,
       event_handler, event_handler_enabled, notes, notes_url, action_url,

@@ -23,7 +23,6 @@ ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
-
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
@@ -34,6 +33,8 @@ Ctn Config BBDO3
         ${mod}    Catenate    SEPARATOR=    module    ${i}
         Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
+    # We replace the global Bbdo2 Variable to False
+    Ctn Set Bbdo2    ${False}
 
 Ctn Clean Before Suite
     Ctn Clear Db    resources
@@ -71,8 +72,19 @@ Ctn Clear Broker Logs
     Remove Directory    ${BROKER_LOG}    Recursive=True
     Create Directory    ${BROKER_LOG}
 
+Ctn Start Vault
+    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+
+Ctn Stop Vault
+    ${result}    Terminate Process    vault    kill=False
+    Should Be True
+    ...    ${result.rc} == -15 or ${result.rc} == 0
+    ...    Vault not correctly stopped
+
 Ctn Start Broker
     [Arguments]    ${only_central}=False
+    # Currently we are in BBDO2 by default.
+    Ctn Set Bbdo2    ${True}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
@@ -94,7 +106,14 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False    ${bbdo2}=False
+    [Arguments]    ${only_central}=False
+
+    #in some case tear down calls this function whereas broker has not been started
+    ${b1_obj}    Get Process Object   b1
+    IF    "${b1_obj}" == "${None}"
+        Log To Console    "central broker not started"
+        RETURN
+    END
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
     ${result}    Wait For Process    b1    timeout=60s
@@ -111,11 +130,17 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
-        ELIF	not ${bbdo2}
-            Log To Console    "central broker stopped"
-            # We have to check if central RRD logs contain errors about data sent in the past.
-            ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
-            Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+        ELSE
+	    ${Bbdo2}   Ctn In Bbdo2
+            IF    not ${Bbdo2}
+		Log To Console    "We are in BBDO3, so we also check RRD duplicates"
+                Log To Console    "central broker stopped"
+                # We have to check if central RRD logs contain errors about data sent in the past.
+                ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
+                Should Be Empty    ${result}    Central RRD logs contain errors about metrics sent in the past.
+	    ELSE
+		Log To Console    "We are in BBDO2, so we don't check RRD duplicates"
+            END
         END
     END
 
@@ -153,6 +178,8 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
+    # Currently we are in BBDO2 by default.
+    Ctn Set Bbdo2    ${True}
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -208,6 +235,10 @@ Ctn Stop Custom Engine
 Ctn Stop Engine
     Log To Console    "stop centengine"
     ${count}    Ctn Get Engines Count
+    IF    ${count} == 0
+        Log To Console    "no engine to stop"
+        RETURN
+    END
     FOR    ${idx}    IN RANGE    0    ${count}
         Send Signal To Process    SIGTERM    e${idx}
     END
@@ -385,7 +416,7 @@ Ctn Process Service Result Hard
         ...    ${svc}
         ...    ${state}
         ...    ${output}
-	Sleep    1s
+        Sleep    1s
     END
 
 
@@ -397,7 +428,7 @@ Ctn Wait For Engine To Be Ready
         ${result}    Ctn Find In Log With Timeout
         ...    ${ENGINE_LOG}/config${i}/centengine.log
         ...    ${start}    ${content}    60
-	...    verbose=False
+        ...    verbose=False
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
@@ -439,3 +470,12 @@ Ctn Kindly Stop Agent
             Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
         END
     END
+
+
+Ctn Wait For Otel Server To Be Ready
+    [Documentation]    Wait for engine otel server to be ready
+    [Arguments]    ${start}
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+

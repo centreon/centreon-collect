@@ -109,7 +109,7 @@ EBSN3
 EBSN4
     [Documentation]    New hosts with No Alias / Alias and have A Template
     [Tags]    broker    engine    hosts    MON-16261
-    Ctn Config Engine    ${1}    ${5}    ${5}    
+    Ctn Config Engine    ${1}    ${5}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -120,7 +120,7 @@ EBSN4
 
     Ctn Config Engine Add Cfg File    ${0}    tags.cfg
     Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
-    
+
     Ctn Add Template To Hosts    0    host_template_1    [1,3]
     Ctn Add Template To Hosts    0    host_template_2    [2]
     Ctn Engine Config Set Value In Hosts    0    host_template_1    alias    alias_Template_1    hostTemplates.cfg
@@ -136,7 +136,7 @@ EBSN4
     Ctn Clear Retention
     Ctn Start Broker
     Ctn Start engine
-    
+
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     # use case Host1 doesn't have alias and use template 1 who has alias => Host_1 alias take the host name(Host_1)
@@ -173,3 +173,4 @@ EBSN4
 
     Ctn Stop engine
     Ctn Kindly Stop Broker
+

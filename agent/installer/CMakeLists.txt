@@ -40,6 +40,7 @@ configure_file("${PROJECT_SOURCE_DIR}/version.nsi.in" "${PROJECT_SOURCE_DIR}/ver
 
 file(GLOB COMMON_INSTALLERS_FILES "${PROJECT_SOURCE_DIR}/version.nsi" "${PROJECT_SOURCE_DIR}/dlg_helper.nsi" "${PROJECT_SOURCE_DIR}/resources/*")
 
+
 message(NOTICE "---------------- Generate installer in ${PROJECT_SOURCE_DIR} ---------------")
 
 # modify binary called from the application manager
@@ -51,14 +52,19 @@ add_custom_command(
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
   COMMAND ${MKNSIS} "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.nsi")
 
+add_custom_target("centreon-monitoring-agent-modifier" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe")
+
+configure_file("${PROJECT_SOURCE_DIR}/compile_installer.ps1.in" "${PROJECT_SOURCE_DIR}/compile_installer.ps1")
 
 #final installer
 add_custom_command(
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi" "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe" ${COMMON_INSTALLERS_FILES}
+  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi" "centreon-monitoring-agent-modifier" ${COMMON_INSTALLERS_FILES}  "${PROJECT_SOURCE_DIR}/compile_installer.ps1"
   COMMENT "--------- Generating cma configuration installer --------"
   OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
-  COMMAND ${MKNSIS} "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi")
+  COMMAND pwsh.exe -File "${PROJECT_SOURCE_DIR}/compile_installer.ps1")
 
-add_custom_target("centreon-monitoring-agent-installer" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
+if (WITH_BUILD_AGENT_INSTALLER)
+  add_custom_target("centreon-monitoring-agent-installer" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
+endif()
 

@@ -116,20 +116,24 @@ void detail::process::_on_completion() {
 
 check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
                        const std::shared_ptr<spdlog::logger>& logger,
-                       time_point exp,
+                       time_point first_start_expected,
+                       duration check_interval,
                        const std::string& serv,
                        const std::string& cmd_name,
                        const std::string& cmd_line,
                        const engine_to_agent_request_ptr& cnf,
-                       check::completion_handler&& handler)
+                       check::completion_handler&& handler,
+                       const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
-            exp,
+            first_start_expected,
+            check_interval,
             serv,
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)) {}
+            std::move(handler),
+            stat) {}
 
 /**
  * @brief create and initialize a check_exec object (don't use constructor)
@@ -137,7 +141,9 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
  * @tparam handler_type
  * @param io_context
  * @param logger
- * @param exp start expected
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
  * @param serv
  * @param cmd_name
  * @param cmd_line
@@ -148,15 +154,17 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
 std::shared_ptr<check_exec> check_exec::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
-    time_point exp,
+    time_point first_start_expected,
+    duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler) {
-  std::shared_ptr<check_exec> ret =
-      std::make_shared<check_exec>(io_context, logger, exp, serv, cmd_name,
-                                   cmd_line, cnf, std::move(handler));
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
+  std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, cnf, std::move(handler), stat);
   ret->_init();
   return ret;
 }
@@ -185,7 +193,9 @@ void check_exec::_init() {
  * @param timeout
  */
 void check_exec::start_check(const duration& timeout) {
-  check::start_check(timeout);
+  if (!check::_start_check(timeout)) {
+    return;
+  }
   if (!_process) {
     _io_context->post([me = check::shared_from_this(),
                        start_check_index = _get_running_check_index()]() {
@@ -221,23 +231,24 @@ void check_exec::start_check(const duration& timeout) {
 }
 
 /**
+ * @brief get process id of the check (only used by tests)
+ *
+ * @return int
+ */
+int check_exec::get_pid() const {
+  if (!_process) {
+    return 0;
+  }
+  return _process->get_pid();
+}
+/**
  * @brief process is killed in case of timeout and handler is called
  *
  * @param err
  * @param start_check_index
  */
-void check_exec::_timeout_timer_handler(const boost::system::error_code& err,
-                                        unsigned start_check_index) {
-  if (err) {
-    return;
-  }
-  if (start_check_index == _get_running_check_index()) {
-    _process->kill();
-    check::_timeout_timer_handler(err, start_check_index);
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "start_check_index={}, running_index={}",
-                        start_check_index, _get_running_check_index());
-  }
+void check_exec::_on_timeout() {
+  _process->kill();
 }
 
 /**

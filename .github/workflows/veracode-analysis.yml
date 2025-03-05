@@ -14,9 +14,6 @@ on:
       minor_version:
         required: true
         type: string
-      img_version:
-        required: true
-        type: string
     secrets:
       veracode_api_id:
         required: true
@@ -24,15 +21,11 @@ on:
         required: true
       veracode_srcclr_token:
         required: true
-      docker_registry_id:
-        required: true
-      docker_registry_passwd:
-        required: true
 
 jobs:
   routing:
     name: Check before analysis
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
       skip_analysis: ${{ steps.routing-mode.outputs.skip_analysis }}
@@ -62,62 +55,12 @@ jobs:
 
   build:
     name: Binary preparation
-    runs-on: [self-hosted, collect]
+    runs-on: [self-hosted, common]
     needs: [routing]
     if: needs.routing.outputs.skip_analysis == 'false'
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
-      credentials:
-        username: ${{ secrets.docker_registry_id }}
-        password: ${{ secrets.docker_registry_passwd }}
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - if: ${{ inputs.module_name == 'centreon-collect' }}
-        name: Compiling Cpp sources
-        run: |
-          mv /root/.cache /github/home
-          export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
-          rm -rf build
-          cmake \
-            -B build \
-            -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-            -DVCPKG_TARGET_TRIPLET=x64-linux-release \
-            -DVCPKG_OVERLAY_PORTS=/overlays \
-            -S . \
-            -GNinja \
-            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-            -DDEBUG_ROBOT=OFF \
-            -DWITH_TESTING=OFF \
-            -DWITH_BENCH=OFF \
-            -DWITH_MODULE_SIMU=OFF \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DWITH_STARTUP_SCRIPT=systemd \
-            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-            -DWITH_USER_BROKER=centreon-broker \
-            -DWITH_GROUP_BROKER=centreon-broker \
-            -DWITH_USER_ENGINE=centreon-engine \
-            -DWITH_GROUP_ENGINE=centreon-engine \
-            -DWITH_VAR_DIR=/var/log/centreon-engine \
-            -DWITH_DAEMONS=ON \
-            -DWITH_CREATE_FILES=OFF \
-            -DWITH_CONFIG_FILES=ON \
-            -DNG=ON
-
-          ninja -Cbuild
-
-          echo "[DEBUG] - Find compiled files"
-          find build/{broker,engine,clib,connectors,common} -name "*.so" -type f
-          echo "[DEBUG] - Build size"
-          du -sh $(find build/{broker,engine,clib,connectors,common} -name "*.so" -type f) | sort -rh
-
-      - if: ${{ inputs.module_name == 'centreon-collect' }}
-        name: Preserve centreon-collect binaries from cleaning
-        run: |
-          echo "[INFO] - Keeping only compiled files"
-          find build -type f -not \( -name "*.so" -or -name "cbd" -or -name "centengine" -or -name "cbwd" -or -name "centreon_connector_*" \) -delete
+      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: Binary preparation of ${{ inputs.module_name }}
         run: |
@@ -144,32 +87,24 @@ jobs:
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
 
-          if [ "${{ inputs.module_name }}" = "centreon-collect" ]; then
-            echo "[INFO] - Keeping only build's non empty folders"
-            find build -empty -type d -delete
-            ls -la build
-            echo "[INFO] - Generating the tarball"
-            tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
-          else
-            echo "[INFO] - Generating the zip"
-            zip -rq "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip" *
-            if [ -n "${{ inputs.module_directory }}" ]; then
-              cd -
-              mv ${{ inputs.module_directory }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip .
-            fi
+          echo "[INFO] - Generating the zip"
+          zip -rq "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip" *
+          if [ -n "${{ inputs.module_directory }}" ]; then
+            cd -
+            mv ${{ inputs.module_directory }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip .
           fi
 
       - name: Cache
         uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   policy-scan:
     name: Sandbox scan
     needs: [routing, build]
     if: needs.routing.outputs.development_stage != 'Development'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Promote latest scan
@@ -192,7 +127,7 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
@@ -201,7 +136,7 @@ jobs:
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}_attempt-${{ github.run_attempt }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.${{ inputs.module_name == 'centreon-collect' && 'tar.gz' || 'zip' }}"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true

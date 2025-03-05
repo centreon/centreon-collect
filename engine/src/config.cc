@@ -63,19 +63,17 @@ static int dfs_host_path(host* root) {
   dfs_set_status(root, DFS_TEMP_CHECKED);
 
   /* We are scanning the children */
-  for (host_map_unsafe::iterator it(root->child_hosts.begin()),
-       end(root->child_hosts.end());
-       it != end; it++) {
-    int child_status = dfs_get_status(it->second);
+  for (const auto& [_, ptr_host] : root->child_hosts) {
+    int child_status = dfs_get_status(ptr_host);
 
     /* If a child is not checked, check it */
     if (child_status == DFS_UNCHECKED)
-      child_status = dfs_host_path(it->second);
+      child_status = dfs_host_path(ptr_host);
 
     /* If a child already temporary checked, its a problem,
      * loop inside, and its a acked status */
     if (child_status == DFS_TEMP_CHECKED) {
-      dfs_set_status(it->second, DFS_LOOPY);
+      dfs_set_status(ptr_host, DFS_LOOPY);
       dfs_set_status(root, DFS_LOOPY);
     }
 
@@ -86,7 +84,7 @@ static int dfs_host_path(host* root) {
         dfs_set_status(root, DFS_NEAR_LOOP);
 
       /* we already saw this child, it's a problem */
-      dfs_set_status(it->second, DFS_LOOPY);
+      dfs_set_status(ptr_host, DFS_LOOPY);
     }
   }
 

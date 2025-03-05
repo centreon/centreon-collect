@@ -32,6 +32,9 @@ apt-get -y install curl \
     zstd \
     psmisc \
     sudo \
+    libhttp-daemon-ssl-perl \
+    libjson-perl \
+    openssl \
     perl-base
 
 apt-get clean

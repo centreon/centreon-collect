@@ -24,6 +24,7 @@ import grpc
 import math
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.json_format import MessageToDict
 import engine_pb2
 import engine_pb2_grpc
 import opentelemetry.proto.collector.metrics.v1.metrics_service_pb2
@@ -35,7 +36,7 @@ import datetime
 from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 import db_conf
 import random
 import shutil
@@ -50,12 +51,24 @@ sys.path.append('.')
 
 
 SCRIPT_DIR: str = dirname(__file__) + "/engine-scripts/"
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
-CONF_DIR = ETC_ROOT + "/centreon-engine"
-ENGINE_HOME = f"{VAR_ROOT}/lib/centreon-engine"
-TIMEOUT = 30
 
+def import_robot_resources():
+    global VAR_ROOT, ETC_ROOT, CONF_DIR, ENGINE_HOME
+    try:
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+        CONF_DIR = ETC_ROOT + "/centreon-engine"
+        ENGINE_HOME = f"{VAR_ROOT}/lib/centreon-engine"
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+
+VAR_ROOT = ""
+ETC_ROOT = ""
+CONF_DIR = ""
+ENGINE_HOME = ""
+TIMEOUT = 30
+import_robot_resources()
 
 class EngineInstance:
     def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20):
@@ -430,17 +443,21 @@ define command {
             ff.write(content)
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str,type: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
-            content = """define serviceescalation {{
-    ;escalation_name                esc{0}
+            content = f"""define {type}escalation {{
+    ;escalation_name                esc{name}
     escalation_period              24x7
-    escalation_options             w,c,r
-    servicegroup_name              {1}
-    contact_groups                 {2}
+    escalation_options             """
+            if type == "service":
+                content+="w,c,r\nservicegroup_name"
+            else:
+                content+="all\nhostgroup_name"
+            content+=f"""              {SG}
+    contact_groups                 {contactgroup}
     }}
-    """.format(name, SG, contactgroup)
+    """
             ff.write(content)
 
     @staticmethod
@@ -511,7 +528,10 @@ define command {
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
-        config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
+        if typ == "hostescalation" or typ == "serviceescalation":
+            config_file = f"{CONF_DIR}/config{poller}/escalationTemplates.cfg"
+        else:
+            config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             idx = 1
@@ -802,7 +822,7 @@ def ctn_get_engines_count():
         return engine.instances
 
 
-def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
+def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False, disambiguous: bool = False):
     """
     Set a value in the centengine.cfg
 
@@ -812,6 +832,8 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
         value (str): the new value to set.
         force (bool, optional): Defaults to False. If the key doesn't exist in the configuration, and force is set to
         true, the key will be added to the file.
+        disambiguous (bool, optional): Defaults to False. If the key appears several times in the file and we want to
+        match only one, it is interesting to enable this option, it will try to also compare values.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     with open(filename, "r") as f:
@@ -820,8 +842,16 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
     replaced = False
     for i in range(len(lines)):
         if lines[i].startswith(key + "="):
-            lines[i] = "{}={}\n".format(key, value)
-            replaced = True
+            if disambiguous:
+                tmp_value = value.split(" ")[0]
+                if lines[i].startswith(key + "=" + tmp_value):
+                    lines[i] = f"{key}={value}\n"
+                    replaced = True
+                    break
+            else:
+                lines[i] = "{}={}\n".format(key, value)
+                replaced = True
+                break
 
     if not replaced and force:
         lines.append("{}={}\n".format(key, value))
@@ -846,7 +876,7 @@ def ctn_engine_config_add_value(idx: int, key: str, value: str):
         f.write(f"{key}={value}")
 
 
-def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str,file :str= "services.cfg"):
     """
     Set a parameter in the services.cfg.
 
@@ -856,11 +886,15 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
         key (str): The key whose value needs to change.
         value (str): The new value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
+        
+    if file == "serviceTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
 
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
@@ -868,6 +902,39 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
+def ctn_engine_config_delete_value_in_service(idx: int, desc: str, key: str, file: str = 'services.cfg'):
+    """
+    Delete a parameter in the services.cfg for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): service description of the services to modify.
+        key (str): the parameter that will be deleted.
+        file (str): The file to modify, default value 'service.cfg'
+    """
+    
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "serviceTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            print("here" + lines[i])
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    break
+            break
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """
@@ -1073,7 +1140,7 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         """)
 
 
-def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str,file :str= "contacts.cfg"):
     """
     Modify a parameter in the contacts.cfg for the Engine config idx.
 
@@ -1082,12 +1149,16 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
         desc (str): Contact name
         key (str): The parameter whose value must change.
         value (str): The new value to set.
+        file (str): The file to modify, default value 'contacts.cfg'
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
+    if file == "contactTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
 
-    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, f"    {key}              {value}\n")
@@ -1096,6 +1167,139 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "w") as f:
         f.writelines(lines)
 
+def ctn_engine_config_delete_value_in_contact(idx: int, desc: str, key: str, file: str = 'contacts.cfg'):
+    """
+    Delete a parameter in the contact.cfg or file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): service description of the services to modify.
+        key (str): the parameter that will be deleted.
+        file (str): The file to modify, default value 'contact.cfg'
+    """
+    
+
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "contactTemplates.cfg":
+        r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            print("here" + lines[i])
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    break
+            break
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value: str, file: str):
+    """
+    Modify a parameter in the file.cfg for the Engine config idx.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        desc (str): The description of the section to modify in.
+        key (str): The parameter to be added.
+        value (str): The new value to set.
+        file (str): The file to modify, can be any *.cfg file.
+
+    Example:
+    ctn_engine_config_set_key_value_in_cfg(idx=0, desc='hostgroup_1', key='alias', value='alias_1', file='hostgroups.cfg')
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    found = False
+    if file == "hostgroups.cfg":
+        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+    elif file == "contactgroups.cfg":
+        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+    elif file == "connectors.cfg":
+        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            found = True
+            break
+    
+    if not found:
+        logger.console(f'\n\033[91mFailed : Cannot add the line  {key} : {value} to {desc} in {file}\033[0m')
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
+    """
+    Delete a parameter in the file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): The description of the section to delete in.
+        key (str): The parameter that will be deleted.
+        file (str): The file to delete the key from.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "hostgroups.cfg":
+        r = re.compile(r"^\s*hostgroup_name\s+" + desc + "\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(r"^\s*servicegroup_name\s+" + desc + "\s*$")
+    elif file == "contactgroups.cfg":
+        r = re.compile(r"^\s*contactgroup_name\s+" + desc + "\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(r"^\s*command_name\s+" + desc + "\s*$")
+    elif file == "connectors.cfg":
+        r = re.compile(r"^\s*connector_name\s+" + desc + "\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+        if file[-13:] == "Templates.cfg":
+            r = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    found = True
+                    break
+            break
+
+    if not found:
+        logger.console(f'\n\033[91mFailed : Cannot delete the line  with the key : {key} to {desc} in {file}\033[0m')
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
     """
@@ -1796,7 +2000,7 @@ def ctn_disable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -1817,7 +2021,7 @@ def ctn_enable_host_and_child_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostAndChildNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
@@ -1931,7 +2135,7 @@ def ctn_disable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.DisableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -1952,7 +2156,7 @@ def ctn_enable_host_notifications(use_grpc: int, hst: str):
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.EnableHostNotifications(
-                engine_pb2.HostIdentifier(name=hst))
+                engine_pb2.NameOrIdIdentifier(name=hst))
     else:
         now = int(time.time())
         cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
@@ -1975,7 +2179,7 @@ def ctn_update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: 
         with grpc.insecure_channel("127.0.0.1:50001") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             stub.ChangeAnomalyDetectionSensitivity(engine_pb2.ChangeServiceNumber(serv=engine_pb2.ServiceIdentifier(
-                names=engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
+                names=engine_pb2.PairNamesIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
     else:
         now = int(time.time())
         cmd = f"[{now}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}\n"
@@ -2341,7 +2545,7 @@ def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str,type: str = "service"):
     """
     Create an escalations.cfg file for a given poller.
 
@@ -2351,7 +2555,7 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
     """
-    engine.create_escalations_file(poller, name, SG, contactgroup)
+    engine.create_escalations_file(poller, name, SG, contactgroup,type)
 
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     """
@@ -2807,6 +3011,26 @@ def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w") as ff:
         ff.writelines(lines)
 
+def ctn_add_template_to_contact(poller: int, tmpl: str, c_lst):
+    """
+    Add a contact template to contact.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tmpl (str): The name of the template to add.
+        c_lst (list): A list of contact name.
+    """
+    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*contact_name\s*(\S+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None and m.group(1) in c_lst:
+            lines.insert(
+                i + 1, f"    use                     {tmpl}\n")
+
+    with open("{}/config{}/contacts.cfg".format(CONF_DIR, poller), "w") as ff:
+        ff.writelines(lines)
 
 def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     """
@@ -3719,4 +3943,309 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
         except:
             logger.console("gRPC server not ready")
 
+def ctn_get_host_info_grpc(id:int):
+    """
+    Retrieve host information via a gRPC call.
+
+    Args:
+        id: The identifier of the host to retrieve.
+
+    Returns:
+        A dictionary containing the host informations, if successfully retrieved.
+    """
+    if id is not None:
+        limit = time.time() + 30
+        while time.time() < limit:
+            time.sleep(1)
+            with grpc.insecure_channel("127.0.0.1:50001") as channel:
+                stub = engine_pb2_grpc.EngineStub(channel)
+                request = engine_pb2.NameOrIdIdentifier(id=id)
+                try:
+                    host = stub.GetHost(request)
+                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                    return host_dict
+                except Exception as e:
+                    logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_service_info_grpc(id_h:int,id_s:int):
+    """
+    Retrieve service information via a gRPC call.
+
+    Args:
+        id_h: The identifier of the host to retrieve.
+        id_s: The identifier of the service to retrieve.
+
+    Returns:
+        A dictionary containing the service informations, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.PairIdsIdentifier(host_id=id_h,service_id=id_s)
+            request = engine_pb2.ServiceIdentifier(ids = identifier)
+            try:
+                host = stub.GetService(request)
+                host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                return host_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_contact_info_grpc(name:str):
+    """
+    Retrieve contact information via a gRPC call.
+
+    Args:
+        name: The name of the contact to retrieve.
+
+    Returns:
+        A dictionary containing the contact information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                contact = stub.GetContact(request)
+                contact_dict = MessageToDict(contact, always_print_fields_with_no_presence=True)
+                return contact_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_hostgroup_info_grpc(name:str):
+    """
+    Retrieve host group information via a gRPC call.
+
+    Args:
+        name: The name of the host group to retrieve.
+
+    Returns:
+        A dictionary containing the host group information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                hg = stub.GetHostGroup(request)
+                hg_dict = MessageToDict(hg, always_print_fields_with_no_presence=True)
+                return hg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_servicegroup_info_grpc(name:str):
+    """
+    Retrieve service group information via a gRPC call.
+
+    Args:
+        name: The name of the service group to retrieve.
+
+    Returns:
+        A dictionary containing the service group information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                sg = stub.GetServiceGroup(request)
+                sg_dict = MessageToDict(sg, always_print_fields_with_no_presence=True)
+                return sg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_contactgroup_info_grpc(name:str):
+    """
+    Retrieve contact group information via a gRPC call.
+
+    Args:
+        name: The name of the contact group to retrieve.
+
+    Returns:
+        A dictionary containing the contact group information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                cg = stub.GetContactGroup(request)
+                cg_dict = MessageToDict(cg, always_print_fields_with_no_presence=True)
+                return cg_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_command_info_grpc(name:str):
+    """
+    Retrieve command information via a gRPC call.
+
+    Args:
+        name: The name of the command to retrieve.
+
+    Returns:
+        A dictionary containing the command information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                command = stub.GetCommand(request)
+                command_dict = MessageToDict(command, always_print_fields_with_no_presence=True)
+                return command_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+      
+def ctn_get_connector_info_grpc(name:str):
+    """
+    Retrieve connector information via a gRPC call.
+
+    Args:
+        name: The name of the connector to retrieve.
+
+    Returns:
+        A dictionary containing the connector information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            request = engine_pb2.NameIdentifier(name=name)
+            try:
+                connector = stub.GetConnector(request)
+                connector_dict = MessageToDict(connector, always_print_fields_with_no_presence=True)
+                return connector_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+    return {}
+
+def ctn_get_service_escalation_info_grpc(host_name:str,service_name:str):
+    """
+    Retrieve service escalation information via a gRPC call.
+
+    Args:
+        name: The name of the service escalation to retrieve.
+
+    Returns:
+        A dictionary containing the service escalation information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.PairNamesIdentifier(host_name=host_name,service_name=service_name)
+            try:
+                ServiceEscalation = stub.GetServiceEscalation(identifier)
+                ServiceEscalation_dict = MessageToDict(ServiceEscalation, always_print_fields_with_no_presence=True)
+                return ServiceEscalation_dict
+            except Exception as e:
+                error_details = e.details()
+                logger.console(f"gRPC server not ready {e}")
+                if error_details == f"could not find serviceescalation with : host '{host_name}',service '{service_name}'":
+                    return {}
+    return {}
+
+def ctn_get_host_escalation_info_grpc(host_name:str ):
+    """
+    Retrieve host escalation information via a gRPC call.
+
+    Args:
+        name: The name of the host escalation to retrieve.
+
+    Returns:
+        A dictionary containing the host escalation information, if successfully retrieved.
+    """
+    limit = time.time() + 30
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            identifier = engine_pb2.NameIdentifier(name=host_name)
+            try:
+                hostEscalation = stub.GetHostEscalation(identifier)
+                hostEscalation_dict = MessageToDict(hostEscalation, always_print_fields_with_no_presence=True)
+                return hostEscalation_dict
+            except Exception as e:
+                logger.console(f"gRPC server not ready {e}")
+                error_details = e.details()
+                if error_details == f"could not find hostescalation '{host_name}'":
+                    return {}
+    return {}
+
+def ctn_check_key_value_existence(data_list, key, value):
+    """
+    Check if a specific key-value pair exists in a list of data strings.
+
+    Args:
+        data_list: List of strings.
+        key: The key to look for.
+        value: The value to match.
+
+    Returns:
+        True if the key-value pair exists in the data list, otherwise False.
+    """
+    for item in data_list:
+        # Split the string by comma and trim spaces
+        properties = [prop.strip() for prop in item.split(',')]
+        # Create a dict to store key-value
+        item_dict = {}
+        for prop in properties:
+            k, v = prop.split(':')
+            item_dict[k.strip()] = v.strip()     
+        # Check if key and value exist in the dict
+        if item_dict.get('key') == key and item_dict.get('value') == value:
+            return True
+    return False
+
+def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
+    """
+    Delete a element in the file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        type (str): The type (host/service/...).
+        key (str): The parameter that will be deleted.
+        file (str): The file to delete the key from.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    
+    with open(filename, "r") as f:
+        content = f.read()
+
+    if type == "host":
+        pattern = rf"define host \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+    elif type == "service":
+        pattern = rf"define service \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+
+    # Use re.sub to remove the matched block
+    new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+    new_content = re.sub(r'\n\s*\n', '\n', new_content)
+
+    if content != new_content:
+        with open(filename, "w") as f:
+            f.write(new_content)
+    else:
+        logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
+
+    
 

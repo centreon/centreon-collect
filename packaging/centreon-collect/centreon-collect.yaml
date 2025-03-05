@@ -1,0 +1,59 @@
+name: "centreon-collect"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Centreon Collect is a software collection containing centreon-broker,
+  centreon-engine, centreon-clib and centreon-connectors.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "files/empty_file"
+    dst: "/var/log/centreon-engine/centengine.debug"
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "files/empty_file"
+    dst: "/var/log/centreon-engine/centengine.log"
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "files/empty_file"
+    dst: "/var/log/centreon-engine/status.dat"
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+overrides:
+  rpm:
+    depends:
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
+      - centreon-engine-daemon = ${VERSION}-${RELEASE}${DIST}
+      - centreon-connector = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-engine-daemon (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-connector (= ${VERSION}-${RELEASE}${DIST})
+
+rpm:
+  summary: Centreon collect's softwares collection.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

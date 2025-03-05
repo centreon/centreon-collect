@@ -20,6 +20,7 @@
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_REVERSE_CLIENT_HH
 
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_stat.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
@@ -39,6 +40,8 @@ class agent_reverse_client {
   absl::Mutex _agents_m;
   config_to_client _agents ABSL_GUARDED_BY(_agents_m);
 
+  agent_stat::pointer _agent_stats;
+
   virtual config_to_client::iterator _create_new_client_connection(
       const grpc_config::pointer& agent_endpoint,
       const agent_config::pointer& agent_conf)
@@ -50,7 +53,8 @@ class agent_reverse_client {
   agent_reverse_client(
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger);
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats);
 
   virtual ~agent_reverse_client();
 

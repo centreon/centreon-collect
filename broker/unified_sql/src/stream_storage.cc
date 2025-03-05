@@ -17,11 +17,8 @@
  */
 
 #include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 
 #include <cfloat>
-#include <cstring>
-#include <list>
 #include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
@@ -31,15 +28,12 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
-#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/common/utf8.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

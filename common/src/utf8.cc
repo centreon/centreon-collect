@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include "utf8.hh"
+
 /**
  * @brief Checks if the string given as parameter is a real UTF-8 string.
  * If it is not, it tries to convert it to UTF-8. Encodings correctly changed
@@ -26,17 +28,17 @@
  * @return The string itself or a new string converted to UTF-8. The output
  * string should always be an UTF-8 string.
  */
-
-#include "utf8.hh"
-
 std::string com::centreon::common::check_string_utf8(
     const std::string_view& str) noexcept {
   std::string_view::const_iterator it;
-  for (it = str.begin(); it != str.end();) {
+  for (it = str.begin(); it < str.end();) {
     uint32_t val = (*it & 0xff);
     if ((val & 0x80) == 0) {
       ++it;
       continue;
+    }
+    if (it + 1 >= str.end()) {
+      break;
     }
     val = (val << 8) | (*(it + 1) & 0xff);
     if ((val & 0xe0c0) == 0xc080) {
@@ -47,6 +49,9 @@ std::string com::centreon::common::check_string_utf8(
       continue;
     }
 
+    if (it + 2 >= str.end()) {
+      break;
+    }
     val = (val << 8) | (*(it + 2) & 0xff);
     if ((val & 0xf0c0c0) == 0xe08080) {
       val &= 0xf2000;
@@ -56,6 +61,9 @@ std::string com::centreon::common::check_string_utf8(
       continue;
     }
 
+    if (it + 3 >= str.end()) {
+      break;
+    }
     val = (val << 8) | (*(it + 3) & 0xff);
     if ((val & 0xf8c0c0c0) == 0xF0808080) {
       val &= 0x7300000;

@@ -33,7 +33,7 @@ class MultiplexingMuxerRead : public ::testing::Test {
  public:
   void SetUp() override {
     try {
-      config::applier::init(0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
       stats::center::load();
     } catch (std::exception const& e) {
       (void)e;

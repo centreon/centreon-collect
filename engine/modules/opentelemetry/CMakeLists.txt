@@ -69,6 +69,7 @@ ${SRC_DIR}/centreon_agent/agent_config.cc
 ${SRC_DIR}/centreon_agent/agent_impl.cc
 ${SRC_DIR}/centreon_agent/agent_reverse_client.cc
 ${SRC_DIR}/centreon_agent/agent_service.cc
+${SRC_DIR}/centreon_agent/agent_stat.cc
 ${SRC_DIR}/centreon_agent/to_agent_connector.cc
 ${SRC_DIR}/grpc_config.cc
 ${SRC_DIR}/host_serv_extractor.cc
@@ -96,6 +97,7 @@ target_link_libraries(opentelemetry
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
   pb_neb_lib
+  pb_common_lib
   engine_rpc)
 
 target_include_directories(opentelemetry PRIVATE

@@ -18,8 +18,6 @@
  */
 #include "common/engine_conf/message_helper.hh"
 
-#include <absl/strings/str_split.h>
-
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
 using ::google::protobuf::Reflection;
@@ -431,7 +429,10 @@ bool message_helper::set(const std::string_view& key,
           set_changed(f->index());
           return true;
         }
+      } else {
+        assert(22 == 23);
       }
+      break;
     case FieldDescriptor::TYPE_ENUM: {
       auto* v = f->enum_type()->FindValueByName(
           std::string(value.data(), value.size()));

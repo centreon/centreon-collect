@@ -207,6 +207,8 @@ void otl_data_point::extract_data_points(const metric_request_ptr& metrics,
               handler(
                   otl_data_point(metrics, resource, scope, pb_metric, iter));
             break;
+          default:
+            break;
         }
       }
     }

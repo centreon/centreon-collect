@@ -54,6 +54,7 @@ static inline bool float_equal(float a, float b) {
           fabs(a - b) <= 0.01 * fabs(a));
 }
 
+namespace com::centreon::common {
 /**
  *  Compare two perfdata objects.
  *
@@ -87,6 +88,9 @@ bool operator==(perfdata const& left, perfdata const& right) {
 bool operator!=(perfdata const& left, perfdata const& right) {
   return !(left == right);
 }
+
+}  // namespace com::centreon::common
+
 /**
  * @brief in case of db insertions we need to ensure that name can be stored in
  * table With it, you can reduce name size
@@ -265,18 +269,21 @@ std::list<perfdata> perfdata::parse_perfdata(
 
     /* The label is given by s and finishes at end */
     if (*end == ']') {
-      --end;
       if (strncmp(s, "a[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::absolute;
       } else if (strncmp(s, "c[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::counter;
       } else if (strncmp(s, "d[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::derive;
       } else if (strncmp(s, "g[", 2) == 0) {
         s += 2;
+        --end;
         p._value_type = perfdata::data_type::gauge;
       }
     }

@@ -21,7 +21,6 @@
 
 #include <absl/types/optional.h>
 
-
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -36,7 +35,8 @@ namespace com::centreon::broker::config {
 class parser {
   void _get_generic_endpoint_configuration(const nlohmann::json& elem,
                                            endpoint& e);
-  void _parse_endpoint(const nlohmann::json& elem, endpoint& e,
+  void _parse_endpoint(const nlohmann::json& elem,
+                       endpoint& e,
                        std::string& module);
 
  public:
@@ -79,14 +79,15 @@ class parser {
 
   parser() = default;
   ~parser() noexcept = default;
-  parser(parser const&) = delete;
+  parser(const parser&) = delete;
   parser& operator=(const parser&) = delete;
   state parse(const std::string& file);
 };
 
 template <>
 absl::optional<std::string> parser::check_and_read<std::string>(
-    const nlohmann::json& elem, const std::string& key);
+    const nlohmann::json& elem,
+    const std::string& key);
 
 template <>
 absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,

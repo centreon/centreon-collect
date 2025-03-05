@@ -47,7 +47,7 @@ TEST(TcpFactory, Exception) {
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(TcpFactory, Acceptor) {
@@ -59,7 +59,7 @@ TEST(TcpFactory, Acceptor) {
   cfg.params["port"] = "4343";
   cfg.params["socket_write_timeout"] = "10";
   cfg.params["socket_read_timeout"] = "10";
-  io::endpoint* endp = fact.new_endpoint(cfg, is_acceptor, cache);
+  io::endpoint* endp = fact.new_endpoint(cfg, {}, is_acceptor, cache);
 
   ASSERT_TRUE(is_acceptor);
   ASSERT_TRUE(endp->is_acceptor());
@@ -75,7 +75,7 @@ TEST(TcpFactory, BadPort) {
 
   cfg.params["port"] = "a4a343";
   cfg.params["host"] = "10.12.13.22";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(TcpFactory, BadHost) {
@@ -86,10 +86,10 @@ TEST(TcpFactory, BadHost) {
 
   cfg.params["port"] = "4343";
   cfg.params["host"] = " 10.12.13.22";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 
   cfg.params["host"] = "10.12.13.22 ";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, cache), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
 }
 
 TEST(TcpFactory, Connector) {
@@ -104,7 +104,7 @@ TEST(TcpFactory, Connector) {
   std::unique_ptr<io::factory> f{new tcp::factory};
   ASSERT_TRUE(f->has_endpoint(cfg, nullptr));
   std::unique_ptr<io::endpoint> endp{
-      fact.new_endpoint(cfg, is_acceptor, cache)};
+      fact.new_endpoint(cfg, {}, is_acceptor, cache)};
 
   ASSERT_FALSE(is_acceptor);
   ASSERT_TRUE(endp->is_connector());

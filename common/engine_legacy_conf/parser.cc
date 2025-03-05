@@ -17,13 +17,11 @@
  *
  */
 #include "parser.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/directory_entry.hh"
+#include <filesystem>
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::io;
 using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 
@@ -288,11 +286,12 @@ std::string const& parser::_map_object_type(map_object const& objects) const
  *  @param[in] path The directory path.
  */
 void parser::_parse_directory_configuration(std::string const& path) {
-  directory_entry dir(path);
-  std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
-  for (std::list<file_entry>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    _parse_object_definitions(it->path());
+  for (const auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+      _parse_object_definitions(entry.path().string());
+    else if (entry.is_directory())
+      _parse_directory_configuration(entry.path().string());
+  }
 }
 
 /**

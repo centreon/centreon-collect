@@ -152,6 +152,6 @@ class processing {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MOD_EXTCMD_PROCESSING_HH

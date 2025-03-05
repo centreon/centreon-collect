@@ -23,9 +23,7 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
@@ -58,9 +56,8 @@ void applier::host::add_object(const configuration::host& obj) {
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
       obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
-      obj.address(), obj.check_period(),
-      static_cast<engine::host::host_state>(obj.initial_state()),
-      obj.check_interval(), obj.retry_interval(), obj.max_check_attempts(),
+      obj.address(), obj.check_period(), obj.check_interval(),
+      obj.retry_interval(), obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & configuration::host::up),
       static_cast<bool>(obj.notification_options() & configuration::host::down),
       static_cast<bool>(obj.notification_options() &
@@ -183,9 +180,8 @@ void applier::host::add_object(const configuration::Host& obj) {
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
       obj.host_id(), obj.host_name(), obj.display_name(), obj.alias(),
-      obj.address(), obj.check_period(),
-      static_cast<engine::host::host_state>(obj.initial_state()),
-      obj.check_interval(), obj.retry_interval(), obj.max_check_attempts(),
+      obj.address(), obj.check_period(), obj.check_interval(),
+      obj.retry_interval(), obj.max_check_attempts(),
       static_cast<bool>(obj.notification_options() & action_hst_up),
       static_cast<bool>(obj.notification_options() & action_hst_down),
       static_cast<bool>(obj.notification_options() & action_hst_unreachable),
@@ -319,10 +315,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   else
     it_obj->second->set_alias(obj.host_name());
   it_obj->second->set_address(obj.address());
-  if (obj.check_period().empty())
+  if (!obj.check_period().empty())
     it_obj->second->set_check_period(obj.check_period());
-  it_obj->second->set_initial_state(
-      static_cast<engine::host::host_state>(obj.initial_state()));
   it_obj->second->set_check_interval(static_cast<double>(obj.check_interval()));
   it_obj->second->set_retry_interval(static_cast<double>(obj.retry_interval()));
   it_obj->second->set_max_attempts(static_cast<int>(obj.max_check_attempts()));
@@ -371,6 +365,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                                 configuration::host::unreachable
                                             ? notifier::unreachable
                                             : notifier::none);
+  it_obj->second->set_stalk_on(notifier::none);
   it_obj->second->add_stalk_on(obj.stalking_options() & configuration::host::up
                                    ? notifier::up
                                    : notifier::none);
@@ -411,6 +406,7 @@ void applier::host::modify_object(configuration::host const& obj) {
                                               config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       obj.recovery_notification_delay());
+  it_obj->second->set_icon_id(obj.icon_id());
 
   // Contacts.
   if (obj.contacts() != obj_old.contacts()) {
@@ -482,10 +478,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   if (obj.parents() != obj_old.parents()) {
     // Delete old parents.
     {
-      for (host_map_unsafe::iterator it(it_obj->second->parent_hosts.begin()),
-           end(it_obj->second->parent_hosts.end());
-           it != end; it++)
-        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
+      for (const auto& [_, sptr_host] : it_obj->second->parent_hosts)
+        broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
                              it_obj->second.get(), nullptr);
     }
     it_obj->second->parent_hosts.clear();
@@ -548,10 +542,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
   else
     h->set_alias(new_obj.host_name());
   h->set_address(new_obj.address());
-  if (new_obj.check_period().empty())
+  if (!new_obj.check_period().empty())
     h->set_check_period(new_obj.check_period());
-  h->set_initial_state(
-      static_cast<engine::host::host_state>(new_obj.initial_state()));
   h->set_check_interval(static_cast<double>(new_obj.check_interval()));
   h->set_retry_interval(static_cast<double>(new_obj.retry_interval()));
   h->set_max_attempts(static_cast<int>(new_obj.max_check_attempts()));
@@ -596,6 +588,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
                                    action_hst_unreachable
                                ? notifier::unreachable
                                : notifier::none);
+  h->set_stalk_on(notifier::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_up ? notifier::up
                                                              : notifier::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_down
@@ -632,6 +625,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_config.interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
+  h->set_icon_id(new_obj.icon_id());
 
   // Contacts.
   if (!MessageDifferencer::Equals(new_obj.contacts(), old_obj->contacts())) {
@@ -727,10 +721,9 @@ void applier::host::modify_object(configuration::Host* old_obj,
 
   if (parents_changed) {
     // Delete old parents.
-    for (auto it = h->parent_hosts.begin(), end = h->parent_hosts.end();
-         it != end; it++)
-      broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr, h.get(),
-                           nullptr);
+    for (const auto& [_, sptr_host] : h->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           h.get(), nullptr);
     h->parent_hosts.clear();
 
     // Create parents.
@@ -787,6 +780,11 @@ void applier::host::remove_object(configuration::host const& obj) {
     for (auto& it_h : it->second->get_parent_groups())
       it_h->members.erase(it->second->name());
 
+    // remove any relations
+    for (const auto& [_, sptr_host] : it->second->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           it->second.get(), nullptr);
+
     // Notify event broker.
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
@@ -833,6 +831,11 @@ void applier::host::remove_object(ssize_t idx) {
     for (auto& it_h : it->second->get_parent_groups())
       it_h->members.erase(it->second->name());
 
+    // remove any relations
+    for (const auto& [_, sptr_host] : it->second->parent_hosts)
+      broker_relation_data(NEBTYPE_PARENT_DELETE, sptr_host.get(), nullptr,
+                           it->second.get(), nullptr);
+
     // Notify event broker.
     for (auto it_s = it->second->services.begin();
          it_s != it->second->services.end(); ++it_s)
@@ -870,10 +873,8 @@ void applier::host::resolve_object(const configuration::host& obj,
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
   if (obj == *config->hosts().begin()) {
-    for (host_map::iterator it(engine::host::hosts.begin()),
-         end(engine::host::hosts.end());
-         it != end; ++it)
-      it->second->child_hosts.clear();
+    for (const auto& [_, sptr_host] : engine::host::hosts)
+      sptr_host->child_hosts.clear();
   }
 
   // Find host.
@@ -911,10 +912,8 @@ void applier::host::resolve_object(const configuration::Host& obj,
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
   if (&obj == &(*pb_config.hosts().begin())) {
-    for (host_map::iterator it(engine::host::hosts.begin()),
-         end(engine::host::hosts.end());
-         it != end; ++it)
-      it->second->child_hosts.clear();
+    for (const auto& [_, sptr_host] : engine::host::hosts)
+      sptr_host->child_hosts.clear();
   }
 
   // Find host.

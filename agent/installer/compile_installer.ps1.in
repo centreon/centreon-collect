@@ -1,0 +1,68 @@
+#
+# Copyright 2024 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
+
+# This script test windows CMA
+# We first start four instances of centreon agent (reverse or not, encryption or not)
+# Then, we install collect in a wsl and start robot test on it.
+# Used ports are:
+#   - 4317 no reversed, no encryption 
+#   - 4318 no reversed, encryption 
+#   - 4320 reversed, no encryption 
+#   - 4321 reversed, encryption
+# All files are shared between wsl and windows, we translate it with $wsl_path
+# By this share, we use certificates (server.*) on both world
+# In order to communicate bteween two worlds, we use hostname and IP of the host
+# That's why we rewrite /etc/hosts on wsl side
+# agent logs are saved in reports and wsl fail tests are saved in it also in case of failure
+
+
+$plugins_release_url = "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
+Write-Host "Downloading plugins release info from $plugins_release_url"
+
+$release_info = Invoke-WebRequest -Uri $plugins_release_url -Headers @{Accept = 'application/vnd.github+json' } | ConvertFrom-Json
+$assets = $release_info.assets
+$tag_name = ($release_info.tag_name)
+
+$asset_url = ""
+foreach ($asset in $assets) {
+    if ($asset.name -eq "centreon_plugins.exe") {
+        $asset_url = $asset.browser_download_url
+        break
+    }
+}
+
+if ($asset_url -eq "") {
+    Write-Host "Failed to get asset url"
+    exit 1
+}
+
+Write-Host "Downloading plugin from $asset_url"
+$request_result = Invoke-WebRequest -Uri $asset_url -OutFile "centreon_plugins.exe" -PassThru
+
+if ($request_result.StatusCode -ne 200) {
+    Write-Host "Failed to download plugins from $asset_url"
+    exit 1
+}
+
+$compile_res = Start-Process -FilePath "${MKNSIS}" -ArgumentList @("/DPLUGINS_VERSION=$tag_name", "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi") -Wait -PassThru
+
+if ($compile_res.ExitCode -ne 0) {
+    Write-Host "Failed to compile installer"
+    exit 1
+}
+exit 0

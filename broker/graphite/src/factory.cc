@@ -1,24 +1,23 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/graphite/factory.hh"
 #include <absl/strings/match.h>
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -36,7 +35,7 @@ using namespace com::centreon::exceptions;
  */
 static std::string find_param(config::endpoint const& cfg,
                               std::string const& key) {
-  std::map<std::string, std::string>::const_iterator it{cfg.params.find(key)};
+  auto it = cfg.params.find(key);
   if (cfg.params.end() == it)
     throw msg_fmt("graphite: no '{}' defined for endpoint '{}'", key, cfg.name);
   return it->second;
@@ -54,7 +53,7 @@ static std::string find_param(config::endpoint const& cfg,
 static std::string get_string_param(config::endpoint const& cfg,
                                     std::string const& key,
                                     std::string const& def) {
-  std::map<std::string, std::string>::const_iterator it(cfg.params.find(key));
+  auto it = cfg.params.find(key);
   if (cfg.params.end() == it)
     return def;
   else
@@ -73,7 +72,7 @@ static std::string get_string_param(config::endpoint const& cfg,
 static uint32_t get_uint_param(config::endpoint const& cfg,
                                std::string const& key,
                                uint32_t def) {
-  std::map<std::string, std::string>::const_iterator it(cfg.params.find(key));
+  auto it = cfg.params.find(key);
   uint32_t retval = 0;
   if (cfg.params.end() == it)
     return def;
@@ -116,6 +115,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache) const {
   std::string db_host(find_param(cfg, "db_host"));

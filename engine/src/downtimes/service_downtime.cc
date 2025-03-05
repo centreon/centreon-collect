@@ -323,8 +323,7 @@ int service_downtime::handle() {
   time_t event_time(0L);
   int attr(0);
 
-  engine_logger(dbg_functions, basic) << "handle_downtime()";
-  SPDLOG_LOGGER_TRACE(functions_logger, "handle_downtime()");
+  SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::handle()");
 
   auto found = service::services_by_id.find({host_id(), service_id()});
 
@@ -415,7 +414,7 @@ int service_downtime::handle() {
     /* update the status data */
     /* We update with CHECK_RESULT level, so notifications numbers, downtimes,
      * and check infos will be updated. */
-    found->second->update_status();
+    found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
 
     /* decrement pending flex downtime if necessary */
     if (!is_fixed() && _incremented_pending_downtime) {

@@ -34,7 +34,9 @@ TEST(otl_host_serv_extractor_test, empty_request) {
                            ExportMetricsServiceRequest>();
 
   otl_data_point::extract_data_points(
-      request, [](const otl_data_point& data_pt) { ASSERT_TRUE(false); });
+      request, [](const otl_data_point& data_pt [[maybe_unused]]) {
+        ASSERT_TRUE(false);
+      });
 }
 
 class otl_host_serv_attributes_extractor_test : public ::testing::Test {

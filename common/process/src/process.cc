@@ -16,8 +16,13 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/process/v2/stdio.hpp>
 #include <boost/program_options/parsers.hpp>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+#include <boost/process/v2/stdio.hpp>
+#include <iostream>
 
 #include "com/centreon/common/process/process.hh"
 
@@ -26,6 +31,7 @@
 #endif
 
 #include <boost/process/v2/process.hpp>
+#pragma GCC diagnostic pop
 
 namespace proc = boost::process::v2;
 
@@ -113,7 +119,7 @@ struct boost_process {
   boost_process(asio::io_context& io_context,
                 const std::string& exe_path,
                 const std::vector<std::string>& args,
-                bool no_stdin)
+                bool no_stdin [[maybe_unused]])
       : stdout_pipe(io_context),
         stderr_pipe(io_context),
         stdin_pipe(io_context),
@@ -150,7 +156,7 @@ process<use_mutex>::process(
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string_view& cmd_line)
     : _io_context(io_context), _logger(logger) {
-#ifdef _WINDOWS
+#ifdef _WIN32
   auto split_res = boost::program_options::split_winmain(std::string(cmd_line));
 #else
   auto split_res = boost::program_options::split_unix(std::string(cmd_line));
@@ -165,6 +171,21 @@ process<use_mutex>::process(
   for (; field_iter != split_res.end(); ++field_iter) {
     _args.emplace_back(*field_iter);
   }
+}
+
+/**
+ * @brief returns pid of process, -1 otherwise
+ *
+ * @tparam use_mutex
+ * @return int
+ */
+template <bool use_mutex>
+int process<use_mutex>::get_pid() {
+  detail::lock<use_mutex> l(&_protect);
+  if (_proc) {
+    return _proc->proc.id();
+  }
+  return -1;
 }
 
 /**
@@ -277,9 +298,9 @@ void process<use_mutex>::stdin_write_no_lock(
     try {
       _write_pending = true;
       _proc->stdin_pipe.async_write_some(
-          asio::buffer(*data),
-          [me = shared_from_this(), caller = _proc, data](
-              const boost::system::error_code& err, size_t nb_written) {
+          asio::buffer(*data), [me = shared_from_this(), caller = _proc, data](
+                                   const boost::system::error_code& err,
+                                   size_t nb_written [[maybe_unused]]) {
             detail::lock<use_mutex> l(&me->_protect);
             if (caller != me->_proc) {
               return;

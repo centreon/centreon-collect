@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2023 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 #define CENTREON_BROKER_CORE_SRC_BROKERIMPL_HH_
 
+#include <grpcpp/server_context.h>
 #include "bbdo/events.hh"
 #include "broker.grpc.pb.h"
 #include "broker/core/src/broker.pb.h"
@@ -115,10 +116,21 @@ class broker_impl final : public Broker::Service {
   grpc::Status SetSqlManagerStats(grpc::ServerContext* context [[maybe_unused]],
                                   const SqlManagerStatsOptions* request,
                                   ::google::protobuf::Empty*) override;
-  ::grpc::Status GetProcessStats(
+  grpc::Status GetProcessStats(
       ::grpc::ServerContext* context,
       const ::google::protobuf::Empty* request,
       ::com::centreon::common::pb_process_stat* response) override;
+
+  grpc::Status Aes256Encrypt(grpc::ServerContext* context,
+                             const AesMessage* request,
+                             GenericString* response) override;
+  grpc::Status Aes256Decrypt(grpc::ServerContext* context,
+                             const AesMessage* request,
+                             GenericString* response) override;
+
+  grpc::Status GetPeers(grpc::ServerContext* context,
+                        const ::google::protobuf::Empty* request,
+                        PeerList* response) override;
 
  public:
   void set_broker_name(const std::string& s);

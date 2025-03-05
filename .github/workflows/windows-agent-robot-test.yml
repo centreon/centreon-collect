@@ -10,29 +10,41 @@ on:
     - cron: '30 0 * * *'
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
   build-collect:
-    needs: [get-version]
+    needs: [get-environment]
     uses: ./.github/workflows/package-collect.yml
     with:
-      major_version: ${{ needs.get-version.outputs.major_version }}
-      minor_version: ${{ needs.get-version.outputs.minor_version }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
-      release: ${{ needs.get-version.outputs.release }}
+      major_version: ${{ needs.get-environment.outputs.major_version }}
+      minor_version: ${{ needs.get-environment.outputs.minor_version }}
+      img_version: ${{ needs.get-environment.outputs.img_version }}
+      release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
-      stability: ${{ needs.get-version.outputs.stability }}
-      legacy_engine: 'ON'
+      stability: ${{ needs.get-environment.outputs.stability }}
+      legacy_engine: 'OFF'
+      build_debug_packages: false
       packages_in_artifact: false
       image: centreon-collect-debian-bullseye
       distrib: bullseye
       package_extension: deb
       runner: collect
       arch: amd64
-    secrets: inherit
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+    secrets:
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+      rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+      rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
 
   build-agent-and-execute-test:
@@ -48,8 +60,7 @@ jobs:
         run: git config --system core.autocrlf false
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
       - name: distrib availables
         run: wsl --list --online
@@ -68,6 +79,7 @@ jobs:
             python3
             python3-pip
             rrdtool
+            jq
 
       - name: IP info
         run: |
@@ -123,7 +135,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: reports-cma-windows
           path: reports

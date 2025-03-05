@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_CONTACTGROUP_HH
 #define CCE_CONFIGURATION_CONTACTGROUP_HH
 
-#include "com/centreon/common/opt.hh"
 #include "group.hh"
 #include "object.hh"
 

@@ -66,7 +66,7 @@ BEBAMIDT1
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Ctn Stop Engine
-    Ctn Kindly Stop Broker    only_central=False    bbdo2=True
+    Ctn Kindly Stop Broker    only_central=False
 
 BEBAMIDT2
     [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.

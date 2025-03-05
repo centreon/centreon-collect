@@ -90,12 +90,14 @@ add_dependencies(
   table_max_size
   target_neb
   pb_neb_lib
+  pb_common_lib
   pb_header_lib)
 
-target_link_libraries(nebbase 
+target_link_libraries(nebbase
   -L${PROTOBUF_LIB_DIR}
-  protobuf 
-  pb_neb_lib 
+  protobuf
+  pb_neb_lib
+  pb_common_lib
   pb_header_lib
   pb_open_telemetry_lib)
 

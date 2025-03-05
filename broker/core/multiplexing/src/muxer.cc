@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
 #include <cassert>
@@ -28,7 +27,6 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"
@@ -325,7 +323,8 @@ void muxer::_execute_reader_if_needed() {
           if (to_call) {
             std::vector<std::shared_ptr<io::data>> to_fill;
             to_fill.reserve(_events_size);
-            bool still_events_to_read = read(to_fill, _events_size);
+            bool still_events_to_read [[maybe_unused]] =
+                read(to_fill, _events_size);
             uint32_t written = to_call->on_events(to_fill);
             if (written > 0)
               ack_events(written);

@@ -17,10 +17,8 @@
  */
 
 #include <rapidjson/document.h>
-#include <re2/re2.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -61,7 +59,7 @@ const std::string_view config::config_schema(R"(
             "description": "Name of the SSL certification authority",
             "type": "string"
         },
-        "reverse_connection": {
+        "reversed_grpc_streaming": {
             "description": "Set to true to make Engine connect to the agent. Requires the agent to be configured as a server. Default: false",
             "type": "boolean"
         },
@@ -89,6 +87,11 @@ const std::string_view config::config_schema(R"(
             "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
             "type": "integer",
             "min": 1
+        },
+        "second_max_reconnect_backoff": {
+            "description": "Maximum time between subsequent connection attempts, in seconds. Default: 60s",
+            "type": "integer",
+            "min": 0
         }
     },
     "required": [
@@ -98,6 +101,8 @@ const std::string_view config::config_schema(R"(
 }
 
 )");
+
+std::unique_ptr<config> config::_global_conf;
 
 config::config(const std::string& path) {
   static common::json_validator validator(config_schema);
@@ -144,5 +149,7 @@ config::config(const std::string& path) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = json_config.get_bool("reverse_connection", false);
+  _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
+  _second_max_reconnect_backoff =
+      json_config.get_unsigned("second_max_reconnect_backoff", 60);
 }

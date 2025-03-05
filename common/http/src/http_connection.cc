@@ -48,7 +48,7 @@ request_base::request_base() {
 }
 
 request_base::request_base(boost::beast::http::verb method,
-                           const std::string& server_name,
+                           const std::string_view& server_name,
                            boost::beast::string_view target)
     : request_type(method, target, 11) {
   set(boost::beast::http::field::host, server_name);
@@ -189,10 +189,17 @@ void http_connection::connect(connect_callback_type&& callback) {
                       *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_connect_timeout());
-  _socket.async_connect(
-      _conf->get_endpoint(),
-      [me = shared_from_this(), cb = std::move(callback)](
-          const boost::beast::error_code& err) { me->on_connect(err, cb); });
+  if (_conf->get_endpoints_list().empty())
+    _socket.async_connect(
+        _conf->get_endpoint(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const boost::beast::error_code& err) { me->on_connect(err, cb); });
+  else
+    _socket.async_connect(_conf->get_endpoints_list(),
+                          [me = shared_from_this(), cb = std::move(callback)](
+                              const boost::beast::error_code& err,
+                              const asio::ip::tcp::endpoint& endpoint
+                              [[maybe_unused]]) { me->on_connect(err, cb); });
 }
 
 /**
@@ -204,10 +211,16 @@ void http_connection::connect(connect_callback_type&& callback) {
  */
 void http_connection::on_connect(const boost::beast::error_code& err,
                                  const connect_callback_type& callback) {
+  std::string detail;
   if (err) {
-    std::string detail =
-        fmt::format("{:p} fail connect to {}: {}", static_cast<void*>(this),
-                    _conf->get_endpoint(), err.message());
+    if (_conf->get_endpoints_list().empty())
+      detail =
+          fmt::format("{:p} fail connect to {}: {}", static_cast<void*>(this),
+                      _conf->get_endpoint(), err.message());
+    else
+      detail =
+          fmt::format("{:p} fail connect to {}: {}", static_cast<void*>(this),
+                      _conf->get_server_name(), err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail);
     shutdown();
@@ -236,7 +249,8 @@ void http_connection::on_connect(const boost::beast::error_code& err,
  * callback is useless in this case but is mandatory to have the same interface
  * than https_connection
  *
- * @param callback called via io_context::post (must have the same signature as https)
+ * @param callback called via io_context::post (must have the same signature as
+ * https)
  */
 void http_connection::_on_accept(connect_callback_type&& callback) {
   unsigned expected = e_not_connected;

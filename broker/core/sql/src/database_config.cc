@@ -17,13 +17,19 @@
  */
 
 #include "com/centreon/broker/sql/database_config.hh"
-
-#include "com/centreon/broker/config/parser.hh"
+#include <absl/strings/ascii.h>
+#include <boost/beast.hpp>
+#include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/exceptions/config.hh"
+#include "com/centreon/common/http/http_config.hh"
+#include "com/centreon/common/http/https_connection.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/vault/vault_access.hh"
 
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
+using namespace com::centreon::common::http;
 
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
@@ -51,7 +57,8 @@ database_config::database_config()
       _check_replication(true),
       _connections_count(1),
       _category(SHARED),
-      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
+      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Constructor.
@@ -93,54 +100,92 @@ database_config::database_config(const std::string& type,
       _connections_count(connections_count),
       _max_commit_delay(max_commit_delay),
       _category(SHARED),
-      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {}
+      _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Build a database configuration from a configuration set.
  *
  *  @param[in] cfg  Endpoint configuration.
  */
-database_config::database_config(config::endpoint const& cfg)
-    : _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR) {
-  std::map<std::string, std::string>::const_iterator it, end;
-  end = cfg.params.end();
+database_config::database_config(
+    const config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params)
+    : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
+  std::string env_file;
+  {
+    auto found = global_params.find("env_file");
+    if (found != global_params.end()) {
+      env_file = found->second;
+      _config_logger->debug("Env file '{}' used.", env_file);
+    } else {
+      env_file = "/usr/share/centreon/.env";
+      _config_logger->debug(
+          "No env_file provided in Broker configuration, default one used.");
+    }
+  }
+  std::string vault_file;
+  {
+    auto found = global_params.find("vault_configuration");
+    if (found != global_params.end()) {
+      vault_file = found->second;
+      _config_logger->debug("Vault configuration file '{}' used.", vault_file);
+    } else {
+      _config_logger->debug(
+          "No vault configuration file provided in Broker configuration.");
+    }
+  }
+  bool verify_peer = true;
+  {
+    auto found = global_params.find("verify_vault_peer");
+    if (found != global_params.end()) {
+      if (absl::SimpleAtob(found->second, &verify_peer)) {
+        _config_logger->debug("Verify Vault peer {}.",
+                              verify_peer ? "enabled" : "disabled");
+      } else {
+        _config_logger->debug("Verification of Vault peer enabled by default.");
+        verify_peer = true;
+      }
+    } else {
+      _config_logger->debug("Verification of Vault peer enabled by default.");
+    }
+  }
 
   // db_type
-  it = cfg.params.find("db_type");
-  if (it != end)
-    _type = it->second;
+  auto found = cfg.params.find("db_type");
+  if (found != cfg.params.end())
+    _type = found->second;
   else
     throw exceptions::config("no 'db_type' defined for endpoint '{}'",
                              cfg.name);
 
   // db_host
-  it = cfg.params.find("db_host");
-  if (it != end)
-    _host = it->second;
+  found = cfg.params.find("db_host");
+  if (found != cfg.params.end())
+    _host = found->second;
   else
     _host = "localhost";
 
   // db_socket
   if (_host == "localhost") {
-    it = cfg.params.find("db_socket");
-    if (it != end)
-      _socket = it->second;
+    found = cfg.params.find("db_socket");
+    if (found != cfg.params.end())
+      _socket = found->second;
     else
       _socket = MYSQL_SOCKET;
   } else
     _socket = "";
 
   // db_port
-  it = cfg.params.find("db_port");
-  auto logger_config = log_v2::instance().get(log_v2::CONFIG);
-  if (it != end) {
+  found = cfg.params.find("db_port");
+  if (found != cfg.params.end()) {
     uint32_t port;
-    if (!absl::SimpleAtoi(it->second, &port)) {
-      logger_config->error(
+    if (!absl::SimpleAtoi(found->second, &port)) {
+      _config_logger->error(
           "In the database configuration, 'db_port' should be a number, "
-          "and "
-          "not '{}'",
-          it->second);
+          "and not '{}'",
+          found->second);
       _port = 0;
     } else
       _port = port;
@@ -148,42 +193,54 @@ database_config::database_config(config::endpoint const& cfg)
     _port = 0;
 
   // db_user
-  it = cfg.params.find("db_user");
-  if (it != end)
-    _user = it->second;
+  found = cfg.params.find("db_user");
+  if (found != cfg.params.end())
+    _user = found->second;
 
   // db_password
-  it = cfg.params.find("db_password");
-  if (it != end)
-    _password = it->second;
+  found = cfg.params.find("db_password");
+  if (found != cfg.params.end())
+    _password = found->second;
+
+  try {
+    common::vault::vault_access vault(env_file, vault_file, verify_peer,
+                                      _config_logger);
+    _password = vault.decrypt(_password);
+    _config_logger->info("Database password get from Vault configuration");
+  } catch (const std::exception& e) {
+    constexpr std::string_view password_prefix("secret::hashicorp_vault::");
+    std::string_view password_header(_password.data(), password_prefix.size());
+    if (password_header == password_prefix)
+      _config_logger->error("No usable Vault configuration: {}", e.what());
+  }
 
   // db_name
-  it = cfg.params.find("db_name");
-  if (it != end)
-    _name = it->second;
+  found = cfg.params.find("db_name");
+  if (found != cfg.params.end())
+    _name = found->second;
   else
     throw exceptions::config("no 'db_name' defined for endpoint '{}'",
                              cfg.name);
 
   // queries_per_transaction
-  it = cfg.params.find("queries_per_transaction");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
-      logger_config->error(
+  found = cfg.params.find("queries_per_transaction");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_queries_per_transaction)) {
+      _config_logger->error(
           "queries_per_transaction is a number but must be given as a "
           "string. "
           "Unable to read the value '{}' - value 2000 taken by default.",
-          it->second);
+          found->second);
       _queries_per_transaction = 2000;
     }
   } else
     _queries_per_transaction = 2000;
 
   // check_replication
-  it = cfg.params.find("check_replication");
-  if (it != end) {
-    if (!absl::SimpleAtob(it->second, &_check_replication)) {
-      logger_config->error(
+  found = cfg.params.find("check_replication");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtob(found->second, &_check_replication)) {
+      _config_logger->error(
           "check_replication is a string containing a boolean. If not "
           "specified, it will be considered as \"true\".");
       _check_replication = true;
@@ -192,10 +249,10 @@ database_config::database_config(config::endpoint const& cfg)
     _check_replication = true;
 
   // connections_count
-  it = cfg.params.find("connections_count");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_connections_count)) {
-      logger_config->error(
+  found = cfg.params.find("connections_count");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_connections_count)) {
+      _config_logger->error(
           "connections_count is a string "
           "containing an integer. If not "
           "specified, it will be considered as "
@@ -204,10 +261,10 @@ database_config::database_config(config::endpoint const& cfg)
     }
   } else
     _connections_count = 1;
-  it = cfg.params.find("max_commit_delay");
-  if (it != end) {
-    if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
-      logger_config->error(
+  found = cfg.params.find("max_commit_delay");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtoi(found->second, &_max_commit_delay)) {
+      _config_logger->error(
           "max_commit_delay is a string "
           "containing an integer. If not "
           "specified, it will be considered as "
@@ -217,9 +274,9 @@ database_config::database_config(config::endpoint const& cfg)
   } else
     _max_commit_delay = 5;
 
-  it = cfg.params.find("extension_directory");
-  if (it != end) {
-    _extension_directory = it->second;
+  found = cfg.params.find("extension_directory");
+  if (found != cfg.params.end()) {
+    _extension_directory = found->second;
   }
 }
 
@@ -228,14 +285,9 @@ database_config::database_config(config::endpoint const& cfg)
  *
  *  @param[in] other  Object to copy.
  */
-database_config::database_config(database_config const& other) {
+database_config::database_config(const database_config& other) {
   _internal_copy(other);
 }
-
-/**
- *  Destructor.
- */
-database_config::~database_config() {}
 
 /**
  *  Assignment operator.
@@ -244,7 +296,7 @@ database_config::~database_config() {}
  *
  *  @return This object.
  */
-database_config& database_config::operator=(database_config const& other) {
+database_config& database_config::operator=(const database_config& other) {
   if (this != &other)
     _internal_copy(other);
   return *this;
@@ -280,8 +332,8 @@ bool database_config::operator==(database_config const& other) const {
             _host, other._host);
       else if (_socket != other._socket)
         logger->debug(
-            "database configurations do not match because of their sockets: {} "
-            "!= {}",
+            "database configurations do not match because of their sockets: "
+            "{} != {}",
             _socket, other._socket);
       else if (_port != other._port)
         logger->debug(
@@ -295,8 +347,8 @@ bool database_config::operator==(database_config const& other) const {
             _user, other._user);
       else if (_password != other._password)
         logger->debug(
-            "database configurations do not match because of their passwords: "
-            "{} != {}",
+            "database configurations do not match because of their "
+            "passwords: {} != {}",
             _password, other._password);
       else if (_name != other._name)
         logger->debug(
@@ -305,13 +357,13 @@ bool database_config::operator==(database_config const& other) const {
             _name, other._name);
       else if (_queries_per_transaction != other._queries_per_transaction)
         logger->debug(
-            "database configurations do not match because of their queries per "
-            "transactions: {} != {}",
+            "database configurations do not match because of their queries "
+            "per transactions: {} != {}",
             _queries_per_transaction, other._queries_per_transaction);
       else if (_connections_count != other._connections_count)
         logger->debug(
-            "database configurations do not match because of their connections "
-            "counts: {} != {}",
+            "database configurations do not match because of their "
+            "connections counts: {} != {}",
             _connections_count, other._connections_count);
       else if (_max_commit_delay != other._max_commit_delay)
         logger->debug(

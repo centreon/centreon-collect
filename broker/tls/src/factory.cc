@@ -19,7 +19,6 @@
 #include "com/centreon/broker/tls/factory.hh"
 #include <absl/strings/match.h>
 
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/tls/acceptor.hh"
 #include "com/centreon/broker/tls/connector.hh"
 #include "common/log_v2/log_v2.hh"
@@ -42,12 +41,12 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   bool has_tls;
-  std::map<std::string, std::string>::iterator it;
   bool legacy;
 
   auto logger = log_v2::instance().get(log_v2::TLS);
 
   if (ext) {
+    std::map<std::string, std::string>::iterator it;
     if (direct_grpc_serialized(cfg)) {
       return false;
     }
@@ -129,10 +128,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
-  (void)cache;
-
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   auto logger = log_v2::instance().get(log_v2::TLS);
 
   // Find TLS parameters (optional).
@@ -143,8 +141,7 @@ io::endpoint* factory::new_endpoint(
   std::string tls_hostname;
   {
     // Is TLS enabled ?
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("tls")};
+    auto it = cfg.params.find("tls");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &tls)) {
         logger->error(

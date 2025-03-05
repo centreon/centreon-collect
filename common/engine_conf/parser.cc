@@ -17,13 +17,12 @@
  *
  */
 #include "parser.hh"
-#include <memory>
+#include "anomalydetection_helper.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "command_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/log_v2/log_v2.hh"
-
-#include "anomalydetection_helper.hh"
-#include "command_helper.hh"
 #include "connector_helper.hh"
 #include "contact_helper.hh"
 #include "contactgroup_helper.hh"
@@ -50,28 +49,6 @@ using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
 using ::google::protobuf::Message;
 using ::google::protobuf::Reflection;
-
-/**
- * @brief Reads the content of a text file and returns it in an std::string.
- *
- * @param file_path The file to read.
- *
- * @return The content as an std::string.
- */
-static std::string read_file_content(const std::filesystem::path& file_path) {
-  std::ifstream in(file_path, std::ios::in);
-  std::string retval;
-  if (in) {
-    in.seekg(0, std::ios::end);
-    retval.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&retval[0], retval.size());
-    in.close();
-  } else
-    throw msg_fmt("Parsing of resource file failed: can't open file '{}': {}",
-                  file_path.string(), strerror(errno));
-  return retval;
-}
 
 /**
  *  Default constructor.
@@ -160,7 +137,7 @@ void parser::_parse_global_configuration(const std::string& path,
                                          State* pb_config) {
   _logger->info("Reading main configuration file '{}'.", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   pb_config->set_cfg_main(path);
   _current_line = 0;
@@ -210,7 +187,7 @@ void parser::_parse_object_definitions(const std::string& path,
                                        State* pb_config) {
   _logger->info("Processing object config file '{}'", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   auto tab{absl::StrSplit(content, '\n')};
   std::string ll;
@@ -464,7 +441,7 @@ void parser::_parse_object_definitions(const std::string& path,
 void parser::_parse_resource_file(const std::string& path, State* pb_config) {
   _logger->info("Reading resource file '{}'", path);
 
-  std::string content = read_file_content(path);
+  std::string content = common::read_file_content(path);
 
   auto tab{absl::StrSplit(content, '\n')};
   int current_line = 1;
@@ -525,6 +502,14 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
   for (Hostescalation& he : *pb_config->mutable_hostescalations())
     _resolve_template(_pb_helper[&he],
                       _pb_templates[message_helper::hostescalation]);
+
+  for (Hostgroup& hg : *pb_config->mutable_hostgroups())
+    _resolve_template(_pb_helper[&hg],
+                      _pb_templates[message_helper::hostgroup]);
+
+  for (Servicegroup& sg : *pb_config->mutable_servicegroups())
+    _resolve_template(_pb_helper[&sg],
+                      _pb_templates[message_helper::servicegroup]);
 
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
@@ -778,6 +763,28 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     lst->add_data(v);
                 } else if (lst->data().empty())
                   *lst->mutable_data() = orig_lst->data();
+              } else if (d && d->name() == "PairStringSet") {
+                PairStringSet* orig_pair =
+                    static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
+                PairStringSet* pair =
+                    static_cast<PairStringSet*>(refl->MutableMessage(msg, f));
+                if (pair->additive()) {
+                  for (auto& v : orig_pair->data()) {
+                    bool found = false;
+                    for (auto& s : *pair->mutable_data()) {
+                      if (s.first() == v.first() && s.second() == v.second()) {
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (!found)
+                      pair->add_data()->CopyFrom(v);
+                  }
+                } else if (pair->data().empty())
+                  *pair->mutable_data() = orig_pair->data();
+              } else {
+                refl->MutableMessage(msg, f)->CopyFrom(
+                    refl->GetMessage(*tmpl, f));
               }
               msg_helper->set_changed(f->index());
             } break;

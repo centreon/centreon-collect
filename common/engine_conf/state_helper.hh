@@ -28,16 +28,18 @@ namespace com::centreon::engine::configuration {
 
 class state_helper : public message_helper {
   void _init();
+  static void _expand_cv(configuration::State& s);
 
  public:
   state_helper(State* obj);
   ~state_helper() noexcept = default;
 
-  bool hook(std::string_view key, const std::string_view& value) override;
+  bool hook(std::string_view key, std::string_view value) override;
   bool apply_extended_conf(const std::string& file_path,
                            const rapidjson::Document& json_doc,
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
+  void expand(configuration::error_cnt& err);
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -19,7 +19,6 @@
 #include "common/engine_conf/hostdependency_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -76,8 +75,7 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostdependency_helper::hook(std::string_view key,
-                                 const std::string_view& value) {
+bool hostdependency_helper::hook(std::string_view key, std::string_view value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -163,4 +161,80 @@ void hostdependency_helper::_init() {
   obj->set_inherits_parent(false);
   obj->set_notification_failure_options(action_hd_none);
 }
+
+/**
+ * @brief Expand the hostdependencies.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void hostdependency_helper::expand(
+    State& s,
+    error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
+  std::list<std::unique_ptr<configuration::Hostdependency> > lst;
+
+  for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
+    auto* hd_conf = s.mutable_hostdependencies(i);
+    if (hd_conf->hosts().data().size() > 1 ||
+        !hd_conf->hostgroups().data().empty() ||
+        hd_conf->dependent_hosts().data().size() > 1 ||
+        !hd_conf->dependent_hostgroups().data().empty() ||
+        hd_conf->dependency_type() == unknown) {
+      for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
+        auto found = m_hostgroups.find(hg_name);
+        if (found != m_hostgroups.end()) {
+          auto& hg_conf = *found->second;
+          for (auto& h : hg_conf.members().data())
+            fill_string_group(hd_conf->mutable_dependent_hosts(), h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Host dependency dependent hostgroup '{}' not found",
+                        hg_name);
+        }
+      }
+      for (auto& hg_name : hd_conf->hostgroups().data()) {
+        auto found = m_hostgroups.find(hg_name);
+        if (found != m_hostgroups.end()) {
+          auto& hg_conf = *found->second;
+          for (auto& h : hg_conf.members().data())
+            fill_string_group(hd_conf->mutable_hosts(), h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Host dependency hostgroup '{}' not found", hg_name);
+        }
+      }
+      for (auto& h : hd_conf->hosts().data()) {
+        for (auto& h_dep : hd_conf->dependent_hosts().data()) {
+          for (int ii = 1; ii <= 2; ii++) {
+            if (hd_conf->dependency_type() == DependencyKind::unknown ||
+                static_cast<int32_t>(hd_conf->dependency_type()) == ii) {
+              lst.emplace_back(std::make_unique<Hostdependency>());
+              auto& new_hd = lst.back();
+              new_hd->set_dependency_period(hd_conf->dependency_period());
+              new_hd->set_inherits_parent(hd_conf->inherits_parent());
+              fill_string_group(new_hd->mutable_hosts(), h);
+              fill_string_group(new_hd->mutable_dependent_hosts(), h_dep);
+              if (ii == 2) {
+                new_hd->set_dependency_type(
+                    DependencyKind::execution_dependency);
+                new_hd->set_execution_failure_options(
+                    hd_conf->execution_failure_options());
+              } else {
+                new_hd->set_dependency_type(
+                    DependencyKind::notification_dependency);
+                new_hd->set_notification_failure_options(
+                    hd_conf->notification_failure_options());
+              }
+            }
+          }
+        }
+      }
+      s.mutable_hostdependencies()->DeleteSubrange(i, 1);
+    }
+  }
+  for (auto& hd : lst)
+    s.mutable_hostdependencies()->AddAllocated(hd.release());
+}
+
 }  // namespace com::centreon::engine::configuration
