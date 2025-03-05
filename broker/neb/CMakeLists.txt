@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2013,2015 Centreon
+# Copyright 2009-2013,2015-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -73,7 +73,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/instance.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_configuration.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/internal.hh
     ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
     ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
     ${INC_DIR}/com/centreon/broker/neb/service.hh
@@ -131,22 +130,6 @@ add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
 
 set_property(TARGET cbmod PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-# add_library( cbmod SHARED # Sources.
-# "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
-# "${SRC_DIR}/callback.cc" "${SRC_DIR}/callbacks.cc" "${SRC_DIR}/initial.cc"
-# "${SRC_DIR}/internal.cc" "${SRC_DIR}/neb.cc" "${SRC_DIR}/set_log_data.cc" #
-# Headers. "${INC_DIR}/com/centreon/broker/neb/callback.hh"
-# "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
-# "${INC_DIR}/com/centreon/broker/neb/initial.hh"
-# "${INC_DIR}/com/centreon/broker/neb/internal.hh"
-# "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
-#
-# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # Flags
-# needed to include all symbols in shared library. target_link_libraries( cbmod
-# -L${PROTOBUF_LIB_DIR} "-Wl,--whole-archive" rokerbase multiplexing
-# "-Wl,--no-whole-archive") else() target_link_libraries(cbmod
-# -L${PROTOBUF_LIB_DIR} "rokerbase") endif()
-#
 set_target_properties(cbmod PROPERTIES PREFIX "")
 target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
@@ -161,9 +144,6 @@ target_link_libraries(
   log_v2
   centreon_common
   gRPC::grpc++)
-# target_link_libraries(cbmod fmt::fmt "-Wl,--whole-archive" rokerbase
-# multiplexing "-Wl,--no-whole-archive" pb_neb_lib pb_header_lib protobuf
-# nebbase)
 get_property(
   CBMOD_DEFINES
   TARGET cbmod
@@ -177,7 +157,6 @@ set_property(TARGET cbmod PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
-      ${SRC_DIR}/set_log_data.cc
       # Actual tests
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
@@ -193,7 +172,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/service.cc
       ${TEST_DIR}/service_check.cc
       ${TEST_DIR}/service_status.cc
-      ${TEST_DIR}/set_log_data.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${NEB}
