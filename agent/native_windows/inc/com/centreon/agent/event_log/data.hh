@@ -73,12 +73,12 @@ class event_data : public testable {
 class event_filter {
   filters::filter_combinator _filter;
   std::shared_ptr<spdlog::logger> _logger;
+  duration _written_limit;
 
   struct check_builder {
-    duration _min_written;
-    void operator()(filter* filt) const;
-    void set_label_compare_to_value(
-        filters::label_compare_to_value* filt) const;
+    duration min_written{0};
+    void operator()(filter* filt);
+    void set_label_compare_to_value(filters::label_compare_to_value* filt);
     void set_label_compare_to_string(
         filters::label_compare_to_string<wchar_t>* filt) const;
     void set_label_in(filters::label_in<wchar_t>* filt) const;
@@ -104,6 +104,8 @@ class event_filter {
   void dump(std::ostream& s) const { _filter.dump(s); }
 
   void visit(const visitor& visitr) const { _filter.visit(visitr); }
+
+  duration get_written_limit() const { return _written_limit; }
 };
 
 inline std::ostream& operator<<(std::ostream& s, const event_filter& filt) {

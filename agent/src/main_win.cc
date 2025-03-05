@@ -21,6 +21,7 @@
 
 #include "agent_info.hh"
 #include "check_cpu.hh"
+#include "check_event_log.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
 #include "check_service.hh"
@@ -130,6 +131,7 @@ void show_help() {
   check_drive_size::help(std::cout);
   check_service::help(std::cout);
   check_health::help(std::cout);
+  check_event_log::help(std::cout);
 }
 
 /**

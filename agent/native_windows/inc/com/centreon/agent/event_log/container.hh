@@ -26,23 +26,40 @@ namespace com::centreon::agent::event_log {
 
 class event_container {
  public:
-  using time_point_set = std::multiset<std::chrono::file_clock::time_point>;
+  using event_cont = multi_index::multi_index_container<
+      unique_event,
+      multi_index::indexed_by<
+          multi_index::hashed_unique<BOOST_MULTI_INDEX_CONST_MEM_FUN(
+                                         unique_event,
+                                         const event&,
+                                         get_event),
+                                     event_comparator,
+                                     event_comparator>,
+          multi_index::ordered_non_unique<BOOST_MULTI_INDEX_CONST_MEM_FUN(
+              unique_event,
+              std::chrono::file_clock::time_point,
+              get_oldest)> > >;
 
-  using event_cont = absl::
-      flat_hash_map<event, time_point_set, event_comparator, event_comparator>;
+  using event_index_type = multi_index::nth_index<event_cont, 0>::type;
+  using oldest_index_type = multi_index::nth_index<event_cont, 1>::type;
 
  private:
+  duration _scan_range;
   duration _warning_scan_range;
   duration _critical_scan_range;
 
+  const bool _need_to_decode_message_content;
   std::wstring _file;
   std::unique_ptr<event_filter> _primary_filter;
   std::unique_ptr<event_filter> _warning_filter;
   std::unique_ptr<event_filter> _critical_filter;
 
   event_comparator _event_compare;
+  event_cont::ctor_args_list _container_initializer;
   event_cont _critical ABSL_GUARDED_BY(_events_m);
   event_cont _warning ABSL_GUARDED_BY(_events_m);
+  std::multiset<std::chrono::file_clock::time_point> _ok_events
+      ABSL_GUARDED_BY(_events_m);
   unsigned _insertion_cpt ABSL_GUARDED_BY(_events_m);
   unsigned _nb_warning ABSL_GUARDED_BY(_events_m);
   unsigned _nb_critical ABSL_GUARDED_BY(_events_m);
@@ -57,7 +74,6 @@ class event_container {
   void* _read_event_buffer ABSL_GUARDED_BY(_events_m);
   DWORD _buffer_size ABSL_GUARDED_BY(_events_m);
 
-  bool _need_to_decode_message_content;
   LPWSTR _read_message_buffer ABSL_GUARDED_BY(_events_m);
   DWORD _message_buffer_size ABSL_GUARDED_BY(_events_m);  // size in wchar_t
 
@@ -78,6 +94,7 @@ class event_container {
                   const std::string_view& warning_filter,
                   const std::string_view& critical_filter,
                   duration scan_range,
+                  bool need_to_decode_message_content,
                   const std::shared_ptr<spdlog::logger>& logger);
   void start();
 
@@ -93,6 +110,20 @@ class event_container {
   const event_cont& get_warning() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
     return _warning;
+  }
+
+  const std::wstring get_file() const { return _file; }
+
+  void clean_perempted_events() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+
+  unsigned get_nb_warning() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
+    return _nb_warning;
+  }
+  unsigned get_nb_critical() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
+    return _nb_critical;
+  }
+  size_t get_nb_ok() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
+    return _ok_events.size();
   }
 };
 

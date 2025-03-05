@@ -21,12 +21,29 @@
 
 #include "check.hh"
 #include "event_log/container.hh"
+#include "event_log/data.hh"
 #include "event_log/uniq.hh"
 
 namespace com::centreon::agent {
 
 class check_event_log : public check {
   std::unique_ptr<event_log::event_container> _data;
+
+  unsigned _warning_threshold;
+  unsigned _critical_threshold;
+  std::string _empty_output;
+  std::string _ok_syntax;
+  std::string _event_detail_syntax;
+  bool _need_message_content;
+  bool _verbose;
+  std::string _output_syntax;
+
+  void _calc_event_detail_syntax(const std::string_view& param);
+  void _calc_output_format();
+
+  template <bool need_written_str>
+  std::string print_event_detail(const std::string& file,
+                                 const event_log::event& evt) const;
 
  public:
   check_event_log(const std::shared_ptr<asio::io_context>& io_context,
@@ -45,9 +62,9 @@ class check_event_log : public check {
 
   void start_check(const duration& timeout) override;
 
-  e_status compute(uint64_t ms_uptime,
+  e_status compute(event_log::event_container& data,
                    std::string* output,
-                   common::perfdata* perfs);
+                   std::list<common::perfdata>* perfs);
 };
 
 }  // namespace com::centreon::agent

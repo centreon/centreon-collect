@@ -20,8 +20,17 @@
 
 using namespace com::centreon::agent::event_log;
 
-unique_event::unique_event(event&& evt) : _evt(evt) {
+unique_event::unique_event(event&& evt) : _evt(evt), _oldest(_evt.time()) {
   _time_points.insert(_evt.time());
+}
+
+void unique_event::clean_oldest(
+    std::chrono::file_clock::time_point peremption) {
+  if (_time_points.empty()) {
+    return;
+  }
+  _time_points.erase(_time_points.begin(),
+                     _time_points.upper_bound(peremption));
 }
 
 re2::RE2 field_regex("\\${([^\\${}]+)}");

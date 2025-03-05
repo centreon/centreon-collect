@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+#include "boost/multi_index_container.hpp"
+#include "boost/tuple/tuple.hpp"
+#include "event_log/uniq.hh"
 #include "windows_util.hh"
 
 #include "event_log/container.hh"
@@ -29,12 +32,26 @@ event_container::event_container(const std::string_view& file,
                                  const std::string_view& warning_filter,
                                  const std::string_view& critical_filter,
                                  duration scan_range,
+                                 bool need_to_decode_message_content,
                                  const std::shared_ptr<spdlog::logger>& logger)
-    : _warning_scan_range(scan_range),
+    : _scan_range(scan_range),
+      _warning_scan_range(scan_range),
       _critical_scan_range(scan_range),
+      _need_to_decode_message_content(need_to_decode_message_content),
       _file(file.begin(), file.end()),
       _event_compare(unique_str, logger),
-      _critical(0, _event_compare, _event_compare),
+      _container_initializer(boost::make_tuple(
+          boost::make_tuple(
+              0,
+              boost::multi_index::const_mem_fun<
+                  com::centreon::agent::event_log::unique_event,
+                  const com::centreon::agent::event_log::event&,
+                  &com::centreon::agent::event_log::unique_event::get_event>(),
+              _event_compare,
+              _event_compare),
+          oldest_index_type::ctor_args())),
+      _critical(_container_initializer),
+      _warning(_container_initializer),
       _insertion_cpt(0),
       _nb_warning(0),
       _nb_critical(0),
@@ -52,26 +69,43 @@ event_container::event_container(const std::string_view& file,
       SPDLOG_LOGGER_ERROR(logger, "fail to parse event filter: {}", e.what());
       throw;
     }
+  } else {
+    _primary_filter = std::make_unique<event_filter>(
+        "written > 60m and level in ('error', 'warning', 'critical')", logger);
   }
 
   if (!warning_filter.empty()) {
     try {
       _warning_filter = std::make_unique<event_filter>(warning_filter, logger);
+      duration written_limit = _warning_filter->get_written_limit();
+      if (written_limit.count() && written_limit < _warning_scan_range) {
+        _warning_scan_range = written_limit;
+      }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "fail to parse warning filter: {}", e.what());
       throw;
     }
+  } else {
+    _warning_filter =
+        std::make_unique<event_filter>("level == 'warning'", logger);
   }
 
   if (!critical_filter.empty()) {
     try {
       _critical_filter =
           std::make_unique<event_filter>(critical_filter, logger);
+      duration written_limit = _critical_filter->get_written_limit();
+      if (written_limit.count() && written_limit < _critical_scan_range) {
+        _critical_scan_range = written_limit;
+      }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "fail to parse critical filter: {}",
                           e.what());
       throw;
     }
+  } else {
+    _critical_filter = std::make_unique<event_filter>(
+        "level in ('error', 'critical')", logger);
   }
 
   _render_context = EvtCreateRenderContext(0, nullptr, EvtRenderContextSystem);
@@ -161,15 +195,16 @@ void event_container::_on_event(EVT_HANDLE h_event) {
     }
 
     e_status event_status = e_status::ok;
+    std::string message;
     if (_critical_filter->allow(raw_event)) {
       event_status = e_status::critical;
     } else if (_warning_filter->allow(raw_event)) {
       event_status = e_status::warning;
     } else {
-      return;
+      _ok_events.emplace(
+          std::chrono::file_clock::duration(raw_event.get_time_created()));
     }
 
-    std::string message;
     if (_need_to_decode_message_content) {
       auto yet_open = _provider_metadata.find(raw_event.get_provider());
       if (yet_open == _provider_metadata.end()) {
@@ -197,48 +232,62 @@ void event_container::_on_event(EVT_HANDLE h_event) {
 
     event to_ins(raw_event, event_status, std::move(message));
 
+    auto add_event = [&](event_cont& cont) {
+      auto yet_exist = cont.find(to_ins);
+      if (yet_exist != cont.end()) {
+        if (yet_exist->get_oldest() <
+            to_ins.time()) {  // we modify without recalculate index
+          yet_exist->add_time_point(to_ins.time());
+        } else {
+          cont.modify(yet_exist, [tp = to_ins.time()](unique_event& to_modify) {
+            to_modify.add_time_point(tp);
+          });
+        }
+      } else {
+        cont.emplace(std::move(to_ins));
+      }
+    };
+
     if (event_status == e_status::warning) {
       ++_nb_warning;
-      auto res_insert =
-          _warning.emplace(std::move(to_ins), time_point_set{to_ins.time()});
-      if (!res_insert.second)
-        res_insert.first->second.insert(to_ins.time());
+      add_event(_warning);
     } else {
       ++_nb_critical;
-      auto res_insert =
-          _critical.emplace(std::move(to_ins), time_point_set{to_ins.time()});
-      if (!res_insert.second)
-        res_insert.first->second.insert(to_ins.time());
+      add_event(_critical);
     }
 
     // every 10 events we clean oldest events
     if (!((++_insertion_cpt) % 10)) {
-      auto clean_oldest = [](event_cont& to_clean, unsigned& event_counter,
-                             auto peremption) {
-        for (auto event_iter = to_clean.begin();
-             event_iter != to_clean.end();) {
-          time_point_set& time_points = event_iter->second;
-          for (time_point_set::iterator to_check = time_points.begin();
-               !time_points.empty() && to_check != time_points.end();) {
-            if (*to_check > peremption) {
-              break;
-            }
-            to_check = time_points.erase(to_check);
-            --event_counter;
-          }
-          if (event_iter->second.empty()) {
-            to_clean.erase(event_iter++);
-          } else {
-            ++event_iter;
-          }
-        }
-      };
-      clean_oldest(_warning, _nb_warning,
-                   std::chrono::file_clock::now() - _warning_scan_range);
-      clean_oldest(_critical, _nb_critical,
-                   std::chrono::file_clock::now() - _critical_scan_range);
+      clean_perempted_events();
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to read event: {}", e.what());
+  }
+}
+
+void event_container::clean_perempted_events() {
+  auto clean_oldest = [](event_cont& to_clean, unsigned& event_counter,
+                         auto peremption) {
+    auto& ind = to_clean.get<1>();
+    auto oldest = ind.begin();
+    while (!to_clean.empty() && oldest->get_oldest() < peremption) {
+      ind.modify(oldest, [peremption](unique_event& evt) {
+        evt.clean_oldest(peremption);
+      });
+      if (oldest->empty()) {
+        ind.erase(oldest);
+      }
+      if (!ind.empty()) {
+        oldest = ind.begin();
+      }
+    }
+  };
+  auto now = std::chrono::file_clock::now();
+  clean_oldest(_warning, _nb_warning, now - _warning_scan_range);
+  clean_oldest(_critical, _nb_critical, now - _critical_scan_range);
+
+  if (!_ok_events.empty()) {
+    auto limit = _ok_events.lower_bound(now - _scan_range);
+    _ok_events.erase(_ok_events.begin(), limit);
   }
 }

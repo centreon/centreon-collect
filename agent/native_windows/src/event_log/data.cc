@@ -208,7 +208,7 @@ std::wstring_view event_data::get_channel() const {
  *                          event_filter                                 *
  *                                                                       *
  ****************************************************************************/
-void event_filter::check_builder::operator()(filter* filt) const {
+void event_filter::check_builder::operator()(filter* filt) {
   if (filt->get_type() == filter::filter_type::label_compare_to_value) {
     set_label_compare_to_value(
         static_cast<filters::label_compare_to_value*>(filt));
@@ -221,7 +221,7 @@ void event_filter::check_builder::operator()(filter* filt) const {
 }
 
 void event_filter::check_builder::set_label_compare_to_value(
-    filters::label_compare_to_value* filt) const {
+    filters::label_compare_to_value* filt) {
   if (filt->get_label() == "event_id") {
     filt->set_checker_from_getter([](const testable& t) {
       return static_cast<const event_data&>(t).get_event_id();
@@ -233,6 +233,11 @@ void event_filter::check_builder::set_label_compare_to_value(
   } else if (filt->get_label() == "written") {
     filt->calc_duration();
     filt->change_threshold_to_abs();
+    if (!min_written.count() || min_written.count() > filt->get_value()) {
+      min_written =
+          std::chrono::seconds(static_cast<unsigned>(filt->get_value()));
+    }
+
     filt->set_checker_from_getter([](const testable& t) {
       FILETIME ft;
       SYSTEMTIME st;
@@ -381,12 +386,14 @@ bool event_filter::level_in<rule>::operator()(const testable& t) const {
 
 event_filter::event_filter(const std::string_view& filter_str,
                            const std::shared_ptr<spdlog::logger>& logger)
-    : _logger(logger) {
+    : _logger(logger), _written_limit{0} {
   if (!filter::create_filter(filter_str, logger, &_filter, true)) {
     throw exceptions::msg_fmt("fail to parse filter string: {}", filter_str);
   }
   try {
-    _filter.apply_checker(check_builder());
+    check_builder builder;
+    _filter.apply_checker(builder);
+    _written_limit = builder.min_written;
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(logger, "wrong_value for {}: {}", filter_str, e.what());
     throw;
@@ -408,7 +415,19 @@ event::event(const event_data& raw_data, e_status status, std::string&& message)
       _computer(lpwcstr_to_acp(raw_data.get_computer().data())),
       _channel(lpwcstr_to_acp(raw_data.get_channel().data())),
       _provider(lpwcstr_to_acp(raw_data.get_provider().data())),
-      _message(message) {}
+      _message(message) {
+  std::string keywords;
+  if (raw_data.get_keywords() & _keywords_audit_success) {
+    keywords = "audit_success";
+  }
+  if (raw_data.get_keywords() & _keywords_audit_failure) {
+    if (!keywords.empty()) {
+      keywords.push_back('|');
+    }
+    keywords += "audit_failure";
+  }
+  _keyword = std::move(keywords);
+}
 
 namespace com::centreon::agent::event_log {
 std::ostream& operator<<(std::ostream& s, const event& evt) {
