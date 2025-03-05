@@ -637,7 +637,7 @@ BESSG
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
-    Ctn Config BBDO3    1    3.0.1
+    Ctn Config BBDO3    1    3.0.1    True
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Remove Output    central    central-broker-unified-sql
     Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
