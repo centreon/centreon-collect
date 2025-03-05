@@ -556,7 +556,6 @@ BEUTAG11
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Logs
     Ctn Clear Retention
-    Ctn Start Tcpdump
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Start Broker
@@ -596,7 +595,6 @@ BEUTAG11
 
     ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
-    Ctn Stop Tcpdump
 
 BEUTAG12
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
