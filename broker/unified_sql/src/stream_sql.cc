@@ -307,16 +307,15 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
-        "UPDATE hosts AS h "
-        "SET h.state=h.real_state WHERE h.instance_id={} and h.real_state IS "
-        "NOT NULL",
+        "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
+        "instance_id={} AND real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
     query = fmt::format(
         "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
-        "SET s.state=s.real_state WHERE h.instance_id={} and s.real_state IS "
-        "NOT NULL",
+        "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
+        "and s.real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);

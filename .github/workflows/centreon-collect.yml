@@ -1,4 +1,4 @@
-name: Centreon collect
+name: centreon-collect
 run-name: |
   ${{
     (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
@@ -22,6 +22,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
+      - ".version.centreon-collect"
       - agent/**
       - bbdo/**
       - broker/**
@@ -49,6 +50,7 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
+      - ".version.centreon-collect"
       - agent/**
       - bbdo/**
       - broker/**
@@ -124,6 +126,89 @@ jobs:
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
     secrets: inherit
 
+  robot-test:
+    needs: [get-environment, package]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.is_nightly == 'true' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: el9
+            image: centreon-collect-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-el9-amd64
+            tests_params: '{}'
+          - distrib: el9
+            image: centreon-collect-mysql-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mysql
+            test_group_name: robot_test-mysql-el9-amd64
+            tests_params: '{}'
+          - distrib: bullseye
+            image: centreon-collect-debian-bullseye-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bullseye-arm64
+            tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-arm64
+            tests_params: '{}'
+          - distrib: bookworm
+            image: centreon-collect-debian-bookworm-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-bookworm-amd64
+            tests_params: '{}'
+          - distrib: el9
+            image: centreon-collect-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-el9-amd64-grpc
+            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+
+    name: ${{ matrix.test_group_name }}
+
+    uses: ./.github/workflows/robot-test.yml
+    with:
+      distrib: ${{ matrix.distrib }}
+      arch: ${{ matrix.arch }}
+      image: ${{ matrix.image }}
+      image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
+      image_version: ${{ needs.get-environment.outputs.img_version }}
+      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_path: ./*.${{ matrix.package_extension }}
+      database_type: ${{ matrix.database_type }}
+      tests_params: ${{ matrix.tests_params }}
+      test_group_name: ${{ matrix.test_group_name }}
+    secrets:
+      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
+      xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
+      jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+      jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+      jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-environment, package]
@@ -154,12 +239,12 @@ jobs:
   deliver-rpm:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    needs: [get-environment, package]
+    needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -203,12 +288,12 @@ jobs:
   deliver-deb:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["testing"]'), needs.get-environment.outputs.stability) &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    needs: [get-environment, package]
+    needs: [get-environment, robot-test]
     runs-on: [self-hosted, common]
     strategy:
       matrix:

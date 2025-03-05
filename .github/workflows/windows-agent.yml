@@ -1,4 +1,4 @@
-name: Centreon Monitoring Agent Windows build and packaging
+name: windows-agent
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -64,7 +64,7 @@ jobs:
           Compress-Archive -Path $files_to_compress -DestinationPath centreon-monitoring-agent.zip
 
       - name: Save agent package in cache
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: centreon-monitoring-agent.zip
           key: ${{ github.run_id }}-${{ github.sha }}-CMA-${{ github.head_ref || github.ref_name }}
