@@ -1059,37 +1059,6 @@ def ctn_broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_broker_config_remove_output(name, output):
-    """
-    Remove an output from the broker configuration
-
-    Args:
-        name: The broker instance name among central, rrd and module%d
-        output: The output to remove.
-
-    *Example:*
-
-    | Ctn Broker Config Remove Output | central | unified_sql |
-    """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name == 'rrd':
-        filename = "central-rrd.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
-    output_dict = conf["centreonBroker"]["output"]
-    for i, v in enumerate(output_dict):
-        if v["type"] == output:
-            output_dict.pop(i)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
-
-
 def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration
@@ -1188,6 +1157,30 @@ def ctn_broker_config_output_set(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_broker_config_add_output(name, content):
+    """
+    Add an output to the broker configuration.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        content (str): The output to add.
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = f"central-{name}.json"
+    else:
+        filename = "central-rrd.json"
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+
+    cont = json.loads(content)
+    conf["centreonBroker"]["output"].append(cont)
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_output_set_json(name, output, key, value):
     """
     Set an attribute value in a broker output. The value is given as a json string.
@@ -1215,6 +1208,30 @@ def ctn_broker_config_output_set_json(name, output, key, value):
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     j = json.loads(value)
     output_dict[key] = j
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_broker_config_remove_output(name: str, output: str):
+    """
+    Remove a broker output by its name.
+
+    Args:
+        name (str): The broker instance name among central, rrd and module%d.
+        output (str): The output to remove.
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = f"central-{name}.json"
+    else:
+        filename = "central-rrd.json"
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = [elem for i, elem in enumerate(
+        conf["centreonBroker"]["output"]) if elem["name"] != output]
+    conf["centreonBroker"]["output"] = output_dict
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
