@@ -20,15 +20,11 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/severity.hh"
-#include "com/centreon/engine/tag.hh"
-#include "common/log_v2/log_v2.hh"
 #include "compatibility/common.h"
 
 using com::centreon::common::log_v2::log_v2;

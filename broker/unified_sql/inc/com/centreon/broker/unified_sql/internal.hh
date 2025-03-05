@@ -27,6 +27,7 @@
 #include "bbdo/storage.pb.h"
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 
