@@ -168,6 +168,7 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} ${SRC_LINUX})
 else()
+  add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
   set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()

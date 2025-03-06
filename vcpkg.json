@@ -2,14 +2,9 @@
   "dependencies": [
     {
       "name": "abseil",
-      "platform": "linux",
       "features": [
         "cxx17"
       ]
-    },
-    {
-      "name": "abseil",
-      "platform": "windows"
     },
     "fmt",
     "grpc",

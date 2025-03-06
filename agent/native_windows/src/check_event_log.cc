@@ -19,12 +19,10 @@
 #include <ranges>
 #include "boost/algorithm/string/replace.hpp"
 
-
 #include "check.hh"
 #include "check_event_log.hh"
 #include "event_log/container.hh"
 #include "event_log/data.hh"
-
 
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "event_log/uniq.hh"
@@ -142,10 +140,11 @@ void check_event_log::start_check([[maybe_unused]] const duration& timeout) {
   std::list<common::perfdata> perf;
   e_status status = compute(*_data, &output, &perf);
 
-  _io_context->post([me = shared_from_this(), this, out = std::move(output),
+  asio::post(
+      *_io_context, [me = shared_from_this(), this, out = std::move(output),
                      status, performance = std::move(perf)]() {
-    on_completion(_get_running_check_index(), status, performance, {out});
-  });
+        on_completion(_get_running_check_index(), status, performance, {out});
+      });
 }
 
 template <bool need_written_str>
@@ -247,5 +246,7 @@ e_status check_event_log::compute(
 }
 
 void check_event_log::help(std::ostream& help_stream) {
-  // TODO
+  help_stream << R"(
+- eventlog params:
+)";
 }

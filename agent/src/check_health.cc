@@ -100,7 +100,7 @@ void check_health::start_check([[maybe_unused]] const duration& timeout) {
   }
 
   // we wait a little in order to have statistics check_interval/2
-  _measure_timer.expires_from_now(get_raw_start_expected().get_step() / 2);
+  _measure_timer.expires_after(get_raw_start_expected().get_step() / 2);
   _measure_timer.async_wait(
       [me = shared_from_this(), start_check_index = _get_running_check_index()](
           const boost::system::error_code& err) mutable {

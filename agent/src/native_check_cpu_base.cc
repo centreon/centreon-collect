@@ -281,9 +281,9 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "{} fail to start check: {}",
                         get_command_name(), e.what());
-    _io_context->post([me = shared_from_this(),
-                       start_check_index = _get_running_check_index(),
-                       err = e.what()] {
+    asio::post(*_io_context, [me = shared_from_this(),
+                              start_check_index = _get_running_check_index(),
+                              err = e.what()] {
       me->on_completion(start_check_index, e_status::unknown, {}, {err});
     });
   }

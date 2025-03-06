@@ -55,7 +55,7 @@ static void signal_handler(const boost::system::error_code& error,
         if (_streaming_server) {
           _streaming_server->shutdown();
         }
-        g_io_context->post([]() { g_io_context->stop(); });
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
         return;
       case SIGUSR2:
         SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
         if (_streaming_server) {
           _streaming_server->shutdown();
         }
-        g_io_context->post([]() { g_io_context->stop(); });
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
       }
     });
   }

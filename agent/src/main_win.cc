@@ -70,7 +70,7 @@ static void stop_process() {
   if (_streaming_server) {
     _streaming_server->shutdown();
   }
-  g_io_context->post([]() { g_io_context->stop(); });
+  asio::post(*g_io_context, []() { g_io_context->stop(); });
 }
 
 /**

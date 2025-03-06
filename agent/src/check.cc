@@ -170,12 +170,12 @@ bool check::_start_check(const duration& timeout) {
   if (_running_check) {
     SPDLOG_LOGGER_ERROR(_logger, "check for service {} is already running",
                         _service);
-    _io_context->post(
-        [me = shared_from_this(), to_call = _completion_handler]() {
-          to_call(me, e_status::unknown,
-                  std::list<com::centreon::common::perfdata>(),
-                  {"a check is already running"});
-        });
+    asio::post(*_io_context,
+               [me = shared_from_this(), to_call = _completion_handler]() {
+                 to_call(me, e_status::unknown,
+                         std::list<com::centreon::common::perfdata>(),
+                         {"a check is already running"});
+               });
     return false;
   }
   _running_check = true;
@@ -199,7 +199,7 @@ bool check::_start_check(const duration& timeout) {
  * @param timeout
  */
 void check::_start_timeout_timer(const duration& timeout) {
-  _time_out_timer.expires_from_now(timeout);
+  _time_out_timer.expires_after(timeout);
   _time_out_timer.async_wait(
       [me = shared_from_this(), start_check_index = _running_check_index](
           const boost::system::error_code& err) {

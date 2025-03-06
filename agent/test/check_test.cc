@@ -56,7 +56,7 @@ class dummy_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
-    _command_timer.expires_from_now(_command_duration);
+    _command_timer.expires_after(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
                                   const boost::system::error_code& err) {

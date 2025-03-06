@@ -98,10 +98,11 @@ void check_uptime::start_check([[maybe_unused]] const duration& timeout) {
   common::perfdata perf;
   e_status status = compute(GetTickCount64(), &output, &perf);
 
-  _io_context->post([me = shared_from_this(), this, out = std::move(output),
+  asio::post(
+      *_io_context, [me = shared_from_this(), this, out = std::move(output),
                      status, performance = std::move(perf)]() {
-    on_completion(_get_running_check_index(), status, {performance}, {out});
-  });
+        on_completion(_get_running_check_index(), status, {performance}, {out});
+      });
 }
 
 /**
