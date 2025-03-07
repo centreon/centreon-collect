@@ -399,7 +399,7 @@ time_t adjust_timestamp_for_time_change(int64_t time_difference, time_t ts) {
  */
 int timed_event::handle_timed_event() {
   typedef void (timed_event::*exec_event)();
-  static std::array<exec_event, 19> tab_exec_event{
+  static std::array<exec_event, 18> tab_exec_event{
       &timed_event::_exec_event_service_check,
       &timed_event::_exec_event_command_check,
       &timed_event::_exec_event_log_rotation,
