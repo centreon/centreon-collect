@@ -117,11 +117,8 @@ class state {
   void admin_pager(std::string const& value);
   bool allow_empty_hostgroup_assignment() const noexcept;
   void allow_empty_hostgroup_assignment(bool value);
-  bool auto_reschedule_checks() const noexcept;
   void auto_reschedule_checks(bool value);
-  unsigned int auto_rescheduling_interval() const noexcept;
   void auto_rescheduling_interval(unsigned int value);
-  unsigned int auto_rescheduling_window() const noexcept;
   void auto_rescheduling_window(unsigned int value);
   std::list<std::string> const& broker_module() const noexcept;
   void broker_module(std::list<std::string> const& value);
