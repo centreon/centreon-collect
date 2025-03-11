@@ -23,6 +23,13 @@
 
 namespace com::centreon::agent::event_log {
 
+/**
+ * @brief Comparator for event.
+ *
+ * On output formatting, we have to group events along some fields choosen by
+ * user. This class is responsible for hashing and comparing events along these
+ * fields.
+ */
 class event_comparator {
   using field_event_hasher = std::function<size_t(const event*)>;
   using field_event_compare = std::function<bool(const event*, const event*)>;

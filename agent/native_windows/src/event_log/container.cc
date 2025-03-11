@@ -27,6 +27,18 @@
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::event_log;
 
+/**
+ * Constructor for the event_container class.
+ *
+ * @param file The file path for the event log as System.
+ * @param primary_filter The primary filter for events.
+ * @param warning_filter The filter for warning events.
+ * @param critical_filter The filter for critical events.
+ * @param scan_range The duration range for scanning events.
+ * @param need_to_decode_message_content Flag to indicate if message content
+ * needs to be decoded.
+ * @param logger The logger instance for logging.
+ */
 event_container::event_container(const std::string_view& file,
                                  const std::string_view& primary_filter,
                                  const std::string_view& warning_filter,
@@ -99,6 +111,9 @@ event_container::event_container(const std::string_view& file,
   }
 }
 
+/**
+ * Destructor for the event_container class.
+ */
 event_container::~event_container() {
   if (_subscription != nullptr) {
     EvtClose(_subscription);
@@ -114,6 +129,9 @@ event_container::~event_container() {
   }
 }
 
+/**
+ * Start the event container by subscribing to EventLog.
+ */
 void event_container::start() {
   std::wstring query;
   query = std::format(
@@ -130,6 +148,14 @@ void event_container::start() {
   }
 }
 
+/**
+ * Callback function for the subscription to EventLog.
+ *
+ * @param action The action to be performed.
+ * @param p_context The context for the callback. (event_container*)
+ * @param h_event The event handle.
+ * @return The status of the callback.
+ */
 DWORD WINAPI
 event_container::_subscription_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action,
                                         PVOID p_context,
@@ -143,6 +169,13 @@ event_container::_subscription_callback(EVT_SUBSCRIBE_NOTIFY_ACTION action,
   return ERROR_SUCCESS;
 }
 
+/**
+ * Get the message string from the event handle.
+ *
+ * @param h_metadata The metadata handle.
+ * @param h_event The event handle.
+ * @return The message string.
+ */
 LPWSTR event_container::_get_message_string(EVT_HANDLE h_metadata,
                                             EVT_HANDLE h_event) {
   DWORD buffer_used = 0;
@@ -168,6 +201,13 @@ LPWSTR event_container::_get_message_string(EVT_HANDLE h_metadata,
   return nullptr;
 }
 
+/**
+ * no static On event callback function.
+ * called by _subscription_callback
+ * creates an event_data object and calls the _on_event function
+ *
+ * @param h_event The event handle.
+ */
 void event_container::_on_event(EVT_HANDLE h_event) {
   try {
     absl::MutexLock l(&_events_m);
@@ -180,6 +220,14 @@ void event_container::_on_event(EVT_HANDLE h_event) {
   }
 }
 
+/**
+ * On event callback function that do the job.
+ * It filters the event and store it in the right container.
+ * Every 10 events, it cleans the oldest events.
+ *
+ * @param raw_event The raw event data.
+ * @param h_event The event handle.
+ */
 void event_container::_on_event(const event_log::event_data& raw_event,
                                 EVT_HANDLE h_event) {
   auto peremp = std::chrono::file_clock::now() - _scan_range;
@@ -223,6 +271,14 @@ void event_container::_on_event(const event_log::event_data& raw_event,
   }
 }
 
+/**
+ * Get the message content from the event handle.
+ * It creates a publisher metadata handle for each provider
+ *.
+ * @param raw_event The raw event data.
+ * @param h_event The event handle.
+ * @return The message content.
+ */
 std::string event_container::_get_message_content(
     const event_log::event_data& raw_event,
     EVT_HANDLE h_event) {
@@ -249,6 +305,16 @@ std::string event_container::_get_message_content(
   return {};
 }
 
+/**
+ * Clean the perempted events.
+ * It cleans the events that are older than the scan range.
+ * It also cleans the events that are not allowed by the filter.
+ * For example, if critical filter has a condition like written > -60s, critical
+ * events may move to warning or ok container after 60s.
+ *
+ * @param check_filter_peremption Flag to indicate if the filter peremption
+ * needs to be checked.
+ */
 void event_container::clean_perempted_events(bool check_filter_peremption) {
   auto now = std::chrono::file_clock::now();
   auto peremption = now - _scan_range;
@@ -262,6 +328,18 @@ void event_container::clean_perempted_events(bool check_filter_peremption) {
     _critical.erase(_critical.begin(), first_noperempted_event);
   }
 
+  /**
+   * Clean the container with filter.
+   * @param to_clean The container to clean.
+   * @param evt_filt The event filter that may invalidate events after some
+   * delay
+   * @param other The other container that will receive the invalidated events
+   * according to other_filt.
+   * @param other_filt The other event filter. If the event is not allowed by
+   * evt_filt but allowed by other_filt, it will be moved to other. if
+   * invalidated events are rejected by both filters, they will be moved to
+   * _ok_events.
+   */
   auto clean_container_with_filter =
       [&, this](event_cont& to_clean, const event_filter& evt_filt,
                 event_cont& other, const event_filter* other_filt) {

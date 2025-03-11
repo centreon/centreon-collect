@@ -104,6 +104,11 @@ event_data::event_data(EVT_HANDLE render_context,
   _data = *buffer;
 }
 
+/**
+ * @brief Convert a file time to a time point
+ * @param file_time The file time to convert
+ * @return std::chrono::file_clock::time_point The time point
+ */
 std::chrono::file_clock::time_point event_data::convert_to_tp(
     uint64_t file_time) {
   std::chrono::file_clock::duration d{file_time};
@@ -111,6 +116,10 @@ std::chrono::file_clock::time_point event_data::convert_to_tp(
   return std::chrono::file_clock::time_point{d};
 }
 
+/**
+ * @brief Get the provider of the event
+ * @return std::wstring_view The provider
+ */
 std::wstring_view event_data::get_provider() const {
   if (_property_count > EvtSystemProviderName &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemProviderName].Type !=
@@ -122,6 +131,10 @@ std::wstring_view event_data::get_provider() const {
   }
 }
 
+/**
+ * @brief Get the event id
+ * @return uint16_t The event id
+ */
 uint16_t event_data::get_event_id() const {
   if (_property_count > EvtSystemEventID &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemEventID].Type !=
@@ -132,6 +145,10 @@ uint16_t event_data::get_event_id() const {
   }
 }
 
+/**
+ * @brief Get the level of the event (error, warning....)
+ * @return uint8_t The level
+ */
 uint8_t event_data::get_level() const {
   if (_property_count > EvtSystemLevel &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemLevel].Type !=
@@ -142,6 +159,10 @@ uint8_t event_data::get_level() const {
   }
 }
 
+/**
+ * @brief Get the task of the event
+ * @return uint16_t The task
+ */
 uint16_t event_data::get_task() const {
   if (_property_count > EvtSystemTask &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemTask].Type !=
@@ -152,6 +173,10 @@ uint16_t event_data::get_task() const {
   }
 }
 
+/**
+ * @brief Get the keywords of the event
+ * @return int64_t The keywords values are mask like _keywords_audit_success
+ */
 int64_t event_data::get_keywords() const {
   if (_property_count > EvtSystemKeywords &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemKeywords].Type !=
@@ -162,6 +187,10 @@ int64_t event_data::get_keywords() const {
   }
 }
 
+/**
+ * @brief Get the time the event was created
+ * @return uint64_t The time in file time format
+ */
 uint64_t event_data::get_time_created() const {
   if (_property_count > EvtSystemTimeCreated &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemTimeCreated].Type !=
@@ -173,6 +202,10 @@ uint64_t event_data::get_time_created() const {
   }
 }
 
+/**
+ * @brief Get the record id of the event
+ * @return uint64_t The record id
+ */
 uint64_t event_data::get_record_id() const {
   if (_property_count > EvtSystemEventRecordId &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemEventRecordId].Type !=
@@ -184,6 +217,10 @@ uint64_t event_data::get_record_id() const {
   }
 }
 
+/**
+ * @brief Get the computer name
+ * @return std::wstring_view The computer name
+ */
 std::wstring_view event_data::get_computer() const {
   if (_property_count > EvtSystemComputer &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemComputer].Type !=
@@ -194,6 +231,10 @@ std::wstring_view event_data::get_computer() const {
   }
 }
 
+/**
+ * @brief Get the channel of the event
+ * @return std::wstring_view The channel
+ */
 std::wstring_view event_data::get_channel() const {
   if (_property_count > EvtSystemChannel &&
       reinterpret_cast<EVT_VARIANT*>(_data)[EvtSystemChannel].Type !=
@@ -209,6 +250,11 @@ std::wstring_view event_data::get_channel() const {
  *                          event_filter::check_builder                  *
  *                                                                       *
  ****************************************************************************/
+
+/**
+ * @brief functor that set the checker for each filter along filter label
+ * @param filt The filter
+ */
 template <typename data_tag_type>
 void event_filter::check_builder<data_tag_type>::operator()(filter* filt) {
   if (filt->get_type() == filter::filter_type::label_compare_to_value) {
@@ -224,6 +270,10 @@ void event_filter::check_builder<data_tag_type>::operator()(filter* filt) {
   }
 }
 
+/**
+ * @brief Set the checker for a label_in filter
+ * @param filt The filter
+ */
 template <typename data_tag_type>
 void event_filter::check_builder<data_tag_type>::set_label_compare_to_value(
     filters::label_compare_to_value* filt) {
@@ -236,6 +286,7 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_value(
       return static_cast<const data_tag_type::type&>(t).get_level();
     });
   } else if (filt->get_label() == "written") {
+    // we may have written > -60m
     filt->calc_duration();
     filt->change_threshold_to_abs();
     if ((filt->get_comparison() ==
@@ -270,6 +321,10 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_value(
   }
 }
 
+/**
+ * @brief Set the checker for a label_compare_to_string filter
+ * @param filt The filter
+ */
 template <typename data_tag_type>
 void event_filter::check_builder<data_tag_type>::set_label_compare_to_string(
     filters::label_compare_to_string<typename data_tag_type::char_type>* filt)
@@ -336,6 +391,10 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_string(
   }
 }
 
+/**
+ * @brief Set the checker for a label_in filter
+ * @param filt The filter
+ */
 template <typename data_tag_type>
 void event_filter::check_builder<data_tag_type>::set_label_in(
     filters::label_in<typename data_tag_type::char_type>* filt) const {
@@ -391,6 +450,10 @@ void event_filter::check_builder<data_tag_type>::set_label_in(
  *                                                                       *
  ****************************************************************************/
 
+/**
+ * @brief Construct a new level_in object
+ * @param filt The filter
+ */
 template <filters::in_not rule, typename data_type_tag>
 event_filter::level_in<rule, data_type_tag>::level_in(
     const filters::label_in<typename data_type_tag::char_type>& filt) {
@@ -407,6 +470,10 @@ event_filter::level_in<rule, data_type_tag>::level_in(
   }
 }
 
+/**
+ * @brief Construct a new level_in object
+ * @param filt The filter
+ */
 template <filters::in_not rule, typename data_type_tag>
 event_filter::level_in<rule, data_type_tag>::level_in(
     const filters::label_compare_to_string<typename data_type_tag::char_type>&
@@ -420,6 +487,9 @@ event_filter::level_in<rule, data_type_tag>::level_in(
   }
 }
 
+/**
+ * @brief the functor checker
+ */
 template <filters::in_not rule, typename data_type_tag>
 bool event_filter::level_in<rule, data_type_tag>::operator()(
     const testable& t) const {
@@ -436,6 +506,20 @@ bool event_filter::level_in<rule, data_type_tag>::operator()(
  *                          event                                        *
  *                                                                       *
  ****************************************************************************/
+
+/**
+ * @brief Constructs an event object.
+ *
+ * @param raw_data The raw event data containing various event attributes.
+ * @param tp The time point representing the event time.
+ * @param message The message associated with the event.
+ *
+ * This constructor initializes an event object with the provided raw event
+ * data, time point, and message. It extracts and converts various attributes
+ * from the raw event data, such as event ID, record ID, keywords, level,
+ * computer, channel, and provider. It also constructs a string representation
+ * of the keywords based on the audit success and failure flags.
+ */
 event::event(const event_data& raw_data,
              const std::chrono::file_clock::time_point& tp,
              std::string&& message)

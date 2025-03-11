@@ -73,6 +73,10 @@ class event_data : public testable {
   virtual std::wstring_view get_channel() const;  // file
 };
 
+/**
+ * @brief Event class constructed
+ * from event_data and filtered by event_filter
+ */
 class event : public testable {
   uint16_t _event_id;
   uint64_t _record_id;
@@ -134,11 +138,24 @@ class event : public testable {
 
 std::ostream& operator<<(std::ostream& s, const event& evt);
 
+/**
+ * @brief event_filter
+ * It can filter both event_data and event objects
+ * The choice is made by using a raw_data_tag or an event_tag in constructor
+ * It relies on filter classes. It only provides checkers or getter
+ */
 class event_filter {
   filters::filter_combinator _filter;
   std::shared_ptr<spdlog::logger> _logger;
   duration _written_limit;
 
+  /**
+   * @brief level_in
+   * It's a functor that will be called by filter::apply_checker
+   * It will build the checker for each filter like "level in ('error',
+   * 'warning')" or "level == 'error'"
+   * It converts error or warning in numeric values
+   */
   template <filters::in_not rule, typename data_type_tag>
   class level_in {
     std::set<uint8_t> _values;
@@ -152,6 +169,11 @@ class event_filter {
   };
 
  public:
+  /**
+   * @brief check_builder
+   * It's a functor that will be called by filter::apply_checker
+   * It will build the checker for each filter along filter label
+   */
   template <typename data_type_tag>
   struct check_builder {
     using char_type = data_type_tag::char_type;
@@ -196,6 +218,23 @@ class event_filter {
   duration get_written_limit() const { return _written_limit; }
 };
 
+/**
+ * @brief Construct a new event filter object
+ *
+ * This constructor initializes an event_filter object with the given data tag
+ * type, filter string, and logger. It parses the filter string to create a
+ * filter and applies a checker to the filter. If the filter string cannot be
+ * parsed, it throws an exception. It also sets the written limit based on the
+ * minimum written duration found by the checker builder.
+ *
+ * @tparam data_tag_type The type of data tag used for the filter (raw_data_tag
+ * or event_tag).
+ * @param tag The data tag type used to specify the type of data being filtered.
+ * @param filter_str The filter string used to create the filter.
+ * @param logger A shared pointer to the logger used fo logging.
+ *
+ * @throws exceptions::msg_fmt If the filter string cannot be parsed.
+ */
 template <typename data_tag_type>
 event_filter::event_filter(const data_tag_type& tag,
                            const std::string_view& filter_str,

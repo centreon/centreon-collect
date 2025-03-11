@@ -17,11 +17,22 @@
  */
 
 #include "event_log/uniq.hh"
+#include <cstdint>
 
 using namespace com::centreon::agent::event_log;
 
 re2::RE2 field_regex("\\${([^\\${}]+)}");
 
+/**
+ * @brief Constructor for the event_comparator class.
+ *
+ * This constructor initializes an event_comparator object with the provided
+ * fields and logger.
+ * It creates a vector of hash and compare predicates
+ *
+ * @param fields The fields to compare as '${id} ${source}'.
+ * @param logger The logger instance for logging.
+ */
 event_comparator::event_comparator(
     std::string_view fields,
     const std::shared_ptr<spdlog::logger>& logger) {
@@ -59,20 +70,24 @@ event_comparator::event_comparator(
   if (_compare.empty()) {
     SPDLOG_LOGGER_DEBUG(logger, "no unique sort for output");
     _hash.emplace_back([](const event* evt) -> size_t {
-      return evt->get_record_id() +
-             absl::Hash<std::string>()(evt->get_channel()) +
-             absl::Hash<std::string>()(evt->get_provider()) +
-             evt->get_time().time_since_epoch().count();
+      return reinterpret_cast<std::uintptr_t>(evt);
     });
     _compare.emplace_back([](const event* left, const event* right) -> bool {
-      return left->get_record_id() == right->get_record_id() &&
-             left->get_channel() == right->get_channel() &&
-             left->get_provider() == right->get_provider() &&
-             left->get_time() == right->get_time();
+      return left == right;
     });
   }
 }
 
+/**
+ * @brief Compare two events.
+ *
+ * This method compares two events based on the fields provided in the
+ * constructor.
+ *
+ * @param left The left event to compare.
+ * @param right The right event to compare.
+ * @return True if the events are equal, false otherwise.
+ */
 bool event_comparator::operator()(const event* left, const event* right) const {
   for (const auto& comp : _compare) {
     if (!comp(left, right)) {
@@ -82,6 +97,14 @@ bool event_comparator::operator()(const event* left, const event* right) const {
   return true;
 }
 
+/**
+ * @brief Hash an event.
+ *
+ * This method hashes an event based on the fields provided in the constructor.
+ *
+ * @param to_hash The event to hash.
+ * @return The hash value of the event.
+ */
 std::size_t event_comparator::operator()(const event* to_hash) const {
   std::size_t ret = 0;
   for (const auto hash : _hash) {

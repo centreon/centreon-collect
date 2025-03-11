@@ -26,6 +26,13 @@
 
 namespace com::centreon::agent {
 
+/**
+ * @brief Check for event log.
+ *
+ * This class is responsible for checking the event log.
+ * events are stored in container class. The main job of this class is to format
+ * output
+ */
 class check_event_log : public check {
   std::unique_ptr<event_log::event_container> _data;
   std::unique_ptr<event_log::event_comparator> _event_compare;
