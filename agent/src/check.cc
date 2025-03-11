@@ -114,7 +114,7 @@ void checks_statistics::add_duration_stat(const std::string& cmd_name,
 }
 
 const std::array<std::string_view, 4> check::status_label = {
-    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
+    "OK", "WARNING", "CRITICAL", "UNKNOWN"};
 
 /**
  * @brief Construct a new check::check object

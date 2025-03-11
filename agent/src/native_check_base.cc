@@ -163,6 +163,7 @@ e_status native_check_base<nb_metric>::compute(
   }
 
   *output = status_label[status];
+  output->append(": ");
   data.dump_to_output(output);
 
   const auto& metric_definitions = get_metric_definitions();

@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <__msvc_chrono.hpp>
+#include <chrono>
 #include "windows_util.hh"
 
 #include "filter.hh"
@@ -99,15 +101,14 @@ event_data::event_data(EVT_HANDLE render_context,
     int ii = 0;
   }
 
-  std::chrono::file_clock::duration d{
-      ((EVT_VARIANT*)*buffer)[EvtSystemTimeCreated].FileTimeVal};
-
-  std::chrono::file_clock::time_point t{d};
-
-  /*std::string s = std::format("{:%Y-%m-%d %H:%M:%S}", t);
-  std::cout << s << std::endl;*/
-
   _data = *buffer;
+}
+
+std::chrono::file_clock::time_point event_data::convert_to_tp(
+    uint64_t file_time) {
+  std::chrono::file_clock::duration d{file_time};
+
+  return std::chrono::file_clock::time_point{d};
 }
 
 std::wstring_view event_data::get_provider() const {
@@ -205,91 +206,116 @@ std::wstring_view event_data::get_channel() const {
 
 /***************************************************************************
  *                                                                       *
- *                          event_filter                                 *
+ *                          event_filter::check_builder                  *
  *                                                                       *
  ****************************************************************************/
-void event_filter::check_builder::operator()(filter* filt) {
+template <typename data_tag_type>
+void event_filter::check_builder<data_tag_type>::operator()(filter* filt) {
   if (filt->get_type() == filter::filter_type::label_compare_to_value) {
     set_label_compare_to_value(
         static_cast<filters::label_compare_to_value*>(filt));
   } else if (filt->get_type() == filter::filter_type::label_compare_to_string) {
-    set_label_compare_to_string(
-        static_cast<filters::label_compare_to_string<wchar_t>*>(filt));
+    set_label_compare_to_string(static_cast<filters::label_compare_to_string<
+                                    typename data_tag_type::char_type>*>(filt));
   } else {
-    set_label_in(static_cast<filters::label_in<wchar_t>*>(filt));
+    set_label_in(
+        static_cast<filters::label_in<typename data_tag_type::char_type>*>(
+            filt));
   }
 }
 
-void event_filter::check_builder::set_label_compare_to_value(
+template <typename data_tag_type>
+void event_filter::check_builder<data_tag_type>::set_label_compare_to_value(
     filters::label_compare_to_value* filt) {
   if (filt->get_label() == "event_id") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_event_id();
+      return static_cast<const data_tag_type::type&>(t).get_event_id();
     });
   } else if (filt->get_label() == "level") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_level();
+      return static_cast<const data_tag_type::type&>(t).get_level();
     });
   } else if (filt->get_label() == "written") {
     filt->calc_duration();
     filt->change_threshold_to_abs();
-    if (!min_written.count() || min_written.count() > filt->get_value()) {
+    if ((filt->get_comparison() ==
+             filters::label_compare_to_value::comparison::less_than ||
+         filt->get_comparison() ==
+             filters::label_compare_to_value::comparison::less_than_or_equal) &&
+        (!min_written.count() || min_written.count() > filt->get_value())) {
       min_written =
           std::chrono::seconds(static_cast<unsigned>(filt->get_value()));
     }
 
-    filt->set_checker_from_getter([](const testable& t) {
-      FILETIME ft;
-      SYSTEMTIME st;
-      GetSystemTime(&st);
-      SystemTimeToFileTime(&st, &ft);
-      ULARGE_INTEGER caster{.LowPart = ft.dwLowDateTime,
-                            .HighPart = ft.dwHighDateTime};
-      return caster.QuadPart -
-             static_cast<const event_data&>(t).get_time_created();
-    });
+    if constexpr (std::is_same_v<data_tag_type, raw_data_tag>) {
+      filt->set_checker_from_getter([](const testable& t) {
+        FILETIME ft;
+        SYSTEMTIME st;
+        GetSystemTime(&st);
+        SystemTimeToFileTime(&st, &ft);
+        ULARGE_INTEGER caster{.LowPart = ft.dwLowDateTime,
+                              .HighPart = ft.dwHighDateTime};
+        return (caster.QuadPart -
+                static_cast<const event_data&>(t).get_time_created()) /
+               10000000ULL;
+      });
+    } else {
+      filt->set_checker_from_getter([](const testable& t) {
+        return std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::file_clock::now() -
+                   static_cast<const event&>(t).get_time())
+            .count();
+      });
+    }
   }
 }
 
-void event_filter::check_builder::set_label_compare_to_string(
-    filters::label_compare_to_string<wchar_t>* filt) const {
+template <typename data_tag_type>
+void event_filter::check_builder<data_tag_type>::set_label_compare_to_string(
+    filters::label_compare_to_string<typename data_tag_type::char_type>* filt)
+    const {
   if (filt->get_label() == "provider") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_provider();
+      return static_cast<const data_tag_type::type&>(t).get_provider();
     });
   } else if (filt->get_label() == "level") {
-    uint8_t level = str_to_level(lpwcstr_to_acp(filt->get_value().c_str()));
+    uint8_t level;
+    if constexpr (std::is_same_v<data_tag_type, raw_data_tag>) {
+      level = str_to_level(lpwcstr_to_acp(filt->get_value().c_str()));
+    } else {
+      level = str_to_level(filt->get_value());
+    }
     if (filt->get_comparison() == filters::string_comparison::equal) {
       filt->set_checker([level](const testable& t) {
-        return static_cast<const event_data&>(t).get_level() == level;
+        return static_cast<const data_tag_type::type&>(t).get_level() == level;
       });
     } else {
       filt->set_checker([level](const testable& t) {
-        return static_cast<const event_data&>(t).get_level() != level;
+        return static_cast<const data_tag_type::type&>(t).get_level() != level;
       });
     }
   } else if (filt->get_label() == "keywords") {
-    if (filt->get_value() == L"auditsuccess") {
+    if (filt->get_value() == data_tag_type::audit_success) {
       if (filt->get_comparison() == filters::string_comparison::equal) {
         filt->set_checker([](const testable& t) -> bool {
-          return (static_cast<const event_data&>(t).get_keywords() &
+          return (static_cast<const data_tag_type::type&>(t).get_keywords() &
                   _keywords_audit_mask) == _keywords_audit_success;
         });
       } else {
         filt->set_checker([](const testable& t) -> bool {
-          return (static_cast<const event_data&>(t).get_keywords() &
+          return (static_cast<const data_tag_type::type&>(t).get_keywords() &
                   _keywords_audit_mask) != _keywords_audit_success;
         });
       }
-    } else if (filt->get_value() == L"auditfailure") {
+    } else if (filt->get_value() == data_tag_type::audit_failure) {
       if (filt->get_comparison() == filters::string_comparison::equal) {
         filt->set_checker([](const testable& t) -> bool {
-          return (static_cast<const event_data&>(t).get_keywords() &
+          return (static_cast<const data_tag_type::type&>(t).get_keywords() &
                   _keywords_audit_mask) == _keywords_audit_failure;
         });
       } else {
         filt->set_checker([](const testable& t) -> bool {
-          return (static_cast<const event_data&>(t).get_keywords() &
+          return (static_cast<const data_tag_type::type&>(t).get_keywords() &
                   _keywords_audit_mask) != _keywords_audit_failure;
         });
       }
@@ -299,40 +325,42 @@ void event_filter::check_builder::set_label_compare_to_string(
     }
   } else if (filt->get_label() == "computer") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_computer();
+      return static_cast<const data_tag_type::type&>(t).get_computer();
     });
   } else if (filt->get_label() == "channel") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_channel();
+      return static_cast<const data_tag_type::type&>(t).get_channel();
     });
   } else {
     throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
   }
 }
 
-void event_filter::check_builder::set_label_in(
-    filters::label_in<wchar_t>* filt) const {
+template <typename data_tag_type>
+void event_filter::check_builder<data_tag_type>::set_label_in(
+    filters::label_in<typename data_tag_type::char_type>* filt) const {
   if (filt->get_label() == "provider") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_provider();
+      return static_cast<const data_tag_type::type&>(t).get_provider();
     });
   } else if (filt->get_label() == "event_id") {
     filt->set_checker_from_number_getter([](const testable& t) {
       return static_cast<uint32_t>(
-          static_cast<const event_data&>(t).get_event_id());
+          static_cast<const data_tag_type::type&>(t).get_event_id());
     });
   } else if (filt->get_label() == "level") {
     if (filt->get_rule() == filters::in_not::in) {
-      filt->set_checker(level_in<filters::in_not::in>(*filt));
+      filt->set_checker(level_in<filters::in_not::in, data_tag_type>(*filt));
     } else {
-      filt->set_checker(level_in<filters::in_not::not_in>(*filt));
+      filt->set_checker(
+          level_in<filters::in_not::not_in, data_tag_type>(*filt));
     }
   } else if (filt->get_label() == "keywords") {
     uint64_t mask = 0;
-    if (filt->get_values().contains(L"auditsuccess")) {
+    if (filt->get_values().contains(data_tag_type::audit_success)) {
       mask = _keywords_audit_success;
     }
-    if (filt->get_values().contains(L"auditfailure")) {
+    if (filt->get_values().contains(data_tag_type::audit_failure)) {
       mask |= _keywords_audit_failure;
     }
     if (filt->get_rule() == filters::in_not::in) {
@@ -346,57 +374,60 @@ void event_filter::check_builder::set_label_in(
     }
   } else if (filt->get_label() == "computer") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_computer();
+      return static_cast<const data_tag_type::type&>(t).get_computer();
     });
   } else if (filt->get_label() == "channel") {
     filt->set_checker_from_getter([](const testable& t) {
-      return static_cast<const event_data&>(t).get_channel();
+      return static_cast<const data_tag_type::type&>(t).get_channel();
     });
   } else {
     throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
   }
 }
 
-template <filters::in_not rule>
-event_filter::level_in<rule>::level_in(const filters::label_in<wchar_t>& filt) {
-  std::string cval;
-  for (const auto& val : filt.get_values()) {
-    wstring_to_string(val, &cval);
-    _values.insert(str_to_level(cval));
+/***************************************************************************
+ *                                                                       *
+ *                          event_filter::level_in                       *
+ *                                                                       *
+ ****************************************************************************/
+
+template <filters::in_not rule, typename data_type_tag>
+event_filter::level_in<rule, data_type_tag>::level_in(
+    const filters::label_in<typename data_type_tag::char_type>& filt) {
+  if constexpr (data_type_tag::use_wchar) {
+    std::string cval;
+    for (const auto& val : filt.get_values()) {
+      wstring_to_string(val, &cval);
+      _values.insert(str_to_level(cval));
+    }
+  } else {
+    for (const auto& val : filt.get_values()) {
+      _values.insert(str_to_level(val));
+    }
   }
 }
 
-template <filters::in_not rule>
-event_filter::level_in<rule>::level_in(
-    const filters::label_compare_to_string<wchar_t>& filt) {
-  std::string cval;
-  wstring_to_string(filt.get_value(), &cval);
-  _values.insert(str_to_level(cval));
+template <filters::in_not rule, typename data_type_tag>
+event_filter::level_in<rule, data_type_tag>::level_in(
+    const filters::label_compare_to_string<typename data_type_tag::char_type>&
+        filt) {
+  if constexpr (data_type_tag::use_wchar) {
+    std::string cval;
+    wstring_to_string(filt.get_value(), &cval);
+    _values.insert(str_to_level(cval));
+  } else {
+    _values.insert(str_to_level(filt.get_value()));
+  }
 }
 
-template <filters::in_not rule>
-bool event_filter::level_in<rule>::operator()(const testable& t) const {
-  uint8_t event_level = static_cast<const event_data&>(t).get_level();
+template <filters::in_not rule, typename data_type_tag>
+bool event_filter::level_in<rule, data_type_tag>::operator()(
+    const testable& t) const {
+  uint8_t event_level = static_cast<const data_type_tag::type&>(t).get_level();
   if constexpr (rule == filters::in_not::in) {
     return _values.find(event_level) != _values.end();
   } else {
     return _values.find(event_level) == _values.end();
-  }
-}
-
-event_filter::event_filter(const std::string_view& filter_str,
-                           const std::shared_ptr<spdlog::logger>& logger)
-    : _logger(logger), _written_limit{0} {
-  if (!filter::create_filter(filter_str, logger, &_filter, true)) {
-    throw exceptions::msg_fmt("fail to parse filter string: {}", filter_str);
-  }
-  try {
-    check_builder builder;
-    _filter.apply_checker(builder);
-    _written_limit = builder.min_written;
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(logger, "wrong_value for {}: {}", filter_str, e.what());
-    throw;
   }
 }
 
@@ -405,13 +436,15 @@ event_filter::event_filter(const std::string_view& filter_str,
  *                          event                                        *
  *                                                                       *
  ****************************************************************************/
-event::event(const event_data& raw_data, e_status status, std::string&& message)
+event::event(const event_data& raw_data,
+             const std::chrono::file_clock::time_point& tp,
+             std::string&& message)
     : _event_id(raw_data.get_event_id()),
       _record_id(raw_data.get_record_id()),
-      _time(std::chrono::file_clock::duration(raw_data.get_time_created())),
+      _keywords(raw_data.get_keywords()),
+      _time(tp),
       _audit(raw_data.get_keywords()),
       _level(raw_data.get_level()),
-      _status(status),
       _computer(lpwcstr_to_acp(raw_data.get_computer().data())),
       _channel(lpwcstr_to_acp(raw_data.get_channel().data())),
       _provider(lpwcstr_to_acp(raw_data.get_provider().data())),
@@ -426,16 +459,18 @@ event::event(const event_data& raw_data, e_status status, std::string&& message)
     }
     keywords += "audit_failure";
   }
-  _keyword = std::move(keywords);
+  _str_keywords = std::move(keywords);
 }
 
 namespace com::centreon::agent::event_log {
 std::ostream& operator<<(std::ostream& s, const event& evt) {
-  s << "event_id:" << evt.event_id() << " time:" << evt.time()
-    << " level:" << evt.level() << " record_id:" << evt.record_id()
-    << " status:" << evt.status() << " channel:" << evt.channel()
-    << " message:" << evt.message();
+  s << "event_id:" << evt.get_event_id() << " time:" << evt.get_time()
+    << " level:" << evt.get_level() << " record_id:" << evt.get_record_id()
+    << " channel:" << evt.get_channel() << " message:" << evt.get_message();
   return s;
 }
+
+template class event_filter::check_builder<event_filter::event_tag>;
+template class event_filter::check_builder<event_filter::raw_data_tag>;
 
 }  // namespace com::centreon::agent::event_log

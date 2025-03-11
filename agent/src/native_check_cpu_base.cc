@@ -372,6 +372,7 @@ e_status native_check_cpu<nb_metric>::_compute(
           output->push_back(' ');
         }
         *output += status_label[cpu_status.second];
+        output->append(": ");
         delta[cpu_status.first].dump(cpu_status.first, summary_labels, output);
       }
     }

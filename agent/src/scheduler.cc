@@ -614,7 +614,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
             io_context, logger, first_start_expected, check_interval, service,
             cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "eventlog"sv) {
-        return std::make_shared<check_event_log>(
+        return check_event_log::load(
             io_context, logger, first_start_expected, check_interval, service,
             cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #endif

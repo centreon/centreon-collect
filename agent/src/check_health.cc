@@ -166,6 +166,7 @@ e_status check_health::compute(
     if (written_to_output.insert(iter->cmd_name).second) {
       if (temp_output->empty()) {
         *temp_output = status_label[status];
+        temp_output->append(": ");
       } else {
         temp_output->push_back(',');
         temp_output->push_back(' ');

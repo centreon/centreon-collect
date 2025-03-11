@@ -19,50 +19,48 @@
 #ifndef CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 #define CENTREON_AGENT_CHECK_EVENT_LOG_CONTAINER_HH
 
+#include <chrono>
 #include "event_log/data.hh"
 #include "event_log/uniq.hh"
 
 namespace com::centreon::agent::event_log {
 
+/**
+ * @class event_container
+ * @brief Manages and processes event logs.
+ *
+ * The event_container class is responsible for managing event logs, including
+ * filtering, decoding, and storing events. It provides mechanisms to start
+ * event log subscriptions, handle events, and retrieve filtered event data.
+ *
+ * @details
+ * - The class maintains separate containers for critical and warning events.
+ * - It supports filtering events based on provided filters.
+ * - It can decode message content if required.
+ * - It provides methods to lock and unlock the internal mutex for thread-safe
+ *   operations.
+ *
+ */
 class event_container {
  public:
-  using event_cont = multi_index::multi_index_container<
-      unique_event,
-      multi_index::indexed_by<
-          multi_index::hashed_unique<BOOST_MULTI_INDEX_CONST_MEM_FUN(
-                                         unique_event,
-                                         const event&,
-                                         get_event),
-                                     event_comparator,
-                                     event_comparator>,
-          multi_index::ordered_non_unique<BOOST_MULTI_INDEX_CONST_MEM_FUN(
-              unique_event,
-              std::chrono::file_clock::time_point,
-              get_oldest)> > >;
-
-  using event_index_type = multi_index::nth_index<event_cont, 0>::type;
-  using oldest_index_type = multi_index::nth_index<event_cont, 1>::type;
+  using event_cont = std::multimap<std::chrono::file_clock::time_point, event>;
 
  private:
   duration _scan_range;
-  duration _warning_scan_range;
-  duration _critical_scan_range;
 
   const bool _need_to_decode_message_content;
   std::wstring _file;
   std::unique_ptr<event_filter> _primary_filter;
   std::unique_ptr<event_filter> _warning_filter;
   std::unique_ptr<event_filter> _critical_filter;
+  std::unique_ptr<event_filter> _event_warning_filter;
+  std::unique_ptr<event_filter> _event_critical_filter;
 
-  event_comparator _event_compare;
-  event_cont::ctor_args_list _container_initializer;
   event_cont _critical ABSL_GUARDED_BY(_events_m);
   event_cont _warning ABSL_GUARDED_BY(_events_m);
   std::multiset<std::chrono::file_clock::time_point> _ok_events
       ABSL_GUARDED_BY(_events_m);
   unsigned _insertion_cpt ABSL_GUARDED_BY(_events_m);
-  unsigned _nb_warning ABSL_GUARDED_BY(_events_m);
-  unsigned _nb_critical ABSL_GUARDED_BY(_events_m);
   absl::Mutex _events_m;
 
   EVT_HANDLE _render_context;
@@ -83,13 +81,20 @@ class event_container {
                                              PVOID p_context,
                                              EVT_HANDLE h_event);
 
+  LPWSTR _get_message_string(EVT_HANDLE h_metadata, EVT_HANDLE h_event);
+
   void _on_event(EVT_HANDLE event_handle);
 
-  LPWSTR _get_message_string(EVT_HANDLE h_metadata, EVT_HANDLE h_event);
+ protected:
+  void _on_event(const event_log::event_data& raw_event, EVT_HANDLE h_event)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+
+  virtual std::string _get_message_content(
+      const event_log::event_data& raw_event,
+      EVT_HANDLE h_event);
 
  public:
   event_container(const std::string_view& file,
-                  const std::string_view& unique_str,
                   const std::string_view& primary_filter,
                   const std::string_view& warning_filter,
                   const std::string_view& critical_filter,
@@ -114,13 +119,14 @@ class event_container {
 
   const std::wstring get_file() const { return _file; }
 
-  void clean_perempted_events() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
+  void clean_perempted_events(bool check_filter_peremption)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m);
 
   unsigned get_nb_warning() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
-    return _nb_warning;
+    return _warning.size();
   }
   unsigned get_nb_critical() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
-    return _nb_critical;
+    return _critical.size();
   }
   size_t get_nb_ok() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_events_m) {
     return _ok_events.size();

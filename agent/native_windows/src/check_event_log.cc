@@ -30,6 +30,26 @@
 
 using namespace com::centreon::agent;
 
+/**
+ * @brief Constructor for the check_event_log class.
+ *
+ * This constructor initializes a check_event_log object with the provided
+ * parameters.
+ *
+ * @param io_context Shared pointer to an asio::io_context object.
+ * @param logger Shared pointer to an spdlog::logger object.
+ * @param first_start_expected The expected first start time point.
+ * @param check_interval The interval duration for checks.
+ * @param serv The service name.
+ * @param cmd_name The command name.
+ * @param cmd_line The command line.
+ * @param args The JSON arguments for configuration.
+ * @param cnf Shared pointer to the engine to agent request configuration.
+ * @param handler The completion handler for the check.
+ * @param stat Shared pointer to the checks statistics.
+ *
+ * @throws std::exception If there is an error parsing the arguments.
+ */
 check_event_log::check_event_log(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -68,7 +88,7 @@ check_event_log::check_event_log(
       _warning_threshold = arg.get_unsigned("warning-count", 1);
       _critical_threshold = arg.get_unsigned("critical-count", 1);
       _empty_output =
-          arg.get_string("empty_state", "Empty or no match for this filter");
+          arg.get_string("empty-state", "Empty or no match for this filter");
 
       _output_syntax = arg.get_string("output-syntax",
                                       "${status}: ${count} ${problem_list}");
@@ -77,11 +97,17 @@ check_event_log::check_event_log(
 
       _calc_output_format();
 
-      _calc_event_detail_syntax(arg.get_string("event-detail-syntax", ""));
+      _calc_event_detail_syntax(
+          arg.get_string("event-detail-syntax", "'${source} ${id}'"));
 
+      std::string_view uniq =
+          arg.get_string("unique-index", "${provider}${id}");
+      if (!uniq.empty()) {
+        _event_compare =
+            std::make_unique<event_log::event_comparator>(uniq, logger);
+      }
       _data = std::make_unique<event_log::event_container>(
           arg.get_string("file"),
-          arg.get_string("unique-index", "${provider}${id}"),
           arg.get_string(
               "filter-event",
               "written > 60m and level in ('error', 'warning', 'critical')"),
@@ -94,6 +120,48 @@ check_event_log::check_event_log(
                         e.what());
     throw;
   }
+}
+
+/**
+ * @brief Static method to load a check_event_log instance.
+ *
+ * This method creates and initializes a shared pointer to a check_event_log
+ * object with the provided parameters, and starts the event log data
+ * processing.
+ *
+ * @param io_context Shared pointer to an asio::io_context object.
+ * @param logger Shared pointer to an spdlog::logger object.
+ * @param first_start_expected The expected first start time point.
+ * @param check_interval The interval duration for checks.
+ * @param serv The service name.
+ * @param cmd_name The command name.
+ * @param cmd_line The command line.
+ * @param args The JSON arguments for configuration.
+ * @param cnf Shared pointer to the engine to agent request configuration.
+ * @param handler The completion handler for the check.
+ * @param stat Shared pointer to the checks statistics.
+ *
+ * @return A shared pointer to the initialized check_event_log object.
+ */
+std::shared_ptr<check_event_log> check_event_log::load(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    duration check_interval,
+    const std::string& serv,
+    const std::string& cmd_name,
+    const std::string& cmd_line,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
+  std::shared_ptr<check_event_log> ret = std::make_shared<check_event_log>(
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, args, cnf, std::move(handler), stat);
+
+  ret->_data->start();
+
+  return ret;
 }
 
 static const boost::container::flat_map<std::string_view, std::string_view>
@@ -115,6 +183,15 @@ static const boost::container::flat_map<std::string_view, std::string_view>
                               {"${count}", "{1}"},
                               {"${problem_list}", "{2}"}};
 
+/**
+ * @brief Calculate the output format by replacing labels with their
+ * corresponding indices.
+ *
+ * This method updates the output format strings (_empty_output, _output_syntax,
+ * _ok_syntax) by replacing the labels (e.g., ${status}, ${count},
+ * ${problem_list}) with their corresponding indices defined in
+ * _label_to_output_index.
+ */
 void check_event_log::_calc_output_format() {
   auto replace_label = [](std::string* to_maj) {
     for (const auto& translate : _label_to_output_index) {
@@ -125,6 +202,7 @@ void check_event_log::_calc_output_format() {
   replace_label(&_empty_output);
   replace_label(&_output_syntax);
   replace_label(&_output_syntax);
+  replace_label(&_ok_syntax);
 }
 
 /**
@@ -147,28 +225,55 @@ void check_event_log::start_check([[maybe_unused]] const duration& timeout) {
       });
 }
 
+/**
+ * @brief Print event details.
+ *
+ * This template function prints the details of an event based on the provided
+ * parameters. It formats the event details according to the specified syntax.
+ *
+ * @tparam need_written_str Boolean indicating whether the formatted date time
+ * string is needed.
+ * @param file The file name as System.
+ * @param status The status of the check.
+ * @param evt The event object containing event details.
+ * @return A formatted string containing the event details.
+ */
 template <bool need_written_str>
 std::string check_event_log::print_event_detail(
     const std::string& file,
+    e_status status,
     const event_log::event& evt) const {
-  unsigned event_id = evt.event_id();
+  unsigned event_id = evt.get_event_id();
   uint64_t time_s = std::chrono::duration_cast<std::chrono::seconds>(
-                        evt.time().time_since_epoch())
+                        evt.get_time().time_since_epoch())
                         .count();
   if constexpr (need_written_str) {
-    std::string written_str = std::format("%FT%T", evt.time());
+    std::string written_str = std::format("{:%FT%T}", evt.get_time());
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(file, event_id, evt.provider(), evt.message(),
-                              status_label[evt.status()], time_s, written_str));
+        std::make_format_args(file, event_id, evt.get_provider(),
+                              evt.get_message(), status_label[status], time_s,
+                              written_str));
   } else {
     return std::vformat(
         _event_detail_syntax,
-        std::make_format_args(file, event_id, evt.provider(), evt.message(),
-                              status_label[evt.status()], time_s));
+        std::make_format_args(file, event_id, evt.get_provider(),
+                              evt.get_message(), status_label[status], time_s));
   }
 }
 
+/**
+ * @brief Compute the status and output for the event log check.
+ *
+ * This method processes the event log data, determines the status based on the
+ * number of critical and warning events, and formats the output string
+ * accordingly. It also generates performance data.
+ *
+ * @param data Reference to the event log container.
+ * @param output Pointer to the output string.
+ * @param perf Pointer to the list of performance data.
+ * @return The computed status of the check.
+ */
 e_status check_event_log::compute(
     event_log::event_container& data,
     std::string* output,
@@ -177,11 +282,14 @@ e_status check_event_log::compute(
 
   const std::string* out_format = &_output_syntax;
 
-  data.clean_perempted_events();
+  // Clean perempted events
+  data.clean_perempted_events(true);
   e_status status = e_status::ok;
-  if (data.get_critical().size() > _critical_threshold) {
+
+  // Determine status based on thresholds
+  if (data.get_nb_critical() >= _critical_threshold) {
     status = e_status::critical;
-  } else if (data.get_warning().size() > _warning_threshold) {
+  } else if (data.get_nb_warning() >= _warning_threshold) {
     status = e_status::warning;
   } else {
     if (data.get_critical().empty() && data.get_warning().empty() &&
@@ -192,57 +300,116 @@ e_status check_event_log::compute(
     }
   }
 
-  std::string (check_event_log::*event_format)(const std::string&,
+  // Determine the event format function based on the presence of written_str
+  std::string (check_event_log::*event_format)(const std::string&, e_status,
                                                const event_log::event&) const;
   if (out_format->find("{6}") == std::string::npos) {  // written_str?
-    event_format = &check_event_log::print_event_detail<false>;
-  } else {
     event_format = &check_event_log::print_event_detail<true>;
+  } else {
+    event_format = &check_event_log::print_event_detail<false>;
   }
 
   std::string file = lpwcstr_to_acp(data.get_file().c_str());
-  // need to calculate problem_list
-  std::string problem_list;
-  const auto& critical_ind = data.get_critical().get<1>();
-  const auto& warning_ind = data.get_warning().get<1>();
-  if (!_verbose && out_format->find("{2}") != std::string::npos) {
-    // newest first
-    for (const auto& evt : critical_ind | std::views::reverse) {
-      problem_list.push_back(' ');
-      problem_list += (this->*event_format)(file, evt.get_event());
+
+  std::unique_ptr<
+      absl::flat_hash_set<const event_log::event*, event_log::event_comparator,
+                          event_log::event_comparator>>
+      critical_uniq;
+  std::unique_ptr<
+      absl::flat_hash_set<const event_log::event*, event_log::event_comparator,
+                          event_log::event_comparator>>
+      warning_uniq;
+
+  // Group events by _event_compare if needed
+  if (_event_compare && _verbose ||
+      out_format->find("{2}") != std::string::npos) {
+    critical_uniq =
+        std::make_unique<absl::flat_hash_set<const event_log::event*,
+                                             event_log::event_comparator,
+                                             event_log::event_comparator>>(
+            0, *_event_compare, *_event_compare);
+    warning_uniq =
+        std::make_unique<absl::flat_hash_set<const event_log::event*,
+                                             event_log::event_comparator,
+                                             event_log::event_comparator>>(
+            0, *_event_compare, *_event_compare);
+
+    // Insert events into unique sets
+    for (const auto& evt : data.get_critical() | std::views::reverse) {
+      critical_uniq->insert(&evt.second);
     }
-    for (const auto& evt : warning_ind | std::views::reverse) {
-      problem_list.push_back(' ');
-      problem_list += (this->*event_format)(file, evt.get_event());
+    for (const auto& evt : data.get_warning() | std::views::reverse) {
+      warning_uniq->insert(&evt.second);
     }
   }
 
-  unsigned problem_count =
-      data.get_critical().size() + data.get_warning().size();
-  *output = std::vformat(
-      *out_format, std::make_format_args(status_label[status], problem_list));
-  if (_verbose) {
-    // newest first
-    for (const auto& evt : critical_ind | std::views::reverse) {
-      output->push_back('\n');
-      *output += (this->*event_format)(file, evt.get_event());
+  struct reverse_event_compare {
+    bool operator()(const event_log::event* a,
+                    const event_log::event* b) const {
+      return a->get_time() > b->get_time();
     }
-    for (const auto& evt : warning_ind | std::views::reverse) {
-      output->push_back('\n');
-      *output += (this->*event_format)(file, evt.get_event());
+  };
+
+  // Reorder events by time (newest first)
+  std::multiset<const event_log::event*, reverse_event_compare>
+      critical_ordered, warning_ordered;
+  if (critical_uniq) {
+    for (const event_log::event* evt : *critical_uniq) {
+      critical_ordered.insert(evt);
+    }
+  }
+  if (warning_uniq) {
+    for (const event_log::event* evt : *warning_uniq) {
+      warning_ordered.insert(evt);
     }
   }
 
+  // Calculate problem_list if needed
+  try {
+    std::string problem_list;
+    if (!_verbose && out_format->find("{2}") != std::string::npos) {
+      for (const event_log::event* evt : critical_ordered) {
+        problem_list.push_back(' ');
+        problem_list += (this->*event_format)(file, e_status::critical, *evt);
+      }
+      for (const event_log::event* evt : warning_ordered) {
+        problem_list.push_back(' ');
+        problem_list += (this->*event_format)(file, e_status::warning, *evt);
+      }
+    }
+
+    unsigned problem_count = data.get_nb_critical() + data.get_nb_warning();
+    *output = std::vformat(
+        *out_format, std::make_format_args(status_label[status], problem_count,
+                                           problem_list));
+    if (_verbose) {
+      for (const event_log::event* evt : *critical_uniq) {
+        output->push_back('\n');
+        *output += (this->*event_format)(file, e_status::critical, *evt);
+      }
+      for (const event_log::event* evt : *warning_uniq) {
+        output->push_back('\n');
+        *output += (this->*event_format)(file, e_status::warning, *evt);
+      }
+    }
+  } catch (const std::exception& e) {
+    *output =
+        std::format("fail to format output string with this pattern '{}' : {}",
+                    *out_format, e.what());
+    return e_status::critical;
+  }
+
+  // Generate performance data
   common::perfdata critical;
   critical.name("critical-count");
   critical.value(data.get_nb_critical());
   common::perfdata warning;
-  critical.name("warning-count");
-  critical.value(data.get_nb_warning());
+  warning.name("warning-count");
+  warning.value(data.get_nb_warning());
   perf->emplace_back(std::move(critical));
   perf->emplace_back(std::move(warning));
 
-  return e_status::ok;
+  return status;
 }
 
 void check_event_log::help(std::ostream& help_stream) {

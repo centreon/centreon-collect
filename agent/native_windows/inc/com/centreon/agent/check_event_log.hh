@@ -28,6 +28,7 @@ namespace com::centreon::agent {
 
 class check_event_log : public check {
   std::unique_ptr<event_log::event_container> _data;
+  std::unique_ptr<event_log::event_comparator> _event_compare;
 
   unsigned _warning_threshold;
   unsigned _critical_threshold;
@@ -43,6 +44,7 @@ class check_event_log : public check {
 
   template <bool need_written_str>
   std::string print_event_detail(const std::string& file,
+                                 e_status status,
                                  const event_log::event& evt) const;
 
  public:
@@ -57,6 +59,19 @@ class check_event_log : public check {
                   const engine_to_agent_request_ptr& cnf,
                   check::completion_handler&& handler,
                   const checks_statistics::pointer& stat);
+
+  static std::shared_ptr<check_event_log> load(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      duration check_interval,
+      const std::string& serv,
+      const std::string& cmd_name,
+      const std::string& cmd_line,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat);
 
   static void help(std::ostream& help_stream);
 

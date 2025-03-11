@@ -20,19 +20,6 @@
 
 using namespace com::centreon::agent::event_log;
 
-unique_event::unique_event(event&& evt) : _evt(evt), _oldest(_evt.time()) {
-  _time_points.insert(_evt.time());
-}
-
-void unique_event::clean_oldest(
-    std::chrono::file_clock::time_point peremption) {
-  if (_time_points.empty()) {
-    return;
-  }
-  _time_points.erase(_time_points.begin(),
-                     _time_points.upper_bound(peremption));
-}
-
 re2::RE2 field_regex("\\${([^\\${}]+)}");
 
 event_comparator::event_comparator(
@@ -41,50 +28,52 @@ event_comparator::event_comparator(
   std::string_view field;
   while (RE2::FindAndConsume(&fields, field_regex, &field)) {
     if (field == "source" || field == "provider") {
-      _hash.emplace_back([](const event& evt) -> size_t {
-        return absl::Hash<std::string>()(evt.provider());
+      _hash.emplace_back([](const event* evt) -> size_t {
+        return absl::Hash<std::string>()(evt->get_provider());
       });
-      _compare.emplace_back([](const event& left, const event& right) -> bool {
-        return left.provider() == right.provider();
+      _compare.emplace_back([](const event* left, const event* right) -> bool {
+        return left->get_provider() == right->get_provider();
       });
     } else if (field == "id") {
       _hash.emplace_back(
-          [](const event& evt) -> size_t { return evt.event_id(); });
-      _compare.emplace_back([](const event& left, const event& right) -> bool {
-        return left.event_id() == right.event_id();
+          [](const event* evt) -> size_t { return evt->get_event_id(); });
+      _compare.emplace_back([](const event* left, const event* right) -> bool {
+        return left->get_event_id() == right->get_event_id();
       });
-    } else if (field == "message" || field == "message") {
-      _hash.emplace_back([](const event& evt) -> size_t {
-        return absl::Hash<std::string>()(evt.message());
+    } else if (field == "message") {
+      _hash.emplace_back([](const event* evt) -> size_t {
+        return absl::Hash<std::string>()(evt->get_message());
       });
-      _compare.emplace_back([](const event& left, const event& right) -> bool {
-        return left.message() == right.message();
+      _compare.emplace_back([](const event* left, const event* right) -> bool {
+        return left->get_message() == right->get_message();
       });
-    } else if (field == "channel" || field == "channel") {
-      _hash.emplace_back([](const event& evt) -> size_t {
-        return absl::Hash<std::string>()(evt.channel());
+    } else if (field == "channel") {
+      _hash.emplace_back([](const event* evt) -> size_t {
+        return absl::Hash<std::string>()(evt->get_channel());
       });
-      _compare.emplace_back([](const event& left, const event& right) -> bool {
-        return left.channel() == right.channel();
+      _compare.emplace_back([](const event* left, const event* right) -> bool {
+        return left->get_channel() == right->get_channel();
       });
     }
   }
   if (_compare.empty()) {
     SPDLOG_LOGGER_DEBUG(logger, "no unique sort for output");
-    _hash.emplace_back([](const event& evt) -> size_t {
-      return evt.record_id() + absl::Hash<std::string>()(evt.channel()) +
-             absl::Hash<std::string>()(evt.provider()) +
-             evt.time().time_since_epoch().count();
+    _hash.emplace_back([](const event* evt) -> size_t {
+      return evt->get_record_id() +
+             absl::Hash<std::string>()(evt->get_channel()) +
+             absl::Hash<std::string>()(evt->get_provider()) +
+             evt->get_time().time_since_epoch().count();
     });
-    _compare.emplace_back([](const event& left, const event& right) -> bool {
-      return left.record_id() == right.record_id() &&
-             left.channel() == right.channel() &&
-             left.provider() == right.provider() && left.time() == right.time();
+    _compare.emplace_back([](const event* left, const event* right) -> bool {
+      return left->get_record_id() == right->get_record_id() &&
+             left->get_channel() == right->get_channel() &&
+             left->get_provider() == right->get_provider() &&
+             left->get_time() == right->get_time();
     });
   }
 }
 
-bool event_comparator::operator()(const event& left, const event& right) const {
+bool event_comparator::operator()(const event* left, const event* right) const {
   for (const auto& comp : _compare) {
     if (!comp(left, right)) {
       return false;
@@ -93,7 +82,7 @@ bool event_comparator::operator()(const event& left, const event& right) const {
   return true;
 }
 
-std::size_t event_comparator::operator()(const event& to_hash) const {
+std::size_t event_comparator::operator()(const event* to_hash) const {
   std::size_t ret = 0;
   for (const auto hash : _hash) {
     ret += hash(to_hash);

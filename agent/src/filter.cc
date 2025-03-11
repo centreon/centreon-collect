@@ -329,7 +329,7 @@ filter_combinator& filter_combinator::operator=(
   return *this;
 }
 
-bool filter_combinator::check(testable& t) const {
+bool filter_combinator::check(const testable& t) const {
   if (_logical == logical_operator::filter_and) {
     for (auto& subfilter : _filters) {
       if (!subfilter->check(t)) {

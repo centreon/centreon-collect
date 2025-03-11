@@ -42,7 +42,7 @@ struct testable {};
  * matching the filter
  *
  */
-using checker = std::function<bool(testable&)>;
+using checker = std::function<bool(const testable&)>;
 
 class filter;
 
@@ -86,7 +86,7 @@ class filter {
 
   virtual std::unique_ptr<filter> clone() const = 0;
 
-  virtual bool check(testable& t) const { return _checker(t); }
+  virtual bool check(const testable& t) const { return _checker(t); }
 
   virtual void visit(const visitor& visitr) const { visitr(this); }
 
@@ -503,7 +503,7 @@ class filter_combinator : public filter {
     return std::make_unique<filter_combinator>(*this);
   }
 
-  bool check(testable& t) const override;
+  bool check(const testable& t) const override;
 
   void visit(const visitor& visitr) const override;
 

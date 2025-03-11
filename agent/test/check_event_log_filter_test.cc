@@ -56,13 +56,18 @@ struct mock_event_data : public event_data {
 };
 
 TEST(eventlog_filter, provider) {
-  event_filter filter1("provider == 'provider1'", spdlog::default_logger());
-  event_filter filter2("provider != 'provider1'", spdlog::default_logger());
-  event_filter filter3("provider in ('provider1', 'provider2')",
+  event_filter filter1(event_filter::raw_data_tag(), "provider == 'provider1'",
                        spdlog::default_logger());
-  event_filter filter4("provider == 'provider1' or provider == 'provider2'",
+  event_filter filter2(event_filter::raw_data_tag(), "provider != 'provider1'",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(),
+                       "provider in ('provider1', 'provider2')",
+                       spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(),
+                       "provider == 'provider1' or provider == 'provider2'",
                        spdlog::default_logger());
   event_filter filter5(
+      event_filter::raw_data_tag(),
       "provider in ('provider1', 'provider2') or provider in ( provider3 )",
       spdlog::default_logger());
 
@@ -98,11 +103,16 @@ TEST(eventlog_filter, provider) {
 }
 
 TEST(eventlog_filter, event_id) {
-  event_filter filter1("event_id=5", spdlog::default_logger());
-  event_filter filter2("event_id!=5", spdlog::default_logger());
-  event_filter filter3("event_id in (5, 6)", spdlog::default_logger());
-  event_filter filter4("event_id=5 or event_id=6", spdlog::default_logger());
-  event_filter filter5("event_id in (5, 6) or event_id in (7)",
+  event_filter filter1(event_filter::raw_data_tag(), "event_id=5",
+                       spdlog::default_logger());
+  event_filter filter2(event_filter::raw_data_tag(), "event_id!=5",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(), "event_id in (5, 6)",
+                       spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(), "event_id=5 or event_id=6",
+                       spdlog::default_logger());
+  event_filter filter5(event_filter::raw_data_tag(),
+                       "event_id in (5, 6) or event_id in (7)",
                        spdlog::default_logger());
 
   mock_event_data data;
@@ -136,11 +146,16 @@ TEST(eventlog_filter, event_id) {
 }
 
 TEST(eventlog_filter, level) {
-  event_filter filter1("level=5", spdlog::default_logger());
-  event_filter filter2("level!='debug'", spdlog::default_logger());
-  event_filter filter3("level in (debug, 6)", spdlog::default_logger());
-  event_filter filter4("level='debug' or level=6", spdlog::default_logger());
-  event_filter filter5("level in (5, 6) or level in ('info')",
+  event_filter filter1(event_filter::raw_data_tag(), "level=5",
+                       spdlog::default_logger());
+  event_filter filter2(event_filter::raw_data_tag(), "level!='debug'",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(), "level in (debug, 6)",
+                       spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(), "level='debug' or level=6",
+                       spdlog::default_logger());
+  event_filter filter5(event_filter::raw_data_tag(),
+                       "level in (5, 6) or level in ('info')",
                        spdlog::default_logger());
 
   mock_event_data data;
@@ -174,12 +189,17 @@ TEST(eventlog_filter, level) {
 }
 
 TEST(eventlog_filter, keywords) {
-  event_filter filter1("keywords='auditsuccess'", spdlog::default_logger());
-  event_filter filter2("keywords!='auditsuccess'", spdlog::default_logger());
-  event_filter filter3("keywords in (auditfailure)", spdlog::default_logger());
-  event_filter filter4("keywords in (auditsuccess, auditfailure)",
+  event_filter filter1(event_filter::raw_data_tag(), "keywords='auditsuccess'",
+                       spdlog::default_logger());
+  event_filter filter2(event_filter::raw_data_tag(), "keywords!='auditsuccess'",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(),
+                       "keywords in (auditfailure)", spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(),
+                       "keywords in (auditsuccess, auditfailure)",
                        spdlog::default_logger());
   event_filter filter5(
+      event_filter::raw_data_tag(),
       "keywords in (auditfailure) or keywords notin ('auditsuccess')",
       spdlog::default_logger());
 
@@ -214,13 +234,18 @@ TEST(eventlog_filter, keywords) {
 }
 
 TEST(eventlog_filter, computer) {
-  event_filter filter1("computer == 'computer1'", spdlog::default_logger());
-  event_filter filter2("computer != 'computer1'", spdlog::default_logger());
-  event_filter filter3("computer in ('computer1', 'computer2')",
+  event_filter filter1(event_filter::raw_data_tag(), "computer == 'computer1'",
                        spdlog::default_logger());
-  event_filter filter4("computer == 'computer1' or computer == 'computer2'",
+  event_filter filter2(event_filter::raw_data_tag(), "computer != 'computer1'",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(),
+                       "computer in ('computer1', 'computer2')",
+                       spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(),
+                       "computer == 'computer1' or computer == 'computer2'",
                        spdlog::default_logger());
   event_filter filter5(
+      event_filter::raw_data_tag(),
       "computer in ('computer1', 'computer2') or computer in ( computer3 )",
       spdlog::default_logger());
 
@@ -256,13 +281,18 @@ TEST(eventlog_filter, computer) {
 }
 
 TEST(eventlog_filter, channel) {
-  event_filter filter1("channel == 'channel1'", spdlog::default_logger());
-  event_filter filter2("channel != 'channel1'", spdlog::default_logger());
-  event_filter filter3("channel in ('channel1', 'channel2')",
+  event_filter filter1(event_filter::raw_data_tag(), "channel == 'channel1'",
                        spdlog::default_logger());
-  event_filter filter4("channel == 'channel1' or channel == 'channel2'",
+  event_filter filter2(event_filter::raw_data_tag(), "channel != 'channel1'",
+                       spdlog::default_logger());
+  event_filter filter3(event_filter::raw_data_tag(),
+                       "channel in ('channel1', 'channel2')",
+                       spdlog::default_logger());
+  event_filter filter4(event_filter::raw_data_tag(),
+                       "channel == 'channel1' or channel == 'channel2'",
                        spdlog::default_logger());
   event_filter filter5(
+      event_filter::raw_data_tag(),
       "channel in ('channel1', 'channel2') or channel in ( channel3 )",
       spdlog::default_logger());
 
@@ -298,50 +328,63 @@ TEST(eventlog_filter, channel) {
 }
 
 TEST(eventlog_filter, composite) {
-  event_filter filter1("provider == 'provider1' and event_id=5",
+  event_filter filter1(event_filter::raw_data_tag(),
+                       "provider == 'provider1' and event_id=5",
                        spdlog::default_logger());
-  event_filter filter2("provider == 'provider1' and event_id=6",
+  event_filter filter2(event_filter::raw_data_tag(),
+                       "provider == 'provider1' and event_id=6",
                        spdlog::default_logger());
-  event_filter filter3("provider == 'provider1' and event_id=5 or event_id=6",
+  event_filter filter3(event_filter::raw_data_tag(),
+                       "provider == 'provider1' and event_id=5 or event_id=6",
                        spdlog::default_logger());
   event_filter filter4(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=5",
       spdlog::default_logger());
   event_filter filter5(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6",
       spdlog::default_logger());
   event_filter filter6(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5",
       spdlog::default_logger());
   event_filter filter7(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditsuccess'",
       spdlog::default_logger());
   event_filter filter8(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure'",
       spdlog::default_logger());
   event_filter filter9(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure' or keywords='auditsuccess'",
       spdlog::default_logger());
   event_filter filter10(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure' or keywords='auditsuccess' and "
       "computer='computer1'",
       spdlog::default_logger());
   event_filter filter11(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure' or keywords='auditsuccess' and "
       "computer='computer2'",
       spdlog::default_logger());
   event_filter filter12(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure' or keywords='auditsuccess' and "
       "computer='computer2' or computer='computer1'",
       spdlog::default_logger());
   event_filter filter13(
+      event_filter::raw_data_tag(),
       "provider == 'provider1' and event_id=5 or event_id=6 and level=6 or "
       "level=5 and keywords='auditfailure' or keywords='auditsuccess' and "
       "computer='computer2' or computer='computer1' and channel='channel1'",

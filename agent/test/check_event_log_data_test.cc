@@ -18,16 +18,15 @@
 
 #include <gtest/gtest.h>
 
-#include "event_log/container.hh"
+#include "agent/test/check_event_log_data_test.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::event_log;
 
 TEST(eventlog_data, event_log_event) {
-  event_container cont("System", "${log}-${source}-${id}",
-                       "level in ('error', 'warning')", "level == 'warning'",
-                       "level == 'error'", std::chrono::days(2), true,
-                       spdlog::default_logger());
+  test_event_container cont(
+      "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
+      "level == 'error'", std::chrono::days(4), true, spdlog::default_logger());
 
   cont.start();
 
@@ -40,18 +39,87 @@ TEST(eventlog_data, event_log_event) {
   }
 
   std::lock_guard l(cont);
-  EXPECT_FALSE(cont.get_warning().empty() && cont.get_critical().empty());
+  EXPECT_NE(cont.get_nb_warning() + cont.get_nb_critical() + cont.get_nb_ok(),
+            0);
+}
 
-  std::cout << "warning" << std::endl;
-  /*  for (const auto& evt : cont.get_warning()) {
-      for (const auto tp: evt.second) {
-      std::cout << tp << " : " <<   evt.first << std::endl;
-      }
-    }
-    std::cout << "critical" << std::endl;
-    for (const auto& evt : cont.get_critical()) {
-      for (const auto tp: evt.second) {
-      std::cout << tp << " : " <<   evt.first << std::endl;
-      }
-    }*/
+TEST(eventlog_data, filters) {
+  test_event_container cont(
+      "System", "event_id = 3 or event_id = 4",
+      "(level == 'warning' || level == 'error') and event_id = 4",
+      "(level == 'error' || level == 'critical')  && written > -60m",
+      std::chrono::days(2), true, spdlog::default_logger());
+
+  EXPECT_EQ(cont.get_nb_warning() + cont.get_nb_critical() + cont.get_nb_ok(),
+            0);
+
+  mock_event_data raw_data;
+  raw_data.event_id = 3;
+  raw_data.level = 3;  // warning
+  raw_data.time_created = 0;
+
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning() + cont.get_nb_critical() + cont.get_nb_ok(),
+            0);
+
+  raw_data.set_time_created(86400 * 2 + 1);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning() + cont.get_nb_critical() + cont.get_nb_ok(),
+            0);
+
+  raw_data.set_time_created(86400 * 2 - 10);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning() + cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  raw_data.event_id = 4;
+  raw_data.set_time_created(86400 * 2 - 10);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 1);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  raw_data.level = 2;  // error
+  raw_data.set_time_created(86400 * 2 - 10);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 2);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  raw_data.set_time_created(3600 - 1);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 2);
+  EXPECT_EQ(cont.get_nb_critical(), 1);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  std::this_thread::sleep_for(
+      std::chrono::seconds(2));  // critical event must be perempted
+  cont.clean_perempted_events(true);
+  EXPECT_EQ(cont.get_nb_warning(), 3);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 4);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 1);
+
+  raw_data.event_id = 3;
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 4);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 2);
+
+  raw_data.set_time_created(3600 - 1);
+  cont.on_event(raw_data, nullptr);
+  EXPECT_EQ(cont.get_nb_warning(), 4);
+  EXPECT_EQ(cont.get_nb_critical(), 1);
+  EXPECT_EQ(cont.get_nb_ok(), 2);
+
+  std::this_thread::sleep_for(
+      std::chrono::seconds(2));  // critical event must be perempted
+  cont.clean_perempted_events(true);
+  EXPECT_EQ(cont.get_nb_warning(), 4);
+  EXPECT_EQ(cont.get_nb_critical(), 0);
+  EXPECT_EQ(cont.get_nb_ok(), 3);
 }

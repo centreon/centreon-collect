@@ -22,6 +22,7 @@
 #include <winevt.h>
 
 #include <boost/flyweight.hpp>
+#include <string_view>
 
 #include "check.hh"
 #include "filter.hh"
@@ -58,6 +59,8 @@ class event_data : public testable {
 
   ~event_data() = default;
 
+  static std::chrono::file_clock::time_point convert_to_tp(uint64_t file_time);
+
   // all getters are virtual in order to mock it in ut
   virtual std::wstring_view get_provider() const;
   virtual uint16_t get_event_id() const;
@@ -70,59 +73,15 @@ class event_data : public testable {
   virtual std::wstring_view get_channel() const;  // file
 };
 
-class event_filter {
-  filters::filter_combinator _filter;
-  std::shared_ptr<spdlog::logger> _logger;
-  duration _written_limit;
-
-  struct check_builder {
-    duration min_written{0};
-    void operator()(filter* filt);
-    void set_label_compare_to_value(filters::label_compare_to_value* filt);
-    void set_label_compare_to_string(
-        filters::label_compare_to_string<wchar_t>* filt) const;
-    void set_label_in(filters::label_in<wchar_t>* filt) const;
-  };
-
-  template <filters::in_not rule>
-  class level_in {
-    std::set<uint8_t> _values;
-
-   public:
-    level_in(const filters::label_in<wchar_t>& filt);
-    level_in(const filters::label_compare_to_string<wchar_t>& filt);
-
-    bool operator()(const testable& t) const;
-  };
-
- public:
-  event_filter(const std::string_view& filter_str,
-               const std::shared_ptr<spdlog::logger>& logger);
-
-  bool allow(event_data& data) const { return _filter.check(data); }
-
-  void dump(std::ostream& s) const { _filter.dump(s); }
-
-  void visit(const visitor& visitr) const { _filter.visit(visitr); }
-
-  duration get_written_limit() const { return _written_limit; }
-};
-
-inline std::ostream& operator<<(std::ostream& s, const event_filter& filt) {
-  filt.dump(s);
-  return s;
-}
-
-class event {
+class event : public testable {
   uint16_t _event_id;
   uint64_t _record_id;
+  int64_t _keywords;
 
   std::chrono::file_clock::time_point _time;
 
   uint64_t _audit;
   unsigned _level;
-
-  e_status _status;
 
   struct computer_tag {};
   struct channel_tag {};
@@ -145,31 +104,122 @@ class event {
   boost::flyweight<std::string,
                    boost::flyweights::hashed_factory<>,
                    boost::flyweights::tag<keyword_tag>>
-      _keyword;
+      _str_keywords;
   boost::flyweight<std::string,
                    boost::flyweights::hashed_factory<>,
                    boost::flyweights::tag<message_tag>>
       _message;
 
  public:
-  event(const event_data& raw_data, e_status status, std::string&& message);
+  event() = default;
+
+  event(const event_data& raw_data,
+        const std::chrono::file_clock::time_point& tp,
+        std::string&& message);
 
   bool operator<(const event& other) const { return _time < other._time; }
 
-  uint64_t record_id() const { return _record_id; }
-  uint16_t event_id() const { return _event_id; }
-  std::chrono::file_clock::time_point time() const { return _time; }
-  uint64_t audit() const { return _audit; }
-  unsigned level() const { return _level; }
-  e_status status() const { return _status; }
-  const std::string& computer() const { return _computer; }
-  const std::string& channel() const { return _channel; }
-  const std::string& provider() const { return _provider; }
-  const std::string& keyword() const { return _keyword; }
-  const std::string& message() const { return _message; }
+  uint64_t get_record_id() const { return _record_id; }
+  uint16_t get_event_id() const { return _event_id; }
+  std::chrono::file_clock::time_point get_time() const { return _time; }
+  uint64_t get_audit() const { return _audit; }
+  unsigned get_level() const { return _level; }
+  const std::string& get_computer() const { return _computer; }
+  const std::string& get_channel() const { return _channel; }
+  const std::string& get_provider() const { return _provider; }
+  int64_t get_keywords() const { return _keywords; }
+  const std::string& get_str_keywords() const { return _str_keywords; }
+  const std::string& get_message() const { return _message; }
 };
 
 std::ostream& operator<<(std::ostream& s, const event& evt);
+
+class event_filter {
+  filters::filter_combinator _filter;
+  std::shared_ptr<spdlog::logger> _logger;
+  duration _written_limit;
+
+  template <filters::in_not rule, typename data_type_tag>
+  class level_in {
+    std::set<uint8_t> _values;
+
+   public:
+    using char_type = data_type_tag::char_type;
+    level_in(const filters::label_in<char_type>& filt);
+    level_in(const filters::label_compare_to_string<char_type>& filt);
+
+    bool operator()(const testable& t) const;
+  };
+
+ public:
+  template <typename data_type_tag>
+  struct check_builder {
+    using char_type = data_type_tag::char_type;
+    check_builder() = default;
+    check_builder(const check_builder&) = delete;
+    check_builder& operator=(const checker_builder&) = delete;
+
+    duration min_written{0};
+    void operator()(filter* filt);
+    void set_label_compare_to_value(filters::label_compare_to_value* filt);
+    void set_label_compare_to_string(
+        filters::label_compare_to_string<char_type>* filt) const;
+    void set_label_in(filters::label_in<char_type>* filt) const;
+  };
+
+  struct raw_data_tag {
+    using type = event_data;
+    using char_type = wchar_t;
+    static constexpr bool use_wchar = true;
+    static constexpr std::wstring_view audit_success = L"auditsuccess";
+    static constexpr std::wstring_view audit_failure = L"auditfailure";
+  };
+  struct event_tag {
+    using type = event;
+    using char_type = char;
+    static constexpr bool use_wchar = false;
+    static constexpr std::string_view audit_success = "auditsuccess";
+    static constexpr std::string_view audit_failure = "auditfailure";
+  };
+
+  template <typename data_tag_type>
+  event_filter(const data_tag_type& tag,
+               const std::string_view& filter_str,
+               const std::shared_ptr<spdlog::logger>& logger);
+
+  bool allow(const testable& data) const { return _filter.check(data); }
+
+  void dump(std::ostream& s) const { _filter.dump(s); }
+
+  void visit(const visitor& visitr) const { _filter.visit(visitr); }
+
+  duration get_written_limit() const { return _written_limit; }
+};
+
+template <typename data_tag_type>
+event_filter::event_filter(const data_tag_type& tag,
+                           const std::string_view& filter_str,
+                           const std::shared_ptr<spdlog::logger>& logger)
+    : _logger(logger), _written_limit{0} {
+  if (!filter::create_filter(filter_str, logger, &_filter,
+                             data_tag_type::use_wchar)) {
+    throw exceptions::msg_fmt("fail to parse filter string: {}", filter_str);
+  }
+  try {
+    check_builder<data_tag_type> builder;
+    // we use this lambda to avoir copy of builder
+    _filter.apply_checker([&builder](filter* filt) { builder(filt); });
+    _written_limit = builder.min_written;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(logger, "wrong_value for {}: {}", filter_str, e.what());
+    throw;
+  }
+}
+
+inline std::ostream& operator<<(std::ostream& s, const event_filter& filt) {
+  filt.dump(s);
+  return s;
+}
 
 }  // namespace com::centreon::agent::event_log
 
