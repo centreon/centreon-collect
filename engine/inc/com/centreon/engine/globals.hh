@@ -50,6 +50,9 @@ extern std::shared_ptr<spdlog::logger> otel_logger;
 
 extern com::centreon::engine::configuration::State pb_config;
 extern std::string config_file;
+/* Directory of the serialized protobuf Engine configuration, we consider we
+ * are in new generation configuration if it is not empty */
+extern std::filesystem::path proto_conf;
 extern std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
