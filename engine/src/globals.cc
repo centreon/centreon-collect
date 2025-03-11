@@ -55,6 +55,9 @@ std::shared_ptr<spdlog::logger> runtime_logger;
 std::shared_ptr<spdlog::logger> otl_logger;
 
 std::string config_file;
+/* Directory of the serialized protobuf Engine configuration, we consider we
+ * are in new generation configuration if it is not empty */
+std::filesystem::path proto_conf;
 std::unique_ptr<com::centreon::broker::neb::cbmod> cbm;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);

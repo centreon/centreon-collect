@@ -763,11 +763,11 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration. */
-      if (!config::applier::state::instance().engine_config_dir().empty())
+      if (!config::applier::state::instance().proto_conf().empty())
         obj.set_extended_negotiation(true);
       /* I know I'm Broker, and I have access to the php cache configuration
        * directory. */
-      else if (!config::applier::state::instance().config_cache_dir().empty())
+      else if (!config::applier::state::instance().cache_config_dir().empty())
         obj.set_extended_negotiation(true);
       /* I don't know what I am. */
       else
@@ -848,6 +848,8 @@ void stream::negotiate(stream::negotiation_type neg) {
     peer_extensions = v->extensions;
   } else {
     std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
+    _logger->trace("BBDO: received pb_welcome packet: {}",
+                   w->obj().DebugString());
     const auto& pb_version = w->obj().version();
     if (pb_version.major() != _bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
@@ -887,11 +889,11 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration directory. */
-      if (!config::applier::state::instance().engine_config_dir().empty())
+      if (!config::applier::state::instance().proto_conf().empty())
         obj.set_extended_negotiation(true);
       /* I know I'm Broker, and I have access to the php cache configuration
        * directory. */
-      else if (!config::applier::state::instance().config_cache_dir().empty())
+      else if (!config::applier::state::instance().cache_config_dir().empty())
         obj.set_extended_negotiation(true);
       /* I don't have access to any configuration directory. */
       else
@@ -1509,7 +1511,7 @@ void stream::_negotiate_engine_conf() {
    * we send also an engine configuration event. And then we'll wait for
    * an answer from Broker. */
   if (_extended_negotiation &&
-      !config::applier::state::instance().engine_config_dir().empty()) {
+      !config::applier::state::instance().proto_conf().empty()) {
     auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
     auto& obj = engine_conf->mut_obj();
     obj.set_poller_id(config::applier::state::instance().poller_id());
@@ -1518,19 +1520,19 @@ void stream::_negotiate_engine_conf() {
     obj.set_peer_type(common::ENGINE);
 
     /* Time to fill the config version. */
-    std::error_code ec;
-    _config_version = common::hash_directory(
-        config::applier::state::instance().engine_config_dir(), ec);
-    if (ec) {
-      _logger->error(
-          "BBDO: cannot access directory '{}': {}",
-          config::applier::state::instance().engine_config_dir().string(),
-          ec.message());
-    }
-    obj.set_engine_config_version(_config_version);
-    _logger->info(
-        "BBDO: engine configuration sent to peer '{}' with version {}",
-        _broker_name, _config_version);
+    //    std::error_code ec;
+    //    _config_version = common::hash_directory(
+    //        config::applier::state::instance().engine_config_dir(), ec);
+    //    if (ec) {
+    //      _logger->error(
+    //          "BBDO: cannot access directory '{}': {}",
+    //          config::applier::state::instance().engine_config_dir().string(),
+    //          ec.message());
+    //    }
+    //    obj.set_engine_config_version(_config_version);
+    //    _logger->info(
+    //        "BBDO: engine configuration sent to peer '{}' with version {}",
+    //        _broker_name, _config_version);
     _write(engine_conf);
     std::shared_ptr<io::data> d;
     time_t deadline = time(nullptr) + 5;
