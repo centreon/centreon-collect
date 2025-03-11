@@ -41,6 +41,13 @@ FROM centreon_collect_packaging AS centreon_collect_packaging_vcpkg
 
 RUN bash -e <<EOF
 
+#################################
+# install and configure mariadb #
+#################################
+
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup \
+  | bash -s -- --os-type=rhel --skip-maxscale --skip-check-installed --os-version=9 --mariadb-server-version="mariadb-10.11"
+
 dnf install --best -y \
     cmake \
     gcc \

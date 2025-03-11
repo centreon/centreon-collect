@@ -20,7 +20,7 @@
 #define CCB_BBDO_VERSION_RESPONSE_HH
 
 #include "bbdo/bbdo/bbdo_version.hh"
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 

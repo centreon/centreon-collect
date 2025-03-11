@@ -25,9 +25,7 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#ifndef LEGACY_CONF
 #include "common/engine_conf/state.pb.h"
-#endif
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -35,167 +33,6 @@ using namespace com::centreon::engine::logging;
 /**
  *  Displays service check scheduling information.
  */
-#ifdef LEGACY_CONF
-void display_scheduling_info() {
-  // Notice.
-  std::cout << "\nProjected scheduling information for host and service "
-               "checks\n is listed below.  This information assumes that you "
-               "are going\n to start running Centreon Engine with your current "
-               "config files.\n\n";
-
-  // Host scheduling information.
-  std::cout << "HOST SCHEDULING INFORMATION\n"
-               "---------------------------\n"
-               "Total hosts:                        "
-            << scheduling_info.total_hosts
-            << "\n"
-               "Total scheduled hosts:              "
-            << scheduling_info.total_scheduled_hosts << "\n";
-  if (config->host_inter_check_delay_method() ==
-      configuration::state::icd_none) {
-    std::cout << "Host inter-check delay method:      NONE\n";
-  } else if (config->host_inter_check_delay_method() ==
-             configuration::state::icd_dumb) {
-    std::cout << "Host inter-check delay method:      DUMB\n";
-  } else if (config->host_inter_check_delay_method() ==
-             configuration::state::icd_smart) {
-    std::cout << "Host inter-check delay method:      SMART\n"
-                 "Average host check interval:        "
-              << scheduling_info.average_host_check_interval << " sec\n";
-  } else {
-    std::cout << "Host inter-check delay method:      USER-SUPPLIED VALUE\n";
-  }
-  std::cout << "Host inter-check delay:             "
-            << scheduling_info.host_inter_check_delay
-            << " sec\n Max host check spread:              "
-            << scheduling_info.max_host_check_spread
-            << " min\n First scheduled check:              "
-            << (scheduling_info.total_scheduled_hosts == 0
-                    ? "N/A\n"
-                    : ctime(&scheduling_info.first_host_check))
-            << "Last scheduled check:               "
-            << (scheduling_info.total_scheduled_hosts == 0
-                    ? "N/A\n"
-                    : ctime(&scheduling_info.last_host_check))
-            << "\n";
-  // Service scheduling information.
-  std::cout << "SERVICE SCHEDULING INFORMATION\n"
-               "-------------------------------\n"
-               "Total services:                     "
-            << scheduling_info.total_services
-            << "\n"
-               "Total scheduled services:           "
-            << scheduling_info.total_scheduled_services << "\n";
-  if (config->service_inter_check_delay_method() ==
-      configuration::state::icd_none) {
-    std::cout << "Service inter-check delay method:   NONE\n";
-  } else if (config->service_inter_check_delay_method() ==
-             configuration::state::icd_dumb) {
-    std::cout << "Service inter-check delay method:   DUMB\n";
-  } else if (config->service_inter_check_delay_method() ==
-             configuration::state::icd_smart) {
-    std::cout << "Service inter-check delay method:   SMART\n"
-                 "Average service check interval:     "
-              << scheduling_info.average_service_check_interval << " sec\n";
-  } else {
-    std::cout << "Service inter-check delay method:   USER-SUPPLIED VALUE\n";
-  }
-  std::cout << "Inter-check delay:                  "
-            << scheduling_info.service_inter_check_delay
-            << " sec\n Interleave factor method:           "
-            << (config->service_interleave_factor_method() ==
-                        configuration::state::ilf_user
-                    ? "USER-SUPPLIED VALUE\n"
-                    : "SMART\n");
-  if (config->service_interleave_factor_method() ==
-      configuration::state::ilf_smart) {
-    std::cout << "Average services per host:          "
-              << scheduling_info.average_services_per_host << "\n";
-  }
-  std::cout << "Service interleave factor:          "
-            << scheduling_info.service_interleave_factor
-            << "\n"
-               "Max service check spread:           "
-            << scheduling_info.max_service_check_spread
-            << " min\n"
-               "First scheduled check:              "
-            << ctime(&scheduling_info.first_service_check)
-            << "Last scheduled check:               "
-            << ctime(&scheduling_info.last_service_check) << "\n";
-  // Check processing information.
-  std::cout << "CHECK PROCESSING INFORMATION\n"
-               "----------------------------\n"
-               "Check result reaper interval:       "
-            << config->check_reaper_interval() << " sec\n";
-  if (config->max_parallel_service_checks() == 0) {
-    std::cout << "Max concurrent service checks:      Unlimited\n";
-  } else {
-    std::cout << "Max concurrent service checks:      "
-              << config->max_parallel_service_checks() << "\n";
-  }
-  std::cout << "\n";
-  // Performance suggestions.
-  std::cout << "PERFORMANCE SUGGESTIONS\n"
-               "-----------------------\n";
-  int suggestions(0);
-
-  // MAX REAPER INTERVAL RECOMMENDATION.
-  // Assume a 100% (2x) check burst for check reaper.
-  // Assume we want a max of 2k files in the result queue
-  // at any given time.
-  float max_reaper_interval(0.0);
-  max_reaper_interval = floor(2000 * scheduling_info.service_inter_check_delay);
-  if (max_reaper_interval < 2.0)
-    max_reaper_interval = 2.0;
-  if (max_reaper_interval > 30.0)
-    max_reaper_interval = 30.0;
-  if (max_reaper_interval < config->check_reaper_interval()) {
-    std::cout << "* Value for 'check_result_reaper_frequency' should be <= "
-              << static_cast<int>(max_reaper_interval) << " seconds\n";
-    ++suggestions;
-  }
-  if (config->check_reaper_interval() < 2) {
-    std::cout << "* Value for 'check_result_reaper_frequency' should be >= 2 "
-                 "seconds\n";
-    ++suggestions;
-  }
-
-  // MINIMUM CONCURRENT CHECKS RECOMMENDATION.
-  // First method (old) - assume a 100% (2x) service check
-  // burst for max concurrent checks.
-  float minimum_concurrent_checks(0.0);
-  float minimum_concurrent_checks1(0.0);
-  float minimum_concurrent_checks2(0.0);
-  if (scheduling_info.service_inter_check_delay == 0.0)
-    minimum_concurrent_checks1 = ceil(config->check_reaper_interval() * 2.0);
-  else
-    minimum_concurrent_checks1 =
-        ceil((config->check_reaper_interval() * 2.0) /
-             scheduling_info.service_inter_check_delay);
-  // Second method (new) - assume a 25% (1.25x) service check
-  // burst for max concurrent checks.
-  minimum_concurrent_checks2 =
-      ceil((((double)scheduling_info.total_scheduled_services) /
-            scheduling_info.average_service_check_interval) *
-           1.25 * config->check_reaper_interval() *
-           scheduling_info.average_service_execution_time);
-  // Use max of computed values.
-  if (minimum_concurrent_checks1 > minimum_concurrent_checks2)
-    minimum_concurrent_checks = minimum_concurrent_checks1;
-  else
-    minimum_concurrent_checks = minimum_concurrent_checks2;
-  // Compare with configured value.
-  if ((minimum_concurrent_checks > config->max_parallel_service_checks()) &&
-      config->max_parallel_service_checks() != 0) {
-    std::cout << "* Value for 'max_concurrent_checks' option should be >= "
-              << static_cast<int>(minimum_concurrent_checks) << "\n";
-    ++suggestions;
-  }
-  if (suggestions == 0) {
-    std::cout << "I have no suggestions - things look okay.\n";
-  }
-}
-#else
 void display_scheduling_info() {
   // Notice.
   std::cout << "\nProjected scheduling information for host and service "
@@ -355,7 +192,6 @@ void display_scheduling_info() {
     std::cout << "I have no suggestions - things look okay.\n";
   }
 }
-#endif
 
 /**
  *  Equal operator.

@@ -88,6 +88,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
+  ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
@@ -156,7 +157,7 @@ set(PREFIX_BROKER_CONF ${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker)
 
 # Modules directories.
 set(PREFIX_MODULES "${CMAKE_INSTALL_FULL_DATADIR}/centreon/lib/centreon-broker")
-set(PREFIX_CBMOD "${CMAKE_INSTALL_PREFIX}/lib64/nagios")
+set(PREFIX_CBMOD "${LIBDIR}")
 
 # User.
 if(WITH_USER_BROKER)
@@ -238,7 +239,7 @@ if(WITH_DAEMONS)
   endif()
 endif()
 
-if(WITH_CONFIG_FILES)
+if(WITH_CONF)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
                  "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
@@ -306,15 +307,11 @@ endif()
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
+add_subdirectory(core/bbdo)
 
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
-    ${SRC_DIR}/bbdo/acceptor.cc
-    ${SRC_DIR}/bbdo/connector.cc
-    ${SRC_DIR}/bbdo/factory.cc
-    ${SRC_DIR}/bbdo/internal.cc
-    ${SRC_DIR}/bbdo/stream.cc
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
     ${SRC_DIR}/cache/global_cache.cc
@@ -342,7 +339,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/instance_broadcast.cc
     ${SRC_DIR}/io/data.cc
     ${SRC_DIR}/io/endpoint.cc
-    ${SRC_DIR}/io/limit_endpoint.cc
     ${SRC_DIR}/io/events.cc
     ${SRC_DIR}/io/factory.cc
     ${SRC_DIR}/io/protocols.cc
@@ -372,11 +368,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/time/timezone_locker.cc
     ${SRC_DIR}/time/timezone_manager.cc
     # Headers.
-    ${INC_DIR}/bbdo/acceptor.hh
-    ${INC_DIR}/bbdo/connector.hh
-    ${INC_DIR}/bbdo/factory.hh
-    ${INC_DIR}/bbdo/internal.hh
-    ${INC_DIR}/bbdo/stream.hh
     ${INC_DIR}/broker_impl.hh
     ${INC_DIR}/brokerrpc.hh
     ${INC_DIR}/compression/factory.hh
@@ -406,7 +397,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/instance_broadcast.hh
     ${INC_DIR}/io/data.hh
     ${INC_DIR}/io/endpoint.hh
-    ${INC_DIR}/io/limit_endpoint.hh
     ${INC_DIR}/io/event_info.hh
     ${INC_DIR}/io/events.hh
     ${INC_DIR}/io/factory.hh
@@ -448,8 +438,11 @@ add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
+target_include_directories(rokerbase
+                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
 target_link_libraries(
   rokerbase
+  bbdo
   bbdo_bbdo
   berpc
   ctncrypto

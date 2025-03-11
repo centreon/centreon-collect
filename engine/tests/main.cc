@@ -37,6 +37,8 @@ class CentreonEngineEnvironment : public testing::Environment {
   void TearDown() override { return; }
 };
 
+void set_time(time_t now);
+
 /**
  *  Tester entry point.
  *
@@ -58,6 +60,8 @@ int main(int argc, char* argv[]) {
   com::centreon::common::pool::set_pool_size(0);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
+  time_t now = time(NULL);
+  set_time(now + 1000);
   g_io_context->stop();
   com::centreon::common::pool::unload();
   spdlog::shutdown();

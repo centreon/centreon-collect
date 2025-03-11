@@ -21,9 +21,6 @@
 #define CCE_OBJECTS_SERVICEDEPENDENCY_HH
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/hash.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/servicedependency.hh"
-#endif
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -87,13 +84,8 @@ class servicedependency : public dependency {
   service* dependent_service_ptr;
 
   static servicedependency_mmap servicedependencies;
-#ifdef LEGACY_CONF
-  static servicedependency_mmap::iterator servicedependencies_find(
-      configuration::servicedependency const& k);
-#else
   static servicedependency_mmap::iterator servicedependencies_find(
       const std::tuple<std::string, std::string, size_t>& key);
-#endif
 };
 
 };  // namespace com::centreon::engine

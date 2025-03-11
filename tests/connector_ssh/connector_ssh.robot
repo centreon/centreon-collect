@@ -27,22 +27,16 @@ TestBadUser
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
 
-    ${start}    Get Current Date
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-
-    ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
-    Ctn Stop engine
+    Ctn Stop Engine
 
 TestBadPwd
     [Documentation]    test bad password
@@ -60,22 +54,16 @@ TestBadPwd
     ...    ssh_linux_snmp
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
     ...    SSH Connector
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
 
-    ${start}    Get Current Date
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-
-    ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to testconnssh@127.0.0.11 should be available.
-    Ctn Stop engine
+    Ctn Stop Engine
 
 Test6Hosts
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -110,16 +98,10 @@ Test6Hosts
         Ctn Engine Config Set Value In Hosts    ${0}    host_${idx}    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
         Ctn Engine Config Set Value In Hosts    ${0}    host_${idx}    _PASSWORD    passwd
     END
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
 
-    ${start}    Get Current Date
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
-
-    ${start}    Get Current Date
     FOR    ${idx}    IN RANGE    1    7
         Ctn Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
@@ -140,12 +122,12 @@ Test6Hosts
         Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
 
 TestWhiteList
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
     [Tags]    connector    engine
-    Sleep    5 seconds    we wait sshd raz pending connexions from previous tests
+    Sleep    5 seconds    We wait sshd raz pending connexions from previous tests
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
@@ -168,51 +150,46 @@ TestWhiteList
     ELSE
         Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    ::1
     END
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
     Create Directory    /etc/centreon-engine-whitelist
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    Run    chown root:centreon-engine -R /etc/centreon-engine-whitelist
+    Run    chmod 750 /etc/centreon-engine-whitelist
 
-    Ctn Start engine
-
-    ${start}    Get Current Date
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # ssh_linux_snmp forbidden
-    ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
 
     ${content}    Create List
     ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message 'command rejected by whitelis' should be available.
+    Should Be True    ${result}    A message 'command rejected by whitelist' should be available.
 
     # ssh_linuw allowed
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/usr/lib64/nagios/plugins/check_by_ssh .+"]}}
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
     Ctn Reload Engine
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
+    Log to console    ${start}
     Ctn Schedule Forced Host Check    host_1
 
-    ${content}    Create List    'toto=127.0.0.1'
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-
     IF    "${run_env}" == "docker"
-        ${content}    Create List    'toto=127.0.0.1'
+        ${content}    Create List    toto=127.0.0.1
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=127.0.0.1' should be available.
     ELSE
-        ${content}    Create List    'toto=::1'
+        ${content}    Create List    toto=::1
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
 
-    Ctn Stop engine
+    Ctn Stop Engine
 
 
 *** Keywords ***

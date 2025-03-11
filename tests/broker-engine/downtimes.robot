@@ -31,7 +31,7 @@ BEDTMASS1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
@@ -55,7 +55,7 @@ BEDTMASS1
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTMASS2
@@ -77,7 +77,7 @@ BEDTMASS2
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
@@ -101,14 +101,17 @@ BEDTMASS2
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCREN1
-    [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
+    [Documentation]    Given a downtime set on a service
+    ...    When the service is renamed
+    ...    Then the downtime is still active on the renamed service
+    ...    When the downtime is removed from the renamed service
+    ...    Then the downtime is well removed
     [Tags]    broker    engine    services    downtime
     Ctn Config Engine    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -116,12 +119,13 @@ BEDTSVCREN1
     Ctn Broker Config Log    module0    neb    debug
 
     Ctn Clear Retention
-    ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
@@ -141,14 +145,16 @@ BEDTSVCREN1
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTSVCFIXED
-    [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
+    [Documentation]    Given a unique downtime set on a service
+    ...    When the downtime is removed
+    ...    Then the downtime is well removed
+    ...    And the number of downtimes is 0
     [Tags]    broker    engine    downtime
     Ctn Config Engine    ${1}
-    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
@@ -156,13 +162,14 @@ BEDTSVCFIXED
     Ctn Broker Config Log    module0    neb    debug
 
     Ctn Clear Retention
-    ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
+    ${start}    Ctn Get Round Current Date
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    Ctn Check Number Of Downtimes    ${1}    ${start}    ${60}
@@ -173,7 +180,7 @@ BEDTSVCFIXED
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEDTHOSTFIXED
@@ -191,7 +198,7 @@ BEDTHOSTFIXED
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     log to console    step1
@@ -256,7 +263,7 @@ BEDTHOSTFIXED
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    We should have no downtime enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 DTIM
@@ -283,7 +290,7 @@ DTIM
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}    ${5}
 
@@ -311,7 +318,7 @@ DTIM
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
     Should Be True    ${result}    There are still some downtimes enabled.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 
@@ -321,6 +328,8 @@ BEDTRRD1
     ...    This test is done with BBDO 3.0.0.
     ...    Then we should not get any error in cbd RRD of kind 'ignored update error in file...'.
     [Tags]    broker    engine    services    protobuf    MON-150015
+    # We were in BBDO2 just before, so we can have RRD duplicates in logs.
+    Ctn Clear Logs
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Config Broker    rrd
@@ -383,6 +392,4 @@ BEDTRRD1
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
     Ctn Clean Before Suite
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+    Ctn Clear Downtimes

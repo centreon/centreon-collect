@@ -19,12 +19,8 @@
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/servicedependency.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
-#endif
+#include "com/centreon/engine/servicedependency.hh"
 
 namespace com::centreon::engine {
 
@@ -50,26 +46,15 @@ namespace applier {
  */
 class state {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state& new_cfg,
-             error_cnt& err,
-             retention::state* state = nullptr);
-  void apply_log_config(configuration::state& new_cfg);
-#else
   void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
   void apply_log_config(configuration::State& new_cfg);
-#endif
   static state& instance();
   void clear();
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
-#ifdef LEGACY_CONF
-  servicedependency_mmap::iterator servicedependencies_find(
-      configuration::servicedependency::key_type const& k);
-#endif
   std::unordered_map<std::string, std::string>& user_macros();
   std::unordered_map<std::string, std::string>::const_iterator user_macros_find(
       std::string const& key) const;
@@ -98,15 +83,6 @@ class state {
 #endif
 
   state& operator=(state const&);
-#ifdef LEGACY_CONF
-  void _apply(configuration::state const& new_cfg, error_cnt& err);
-  template <typename ConfigurationType, typename ApplierType>
-  void _apply(difference<std::set<ConfigurationType>> const& diff,
-              error_cnt& err);
-  void _apply(configuration::state& new_cfg,
-              retention::state& state,
-              error_cnt& err);
-#else
   void _apply(const configuration::State& new_cfg, error_cnt& err);
   template <typename ConfigurationType, typename Key, typename ApplierType>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
@@ -114,16 +90,6 @@ class state {
   void _apply(configuration::State& new_cfg,
               retention::state& state,
               error_cnt& err);
-#endif
-#ifdef LEGACY_CONF
-  template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::state& new_state, error_cnt& err);
-  void _processing(configuration::state& new_cfg,
-                   error_cnt& err,
-                   retention::state* state = nullptr);
-  template <typename ConfigurationType, typename ApplierType>
-  void _resolve(std::set<ConfigurationType>& cfg, error_cnt& err);
-#else
   template <typename ConfigurationType, typename ApplierType>
   void _expand(configuration::State& new_state, error_cnt& err);
   void _processing(configuration::State& new_cfg,
@@ -133,12 +99,8 @@ class state {
   void _resolve(
       const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
       error_cnt& err);
-#endif
 
   std::mutex _apply_lock;
-#ifdef LEGACY_CONF
-  state* _config;
-#endif
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;

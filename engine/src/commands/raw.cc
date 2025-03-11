@@ -480,11 +480,7 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
-#ifdef LEGACY_CONF
-  bool enable_environment_macros = config->enable_environment_macros();
-#else
   bool enable_environment_macros = pb_config.enable_environment_macros();
-#endif
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
@@ -502,12 +498,8 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
-#ifdef LEGACY_CONF
-  bool use_large_installation_tweaks = config->use_large_installation_tweaks();
-#else
   bool use_large_installation_tweaks =
       pb_config.use_large_installation_tweaks();
-#endif
   for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
 
@@ -547,11 +539,7 @@ process* raw::_get_free_process() {
   if (_processes_free.empty()) {
     /* Only the out stream is open */
     process* p = new process(this, false, true, false);
-#ifdef LEGACY_CONF
-    p->setpgid_on_exec(config->use_setpgid());
-#else
     p->setpgid_on_exec(pb_config.use_setpgid());
-#endif
     return p;
   }
   // Get a free process.

@@ -18,11 +18,6 @@
  */
 #include <gtest/gtest.h>
 
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/parser.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
-
 using namespace com::centreon;
 using namespace com::centreon::engine;
 

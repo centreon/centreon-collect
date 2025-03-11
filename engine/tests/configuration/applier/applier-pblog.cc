@@ -57,11 +57,23 @@ TEST_F(ApplierLog, logV2Enabled) {
   ASSERT_EQ(st.log_v2_enabled(), false);
 }
 
+/**
+ * @brief Test case for verifying that the log_legacy_enabled setting is parsed
+ * correctly.
+ *
+ * This test case checks the following:
+ * 1. The configuration file is created with log_legacy_enabled set to 0.
+ * 2. The parser reads the configuration file and updates the state.
+ * 3. The log legacy enabled setting is verified to be false after parsing the
+ * configuration file.
+ */
 TEST_F(ApplierLog, logLegacyEnabled) {
   configuration::parser parser;
   configuration::State st;
   configuration::state_helper st_hlp(&st);
   configuration::error_cnt err;
+  // by default, the legacy log is disabled in the init() in state_helper
+  st.set_log_legacy_enabled(true);
 
   ASSERT_EQ(st.log_legacy_enabled(), true);
 
