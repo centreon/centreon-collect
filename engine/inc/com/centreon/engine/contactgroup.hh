@@ -24,9 +24,7 @@
 #include <memory>
 #include <string>
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/contactgroup_helper.hh"
-#endif
 
 /* Forward declaration. */
 namespace com::centreon::engine {

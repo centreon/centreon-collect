@@ -18,6 +18,7 @@
 #ifndef CENTREON_COMMON_POOL_HH
 #define CENTREON_COMMON_POOL_HH
 
+#include <forward_list>
 namespace com::centreon::common {
 
 /**

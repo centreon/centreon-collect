@@ -50,38 +50,6 @@ static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
   return (true);
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Apply new configuration.
- *
- *  @param[in] config The new configuration.
- */
-void applier::macros::apply(configuration::state& config) {
-  _set_macro(MACRO_ADMINEMAIL, config.admin_email());
-  _set_macro(MACRO_ADMINPAGER, config.admin_pager());
-  _set_macro(MACRO_COMMANDFILE, config.command_file());
-  _set_macro(MACRO_LOGFILE, config.log_file());
-  _set_macro(MACRO_MAINCONFIGFILE, config.cfg_main());
-  if (config.resource_file().size() > 0)
-    _set_macro(MACRO_RESOURCEFILE, config.resource_file().front());
-  _set_macro(MACRO_STATUSDATAFILE, config.status_file());
-  _set_macro(MACRO_RETENTIONDATAFILE, config.state_retention_file());
-  _set_macro(MACRO_POLLERNAME, config.poller_name());
-  _set_macro(MACRO_POLLERID, std::to_string(config.poller_id()));
-
-  std::unordered_map<std::string, std::string> const& users(config.user());
-  applier::state::instance().user_macros() = users;
-  // Save old style user macros into old style structures.
-  for (std::unordered_map<std::string, std::string>::const_iterator
-           it = users.begin(),
-           end = users.end();
-       it != end; ++it) {
-    unsigned int val(1);
-    if (is_old_style_user_macro(it->first, val))
-      _set_macros_user(val - 1, it->second);
-  }
-}
-#else
 /**
  *  Apply new configuration.
  *
@@ -113,7 +81,6 @@ void applier::macros::apply(configuration::State& pb_config) {
       _set_macros_user(val - 1, p.second);
   }
 }
-#endif
 
 /**
  *  Get the singleton instance of macros applier.

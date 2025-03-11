@@ -21,9 +21,7 @@
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
 #include "com/centreon/engine/daterange.hh"
-#ifndef LEGACY_CONF
 #include "common/engine_conf/timeperiod_helper.hh"
-#endif
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -40,29 +38,17 @@ namespace com::centreon::engine {
 
 class timeperiod {
  public:
-#ifdef LEGACY_CONF
-  timeperiod(std::string const& name, std::string const& alias);
-#else
   timeperiod(const configuration::Timeperiod& obj);
   void set_exclusions(const configuration::StringSet& exclusions);
   void set_exceptions(const configuration::ExceptionArray& array);
   void set_days(const configuration::DaysArray& array);
-#endif
 
-  std::string const& get_name() const {
-    return _name;
-  };
+  std::string const& get_name() const { return _name; };
   void set_name(const std::string& name);
-  const std::string& get_alias() const {
-    return _alias;
-  };
+  const std::string& get_alias() const { return _alias; };
   void set_alias(const std::string& alias);
-  const timeperiodexclusion& get_exclusions() const {
-    return _exclusions;
-  };
-  timeperiodexclusion& get_exclusions() {
-    return _exclusions;
-  };
+  const timeperiodexclusion& get_exclusions() const { return _exclusions; };
+  timeperiodexclusion& get_exclusions() { return _exclusions; };
   void get_next_valid_time_per_timeperiod(time_t preferred_time,
                                           time_t* invalid_time,
                                           bool notif_timeperiod);

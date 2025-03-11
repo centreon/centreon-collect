@@ -301,30 +301,6 @@ void hostdependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const com::centreon::engine::configuration::hostdependency& k) {
-  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
-
-  size_t key = configuration::hostdependency_key(k);
-
-  p = hostdependencies.equal_range(*k.dependent_hosts().begin());
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? hostdependencies.end() : p.first;
-}
-#else
 /**
  *  Find a service dependency from its key.
  *
@@ -345,4 +321,3 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
   }
   return p.first == p.second ? hostdependencies.end() : p.first;
 }
-#endif
