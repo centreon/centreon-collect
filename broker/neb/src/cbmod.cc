@@ -45,8 +45,16 @@ static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
-cbmod::cbmod(const std::string& config_file)
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
+/**
+ * @brief Constructor of the cbmod class.
+ *
+ * @param config_file The json configuration file.
+ * @param proto_conf The protobuf configuration directory.
+ */
+cbmod::cbmod(const std::string& config_file,
+             const std::filesystem::path& proto_conf)
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
+      _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
   com::centreon::broker::config::state s{p.parse(config_file)};
@@ -64,6 +72,7 @@ cbmod::cbmod(const std::string& config_file)
   }
 
   com::centreon::broker::config::applier::state::instance().apply(s);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf =
@@ -72,11 +81,12 @@ cbmod::cbmod(const std::string& config_file)
 
 /**
  * @brief Constructor of the cbmod class. Useful in unit tests.
+ *
+ * @param proto_conf The protobuf configuration directory.
  */
-cbmod::cbmod()
+cbmod::cbmod(const std::filesystem::path& proto_conf)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl},
-      _proto_conf{""} {
+      _impl{new cbmodimpl} {
   com::centreon::broker::config::state s;
   s.poller_id(1);
   s.poller_name("test");
@@ -86,6 +96,7 @@ cbmod::cbmod()
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 
   com::centreon::broker::config::applier::state::instance().apply(s);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(proto_conf);
 }
 
 cbmod::~cbmod() noexcept {
