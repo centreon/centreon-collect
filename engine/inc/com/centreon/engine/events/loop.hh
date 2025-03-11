@@ -60,7 +60,6 @@ class loop {
   static loop& instance();
   void clear();
   void run();
-  void adjust_check_scheduling();
   void add_event(std::unique_ptr<timed_event>&& event, priority priority);
   void compensate_for_system_time_change(unsigned long last_time,
                                          unsigned long current_time);
@@ -86,6 +85,6 @@ class loop {
 };
 }  // namespace events
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_EVENTS_LOOP_HH
