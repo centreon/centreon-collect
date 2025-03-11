@@ -41,15 +41,9 @@ int open_command_file(void) {
   struct stat st;
 
   /* if we're not checking external commands, don't do anything */
-#ifdef LEGACY_CONF
-  if (!config->check_external_commands())
-    return OK;
-  const std::string& command_file{config->command_file()};
-#else
   if (!pb_config.check_external_commands())
     return OK;
   const std::string& command_file{pb_config.command_file()};
-#endif
 
   /* the command file was already created */
   if (command_file_created)
@@ -162,13 +156,8 @@ int open_command_file(void) {
 /* closes the external command file FIFO and deletes it */
 int close_command_file(void) {
   /* if we're not checking external commands, don't do anything */
-#ifdef LEGACY_CONF
-  if (!config->check_external_commands())
-    return OK;
-#else
   if (!pb_config.check_external_commands())
     return OK;
-#endif
 
   /* the command file wasn't created or was already cleaned up */
   if (command_file_created == false)
@@ -263,13 +252,8 @@ static void command_file_worker_thread() {
       select(0, nullptr, nullptr, nullptr, &tv);
     }
 
-#ifdef LEGACY_CONF
-    external_command_buffer.set_capacity(
-        config->external_command_buffer_slots());
-#else
     external_command_buffer.set_capacity(
         pb_config.external_command_buffer_slots());
-#endif
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */

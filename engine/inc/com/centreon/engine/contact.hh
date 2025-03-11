@@ -60,9 +60,6 @@ class contact {
   // Base properties.
   std::string const& get_address(int index) const;
   std::vector<std::string> const& get_addresses() const;
-#ifdef LEGACY_CONF
-  void set_addresses(const std::vector<std::string>& addresses);
-#endif
   void set_addresses(std::vector<std::string>&& addresses);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
