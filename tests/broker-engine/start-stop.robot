@@ -68,7 +68,7 @@ BESS2U
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Log    central    bbdo    info
+    Ctn Broker Config Log    central    bbdo    trace
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.

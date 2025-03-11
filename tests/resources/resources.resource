@@ -207,7 +207,7 @@ Ctn Start Engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
             Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END

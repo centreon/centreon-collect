@@ -2580,7 +2580,7 @@ int host::notify_contact(nagios_macros* mac,
                          notifier::reason_type type,
                          const std::string& not_author,
                          const std::string& not_data,
-                         int options __attribute((unused)),
+                         int options [[maybe_unused]],
                          int escalated) {
   std::string raw_command;
   std::string processed_command;

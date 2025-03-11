@@ -570,6 +570,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/config/init.cc
     ${TEST_DIR}/config/parser.cc
     ${TEST_DIR}/file/disk_accessor.cc
+    ${TEST_DIR}/file/directory_watcher.cc
     ${TEST_DIR}/file/splitter/concurrent.cc
     ${TEST_DIR}/file/splitter/default.cc
     ${TEST_DIR}/file/splitter/more_than_max_size.cc

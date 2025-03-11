@@ -38,7 +38,7 @@ void init_config_state() {
   /* Cleanup */
   pb_config.Clear();
   if (!cbm)
-    cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>();
+    cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>("");
 
   configuration::state_helper cfg_hlp(&pb_config);
   pb_config.set_log_file_line(true);

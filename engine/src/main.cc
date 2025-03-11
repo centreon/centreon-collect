@@ -138,6 +138,8 @@ int main(int argc, char* argv[]) {
       ("extended-config,c",
        po::value<std::vector<std::string>>()->value_name("config-file"),
        "Extended configuration file")
+      ("proto-conf,p", po::value<std::string>()->value_name("proto_dir"),
+       "Directory containing the protocol buffer configuration files")
       ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
         "Main configuration file");
 
@@ -194,6 +196,8 @@ int main(int argc, char* argv[]) {
         verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
+      if (vm.count("proto-conf"))
+        proto_conf = vm["proto-conf"].as<std::string>();
       if (vm.count("broker-config"))
         broker_config = vm["broker-config"].as<std::string>();
       if (vm.count("extended-config"))
@@ -230,7 +234,7 @@ int main(int argc, char* argv[]) {
           // Read in the configuration files (main config file,
           // resource and object config files).
           configuration::error_cnt err;
-          cbm = std::make_unique<cbmod>();
+          cbm = std::make_unique<cbmod>(proto_conf);
           configuration::State pb_config;
           {
             configuration::parser p;
