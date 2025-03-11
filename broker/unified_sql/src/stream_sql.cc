@@ -1717,12 +1717,12 @@ void stream::_process_pb_instance_configuration(
   /* The instance configuration message is only interesting with extended
    * negociation. */
   if (!current_version.empty() &&
-      !config::applier::state::instance().config_cache_dir().empty()) {
+      !config::applier::state::instance().cache_config_dir().empty()) {
     std::filesystem::path poller_dir =
         config::applier::state::instance().pollers_config_dir() /
         fmt::to_string(obj.poller_id());
     std::filesystem::path cache_dir =
-        config::applier::state::instance().config_cache_dir() /
+        config::applier::state::instance().cache_config_dir() /
         fmt::to_string(obj.poller_id());
     if (!std::filesystem::exists(cache_dir)) {
       _logger_sql->error(

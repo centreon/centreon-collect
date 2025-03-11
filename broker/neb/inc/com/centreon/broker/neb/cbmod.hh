@@ -33,7 +33,6 @@ class cbmodimpl;
 class cbmod {
   std::shared_ptr<spdlog::logger> _neb_logger;
   std::unique_ptr<cbmodimpl> _impl;
-  std::filesystem::path _proto_conf;
   bool _use_protobuf;
 
   // Acknowledgements list.
@@ -45,8 +44,8 @@ class cbmod {
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
 
  public:
-  cbmod();
-  cbmod(const std::string& config_file);
+  cbmod(const std::string& config_file, const std::filesystem::path& proto_conf);
+  cbmod(const std::filesystem::path& proto_conf);
   cbmod& operator=(const cbmod&) = delete;
 
   virtual ~cbmod() noexcept;

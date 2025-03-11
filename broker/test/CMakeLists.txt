@@ -109,6 +109,7 @@ add_executable(
   ${TESTS_DIR}/config/init.cc
   ${TESTS_DIR}/config/parser.cc
   ${TESTS_DIR}/file/disk_accessor.cc
+  ${TESTS_DIR}/file/directory_watcher.cc
   ${TESTS_DIR}/file/splitter/concurrent.cc
   ${TESTS_DIR}/file/splitter/default.cc
   ${TESTS_DIR}/file/splitter/more_than_max_size.cc

@@ -129,18 +129,18 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Engine configuration directory (for cbmod).
-    if (!s.engine_config_dir().empty())
-      set_engine_config_dir(s.engine_config_dir());
+//    if (!s.engine_config_dir().empty())
+//      set_engine_config_dir(s.engine_config_dir());
 
-    // Configuration cache directory (for broker, from php).
-    set_config_cache_dir(s.config_cache_dir());
-
-    // Pollers configuration directory (for Broker).
-    // If not provided in the configuration, use a default directory.
-    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
-      set_pollers_config_dir(cache_dir / "pollers-configuration/");
-    else
-      set_pollers_config_dir(s.pollers_config_dir());
+//    // Configuration cache directory (for broker, from php).
+//    set_config_cache_dir(s.config_cache_dir());
+//
+//    // Pollers configuration directory (for Broker).
+//    // If not provided in the configuration, use a default directory.
+//    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
+//      set_pollers_config_dir(cache_dir / "pollers-configuration/");
+//    else
+//      set_pollers_config_dir(s.pollers_config_dir());
   }
 
   // Apply modules configuration.
@@ -357,18 +357,18 @@ std::vector<state::peer> state::connected_peers() const {
  *
  * @return The Engine configuration directory.
  */
-const std::filesystem::path& state::engine_config_dir() const noexcept {
-  return _engine_config_dir;
-}
-
-/**
- * @brief Set the Engine configuration directory.
- *
- * @param engine_conf_dir The Engine configuration directory.
- */
-void state::set_engine_config_dir(const std::filesystem::path& dir) {
-  _engine_config_dir = dir;
-}
+//const std::filesystem::path& state::engine_config_dir() const noexcept {
+//  return _engine_config_dir;
+//}
+//
+///**
+// * @brief Set the Engine configuration directory.
+// *
+// * @param engine_conf_dir The Engine configuration directory.
+// */
+//void state::set_engine_config_dir(const std::filesystem::path& dir) {
+//  _engine_config_dir = dir;
+//}
 
 /**
  * @brief Get the configuration cache directory used by php to write
@@ -376,8 +376,8 @@ void state::set_engine_config_dir(const std::filesystem::path& dir) {
  *
  * @return The configuration cache directory.
  */
-const std::filesystem::path& state::config_cache_dir() const noexcept {
-  return _config_cache_dir;
+const std::filesystem::path& state::cache_config_dir() const noexcept {
+  return _cache_config_dir;
 }
 
 /**
@@ -385,9 +385,9 @@ const std::filesystem::path& state::config_cache_dir() const noexcept {
  *
  * @param engine_conf_dir The configuration cache directory.
  */
-void state::set_config_cache_dir(
-    const std::filesystem::path& config_cache_dir) {
-  _config_cache_dir = config_cache_dir;
+void state::set_cache_config_dir(
+    const std::filesystem::path& cache_config_dir) {
+  _cache_config_dir = cache_config_dir;
 }
 
 /**
@@ -540,4 +540,22 @@ std::string state::engine_configuration(uint64_t poller_id) const {
  */
 std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
   return _center;
+}
+
+/**
+ * @brief Set the path to the Engine protobuf configuration directory.
+ *
+ * @param proto_conf
+ */
+void state::set_proto_conf(const std::filesystem::path& proto_conf) {
+	_proto_conf = proto_conf;
+}
+
+/**
+ * @brief Get the path to the Engine protobuf configuration directory.
+ *
+ * @return The path to the Engine protobuf configuration directory.
+ */
+const std::filesystem::path& state::proto_conf() const {
+	return _proto_conf;
 }

@@ -63,10 +63,11 @@ class state {
   std::string _poller_name;
   std::string _broker_name;
   size_t _pool_size;
+  std::filesystem::path _proto_conf;
 
   /* In a cbmod configuration, this string contains the directory containing
    * the Engine configuration. */
-  std::filesystem::path _engine_config_dir;
+  //std::filesystem::path _engine_config_dir;
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -77,11 +78,11 @@ class state {
 
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
-  std::filesystem::path _config_cache_dir;
+  std::filesystem::path _cache_config_dir;
 
   /* In a Broker configuration, this object contains the pollers configurations
    * known by the Broker. These directories are copies from the
-   * _config_cache_dir and are copied once Broker has written them in the
+   * _cache_config_dir and are copied once Broker has written them in the
    * storage database. */
   std::filesystem::path _pollers_config_dir;
 
@@ -116,10 +117,10 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
-  const std::filesystem::path& engine_config_dir() const noexcept;
-  void set_engine_config_dir(const std::filesystem::path& dir);
-  const std::filesystem::path& config_cache_dir() const noexcept;
-  void set_config_cache_dir(const std::filesystem::path& engine_conf_dir);
+  //const std::filesystem::path& engine_config_dir() const noexcept;
+  //void set_engine_config_dir(const std::filesystem::path& dir);
+  const std::filesystem::path& cache_config_dir() const noexcept;
+  void set_cache_config_dir(const std::filesystem::path& engine_conf_dir);
   const std::filesystem::path& pollers_config_dir() const noexcept;
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
@@ -152,6 +153,8 @@ class state {
                            const std::string& poller_name,
                            const std::string& broker_name) const;
   bool broker_needs_update() const;
+  void set_proto_conf(const std::filesystem::path& proto_conf);
+  const std::filesystem::path& proto_conf() const;
   void set_engine_configuration(uint64_t poller_id, const std::string& conf);
   std::string engine_configuration(uint64_t poller_id) const;
   std::shared_ptr<com::centreon::broker::stats::center> center() const;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015,2017-2024 Centreon
+ * Copyright 2011-2013,2015,2017-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -239,9 +239,16 @@ state parser::parse(std::string const& file) {
           ++it;
 
           retval.set_bbdo_version(bbdo::bbdo_version(major, minor, patch));
-        } else if (get_conf<state>({it.key(), it.value()}, "broker_name",
-                                   retval, &state::broker_name,
-                                   &json::is_string))
+        } else if (get_conf<state>(
+                       {it.key(), it.value()}, "cache_config_directory", retval,
+                       &state::set_cache_config_dir, &json::is_string))
+          ;
+	else if (get_conf<state>(
+                       {it.key(), it.value()}, "pollers_config_directory", retval,
+                       &state::set_pollers_config_dir, &json::is_string))
+          ;
+        else if (get_conf<state>({it.key(), it.value()}, "broker_name", retval,
+                                 &state::broker_name, &json::is_string))
           ;
         else if (get_conf<int, state>({it.key(), it.value()}, "poller_id",
                                       retval, &state::poller_id,
@@ -264,11 +271,11 @@ state parser::parse(std::string const& file) {
                           retval.cache_directory());
         } else if (get_conf<state>(
                        {it.key(), it.value()}, "cache_config_directory", retval,
-                       &state::set_config_cache_dir, &json::is_string)) {
-          if (!misc::filesystem::readable(retval.config_cache_dir()))
+                       &state::set_cache_config_dir, &json::is_string)) {
+          if (!misc::filesystem::readable(retval.cache_config_dir()))
             throw msg_fmt(
                 "The cache configuration directory '{}' is not accessible",
-                retval.config_cache_dir());
+                retval.cache_config_dir());
         } else if (get_conf<state>({it.key(), it.value()},
                                    "pollers_config_directory", retval,
                                    &state::set_pollers_config_dir,
