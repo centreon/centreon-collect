@@ -165,11 +165,14 @@ std::shared_ptr<check_event_log> check_event_log::load(
 }
 
 static const boost::container::flat_map<std::string_view, std::string_view>
-    _label_to_event_index = {{"${file}", "{0}"},       {"${id}", "{1}"},
-                             {"${source}", "{2}"},     {"${log}", "{2}"},
-                             {"${provider}", "{2}"},   {"${message}", "{3}"},
-                             {"${status}", "{4}"},     {"${written}", "{5}"},
-                             {"${written_str}", "{6}"}};
+    _label_to_event_index = {
+        {"${file}", "{0}"},      {"${id}", "{1}"},
+        {"${source}", "{2}"},    {"${log}", "{2}"},
+        {"${provider}", "{2}"},  {"${message}", "{3}"},
+        {"${status}", "{4}"},    {"${written}", "{5}"},
+        {"${record_id}", "{6}"}, {"${computer}", "{7}"},
+        {"${channel}", "{8}"},   {"${keywords}", "{9}"},
+        {"${level}", "{10}"},    {"${written_str}", "{11}"}};
 
 void check_event_log::_calc_event_detail_syntax(const std::string_view& param) {
   _event_detail_syntax = param;
@@ -244,6 +247,8 @@ std::string check_event_log::print_event_detail(
     e_status status,
     const event_log::event& evt) const {
   unsigned event_id = evt.get_event_id();
+  uint64_t record_id = evt.get_record_id();
+  unsigned level = evt.get_level();
   uint64_t time_s = std::chrono::duration_cast<std::chrono::seconds>(
                         evt.get_time().time_since_epoch())
                         .count();
@@ -253,12 +258,15 @@ std::string check_event_log::print_event_detail(
         _event_detail_syntax,
         std::make_format_args(file, event_id, evt.get_provider(),
                               evt.get_message(), status_label[status], time_s,
-                              written_str));
+                              record_id, evt.get_computer(), evt.get_channel(),
+                              evt.get_str_keywords(), level, written_str));
   } else {
     return std::vformat(
         _event_detail_syntax,
         std::make_format_args(file, event_id, evt.get_provider(),
-                              evt.get_message(), status_label[status], time_s));
+                              evt.get_message(), status_label[status], time_s,
+                              record_id, evt.get_computer(), evt.get_channel(),
+                              evt.get_str_keywords(), level));
   }
 }
 
@@ -303,7 +311,7 @@ e_status check_event_log::compute(
   // Determine the event format function based on the presence of written_str
   std::string (check_event_log::*event_format)(const std::string&, e_status,
                                                const event_log::event&) const;
-  if (out_format->find("{6}") == std::string::npos) {  // written_str?
+  if (out_format->find("{11}") == std::string::npos) {  // written_str?
     event_format = &check_event_log::print_event_detail<true>;
   } else {
     event_format = &check_event_log::print_event_detail<false>;
@@ -383,11 +391,11 @@ e_status check_event_log::compute(
         *out_format, std::make_format_args(status_label[status], problem_count,
                                            problem_list));
     if (_verbose) {
-      for (const event_log::event* evt : *critical_uniq) {
+      for (const event_log::event* evt : critical_ordered) {
         output->push_back('\n');
         *output += (this->*event_format)(file, e_status::critical, *evt);
       }
-      for (const event_log::event* evt : *warning_uniq) {
+      for (const event_log::event* evt : warning_ordered) {
         output->push_back('\n');
         *output += (this->*event_format)(file, e_status::warning, *evt);
       }
@@ -415,5 +423,70 @@ e_status check_event_log::compute(
 void check_event_log::help(std::ostream& help_stream) {
   help_stream << R"(
 - eventlog params:
+    scan-range : validity of events, can be s, second, m, minute, h, hour, d, day, w, week, default: 24h
+    verbose : display all events in long plugins output format (one line per event), default: true
+    warning-count : number of warning events to trigger a warning, default: 1
+    critical-count : number of critical events to trigger a critical, default: 1
+    empty-state : message to display when no event is found, default: "Empty or no match for this filter"
+    output-syntax : output format when status is not ok, default: "${status}: ${count} ${problem_list}"
+    ok-syntax : output format when status is ok, default: "${status}: Event log seems fine"
+    event-detail-syntax : output format for each event, default: "'${source} ${id}'"
+    unique-index : unique index for events, events are grouped by this index. 
+                   For example is two events have the same provider and the same id, only latest is printed to output , default: "${provider}${id}"
+    file : event log file to monitor
+    filter-event : filter to apply on event log, default: "written > 60m and level in ('error', 'warning', 'critical')
+    warning-status : filter to apply on event log to get warning events, default: "level = 'warning'
+    critical-status : filter to apply on event log to get critical events, default: "level in ('error', 'critical')
+  event filter keywords:
+    - written : event written time in seconds
+    - level : event level or numerical values
+    - id : event id
+    - source : event source
+    - provider : source alias
+    - keywords: auditsuccess auditfailure
+    - channel: event channel
+  level values:
+    - critical: 1
+    - error: 2
+    - warning: 3
+    - info: 4
+    - debug: 5
+  output keywords:
+    - status : status of the check
+    - count : number of events
+    - problem_list : list of events seperated by a space
+  unique-index keywords:
+    - source : event source
+    - provider : source alias
+    - id : event id
+    - message : event message (nor regex nor wildcard)
+    - channel: event cahnnel
+  event print keywords:
+    - file : event log file
+    - id : event id
+    - source : event source
+    - log : source alias
+    - provider : source alias
+    - message : event message
+    - status : event status
+    - written : event written time in seconds
+    - record_id : event record id
+    - computer : event computer
+    - channel : event channel
+    - keywords : event keywords (audit_success, audit_failure)
+    - level : event level
+    - written_str : event written time in string in ISO format
+  Examples of output:
+    with these params: { "file" : "System", 
+      "critical-status": "level == 'error' and written > -2s", 
+      "verbose": false,
+      "output-syntax": "${status}: ${count} ${problem_list}",
+      "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${computer} ${channel} ${keywords} ${level} ${record_id} ${written_str}'"
+      }
+    output will be:  CRITICAL: 1  'System my_provider my_provider my_provider 12 my message CRITICAL 13386175600 my_computer my_channel audit_success|audit_failure 2 456 2025-03-11T14:06:40.7680000'
+  
+  Metrics:
+    - critical-count : number of critical events
+    - warning-count : number of warning events
 )";
 }

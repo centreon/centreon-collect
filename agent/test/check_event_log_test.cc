@@ -118,7 +118,7 @@ TEST(check_event_log, critical) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "file" : "System", "critical-status": "level == 'error' and written > -2s", "verbose": false,
-      "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${written_str}'"})"_json;
+      "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${computer} ${channel} ${keywords} ${level} ${record_id} ${written_str}'"})"_json;
 
   check_event_log checker(
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
@@ -141,6 +141,9 @@ TEST(check_event_log, critical) {
   raw_data.level = 2;  // error
   raw_data.event_id = 12;
   raw_data.provider = L"my_provider";
+  raw_data.record_id = 456;
+  raw_data.computer = L"my_computer";
+  raw_data.keywords = 0x0030000000000000L;  // audit success audit failure
   raw_data.channel = L"my_channel";
   raw_data.set_time_created(1);  // peremption in 1s
 
@@ -150,10 +153,13 @@ TEST(check_event_log, critical) {
   std::string output;
   e_status status = checker.compute(cont, &output, &perfs);
   EXPECT_EQ(status, e_status::critical);
-  EXPECT_TRUE(RE2::FullMatch(
-      output,
+  std::string_view regex =
       "^CRITICAL: 1  'System my_provider my_provider my_provider 12 my message "
-      "CRITICAL \\d+ \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d*'$"));
+      "CRITICAL \\d+ my_computer my_channel audit_success\\|audit_failure 2 "
+      "456 \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d*'$";
+  if (!RE2::FullMatch(output, regex)) {
+    FAIL() << "output: " << output << " does not match to " << regex;
+  }
   ASSERT_EQ(perfs.size(), 2);
   EXPECT_EQ(perfs.begin()->name(), "critical-count");
   EXPECT_EQ(perfs.begin()->value(), 1);
