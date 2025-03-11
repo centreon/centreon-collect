@@ -17,8 +17,6 @@
  */
 #ifndef CENTREON_COMMON_POOL_HH
 #define CENTREON_COMMON_POOL_HH
-#include <forward_list>
-#include "absl/base/thread_annotations.h"
 
 namespace com::centreon::common {
 
