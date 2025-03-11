@@ -31,7 +31,6 @@ using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::neb {
 class cbmodimpl {
-  std::shared_ptr<spdlog::logger> _neb_logger;
   multiplexing::publisher _publisher;
 
  public:
