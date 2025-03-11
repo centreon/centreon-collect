@@ -90,7 +90,7 @@ uint32_t events::register_event(uint32_t type_id,
                                 event_info::event_operations const* ops,
                                 mapping::entry const* entries,
                                 const std::string& table_v2) {
-  _logger->debug("Registering old event '{}' with type {}", name, type_id);
+  _logger->trace("Registering old event '{}' with type {}", name, type_id);
   auto found = _elements.find(type_id);
   /* The registration is made only if not already done. */
   if (found == _elements.end())
@@ -113,7 +113,7 @@ uint32_t events::register_event(uint32_t type_id,
                                 const std::string& name,
                                 event_info::event_operations const* ops,
                                 const std::string& table) {
-  _logger->debug("Registering pb event '{}' with type {}", name, type_id);
+  _logger->trace("Registering pb event '{}' with type {}", name, type_id);
   auto found = _elements.find(type_id);
   /* The registration is made only if not already done. */
   if (found == _elements.end())
