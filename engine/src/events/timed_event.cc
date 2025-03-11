@@ -195,23 +195,6 @@ void timed_event::_exec_event_check_reaper() {
   }
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Execute orphan check.
- *
- */
-void timed_event::_exec_event_orphan_check() {
-  engine_logger(dbg_events, basic)
-      << "** Orphaned Host and Service Check Event";
-  events_logger->trace("** Orphaned Host and Service Check Event");
-
-  // check for orphaned hosts and services.
-  if (config->check_orphaned_hosts())
-    host::check_for_orphaned();
-  if (config->check_orphaned_services())
-    service::check_for_orphaned();
-}
-#else
 /**
  *  Execute orphan check.
  *
@@ -227,21 +210,7 @@ void timed_event::_exec_event_orphan_check() {
   if (pb_config.check_orphaned_services())
     service::check_for_orphaned();
 }
-#endif
 
-#ifdef LEGACY_CONF
-/**
- *  Execute retention save.
- *
- */
-void timed_event::_exec_event_retention_save() {
-  engine_logger(dbg_events, basic) << "** Retention Data Save Event";
-  events_logger->trace("** Retention Data Save Event");
-
-  // save state retention data.
-  retention::dump::save(config->state_retention_file());
-}
-#else
 /**
  *  Execute retention save.
  *
@@ -253,7 +222,6 @@ void timed_event::_exec_event_retention_save() {
   // save state retention data.
   retention::dump::save(pb_config.state_retention_file());
 }
-#endif
 
 /**
  *  Execute status save.
