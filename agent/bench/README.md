@@ -15,7 +15,7 @@ Then you have to open tcp ports from 4317 to 6017 on poller. In case of EC2 inst
 #### Poller setup
 * Install plugins: ``` dnf install centreon-plugin-Operatingsystems-Windows-Restapi centreon-nrpe3-plugin centreon-plugin-Operatingsystems-Linux-Snmp -y ```
 * Copy conf files from centreon_conf directory to poller /etc
-* In /etc/centreon-broker/module.json replace ip central by central ip
+* In /etc/centreon-broker/central-module.json replace ip central by central ip
 * restart centengine
 * copy create_bench_service.py and create_many_linux_agent.py to poller
 
