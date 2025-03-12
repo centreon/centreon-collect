@@ -148,7 +148,6 @@ overrides:
       - centreon-engine-extcommands
       - centreon-engine-devel
       - centreon-engine-bench
-      - centreon-broker-cbmod
     replaces:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -157,6 +156,8 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
+      - centreon-engine-bench
+      - centreon-broker-cbmod
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
@@ -179,6 +180,8 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
+      - centreon-engine-bench
+      - centreon-broker-cbmod
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.
