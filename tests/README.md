@@ -600,4 +600,3 @@ Here is the list of the currently implemented tests:
 9. [x] **BWVC4**: Broker is tuned with an env file containing a strange key APP_SECRET and a vault configuration with a bad json.
 10. [x] **BWVC5**: Broker is tuned with strange keys APP_SECRET and salt.
 11. [x] **BWVC6**: Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
-
