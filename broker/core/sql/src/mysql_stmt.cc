@@ -30,7 +30,8 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_stmt::mysql_stmt() : mysql_stmt_base(false) {}
+mysql_stmt::mysql_stmt(const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_stmt_base(false, logger) {}
 
 /**
  * @brief Constructor of a mysql_stmt from a SQL query template. This template
@@ -40,8 +41,10 @@ mysql_stmt::mysql_stmt() : mysql_stmt_base(false) {}
  * @param query The query template
  * @param named a boolean telling if the query is named or not (with ?).
  */
-mysql_stmt::mysql_stmt(std::string const& query, bool named)
-    : mysql_stmt_base(query, false, named) {}
+mysql_stmt::mysql_stmt(std::string const& query,
+                       bool named,
+                       const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_stmt_base(query, false, named, logger) {}
 
 /**
  * @brief Constructor of a mysql_stmt from a not named query template and a
@@ -52,8 +55,9 @@ mysql_stmt::mysql_stmt(std::string const& query, bool named)
  * @param bind_mapping
  */
 mysql_stmt::mysql_stmt(const std::string& query,
+                       const std::shared_ptr<spdlog::logger>& logger,
                        const mysql_bind_mapping& bind_mapping)
-    : mysql_stmt_base(query, false, bind_mapping) {}
+    : mysql_stmt_base(query, false, logger, bind_mapping) {}
 
 /**
  * @brief Create a bind compatible with this mysql_stmt. It is then possible

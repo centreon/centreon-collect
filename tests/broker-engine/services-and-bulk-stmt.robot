@@ -41,10 +41,10 @@ EBBPS1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
         Log To Console    ${output}
@@ -52,7 +52,6 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
@@ -79,10 +78,10 @@ EBBPS1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2
         Log To Console    ${output}
@@ -126,10 +125,10 @@ EBBPS2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 1
         Log To Console    ${output}
@@ -163,10 +162,10 @@ EBBPS2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 2
         Log To Console    ${output}
@@ -213,8 +212,8 @@ EBMSSM
     Should Be True    ${duration} > 0
 
     # Let's wait for all force checks to be in the storage database.
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 100000    BREAK
@@ -475,8 +474,8 @@ EBMSSMDBD
 
     Log To Console    We wait for at least one metric to be written in the database.
     # Let's wait for all force checks to be in the storage database.
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 1    BREAK
@@ -538,8 +537,8 @@ EBMSSMPART
 
     Log To Console    We wait for at least one metric to be written in the database.
     # Let's wait for all force checks to be in the storage database.
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 1    BREAK
@@ -564,8 +563,8 @@ EBMSSMPART
     Ctn Process Service Check Result With Metrics    host_1    service_1    0    Last Output OK    100
 
     Log To Console    Let's wait for the last service check to be in the database...
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${120}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10
 	Log To Console    ${output}
         IF    ${output[0][0]} >= 100    BREAK

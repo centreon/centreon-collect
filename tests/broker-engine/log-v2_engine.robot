@@ -39,9 +39,8 @@ LOGV2EB1
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query
@@ -86,9 +85,8 @@ LOGV2EBU1
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query
@@ -133,9 +131,8 @@ LOGV2DB1
     Should Not Be True    ${result1}
     Should Be True    ${result2}    Old logs should be enabled.
 
-    Log To Console    after connection
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query
@@ -178,9 +175,8 @@ LOGV2DB2
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query
@@ -224,9 +220,8 @@ LOGV2EB2
     Should Be True    ${result1}
     Should Be True    ${result2}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query
@@ -272,9 +267,8 @@ LOGV2EBU2
     Should Be True    ${result1}
     Should Be True    ${result2}
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         ${output}    Query

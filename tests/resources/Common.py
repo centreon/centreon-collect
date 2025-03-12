@@ -1702,6 +1702,27 @@ def ctn_get_collect_version():
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"
 
+def ctn_get_cma_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda line: line.startswith("set(COLLECT_") or line.startswith("set(AGENT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(AGENT_PATCH\s*([0-9]+)")
+    for line in filtered:
+        m1 = rmaj.match(line)
+        m2 = rmin.match(line)
+        m3 = rpatch.match(line)
+        if m1:
+            maj = m1.group(1)
+        if m2:
+            mini = m2.group(1)
+        if m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
+
 
 def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
@@ -1987,11 +2008,11 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
         nb_poller (int): nb poller with at least one agent connected.
         timeout (int): The timeout value for the check.
     """
-    collect_version = ctn_get_collect_version()
+    cma_version = ctn_get_cma_version()
 
-    collect_major = int(collect_version.split(".")[0])
-    collect_minor = int(collect_version.split(".")[1])
-    collect_patch = int(collect_version.split(".")[2])
+    cma_major = int(cma_version.split(".")[0])
+    cma_minor = int(cma_version.split(".")[1])
+    cma_patch = int(cma_version.split(".")[2])
 
     limit = time.time() + timeout
     query = "SELECT infos FROM agent_information WHERE enabled = 1"
@@ -2012,7 +2033,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
                         logger.console(f"infos: {res['infos']}")
                         agent_infos = json.loads(res['infos'])
                         for by_agent_info in agent_infos:
-                            if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
+                            if by_agent_info['agent_major'] != cma_major or by_agent_info['agent_minor'] != cma_minor or by_agent_info['agent_patch'] != cma_patch:
                                 logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
                                 return False
                             nb_agent += by_agent_info['nb_agent']
@@ -2039,3 +2060,93 @@ def ctn_get_nb_process(exe:str):
         if exe in p.name() or exe in ' '.join(p.cmdline()):
             counter += 1
     return counter
+
+def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: float, expected: int):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (int): expected flapping value.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT s.flapping, s.percent_state_change FROM services s JOIN hosts h on s.host_id = h.host_id  WHERE h.name='{host}' AND description='{serv}'"""
+    r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
+
+
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected: int):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (int): expected flapping value.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT flapping, percent_state_change FROM hosts WHERE name='{host}'"""
+    r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE name='{host}' AND parent_id=0"""
+
+
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+def ctn_get_process_limit(pid:int, limit:str):
+    """
+    ctn_get_process_limit
+
+    Get a limit of a process
+    Args:
+        pid: process id
+        limit: limit to get
+
+    Returns: limit value
+    """
+    try:
+        with open(f"/proc/{pid}/limits") as f:
+            for line in f:
+                if limit in line:
+                    fields = line.split()
+                    return int(fields[len(fields) - 3]), int(fields[len(fields) - 2])
+    except:
+        return -1, -1
+    return -1, -1

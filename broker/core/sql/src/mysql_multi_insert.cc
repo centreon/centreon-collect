@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
+#include <spdlog/logger.h>
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -86,9 +87,10 @@ bulk_or_multi::bulk_or_multi(
     mysql& connexion,
     const std::string& request,
     unsigned bulk_row,
+    const std::shared_ptr<spdlog::logger>& logger,
     const std::chrono::system_clock::duration execute_delay_ready,
     unsigned row_count_ready)
-    : _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
+    : _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request, logger)),
       _bulk_bind(_bulk_stmt->create_bind()),
       _bulk_row(bulk_row),
       _execute_delay_ready(execute_delay_ready),

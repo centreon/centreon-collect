@@ -16,6 +16,12 @@ inputs:
   minor_version:
     description: The minor version
     required: false
+  cma_major_version:
+    description: The major version of cma
+    required: false
+  cma_minor_version:
+    description: The minor version of cma
+    required: false
   release:
     description: The package release number
     required: false
@@ -63,6 +69,7 @@ runs:
       run: |
         export MAJOR_VERSION="${{ inputs.major_version }}"
         export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
+        export CMA_VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
@@ -104,7 +111,7 @@ runs:
       shell: bash
 
     - name: Cache packages
-      uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         path: ./*.${{ inputs.package_extension }}
         key: ${{ inputs.cache_key }}

@@ -26,14 +26,15 @@ EBSNU1
     Ctn Start Broker
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes_url FROM hosts WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes_url FROM resources WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
@@ -60,12 +61,14 @@ EBSAU2
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT action_url FROM hosts WHERE name='host_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT action_url FROM resources WHERE name='host_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
@@ -90,14 +93,15 @@ EBSN3
     Ctn Start Broker
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes FROM hosts WHERE name='host_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT notes FROM resources WHERE name='host_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
@@ -137,10 +141,10 @@ EBSN4
     Ctn Start Broker
     Ctn Start engine
     
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     # use case Host1 doesn't have alias and use template 1 who has alias => Host_1 alias take the host name(Host_1)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT alias FROM resources WHERE name = 'host_1';
         Sleep    1s
         IF    "${output}" == "(('host_1',),)"    BREAK
@@ -149,6 +153,7 @@ EBSN4
 
     # use case Host2 doesn't have alias and use template 2 who doesn't alias => Host_2 alias take the host name(Host_2)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT alias FROM resources WHERE name = 'host_2';
         Sleep    1s
         IF    "${output}" == "(('host_2',),)"    BREAK
@@ -157,6 +162,7 @@ EBSN4
 
     # use case Host3 have alias and use template 1 who has alias => Host_3 alias take the alias(Host_3)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT alias FROM resources WHERE name = 'host_3';
         Sleep    1s
         IF    "${output}" == "(('alias_host_3',),)"    BREAK
@@ -165,6 +171,7 @@ EBSN4
 
     # use case Host4 have alias and use template 2 who doesn't alias => alias Host_4 take the alias(Host_4)
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT alias FROM resources WHERE name = 'host_4';
         Sleep    1s
         IF    "${output}" == "(('alias_host_4',),)"    BREAK

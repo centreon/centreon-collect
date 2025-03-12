@@ -133,6 +133,7 @@ class bulk_or_multi {
   bulk_or_multi(mysql& connexion,
                 const std::string& request,
                 unsigned bulk_row,
+                const std::shared_ptr<spdlog::logger>& logger,
                 const std::chrono::system_clock::duration execute_delay_ready =
                     std::chrono::seconds(10),
                 unsigned row_count_ready = 100000);

@@ -31,9 +31,12 @@ class mysql_stmt : public mysql_stmt_base {
   /**
    * @brief Default constructor.
    */
-  mysql_stmt();
-  mysql_stmt(const std::string& query, bool named);
+  mysql_stmt(const std::shared_ptr<spdlog::logger>& logger);
   mysql_stmt(const std::string& query,
+             bool named,
+             const std::shared_ptr<spdlog::logger>& logger);
+  mysql_stmt(const std::string& query,
+             const std::shared_ptr<spdlog::logger>& logger,
              mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_stmt(mysql_stmt&& other);
   mysql_stmt& operator=(const mysql_stmt&) = delete;

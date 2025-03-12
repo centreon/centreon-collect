@@ -17,11 +17,13 @@
  */
 
 #include "com/centreon/broker/unified_sql/connector.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
@@ -29,7 +31,9 @@ using namespace com::centreon::broker::unified_sql;
 connector::connector()
     : io::endpoint(false,
                    stream::get_muxer_filter(),
-                   stream::get_forbidden_filter()) {}
+                   stream::get_forbidden_filter()),
+      _logger_sql(log_v2::instance().get(log_v2::SQL)),
+      _logger_sto(log_v2::instance().get(log_v2::PERFDATA)) {}
 
 /**
  *  Set connection parameters.
@@ -65,5 +69,6 @@ void connector::connect_to(const database_config& dbcfg,
 std::shared_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(
       _dbcfg, _rrd_len, _interval_length, _loop_timeout, _instance_timeout,
-      _store_in_data_bin, _store_in_resources, _store_in_hosts_services);
+      _store_in_data_bin, _store_in_resources, _store_in_hosts_services,
+      get_io_context(), _logger_sql, _logger_sto);
 }

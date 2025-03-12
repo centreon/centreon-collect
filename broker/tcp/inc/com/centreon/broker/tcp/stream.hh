@@ -44,8 +44,11 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  stream(const tcp_config::pointer& conf);
-  stream(const tcp_connection::pointer& conn, const tcp_config::pointer& conf);
+  stream(const tcp_config::pointer& conf,
+         const std::shared_ptr<spdlog::logger>& logger);
+  stream(const tcp_connection::pointer& conn,
+         const tcp_config::pointer& conf,
+         const std::shared_ptr<spdlog::logger>& logger);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

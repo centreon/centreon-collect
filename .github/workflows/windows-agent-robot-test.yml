@@ -25,17 +25,21 @@ jobs:
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
       minor_version: ${{ needs.get-environment.outputs.minor_version }}
-      img_version: ${{ needs.get-environment.outputs.img_version }}
+      img_version: ${{ needs.get-environment.outputs.packaging_img_version }}
+      cma_major_version: ${{ needs.get-environment.outputs.cma_major_version }}
+      cma_minor_version: ${{ needs.get-environment.outputs.cma_minor_version }}
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'ON'
       packages_in_artifact: false
-      image: centreon-collect-debian-bullseye
+      image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
       package_extension: deb
-      runner: collect
+      runner: '["self-hosted", "collect"]'
       arch: amd64
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      only_robot_cma: true
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -68,8 +72,9 @@ jobs:
         run: wsl --list --online
 
       - name: install debian
-        uses: Vampire/setup-wsl@v3
+        uses: Vampire/setup-wsl@v4
         with:
+          wsl-version: 1
           distribution: Debian
           use-cache: 'true'
           update: 'true'
@@ -107,7 +112,7 @@ jobs:
           wsl cd $wsl_path `&`& .github/scripts/collect-setup-database.sh
 
       - name: Restore packages
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-bullseye-amd64-${{ github.head_ref || github.ref_name }}

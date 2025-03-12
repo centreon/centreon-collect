@@ -9,6 +9,12 @@ on:
       minor_version:
         required: true
         type: string
+      cma_major_version:
+        required: true
+        type: string
+      cma_minor_version:
+        required: true
+        type: string
       img_version:
         required: true
         type: string
@@ -45,6 +51,10 @@ on:
       is_nightly:
         required: false
         type: string
+      only_robot_cma:
+        required: false
+        type: boolean
+        default: false
     secrets:
       collect_s3_access_key:
         required: true
@@ -68,7 +78,7 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', inputs.runner)) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -76,6 +86,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
@@ -91,20 +102,14 @@ jobs:
 
       - name: Install sccache
         run: |
-          if [ "${{ inputs.package_extension }}" = "deb" ]; then
-            apt-get update
-            apt-get install -y wget
-          elif [ "${{ inputs.package_extension }}" = "rpm" ]; then
-            dnf install -y wget
-          fi
           if [ "${{ inputs.arch }}" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
           elif [ "${{ inputs.arch }}" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-aarch64-unknown-linux-musl/sccache /usr/bin/
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-aarch64-unknown-linux-musl/sccache /usr/bin/
           fi
           ${SCCACHE_PATH} --start-server
 
@@ -139,9 +144,11 @@ jobs:
             export TRIPLET=x64-linux-release
           fi
 
-          mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
+
+          mv /root/.cache /github/home/
+
           $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
@@ -167,6 +174,7 @@ jobs:
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DLEGACY_ENGINE=${{ inputs.legacy_engine }} \
+                  -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
           ninja -Cbuild
@@ -181,6 +189,7 @@ jobs:
         shell: bash
 
       - name: Generate debug files
+        if: ${{ !inputs.only_robot_cma }}
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
@@ -205,13 +214,45 @@ jobs:
           done
         shell: bash
 
-      - uses: ./.github/actions/package
+      - name: Generate Mandatory CMA debug files
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          for file in $(find build/{broker,engine,clib} -name '*.so' -type f); do
+            echo "Making a debug file of $file"
+            objcopy --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+          exe=("build/broker/cbd"
+               "build/broker/watchdog/cbwd"
+               "build/engine/centengine"
+               "build/engine/centenginestats"
+               "build/ccc/ccc"
+               "build/agent/centagent")
+          for file in "${exe[@]}"; do
+            echo "Making a debug file of $file"
+            objcopy --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+        shell: bash
+
+      - name: Delete packaging files not needed by cma
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          rm -f packaging/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
+        shell: bash
+
+      - name: Packages
+        uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/*.yaml"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
+          cma_major_version: ${{ inputs.cma_major_version }}
+          cma_minor_version: ${{ inputs.cma_minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}

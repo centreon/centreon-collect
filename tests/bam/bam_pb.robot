@@ -684,7 +684,7 @@ BA_BOOL_KPI
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
 
-#    Ctn Schedule Forced Svc Check    _Module_BAM_1    ba_1
+#    Ctn Schedule Forced Service Check    _Module_BAM_1    ba_1
     ${result}    Ctn Check Ba Status With Timeout    test    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
@@ -834,7 +834,6 @@ BEPB_DIMENSION_KPI_EVENT
     Ctn Start Broker    True
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${expected}    Catenate    (('bool test',    ${baid_svcid[0]}
     ${expected}    Catenate
     ...    SEPARATOR=
@@ -843,6 +842,7 @@ BEPB_DIMENSION_KPI_EVENT
     ${expected}    Catenate    ${expected}    ${baid_svcid[0]}
     ${expected}    Catenate    SEPARATOR=    ${expected}    , 'test', 16, 'host_16', 314, 'service_314', 0, ''))
     FOR    ${index}    IN RANGE    10
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
         Sleep    1s
@@ -872,8 +872,8 @@ BEPB_KPI_STATUS
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
-    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
+        Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
         Sleep    1s
         IF    ${output} == ((2, '1'),)    BREAK
@@ -958,8 +958,8 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Ctn Start Broker    True
     Ctn Start engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
         Sleep    1s

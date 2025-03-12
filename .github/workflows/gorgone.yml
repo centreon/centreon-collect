@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - ".version.centreon-gorgone"
       - "gorgone/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
@@ -19,6 +20,7 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
+      - ".version.centreon-gorgone"
       - "gorgone/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
@@ -31,7 +33,7 @@ jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: gorgone/.version
+      version_file: .version.centreon-gorgone
 
   package:
     needs: [get-environment]
@@ -45,22 +47,22 @@ jobs:
         distrib: [el8, el9, bookworm, jammy]
         include:
           - package_extension: rpm
-            image: packaging-nfpm-alma8
+            image: packaging-centreon-collect-alma8
             distrib: el8
           - package_extension: rpm
-            image: packaging-nfpm-alma9
+            image: packaging-centreon-collect-alma9
             distrib: el9
           - package_extension: deb
-            image: packaging-nfpm-bookworm
+            image: packaging-centreon-collect-bookworm
             distrib: bookworm
           - package_extension: deb
-            image: packaging-nfpm-jammy
+            image: packaging-centreon-collect-jammy
             distrib: jammy
 
     runs-on: ubuntu-24.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -181,7 +183,7 @@ jobs:
             centreon/www/install/createTablesCentstorage.sql
 
       - name: get cached gorgone package
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}

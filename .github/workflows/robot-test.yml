@@ -13,9 +13,6 @@ on:
       image_test:
         required: true
         type: string
-      image_version:
-        required: true
-        type: string
       package_cache_key:
         required: true
         type: string
@@ -34,6 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
+      only_robot_cma:
+        required: false
+        type: boolean
+        default: false
     secrets:
       registry_username:
         required: true
@@ -85,7 +86,7 @@ jobs:
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
@@ -104,7 +105,13 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.only_robot_cma }}" == "true" ]
+          then
+            FEATURES_PATTERN="cma.robot"
+          else
+            FEATURES_PATTERN=".robot"
+          fi
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
@@ -124,14 +131,14 @@ jobs:
           fetch-depth: 0
 
       - name: Restore image
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
       - name: Restore packages
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
@@ -250,19 +257,12 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-        # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        if: ${{ inputs.distrib  == 'el7'}}
-        with:
-          python-version: "3.10"
-
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        if: ${{ inputs.distrib != 'el7' }}
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.10"
 
       - run: |
-          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+          pip3 install -U robotframework robotframework-databaselibrary==2.0.4 pymysql python-dateutil
           cd reports
           rebot -o output.xml ./*-output.xml || true
         shell: bash

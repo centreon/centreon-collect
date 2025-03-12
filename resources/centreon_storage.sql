@@ -1106,6 +1106,8 @@ CREATE TABLE `resources` (
   `last_check` bigint(20) unsigned DEFAULT NULL COMMENT 'the last check timestamp',
   `output` text DEFAULT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0=false, 1=true',
+  `flapping` tinyint(1) DEFAULT NULL,
+  `percent_state_change` double DEFAULT NULL,
   PRIMARY KEY (`resource_id`),
   UNIQUE KEY `resources_id_parent_id_type_uindex` (`id`,`parent_id`,`type`),
   KEY `resources_severities_severity_id_fk` (`severity_id`),

@@ -281,16 +281,15 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
-        "UPDATE hosts AS h "
-        "SET h.state=h.real_state WHERE h.instance_id={} and h.real_state IS "
-        "NOT NULL",
+        "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
+        "instance_id={} AND real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
     query = fmt::format(
         "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
-        "SET s.state=s.real_state WHERE h.instance_id={} and s.real_state IS "
-        "NOT NULL",
+        "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
+        "and s.real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);
@@ -1928,8 +1927,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "notes,"
               "action_url,"
               "notifications_enabled,passive_checks_enabled,"
-              "active_checks_enabled,enabled,icon_id) "
-              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?"
+              "active_checks_enabled,enabled,icon_id,"
+              "flapping,percent_state_change)"
+              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?"
               ")");
           _resources_host_update = _mysql.prepare_query(
               "UPDATE resources SET "
@@ -1940,7 +1940,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,icon_id=?,enabled=1 WHERE "
+              "active_checks_enabled=?,icon_id=?,enabled=1, flapping=?,"
+              "percent_state_change=? WHERE "
               "resource_id=?");
           if (!_resources_tags_remove.prepared())
             _resources_tags_remove = _mysql.prepare_query(
@@ -2056,6 +2057,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_insert.bind_value_as_bool(19, h.passive_checks());
       _resources_host_insert.bind_value_as_bool(20, h.active_checks());
       _resources_host_insert.bind_value_as_u64(21, h.icon_id());
+      _resources_host_insert.bind_value_as_bool(22, h.flapping());
+      _resources_host_insert.bind_value_as_f64(23, h.percent_state_change());
 
       std::promise<uint64_t> p;
       std::future<uint64_t> future = p.get_future();
@@ -2151,7 +2154,9 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_update.bind_value_as_bool(18, h.passive_checks());
       _resources_host_update.bind_value_as_bool(19, h.active_checks());
       _resources_host_update.bind_value_as_u64(20, h.icon_id());
-      _resources_host_update.bind_value_as_u64(21, res_id);
+      _resources_host_update.bind_value_as_bool(21, h.flapping());
+      _resources_host_update.bind_value_as_f64(22, h.percent_state_change());
+      _resources_host_update.bind_value_as_u64(23, res_id);
 
       _mysql.run_statement(_resources_host_update,
                            database::mysql_error::store_host_resources, conn);
@@ -2531,7 +2536,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         else
           b->set_value_as_u64(9, hscr.last_check());
         b->set_value_as_str(10, hscr.output());
-        b->set_value_as_u64(11, hscr.host_id());
+        b->set_value_as_bool(11, hscr.flapping());
+        b->set_value_as_f64(12, hscr.percent_state_change());
+        b->set_value_as_u64(13, hscr.host_id());
         b->next_row();
       } else {
         _hscr_resources_update->bind_value_as_i32(0, hscr.state());
@@ -2551,7 +2558,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update->bind_value_as_u64_ext(
             9, hscr.last_check(), mapping::entry::invalid_on_zero);
         _hscr_resources_update->bind_value_as_str(10, hscr.output());
-        _hscr_resources_update->bind_value_as_u64(11, hscr.host_id());
+        _hscr_resources_update->bind_value_as_bool(11, hscr.flapping());
+        _hscr_resources_update->bind_value_as_f64(12,
+                                                  hscr.percent_state_change());
+        _hscr_resources_update->bind_value_as_u64(13, hscr.host_id());
 
         _mysql.run_statement(*_hscr_resources_update,
                              database::mysql_error::store_host_status, conn);
@@ -3743,8 +3753,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "severity_id,name,parent_name,notes_url,notes,action_url,"
             "notifications_enabled,passive_checks_enabled,active_"
             "checks_"
-            "enabled,enabled,icon_id) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)");
+            "enabled,enabled,icon_id, flapping, percent_state_change) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)");
         _resources_service_update = _mysql.prepare_query(
             "UPDATE resources SET "
             "type=?,internal_id=?,status=?,status_ordered=?,last_"
@@ -3756,7 +3766,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             ","
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?"
-            ","
+            ", flapping=?, percent_state_change=?,"
             "enabled=1 WHERE resource_id=?");
         if (!_resources_disable.prepared()) {
           _resources_disable = _mysql.prepare_query(
@@ -3765,11 +3775,21 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       }
     }
 
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: update of (host: {}, service: {}, "
+                       "description: {})",
+                       s.host_id(), s.service_id(), s.description());
+
     // Process object.
     _pb_service_insupdate << *svc;
     _mysql.run_statement(_pb_service_insupdate,
                          database::mysql_error::store_service, conn);
     _add_action(conn, actions::services);
+
+    SPDLOG_LOGGER_INFO(_logger_sql,
+                       "unified_sql: update done of (host: {}, service: {}, "
+                       "description: {})",
+                       s.host_id(), s.service_id(), s.description());
 
     _check_and_update_index_cache(s);
 
@@ -3866,6 +3886,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_insert.bind_value_as_bool(20, s.passive_checks());
       _resources_service_insert.bind_value_as_bool(21, s.active_checks());
       _resources_service_insert.bind_value_as_u64(22, s.icon_id());
+      _resources_service_insert.bind_value_as_bool(23, s.flapping());
+      _resources_service_insert.bind_value_as_f64(24, s.percent_state_change());
 
       std::promise<uint64_t> p;
       std::future<uint64_t> future = p.get_future();
@@ -3962,7 +3984,9 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_update.bind_value_as_bool(18, s.passive_checks());
       _resources_service_update.bind_value_as_bool(19, s.active_checks());
       _resources_service_update.bind_value_as_u64(20, s.icon_id());
-      _resources_service_update.bind_value_as_u64(21, res_id);
+      _resources_service_update.bind_value_as_bool(21, s.flapping());
+      _resources_service_update.bind_value_as_f64(22, s.percent_state_change());
+      _resources_service_update.bind_value_as_u64(23, res_id);
 
       _mysql.run_statement(_resources_service_update,
                            database::mysql_error::store_service, conn);
@@ -4564,8 +4588,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        b->set_value_as_u64(11, sscr.service_id());
-        b->set_value_as_u64(12, sscr.host_id());
+        b->set_value_as_bool(11, sscr.flapping());
+        b->set_value_as_f64(12, sscr.percent_state_change());
+        b->set_value_as_u64(13, sscr.service_id());
+        b->set_value_as_u64(14, sscr.host_id());
         b->next_row();
         SPDLOG_LOGGER_TRACE(
             _logger_sql, "{} waiting updates for service status in resources",
@@ -4596,8 +4622,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             9, sscr.last_check(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        _sscr_resources_update->bind_value_as_u64(11, sscr.service_id());
-        _sscr_resources_update->bind_value_as_u64(12, sscr.host_id());
+        _sscr_resources_update->bind_value_as_bool(11, sscr.flapping());
+        _sscr_resources_update->bind_value_as_f64(12,
+                                                  sscr.percent_state_change());
+        _sscr_resources_update->bind_value_as_u64(13, sscr.service_id());
+        _sscr_resources_update->bind_value_as_u64(14, sscr.host_id());
 
         _mysql.run_statement(*_sscr_resources_update,
                              database::mysql_error::store_service_status, conn);

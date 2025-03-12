@@ -92,6 +92,11 @@ const std::string_view config::config_schema(R"(
             "description": "Maximum time between subsequent connection attempts, in seconds. Default: 60s",
             "type": "integer",
             "min": 0
+        },
+        "max_message_length": {
+            "description": "maximum protobuf message length in Mo",
+            "type": "integer",
+            "minimum": 4
         }
     },
     "required": [
@@ -152,4 +157,6 @@ config::config(const std::string& path) {
   _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
   _second_max_reconnect_backoff =
       json_config.get_unsigned("second_max_reconnect_backoff", 60);
+  _max_message_length =
+      json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 }

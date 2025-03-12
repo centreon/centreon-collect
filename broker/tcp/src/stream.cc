@@ -47,12 +47,13 @@ std::atomic<size_t> stream::_total_tcp_count{0};
  * @param port The port used by the host to listen.
  * @param read_timeout The read_timeout in seconds or -1 if no timeout.
  */
-stream::stream(const tcp_config::pointer& conf)
+stream::stream(const tcp_config::pointer& conf,
+               const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("TCP"),
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
       _parent(nullptr),
-      _logger{log_v2::instance().get(log_v2::TCP)} {
+      _logger(logger) {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -69,12 +70,13 @@ stream::stream(const tcp_config::pointer& conf)
  * @param read_timeout A duration in seconds or -1 if no timeout.
  */
 stream::stream(const tcp_connection::pointer& conn,
-               const tcp_config::pointer& conf)
+               const tcp_config::pointer& conf,
+               const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("TCP"),
       _conf(conf),
       _connection(conn),
       _parent(nullptr),
-      _logger{log_v2::instance().get(log_v2::TCP)} {
+      _logger(logger) {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());

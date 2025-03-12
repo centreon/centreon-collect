@@ -24,6 +24,17 @@ set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/agent")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(SCRIPT_DIR "${PROJECT_SOURCE_DIR}/scripts")
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+
+  file(GLOB_RECURSE STATIC_LIBSTDCXX /usr/*/libstdc++.a)
+
+  if (STATIC_LIBSTDCXX)
+    message(STATUS "libstdc++.a found at ${STATIC_LIBSTDCXX}")
+  else()
+    message(FATAL_ERROR "libstdc++.a not found. Please install it to proceed.")
+  endif()
+
+endif()
 
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
@@ -116,6 +127,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
   ${SRC_DIR}/check_health.cc
+  ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
   ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
@@ -183,6 +195,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_process
     -L${Boost_LIBRARY_DIR_RELEASE}
     boost_program_options
+    -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
 else()

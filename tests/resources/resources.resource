@@ -26,9 +26,11 @@ ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
 *** Keywords ***
 Ctn Config BBDO3
-    [Arguments]    ${nbEngine}    ${version}=3.0.1
+    [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False
     Ctn Config Broker Sql Output    central    unified_sql
-    Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
+    IF    not ${only_central}
+        Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
+    END
     Ctn Broker Config Add Item    central    bbdo_version    ${version}
     FOR    ${i}    IN RANGE    ${nbEngine}
         ${mod}    Catenate    SEPARATOR=    module    ${i}
@@ -394,6 +396,16 @@ Ctn Process Service Result Hard
         Ctn Process Service Check Result
         ...    ${host}
         ...    ${svc}
+        ...    ${state}
+        ...    ${output}
+        Sleep    1s
+    END
+
+Ctn Process Host Result Hard
+    [Arguments]    ${host}    ${state}    ${output}
+    FOR    ${idx}    IN RANGE    3
+        Ctn Process Host Check Result
+        ...    ${host}
         ...    ${state}
         ...    ${output}
         Sleep    1s

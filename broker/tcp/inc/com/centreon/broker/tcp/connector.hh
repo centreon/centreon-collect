@@ -33,6 +33,7 @@ namespace tcp {
  */
 class connector : public io::limit_endpoint {
   tcp_config::pointer _conf;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   connector(const tcp_config::pointer& conf);

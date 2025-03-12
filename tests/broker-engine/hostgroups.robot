@@ -168,9 +168,9 @@ EBNHG4
     Ctn Reload Engine
 
     Log To Console    Step1
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    Step1
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         Log To Console    ${output}
@@ -220,9 +220,9 @@ EBNHGU4_${test_label}
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${loop_index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
         ...    WHERE h.hostgroup_id = ${1}
@@ -253,6 +253,7 @@ EBNHGU4_${test_label}
     Log To Console    hostgroup_1 renamed to hostgroup_test
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id.
         ...    WHERE h.hostgroup_id = ${1}
@@ -282,6 +283,7 @@ EBNHGU4_${test_label}
     Log To Console    remove hostgroup
 
     FOR    ${index}    IN RANGE    60
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Log To Console
         ...    SELECT name, host_id FROM hostgroups h JOIN hosts_hostgroups hg ON h.hostgroup_id = hg.hostgroup_id
         ...    WHERE h.hostgroup_id = ${1}

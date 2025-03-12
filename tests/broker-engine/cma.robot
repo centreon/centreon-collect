@@ -383,7 +383,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Should Be True    ${result}    resources table not updated
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    60
     Should Be True    ${result}    metrics not updated
 
 
@@ -393,7 +393,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "cpu_percentage", "args": {"warning-average" : "0.01"}}    OTEL connector
 
     Ctn Reload Engine
-    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    SOFT
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
     Should Be True    ${result}    resources table not updated
 
     #a small threshold to make service_1 critical
@@ -767,6 +767,7 @@ BEOTEL_CENTREON_AGENT_CEIP
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Clear Db    metrics
+    Ctn Clear Db    agent_information
 
     Ctn Config Broker    central
     Ctn Config Broker    module

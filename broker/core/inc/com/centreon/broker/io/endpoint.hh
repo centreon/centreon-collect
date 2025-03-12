@@ -19,6 +19,8 @@
 #ifndef CCB_IO_ENDPOINT_HH
 #define CCB_IO_ENDPOINT_HH
 
+#include <boost/asio/io_context.hpp>
+#include <memory>
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/stream.hh"
@@ -54,6 +56,8 @@ class endpoint {
    * otherwise it will work badly.
    */
   multiplexing::muxer_filter _stream_forbidden_filter;
+
+  std::shared_ptr<asio::io_context> _io_context;
 
  protected:
   std::shared_ptr<endpoint> _from;
@@ -92,6 +96,10 @@ class endpoint {
    */
   const multiplexing::muxer_filter& get_stream_forbidden_filter() const {
     return _stream_forbidden_filter;
+  }
+
+  std::shared_ptr<asio::io_context> get_io_context() const {
+    return _io_context;
   }
 };
 }  // namespace io

@@ -44,9 +44,9 @@ EBPN0
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # check if host_2 is child of host_1
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
@@ -132,9 +132,8 @@ EBPN1
     Log To Console    childs:${output}[childHosts]
     Should Contain    ${output}[childHosts]    host_2    childHosts
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
@@ -165,6 +164,7 @@ EBPN1
     Should Be Empty    ${output}[parentHosts]
 
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
@@ -215,9 +215,8 @@ EBPN2
     Log To Console    childs:${output}[childHosts]
     Should Contain    ${output}[childHosts]    host_2    childHosts
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}
@@ -247,6 +246,7 @@ EBPN2
     Should Be Empty    ${output}[childHosts]
 
     FOR    ${index}    IN RANGE    30
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT child_id, parent_id FROM hosts_hosts_parents
         Log To Console    ${output}

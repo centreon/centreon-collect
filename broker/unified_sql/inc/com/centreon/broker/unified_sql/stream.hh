@@ -20,6 +20,7 @@
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <array>
 #include <atomic>
+#include <boost/asio/io_context.hpp>
 #include <condition_variable>
 #include <deque>
 #include <list>
@@ -219,6 +220,8 @@ class stream : public io::stream {
   };
 
   instance_state _state;
+
+  std::shared_ptr<asio::io_context> _io_context;
 
   mutable std::mutex _fifo_m;
   std::atomic_int _processed;
@@ -485,7 +488,10 @@ class stream : public io::stream {
          uint32_t instance_timeout,
          bool store_in_data_bin,
          bool store_in_resources,
-         bool store_in_hosts_services);
+         bool store_in_hosts_services,
+         const std::shared_ptr<asio::io_context> io_context,
+         const std::shared_ptr<spdlog::logger>& logger_sql,
+         const std::shared_ptr<spdlog::logger>& logger_sto);
   stream() = delete;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

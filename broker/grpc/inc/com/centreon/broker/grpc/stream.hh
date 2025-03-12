@@ -19,6 +19,7 @@
 #ifndef CCB_GRPC_STREAM_HH__
 #define CCB_GRPC_STREAM_HH__
 
+#include <boost/asio/io_context.hpp>
 #include "com/centreon/broker/io/raw.hh"
 #include "grpc_config.hh"
 
@@ -106,12 +107,17 @@ class stream : public io::stream,
   grpc_config::pointer _conf;
   const std::string_view _class_name;
 
+  std::shared_ptr<asio::io_context> _io_context;
+
   std::mutex _protect;
 
   void start_write();
 
  protected:
-  stream(const grpc_config::pointer& conf, const std::string_view& class_name);
+  stream(const grpc_config::pointer& conf,
+         const std::string_view& class_name,
+         const std::shared_ptr<asio::io_context> io_context,
+         const std::shared_ptr<spdlog::logger>& logger);
 
   // called only by public stop
   virtual void shutdown();

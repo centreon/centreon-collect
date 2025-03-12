@@ -51,11 +51,15 @@ class mysql_stmt_base {
   size_t _compute_param_count(const std::string& query);
 
  public:
-  mysql_stmt_base(bool bulk);
-  mysql_stmt_base(const std::string& query, bool named, bool bulk);
+  mysql_stmt_base(bool bulk, const std::shared_ptr<spdlog::logger>& logger);
+  mysql_stmt_base(const std::string& query,
+                  bool named,
+                  bool bulk,
+                  const std::shared_ptr<spdlog::logger>& logger);
   mysql_stmt_base(
       const std::string& query,
       bool bulk,
+      const std::shared_ptr<spdlog::logger>& logger,
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_stmt_base(mysql_stmt_base&& other);
   virtual ~mysql_stmt_base() noexcept = default;

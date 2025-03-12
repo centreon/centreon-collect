@@ -61,7 +61,18 @@ stream::stream(database_config const& dbcfg,
                uint32_t instance_timeout,
                bool with_state_events [[maybe_unused]])
     : io::stream("SQL"),
-      _mysql(dbcfg),
+      _mysql(dbcfg, log_v2::instance().get(log_v2::SQL)),
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)},
+      _empty_host_groups_delete(_logger_sql),
+      _empty_service_groups_delete(_logger_sql),
+      _host_parent_select(_logger_sql),
+      _host_state_insupdate(_logger_sql),
+      _instance_status_update(_logger_sql),
+      _issue_insupdate(_logger_sql),
+      _issue_parent_insert(_logger_sql),
+      _issue_parent_update(_logger_sql),
+      _service_state_insupdate(_logger_sql),
       //      _cleanup_thread(dbcfg.get_type(),
       //                      dbcfg.get_host(),
       //                      dbcfg.get_port(),
@@ -70,9 +81,7 @@ stream::stream(database_config const& dbcfg,
       //                      dbcfg.get_name(),
       //                      cleanup_check_interval),
       _pending_events{0},
-      _stopped(false),
-      _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
+      _stopped(false) {
   // FIXME DBR
   (void)cleanup_check_interval;
   //  // Get oudated instances.

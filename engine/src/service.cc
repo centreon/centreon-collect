@@ -1107,7 +1107,9 @@ int service::handle_async_check_result(
       pb_config.cached_service_check_horizon();
 #endif
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "handle_async_service_check_result()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "handle_async_service_check_result() service {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);

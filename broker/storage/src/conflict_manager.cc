@@ -96,7 +96,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _broken{false},
       _loop_timeout{loop_timeout},
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
-      _mysql{dbcfg},
+      _mysql{dbcfg, log_v2::instance().get(log_v2::SQL)},
       _instance_timeout{instance_timeout},
       _center{stats::center::instance_ptr()},
       _stats{_center->register_conflict_manager()},
@@ -104,7 +104,38 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _group_clean_timer{com::centreon::common::pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()},
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)},
+      _acknowledgement_insupdate(_logger_sql),
+      _comment_insupdate(_logger_sql),
+      _custom_variable_delete(_logger_sql),
+      _custom_variable_status_insupdate(_logger_sql),
+      _event_handler_insupdate(_logger_sql),
+      _flapping_status_insupdate(_logger_sql),
+      _host_check_update(_logger_sql),
+      _host_group_insupdate(_logger_sql),
+      _host_group_member_delete(_logger_sql),
+      _host_group_member_insert(_logger_sql),
+      _host_insupdate(_logger_sql),
+      _host_parent_delete(_logger_sql),
+      _host_parent_insert(_logger_sql),
+      _host_status_update(_logger_sql),
+      _instance_insupdate(_logger_sql),
+      _instance_status_insupdate(_logger_sql),
+      _module_insert(_logger_sql),
+      _service_check_update(_logger_sql),
+      _service_group_insupdate(_logger_sql),
+      _service_group_member_delete(_logger_sql),
+      _service_group_member_insert(_logger_sql),
+      _service_insupdate(_logger_sql),
+      _service_status_update(_logger_sql),
+      _severity_insert(_logger_sql),
+      _severity_update(_logger_sql),
+      _tag_insert(_logger_sql),
+      _tag_update(_logger_sql),
+      _index_data_insert(_logger_sql),
+      _index_data_update(_logger_sql),
+      _index_data_query(_logger_sql),
+      _metrics_insert(_logger_sql) {
   _logger_sql->debug("conflict_manager: class instanciation");
   _center->update(&ConflictManagerStats::set_loop_timeout, _stats,
                   _loop_timeout);
@@ -986,7 +1017,7 @@ void conflict_manager::process_stop(const std::shared_ptr<io::data>& d) {
 void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
   asio::post(com::centreon::common::pool::instance().io_context(), [this,
                                                                     data = d] {
-    mysql ms(_mysql.get_config());
+    mysql ms(_mysql.get_config(), _logger_sql);
     const bbdo::pb_remove_graphs& ids =
         *static_cast<const bbdo::pb_remove_graphs*>(data.get());
 

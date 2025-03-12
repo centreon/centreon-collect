@@ -45,7 +45,8 @@ class mysql {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  mysql(database_config const& db_cfg);
+  mysql(database_config const& db_cfg,
+        const std::shared_ptr<spdlog::logger>& logger);
   ~mysql();
   void prepare_statement(const database::mysql_stmt_base& stmt);
   database::mysql_stmt prepare_query(
