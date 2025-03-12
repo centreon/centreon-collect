@@ -66,11 +66,11 @@ duration com::centreon::agent::duration_from_string(
         break;
       case 'd':
       case 'D':
-        ret += std::chrono::days(value);
+        ret += std::chrono::hours(value * 24);
         break;
       case 'w':
       case 'W':
-        ret += std::chrono::weeks(value);
+        ret += std::chrono::hours(value * 24 * 7);
         break;
     }
   }
