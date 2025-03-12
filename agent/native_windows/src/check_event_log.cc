@@ -165,14 +165,36 @@ std::shared_ptr<check_event_log> check_event_log::load(
 }
 
 static const boost::container::flat_map<std::string_view, std::string_view>
-    _label_to_event_index = {
-        {"${file}", "{0}"},      {"${id}", "{1}"},
-        {"${source}", "{2}"},    {"${log}", "{2}"},
-        {"${provider}", "{2}"},  {"${message}", "{3}"},
-        {"${status}", "{4}"},    {"${written}", "{5}"},
-        {"${record_id}", "{6}"}, {"${computer}", "{7}"},
-        {"${channel}", "{8}"},   {"${keywords}", "{9}"},
-        {"${level}", "{10}"},    {"${written_str}", "{11}"}};
+    _label_to_event_index = {{"${file}", "{0}"},
+                             {"${id}", "{1}"},
+                             {"${source}", "{2}"},
+                             {"${log}", "{2}"},
+                             {"${provider}", "{2}"},
+                             {"${message}", "{3}"},
+                             {"${status}", "{4}"},
+                             {"${written}", "{5}"},
+                             {"${record_id}", "{6}"},
+                             {"${record-id}", "{6}"},
+                             {"${computer}", "{7}"},
+                             {"${channel}", "{8}"},
+                             {"${keywords}", "{9}"},
+                             {"${level}", "{10}"},
+                             {"${written_str}", "{11}"},
+                             {"{file}", "{0}"},
+                             {"{id}", "{1}"},
+                             {"{source}", "{2}"},
+                             {"{log}", "{2}"},
+                             {"{provider}", "{2}"},
+                             {"{message}", "{3}"},
+                             {"{status}", "{4}"},
+                             {"{written}", "{5}"},
+                             {"{record_id}", "{6}"},
+                             {"{record-id}", "{6}"},
+                             {"{computer}", "{7}"},
+                             {"{channel}", "{8}"},
+                             {"{keywords}", "{9}"},
+                             {"{level}", "{10}"},
+                             {"{written_str}", "{11}"}};
 
 void check_event_log::_calc_event_detail_syntax(const std::string_view& param) {
   _event_detail_syntax = param;
@@ -182,9 +204,11 @@ void check_event_log::_calc_event_detail_syntax(const std::string_view& param) {
 }
 
 static const boost::container::flat_map<std::string_view, std::string_view>
-    _label_to_output_index = {{"${status}", "{0}"},
-                              {"${count}", "{1}"},
-                              {"${problem_list}", "{2}"}};
+    _label_to_output_index = {
+        {"${status}", "{0}"},       {"${count}", "{1}"},
+        {"${problem_list}", "{2}"}, {"${problem-list}", "{2}"},
+        {"{status}", "{0}"},        {"{count}", "{1}"},
+        {"{problem_list}", "{2}"},  {"{problem-list}", "{2}"}};
 
 /**
  * @brief Calculate the output format by replacing labels with their
@@ -203,7 +227,6 @@ void check_event_log::_calc_output_format() {
   };
 
   replace_label(&_empty_output);
-  replace_label(&_output_syntax);
   replace_label(&_output_syntax);
   replace_label(&_ok_syntax);
 }
@@ -428,11 +451,11 @@ void check_event_log::help(std::ostream& help_stream) {
     warning-count : number of warning events to trigger a warning, default: 1
     critical-count : number of critical events to trigger a critical, default: 1
     empty-state : message to display when no event is found, default: "Empty or no match for this filter"
-    output-syntax : output format when status is not ok, default: "${status}: ${count} ${problem_list}"
-    ok-syntax : output format when status is ok, default: "${status}: Event log seems fine"
-    event-detail-syntax : output format for each event, default: "'${source} ${id}'"
+    output-syntax : output format when status is not ok, default: "{status}: {count} {problem_list}"
+    ok-syntax : output format when status is ok, default: "{status}: Event log seems fine"
+    event-detail-syntax : output format for each event, default: "'{source} {id}'"
     unique-index : unique index for events, events are grouped by this index. 
-                   For example is two events have the same provider and the same id, only latest is printed to output , default: "${provider}${id}"
+                   For example is two events have the same provider and the same id, only latest is printed to output , default: "{provider}{id}"
     file : event log file to monitor
     filter-event : filter to apply on event log, default: "written > 60m and level in ('error', 'warning', 'critical')
     warning-status : filter to apply on event log to get warning events, default: "level = 'warning'

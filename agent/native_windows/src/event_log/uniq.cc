@@ -21,7 +21,7 @@
 
 using namespace com::centreon::agent::event_log;
 
-re2::RE2 field_regex("\\${([^\\${}]+)}");
+re2::RE2 field_regex("{([^\\${}]+)}");
 
 /**
  * @brief Constructor for the event_comparator class.
