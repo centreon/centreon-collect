@@ -240,14 +240,14 @@ if(WITH_DAEMONS)
 endif()
 
 if(WITH_CONF)
-  configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
-                 "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
+  configure_file("${PROJECT_SOURCE_DIR}/config/module.json.in"
+                 "${PROJECT_SOURCE_DIR}/config/module.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
                  "${PROJECT_SOURCE_DIR}/config/central-broker.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-rrd.json.in"
                  "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
 
-  install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
+  install(FILES "${PROJECT_SOURCE_DIR}/config/module.json"
           DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
           DESTINATION "${PREFIX_BROKER_CONF}")
