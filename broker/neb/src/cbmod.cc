@@ -107,6 +107,7 @@ const std::string& cbmod::poller_name() const {
 }
 
 void cbmod::write(const std::shared_ptr<io::data>& msg) {
+  _neb_logger->info("cbmod: write event of type {:x}", msg->type());
   _impl->mut_publisher().write(msg);
 }
 
