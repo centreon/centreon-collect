@@ -22,7 +22,7 @@
 #include <winevt.h>
 
 #include <boost/flyweight.hpp>
-#include <string_view>
+#include "com/centreon/common/absl_flyweight_factory.hh"
 
 #include "check.hh"
 #include "filter.hh"
@@ -94,23 +94,23 @@ class event : public testable {
   struct message_tag {};
 
   boost::flyweight<std::string,
-                   boost::flyweights::hashed_factory<>,
+                   common::absl_factory<true>,
                    boost::flyweights::tag<computer_tag>>
       _computer;
   boost::flyweight<std::string,
-                   boost::flyweights::hashed_factory<>,
+                   common::absl_factory<true>,
                    boost::flyweights::tag<channel_tag>>
       _channel;
   boost::flyweight<std::string,
-                   boost::flyweights::hashed_factory<>,
+                   common::absl_factory<true>,
                    boost::flyweights::tag<provider_tag>>
       _provider;
   boost::flyweight<std::string,
-                   boost::flyweights::hashed_factory<>,
+                   common::absl_factory<true>,
                    boost::flyweights::tag<keyword_tag>>
       _str_keywords;
   boost::flyweight<std::string,
-                   boost::flyweights::hashed_factory<>,
+                   common::absl_factory<true>,
                    boost::flyweights::tag<message_tag>>
       _message;
 
