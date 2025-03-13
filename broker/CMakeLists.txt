@@ -246,7 +246,7 @@ if(WITH_CONFIG_FILES)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-rrd.json.in"
                  "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
 
-  install(FILES "${PROJECT_SOURCE_DIR}/config/module.json"
+  install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
           DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
           DESTINATION "${PREFIX_BROKER_CONF}")
