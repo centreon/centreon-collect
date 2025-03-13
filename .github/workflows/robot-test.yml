@@ -31,10 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
-      only_robot_cma:
+      features_pattern:
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: .robot
     secrets:
       registry_username:
         required: true
@@ -105,13 +105,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          if [ "${{ inputs.only_robot_cma }}" == "true" ]
-          then
-            FEATURES_PATTERN="cma.robot"
-          else
-            FEATURES_PATTERN=".robot"
-          fi
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
