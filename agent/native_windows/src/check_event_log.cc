@@ -71,8 +71,7 @@ check_event_log::check_event_log(
             cmd_line,
             cnf,
             std::move(handler),
-            stat),
-      _need_message_content(false) {
+            stat) {
   com::centreon::common::rapidjson_helper arg(args);
   try {
     if (args.IsObject()) {
@@ -106,6 +105,9 @@ check_event_log::check_event_log(
         _event_compare =
             std::make_unique<event_log::event_comparator>(uniq, logger);
       }
+
+      bool need_message_content = _event_detail_syntax.find("{3}") !=
+                                  std::string::npos;  // message content
       _data = std::make_unique<event_log::event_container>(
           arg.get_string("file"),
           arg.get_string(
@@ -113,7 +115,7 @@ check_event_log::check_event_log(
               "written > 60m and level in ('error', 'warning', 'critical')"),
           arg.get_string("warning-status", "level = 'warning'"),
           arg.get_string("critical-status", "level in ('error', 'critical')"),
-          scan_range, _need_message_content, logger);
+          scan_range, need_message_content, logger);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_event_log, fail to parse arguments: {}",

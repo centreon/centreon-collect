@@ -49,15 +49,17 @@ void com::centreon::agent::string_to_wstring(std::string_view in_str,
   }
 }
 
-bool filter::create_filter(const std::string_view& filter_str,
+bool filter::create_filter(std::string_view filter_str,
                            const std::shared_ptr<spdlog::logger>& logger,
                            filters::filter_combinator* filter,
                            bool use_wchar,
                            bool debug) {
   bp::trace dbg = debug ? bp::trace::on : bp::trace::off;
+  filter_str = absl::StripLeadingAsciiWhitespace(filter_str);
+  filter_str = absl::StripTrailingAsciiWhitespace(filter_str);
 
   auto err_handler = [filter_str, logger](const std::string& msg) {
-    SPDLOG_LOGGER_ERROR(logger, "Failt to parse {}: {}", filter_str, msg);
+    SPDLOG_LOGGER_ERROR(logger, "Fail to parse {}: {}", filter_str, msg);
   };
 
   auto warn_handler = [filter_str, logger](const std::string& msg) {

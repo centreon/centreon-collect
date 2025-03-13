@@ -256,6 +256,8 @@ void event_container::_on_event(const event_log::event_data& raw_event,
     }
 
     boost::replace_all(message, "\r\n", " ");
+    boost::replace_all(message, "\r", " ");
+    boost::replace_all(message, "\n", " ");
     event to_ins(raw_event, event_time, std::move(message));
 
     if (event_status == e_status::warning) {

@@ -42,7 +42,6 @@ class check_event_log : public check {
   std::string _empty_output;
   std::string _ok_syntax;
   std::string _event_detail_syntax;
-  bool _need_message_content;
   bool _verbose;
   std::string _output_syntax;
 

@@ -99,7 +99,7 @@ class filter {
     _checker = std::forward<checker_ope>(ope);
   }
 
-  static bool create_filter(const std::string_view& filter_str,
+  static bool create_filter(std::string_view filter_str,
                             const std::shared_ptr<spdlog::logger>& logger,
                             filters::filter_combinator* filter,
                             bool use_wchar = false,
