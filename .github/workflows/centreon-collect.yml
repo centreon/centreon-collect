@@ -252,6 +252,7 @@ jobs:
             distrib: el9
             package_extension: rpm
             runner: centreon-collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
