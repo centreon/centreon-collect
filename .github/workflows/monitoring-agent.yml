@@ -19,6 +19,7 @@ on:
       - agent/**
       - common/**
       - custom-triplets/**
+      - packaging/monitoring-agent/**
       - CMakeLists.txt
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
@@ -34,6 +35,7 @@ on:
       - agent/**
       - common/**
       - custom-triplets/**
+      - packaging/monitoring-agent/**
       - CMakeLists.txt
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
