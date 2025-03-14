@@ -93,8 +93,8 @@ target_link_libraries(opentelemetry
   protobuf
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_program_options
+  pb_open_telemetry_lib
   ctncrypto)
-
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
