@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
         // Read in the configuration files (main config file,
         // resource and object config files).
         configuration::error_cnt err;
-	cbm = std::make_unique<cbmod>();
+        cbm = std::make_unique<cbmod>();
         configuration::State pb_config;
         {
           configuration::parser p;
@@ -433,7 +433,6 @@ int main(int argc, char* argv[]) {
 
         // Load broker modules.
         configuration::applier::state::instance().apply_log_config(new_config);
-        cbm = std::make_unique<cbmod>(broker_config);
 
         neb_init_callback_list();
 
@@ -448,7 +447,8 @@ int main(int argc, char* argv[]) {
             &backend_broker_log, logging::log_all, logging::basic);
 
         // Apply configuration.
-        configuration::applier::state::instance().apply(new_config, err, &state);
+        configuration::applier::state::instance().apply(new_config, err,
+                                                        &state);
 
         // Initialize status data.
         initialize_status_data();
@@ -462,6 +462,15 @@ int main(int argc, char* argv[]) {
         // Update all status data (with retained information).
         update_all_status_data();
 
+        /* We don't start cbm earlier because when we apply the configuration,
+         * we also send the configuration to Broker, but the initial instance
+         * will be send by broker_program_state with the
+         * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd send
+         * the configuration twice to Broker. But the first time without the
+         * initial instance, which can lead to issues in the database. Doing
+         * this, imply we also have to check if cbm is defined in broker.cc.
+         */
+        cbm = std::make_unique<cbmod>(broker_config);
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
