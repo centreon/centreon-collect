@@ -101,6 +101,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(NATIVE_DIR "native_linux")
 else()
   set(NATIVE_DIR "native_windows")
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    # Enable debug symbol retention on Windows in Release builds, the compiler and
+    # linker will automatically silo them into a .pdb file and not the executable.
+    set (CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   /Zi")
+    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+  endif()
 endif()
 
 set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
@@ -200,9 +206,26 @@ else()
     fmt::fmt
     pdh)
 
-    if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
-      add_subdirectory(installer)
-    endif()
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    # The linker needs to know to retain debug symbols.
+    target_link_options (
+      ${CENTREON_AGENT}
+      PRIVATE $<$<CONFIG:RELEASE>:/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF>
+    )
+
+    # Make sure that we're giving the pdb the right name and putting it in
+    # the right place.
+    set_target_properties (
+        ${CENTREON_AGENT}
+        PROPERTIES
+            COMPILE_PDB_NAME       "${CENTREON_AGENT}"
+            COMPILE_PDB_OUTPUT_DIR "$<TARGET_FILE_DIR:${CENTREON_AGENT}>"
+    )
+  endif()
+
+  if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
+    add_subdirectory(installer)
+  endif()
 
 endif()
 
