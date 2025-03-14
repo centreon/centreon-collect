@@ -152,6 +152,7 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
