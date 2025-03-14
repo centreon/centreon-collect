@@ -1313,6 +1313,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
+    Ctn Clear Db    resources
 
     # wrong check command for service_1
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
