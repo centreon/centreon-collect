@@ -123,6 +123,7 @@ Test6Hosts
     END
 
     Ctn Stop Engine
+    Ctn Save Logs If Failed
 
 TestWhiteList
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
