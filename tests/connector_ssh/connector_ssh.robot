@@ -68,10 +68,11 @@ TestBadPwd
 Test6Hosts
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
     [Tags]    connector    engine
-    Sleep    5 seconds    we wait sshd raz pending connexions from previous tests
+    #Sleep    5 seconds    we wait sshd raz pending connexions from previous tests
     Run    cat ~testconnssh/.ssh/id_rsa.pub ~root/.ssh/id_rsa.pub > ~testconnssh/.ssh/authorized_keys
     # Run    chown testconnssh: ~testconnssh/.ssh/authorized_keys
     # Run    chmod 600 ~testconnssh/.ssh/authorized_keys
+    Ctn Clear Logs
     Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Engine    ${1}
@@ -79,7 +80,7 @@ Test6Hosts
     Ctn Engine Config Add Command
     ...    ${0}
     ...    ssh_linux_snmp
-    ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"
+    ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n foo=$HOSTADDRESS$"
     ...    SSH Connector
     ${run_env}    Ctn Run Env
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
@@ -103,23 +104,24 @@ Test6Hosts
     Ctn Wait For Engine To Be Ready    ${start}
 
     FOR    ${idx}    IN RANGE    1    7
+	Sleep    1s    We don't want to be too brutal with sshd
         Ctn Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
 
     IF    "${run_env}" == "docker"
-        ${content}    Create List    output='toto=127.0.0.1'
+        ${content}    Create List    output='foo=127.0.0.1'
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    A message output='toto=127.0.0.1' should be available.
+        Should Be True    ${result}    A message output='foo=127.0.0.1' should be available.
     ELSE
-        ${content}    Create List    output='toto=::1'
+        ${content}    Create List    output='foo=::1'
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    A message output='toto=::1' should be available.
+        Should Be True    ${result}    A message output='foo=::1' should be available.
     END
 
     FOR    ${idx}    IN RANGE    2    7
-        ${content}    Create List    output='toto=127.0.0.${idx}
+        ${content}    Create List    output='foo=127.0.0.${idx}
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
+        Should Be True    ${result}    A message output='foo=127.0.0.${idx}' should be available.
     END
 
     Ctn Stop Engine
