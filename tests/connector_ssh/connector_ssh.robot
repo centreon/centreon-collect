@@ -123,7 +123,6 @@ Test6Hosts
     END
 
     Ctn Stop Engine
-    Ctn Save Logs If Failed
 
 TestWhiteList
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -209,6 +208,7 @@ Ctn Prepare ssh
 
 Ctn Save SSH Logs If Failed
     Run Keyword If Test Failed    Ctn Save SSH Logs
+    Ctn Save Logs If Failed
 
 Ctn Save SSH Logs
     Ctn Save Logs
