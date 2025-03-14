@@ -1842,7 +1842,7 @@ static void forward_external_command(int type,
                                      char* command_args,
                                      const struct timeval& timestamp) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data: {}");
+  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: external command data");
 
   if (type == NEBTYPE_EXTERNALCOMMAND_START) {
     if (command_type == CMD_CHANGE_CUSTOM_HOST_VAR) {
