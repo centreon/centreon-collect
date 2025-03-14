@@ -31,6 +31,8 @@ BEDTMASS1
     Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    module2    neb    debug
 
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
@@ -172,6 +174,8 @@ BEDTSVCREN2
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
     Ctn Config BBDO3    1
 
     Ctn Clear Retention
@@ -252,6 +256,9 @@ BEDTSVCFIXED1
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
 
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config BBDO3    1
     Ctn Clear Retention
     Ctn Start Broker
     ${start}    Ctn Get Round Current Date
@@ -372,6 +379,8 @@ BEDTHOSTFIXED1
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    neb    debug
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
     Ctn Config BBDO3	1
 
     Ctn Clear Retention
