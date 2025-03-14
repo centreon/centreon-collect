@@ -27,6 +27,11 @@ if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
 fi
 
 echo "###########################  start sshd ###########################"
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+  ssh-keygen -q -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
+  ssh-keygen -q -t dsa -N '' -f /etc/ssh/ssh_host_dsa_key
+fi
+
 /usr/sbin/sshd -D  &
 
 if [ $database_type == 'mysql' ]; then

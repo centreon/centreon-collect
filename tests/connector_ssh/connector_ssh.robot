@@ -226,6 +226,7 @@ Ctn Prepare ssh
     Remove File    ~/.ssh/id_rsa.pub
     Run    echo testconnssh:passwd | chpasswd
     Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~testconnssh/.ssh/id_rsa"
+    Run    su testconnssh -c "cp ~testconnssh/.ssh/id_rsa.pub ~testconnssh/.ssh/authorized_keys"
     Run    ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
     Ctn Clean Before Suite
 
