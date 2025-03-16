@@ -17,15 +17,16 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
-#include <absl/synchronization/mutex.h>
+#include <absl/strings/match.h>
 #include <absl/time/time.h>
-#include <fmt/format.h>
+#include <filesystem>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common.pb.h"
-#include "common/log_v2/log_v2.hh"
+#include "common/engine_conf/parser.hh"
+#include "common/engine_conf/state_helper.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -56,6 +57,18 @@ state::state(common::PeerType peer_type,
       _bbdo_version{2u, 0u, 0u},
       _modules{logger},
       _center{std::make_shared<com::centreon::broker::stats::center>()} {}
+
+/**
+ * @brief Destructor of the state class.
+ */
+state::~state() noexcept {
+  if (_watch_engine_conf_timer) {
+    boost::system::error_code ec;
+    _watch_engine_conf_timer->cancel(ec);
+    if (ec)
+      _logger->error("Cannot cancel watch engine conf timer: {}", ec.message());
+  }
+}
 
 /**
  *  Apply a configuration state.
@@ -130,18 +143,18 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Engine configuration directory (for cbmod).
-//    if (!s.engine_config_dir().empty())
-//      set_engine_config_dir(s.engine_config_dir());
+    //    if (!s.engine_config_dir().empty())
+    //      set_engine_config_dir(s.engine_config_dir());
 
-//    // Configuration cache directory (for broker, from php).
-//    set_config_cache_dir(s.config_cache_dir());
-//
-//    // Pollers configuration directory (for Broker).
-//    // If not provided in the configuration, use a default directory.
-//    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
-//      set_pollers_config_dir(cache_dir / "pollers-configuration/");
-//    else
-//      set_pollers_config_dir(s.pollers_config_dir());
+    // Configuration cache directory (for broker, from php).
+    set_cache_config_dir(s.cache_config_dir());
+
+    // Pollers configuration directory (for Broker).
+    // If not provided in the configuration, use a default directory.
+    if (!s.cache_config_dir().empty() && _pollers_config_dir.empty())
+      set_pollers_config_dir(cache_dir / "pollers-configuration/");
+    else
+      set_pollers_config_dir(s.pollers_config_dir());
   }
 
   // Apply modules configuration.
@@ -300,6 +313,13 @@ void state::add_peer(uint64_t poller_id,
   _connected_peers[{poller_id, poller_name, broker_name}] =
       peer{poller_id, poller_name,          broker_name, time(nullptr),
            peer_type, extended_negotiation, true,        false};
+  if (extended_negotiation && _peer_type == common::BROKER) {
+    if (!_watch_engine_conf_timer) {
+      _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
+          com::centreon::common::pool::instance().io_context());
+      _start_watch_engine_conf_timer();
+    }
+  }
 }
 
 /**
@@ -356,16 +376,16 @@ std::vector<state::peer> state::connected_peers() const {
  *
  * @return The Engine configuration directory.
  */
-//const std::filesystem::path& state::engine_config_dir() const noexcept {
-//  return _engine_config_dir;
-//}
+// const std::filesystem::path& state::engine_config_dir() const noexcept {
+//   return _engine_config_dir;
+// }
 //
 ///**
 // * @brief Set the Engine configuration directory.
 // *
 // * @param engine_conf_dir The Engine configuration directory.
 // */
-//void state::set_engine_config_dir(const std::filesystem::path& dir) {
+// void state::set_engine_config_dir(const std::filesystem::path& dir) {
 //  _engine_config_dir = dir;
 //}
 
@@ -387,6 +407,15 @@ const std::filesystem::path& state::cache_config_dir() const noexcept {
 void state::set_cache_config_dir(
     const std::filesystem::path& cache_config_dir) {
   _cache_config_dir = cache_config_dir;
+  if (!_cache_config_dir.empty()) {
+    _logger->info("Watching for changes in '{}'", _cache_config_dir.string());
+    _cache_config_dir_watcher = std::make_unique<file::directory_watcher>(
+        _cache_config_dir, IN_CREATE | IN_MODIFY, true);
+  } else if (_cache_config_dir_watcher) {
+    _logger->info("Stop watching for changes in '{}'",
+                  _cache_config_dir.string());
+    _cache_config_dir_watcher.reset();
+  }
 }
 
 /**
@@ -546,7 +575,7 @@ std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
  * @param proto_conf
  */
 void state::set_proto_conf(const std::filesystem::path& proto_conf) {
-	_proto_conf = proto_conf;
+  _proto_conf = proto_conf;
 }
 
 /**
@@ -555,5 +584,98 @@ void state::set_proto_conf(const std::filesystem::path& proto_conf) {
  * @return The path to the Engine protobuf configuration directory.
  */
 const std::filesystem::path& state::proto_conf() const {
-	return _proto_conf;
+  return _proto_conf;
+}
+
+/**
+ * @brief Check if some new engine configurations are available.
+ *
+ * @return A vector of poller IDs concerned by some new configuration or an
+ * empty vector.
+ */
+std::vector<uint32_t> state::_watch_engine_conf() {
+  std::vector<uint32_t> retval;
+  if (_cache_config_dir_watcher) {
+    auto it = _cache_config_dir_watcher->watch();
+    for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
+      auto [event, name] = *it;
+      std::string_view event_str;
+      if (event & IN_CREATE)
+        event_str = "IN_CREATE";
+      else if (event & IN_MODIFY)
+        event_str = "IN_MODIFY";
+      else
+        event_str = "UNKNOWN";
+      _logger->debug("Change in '{}' detected: event '{}'", name, event_str);
+      if (((event & IN_CREATE) || (event & IN_MODIFY)) &&
+          absl::EndsWith(name, ".lck")) {
+        std::string_view prefix(name.data(), name.size() - 4);
+        uint32_t poller_id;
+        if (absl::SimpleAtoi(prefix, &poller_id)) {
+          _logger->info(
+              "New Engine configuration available, change in '{}' detected "
+              "for poller id '{}'",
+              name, poller_id);
+          retval.push_back(poller_id);
+        } else
+          _logger->warn("Change in '{}' detected but poller id not found",
+                        _cache_config_dir.string());
+      }
+    }
+  }
+  return retval;
+}
+
+void state::_start_watch_engine_conf_timer() {
+  _watch_engine_conf_timer->expires_from_now(std::chrono::seconds(5));
+  _watch_engine_conf_timer->async_wait(
+      [this](const boost::system::error_code& ec) {
+        if (!ec) {
+          _check_last_engine_conf();
+          _start_watch_engine_conf_timer();
+        }
+      });
+}
+
+void state::_check_last_engine_conf() {
+  _logger->debug("Checking if there is a new engine configuration");
+  auto pollers_vec = config::applier::state::instance()._watch_engine_conf();
+  for (uint32_t poller_id : pollers_vec) {
+    engine::configuration::State state;
+    engine::configuration::state_helper state_hlp(&state);
+    engine::configuration::error_cnt err;
+    engine::configuration::parser p;
+    std::filesystem::path centengine_test =
+        config::applier::state::instance().cache_config_dir() /
+        fmt::to_string(poller_id) / "centengine.test";
+    std::filesystem::path centengine_cfg =
+        config::applier::state::instance().cache_config_dir() /
+        fmt::to_string(poller_id) / "centengine.cfg";
+    std::error_code ec;
+    engine::configuration::parser::build_test_file(centengine_test,
+                                                   centengine_cfg, ec);
+    if (!ec) {
+      try {
+        p.parse(centengine_test, &state, err);
+        state_hlp.expand(err);
+        std::filesystem::path last_prot_conf =
+            config::applier::state::instance().pollers_config_dir() /
+            fmt::format("{}.prot", poller_id);
+        std::ofstream f(last_prot_conf);
+        if (f) {
+          state.SerializeToOstream(&f);
+          f.close();
+        } else {
+          _logger->error(
+              "Cannot write the new Engine protobuf configuration '{}': {}",
+              last_prot_conf.string(), ec.message());
+        }
+      } catch (const std::exception& e) {
+        _logger->error("error while parsing poller {} Engine configuration: {}",
+                       poller_id, e.what());
+      }
+    } else
+      _logger->error("Cannot create Engine configuration test file '{}': {}",
+                     centengine_test.string(), ec.message());
+  }
 }

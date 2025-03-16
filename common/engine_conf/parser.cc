@@ -799,3 +799,38 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
     }
   }
 }
+
+/**
+ * @brief Adapt the Engine configuration given in centengine_cfg file to the
+ * directory containing it and write it in centengine_test. It is mandatory to
+ * parse it from this directory.
+ *
+ * @param centengine_test The test configuration file to build.
+ * @param centengine_cfg The configuration file to adapt.
+ * @param ec The error code if any.
+ */
+void parser::build_test_file(const std::filesystem::path& centengine_test,
+                             const std::filesystem::path& centengine_cfg,
+                             std::error_code& ec) {
+  std::string content;
+  try {
+    content = common::read_file_content(centengine_cfg);
+    auto directory = centengine_test.parent_path();
+    std::ofstream f(centengine_test);
+    auto tab{absl::StrSplit(content, '\n', absl::SkipEmpty())};
+    for (auto& line : tab) {
+      if (absl::StartsWith(line, "cfg_file=")) {
+        std::filesystem::path p(line.substr(8));
+        f << "cfg_file=" << (directory / p.filename()).string() << std::endl;
+      } else if (absl::StartsWith(line, "resource_file=")) {
+        std::filesystem::path p(line.substr(13));
+        f << "resource_file=" << (directory / p.filename()).string()
+          << std::endl;
+      } else {
+        f << line << std::endl;
+      }
+    }
+  } catch (std::exception& e) {
+    ec = std::make_error_code(std::errc::io_error);
+  }
+}

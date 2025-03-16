@@ -19,8 +19,10 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
+#include "boost/asio/steady_timer.hpp"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "com/centreon/broker/file/directory_watcher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
 
@@ -65,10 +67,11 @@ class state {
   std::string _broker_name;
   size_t _pool_size;
   std::filesystem::path _proto_conf;
+  std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
 
   /* In a cbmod configuration, this string contains the directory containing
    * the Engine configuration. */
-  //std::filesystem::path _engine_config_dir;
+  // std::filesystem::path _engine_config_dir;
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -80,6 +83,8 @@ class state {
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _cache_config_dir;
+  /* This object is used to watch the _cache_config_dir. */
+  std::unique_ptr<file::directory_watcher> _cache_config_dir_watcher;
 
   /* In a Broker configuration, this object contains the pollers configurations
    * known by the Broker. These directories are copies from the
@@ -100,7 +105,10 @@ class state {
 
   state(common::PeerType peer_type,
         const std::shared_ptr<spdlog::logger>& logger);
-  ~state() noexcept = default;
+  ~state() noexcept;
+  std::vector<uint32_t> _watch_engine_conf();
+  void _start_watch_engine_conf_timer();
+  void _check_last_engine_conf();
 
  public:
   static state& instance();
@@ -118,8 +126,8 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
-  //const std::filesystem::path& engine_config_dir() const noexcept;
-  //void set_engine_config_dir(const std::filesystem::path& dir);
+  // const std::filesystem::path& engine_config_dir() const noexcept;
+  // void set_engine_config_dir(const std::filesystem::path& dir);
   const std::filesystem::path& cache_config_dir() const noexcept;
   void set_cache_config_dir(const std::filesystem::path& engine_conf_dir);
   const std::filesystem::path& pollers_config_dir() const noexcept;
