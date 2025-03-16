@@ -314,6 +314,7 @@ target_link_libraries(pb_broker_lib
   PRIVATE
   pb_common_lib
   process_stat
+  engine_conf
 )
 
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
