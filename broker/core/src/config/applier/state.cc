@@ -23,6 +23,7 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/parser.hh"
@@ -640,10 +641,21 @@ void state::_start_watch_engine_conf_timer() {
 void state::_check_last_engine_conf() {
   _logger->debug("Checking if there is a new engine configuration");
   auto pollers_vec = config::applier::state::instance()._watch_engine_conf();
+  std::error_code ec;
   for (uint32_t poller_id : pollers_vec) {
     engine::configuration::State state;
     engine::configuration::state_helper state_hlp(&state);
     engine::configuration::error_cnt err;
+    std::string version = common::hash_directory(
+        config::applier::state::instance().cache_config_dir() /
+            fmt::to_string(poller_id),
+        ec);
+    if (ec) {
+      _logger->error(
+          "Cannot compute the Engine configuration version for poller '{}': {}",
+          poller_id, ec.message());
+      continue;
+    }
     engine::configuration::parser p;
     std::filesystem::path centengine_test =
         config::applier::state::instance().cache_config_dir() /
@@ -651,12 +663,12 @@ void state::_check_last_engine_conf() {
     std::filesystem::path centengine_cfg =
         config::applier::state::instance().cache_config_dir() /
         fmt::to_string(poller_id) / "centengine.cfg";
-    std::error_code ec;
     engine::configuration::parser::build_test_file(centengine_test,
                                                    centengine_cfg, ec);
     if (!ec) {
       try {
         p.parse(centengine_test, &state, err);
+        state.set_config_version(version);
         state_hlp.expand(err);
         std::filesystem::path last_prot_conf =
             config::applier::state::instance().pollers_config_dir() /

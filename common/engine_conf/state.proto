@@ -204,7 +204,7 @@ message State {
   repeated Tag tags = 142;
   map<string, string> user = 143;
   uint32 max_file_descriptors = 144;
-  string config_version = 145;   // Will be used very soon.
+  string config_version = 145;
   string broker_module_cfg_file = 146;
 }
 
