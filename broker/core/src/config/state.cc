@@ -67,9 +67,9 @@ state::state(const state& other)
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
-      _log_conf(other._log_conf),
       _cache_config_dir(other._cache_config_dir),
-      _pollers_config_dir(other._pollers_config_dir) {}
+      _pollers_config_dir(other._pollers_config_dir),
+      _log_conf(other._log_conf) {}
 
 /**
  *  Assignment operator.

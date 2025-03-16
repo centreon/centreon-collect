@@ -20,7 +20,6 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
-
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -31,7 +30,6 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/file.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -999,9 +997,9 @@ std::list<std::string> stream::get_running_config() {
 }
 
 /**
- * @brief Handle a BBDO event. Events of category io::bbdo are the guardians of
- * BBDO messages. These messages are used by the protocol itself and are always
- * prioritized.
+ * @brief Handle a BBDO event. Events of category io::bbdo are the guardians
+ * of BBDO messages. These messages are used by the protocol itself and are
+ * always prioritized.
  *
  * @param d The event to handle.
  */
@@ -1131,9 +1129,9 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
 
 /**
  * @brief Wait for a BBDO event (category io::bbdo) of a specific type. While
- * received events are of category io::bbdo, they are handled as usual, and when
- * the expected event is received, it is returned. The expected event is not
- * handled.
+ * received events are of category io::bbdo, they are handled as usual, and
+ * when the expected event is received, it is returned. The expected event is
+ * not handled.
  *
  * @param expected_type The expected type of the event.
  * @param d The event that was received with the expected type.
@@ -1212,6 +1210,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     _last_sent_ack = now;
     send_event_acknowledgement();
   }
+
   return !timed_out;
 }
 

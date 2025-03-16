@@ -50,6 +50,7 @@ state::stats state::_stats_conf;
 state::state(common::PeerType peer_type,
              const std::shared_ptr<spdlog::logger>& logger)
     : _peer_type{peer_type},
+      _logger{logger},
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
@@ -287,12 +288,11 @@ void state::add_peer(uint64_t poller_id,
                      bool extended_negotiation) {
   assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
-  auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
-    logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
+    _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
   } else {
-    logger->warn(
+    _logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it.",
         broker_name, poller_id);
     _connected_peers.erase(found);
@@ -312,14 +312,13 @@ void state::remove_peer(uint64_t poller_id,
                         const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
-  auto logger = log_v2::instance().get(log_v2::CORE);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
-    logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
-                 poller_name, broker_name, poller_id);
+    _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
+                  poller_name, broker_name, poller_id);
     _connected_peers.erase(found);
   } else {
-    logger->warn(
+    _logger->warn(
         "Peer poller: '{}' - broker: '{}' with id {} and type '{}' not found "
         "in connected peers",
         poller_name, broker_name, poller_id);
@@ -438,8 +437,7 @@ void state::set_broker_needs_update(uint64_t poller_id,
     found->second.needs_update = need_update;
     found->second.ready = true;
   } else {
-    auto logger = log_v2::instance().get(log_v2::CORE);
-    logger->warn(
+    _logger->warn(
         "Poller '{}' with id {} and type '{}' not found in connected peers",
         broker_name, poller_id,
         common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
