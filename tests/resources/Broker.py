@@ -2806,6 +2806,7 @@ def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
         timeout: A timeout in seconds, 30s by default.
     """
     limit = time.time() + timeout
+    res = ""
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")
         time.sleep(1)
