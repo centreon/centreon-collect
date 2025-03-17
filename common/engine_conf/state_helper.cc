@@ -30,6 +30,7 @@
 #include "common/engine_conf/servicedependency_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/engine_conf/servicegroup_helper.hh"
+#include "common/engine_conf/severity_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
@@ -606,5 +607,13 @@ void state_helper::_expand_cv(configuration::State& s) {
         cv.set_is_sent(true);
     }
   }
+}
+
+void state_helper::diff(const State& old_state,
+                        const State& new_state,
+                        const std::shared_ptr<spdlog::logger>& logger,
+                        DiffState* result) {
+  severity_helper::diff(old_state.severities(), new_state.severities(), logger,
+                        result->mutable_severities());
 }
 }  // namespace com::centreon::engine::configuration
