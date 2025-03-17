@@ -311,7 +311,7 @@ void checker::run_sync(host* hst,
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, hst, checkable::check_active,
-                    nullptr, nullptr);
+                    nullptr);
 
   // Execute command synchronously.
   host::host_state host_result(_execute_sync(hst));
@@ -331,8 +331,7 @@ void checker::run_sync(host* hst,
 
   // Send event broker.
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
-                    nullptr,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
+                    nullptr);
 }
 
 /**************************************
@@ -463,7 +462,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval start_time{0, 0};
   timeval end_time{0, 0};
   int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
-                            checkable::check_active, nullptr, nullptr));
+                            checkable::check_active, nullptr));
 
   // Host sync check was cancelled or overriden by NEB module.
   if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
@@ -489,8 +488,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
-                    processed_cmd.c_str(),
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
+                    processed_cmd.c_str());
 
   // Debug messages.
   engine_logger(dbg_commands, more)
@@ -513,17 +511,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval start_cmd;
   timeval end_cmd{0, 0};
   gettimeofday(&start_cmd, nullptr);
-#ifdef LEGACY_CONF
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_cmd, end_cmd, 0,
-                        config->host_check_timeout(), false, 0,
-                        tmp_processed_cmd, nullptr, nullptr);
-#else
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_cmd, end_cmd, 0,
-                        pb_config.host_check_timeout(), false, 0,
-                        tmp_processed_cmd, nullptr, nullptr);
-#endif
 
   commands::result res;
 
@@ -551,11 +538,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   } else {
     // Run command.
     try {
-#ifdef LEGACY_CONF
-      cmd->run(processed_cmd, *macros, config->host_check_timeout(), res);
-#else
       cmd->run(processed_cmd, *macros, pb_config.host_check_timeout(), res);
-#endif
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");
 
@@ -580,29 +563,12 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   memset(&end_cmd, 0, sizeof(end_time));
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
-#ifdef LEGACY_CONF
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_cmd, end_cmd, execution_time,
-                        config->host_check_timeout(),
-                        res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, res.output.c_str(), nullptr);
-#else
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_cmd, end_cmd, execution_time,
-                        pb_config.host_check_timeout(),
-                        res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, res.output.c_str(), nullptr);
-#endif
 
   // Cleanup.
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
-#ifdef LEGACY_CONF
-  uint32_t host_check_timeout = config->host_check_timeout();
-#else
   uint32_t host_check_timeout = pb_config.host_check_timeout();
-#endif
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              host_check_timeout);
@@ -661,8 +627,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Send broker event.
   broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
-                    tmp_processed_cmd,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
+                    tmp_processed_cmd);
 
   // Termination.
   engine_logger(dbg_checks, basic)

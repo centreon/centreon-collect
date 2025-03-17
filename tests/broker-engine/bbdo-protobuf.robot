@@ -18,8 +18,8 @@ BEPBBEE1
     Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.0
-    Ctn Broker Config Log    module0    bbdo    debug
-    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    trace
+    Ctn Broker Config Log    central    bbdo    trace
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
@@ -224,12 +224,17 @@ BEPBINST_CONF
     [Tags]    broker    engine    protobuf    bbdo    MON-38007
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    ${1}
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    module0    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    bbdo    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start Broker    True
+    Ctn Start Broker
     Ctn Start Engine
 
     ${content}    Create List    muxer centreon-broker-master-rrd event of type 10036 pushed
@@ -237,13 +242,13 @@ BEPBINST_CONF
     Should Be True    ${result}    log about pb_instance_configuration not found
 
     Sleep    2
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    log about pb_instance_configuration not found
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 GRPC_CLOUD_FAILURE
     [Documentation]    simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok

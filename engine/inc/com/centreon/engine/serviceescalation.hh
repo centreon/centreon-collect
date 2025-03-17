@@ -35,11 +35,7 @@ typedef std::unordered_multimap<
 namespace com::centreon::engine {
 
 namespace configuration {
-#ifdef LEGACY_CONF
-class serviceescalation;
-#else
 class Serviceescalation;
-#endif
 }
 
 class serviceescalation : public escalation {
@@ -57,11 +53,7 @@ class serviceescalation : public escalation {
   std::string const& get_description() const;
   bool is_viable(int state, uint32_t notification_number) const override;
   void resolve(uint32_t& w, uint32_t& e) override;
-#ifdef LEGACY_CONF
-  bool matches(const configuration::serviceescalation& obj) const;
-#else
   bool matches(const configuration::Serviceescalation& obj) const;
-#endif
 
   static serviceescalation_mmap serviceescalations;
 

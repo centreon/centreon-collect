@@ -75,10 +75,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
-            engine_conf
             ctncrypto
             centreon_http
             centreon_process
+	    engine_conf
             -L${Boost_LIBRARY_DIR_RELEASE}
             boost_program_options
             re2::re2

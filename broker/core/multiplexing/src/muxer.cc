@@ -16,12 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/multiplexing/muxer.hh"
 #include <absl/time/time.h>
 
 #include <cassert>
 
-#include "com/centreon/broker/bbdo/internal.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -88,7 +87,7 @@ muxer::muxer(std::string name,
       _write_filters_str{misc::dump_filters(w_filter)},
       _persistent(persistent),
       _events_size{0u},
-      _center{stats::center::instance_ptr()},
+      _center{config::applier::state::instance().center()},
       _last_stats{std::time(nullptr)},
       _logger{log_v2::instance().get(log_v2::CORE)} {
   absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);

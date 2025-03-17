@@ -27,6 +27,7 @@ apt-get -y install \
     rrdcached \
     rrdtool \
     strace \
+    tcpdump \
     sudo \
     zstd
 

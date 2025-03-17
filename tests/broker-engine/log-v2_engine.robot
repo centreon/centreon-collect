@@ -17,6 +17,8 @@ LOGV2EB1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Clear Db    logs
+
     Ctn Broker Config Flush Log    module0    0
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -243,6 +245,7 @@ LOGV2EB2
 LOGV2EBU2
     [Documentation]    Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
     [Tags]    broker    engine    log-v2    sinkbroker    unified_sql    bbdo3
+    Ctn Clear Logs
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central

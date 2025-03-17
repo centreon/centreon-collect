@@ -21,9 +21,7 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/hostdependency_helper.hh"
-#endif
 
 namespace com::centreon::engine {
 
@@ -34,32 +32,17 @@ class state;
 
 namespace applier {
 class hostdependency {
-#ifdef LEGACY_CONF
-  void _expand_hosts(std::set<std::string> const& hosts,
-                     std::set<std::string> const& hostgroups,
-                     configuration::state& s,
-                     std::set<std::string>& expanded);
-#endif
-
  public:
   hostdependency() = default;
   hostdependency(const hostdependency&) = delete;
   ~hostdependency() noexcept = default;
   hostdependency& operator=(const hostdependency&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(configuration::hostdependency const& obj);
-  void modify_object(configuration::hostdependency const& obj);
-  void remove_object(configuration::hostdependency const& obj);
-  void expand_objects(configuration::state& s);
-  void resolve_object(configuration::hostdependency const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Hostdependency& obj);
   void modify_object(configuration::Hostdependency* to_modify,
                      const configuration::Hostdependency& new_obj);
   void remove_object(ssize_t idx);
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Hostdependency& obj, error_cnt& err);
-#endif
 };
 }  // namespace applier
 }  // namespace configuration
