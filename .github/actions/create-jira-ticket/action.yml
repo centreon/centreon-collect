@@ -96,7 +96,7 @@ runs:
           current_sprint=$(curl --request GET \
             --url ${{ inputs.jira_base_url }}/rest/agile/1.0/board/$ticket_board_id/sprint?state=active \
             --user "${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}" \
-            --header "Accept: application/json" | jq .values[0].name)
+            --header "Accept: application/json" | jq .values[0].id)
         else
           current_sprint="null"
         fi
