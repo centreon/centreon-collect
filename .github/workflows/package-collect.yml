@@ -126,7 +126,7 @@ jobs:
           fi
 
           cd selinux
-          for MODULE in ${MODULES[@]}; do
+          for MODULE in "${MODULES[@]}"; do
             cd $MODULE
             sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
