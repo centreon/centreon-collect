@@ -273,9 +273,9 @@ runs:
         )
 
         if [[ ${{ steps.get_context.outputs.current_sprint }} != "null" ]]; then
-          DATA=$(echo "$DATA" | jq '.fields.sprint = ${{ steps.get_context.outputs.current_sprint }}')
+          DATA=$(echo "$DATA" | jq '.fields.customfield_10007 = ${{ steps.get_context.outputs.current_sprint }}')
         fi
-        echo "[DEBUG] $DATA"
+        echo "[DEBUG] - DATA: $DATA"
 
         response=$(curl \
           --request POST \
