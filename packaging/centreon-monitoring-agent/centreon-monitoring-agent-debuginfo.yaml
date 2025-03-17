@@ -26,7 +26,7 @@ overrides:
       - centreon-monitoring-agent = ${CMA_VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-monitoring-agent (= $CMA_VERSION}-${RELEASE}${DIST})
+      - centreon-monitoring-agent (= ${CMA_VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-monitoring-agent-dbgsym
     replaces:
