@@ -109,7 +109,7 @@ sub init_server_keys {
         );
         return if ($code == 0);
         $self->{logger}->writeLogInfo("[core] Private key file '$self->{config}->{configuration}->{gorgone}->{gorgonecore}->{privkey}' written");
-        
+
         $code = gorgone::standard::misc::write_file(
             logger => $self->{logger},
             filename => $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{pubkey},
@@ -175,7 +175,8 @@ sub init {
     );
 
     $self->init_server_keys();
-
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} = 150_000
+        if (!defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) || $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} !~ /\d+/);
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =~ /^(0|1)$/ ? $1 : 1;
 
@@ -230,7 +231,7 @@ sub init {
         };
     }
 
-    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{timeout} = 
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{timeout} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{timeout}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{timeout} =~ /(\d+)/ ? $1 : 50;
 
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_cipher} = 'AES'
@@ -278,7 +279,7 @@ sub init {
         $self->{hostname} = $sysname;
     }
 
-    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} = 
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} =
         (defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} ne '') ? $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} : 'proxy';
     $self->{id} = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{id};
 
@@ -380,7 +381,7 @@ sub handle_CHLD {
         $self->{logger}->writeLogDebug("[core] Received SIGCLD signal (pid: $child_pid)");
         $self->{return_child}->{$child_pid} = time();
     }
-    
+
     $SIG{CHLD} = \&class_handle_CHLD;
 }
 
@@ -425,7 +426,7 @@ sub load_module {
         $self->{logger}->writeLogError("[core] Package '$options{config_module}->{package}' already loaded");
         return 0;
     }
-    
+
     return 0 if (!defined($options{config_module}->{enable}) || $options{config_module}->{enable} eq 'false');
     $self->{logger}->writeLogInfo("[core] Module '" . $options{config_module}->{name} . "' is loading");
 
@@ -491,7 +492,7 @@ sub load_modules {
     $self->load_module(config_module => { name => 'dbcleaner', package => 'gorgone::modules::core::dbcleaner::hooks', enable => 'true' });
 
     # Load internal functions
-    foreach my $method_name (('addlistener', 'putlog', 'getlog', 'kill', 'ping', 
+    foreach my $method_name (('addlistener', 'putlog', 'getlog', 'kill', 'ping',
         'getthumbprint', 'constatus', 'setcoreid', 'synclogs', 'loadmodule', 'unloadmodule', 'information', 'setmodulekey')) {
         unless ($self->{internal_register}->{$method_name} = gorgone::standard::library->can($method_name)) {
             $self->{logger}->writeLogError("[core] No function '$method_name'");
@@ -654,7 +655,7 @@ sub message_run {
         $token = gorgone::standard::library::generate_token();
     }
 
-    if ($action !~ /^(?:ADDLISTENER|PUTLOG|GETLOG|KILL|PING|CONSTATUS|SETCOREID|SETMODULEKEY|SYNCLOGS|LOADMODULE|UNLOADMODULE|INFORMATION|GETTHUMBPRINT|BCAST.*)$/ && 
+    if ($action !~ /^(?:ADDLISTENER|PUTLOG|GETLOG|KILL|PING|CONSTATUS|SETCOREID|SETMODULEKEY|SYNCLOGS|LOADMODULE|UNLOADMODULE|INFORMATION|GETTHUMBPRINT|BCAST.*)$/ &&
         !defined($target) && !defined($self->{modules_events}->{$action})) {
         gorgone::standard::library::add_history({
             dbh => $self->{db_gorgone},
@@ -684,7 +685,7 @@ sub message_run {
 
     # Check Routing
     if (defined($target)) {
-        if (!defined($self->{modules_id}->{ $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} }) || 
+        if (!defined($self->{modules_id}->{ $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} }) ||
             !defined($self->{modules_register}->{ $self->{modules_id}->{ $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} } })) {
             gorgone::standard::library::add_history({
                 dbh => $self->{db_gorgone},
@@ -703,7 +704,7 @@ sub message_run {
         $self->{modules_register}->{ $self->{modules_id}->{ $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{proxy_name} } }->{routing}->(
             gorgone => $self,
             dbh => $self->{db_gorgone},
-            logger => $self->{logger}, 
+            logger => $self->{logger},
             action => $action,
             token => $token,
             target => $target,
@@ -779,17 +780,61 @@ sub router_internal_event {
                 router_type => 'internal'
             }
         );
+        # we don't want to fragment the response if the max size is configured to 0 (which would mean unlimited size)
+        # so we don't use defined() here.
+        if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) {
+            if (defined($response)
+                and defined($response->{action})
+                and $response->{action} eq "getlog"
+                and defined($response->{result})
+                and ref($response->{result}) eq "ARRAY") {
 
-        $self->send_internal_response(
-            identity      => $identity,
-            response_type => $response_type,
-            data          => $response,
-            code          => $code,
-            token         => $token
-        );
+                my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};
+                my $to_send      = { action => "getlog", id => $response->{id}, result => [] };
+                my $size         = 0;
+                for my $log (@{$response->{result}}) {
+                    if ($size > $max_msg_size) {
+                        $self->send_internal_response(
+                            identity      => $identity,
+                            response_type => $response_type,
+                            data          => $log,
+                            code          => $code,
+                            token         => $token
+                        );
+                        $size              = 0;
+                        $to_send->{result} = [];
+                    }
+
+                    if (length($log->{data}) > $max_msg_size) {
+                        $self->{logger}->writeLogError('[core] cannot send log message created at ' .
+                                                       $log->ctime . ', too big : ' . length($log
+                            ->{data})                  . ' > ' . $max_msg_size);
+                        next;
+                    }
+                    push(@{$to_send->{result}}, $log->{data});
+                    $size += length($log->{data});
+                }
+                if (scalar(@{$to_send->{result}}) > 0) {
+                    $self->send_internal_response(
+                        identity      => $identity,
+                        response_type => $response_type,
+                        data          => $to_send,
+                        code          => $code,
+                        token         => $token
+                    );
+                }
+            }
+        } else {
+            $self->send_internal_response(
+                identity      => $identity,
+                response_type => $response_type,
+                data          => $response,
+                code          => $code,
+                token         => $token
+            );
+        }
     }
 }
-
 sub is_handshake_done {
     my ($self, %options) = @_;
 
