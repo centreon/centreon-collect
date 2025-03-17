@@ -19,12 +19,14 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
-#include "boost/asio/steady_timer.hpp"
+#include <absl/container/btree_map.h>
+#include <boost/asio/steady_timer.hpp>
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/file/directory_watcher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
+#include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::broker::config::applier {
 /**
@@ -51,9 +53,9 @@ class state {
     bool extended_negotiation;
     /* Does this peer need an update concerning the engine configuration? */
     bool needs_update;
-    /* Is this peer ready to receive data? That's to say negociation and engine
-     * configuration exchanged. */
-    bool ready = false;
+    /* The current Engine configuration known by this poller. Only available
+     * for an Engine peer. */
+    std::string engine_conf;
   };
 
  private:
@@ -99,7 +101,7 @@ class state {
   static stats _stats_conf;
 
   /* This map is indexed by the tuple {poller_id, poller_name, broker_name}. */
-  absl::flat_hash_map<std::tuple<uint64_t, std::string, std::string>, peer>
+  absl::btree_map<std::tuple<uint64_t, std::string, std::string>, peer>
       _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
   mutable absl::Mutex _connected_peers_m;
 
@@ -109,6 +111,10 @@ class state {
   std::vector<uint32_t> _watch_engine_conf();
   void _start_watch_engine_conf_timer();
   void _check_last_engine_conf();
+  void _prepare_diff_for_poller(
+      uint64_t poller_id,
+      std::unique_ptr<engine::configuration::State>&& state)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
  public:
   static state& instance();
@@ -137,7 +143,8 @@ class state {
                 const std::string& poller_name,
                 const std::string& broker_name,
                 common::PeerType peer_type,
-                bool extended_negotiation)
+                bool extended_negotiation,
+                const std::string& engine_conf)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void remove_peer(uint64_t poller_id,
                    const std::string& poller_name,
@@ -157,7 +164,6 @@ class state {
                                common::PeerType peer_type,
                                bool need_update)
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void set_peers_ready() ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool broker_needs_update(uint64_t poller_id,
                            const std::string& poller_name,
                            const std::string& broker_name) const;

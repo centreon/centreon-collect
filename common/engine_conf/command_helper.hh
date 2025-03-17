@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_COMMAND
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
