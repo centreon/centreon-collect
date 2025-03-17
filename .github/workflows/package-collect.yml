@@ -89,7 +89,7 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma  != true && 'OFF' || 'ON' }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
@@ -252,7 +252,7 @@ jobs:
       - name: Packages
         uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
+          nfpm_file_pattern: ${{ inputs.only_robot_cma && 'packaging/centreon-monitoring-agent/*.yaml' || 'packaging/centreon-collect/*.yaml' }}
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
