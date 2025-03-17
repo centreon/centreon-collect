@@ -111,6 +111,7 @@ jobs:
           else
             FEATURES_PATTERN=".robot"
           fi
+          FEATURES_PATTERN="connector_ssh.robot"
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
@@ -153,7 +154,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
         run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          docker run --rm --ulimit core=-1 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
             --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
             --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \

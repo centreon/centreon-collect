@@ -27,11 +27,6 @@ if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
 fi
 
 echo "###########################  start sshd ###########################"
-if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
-  ssh-keygen -q -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
-  ssh-keygen -q -t dsa -N '' -f /etc/ssh/ssh_host_dsa_key
-fi
-
 /usr/sbin/sshd -D  &
 
 if [ $database_type == 'mysql' ]; then
@@ -63,7 +58,7 @@ fi
 
 ulimit -c unlimited
 ulimit -S -n 524288
-echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+#echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD

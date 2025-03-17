@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2014 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2014 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/connector/ssh/policy.hh"
 
@@ -93,10 +93,11 @@ void policy::on_execute(
     const time_point& timeout,
     const com::centreon::connector::orders::options::pointer& opt) {
   log::core()->info(
-      "got request to execute check {0} on session {1}@{2} (timeout {3}, "
+      "got request to execute check {0} on session {1}@{2} (key_file: \"{5}\" "
+      "timeout {3}, "
       "first command \"{4}\")",
       cmd_id, opt->get_user(), opt->get_host(), opt->get_timeout(),
-      opt->get_commands().front());
+      opt->get_commands().front(), opt->get_identity_file());
 
   // Credentials.
   sessions::credentials creds;
