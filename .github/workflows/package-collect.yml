@@ -246,30 +246,45 @@ jobs:
         shell: bash
 
       - if: ${{ inputs.build_debug_packages == false }}
-        run: rm -f packaging/centreon-collect/*debuginfo*.yaml
+        run: rm -f packaging/centreon-{collect,monitoring-agent}/*debuginfo*.yaml
         shell: bash
+
+      - name: Package centreon-monitoring-agent
+        if: ${{ inputs.only_robot_cma }}
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "packaging/centreon-monitoring-agent/*.yaml"
+          distrib: ${{ inputs.distrib }}
+          package_extension: ${{ inputs.package_extension }}
+          major_version: ${{ inputs.cma_major_version }}
+          minor_version: ${{ inputs.cma_minor_version }}
+          release: ${{ inputs.release }}
+          arch: ${{ inputs.arch }}
+          commit_hash: ${{ inputs.commit_hash }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-monitoring-agent-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
+          stability: ${{ inputs.stability }}
 
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
-          # rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
-          cp packaging/centreon-collect/centreon-{engine,broker-core,broker-cbd,broker-cbmod,broker}.yaml packaging/centreon-monitoring-agent/
+          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite.,broker-influxdb.,broker-victoria-metrics.,engine-bench.,broker*debuginfo,clib-debuginfo,engine*debuginfo}*
         shell: bash
 
-      - name: Packages
+      - name: Package centreon-collect
         uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: ${{ inputs.only_robot_cma && 'packaging/centreon-monitoring-agent/*.yaml' || 'packaging/centreon-collect/*.yaml' }}
+          nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
-          cma_major_version: ${{ inputs.cma_major_version }}
-          cma_minor_version: ${{ inputs.cma_minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension}}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
