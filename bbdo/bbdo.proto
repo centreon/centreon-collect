@@ -40,6 +40,8 @@ message Welcome {
   string broker_name = 5;
   com.centreon.common.PeerType peer_type = 6;
   bool extended_negotiation = 7;
+  /* Engine configuration version sent by Engine so Broker is aware of it. */
+  string engine_conf = 8;
 }
 
 /* io::bbdo, bbdo::de_pb_ack, 50 */

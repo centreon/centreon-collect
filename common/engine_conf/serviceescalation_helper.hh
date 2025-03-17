@@ -21,7 +21,6 @@
 #define CCE_CONFIGURATION_SERVICEESCALATION
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 

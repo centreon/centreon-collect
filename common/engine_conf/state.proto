@@ -40,8 +40,8 @@ message InterCheckDelay {
 
 message InterleaveFactor {
   enum IFType {
-  ilf_user = 0;   // user-specified interleave factor
-  ilf_smart = 1;  // smart interleave
+    ilf_user = 0;   // user-specified interleave factor
+    ilf_smart = 1;  // smart interleave
   }
   IFType type = 1;
   int32 user_value = 2;
@@ -224,39 +224,18 @@ message Value {
   }
 }
 
-message Key {
-  oneof key {
-    int32 i32 = 1;
-    string str = 2;
-  }
-}
-
-message Path {
-  repeated Key key = 1;
-}
-
-message PathWithValue {
-  Path path = 1;
-  Value val = 2;
-}
-
-message PathWithPair {
-  Path path = 1;
-  Value val1 = 2;
-  Value val2 = 3;
-}
-
 message DiffState {
-  repeated PathWithValue to_add = 1;
-  repeated Path to_remove = 2;
-  repeated PathWithValue to_modify = 3;
+  /* Modifications concerning severities */
+  DiffSeverity severities = 1;
+
+  /* If all the configuration has to be sent */
+  State state = 2;
 }
 
 message CustomVariable {
   string name = 1;
   string value = 2;
   bool is_sent = 3;
-  //  bool modified = 4;
 }
 
 enum HostStatus {
@@ -747,6 +726,15 @@ message Severity {
   uint32 level = 3;
   uint64 icon_id = 4;
   string severity_name = 5;
+}
+
+message DiffSeverity {
+  /* Added severities */
+  repeated Severity added = 1;
+  /* Removed severities given by they key in the old list. */
+  repeated KeyType removed = 2;
+  /* Modified severities */
+  repeated Severity modified = 3;
 }
 
 message Tag {
