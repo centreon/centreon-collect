@@ -16,12 +16,6 @@ inputs:
   minor_version:
     description: The minor version
     required: false
-  cma_major_version:
-    description: The major version of cma
-    required: false
-  cma_minor_version:
-    description: The minor version of cma
-    required: false
   release:
     description: The package release number
     required: false
@@ -69,7 +63,6 @@ runs:
       run: |
         export MAJOR_VERSION="${{ inputs.major_version }}"
         export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
-        export CMA_VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
