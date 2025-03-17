@@ -119,8 +119,14 @@ jobs:
       - name: Generate selinux binaries
         if: ${{ inputs.package_extension == 'rpm' }}
         run: |
+          if [[ "${{ inputs.only_robot_cma }}" == "true" ]]; then
+            MODULES=("centreon-monitoring-agent")
+          else
+            MODULES=("centreon-engine" "centreon-broker")
+          fi
+
           cd selinux
-          for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
+          for MODULE in ${MODULES[@]}; do
             cd $MODULE
             sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
@@ -192,7 +198,7 @@ jobs:
         shell: bash
 
       - name: Generate debug files
-        if: ${{ !inputs.only_robot_cma }}
+        if: ${{ ! inputs.only_robot_cma }}
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
