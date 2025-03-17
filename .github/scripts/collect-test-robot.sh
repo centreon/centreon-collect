@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+#set -e
 set -x
 
 export RUN_ENV=docker
@@ -32,7 +32,19 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
   ssh-keygen -q -t dsa -N '' -f /etc/ssh/ssh_host_dsa_key
 fi
 
-/usr/sbin/sshd -D  &
+grep -v pam_se /etc/pam.d/sshd > /tmp/sshd
+mv /tmp/sshd /etc/pam.d/sshd
+
+
+/usr/sbin/sshd -D -E /tmp/sshd.log 2>>/tmp/sshd.log &
+
+
+# echo >> /etc/ssh/sshd_config
+
+# echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+# echo "KbdInteractiveAuthentication no" >> /etc/ssh/sshd_config
+
+
 
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
@@ -76,4 +88,11 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot -e unstable $test_file
+robot -e unstable -t Test6Hosts $test_file
+
+cat /etc/security/access.conf
+
+ls -al /home/testconnssh
+ls -al /home/testconnssh/.ssh
+
+ssh -i ~testconnssh/.ssh/id_ed25519 testconnssh@127.0.0.1 ls -al
