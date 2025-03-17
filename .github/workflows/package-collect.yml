@@ -237,9 +237,10 @@ jobs:
     if: |
       inputs.is_nightly == 'true' && github.run_attempt == 1 &&
       (failure() || cancelled()) &&
-      startsWith(github.ref_name, 'dev')
+      startsWith(github.ref_name, 'dev') &&
+      github.repository == 'centreon/centreon-collect'
     steps:
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         uses: ./.github/actions/create-jira-ticket
         with:
           jira_base_url: ${{ secrets.JIRA_BASE_URL }}
@@ -247,3 +248,4 @@ jobs:
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'
+          ticket_squad: "DevSecOps"
