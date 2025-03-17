@@ -40,6 +40,10 @@ class state_helper : public message_helper {
                            const std::shared_ptr<spdlog::logger>& logger);
   bool set_global(const std::string_view& key, const std::string_view& value);
   void expand(configuration::error_cnt& err);
+  static void diff(const State& old_state,
+                   const State& new_state,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   com::centreon::engine::configuration::DiffState* result);
 };
 }  // namespace com::centreon::engine::configuration
 

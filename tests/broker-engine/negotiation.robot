@@ -139,9 +139,9 @@ BEDW
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    ${content}    Create List    Cannot create Engine configuration test file '${VarRoot}/lib/centreon/config/18/centengine.test'
+    ${content}    Create List    Cannot compute the Engine configuration version for poller '18': No such file or directory
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Broker raises an error since only the file 18.lck has been created without the corresponding directory
+    Should Be True    ${result}    Broker should raise an error since only the file 18.lck has been created without the corresponding directory
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -179,7 +179,7 @@ BEDWEN
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    ${content}    Create List    Cannot create Engine configuration test file '${VarRoot}/lib/centreon/config/18/centengine.test'
+    ${content}    Create List    Cannot compute the Engine configuration version for poller '18': No such file or directory
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker raises an error since only the file 18.lck has been created without the corresponding directory
     Ctn Stop Engine
@@ -200,6 +200,7 @@ BEDWENF
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -224,7 +225,7 @@ BEDWENF
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    timeout=30s
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
