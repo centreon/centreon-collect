@@ -80,7 +80,7 @@ add_dependencies(engine_conf target_state_proto)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(engine_conf PRIVATE
-                          ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
+                          precomp_inc/precomp.hh)
 set_target_properties(engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(
   engine_conf

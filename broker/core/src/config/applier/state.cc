@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/config/applier/state.hh"
 #include <absl/strings/match.h>
+#include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 #include <filesystem>
 
@@ -27,7 +28,7 @@
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -299,7 +300,8 @@ void state::add_peer(uint64_t poller_id,
                      const std::string& poller_name,
                      const std::string& broker_name,
                      common::PeerType peer_type,
-                     bool extended_negotiation) {
+                     bool extended_negotiation,
+                     const std::string& engine_conf) {
   assert(poller_id && !broker_name.empty());
   absl::MutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
@@ -313,7 +315,7 @@ void state::add_peer(uint64_t poller_id,
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
       peer{poller_id, poller_name,          broker_name, time(nullptr),
-           peer_type, extended_negotiation, true,        false};
+           peer_type, extended_negotiation, true,        engine_conf};
   if (extended_negotiation && _peer_type == common::BROKER) {
     if (!_watch_engine_conf_timer) {
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
@@ -448,43 +450,6 @@ com::centreon::common::PeerType state::peer_type() const {
 }
 
 /**
- * @brief Specify if a broker needs an update. And then set the broker as ready
- * to receive data.
- *
- * @param poller_id The poller id.
- * @param broker_name The poller name.
- * @param peer_type The peer type.
- * @param need_update true if the broker needs an update, false otherwise.
- */
-void state::set_broker_needs_update(uint64_t poller_id,
-                                    const std::string& poller_name,
-                                    const std::string& broker_name,
-                                    common::PeerType peer_type,
-                                    bool need_update) {
-  absl::MutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found != _connected_peers.end()) {
-    found->second.needs_update = need_update;
-    found->second.ready = true;
-  } else {
-    _logger->warn(
-        "Poller '{}' with id {} and type '{}' not found in connected peers",
-        broker_name, poller_id,
-        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
-  }
-}
-
-/**
- * @brief Set all the connected peers as ready to receive data (no extended
- * negociation available).
- */
-void state::set_peers_ready() {
-  absl::MutexLock lck(&_connected_peers_m);
-  for (auto& p : _connected_peers)
-    p.second.ready = true;
-}
-
-/**
  * @brief Check if a broker needs an update.
  *
  * @param poller_id The poller id.
@@ -501,34 +466,6 @@ bool state::broker_needs_update(uint64_t poller_id,
     return found->second.needs_update;
   else
     return false;
-}
-
-/**
- * @brief Wait for 20 seconds for all Brokers to be ready and then check if at
- * least one broker needs an update.
- *
- * @return true if at least one broker needs an update, false otherwise.
- */
-bool state::broker_needs_update() const {
-  auto brokers_ready = [this] {
-    for (auto& p : _connected_peers) {
-      if (p.second.peer_type == common::BROKER && !p.second.ready)
-        return false;
-    }
-    return true;
-  };
-
-  absl::MutexLock lck(&_connected_peers_m);
-  // Let's wait for at most 20 seconds for all brokers to be ready.
-  _connected_peers_m.AwaitWithTimeout(absl::Condition(&brokers_ready),
-                                      absl::Seconds(20));
-
-  // Now, we can check if they need some updates.
-  for (auto& p : _connected_peers) {
-    if (p.second.peer_type == common::BROKER && p.second.needs_update)
-      return true;
-  }
-  return false;
 }
 
 /**
@@ -607,7 +544,6 @@ std::vector<uint32_t> state::_watch_engine_conf() {
         event_str = "IN_MODIFY";
       else
         event_str = "UNKNOWN";
-      _logger->debug("Change in '{}' detected: event '{}'", name, event_str);
       if (((event & IN_CREATE) || (event & IN_MODIFY)) &&
           absl::EndsWith(name, ".lck")) {
         std::string_view prefix(name.data(), name.size() - 4);
@@ -643,8 +579,8 @@ void state::_check_last_engine_conf() {
   auto pollers_vec = config::applier::state::instance()._watch_engine_conf();
   std::error_code ec;
   for (uint32_t poller_id : pollers_vec) {
-    engine::configuration::State state;
-    engine::configuration::state_helper state_hlp(&state);
+    auto state = std::make_unique<engine::configuration::State>();
+    engine::configuration::state_helper state_hlp(state.get());
     engine::configuration::error_cnt err;
     std::string version = common::hash_directory(
         config::applier::state::instance().cache_config_dir() /
@@ -667,21 +603,22 @@ void state::_check_last_engine_conf() {
                                                    centengine_cfg, ec);
     if (!ec) {
       try {
-        p.parse(centengine_test, &state, err);
-        state.set_config_version(version);
+        p.parse(centengine_test, state.get(), err);
+        state->set_config_version(version);
         state_hlp.expand(err);
         std::filesystem::path last_prot_conf =
             config::applier::state::instance().pollers_config_dir() /
-            fmt::format("{}.prot", poller_id);
+            fmt::format("new-{}.prot", poller_id);
         std::ofstream f(last_prot_conf);
         if (f) {
-          state.SerializeToOstream(&f);
+          state->SerializeToOstream(&f);
           f.close();
         } else {
           _logger->error(
               "Cannot write the new Engine protobuf configuration '{}': {}",
               last_prot_conf.string(), ec.message());
         }
+        _prepare_diff_for_poller(poller_id, std::move(state));
       } catch (const std::exception& e) {
         _logger->error("error while parsing poller {} Engine configuration: {}",
                        poller_id, e.what());
@@ -689,5 +626,57 @@ void state::_check_last_engine_conf() {
     } else
       _logger->error("Cannot create Engine configuration test file '{}': {}",
                      centengine_test.string(), ec.message());
+  }
+}
+
+void state::_prepare_diff_for_poller(
+    uint64_t poller_id,
+    std::unique_ptr<engine::configuration::State>&& state) {
+  absl::MutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end(); lower != end; ++lower) {
+    if (lower->second.peer_type == common::ENGINE &&
+        lower->second.poller_id == poller_id) {
+      if (lower->second.engine_conf != state->config_version()) {
+        _logger->debug(
+            "Poller '{}' with id {} has a new configuration available (old: "
+            "'{}', new: '{}')",
+            lower->second.poller_name, poller_id, lower->second.engine_conf,
+            state->config_version());
+        std::filesystem::path previous_prot_conf =
+            pollers_config_dir() / fmt::format("{}.prot", poller_id);
+        std::fstream f(previous_prot_conf);
+        std::unique_ptr<engine::configuration::DiffState> diff_state;
+        if (f) {
+          /* There is a previous configuration */
+          engine::configuration::State previous_state;
+          previous_state.ParseFromIstream(&f);
+          diff_state = std::make_unique<engine::configuration::DiffState>();
+          engine::configuration::state_helper::diff(previous_state, *state,
+                                                    _logger, diff_state.get());
+        } else {
+          /* No previous configuration */
+          diff_state = std::make_unique<engine::configuration::DiffState>();
+          diff_state->set_allocated_state(state.release());
+        }
+        std::filesystem::path diff_prot_conf =
+            pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+        std::ofstream df(diff_prot_conf);
+        if (df) {
+          diff_state->SerializeToOstream(&df);
+          df.close();
+        } else {
+          _logger->error(
+              "Cannot write the diff Engine protobuf configuration '{}': {}",
+              diff_prot_conf.string(), strerror(errno));
+        }
+        break;
+      } else {
+        _logger->info(
+            "Poller '{}' with id {} already has the latest configuration "
+            "(conf: '{}')",
+            lower->second.poller_name, poller_id, lower->second.engine_conf);
+      }
+    }
   }
 }

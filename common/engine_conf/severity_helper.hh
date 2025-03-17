@@ -21,7 +21,6 @@
 #define CCE_CONFIGURATION_SEVERITY
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -35,6 +34,12 @@ class severity_helper : public message_helper {
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  using Container = ::google::protobuf::RepeatedPtrField<Severity>;
+  static void diff(const Container& old_list,
+                   const Container& new_list,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   DiffSeverity* result);
 };
 }  // namespace com::centreon::engine::configuration
 
