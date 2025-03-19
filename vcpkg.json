@@ -16,6 +16,7 @@
     "boost-flyweight",
     "rapidjson",
     "gtest",
+    "jwt-cpp",
     {
       "name": "libssh2",
       "platform": "linux"

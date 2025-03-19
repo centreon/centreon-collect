@@ -20,6 +20,7 @@
 #define COMMON_GRPC_CONFIG_HH
 
 #include <grpc/compression.h>
+#include "absl/container/flat_hash_set.h"
 
 namespace com::centreon::common::grpc {
 
@@ -68,6 +69,10 @@ class grpc_config {
    * by default grpc message is limited to 4MB
    */
   unsigned _max_message_length;
+
+  absl::flat_hash_set<std::string> _trusted_tokens;
+  std::string _private_key_jwt;
+  std::string _token;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
@@ -121,7 +126,8 @@ class grpc_config {
               bool compression,
               int second_keepalive_interval,
               unsigned second_max_reconnect_backoff,
-              unsigned max_message_length)
+              unsigned max_message_length,
+              const std::string& token)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -131,7 +137,33 @@ class grpc_config {
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
-        _max_message_length(max_message_length) {}
+        _max_message_length(max_message_length),
+        _token(token) {}
+
+  grpc_config(const std::string& hostp,
+              bool crypted,
+              const std::string& certificate,
+              const std::string& cert_key,
+              const std::string& ca_cert,
+              const std::string& ca_name,
+              bool compression,
+              int second_keepalive_interval,
+              unsigned second_max_reconnect_backoff,
+              unsigned max_message_length,
+              const absl::flat_hash_set<std::string>& tokens,
+              const std::string& private_key)
+      : _hostport(hostp),
+        _crypted(crypted),
+        _certificate(certificate),
+        _cert_key(cert_key),
+        _ca_cert(ca_cert),
+        _ca_name(ca_name),
+        _compress(compression),
+        _second_keepalive_interval(second_keepalive_interval),
+        _second_max_reconnect_backoff(second_max_reconnect_backoff),
+        _max_message_length(max_message_length),
+        _trusted_tokens{tokens},
+        _private_key_jwt(private_key) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -149,6 +181,12 @@ class grpc_config {
   }
 
   unsigned get_max_message_length() const { return _max_message_length; }
+
+  const std::string& get_token() const { return _token; }
+  const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
+    return _trusted_tokens;
+  }
+  const std::string& get_private_key_jwt() const { return _private_key_jwt; }
 
   bool operator==(const grpc_config& right) const {
     return _hostport == right._hostport && _crypted == right._crypted &&
