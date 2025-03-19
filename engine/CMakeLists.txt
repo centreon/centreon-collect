@@ -617,7 +617,9 @@ install(
 endif()
 
 # Unit tests.
-add_subdirectory(tests)
+if (NOT ONLY_ROBOT_CMA)
+  add_subdirectory(tests)
+endif()
 
 #
 # Install stuff.

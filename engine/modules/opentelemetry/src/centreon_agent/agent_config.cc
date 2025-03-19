@@ -43,7 +43,7 @@ static constexpr std::string_view _config_schema(R"(
         "export_period": {
             "description": "period in second of agent metric export",
             "type": "integer",
-            "minimum": 10
+            "minimum": 2
         },
         "check_timeout": {
             "description": "check running timeout",

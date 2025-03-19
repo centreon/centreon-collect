@@ -1,6 +1,6 @@
 1 VERSIONINFO
- FILEVERSION ${COLLECT_MAJOR},${COLLECT_MINOR},${COLLECT_PATCH}
- PRODUCTVERSION ${COLLECT_MAJOR},${COLLECT_MINOR},${COLLECT_PATCH}
+ FILEVERSION ${AGENT_MAJOR},${AGENT_MINOR},${AGENT_PATCH}
+ PRODUCTVERSION ${AGENT_MAJOR},${AGENT_MINOR},${AGENT_PATCH}
  FILEFLAGSMASK 0x17L
  FILEFLAGS 0x0L
  FILEOS 0x4L
@@ -13,12 +13,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Centreon"
             VALUE "FileDescription", "Centreon Monitoring Agent"
-            VALUE "FileVersion", "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}"
+            VALUE "FileVersion", "${AGENT_MAJOR}.${AGENT_MINOR}.${AGENT_PATCH}"
             VALUE "InternalName", "centagent.exe"
             VALUE "LegalCopyright", "2024 Centreon"
             VALUE "OriginalFilename", "centagent.exe"
             VALUE "ProductName", "Centreon Monitoring Agent"
-            VALUE "ProductVersion", "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}"
+            VALUE "ProductVersion", "${AGENT_MAJOR}.${AGENT_MINOR}.${AGENT_PATCH}"
         END
     END
     BLOCK "VarFileInfo"

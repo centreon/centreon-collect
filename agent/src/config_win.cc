@@ -106,6 +106,7 @@ config::config(const std::string& registry_key) {
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);
+  _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
 
   RegCloseKey(h_key);
 }

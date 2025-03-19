@@ -63,24 +63,36 @@ class grpc_config {
    */
   unsigned _second_max_reconnect_backoff;
 
+  /**
+   * @brief maximum message length
+   * by default grpc message is limited to 4MB
+   */
+  unsigned _max_message_length;
+
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
   grpc_config()
       : _compress(false),
         _second_keepalive_interval(30),
-        _second_max_reconnect_backoff(0) {}
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0) {}
+
   grpc_config(const std::string& hostp)
       : _hostport(hostp),
         _compress(false),
         _second_keepalive_interval(30),
-        _second_max_reconnect_backoff(0) {}
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0) {}
+
   grpc_config(const std::string& hostp, bool crypted)
       : _hostport(hostp),
         _crypted(crypted),
         _compress(false),
         _second_keepalive_interval(30),
-        _second_max_reconnect_backoff(0) {}
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0) {}
+
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
@@ -97,7 +109,8 @@ class grpc_config {
         _ca_name(ca_name),
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
-        _second_max_reconnect_backoff(0) {}
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0) {}
 
   grpc_config(const std::string& hostp,
               bool crypted,
@@ -107,7 +120,8 @@ class grpc_config {
               const std::string& ca_name,
               bool compression,
               int second_keepalive_interval,
-              unsigned second_max_reconnect_backoff)
+              unsigned second_max_reconnect_backoff,
+              unsigned max_message_length)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -116,7 +130,8 @@ class grpc_config {
         _ca_name(ca_name),
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
-        _second_max_reconnect_backoff(second_max_reconnect_backoff) {}
+        _second_max_reconnect_backoff(second_max_reconnect_backoff),
+        _max_message_length(max_message_length) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -132,6 +147,8 @@ class grpc_config {
   unsigned get_second_max_reconnect_backoff() const {
     return _second_max_reconnect_backoff;
   }
+
+  unsigned get_max_message_length() const { return _max_message_length; }
 
   bool operator==(const grpc_config& right) const {
     return _hostport == right._hostport && _crypted == right._crypted &&

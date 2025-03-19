@@ -193,7 +193,7 @@ def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int
     return False
 
 
-def ctn_get_date(d: str):
+def ctn_get_date(d: str, agent_format:bool=False):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
     Args:
@@ -206,17 +206,20 @@ def ctn_get_date(d: str):
         ts = int(d)
         retval = datetime.fromtimestamp(int(ts))
     except ValueError:
-        retval = parser.parse(d[:-6])
+        if (not agent_format):
+                retval = parser.parse(d[:-6])
+        else:
+                retval = parser.parse(d)
     return retval
 
 
-def ctn_extract_date_from_log(line: str):
+def ctn_extract_date_from_log(line: str,agent_format:bool=False):
     p = re.compile(r"\[([^\]]*)\]")
     m = p.match(line)
     if m is None:
         return None
     try:
-        return ctn_get_date(m.group(1))
+        return ctn_get_date(m.group(1),agent_format)
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -288,17 +291,20 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     """
     verbose = True
     regex = False
+    agent_format = False
     if 'verbose' in kwargs:
         verbose = 'verbose' == 'True'
     if 'regex' in kwargs:
         regex = bool(kwargs['regex'])
+    if 'agent_format' in kwargs:
+        agent_format = bool(kwargs['agent_format'])
 
     res = []
 
     try:
         with open(log, "r") as f:
             lines = f.readlines()
-        idx = ctn_find_line_from(lines, date)
+        idx = ctn_find_line_from(lines, date,agent_format)
 
         for c in content:
             found = False
@@ -358,6 +364,14 @@ def ctn_run_env():
     Get RUN_ENV env variable content
     """
     return os.environ.get('RUN_ENV', '')
+
+def ctn_get_workspace_win():
+    """
+    ctn_get_workspace_win
+
+    Get WINDOWS_PROJECT_PATH env variable content
+    """
+    return os.environ.get('WINDOWS_PROJECT_PATH', '')
 
 
 def ctn_start_mysql():
@@ -516,7 +530,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def ctn_find_line_from(lines, date):
+def ctn_find_line_from(lines, date, agent_format:bool=False):
     try:
         my_date = parser.parse(date)
     except:
@@ -528,13 +542,13 @@ def ctn_find_line_from(lines, date):
     idx = start
     while end > start:
         idx = (start + end) // 2
-        idx_d = ctn_extract_date_from_log(lines[idx])
+        idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
         while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                idx_d = ctn_extract_date_from_log(lines[idx])
+                idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
             else:
                 logger.console("We are at the first line and no date found")
                 return 0
@@ -664,6 +678,59 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
                         return True
         time.sleep(1)
     return False
+
+def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    brief : same as ctn_check_service_resource_status_with_timeout but with additional return
+
+    Check the status of a service resource within a specified timeout period.
+
+    This function connects to a MySQL database and queries the status of a service resource
+    associated with a given hostname and service description. It repeatedly checks the status
+    until the specified timeout period is reached. The function can check for different state types
+    (SOFT, HARD, or ANY).
+
+    Args:
+        hostname (str): The name of the host.
+        service_desc (str): The description of the service.
+        status (int): The desired status to check for.
+        timeout (int): The timeout period in seconds.
+        state_type (str, optional): The type of state to check for. Defaults to "SOFT". 
+                                    Can be "SOFT", "HARD", or "ANY".
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if the desired status was found and the output message.
+               (True, output) if the desired status is found within the timeout period.
+               (False, "") if the desired status is not found within the timeout period.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status,r.status_confirmed,r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if state_type == 'ANY':
+                        return True,result[0]['output']
+                    elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                        return True,result[0]['output']
+                    elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
+                        return True,result[0]['output']
+        time.sleep(1)
+    return False,""
 
 
 def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
@@ -2072,3 +2139,93 @@ def ctn_get_nb_process(exe:str):
         if exe in p.name() or exe in ' '.join(p.cmdline()):
             counter += 1
     return counter
+
+def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: float, expected: int):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (int): expected flapping value.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT s.flapping, s.percent_state_change FROM services s JOIN hosts h on s.host_id = h.host_id  WHERE h.name='{host}' AND description='{serv}'"""
+    r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
+
+
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected: int):
+    """
+    Check if performance data are near as expected.
+        host (str): The hostname of the service to check.
+        timeout (int): The timeout value for the check.
+        precision (float): The precision required for the performance data comparison.
+        expected (int): expected flapping value.
+    """
+    limit = time.time() + timeout
+
+    s_query = f"""SELECT flapping, percent_state_change FROM hosts WHERE name='{host}'"""
+    r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE name='{host}' AND parent_id=0"""
+
+
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(s_query)
+                result = cursor.fetchall()
+                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    cursor.execute(r_query)
+                    result = cursor.fetchall()
+                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                        return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+def ctn_get_process_limit(pid:int, limit:str):
+    """
+    ctn_get_process_limit
+
+    Get a limit of a process
+    Args:
+        pid: process id
+        limit: limit to get
+
+    Returns: limit value
+    """
+    try:
+        with open(f"/proc/{pid}/limits") as f:
+            for line in f:
+                if limit in line:
+                    fields = line.split()
+                    return int(fields[len(fields) - 3]), int(fields[len(fields) - 2])
+    except:
+        return -1, -1
+    return -1, -1

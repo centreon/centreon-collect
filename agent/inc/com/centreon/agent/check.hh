@@ -223,7 +223,7 @@ class check : public std::enable_shared_from_this<check> {
 
   time_point get_start_expected() const { return _start_expected.value(); }
 
-  const time_step & get_raw_start_expected() const { return _start_expected; }
+  const time_step& get_raw_start_expected() const { return _start_expected; }
 
   const std::string& get_service() const { return _service; }
 
@@ -232,6 +232,8 @@ class check : public std::enable_shared_from_this<check> {
   const std::string& get_command_line() const { return _command_line; }
 
   const engine_to_agent_request_ptr& get_conf() const { return _conf; }
+
+  const time_point& get_last_start() const { return _last_start; }
 
   void on_completion(unsigned start_check_index,
                      unsigned status,

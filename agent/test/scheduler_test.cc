@@ -393,6 +393,7 @@ class concurent_check : public check {
  public:
   static std::set<concurent_check*> checked;
   static std::set<concurent_check*> active_checks;
+  static std::mutex checked_m;
   static unsigned max_active_check;
 
   concurent_check(const std::shared_ptr<asio::io_context>& io_context,
@@ -425,6 +426,7 @@ class concurent_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
+    std::lock_guard l(checked_m);
     active_checks.insert(this);
     if (active_checks.size() > max_active_check) {
       max_active_check = active_checks.size();
@@ -435,8 +437,11 @@ class concurent_check : public check {
                                       _get_running_check_index()](
                                      [[maybe_unused]] const boost::system::
                                          error_code& err) {
-      active_checks.erase(this);
-      checked.insert(this);
+      {
+        std::lock_guard l(checked_m);
+        active_checks.erase(this);
+        checked.insert(this);
+      }
       SPDLOG_TRACE("end of completion timer for serv {}", get_service());
       me->on_completion(
           check_running_index, _command_exit_status,
@@ -453,6 +458,7 @@ class concurent_check : public check {
 std::set<concurent_check*> concurent_check::checked;
 std::set<concurent_check*> concurent_check::active_checks;
 unsigned concurent_check::max_active_check;
+std::mutex concurent_check::checked_m;
 
 TEST_F(scheduler_test, max_concurent) {
   std::shared_ptr<scheduler> sched = scheduler::load(
@@ -479,13 +485,13 @@ TEST_F(scheduler_test, max_concurent) {
 
   // to many tests to be completed in eleven second
   std::this_thread::sleep_for(std::chrono::milliseconds(11000));
-  ASSERT_LT(concurent_check::checked.size(), 200);
-  ASSERT_EQ(concurent_check::max_active_check, 10);
+  EXPECT_LT(concurent_check::checked.size(), 200);
+  EXPECT_EQ(concurent_check::max_active_check, 10);
 
   // all tests must be completed in 16s
   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-  ASSERT_EQ(concurent_check::max_active_check, 10);
-  ASSERT_EQ(concurent_check::checked.size(), 200);
+  EXPECT_EQ(concurent_check::max_active_check, 10);
+  EXPECT_EQ(concurent_check::checked.size(), 200);
 
   sched->stop();
 }
