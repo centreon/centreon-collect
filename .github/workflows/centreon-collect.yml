@@ -131,6 +131,8 @@ jobs:
             only_cma: "OFF"
           - distrib: jammy
             only_cma: "ON"
+          - distrib: noble
+            only_cma: "ON"
 
     runs-on: centreon-collect
 
@@ -427,6 +429,14 @@ jobs:
             test_group_name: robot_test-jammy-amd64
             tests_params: '{}'
             only_robot_cma: true
+          - distrib: noble
+            image: centreon-collect-mariadb-noble-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-noble-amd64
+            tests_params: '{}'
+            only_robot_cma: true
 
     name: ${{ matrix.test_group_name }}
 
@@ -613,7 +623,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, noble]
 
     steps:
       - name: Checkout sources
