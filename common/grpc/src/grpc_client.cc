@@ -17,6 +17,7 @@
 */
 
 #include <grpcpp/create_channel.h>
+#include "grpcpp/security/credentials.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 
@@ -66,13 +67,13 @@ grpc_client_base::grpc_client_base(
         conf->get_hostport(), conf->get_cert().substr(0, 10),
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
     creds = ::grpc::SslCredentials(ssl_opts);
-#ifdef CAN_USE_JWT
-    if (!_conf->get_jwt().empty()) {
+    if (!_conf->get_token().empty()) {
+      SPDLOG_LOGGER_INFO(logger, "the token used is : {}",
+                         _conf->get_token().substr(0, 10));
       std::shared_ptr<::grpc::CallCredentials> jwt =
-          ::grpc::ServiceAccountJWTAccessCredentials(_conf->get_jwt(), 86400);
+          ::grpc::AccessTokenCredentials(_conf->get_token());
       creds = ::grpc::CompositeChannelCredentials(creds, jwt);
     }
-#endif
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted connection to {}",
                        conf->get_hostport());

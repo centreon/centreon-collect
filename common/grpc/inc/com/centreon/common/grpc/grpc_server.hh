@@ -18,8 +18,11 @@
 #ifndef COMMON_GRPC_SERVER_HH
 #define COMMON_GRPC_SERVER_HH
 
+#include <grpcpp/security/auth_metadata_processor.h>
+#include <grpcpp/security/credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
+#include "jwt-cpp/jwt.h"
 
 #include "com/centreon/common/grpc/grpc_config.hh"
 
@@ -53,6 +56,79 @@ class grpc_server_base {
   const std::shared_ptr<spdlog::logger>& get_logger() const { return _logger; }
 
   bool initialized() const { return _server.get(); }
+};
+
+class AuthProcessor : public ::grpc::AuthMetadataProcessor {
+  std::shared_ptr<spdlog::logger> _logger;
+  absl::flat_hash_set<std::string> _trusted_tokens;
+  std::string _private_key_jwt;
+
+ public:
+  AuthProcessor(const absl::flat_hash_set<std::string>& tokens,
+                const std::string& key_jwt,
+                const std::shared_ptr<spdlog::logger>& logger)
+      : _logger(logger) {
+    // Make a copy of the tokens map
+    _trusted_tokens = tokens;
+    // Make a copy of the token_key string
+    _private_key_jwt = key_jwt;
+  }
+
+  ::grpc::Status Process(const InputMetadata& auth_metadata,
+                         ::grpc::AuthContext* context [[maybe_unused]],
+                         OutputMetadata* consumed_auth_metadata
+                         [[maybe_unused]],
+                         OutputMetadata* response_metadata [[maybe_unused]]) {
+    //  some debug code to delete:
+    SPDLOG_LOGGER_INFO(_logger, "AuthProcessor::Process");
+    SPDLOG_LOGGER_INFO(_logger, "token_key: {}", _private_key_jwt);
+    for (const auto& token : _trusted_tokens) {
+      SPDLOG_LOGGER_INFO(_logger, "tokens : {}", token);
+    }
+    // Extract the JWT token from the metadata
+    std::string token;
+    auto auth_md = auth_metadata.find("authorization");
+    if (auth_md != auth_metadata.end()) {
+      std::string auth_header(auth_md->second.data(), auth_md->second.size());
+
+      SPDLOG_LOGGER_INFO(_logger, "Authorization header: {}", auth_header);
+
+      const std::string bearer_prefix = "Bearer ";
+      if (auth_header.rfind(bearer_prefix, 0) == 0) {
+        token = auth_header.substr(bearer_prefix.size());
+      }
+      if (token.empty()) {
+        std::cerr << "No JWT provided by client\n";
+        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                              "Missing JWT token");
+      }
+      try {
+        auto decoded = jwt::decode(token);
+        auto verifier = jwt::verify().allow_algorithm(
+            jwt::algorithm::hs256{_private_key_jwt});
+        verifier.verify(decoded);
+        // Check the expiration time
+        auto exp = decoded.get_expires_at();
+        if (std::chrono::system_clock::now() >= exp) {
+          std::cerr << "Token has expired.\n";
+          std::cerr << "Expiration time: " << exp.time_since_epoch().count()
+                    << "\n";
+          return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                                "Token expired");
+        }
+        SPDLOG_LOGGER_INFO(_logger, "Token is valid and not expired.\n");
+        return ::grpc::Status::OK;
+      } catch (const std::exception& e) {
+        std::cerr << "Invalid token: " << e.what() << "\n";
+        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                              "Invalid JWT token");
+      }
+    }
+    std::cerr << "Authorization header is missing.\n";
+    return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                          "Missing authorization metadata");
+  }
+  bool IsBlocking() const { return true; }
 };
 
 }  // namespace com::centreon::common::grpc

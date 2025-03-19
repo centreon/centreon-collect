@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include "agent_info.hh"
 #include "streaming_client.hh"
+#include "agent_info.hh"
 #include "com/centreon/common/defer.hh"
 
 using namespace com::centreon::agent;
