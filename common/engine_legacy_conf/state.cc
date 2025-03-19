@@ -18,6 +18,7 @@
  */
 #include "state.hh"
 #include <absl/base/call_once.h>
+#include <spdlog/spdlog.h>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -291,9 +292,6 @@ static int const default_additional_freshness_latency(15);
 static std::string const default_admin_email("");
 static std::string const default_admin_pager("");
 static bool const default_allow_empty_hostgroup_assignment(false);
-static bool const default_auto_reschedule_checks(false);
-static unsigned int const default_auto_rescheduling_interval(30);
-static unsigned int const default_auto_rescheduling_window(180);
 static std::string const default_broker_module_directory("");
 static unsigned long const default_cached_host_check_horizon(15);
 static unsigned long const default_cached_service_check_horizon(15);
@@ -417,9 +415,6 @@ state::state()
       _admin_pager(default_admin_pager),
       _allow_empty_hostgroup_assignment(
           default_allow_empty_hostgroup_assignment),
-      _auto_reschedule_checks(default_auto_reschedule_checks),
-      _auto_rescheduling_interval(default_auto_rescheduling_interval),
-      _auto_rescheduling_window(default_auto_rescheduling_window),
       _cached_host_check_horizon(default_cached_host_check_horizon),
       _cached_service_check_horizon(default_cached_service_check_horizon),
       _check_external_commands(default_check_external_commands),
@@ -571,9 +566,6 @@ state& state::operator=(state const& right) {
     _admin_email = right._admin_email;
     _admin_pager = right._admin_pager;
     _allow_empty_hostgroup_assignment = right._allow_empty_hostgroup_assignment;
-    _auto_reschedule_checks = right._auto_reschedule_checks;
-    _auto_rescheduling_interval = right._auto_rescheduling_interval;
-    _auto_rescheduling_window = right._auto_rescheduling_window;
     _broker_module_directory = right._broker_module_directory;
     _cached_host_check_horizon = right._cached_host_check_horizon;
     _cached_service_check_horizon = right._cached_service_check_horizon;
@@ -728,9 +720,6 @@ bool state::operator==(state const& right) const noexcept {
       _admin_pager == right._admin_pager &&
       _allow_empty_hostgroup_assignment ==
           right._allow_empty_hostgroup_assignment &&
-      _auto_reschedule_checks == right._auto_reschedule_checks &&
-      _auto_rescheduling_interval == right._auto_rescheduling_interval &&
-      _auto_rescheduling_window == right._auto_rescheduling_window &&
       _broker_module_directory == right._broker_module_directory &&
       _cached_host_check_horizon == right._cached_host_check_horizon &&
       _cached_service_check_horizon == right._cached_service_check_horizon &&
@@ -984,30 +973,15 @@ void state::allow_empty_hostgroup_assignment(bool value) {
 }
 
 /**
- *  Get auto_reschedule_checks value.
- *
- *  @return The auto_reschedule_checks value.
- */
-bool state::auto_reschedule_checks() const noexcept {
-  return _auto_reschedule_checks;
-}
-
-/**
  *  Set auto_reschedule_checks value.
  *
  *  @param[in] value The new auto_reschedule_checks value.
  */
-void state::auto_reschedule_checks(bool value) {
-  _auto_reschedule_checks = value;
-}
-
-/**
- *  Get auto_rescheduling_interval value.
- *
- *  @return The auto_rescheduling_interval value.
- */
-unsigned int state::auto_rescheduling_interval() const noexcept {
-  return _auto_rescheduling_interval;
+void state::auto_reschedule_checks(bool value [[maybe_unused]]) {
+  SPDLOG_LOGGER_WARN(
+      _logger,
+      "The option 'auto_reschedule_checks' is no longer available. This "
+      "option is deprecated.");
 }
 
 /**
@@ -1015,19 +989,11 @@ unsigned int state::auto_rescheduling_interval() const noexcept {
  *
  *  @param[in] value The new auto_rescheduling_interval value.
  */
-void state::auto_rescheduling_interval(unsigned int value) {
-  if (!value)
-    throw msg_fmt("auto_rescheduling_interval cannot be 0");
-  _auto_rescheduling_interval = value;
-}
-
-/**
- *  Get auto_rescheduling_window value.
- *
- *  @return The auto_rescheduling_window value.
- */
-unsigned int state::auto_rescheduling_window() const noexcept {
-  return _auto_rescheduling_window;
+void state::auto_rescheduling_interval(unsigned int value [[maybe_unused]]) {
+  SPDLOG_LOGGER_WARN(
+      _logger,
+      "The option 'auto_rescheduling_interval' is no longer available. This "
+      "option is deprecated.");
 }
 
 /**
@@ -1035,10 +1001,11 @@ unsigned int state::auto_rescheduling_window() const noexcept {
  *
  *  @param[in] value The new auto_rescheduling_window value.
  */
-void state::auto_rescheduling_window(unsigned int value) {
-  if (!value)
-    throw msg_fmt("auto_rescheduling_window cannot be 0");
-  _auto_rescheduling_window = value;
+void state::auto_rescheduling_window(unsigned int value [[maybe_unused]]) {
+  SPDLOG_LOGGER_WARN(
+      _logger,
+      "The option 'auto_rescheduling_window' is no longer available. This "
+      "option is deprecated.");
 }
 
 /**

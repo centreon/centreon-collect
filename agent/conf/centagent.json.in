@@ -6,7 +6,7 @@
     "log_max_files":3,
     "endpoint":"<poller ip>:4317",
     "encryption":false,
-    "certificate":"",
+    "public_cert":"",
     "private_key":"",
     "ca_certificate":"",
     "ca_name":"",
