@@ -151,3 +151,22 @@ So it works like that:
 This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
 This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.
 
+### event_log
+This is the first checked developed with filters and parameterizable output. 
+How it works:
+* First we subscribe to eventlog, in fact, OS creates a thread that call a callback( container::_subscription_callback)
+* We extract raw data in the object event_data with few or no memory allocation.
+* We apply global filter, warning and critical filters to this object.
+* If it pass global filter:
+  * if it matches critical filter it is stored in container::_critical
+  * or if it matches warning filter it's stored in container::_warning
+  * or we only store time create in _ok_events
+When event_data matches to warning or critical filter, we create an event object from event_data.
+As filter can contain peremption filters (written > -60m), we need to apply filters also on event objects to test if an event object is still accepted by filter.
+That's why event_filter::check_builder is templated by raw_data_tag or event_tag. Warning and critical filters must apply on event_data and event objects. So in container class, you will find _critical_filter and _event_critical_filter. These objects are identical but accessor that allow them to check objects are different, one apply to event_data and other to event class.
+
+In order to do a parameterizable output, we rely on std::format, we just replace for example {file} by {0} and we pass file in first std::vformat argument.
+
+Another point is uniq. When we print event to output, we avoid to print each of them. User can pass a uniq string that acts as a group by in order to not print several events that have for example the same event_id. In order to do that, class event_comparator is used to hash and compare events according to user parameters. Then these class is used by a flat_hash_set to do the 'unique' job.
+
+Use of flyweight: we may create a lot of event objects. As we can have the same string in several objects, we use boost flyweight library in order to store only one string in memory for several events.
