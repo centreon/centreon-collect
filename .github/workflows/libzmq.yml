@@ -95,7 +95,7 @@ jobs:
             arch: amd64
           - image: packaging-bullseye-arm64
             distrib: bullseye
-            runner: ["self-hosted", "collect-arm64"]
+            runner: centreon-collect-arm64
             arch: arm64
 
     runs-on: ${{ matrix.runner }}
@@ -146,7 +146,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -181,7 +181,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -217,7 +217,7 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, el9, bullseye]

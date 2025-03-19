@@ -52,7 +52,7 @@ on:
         required: true
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -78,13 +78,13 @@ jobs:
 
       - name: image to disk
         run: |
-          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: /tmp/${{inputs.image}}
+          path: ./${{inputs.image}}
           key: ${{inputs.image_test}}
 
   robot-test-list:
@@ -105,7 +105,7 @@ jobs:
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
       - name: Restore image
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: /tmp/${{inputs.image}}
+          path: ./${{inputs.image}}
           key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
@@ -136,7 +136,7 @@ jobs:
 
       - name: load image
         run: |
-          docker load --input /tmp/${{ inputs.image }}
+          docker load --input ./${{ inputs.image }}
 
       - name: Test ${{ matrix.feature }}
         run: |
