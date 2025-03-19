@@ -64,6 +64,8 @@ jobs:
           ls -la .
           echo "list files in workspace parent directory"
           ls -la ..
+          echo "list files in workspace parent parent directory"
+          ls -la ../..
         shell: bash
 
   get-environment:
