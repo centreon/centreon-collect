@@ -237,6 +237,25 @@ int _main(bool service_start) {
                                                  grpc_conf, conf.get_host());
     }
 
+    if (!conf.use_encryption()) {
+      SPDLOG_LOGGER_WARN(
+          g_logger,
+          "NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION");
+
+      auto timer = std::make_shared<asio::steady_timer>(*g_io_context,
+                                                        std::chrono::hours(1));
+      timer->async_wait([timer](const boost::system::error_code& ec) {
+        if (!ec) {
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "NON TLS CONNECTION TIME EXPIRED // THIS IS NOT "
+                             "ALLOWED IN PRODUCTION");
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "CONNECTION KILLED, AGENT NEED TO BE RESTART");
+          stop_process();
+        }
+      });
+    }
+
     g_io_context->run();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_CRITICAL(g_logger, "unhandled exception: {}", e.what());

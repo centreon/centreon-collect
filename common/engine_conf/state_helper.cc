@@ -22,7 +22,9 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
+using com::centreon::common::log_v2::log_v2;
 using com::centreon::exceptions::msg_fmt;
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::FieldDescriptor;
@@ -201,6 +203,16 @@ bool state_helper::hook(std::string_view key, const std::string_view& value) {
     } else
       obj->set_event_broker_options(static_cast<uint32_t>(-1));
     return true;
+  } else if (key == "auto_reschedule_checks" ||
+             key == "auto_rescheduling_interval" ||
+             key == "auto_rescheduling_window") {
+    std::shared_ptr<spdlog::logger> logger =
+        log_v2::instance().get(log_v2::CONFIG);
+    SPDLOG_LOGGER_WARN(
+        logger,
+        "The option '{}' is no longer available. This option is deprecated.",
+        key);
+    return true;
   }
   return false;
 }
@@ -217,9 +229,6 @@ void state_helper::_init() {
   obj->set_admin_email("");
   obj->set_admin_pager("");
   obj->set_allow_empty_hostgroup_assignment(false);
-  obj->set_auto_reschedule_checks(false);
-  obj->set_auto_rescheduling_interval(30);
-  obj->set_auto_rescheduling_window(180);
   obj->set_cached_host_check_horizon(15);
   obj->set_cached_service_check_horizon(15);
   obj->set_check_external_commands(true);
