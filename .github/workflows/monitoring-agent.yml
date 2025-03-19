@@ -54,18 +54,8 @@ jobs:
     steps:
       - name: Debug
         run: |
-          echo "/home size:"
-          du -sh /home
-          echo "/home/* size:"
-          du -sh /home/*
-          echo "/tmp size:"
-          du -sh /tmp
-          echo "workspace size:"
-          du -sh .
-          echo "list files in workspace"
-          ls -la .
-          echo "list files in workspace parent directory"
-          ls -la ..
+          echo "/home/runner size:"
+          du -sh /home/runner/*
           echo "list files in workspace parent parent directory"
           ls -la ../..
         shell: bash
