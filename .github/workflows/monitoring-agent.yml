@@ -54,6 +54,8 @@ jobs:
     steps:
       - name: Debug
         run: |
+          echo "/home size:"
+          du -sh /home
           echo "/tmp size:"
           du -sh /tmp
           echo "workspace size:"
