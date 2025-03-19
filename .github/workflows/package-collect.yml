@@ -33,40 +33,40 @@ jobs:
           - image: centreon-collect-alma8
             distrib: el8
             package_extension: rpm
-            runner: collect
+            runner: centreon-collect
             arch: amd64
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
-            runner: collect
+            runner: centreon-collect
             arch: amd64
           - image: centreon-collect-debian-bullseye
             distrib: bullseye
             package_extension: deb
-            runner: collect
+            runner: centreon-collect
             arch: amd64
           - image: centreon-collect-debian-bookworm
             distrib: bookworm
             package_extension: deb
-            runner: collect
+            runner: centreon-collect
             arch: amd64
           - image: centreon-collect-ubuntu-jammy
             distrib: jammy
             package_extension: deb
-            runner: collect
+            runner: centreon-collect
             arch: amd64
           - image: centreon-collect-debian-bullseye-arm64
             distrib: bullseye
             package_extension: deb
-            runner: collect-arm64
+            runner: centreon-collect-arm64
             arch: arm64
           - image: centreon-collect-debian-bookworm-arm64
             distrib: bookworm
             package_extension: deb
-            runner: collect-arm64
+            runner: centreon-collect-arm64
             arch: arm64
 
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    runs-on: ${{ matrix.runner }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
