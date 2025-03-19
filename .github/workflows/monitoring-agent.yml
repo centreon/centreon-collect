@@ -62,6 +62,8 @@ jobs:
           du -sh .
           echo "list files in workspace"
           ls -la .
+          echo "list files in workspace parent directory"
+          ls -la ..
         shell: bash
 
   get-environment:
