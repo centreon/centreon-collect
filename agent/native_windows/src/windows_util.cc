@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,12 @@ std::string com::centreon::agent::get_last_error_as_string() {
   return message;
 }
 
+/**
+ * @brief convert a wchar_t string to a char string
+ *
+ * @param lpwstr wchar_t string
+ * @return std::string
+ */
 std::string com::centreon::agent::lpwcstr_to_acp(LPCWSTR lpwstr) {
   // get needed size
   int size_needed =

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ constexpr uint64_t _keywords_audit_mask = 0x0030000000000000L;
 /**
  * @brief raw event data constructed from EvtSubscribe returned handle
  * It will be converted to event class if it's allowed by filters
+ * It allocates quite no memory, it's a temporary object that will be
+ * destroyed after the event is constructed
  */
 class event_data : public testable {
   DWORD _property_count;
@@ -76,6 +78,12 @@ class event_data : public testable {
 /**
  * @brief Event class constructed
  * from event_data and filtered by event_filter
+ * It's a final class, it will be used by check_event_log
+ * the difference with event_data is that it contains its own strings
+ * In order to avoid to store several times the same string
+ * we use flyweight pattern to store one buffer for several strings
+ * for more explanations about flyweight, see
+ * https://www.boost.org/doc/libs/1_87_0/libs/flyweight/doc/tutorial/index.html
  */
 class event : public testable {
   uint16_t _event_id;

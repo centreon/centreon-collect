@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "boost/multi_index_container.hpp"
-#include "boost/tuple/tuple.hpp"
 #include "event_log/data.hh"
 #include "event_log/uniq.hh"
 #include "windows_util.hh"

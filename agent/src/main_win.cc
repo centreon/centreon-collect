@@ -174,12 +174,11 @@ int _main(bool service_start) {
   try {
     if (conf.get_log_type() == config::to_file) {
       if (!conf.get_log_file().empty()) {
-        if (conf.get_log_files_max_size() > 0 &&
-            conf.get_log_files_max_number() > 0) {
+        if (conf.get_log_max_file_size() > 0 && conf.get_log_max_files() > 0) {
           g_logger = spdlog::rotating_logger_mt(
               logger_name, conf.get_log_file(),
-              conf.get_log_files_max_size() * 0x100000,
-              conf.get_log_files_max_number());
+              conf.get_log_max_file_size() * 0x100000,
+              conf.get_log_max_files());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,10 @@ struct mock_event_data : public event_data {
   std::wstring_view get_channel() const override { return channel; }
 };
 
+/**
+ * @brief Given filters, we test provider matching or no
+ *
+ */
 TEST(eventlog_filter, provider) {
   event_filter filter1(event_filter::raw_data_tag(), "provider == 'provider1'",
                        spdlog::default_logger());
@@ -102,6 +106,10 @@ TEST(eventlog_filter, provider) {
   EXPECT_FALSE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test event_id matching or no
+ *
+ */
 TEST(eventlog_filter, event_id) {
   event_filter filter1(event_filter::raw_data_tag(), "event_id=5",
                        spdlog::default_logger());
@@ -145,6 +153,10 @@ TEST(eventlog_filter, event_id) {
   EXPECT_FALSE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test level matching or no
+ *
+ */
 TEST(eventlog_filter, level) {
   event_filter filter1(event_filter::raw_data_tag(), "level=5",
                        spdlog::default_logger());
@@ -188,6 +200,10 @@ TEST(eventlog_filter, level) {
   EXPECT_FALSE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test keywords matching or no
+ *
+ */
 TEST(eventlog_filter, keywords) {
   event_filter filter1(event_filter::raw_data_tag(), "keywords='auditsuccess'",
                        spdlog::default_logger());
@@ -233,6 +249,10 @@ TEST(eventlog_filter, keywords) {
   EXPECT_TRUE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test computer matching or no
+ *
+ */
 TEST(eventlog_filter, computer) {
   event_filter filter1(event_filter::raw_data_tag(), "computer == 'computer1'",
                        spdlog::default_logger());
@@ -280,6 +300,10 @@ TEST(eventlog_filter, computer) {
   EXPECT_FALSE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test channel matching or no
+ *
+ */
 TEST(eventlog_filter, channel) {
   event_filter filter1(event_filter::raw_data_tag(), "channel == 'channel1'",
                        spdlog::default_logger());
@@ -327,6 +351,10 @@ TEST(eventlog_filter, channel) {
   EXPECT_FALSE(filter5.allow(data));
 }
 
+/**
+ * @brief Given filters, we test event_id, provider, keywords.. matching or no
+ *
+ */
 TEST(eventlog_filter, composite) {
   event_filter filter1(event_filter::raw_data_tag(),
                        "provider == 'provider1' and event_id=5",

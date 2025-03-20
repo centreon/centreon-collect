@@ -23,6 +23,11 @@
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::event_log;
 
+/**
+ * @brief Given non mocked events, we expect some warning and critical events at
+ * the container output
+ *
+ */
 TEST(eventlog_data, event_log_event) {
   test_event_container cont(
       "System", "level in ('info', 'error', 'warning')", "level == 'warning'",
@@ -43,6 +48,11 @@ TEST(eventlog_data, event_log_event) {
             0);
 }
 
+/**
+ * @brief Given a container wtih some filters, we expect the container to filter
+ * mocked injected events correctly
+ *
+ */
 TEST(eventlog_data, filters) {
   test_event_container cont(
       "System", "event_id = 3 or event_id = 4",

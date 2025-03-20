@@ -31,6 +31,10 @@ using namespace std::string_literals;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
+/**
+ * @brief Givent an eventlog with no event, we expect an empty output
+ *
+ */
 TEST(check_event_log, empty) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -62,6 +66,11 @@ TEST(check_event_log, empty) {
   EXPECT_EQ(perfs.rbegin()->value(), 0);
 }
 
+/**
+ * @brief Given a container with some filters, we expect output with some
+ * warning injected events
+ *
+ */
 TEST(check_event_log, warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -114,6 +123,11 @@ TEST(check_event_log, warning) {
   EXPECT_EQ(perfs.rbegin()->value(), 0);
 }
 
+/**
+ * @brief Given a container with some filters, we expect output with some
+ * critical injected events
+ *
+ */
 TEST(check_event_log, critical) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -179,6 +193,11 @@ TEST(check_event_log, critical) {
   EXPECT_EQ(perfs.rbegin()->value(), 0);
 }
 
+/**
+ * @brief Given a container with some filtersand verbose output, we expect
+ * output with some critical injected events
+ *
+ */
 TEST(check_event_log, critical_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -240,6 +259,12 @@ TEST(check_event_log, critical_verbose) {
   EXPECT_EQ(perfs.rbegin()->value(), 0);
 }
 
+/**
+ * @brief Given a container with some filters that make some critical events
+ * become warning after a little delay, we expect output with some critical
+ * injected events first and then warning events
+ *
+ */
 TEST(check_event_log, critical_to_warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =

@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,10 @@
  *
  * For more information : contact@centreon.com
  */
+#include <boost/algorithm/string/replace.hpp>
 #include <format>
 #include <ranges>
-#include "boost/algorithm/string/replace.hpp"
+
 
 #include "check.hh"
 #include "check_event_log.hh"

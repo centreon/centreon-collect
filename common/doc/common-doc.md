@@ -232,6 +232,7 @@ Three steps are done while a cfg file is parsed. For each key,
 * on failure, we try to read the key as a custom variable, and here there is another way to parse it (the idea is very similar to the legacy parser).
 
 ## Abseil flyweight factory
+Flyweights are small-sized handle classes granting constant access to shared common data, thus allowing for the management of large amounts of entities within reasonable memory limits. Boost.Flyweight makes it easy to use this common programming idiom by providing the class template flyweight<T>, which acts as a drop-in replacement for const.
 
 ([boost::flyweight](https://www.boost.org/doc/libs/1_87_0/libs/flyweight/doc/index.html)) only uses boost and std container. This factory uses abseil node_hash_set to improve performance.
 This factory has a bool template argument. If false, it's not thread safe, if true, it is.

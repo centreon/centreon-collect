@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  * Licensed under the Apache License, Version 2.0(the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,6 +29,11 @@ struct tag2 {};
 using string_flyweight_no_lock =
     boost::flyweight<std::string, absl_factory<false>>;
 
+/**
+ * @brief an no thread safe absl_flyweight, we expect that identical strings
+ * point to the same buffer
+ *
+ */
 TEST(absl_flyweight, nolock) {
   unsigned ii;
   std::vector<string_flyweight_no_lock> test1;
@@ -55,6 +60,11 @@ TEST(absl_flyweight, nolock) {
 
 using string_flyweight_lock = boost::flyweight<std::string, absl_factory<true>>;
 
+/**
+ * @brief Given an thread safe absl_flyweight, we expect that identical strings
+ * created by several threads point to the same buffer
+ *
+ */
 TEST(absl_flyweight, concurency) {
   std::vector<string_flyweight_lock> test1;
   absl::Mutex test1_m;
