@@ -20,8 +20,10 @@
 #include <absl/strings/match.h>
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
+#include <cstring>
 #include <filesystem>
 
+#include "bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/common/file.hh"
@@ -303,7 +305,7 @@ void state::add_peer(uint64_t poller_id,
                      bool extended_negotiation,
                      const std::string& engine_conf) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
     _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
@@ -315,7 +317,7 @@ void state::add_peer(uint64_t poller_id,
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
       peer{poller_id, poller_name,          broker_name, time(nullptr),
-           peer_type, extended_negotiation, true,        engine_conf};
+           peer_type, extended_negotiation, engine_conf, engine_conf};
   if (extended_negotiation && _peer_type == common::BROKER) {
     if (!_watch_engine_conf_timer) {
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
@@ -334,7 +336,7 @@ void state::remove_peer(uint64_t poller_id,
                         const std::string& poller_name,
                         const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
     _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
@@ -354,9 +356,11 @@ void state::remove_peer(uint64_t poller_id,
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
-  for (auto& p : _connected_peers)
-    if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower)
+    if (lower->second.peer_type == common::ENGINE)
       return true;
   return false;
 }
@@ -367,7 +371,7 @@ bool state::has_connection_from_poller(uint64_t poller_id) const {
  * @return A vector of pairs containing the poller id and the poller name.
  */
 std::vector<state::peer> state::connected_peers() const {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(&_connected_peers_m);
   std::vector<peer> retval;
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
@@ -447,55 +451,6 @@ void state::set_pollers_config_dir(
  */
 com::centreon::common::PeerType state::peer_type() const {
   return _peer_type;
-}
-
-/**
- * @brief Check if a broker needs an update.
- *
- * @param poller_id The poller id.
- * @param broker_name The poller name.
- * @param peer_type The peer type.
- *
- * @return true if the broker needs an update, false otherwise.
- */
-bool state::broker_needs_update(uint64_t poller_id,
-                                const std::string& poller_name,
-                                const std::string& broker_name) const {
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found != _connected_peers.end())
-    return found->second.needs_update;
-  else
-    return false;
-}
-
-/**
- * @brief The peer with the given poller_id has its engine configuration version
- * set to the given one.
- *
- * @param poller_id Poller ID concerned by the modification.
- * @param version The version to set.
- */
-void state::set_engine_configuration(uint64_t poller_id,
-                                     const std::string& version) {
-  absl::MutexLock lck(&_connected_peers_m);
-  _engine_configuration[poller_id] = version;
-}
-
-/**
- * @brief Get the engine configuration for a poller. On error an empty string is
- * returned.
- *
- * @param poller_id The poller id.
- *
- * @return The engine configuration as a string.
- */
-std::string state::engine_configuration(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
-  auto found = _engine_configuration.find(poller_id);
-  if (found != _engine_configuration.end())
-    return found->second;
-  else
-    return "";
 }
 
 /**
@@ -606,9 +561,16 @@ void state::_check_last_engine_conf() {
         p.parse(centengine_test, state.get(), err);
         state->set_config_version(version);
         state_hlp.expand(err);
+        if (!std::filesystem::exists(pollers_config_dir())) {
+          std::filesystem::create_directories(pollers_config_dir(), ec);
+          if (ec) {
+            _logger->error(
+                "Cannot create pollers configuration directory '{}': {}",
+                pollers_config_dir().string(), ec.message());
+          }
+        }
         std::filesystem::path last_prot_conf =
-            config::applier::state::instance().pollers_config_dir() /
-            fmt::format("new-{}.prot", poller_id);
+            pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
         std::ofstream f(last_prot_conf);
         if (f) {
           state->SerializeToOstream(&f);
@@ -616,7 +578,7 @@ void state::_check_last_engine_conf() {
         } else {
           _logger->error(
               "Cannot write the new Engine protobuf configuration '{}': {}",
-              last_prot_conf.string(), ec.message());
+              last_prot_conf.string(), strerror(errno));
         }
         _prepare_diff_for_poller(poller_id, std::move(state));
       } catch (const std::exception& e) {
@@ -632,11 +594,11 @@ void state::_check_last_engine_conf() {
 void state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::WriterMutexLock lck(&_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end(); lower != end; ++lower) {
-    if (lower->second.peer_type == common::ENGINE &&
-        lower->second.poller_id == poller_id) {
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
       if (lower->second.engine_conf != state->config_version()) {
         _logger->debug(
             "Poller '{}' with id {} has a new configuration available (old: "
@@ -647,6 +609,8 @@ void state::_prepare_diff_for_poller(
             pollers_config_dir() / fmt::format("{}.prot", poller_id);
         std::fstream f(previous_prot_conf);
         std::unique_ptr<engine::configuration::DiffState> diff_state;
+        bool can_rename = false;
+        std::string new_version = state->config_version();
         if (f) {
           /* There is a previous configuration */
           engine::configuration::State previous_state;
@@ -654,6 +618,7 @@ void state::_prepare_diff_for_poller(
           diff_state = std::make_unique<engine::configuration::DiffState>();
           engine::configuration::state_helper::diff(previous_state, *state,
                                                     _logger, diff_state.get());
+          can_rename = true;
         } else {
           /* No previous configuration */
           diff_state = std::make_unique<engine::configuration::DiffState>();
@@ -665,6 +630,24 @@ void state::_prepare_diff_for_poller(
         if (df) {
           diff_state->SerializeToOstream(&df);
           df.close();
+          /* FIXME: this should be done once the new configuration sent to the
+           * poller. */
+          if (can_rename) {
+            std::error_code ec;
+            std::filesystem::remove(previous_prot_conf);
+            std::filesystem::path new_prot_conf =
+                pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+            std::filesystem::rename(new_prot_conf, previous_prot_conf, ec);
+            if (ec) {
+              _logger->error("Cannot rename '{}' to '{}': {}",
+                             new_prot_conf.string(),
+                             previous_prot_conf.string(), ec.message());
+            }
+          }
+          /* The new configuration to send to the poller is new-<poller ID>.prot
+           * Once sent to it, this file must be renamed into <poller ID>.prot
+           * and the diff file can be removed. */
+          lower->second.available_conf = new_version;
         } else {
           _logger->error(
               "Cannot write the diff Engine protobuf configuration '{}': {}",
@@ -679,4 +662,51 @@ void state::_prepare_diff_for_poller(
       }
     }
   }
+}
+
+bool state::engine_peer_needs_update(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      return lower->second.available_conf != lower->second.engine_conf;
+    }
+  }
+  return false;
+}
+
+void state::set_engine_peer_updated(uint64_t poller_id) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      lower->second.engine_conf = lower->second.available_conf;
+      break;
+    }
+  }
+}
+
+/**
+ * @brief Called on Engine side when a pb_diff_state is received to keep the
+ * contained DiffState available for the next Engine update.
+ *
+ * @param diff The diff state.
+ */
+void state::set_diff_state(const std::shared_ptr<io::data>& diff) {
+  assert(diff.unique());
+  absl::MutexLock lck(&_diff_state_m);
+  auto diff_state =
+      std::static_pointer_cast<com::centreon::broker::bbdo::pb_diff_state>(
+          diff);
+  _diff_state =
+      std::make_unique<com::centreon::engine::configuration::DiffState>();
+  _diff_state->Swap(&diff_state->mut_obj());
+}
+
+std::unique_ptr<com::centreon::engine::configuration::DiffState>
+state::diff_state() {
+  absl::MutexLock lck(&_diff_state_m);
+  return std::move(_diff_state);
 }

@@ -225,9 +225,8 @@ events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
                  &bbdo::pb_stop::operations);
   register_event(bbdo::pb_bench::static_type(), "Bench",
                  &bbdo::pb_bench::operations);
-  register_event(bbdo::pb_engine_configuration::static_type(),
-                 "EngineConfiguration",
-                 &bbdo::pb_engine_configuration::operations);
+  register_event(bbdo::pb_diff_state::static_type(), "DiffState",
+                 &bbdo::pb_diff_state::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

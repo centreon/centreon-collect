@@ -23,6 +23,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/extcmd.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "common/engine_conf/state_helper.hh"
 
 #define BBDO_VERSION_MAJOR 2
 #define BBDO_VERSION_MINOR 0
@@ -44,9 +45,9 @@ using pb_stop =
     com::centreon::broker::io::protobuf<Stop,
                                         make_type(io::bbdo, bbdo::de_pb_stop)>;
 
-using pb_engine_configuration = com::centreon::broker::io::protobuf<
-    com::centreon::broker::EngineConfiguration,
-    make_type(io::bbdo, bbdo::de_pb_engine_configuration)>;
+using pb_diff_state = com::centreon::broker::io::protobuf<
+    com::centreon::engine::configuration::DiffState,
+    make_type(io::bbdo, bbdo::de_pb_diff_state)>;
 
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;

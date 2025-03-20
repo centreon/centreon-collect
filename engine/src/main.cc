@@ -77,16 +77,6 @@ using com::centreon::common::log_v2::log_v2;
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
-// Error message when configuration parsing fail.
-#define ERROR_CONFIGURATION                                                  \
-  "    Check your configuration file(s) to ensure that they contain valid\n" \
-  "    directives and data definitions. If you are upgrading from a\n"       \
-  "    previous version of Centreon Engine, you should be aware that some\n" \
-  "    variables/definitions may have been removed or modified in this\n"    \
-  "    version. Make sure to read the documentation regarding the config\n"  \
-  "    files, as well as the version changelog to find out what has\n"       \
-  "    changed.\n"
-
 /**
  *  Centreon Engine entry point.
  *
@@ -140,6 +130,8 @@ int main(int argc, char* argv[]) {
        "Extended configuration file")
       ("proto-conf,p", po::value<std::string>()->value_name("proto_dir"),
        "Directory containing the protocol buffer configuration files")
+      ("log-file,l", po::value<std::string>()->value_name("log-file"),
+       "Full path to the log file name")
       ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
         "Main configuration file");
 
@@ -396,6 +388,9 @@ int main(int argc, char* argv[]) {
           setup_sighandler();
 
           // Load broker modules.
+          if (vm.count("log-file"))
+            new_config.set_log_file(vm["log-file"].as<std::string>());
+
           configuration::applier::state::instance().apply_log_config(
               new_config);
 
