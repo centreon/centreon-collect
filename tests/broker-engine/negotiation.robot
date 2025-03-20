@@ -202,6 +202,7 @@ BEDWENF
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
     ${start}    Ctn Get Round Current Date
@@ -225,7 +226,12 @@ BEDWENF
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
-    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    timeout=30s
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
+    Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/diff-1.prot    File 1.prot should not exist
+    Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    File 1.prot should not exist
+    ${content}    Create List    Reloading from Broker    Starting to reload configuration
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result}    Engine should log about the new configuration
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

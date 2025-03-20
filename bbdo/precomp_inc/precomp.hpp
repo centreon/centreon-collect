@@ -49,6 +49,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>

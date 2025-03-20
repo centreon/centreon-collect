@@ -20,6 +20,8 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
+#include <filesystem>
+#include <system_error>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -30,6 +32,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/common/file.hh"
+#include "common.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -1089,42 +1092,9 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       multiplexing::publisher pblshr;
       pblshr.write(loc_stop);
     } break;
-    case pb_engine_configuration::static_type(): {
-      //      const EngineConfiguration& ec =
-      //          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
-      //      /* Here, we are Broker and peer is Engine. */
-      //      if (config::applier::state::instance().peer_type() ==
-      //      common::BROKER &&
-      //          _peer_type == common::ENGINE) {
-      //        SPDLOG_LOGGER_INFO(
-      //            _logger,
-      //            "BBDO: received engine configuration from Engine peer '{}'",
-      //            ec.broker_name());
-      //        bool match = check_poller_configuration(ec.poller_id(),
-      //                                                ec.engine_config_version());
-      //        auto engine_conf = std::make_shared<pb_engine_configuration>();
-      //        auto& obj = engine_conf->mut_obj();
-      //        obj.set_poller_id(config::applier::state::instance().poller_id());
-      //        obj.set_poller_name(config::applier::state::instance().poller_name());
-      //        obj.set_broker_name(config::applier::state::instance().broker_name());
-      //        obj.set_peer_type(common::BROKER);
-      //        if (match) {
-      //          SPDLOG_LOGGER_INFO(
-      //              _logger, "BBDO: engine configuration for '{}' is up to
-      //              date", ec.broker_name());
-      //          obj.set_need_update(false);
-      //        } else {
-      //          SPDLOG_LOGGER_INFO(_logger,
-      //                             "BBDO: engine configuration for '{}' is "
-      //                             "outdated",
-      //                             ec.broker_name());
-      //          /* engine_conf has a new version, it is sent to engine. And
-      //          engine
-      //           * will send its configuration to broker. */
-      //          obj.set_need_update(true);
-      //        }
-      //        _write(engine_conf);
-      //      }
+    case pb_diff_state::static_type(): {
+      SPDLOG_LOGGER_INFO(_logger, "BBDO: received diff state from Broker");
+      config::applier::state::instance().set_diff_state(d);
     } break;
     default:
       break;
@@ -1213,6 +1183,37 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       (_events_received_since_last_ack && _last_sent_ack + 5 < now)) {
     _last_sent_ack = now;
     send_event_acknowledgement();
+  }
+  if (_peer_type == common::ENGINE &&
+      config::applier::state::instance().engine_peer_needs_update(_poller_id)) {
+    _logger->debug("BBDO: We should send the Engine configuration to the peer");
+    auto pb_conf = std::make_shared<pb_diff_state>();
+    auto& obj = pb_conf->mut_obj();
+    std::filesystem::path diff_name(
+        config::applier::state::instance().pollers_config_dir() /
+        fmt::format("diff-{}.prot", _poller_id));
+    std::ifstream f(diff_name);
+    if (f) {
+      std::error_code ec;
+      obj.ParseFromIstream(&f);
+      f.close();
+      _logger->debug("BBDO: Sending Engine configuration to poller {}",
+                     _poller_id);
+      _write(pb_conf);
+      std::filesystem::remove(diff_name);
+      std::filesystem::path new_name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("new-{}.prot", _poller_id));
+      std::filesystem::path name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("{}.prot", _poller_id));
+      std::filesystem::remove(name, ec);
+      std::filesystem::rename(new_name, name, ec);
+      if (ec)
+        _logger->error("Unable to rename the file from '{}' to '{}'",
+                       new_name.string(), name.string());
+      config::applier::state::instance().set_engine_peer_updated(_poller_id);
+    }
   }
 
   return !timed_out;
@@ -1504,84 +1505,8 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
-void stream::_negotiate_engine_conf() {
-  SPDLOG_LOGGER_DEBUG(_logger,
-                      "BBDO: instance event sent to {} - supports "
-                      "extended negotiation: {}",
-                      _broker_name, _extended_negotiation);
-  /* We are an Engine since we emit an instance event and we have an
-   * engine config directory. If the Broker supports extended negotiation,
-   * we send also an engine configuration event. And then we'll wait for
-   * an answer from Broker. */
-  if (_extended_negotiation &&
-      !config::applier::state::instance().proto_conf().empty()) {
-    auto engine_conf = std::make_shared<bbdo::pb_engine_configuration>();
-    auto& obj = engine_conf->mut_obj();
-    obj.set_poller_id(config::applier::state::instance().poller_id());
-    obj.set_poller_name(config::applier::state::instance().poller_name());
-    obj.set_broker_name(config::applier::state::instance().broker_name());
-    obj.set_peer_type(common::ENGINE);
-
-    /* Time to fill the config version. */
-    //    std::error_code ec;
-    //    _config_version = common::hash_directory(
-    //        config::applier::state::instance().engine_config_dir(), ec);
-    //    if (ec) {
-    //      _logger->error(
-    //          "BBDO: cannot access directory '{}': {}",
-    //          config::applier::state::instance().engine_config_dir().string(),
-    //          ec.message());
-    //    }
-    //    obj.set_engine_config_version(_config_version);
-    //    _logger->info(
-    //        "BBDO: engine configuration sent to peer '{}' with version {}",
-    //        _broker_name, _config_version);
-    _write(engine_conf);
-    std::shared_ptr<io::data> d;
-    time_t deadline = time(nullptr) + 5;
-    bool found = _wait_for_bbdo_event(pb_engine_configuration::static_type(), d,
-                                      deadline);
-    if (!found) {
-      _logger->warn(
-          "BBDO: no engine configuration received from peer '{}' as "
-          "response",
-          _broker_name);
-      if (d) {
-        _logger->info(
-            "BBDO: received message of type {:x} instead of "
-            "pb_engine_configuration",
-            d->type());
-      } else
-        _logger->info("BBDO: no message received");
-    } else {
-      _logger->debug(
-          "BBDO: engine configuration from peer '{}' received as expected",
-          _broker_name);
-      const EngineConfiguration& ec =
-          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
-
-      if (!ec.need_update()) {
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: No Engine configuration update needed");
-        //        config::applier::state::instance().set_broker_needs_update(
-        //            ec.poller_id(), ec.poller_name(), ec.broker_name(),
-        //            common::BROKER, false);
-      } else {
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: Engine configuration needs to be updated");
-        //        config::applier::state::instance().set_broker_needs_update(
-        //            ec.poller_id(), ec.poller_name(), ec.broker_name(),
-        //            common::BROKER, true);
-      }
-    }
-  }
-}
-
 void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
-
-  if (d->type() == neb::pb_instance::static_type())
-    _negotiate_engine_conf();
 
   if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
     std::shared_ptr<io::raw> serialized(serialize(*d));
@@ -1641,52 +1566,4 @@ void stream::send_event_acknowledgement() {
     }
     _events_received_since_last_ack = 0;
   }
-}
-
-/**
- * @brief Check if the poller configuration is up to date.
- *
- * @param poller_id
- * @param expected_version
- *
- * @return
- */
-bool stream::check_poller_configuration(uint64_t poller_id,
-                                        const std::string& expected_version) {
-  //  std::error_code ec;
-  //  const std::filesystem::path& pollers_conf_dir =
-  //      config::applier::state::instance().pollers_config_dir();
-  //  if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
-  //    if (ec)
-  //      _logger->error("Cannot access directory '{}': {}",
-  //                     pollers_conf_dir.string(), ec.message());
-  //    std::filesystem::create_directories(pollers_conf_dir, ec);
-  //    if (ec) {
-  //      _logger->error("Cannot create directory '{}': {}",
-  //                     pollers_conf_dir.string(), ec.message());
-  //      return false;
-  //    }
-  //  }
-  //  auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
-  //  if (!std::filesystem::is_directory(poller_dir, ec)) {
-  //    if (ec)
-  //      _logger->error("Cannot access directory '{}': {}",
-  //      poller_dir.string(),
-  //                     ec.message());
-  //    std::filesystem::create_directories(poller_dir, ec);
-  //    if (ec)
-  //      _logger->error("Cannot create directory '{}': {}",
-  //      poller_dir.string(),
-  //                     ec.message());
-  //    return false;
-  //  }
-  //  std::string current = common::hash_directory(poller_dir, ec);
-  //  if (ec) {
-  //    _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
-  //                   ec.message());
-  //    return false;
-  //  }
-  //  config::applier::state::instance().set_engine_configuration(poller_id,
-  //                                                              current);
-  //  return current == expected_version;
 }

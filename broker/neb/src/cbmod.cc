@@ -53,8 +53,7 @@ static bool time_is_undefined(uint64_t t) {
  */
 cbmod::cbmod(const std::string& config_file,
              const std::filesystem::path& proto_conf)
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl} {
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
   com::centreon::broker::config::state s{p.parse(config_file)};
@@ -72,7 +71,8 @@ cbmod::cbmod(const std::string& config_file,
   }
 
   com::centreon::broker::config::applier::state::instance().apply(s);
-  com::centreon::broker::config::applier::state::instance().set_proto_conf(proto_conf);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(
+      proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf =
@@ -85,8 +85,7 @@ cbmod::cbmod(const std::string& config_file,
  * @param proto_conf The protobuf configuration directory.
  */
 cbmod::cbmod(const std::filesystem::path& proto_conf)
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl} {
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   com::centreon::broker::config::state s;
   s.poller_id(1);
   s.poller_name("test");
@@ -96,7 +95,8 @@ cbmod::cbmod(const std::filesystem::path& proto_conf)
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 
   com::centreon::broker::config::applier::state::instance().apply(s);
-  com::centreon::broker::config::applier::state::instance().set_proto_conf(proto_conf);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(
+      proto_conf);
 }
 
 cbmod::~cbmod() noexcept {
@@ -396,5 +396,10 @@ void cbmod::reload() {
     ic->poller_id = config::applier::state::instance().poller_id();
     write(ic);
   }
+}
+
+std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
+  auto retval = config::applier::state::instance().diff_state();
+  return retval;
 }
 }  // namespace com::centreon::broker::neb

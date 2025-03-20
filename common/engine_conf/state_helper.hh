@@ -43,7 +43,7 @@ class state_helper : public message_helper {
   static void diff(const State& old_state,
                    const State& new_state,
                    const std::shared_ptr<spdlog::logger>& logger,
-                   com::centreon::engine::configuration::DiffState* result);
+                   DiffState* result);
 };
 }  // namespace com::centreon::engine::configuration
 
