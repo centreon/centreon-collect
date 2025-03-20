@@ -116,6 +116,17 @@ static void apply_conf(std::atomic<bool>* reloading) {
   process_logger->info("Reload configuration finished.");
 }
 
+static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
+                       std::atomic<bool>* reloading) {
+  configuration::error_cnt err;
+  process_logger->info("Starting to reload configuration.");
+  try {
+    process_logger->info("Configuration reloaded, main loop continuing.");
+  } catch (const std::exception& e) {
+    config_logger->error("Error: {}", e.what());
+  }
+}
+
 /**
  *  Slot to dispatch Centreon Engine events.
  */
@@ -142,16 +153,20 @@ void loop::_dispatching() {
       sighup = false;
     }
 
+    std::unique_ptr<configuration::DiffState> diff_conf = cbm->diff_state();
     // Start reload configuration.
-    if (_need_reload) {
-      engine_logger(log_info_message, most) << "Need reload.";
-      process_logger->info("Need reload.");
+    if (_need_reload || diff_conf) {
       if (!reloading) {
-        engine_logger(log_info_message, most) << "Reloading...";
-        process_logger->info("Reloading...");
         reloading = true;
-        auto future [[maybe_unused]] =
-            std::async(std::launch::async, apply_conf, &reloading);
+        if (_need_reload) {
+          process_logger->info("Reloading...");
+          auto future [[maybe_unused]] =
+              std::async(std::launch::async, apply_conf, &reloading);
+        } else {
+          process_logger->info("Reloading from Broker...");
+          auto future [[maybe_unused]] = std::async(
+              std::launch::async, apply_diff, std::move(diff_conf), &reloading);
+        }
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");

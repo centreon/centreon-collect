@@ -224,14 +224,6 @@ message Value {
   }
 }
 
-message DiffState {
-  /* Modifications concerning severities */
-  DiffSeverity severities = 1;
-
-  /* If all the configuration has to be sent */
-  State state = 2;
-}
-
 message CustomVariable {
   string name = 1;
   string value = 2;
@@ -750,4 +742,13 @@ message Timeperiod {
   StringSet exclude = 4;
   string timeperiod_name = 5;
   DaysArray timeranges = 6;
+}
+
+/* io::bbdo, bbdo::de_pb_diff_state, 52 */
+message DiffState {
+  /* Modifications concerning severities */
+  DiffSeverity severities = 1;
+
+  /* If all the configuration has to be sent */
+  State state = 2;
 }

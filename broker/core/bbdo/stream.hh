@@ -157,7 +157,7 @@ class stream : public io::stream {
   /* bbdo logger */
   std::shared_ptr<spdlog::logger> _logger;
 
-  void _negotiate_engine_conf();
+  //  void _negotiate_engine_conf();
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d);
