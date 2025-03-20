@@ -52,7 +52,7 @@ class state {
     /* Does the peer support extended negotiation? */
     bool extended_negotiation;
     /* Does this peer need an update concerning the engine configuration? */
-    bool needs_update;
+    std::string available_conf;
     /* The current Engine configuration known by this poller. Only available
      * for an Engine peer. */
     std::string engine_conf;
@@ -97,6 +97,8 @@ class state {
   modules _modules;
 
   std::shared_ptr<com::centreon::broker::stats::center> _center;
+  absl::Mutex _diff_state_m;
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
 
   static stats _stats_conf;
 
@@ -158,21 +160,13 @@ class state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   common::PeerType peer_type() const;
   std::string get_engine_conf_from_cache(uint64_t poller_id);
-  void set_broker_needs_update(uint64_t poller_id,
-                               const std::string& poller_name,
-                               const std::string& broker_name,
-                               common::PeerType peer_type,
-                               bool need_update)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool broker_needs_update(uint64_t poller_id,
-                           const std::string& poller_name,
-                           const std::string& broker_name) const;
-  bool broker_needs_update() const;
   void set_proto_conf(const std::filesystem::path& proto_conf);
   const std::filesystem::path& proto_conf() const;
-  void set_engine_configuration(uint64_t poller_id, const std::string& conf);
-  std::string engine_configuration(uint64_t poller_id) const;
   std::shared_ptr<com::centreon::broker::stats::center> center() const;
+  bool engine_peer_needs_update(uint64_t poller_id) const;
+  void set_engine_peer_updated(uint64_t poller_id);
+  void set_diff_state(const std::shared_ptr<io::data>& diff);
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
 };
 }  // namespace com::centreon::broker::config::applier
 

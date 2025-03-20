@@ -22,6 +22,7 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -44,7 +45,8 @@ class cbmod {
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
 
  public:
-  cbmod(const std::string& config_file, const std::filesystem::path& proto_conf);
+  cbmod(const std::string& config_file,
+        const std::filesystem::path& proto_conf);
   cbmod(const std::filesystem::path& proto_conf);
   cbmod& operator=(const cbmod&) = delete;
 
@@ -78,6 +80,7 @@ class cbmod {
   void stop_downtime(uint64_t downtime_id, bool cancelled);
   void remove_downtime(uint64_t downtime_id);
   void reload();
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
