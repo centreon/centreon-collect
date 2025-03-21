@@ -48,7 +48,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -56,6 +56,7 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -76,7 +77,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -84,6 +85,7 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -507,7 +509,7 @@ jobs:
           - distrib: el9
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -572,7 +574,7 @@ jobs:
             arch: arm64
             only_cma: true
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
