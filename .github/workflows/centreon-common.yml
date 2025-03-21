@@ -40,10 +40,10 @@ jobs:
             image: packaging-centreon-collect-alma9
             distrib: el9
           - package_extension: deb
-            image: packaging-centreon-collect-debian-bookworm
+            image: packaging-centreon-collect-bookworm
             distrib: bookworm
           - package_extension: deb
-            image: packaging-centreon-collect-ubuntu-jammy
+            image: packaging-centreon-collect-jammy
             distrib: jammy
 
     runs-on: ubuntu-24.04
