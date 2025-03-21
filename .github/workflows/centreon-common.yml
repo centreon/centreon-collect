@@ -45,6 +45,9 @@ jobs:
           - package_extension: deb
             image: packaging-centreon-collect-jammy
             distrib: jammy
+          - package_extension: deb
+            image: packaging-centreon-collect-noblre
+            distrib: noble
 
     runs-on: ubuntu-24.04
 
@@ -122,7 +125,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, jammy]
+        distrib: [bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources
