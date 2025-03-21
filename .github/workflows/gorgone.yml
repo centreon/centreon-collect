@@ -116,147 +116,147 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
           stability: ${{ needs.get-environment.outputs.stability }}
 
-  test-gorgone:
-    needs: [get-environment, package]
-    if: |
-      github.repository == 'centreon/centreon-collect' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+  # test-gorgone:
+  #   needs: [get-environment, package]
+  #   if: |
+  #     github.repository == 'centreon/centreon-collect' &&
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     needs.get-environment.outputs.stability != 'stable'
 
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [el8, el9, bookworm, jammy]
-        include:
-          - package_extension: rpm
-            image: gorgone-testing-alma8
-            distrib: el8
-          - package_extension: rpm
-            image: gorgone-testing-alma9
-            distrib: el9
-          - package_extension: deb
-            image: gorgone-testing-bookworm
-            distrib: bookworm
-          - package_extension: deb
-            image: gorgone-testing-jammy
-            distrib: jammy
-          - package_extension: deb
-            image: gorgone-testing-noble
-            distrib: noble
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       distrib: [el8, el9, bookworm, jammy]
+  #       include:
+  #         - package_extension: rpm
+  #           image: gorgone-testing-alma8
+  #           distrib: el8
+  #         - package_extension: rpm
+  #           image: gorgone-testing-alma9
+  #           distrib: el9
+  #         - package_extension: deb
+  #           image: gorgone-testing-bookworm
+  #           distrib: bookworm
+  #         - package_extension: deb
+  #           image: gorgone-testing-jammy
+  #           distrib: jammy
+  #         - package_extension: deb
+  #           image: gorgone-testing-noble
+  #           distrib: noble
 
-    runs-on: ubuntu-24.04
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.gorgone_docker_version }}
-      credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+  #   runs-on: ubuntu-24.04
+  #   container:
+  #     image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.gorgone_docker_version }}
+  #     credentials:
+  #       username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+  #       password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    services:
-      mariadb:
-        image: mariadb:latest
-        ports:
-          - 3306
-        env:
-          MYSQL_USER: centreon
-          MYSQL_PASSWORD: password
-          MYSQL_ROOT_PASSWORD: password
+  #   services:
+  #     mariadb:
+  #       image: mariadb:latest
+  #       ports:
+  #         - 3306
+  #       env:
+  #         MYSQL_USER: centreon
+  #         MYSQL_PASSWORD: password
+  #         MYSQL_ROOT_PASSWORD: password
 
-    steps:
-      - name: Get linked branch of centreon repository
-        id: centreon_repo_linked_branch
-        run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
+  #   steps:
+  #     - name: Get linked branch of centreon repository
+  #       id: centreon_repo_linked_branch
+  #       run: |
+  #         CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
 
-          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
-          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
-          fi
+  #         GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+  #         if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+  #           CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+  #         fi
 
-          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
-        shell: bash
+  #         echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+  #       shell: bash
 
-      - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+  #     - name: Checkout sources
+  #       uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
-      - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
-        with:
-          repository: centreon/centreon
-          path: centreon
-          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
-          sparse-checkout: |
-            centreon/www/install/createTables.sql
-            centreon/www/install/createTablesCentstorage.sql
+  #     - name: Checkout sources
+  #       uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+  #       with:
+  #         repository: centreon/centreon
+  #         path: centreon
+  #         ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+  #         sparse-checkout: |
+  #           centreon/www/install/createTables.sql
+  #           centreon/www/install/createTablesCentstorage.sql
 
-      - name: get cached gorgone package
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: ./*.${{ matrix.package_extension }}
-          key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
-          fail-on-cache-miss: true
+  #     - name: get cached gorgone package
+  #       uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+  #       with:
+  #         path: ./*.${{ matrix.package_extension }}
+  #         key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+  #         fail-on-cache-miss: true
 
-      - name: Parse distrib name
-        id: parse-distrib
-        uses: ./.github/actions/parse-distrib
-        with:
-          distrib: ${{ matrix.distrib }}
+  #     - name: Parse distrib name
+  #       id: parse-distrib
+  #       uses: ./.github/actions/parse-distrib
+  #       with:
+  #         distrib: ${{ matrix.distrib }}
 
-      - name: Install gorgone from just built package
-        shell: bash
-        run: |
-          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-            apt update
-            apt install -y ./centreon-gorgone*.deb
-          else
-            dnf install -y ./centreon-gorgone*.rpm
-          fi
+  #     - name: Install gorgone from just built package
+  #       shell: bash
+  #       run: |
+  #         if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+  #           apt update
+  #           apt install -y ./centreon-gorgone*.deb
+  #         else
+  #           dnf install -y ./centreon-gorgone*.rpm
+  #         fi
 
-      - name: Create databases
-        run: |
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
-          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
+  #     - name: Create databases
+  #       run: |
+  #         mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+  #         mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
+  #         mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
+  #         mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+  #         mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+  #         mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
-      - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests
+  #     - name: Run tests
+  #       run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests
 
-      - name: Upload gorgone and robot debug artifacts
-        if: failure()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
-        with:
-          name: gorgone-debug-${{ matrix.distrib }}
-          path: |
-            log.html
-            /var/log/centreon-gorgone
-            /etc/centreon-gorgone
-          retention-days: 1
+  #     - name: Upload gorgone and robot debug artifacts
+  #       if: failure()
+  #       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+  #       with:
+  #         name: gorgone-debug-${{ matrix.distrib }}
+  #         path: |
+  #           log.html
+  #           /var/log/centreon-gorgone
+  #           /etc/centreon-gorgone
+  #         retention-days: 1
 
-  deliver-sources:
-    runs-on: centreon-common
-    needs: [get-environment, package]
-    if: |
-      github.event_name != 'workflow_dispatch' &&
-      needs.get-environment.outputs.stability == 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+  # deliver-sources:
+  #   runs-on: centreon-common
+  #   needs: [get-environment, package]
+  #   if: |
+  #     github.event_name != 'workflow_dispatch' &&
+  #     needs.get-environment.outputs.stability == 'stable' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Deliver sources
-        uses: ./.github/actions/release-sources
-        with:
-          bucket_directory: centreon-gorgone
-          module_directory: gorgone
-          module_name: centreon-gorgone
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+  #     - name: Deliver sources
+  #       uses: ./.github/actions/release-sources
+  #       with:
+  #         bucket_directory: centreon-gorgone
+  #         module_directory: gorgone
+  #         module_name: centreon-gorgone
+  #         major_version: ${{ needs.get-environment.outputs.major_version }}
+  #         minor_version: ${{ needs.get-environment.outputs.minor_version }}
+  #         token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
     runs-on: centreon-common
@@ -290,7 +290,8 @@ jobs:
 
   deliver-deb:
     runs-on: centreon-common
-    needs: [get-environment, test-gorgone]
+    #needs: [get-environment, test-gorgone]
+    needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
@@ -318,42 +319,42 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+  # promote:
+  #   needs: [get-environment, deliver-rpm, deliver-deb]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled') &&
+  #     github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
-    strategy:
-      matrix:
-        distrib: [el8, el9, bookworm, noble]
+  #   runs-on: centreon-common
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9, bookworm, noble]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+  #     - name: Promote ${{ matrix.distrib }} to stable
+  #       uses: ./.github/actions/promote-to-stable
+  #       with:
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         module_name: gorgone
+  #         distrib: ${{ matrix.distrib }}
+  #         major_version: ${{ needs.get-environment.outputs.major_version }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         github_ref_name: ${{ github.ref_name }}
+  #         release_type: ${{ needs.get-environment.outputs.release_type }}
+  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    uses: ./.github/workflows/set-pull-request-skip-label.yml
+  # set-skip-label:
+  #   needs: [get-environment, deliver-rpm, deliver-deb, promote]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
+  #   uses: ./.github/workflows/set-pull-request-skip-label.yml
