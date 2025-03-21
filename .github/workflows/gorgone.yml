@@ -258,35 +258,35 @@ jobs:
   #         minor_version: ${{ needs.get-environment.outputs.minor_version }}
   #         token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
-  deliver-rpm:
-    runs-on: centreon-common
-    needs: [get-environment, test-gorgone]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+  # deliver-rpm:
+  #   runs-on: centreon-common
+  #   needs: [get-environment, test-gorgone]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
 
-    strategy:
-      matrix:
-        distrib: [el8, el9]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Delivery
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+  #     - name: Delivery
+  #       uses: ./.github/actions/rpm-delivery
+  #       with:
+  #         module_name: gorgone
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-environment.outputs.major_version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         release_type: ${{ needs.get-environment.outputs.release_type }}
+  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
     runs-on: centreon-common
