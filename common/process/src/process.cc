@@ -360,7 +360,7 @@ void process<use_mutex>::stdout_read() {
             me->on_stdout_read(err, nb_read);
           });
     } catch (const std::exception& e) {
-      _io_context->post([me = shared_from_this(), caller = _proc]() {
+      asio::post(*_io_context, [me = shared_from_this(), caller = _proc]() {
         detail::lock<use_mutex> l(&me->_protect);
         me->on_stdout_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
@@ -413,7 +413,7 @@ void process<use_mutex>::stderr_read() {
             me->on_stderr_read(err, nb_read);
           });
     } catch (const std::exception& e) {
-      _io_context->post([me = shared_from_this(), caller = _proc]() {
+      asio::post(*_io_context, [me = shared_from_this(), caller = _proc]() {
         detail::lock<use_mutex> l(&me->_protect);
         me->on_stderr_read(std::make_error_code(std::errc::broken_pipe), 0);
       });

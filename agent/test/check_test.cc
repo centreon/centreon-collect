@@ -22,6 +22,30 @@
 
 using namespace com::centreon::agent;
 
+TEST(duration_from_str, values) {
+  EXPECT_EQ(duration{0}, duration_from_string("", 's'));
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45s", 'd'));
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45", 's'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33m", 'd'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33", 'm'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17h", 'd'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17", 'h'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13d", 'd'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13d", 'h'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24), duration_from_string("11w", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24), duration_from_string("11", 'w'));
+  EXPECT_EQ(std::chrono::hours(-11 * 7 * 24), duration_from_string("-11", 'w'));
+  EXPECT_EQ(std::chrono::hours(-11 * 7 * 24),
+            duration_from_string("-11w", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24),
+            duration_from_string("-11w", 'd', true));
+  EXPECT_EQ(std::chrono::hours(7 * 24) + std::chrono::hours(3 * 24) +
+                std::chrono::hours(13) + std::chrono::minutes(5) +
+                std::chrono::seconds(30),
+            duration_from_string("1w3d13h5m30", 's'));
+}
+
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class dummy_check : public check {
@@ -33,7 +57,7 @@ class dummy_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
-    _command_timer.expires_from_now(_command_duration);
+    _command_timer.expires_after(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
                                   const boost::system::error_code& err) {
