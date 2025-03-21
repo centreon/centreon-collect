@@ -745,6 +745,75 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
 
+BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
+    [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
+    [Tags]    broker    engine    opentelemetry    MON-155395
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check
+    Ctn Set Services Passive       0    service_1
+
+
+    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    Log To Console    service_1 must be ok
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    No event as expected
+    Should Be True    ${result}    resources table not updated for service_1
+
+    ${metrics_list}    Create List   critical-count    warning-count
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    Should Be True    ${result}    eventlog metrics not updated
+
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check_warning
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} > 1    output is not multiline
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check_critical
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} == 1    output must not be multiline
+
+
 BEOTEL_CENTREON_AGENT_CEIP
     [Documentation]    we connect an agent to engine and we expect a row in agent_information table
     [Tags]    broker    engine    opentelemetry    MON-145030
@@ -1281,6 +1350,26 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
 
+BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
+    [Documentation]    Given the agent is configured with native checks for services
+    ...    And the OpenTelemetry server module is added
+    ...    And services are configured with incorrect check commands and arguments
+    ...    When the broker, engine, and agent are started
+    ...    Then the resources table should be updated with the correct status
+    ...    And appropriate error messages should be generated for invalid checks
+    [Tags]    broker    engine    agent    opentelemetry    MON-158969
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Clear Db    resources
 
 *** Keywords ***
 Ctn Create Cert And Init
