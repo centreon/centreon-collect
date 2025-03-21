@@ -240,7 +240,9 @@ jobs:
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
-          rm -rf packaging/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
+          ls -lah packaging/
+          rm -f packaging/centreon-{connector,*-selinux*,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
+          rm -f packaging/centreon-collect/*
         shell: bash
 
       - name: Packages
