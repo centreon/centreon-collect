@@ -19,6 +19,7 @@
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(
     ut_common
+    absl_flyweight_factory_test.cc
     crypto/base64.cc
     engine_conf/expand_conf.cc
     file_test.cc
@@ -34,6 +35,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
+    absl_flyweight_factory_test.cc
     perfdata_test.cc
     process_test.cc
     rapidjson_helper_test.cc

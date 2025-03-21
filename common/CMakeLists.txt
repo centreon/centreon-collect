@@ -63,6 +63,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       ${SRC_DIR}/utf8.cc
       ${SRC_DIR}/file.cc)
 else()
+  add_compile_options("/wd5232")
   # we need not many things to just compile centreon-monitoring-agent
   # (centagent)
   set(SOURCES
