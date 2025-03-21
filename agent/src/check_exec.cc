@@ -197,12 +197,13 @@ void check_exec::start_check(const duration& timeout) {
     return;
   }
   if (!_process) {
-    _io_context->post([me = check::shared_from_this(),
-                       start_check_index = _get_running_check_index()]() {
-      me->on_completion(start_check_index, e_status::unknown,
-                        std::list<com::centreon::common::perfdata>(),
-                        {"empty command"});
-    });
+    asio::post(*_io_context,
+               [me = check::shared_from_this(),
+                start_check_index = _get_running_check_index()]() {
+                 me->on_completion(start_check_index, e_status::unknown,
+                                   std::list<com::centreon::common::perfdata>(),
+                                   {"empty command"});
+               });
   }
 
   try {
@@ -210,24 +211,26 @@ void check_exec::start_check(const duration& timeout) {
   } catch (const boost::system::system_error& e) {
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
-    _io_context->post([me = check::shared_from_this(),
-                       start_check_index = _get_running_check_index(), e]() {
-      me->on_completion(
-          start_check_index, e_status::unknown,
-          std::list<com::centreon::common::perfdata>(),
-          {fmt::format("Fail to execute {} : {}", me->get_command_line(),
-                       e.code().message())});
-    });
+    asio::post(*_io_context,
+               [me = check::shared_from_this(),
+                start_check_index = _get_running_check_index(), e]() {
+                 me->on_completion(
+                     start_check_index, e_status::unknown,
+                     std::list<com::centreon::common::perfdata>(),
+                     {fmt::format("Fail to execute {} : {}",
+                                  me->get_command_line(), e.code().message())});
+               });
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.what());
-    _io_context->post([me = check::shared_from_this(),
+    asio::post(
+        *_io_context, [me = check::shared_from_this(),
                        start_check_index = _get_running_check_index(), e]() {
-      me->on_completion(start_check_index, e_status::unknown,
-                        std::list<com::centreon::common::perfdata>(),
-                        {fmt::format("Fail to execute {} : {}",
-                                     me->get_command_line(), e.what())});
-    });
+          me->on_completion(start_check_index, e_status::unknown,
+                            std::list<com::centreon::common::perfdata>(),
+                            {fmt::format("Fail to execute {} : {}",
+                                         me->get_command_line(), e.what())});
+        });
   }
 }
 
@@ -268,7 +271,8 @@ void check_exec::on_completion(unsigned running_index) {
   std::list<com::centreon::common::perfdata> perfs;
 
   // split multi line output
-  outputs = absl::StrSplit(_process->get_stdout(), '\n', absl::SkipEmpty());
+  outputs = absl::StrSplit(_process->get_stdout(), absl::ByAnyChar("\r\n"),
+                           absl::SkipEmpty());
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
@@ -355,8 +359,9 @@ void check_dummy::start_check(const duration& timeout) {
     return;
   }
 
-  _io_context->post([me = check::shared_from_this(),
-                     start_check_index = _get_running_check_index(), this]() {
+  asio::post(*_io_context, [me = check::shared_from_this(),
+                            start_check_index = _get_running_check_index(),
+                            this]() {
     me->on_completion(
         start_check_index, e_status::critical,
         std::list<com::centreon::common::perfdata>(),

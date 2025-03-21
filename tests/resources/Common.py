@@ -794,6 +794,48 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
     return False
 
 
+def ctn_check_service_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    ctn_check_service_status_with_timeout_rt
+
+    same as ctn_check_service_status_with_timeout but returns a pair boolean, output
+
+    Args:
+        host_name:
+        service_desc:
+        status: expected service state
+        state_type: HARD, SOFT or ANY
+        timeout: time to wait expected check in seconds
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.state, s.state_type, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['state_type']} and output={result[0]['output']}")
+                    if state_type == 'HARD' and int(result[0]['state_type']) == 1:
+                        return True, result[0]['output']
+                    elif state_type != 'SOFT' and int(result[0]['state_type']) == 0:
+                        return True, result[0]['output']
+                    else:
+                        return True, result[0]['output']
+        time.sleep(1)
+    return False, ""
+
+
 def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1148,7 +1190,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
                     logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
-                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']} and output=\"{result[0]['output']}\"")
                     if status_type == 'HARD' and int(result[0]['status_confirmed']) == 1 and output in result[0]['output']:
                         return True
                     elif status_type == 'SOFT' and int(result[0]['status_confirmed']) == 0 and output in result[0]['output']:
