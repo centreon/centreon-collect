@@ -255,7 +255,7 @@ jobs:
           script: |
             const getStability = (branchName) => {
               switch (true) {
-                case /(^MON-163662-package-centreon-common-in-dedicated-workflow$)/(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)/.test(branchName):
+                case /(^MON-163662-package-centreon-common-in-dedicated-workflow$)|(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)/.test(branchName):
                   return 'unstable';
                 case /(^release.+)|(^hotfix.+)/.test(branchName):
                   return 'testing';
