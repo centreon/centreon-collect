@@ -42,7 +42,6 @@ add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-else()
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # Enable debug symbol retention on Windows in Release builds, the compiler and
     # linker will automatically silo them into a .pdb file and not the executable.
