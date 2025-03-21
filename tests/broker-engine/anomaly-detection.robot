@@ -26,7 +26,7 @@ ANO_NOFILE
     Ctn Start engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Ctn Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Ctn Stop engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
@@ -66,7 +66,7 @@ ANO_TOO_OLD_FILE
     Ctn Start engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Ctn Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Ctn Stop engine
 
 ANO_OUT_LOWER_THAN_LIMIT
@@ -86,7 +86,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Start engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Ctn Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Ctn Stop engine
 
 ANO_OUT_UPPER_THAN_LIMIT
@@ -106,7 +106,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Start engine
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Ctn Stop Broker    True
+    Ctn Kindly Stop Broker    True
     Ctn Stop engine
 
 ANO_JSON_SENSITIVITY_NOT_SAVED

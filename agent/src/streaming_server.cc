@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include "agent_info.hh"
 #include "streaming_server.hh"
+#include "agent_info.hh"
 #include "scheduler.hh"
 
 using namespace com::centreon::agent;
@@ -105,7 +105,8 @@ std::shared_ptr<server_reactor> server_reactor::load(
 
 void server_reactor::on_incomming_request(
     const std::shared_ptr<MessageToAgent>& request) {
-  _io_context->post([sched = _sched, request]() { sched->update(request); });
+  asio::post(*_io_context,
+             [sched = _sched, request]() { sched->update(request); });
 }
 
 void server_reactor::on_error() {
