@@ -140,6 +140,9 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
+    std::ofstream f(proto_conf / "state.prot", std::ios::binary);
+    pb_config.SerializeToOstream(&f);
+    f.close();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
