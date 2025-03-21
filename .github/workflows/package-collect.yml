@@ -242,7 +242,7 @@ jobs:
         run: |
           ls -lah packaging/
           rm -f packaging/centreon-{connector,*-selinux*,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
-          rm -f packaging/centreon-collect/*
+          rm -rf packaging/centreon-collect/*
         shell: bash
 
       - name: Packages
