@@ -33,13 +33,15 @@ class msg_fmt : public std::exception {
 
  public:
   template <typename... Args>
-  explicit msg_fmt(const std::string& str, const Args&... args)
-      : _msg(fmt::format(str, args...)) {}
+  explicit msg_fmt(std::string_view str, const Args&... args)
+      : _msg(fmt::vformat(str, fmt::make_format_args(args...))) {}
 
   msg_fmt() = delete;
   msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
   msg_fmt& operator=(const msg_fmt&) = delete;
-  const char* what() const noexcept final { return _msg.c_str(); }
+  const char* what() const noexcept final {
+    return _msg.c_str();
+  }
 };
 }  // namespace com::centreon::exceptions
 

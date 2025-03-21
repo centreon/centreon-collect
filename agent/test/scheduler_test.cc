@@ -70,7 +70,7 @@ class tempo_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
-    _completion_timer.expires_from_now(_completion_delay);
+    _completion_timer.expires_after(_completion_delay);
     _completion_timer.async_wait([me = shared_from_this(), this,
                                   check_running_index =
                                       _get_running_check_index()](
@@ -431,7 +431,7 @@ class concurent_check : public check {
     if (active_checks.size() > max_active_check) {
       max_active_check = active_checks.size();
     }
-    _completion_timer.expires_from_now(_completion_delay);
+    _completion_timer.expires_after(_completion_delay);
     _completion_timer.async_wait([me = shared_from_this(), this,
                                   check_running_index =
                                       _get_running_check_index()](
