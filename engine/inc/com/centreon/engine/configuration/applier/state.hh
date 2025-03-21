@@ -49,6 +49,9 @@ class state {
   void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
+  void apply_diff(configuration::DiffState& diff_conf,
+                  error_cnt& err,
+                  retention::state* state = nullptr);
   void apply_log_config(configuration::State& new_cfg);
   static state& instance();
   void clear();
@@ -87,6 +90,7 @@ class state {
   template <typename ConfigurationType, typename Key, typename ApplierType>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
+  void _apply_ng(const DiffSeverity& diff, error_cnt& err);
   void _apply(configuration::State& new_cfg,
               retention::state& state,
               error_cnt& err);
@@ -95,6 +99,9 @@ class state {
   void _processing(configuration::State& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);
+  void _processing_diff(configuration::DiffState& diff_conf,
+                        error_cnt& err,
+                        retention::state* state = nullptr);
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(
       const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
