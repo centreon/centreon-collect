@@ -46,7 +46,7 @@ jobs:
             image: packaging-centreon-collect-jammy
             distrib: jammy
           - package_extension: deb
-            image: packaging-centreon-collect-noblre
+            image: packaging-centreon-collect-noble
             distrib: noble
 
     runs-on: ubuntu-24.04
