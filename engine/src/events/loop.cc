@@ -2,7 +2,7 @@
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2013 Merethis
- * Copyright 2013-2024 Centreon
+ * Copyright 2013-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -122,9 +122,12 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
   process_logger->info("Starting to reload configuration.");
   try {
     process_logger->info("Configuration reloaded, main loop continuing.");
+    configuration::applier::state::instance().apply_diff(*diff_conf, err);
   } catch (const std::exception& e) {
     config_logger->error("Error: {}", e.what());
   }
+  *reloading = false;
+  process_logger->info("Reload configuration finished.");
 }
 
 /**

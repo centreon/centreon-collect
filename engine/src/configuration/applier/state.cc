@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2024 Centreon
+ * Copyright 2011-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
 #include "common/log_v2/log_v2.hh"
+#include "state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -127,6 +128,31 @@ void applier::state::apply(configuration::State& new_cfg,
     if (_processing_state == state_error) {
       config_logger->debug("configuration: try to restore old configuration");
       _processing(save, err, state);
+    }
+  }
+}
+
+void applier::state::apply_diff(configuration::DiffState& diff_conf,
+                                error_cnt& err,
+                                retention::state* state) {
+  configuration::State save;
+  save.CopyFrom(pb_config);
+  try {
+    _processing_state = state_ready;
+    _processing_diff(diff_conf, err);
+  } catch (const std::exception& e) {
+    // If is the first time to load configuration, we don't
+    // have a valid configuration to restore.
+    if (!has_already_been_loaded)
+      throw;
+
+    // If is not the first time, we can restore the old one.
+    config_logger->error("Cannot apply new configuration: {}", e.what());
+
+    // Check if we need to restore old configuration.
+    if (_processing_state == state_error) {
+      config_logger->debug("configuration: try to restore old configuration");
+      _processing(save, err);
     }
   }
 }
@@ -587,6 +613,65 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   }
 }
 
+void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
+  // Applier.
+  configuration::applier::severity aplyr;
+
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, Severity*>
+      current_severities;
+  for (auto& s : *pb_config.mutable_severities())
+    current_severities[{s.key().id(), s.key().type()}] = &s;
+
+  // Modify objects.
+  for (auto& s : diff.modified()) {
+    if (!verify_config) {
+      aplyr.modify_object(current_severities[{s.key().id(), s.key().type()}],
+                          s);
+    } else {
+      try {
+        aplyr.modify_object(current_severities[{s.key().id(), s.key().type()}],
+                            s);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        config_logger->info(e.what());
+      }
+    }
+  }
+
+  // Erase objects.
+  for (auto& r : diff.removed()) {
+    uint32_t idx = 0;
+    for (auto& s : pb_config.severities()) {
+      if (r.id() == s.key().id() && r.type() == s.key().type()) {
+        if (!verify_config)
+          aplyr.remove_object(idx);
+        else {
+          try {
+            aplyr.remove_object(idx);
+          } catch (const std::exception& e) {
+            ++err.config_errors;
+            config_logger->info(e.what());
+          }
+        }
+      }
+      idx++;
+    }
+  }
+
+  // Add objects.
+  for (auto& obj : diff.added()) {
+    if (!verify_config)
+      aplyr.add_object(obj);
+    else {
+      try {
+        aplyr.add_object(obj);
+      } catch (const std::exception& e) {
+        ++err.config_errors;
+        config_logger->info(e.what());
+      }
+    }
+  }
+}
 #ifdef DEBUG_CONFIG
 /**
  *  A method to check service escalations pointers of each service are well
@@ -1618,6 +1703,21 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
+}
+
+void applier::state::_processing_diff(configuration::DiffState& diff_conf,
+                                      error_cnt& err,
+                                      retention::state* state) {
+  if (diff_conf.has_state()) {
+    /* The previous version wasn't known by broker, the diff contains the full
+     * state. So let's parse it as usual. */
+    config_logger->debug("Processing full configuration from diff.");
+    _processing(*diff_conf.mutable_state(), err, state);
+    return;
+  }
+
+  /* The full state was not sent by Broker. */
+  _apply_ng(*diff_conf.mutable_severities(), err);
 }
 
 /**
