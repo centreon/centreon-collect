@@ -51,7 +51,8 @@ using namespace com::centreon::engine::logging;
 int check_for_external_commands() {
   functions_logger->trace("check_for_external_commands()");
 
-  bool check_external_commands = pb_config.check_external_commands();
+  bool check_external_commands =
+      pb_indexed_config.state().check_external_commands();
 
   /* bail out if we shouldn't be checking for external commands */
   if (!check_external_commands)
@@ -495,7 +496,7 @@ int cmd_process_service_check_result(int cmd [[maybe_unused]],
                                      time_t check_time,
                                      char* args) {
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
+      pb_indexed_config.state().accept_passive_service_checks();
 
   /* skip this service check result if we aren't accepting passive service
    * checks */
@@ -607,7 +608,7 @@ int process_passive_service_check(time_t check_time,
   char const* real_host_name(nullptr);
 
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
+      pb_indexed_config.state().accept_passive_service_checks();
 
   /* skip this service check result if we aren't accepting passive service
    * checks */
@@ -749,7 +750,7 @@ int process_passive_host_check(time_t check_time,
   char const* real_host_name(nullptr);
 
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
+      pb_indexed_config.state().accept_passive_service_checks();
 
   /* skip this host check result if we aren't accepting passive host checks */
   if (!accept_passive_service_checks)
@@ -1920,13 +1921,13 @@ int cmd_change_object_char_var(int cmd, char* args) {
   /* update the variable */
   switch (cmd) {
     case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
-      pb_config.set_global_host_event_handler(temp_ptr);
+      pb_indexed_config.state().set_global_host_event_handler(temp_ptr);
       global_host_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 
     case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
-      pb_config.set_global_service_event_handler(temp_ptr);
+      pb_indexed_config.state().set_global_service_event_handler(temp_ptr);
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
@@ -2234,7 +2235,7 @@ void enable_service_checks(service* svc) {
 void enable_all_notifications(void) {
   constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
 
   /* bail out if we're already set... */
   if (enable_notifications)
@@ -2245,7 +2246,7 @@ void enable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
-  pb_config.set_enable_notifications(true);
+  pb_indexed_config.state().set_enable_notifications(true);
 
   /* update the status log */
   update_program_status(false);
@@ -2255,7 +2256,7 @@ void enable_all_notifications(void) {
 void disable_all_notifications(void) {
   constexpr uint32_t attr = MODATTR_NOTIFICATIONS_ENABLED;
 
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
 
   /* bail out if we're already set... */
   if (!enable_notifications)
@@ -2266,7 +2267,7 @@ void disable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
-  pb_config.set_enable_notifications(false);
+  pb_indexed_config.state().set_enable_notifications(false);
 
   /* update the status log */
   update_program_status(false);
@@ -2618,7 +2619,8 @@ void remove_service_acknowledgement(service* svc) {
 void start_executing_service_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
-  bool execute_service_checks = pb_config.execute_service_checks();
+  bool execute_service_checks =
+      pb_indexed_config.state().execute_service_checks();
 
   /* bail out if we're already executing services */
   if (execute_service_checks)
@@ -2628,7 +2630,7 @@ void start_executing_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
-  pb_config.set_execute_service_checks(true);
+  pb_indexed_config.state().set_execute_service_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2638,7 +2640,8 @@ void start_executing_service_checks(void) {
 void stop_executing_service_checks(void) {
   unsigned long attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
-  bool execute_service_checks = pb_config.execute_service_checks();
+  bool execute_service_checks =
+      pb_indexed_config.state().execute_service_checks();
 
   /* bail out if we're already not executing services */
   if (!execute_service_checks)
@@ -2648,7 +2651,7 @@ void stop_executing_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
-  pb_config.set_execute_service_checks(false);
+  pb_indexed_config.state().set_execute_service_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2659,7 +2662,7 @@ void start_accepting_passive_service_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
+      pb_indexed_config.state().accept_passive_service_checks();
 
   /* bail out if we're already accepting passive services */
   if (accept_passive_service_checks)
@@ -2669,7 +2672,7 @@ void start_accepting_passive_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
-  pb_config.set_accept_passive_service_checks(true);
+  pb_indexed_config.state().set_accept_passive_service_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2680,7 +2683,7 @@ void stop_accepting_passive_service_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
+      pb_indexed_config.state().accept_passive_service_checks();
 
   /* bail out if we're already not accepting passive services */
   if (!accept_passive_service_checks)
@@ -2690,7 +2693,7 @@ void stop_accepting_passive_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
-  pb_config.set_accept_passive_service_checks(false);
+  pb_indexed_config.state().set_accept_passive_service_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2738,7 +2741,7 @@ void disable_passive_service_checks(service* svc) {
 void start_executing_host_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
-  bool execute_host_checks = pb_config.execute_host_checks();
+  bool execute_host_checks = pb_indexed_config.state().execute_host_checks();
 
   /* bail out if we're already executing hosts */
   if (execute_host_checks)
@@ -2748,7 +2751,7 @@ void start_executing_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
-  pb_config.set_execute_host_checks(true);
+  pb_indexed_config.state().set_execute_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2758,7 +2761,7 @@ void start_executing_host_checks(void) {
 void stop_executing_host_checks(void) {
   constexpr uint32_t attr = MODATTR_ACTIVE_CHECKS_ENABLED;
 
-  bool execute_host_checks = pb_config.execute_host_checks();
+  bool execute_host_checks = pb_indexed_config.state().execute_host_checks();
   /* bail out if we're already not executing hosts */
   if (!execute_host_checks)
     return;
@@ -2767,7 +2770,7 @@ void stop_executing_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
-  pb_config.set_execute_host_checks(true);
+  pb_indexed_config.state().set_execute_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2777,7 +2780,8 @@ void stop_executing_host_checks(void) {
 void start_accepting_passive_host_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
-  bool accept_passive_host_checks = pb_config.accept_passive_host_checks();
+  bool accept_passive_host_checks =
+      pb_indexed_config.state().accept_passive_host_checks();
 
   /* bail out if we're already accepting passive hosts */
   if (accept_passive_host_checks)
@@ -2787,7 +2791,7 @@ void start_accepting_passive_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
-  pb_config.set_accept_passive_host_checks(true);
+  pb_indexed_config.state().set_accept_passive_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2797,7 +2801,8 @@ void start_accepting_passive_host_checks(void) {
 void stop_accepting_passive_host_checks(void) {
   constexpr uint32_t attr = MODATTR_PASSIVE_CHECKS_ENABLED;
 
-  bool accept_passive_host_checks = pb_config.accept_passive_host_checks();
+  bool accept_passive_host_checks =
+      pb_indexed_config.state().accept_passive_host_checks();
 
   /* bail out if we're already not accepting passive hosts */
   if (!accept_passive_host_checks)
@@ -2807,7 +2812,7 @@ void stop_accepting_passive_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
-  pb_config.set_accept_passive_host_checks(false);
+  pb_indexed_config.state().set_accept_passive_host_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2855,7 +2860,8 @@ void disable_passive_host_checks(host* hst) {
 void start_using_event_handlers(void) {
   constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
-  bool enable_event_handlers = pb_config.enable_event_handlers();
+  bool enable_event_handlers =
+      pb_indexed_config.state().enable_event_handlers();
 
   /* no change */
   if (enable_event_handlers)
@@ -2866,7 +2872,7 @@ void start_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
-  pb_config.set_enable_event_handlers(true);
+  pb_indexed_config.state().set_enable_event_handlers(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2876,7 +2882,8 @@ void start_using_event_handlers(void) {
 void stop_using_event_handlers(void) {
   constexpr uint32_t attr = MODATTR_EVENT_HANDLER_ENABLED;
 
-  bool enable_event_handlers = pb_config.enable_event_handlers();
+  bool enable_event_handlers =
+      pb_indexed_config.state().enable_event_handlers();
 
   /* no change */
   if (!enable_event_handlers)
@@ -2887,7 +2894,7 @@ void stop_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
-  pb_config.set_enable_event_handlers(false);
+  pb_indexed_config.state().set_enable_event_handlers(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3035,7 +3042,7 @@ void enable_host_checks(host* hst) {
 void start_obsessing_over_service_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
-  bool obsess_over_services = pb_config.obsess_over_services();
+  bool obsess_over_services = pb_indexed_config.state().obsess_over_services();
 
   /* no change */
   if (obsess_over_services)
@@ -3045,7 +3052,7 @@ void start_obsessing_over_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
-  pb_config.set_obsess_over_services(true);
+  pb_indexed_config.state().set_obsess_over_services(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3055,7 +3062,7 @@ void start_obsessing_over_service_checks(void) {
 void stop_obsessing_over_service_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
-  bool obsess_over_services = pb_config.obsess_over_services();
+  bool obsess_over_services = pb_indexed_config.state().obsess_over_services();
 
   /* no change */
   if (!obsess_over_services)
@@ -3065,7 +3072,7 @@ void stop_obsessing_over_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
-  pb_config.set_obsess_over_services(false);
+  pb_indexed_config.state().set_obsess_over_services(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3075,7 +3082,7 @@ void stop_obsessing_over_service_checks(void) {
 void start_obsessing_over_host_checks(void) {
   unsigned long attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
-  bool obsess_over_hosts = pb_config.obsess_over_hosts();
+  bool obsess_over_hosts = pb_indexed_config.state().obsess_over_hosts();
 
   /* no change */
   if (obsess_over_hosts)
@@ -3085,7 +3092,7 @@ void start_obsessing_over_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
-  pb_config.set_obsess_over_hosts(true);
+  pb_indexed_config.state().set_obsess_over_hosts(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3095,7 +3102,7 @@ void start_obsessing_over_host_checks(void) {
 void stop_obsessing_over_host_checks(void) {
   constexpr uint32_t attr = MODATTR_OBSESSIVE_HANDLER_ENABLED;
 
-  bool obsess_over_hosts = pb_config.obsess_over_hosts();
+  bool obsess_over_hosts = pb_indexed_config.state().obsess_over_hosts();
 
   /* no change */
   if (!obsess_over_hosts)
@@ -3105,7 +3112,7 @@ void stop_obsessing_over_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
-  pb_config.set_obsess_over_hosts(false);
+  pb_indexed_config.state().set_obsess_over_hosts(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3115,7 +3122,8 @@ void stop_obsessing_over_host_checks(void) {
 void enable_service_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
-  bool check_service_freshness = pb_config.check_service_freshness();
+  bool check_service_freshness =
+      pb_indexed_config.state().check_service_freshness();
 
   /* no change */
   if (check_service_freshness)
@@ -3125,7 +3133,7 @@ void enable_service_freshness_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_config.set_check_service_freshness(true);
+  pb_indexed_config.state().set_check_service_freshness(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3135,7 +3143,8 @@ void enable_service_freshness_checks(void) {
 void disable_service_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
-  bool check_service_freshness = pb_config.check_service_freshness();
+  bool check_service_freshness =
+      pb_indexed_config.state().check_service_freshness();
 
   /* no change */
   if (!check_service_freshness)
@@ -3145,7 +3154,7 @@ void disable_service_freshness_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_config.set_check_service_freshness(false);
+  pb_indexed_config.state().set_check_service_freshness(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3155,7 +3164,7 @@ void disable_service_freshness_checks(void) {
 void enable_host_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
-  bool check_host_freshness = pb_config.check_host_freshness();
+  bool check_host_freshness = pb_indexed_config.state().check_host_freshness();
 
   /* no change */
   if (check_host_freshness)
@@ -3165,7 +3174,7 @@ void enable_host_freshness_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_config.set_check_host_freshness(true);
+  pb_indexed_config.state().set_check_host_freshness(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3175,7 +3184,7 @@ void enable_host_freshness_checks(void) {
 void disable_host_freshness_checks(void) {
   constexpr uint32_t attr = MODATTR_FRESHNESS_CHECKS_ENABLED;
 
-  bool check_host_freshness = pb_config.check_host_freshness();
+  bool check_host_freshness = pb_indexed_config.state().check_host_freshness();
 
   /* no change */
   if (!check_host_freshness)
@@ -3185,7 +3194,7 @@ void disable_host_freshness_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_config.set_check_host_freshness(false);
+  pb_indexed_config.state().set_check_host_freshness(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3195,7 +3204,8 @@ void disable_host_freshness_checks(void) {
 void enable_performance_data(void) {
   constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
-  bool process_performance_data = pb_config.process_performance_data();
+  bool process_performance_data =
+      pb_indexed_config.state().process_performance_data();
 
   /* bail out if we're already set... */
   if (process_performance_data)
@@ -3205,7 +3215,7 @@ void enable_performance_data(void) {
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
-  pb_config.set_process_performance_data(true);
+  pb_indexed_config.state().set_process_performance_data(true);
 
   /* update the status log */
   update_program_status(false);
@@ -3215,7 +3225,8 @@ void enable_performance_data(void) {
 void disable_performance_data(void) {
   constexpr uint32_t attr = MODATTR_PERFORMANCE_DATA_ENABLED;
 
-  bool process_performance_data = pb_config.process_performance_data();
+  bool process_performance_data =
+      pb_indexed_config.state().process_performance_data();
 
   /* bail out if we're already set... */
   if (!process_performance_data)
@@ -3225,7 +3236,7 @@ void disable_performance_data(void) {
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
-  pb_config.set_process_performance_data(false);
+  pb_indexed_config.state().set_process_performance_data(false);
 
   /* update the status log */
   update_program_status(false);

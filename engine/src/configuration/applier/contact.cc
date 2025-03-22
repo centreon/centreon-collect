@@ -45,7 +45,7 @@ void applier::contact::add_object(const configuration::Contact& obj) {
   config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
-  configuration::Contact* ct_cfg = pb_config.add_contacts();
+  configuration::Contact* ct_cfg = pb_indexed_config.state().add_contacts();
   ct_cfg->CopyFrom(obj);
 
   // Create address list.
@@ -293,7 +293,7 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
 void applier::contact::remove_object(ssize_t idx) {
-  const configuration::Contact& obj = pb_config.contacts()[idx];
+  const configuration::Contact& obj = pb_indexed_config.state().contacts()[idx];
 
   // Logging.
   config_logger->debug("Removing contact '{}'.", obj.contact_name());
@@ -311,7 +311,7 @@ void applier::contact::remove_object(ssize_t idx) {
   }
 
   // Remove contact from the global configuration set.
-  pb_config.mutable_contacts()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_contacts()->DeleteSubrange(idx, 1);
 }
 
 /**

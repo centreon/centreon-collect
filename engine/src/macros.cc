@@ -674,7 +674,8 @@ std::string clean_macro_chars(std::string const& macro, int options) {
         continue;
 
       /* illegal user-specified characters */
-      if (pb_config.illegal_output_chars().find(ch) == std::string::npos)
+      if (pb_indexed_config.state().illegal_output_chars().find(ch) ==
+          std::string::npos)
         retval[y++] = retval[x];
     }
 

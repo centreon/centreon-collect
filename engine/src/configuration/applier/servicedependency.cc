@@ -67,7 +67,7 @@ void applier::servicedependency::add_object(
       obj.hosts().data()[0]);
 
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_config.add_servicedependencies();
+  auto* new_obj = pb_indexed_config.state().add_servicedependencies();
   new_obj->CopyFrom(obj);
 
   std::shared_ptr<engine::servicedependency> sd;
@@ -214,7 +214,7 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   config_logger->debug("Removing a service dependency.");
 
   // Find service dependency.
-  auto& obj = pb_config.servicedependencies(idx);
+  auto& obj = pb_indexed_config.state().servicedependencies(idx);
   size_t key = servicedependency_key(obj);
 
   servicedependency_mmap::iterator it =
@@ -227,7 +227,8 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   }
 
   // Remove dependency from the global configuration set.
-  pb_config.mutable_servicedependencies()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_servicedependencies()->DeleteSubrange(idx,
+                                                                          1);
 }
 
 /**

@@ -57,7 +57,7 @@ void applier::service::add_object(const configuration::Service& obj) {
                        obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
-  auto* cfg_svc = pb_config.add_services();
+  auto* cfg_svc = pb_indexed_config.state().add_services();
   cfg_svc->CopyFrom(obj);
 
   // Create service.
@@ -100,7 +100,7 @@ void applier::service::add_object(const configuration::Service& obj) {
   engine::service::services[{obj.host_name(), obj.service_description()}]
       ->set_service_id(obj.service_id());
   svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                   pb_config.interval_length());
+                                   pb_indexed_config.state().interval_length());
   svc->set_last_acknowledgement(0);
 
   // Add contacts.
@@ -306,7 +306,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_host_id(new_obj.host_id());
   s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   s->set_icon_id(new_obj.icon_id());
 
@@ -411,7 +411,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
  *                  engine.
  */
 void applier::service::remove_object(ssize_t idx) {
-  Service& obj = pb_config.mutable_services()->at(idx);
+  Service& obj = pb_indexed_config.state().mutable_services()->at(idx);
   const std::string& host_name = obj.host_name();
   const std::string& service_description = obj.service_description();
 
@@ -420,7 +420,7 @@ void applier::service::remove_object(ssize_t idx) {
                        service_description, host_name);
 
   // Find anomaly detections depending on this service
-  for (auto cad : pb_config.anomalydetections()) {
+  for (auto cad : pb_indexed_config.state().anomalydetections()) {
     if (cad.host_id() == obj.host_id() &&
         cad.dependent_service_id() == obj.service_id()) {
       auto ad = engine::service::services_by_id.find(
@@ -462,7 +462,7 @@ void applier::service::remove_object(ssize_t idx) {
   }
 
   // Remove service from the global configuration set.
-  pb_config.mutable_services()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_services()->DeleteSubrange(idx, 1);
 }
 
 /**

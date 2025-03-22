@@ -23,6 +23,7 @@
 
 #include "com/centreon/broker/neb/cbmod.hh"
 #include "com/centreon/engine/circular_buffer.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
@@ -48,7 +49,7 @@ extern std::shared_ptr<spdlog::logger> process_logger;
 extern std::shared_ptr<spdlog::logger> runtime_logger;
 extern std::shared_ptr<spdlog::logger> otel_logger;
 
-extern com::centreon::engine::configuration::State pb_config;
+extern com::centreon::engine::configuration::indexed_state pb_indexed_config;
 extern std::string config_file;
 /* Directory of the serialized protobuf Engine configuration, we consider we
  * are in new generation configuration if it is not empty */

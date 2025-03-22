@@ -83,7 +83,7 @@ int command_manager::process_passive_service_check(
 
   /* skip this service check result if we aren't accepting passive service
    * checks */
-  if (!pb_config.accept_passive_service_checks())
+  if (!pb_indexed_config.state().accept_passive_service_checks())
     return ERROR;
 
   /* make sure we have a reasonable return code */
@@ -174,7 +174,7 @@ int command_manager::process_passive_host_check(time_t check_time,
   const std::string* real_host_name = nullptr;
 
   /* skip this host check result if we aren't accepting passive host checks */
-  if (!pb_config.accept_passive_service_checks())
+  if (!pb_indexed_config.state().accept_passive_service_checks())
     return ERROR;
 
   /* make sure we have a reasonable return code */
@@ -288,12 +288,12 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     uint32_t used_external_command_buffer_slots = 0;
     uint32_t high_external_command_buffer_slots = 0;
     // get number f items in the command buffer
-    if (pb_config.check_external_commands()) {
+    if (pb_indexed_config.state().check_external_commands()) {
       used_external_command_buffer_slots = external_command_buffer.size();
       high_external_command_buffer_slots = external_command_buffer.high();
     }
     response->mutable_program_status()->set_total_external_command_buffer_slots(
-        pb_config.external_command_buffer_slots());
+        pb_indexed_config.state().external_command_buffer_slots());
     response->mutable_program_status()->set_used_external_command_buffer_slots(
         used_external_command_buffer_slots);
     response->mutable_program_status()->set_high_external_command_buffer_slots(
