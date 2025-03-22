@@ -46,18 +46,18 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern configuration::State pb_config;
+extern configuration::indexed_state pb_indexed_config;
 
 class PbServiceRetention : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
 
-    pb_config.clear_contacts();
+    pb_indexed_config.state().clear_contacts();
     configuration::applier::contact ct_aply;
     configuration::Contact ctct = new_pb_configuration_contact("admin", true);
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    ct_aply.expand_objects(pb_indexed_config.state());
     configuration::error_cnt err;
     ct_aply.resolve_object(ctct, err);
 

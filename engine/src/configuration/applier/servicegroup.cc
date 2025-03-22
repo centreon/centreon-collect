@@ -70,7 +70,7 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
                        obj.servicegroup_name());
 
   // Add service group to the global configuration set.
-  auto* new_obj = pb_config.add_servicegroups();
+  auto* new_obj = pb_indexed_config.state().add_servicegroups();
   new_obj->CopyFrom(obj);
 
   // Create servicegroup.
@@ -180,7 +180,7 @@ void applier::servicegroup::modify_object(
  */
 void applier::servicegroup::remove_object(ssize_t idx) {
   // Logging.
-  auto obj = pb_config.servicegroups(idx);
+  auto obj = pb_indexed_config.state().servicegroups(idx);
   config_logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
 
   // Find service group.
@@ -195,7 +195,7 @@ void applier::servicegroup::remove_object(ssize_t idx) {
   }
 
   // Remove service group from the global configuration state.
-  pb_config.mutable_servicegroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_servicegroups()->DeleteSubrange(idx, 1);
 }
 
 void applier::servicegroup::resolve_object(

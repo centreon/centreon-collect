@@ -92,7 +92,7 @@ TEST_F(ApplierPbContact, PbModifyUnexistingContactFromConfig) {
   ctct.set_contact_name("test");
   fill_string_group(ctct.mutable_contactgroups(), "test_group");
   fill_string_group(ctct.mutable_host_notification_commands(), "cmd1,cmd2");
-  configuration::Contact* cfg = pb_config.add_contacts();
+  configuration::Contact* cfg = pb_indexed_config.state().add_contacts();
   cfg->CopyFrom(ctct);
   ASSERT_THROW(aply.modify_object(cfg, ctct), std::exception);
 }
@@ -125,13 +125,13 @@ TEST_F(ApplierPbContact, PbRemoveContactFromConfig) {
   cv->set_value("superValue");
   aply_grp.add_object(grp);
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
   ASSERT_EQ(my_contact->get_addresses().size(), 3u);
   int idx;
   bool found = false;
-  for (idx = 0; idx < pb_config.contacts().size(); idx++) {
-    if (pb_config.contacts()[idx].contact_name() == "test") {
+  for (idx = 0; idx < pb_indexed_config.state().contacts().size(); idx++) {
+    if (pb_indexed_config.state().contacts()[idx].contact_name() == "test") {
       found = true;
       break;
     }
@@ -171,7 +171,7 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
 
   aply_grp.add_object(grp);
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ctct_hlp.hook("host_notification_commands", "cmd");
   ctct_hlp.hook("service_notification_commands", "svc1,svc2");
   ASSERT_TRUE(ctct_hlp.insert_customvariable("_superVar", "Super"));
@@ -179,23 +179,24 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ctct.set_alias("newAlias");
   ASSERT_EQ(ctct.customvariables().size(), 2u);
   ctct_hlp.hook("service_notification_options", "n");
-  aply.modify_object(&*pb_config.mutable_contacts()->begin(), ctct);
+  aply.modify_object(&*pb_indexed_config.state().mutable_contacts()->begin(),
+                     ctct);
   contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
   ASSERT_EQ(ct_it->second->get_custom_variables()["superVar"].value(),
-              std::string_view("Super"));
+            std::string_view("Super"));
   ASSERT_EQ(ct_it->second->get_custom_variables()["superVar1"].value(),
-              std::string_view("Super1"));
+            std::string_view("Super1"));
   ASSERT_EQ(ct_it->second->get_alias(), std::string_view("newAlias"));
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
                                         notifier::unknown));
 
   bool found = false;
-  for (auto it = (*pb_config.mutable_commands()).begin();
-       it != (*pb_config.mutable_commands()).end(); ++it) {
+  for (auto it = (*pb_indexed_config.state().mutable_commands()).begin();
+       it != (*pb_indexed_config.state().mutable_commands()).end(); ++it) {
     if (it->command_name() == "cmd") {
-      pb_config.mutable_commands()->erase(it);
+      pb_indexed_config.state().mutable_commands()->erase(it);
       found = true;
       break;
     }
@@ -208,7 +209,7 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   configuration::applier::command aplyr;
   aplyr.add_object(cmd);
   ctct_hlp.hook("host_notification_commands", "cmd");
-  auto* old_ct = &pb_config.mutable_contacts()->at(0);
+  auto* old_ct = &pb_indexed_config.state().mutable_contacts()->at(0);
   ASSERT_TRUE(old_ct->contact_name() == "test");
   aply.modify_object(old_ct, ctct);
   {
@@ -242,7 +243,7 @@ TEST_F(ApplierPbContact, PbResolveContactFromConfig) {
   fill_string_group(ctct.mutable_host_notification_commands(), "cmd2");
   aply_grp.add_object(grp);
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
 }
 
@@ -262,7 +263,7 @@ TEST_F(ApplierPbContact, PbResolveContactNoNotification) {
   configuration::contact_helper ctct_hlp(&ctct);
   ctct.set_contact_name("test");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
   ASSERT_EQ(err.config_warnings, 2);
   ASSERT_EQ(err.config_errors, 2);
@@ -283,7 +284,7 @@ TEST_F(ApplierPbContact, PbResolveValidContact) {
   configuration::applier::contact aply;
   configuration::Contact ctct(valid_pb_contact_config());
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_NO_THROW(aply.resolve_object(ctct, err));
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -300,7 +301,7 @@ TEST_F(ApplierPbContact, PbResolveNonExistingServiceNotificationTimeperiod) {
   configuration::Contact ctct(valid_pb_contact_config());
   ctct.set_service_notification_period("non_existing_period");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -317,7 +318,7 @@ TEST_F(ApplierPbContact, PbResolveNonExistingHostNotificationTimeperiod) {
   configuration::Contact ctct(valid_pb_contact_config());
   ctct.set_host_notification_period("non_existing_period");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -335,7 +336,7 @@ TEST_F(ApplierPbContact, PbResolveNonExistingServiceCommand) {
   fill_string_group(ctct.mutable_service_notification_commands(),
                     "non_existing_command");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -353,7 +354,7 @@ TEST_F(ApplierPbContact, PbResolveNonExistingHostCommand) {
   fill_string_group(ctct.mutable_host_notification_commands(),
                     "non_existing_command");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   ASSERT_THROW(aply.resolve_object(ctct, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -422,7 +423,7 @@ TEST_F(ApplierPbContact, PbContactWithOnlyHostRecoveryNotification) {
   ctct.set_host_notifications_enabled("1");
   ctct.set_service_notifications_enabled("1");
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   aply.resolve_object(ctct, err);
   ASSERT_EQ(err.config_warnings, 1);
   ASSERT_EQ(err.config_errors, 0);
@@ -445,7 +446,7 @@ TEST_F(ApplierPbContact, PbContactWithOnlyServiceRecoveryNotification) {
   ctct.set_host_notifications_enabled(true);
   ctct.set_service_notifications_enabled(true);
   aply.add_object(ctct);
-  aply.expand_objects(pb_config);
+  aply.expand_objects(pb_indexed_config.state());
   aply.resolve_object(ctct, err);
   ASSERT_EQ(err.config_warnings, 1);
   ASSERT_EQ(err.config_errors, 0);

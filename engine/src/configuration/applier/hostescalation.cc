@@ -45,7 +45,7 @@ void applier::hostescalation::add_object(
                        obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
-  auto* new_obj = pb_config.add_hostescalations();
+  auto* new_obj = pb_indexed_config.state().add_hostescalations();
   new_obj->CopyFrom(obj);
 
   size_t key = hostescalation_key(obj);
@@ -135,7 +135,8 @@ void applier::hostescalation::modify_object(
  *                  engine.
  */
 void applier::hostescalation::remove_object(ssize_t idx) {
-  configuration::Hostescalation obj = pb_config.hostescalations(idx);
+  configuration::Hostescalation obj =
+      pb_indexed_config.state().hostescalations(idx);
   // Logging.
   config_logger->debug("Removing a host escalation.");
 
@@ -193,7 +194,7 @@ void applier::hostescalation::remove_object(ssize_t idx) {
   }
 
   /* And we clear the configuration */
-  pb_config.mutable_hostescalations()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hostescalations()->DeleteSubrange(idx, 1);
 }
 
 /**

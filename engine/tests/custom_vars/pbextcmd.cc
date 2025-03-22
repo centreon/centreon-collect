@@ -84,13 +84,13 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   command_map::iterator cmd_found{
       commands::command::commands.find("base_centreon_ping")};
   ASSERT_NE(cmd_found, commands::command::commands.end());
-  ASSERT_TRUE(pb_config.commands().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.state().commands().size() == 1);
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_config.hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.state().hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_config);
+  hst_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   hst_aply.resolve_object(hst, err);
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);

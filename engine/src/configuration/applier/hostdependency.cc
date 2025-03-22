@@ -53,7 +53,7 @@ void applier::hostdependency::add_object(
       obj.dependent_hosts().data(0), obj.hosts().data(0));
 
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_config.add_hostdependencies();
+  auto* new_obj = pb_indexed_config.state().add_hostdependencies();
   new_obj->CopyFrom(obj);
 
   std::shared_ptr<engine::hostdependency> hd;
@@ -193,7 +193,7 @@ void applier::hostdependency::remove_object(ssize_t idx) {
   config_logger->debug("Removing a host dependency.");
 
   // Find host dependency.
-  auto& obj = pb_config.hostdependencies(0);
+  auto& obj = pb_indexed_config.state().hostdependencies(0);
   size_t key = hostdependency_key(obj);
 
   hostdependency_mmap::iterator it =
@@ -205,7 +205,7 @@ void applier::hostdependency::remove_object(ssize_t idx) {
   }
 
   // Remove dependency from the global configuration set.
-  pb_config.mutable_hostdependencies()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hostdependencies()->DeleteSubrange(idx, 1);
 }
 
 /**

@@ -540,7 +540,7 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -549,7 +549,7 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  cg_aply.expand_objects(pb_indexed_config.state());
   cg_aply.resolve_object(cg, err);
 
   init_macros();
@@ -568,7 +568,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -577,7 +577,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  cg_aply.expand_objects(pb_indexed_config.state());
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -595,7 +595,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -604,7 +604,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  cg_aply.expand_objects(pb_indexed_config.state());
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -622,7 +622,7 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -631,7 +631,7 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_config);
+  cg_aply.expand_objects(pb_indexed_config.state());
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -654,7 +654,7 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -662,7 +662,7 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -717,7 +717,7 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -725,7 +725,7 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -780,7 +780,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -788,7 +788,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -839,14 +839,14 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
@@ -893,14 +893,14 @@ TEST_F(Macro, PbNotificationComment) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_config);
+  ct_aply.expand_objects(pb_indexed_config.state());
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};

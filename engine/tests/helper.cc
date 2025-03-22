@@ -32,22 +32,23 @@ using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 using log_v2_config = com::centreon::common::log_v2::config;
 
-extern configuration::State pb_config;
+extern configuration::indexed_state pb_indexed_config;
 
 void init_config_state() {
   /* Cleanup */
-  pb_config.Clear();
+  pb_indexed_config.state().Clear();
   if (!cbm)
     cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>("");
 
-  configuration::state_helper cfg_hlp(&pb_config);
-  pb_config.set_log_file_line(true);
-  pb_config.set_log_file("");
+  configuration::state_helper cfg_hlp(&pb_indexed_config.state());
+  pb_indexed_config.state().set_log_file_line(true);
+  pb_indexed_config.state().set_log_file("");
 
   log_v2_config log_conf("engine-tests",
                          log_v2_config::logger_type::LOGGER_STDOUT,
-                         pb_config.log_flush_period(), pb_config.log_pid(),
-                         pb_config.log_file_line());
+                         pb_indexed_config.state().log_flush_period(),
+                         pb_indexed_config.state().log_pid(),
+                         pb_indexed_config.state().log_file_line());
 
   log_conf.set_level("checks", "debug");
   log_conf.set_level("events", "trace");
@@ -56,13 +57,13 @@ void init_config_state() {
   log_v2::instance().apply(log_conf);
 
   // Hack to instanciate the logger.
-  configuration::applier::logging::instance().apply(pb_config);
+  configuration::applier::logging::instance().apply(pb_indexed_config.state());
 
   checks::checker::init(true);
 }
 
 void deinit_config_state(void) {
-  pb_config.Clear();
+  pb_indexed_config.state().Clear();
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
