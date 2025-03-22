@@ -46,7 +46,8 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
                          << "' has already been defined";
 
   // Add contact group to the global configuration set.
-  configuration::Contactgroup* c_cg = pb_config.add_contactgroups();
+  configuration::Contactgroup* c_cg =
+      pb_indexed_config.state().add_contactgroups();
   c_cg->CopyFrom(obj);
 
   // Create contact group.
@@ -142,7 +143,8 @@ void applier::contactgroup::modify_object(
  * @param idx The index of the contactgroup configuration to remove.
  */
 void applier::contactgroup::remove_object(ssize_t idx) {
-  const configuration::Contactgroup& obj = pb_config.contactgroups()[idx];
+  const configuration::Contactgroup& obj =
+      pb_indexed_config.state().contactgroups()[idx];
 
   // Logging.
   config_logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
@@ -162,7 +164,7 @@ void applier::contactgroup::remove_object(ssize_t idx) {
   }
 
   // Remove contact group from the global configuration set.
-  pb_config.mutable_contactgroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_contactgroups()->DeleteSubrange(idx, 1);
 }
 
 /**

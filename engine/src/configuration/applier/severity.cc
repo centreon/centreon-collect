@@ -41,7 +41,7 @@ void applier::severity::add_object(const configuration::Severity& obj) {
                        obj.key().type());
 
   // Add severity to the global configuration set.
-  auto* new_sv = pb_config.add_severities();
+  auto* new_sv = pb_indexed_config.state().add_severities();
   new_sv->CopyFrom(obj);
 
   auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
@@ -107,7 +107,8 @@ void applier::severity::modify_object(
  * @param idx The index of the object to remove.
  */
 void applier::severity::remove_object(ssize_t idx) {
-  const configuration::Severity& obj = pb_config.severities()[idx];
+  const configuration::Severity& obj =
+      pb_indexed_config.state().severities()[idx];
 
   // Logging.
 
@@ -129,5 +130,5 @@ void applier::severity::remove_object(ssize_t idx) {
   }
 
   // Remove severity from the global configuration set.
-  pb_config.mutable_severities()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_severities()->DeleteSubrange(idx, 1);
 }

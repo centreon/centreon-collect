@@ -76,8 +76,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
+  hst_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.expand_objects(pb_indexed_config.state());
 
   hst_aply.resolve_object(hst, err);
   svc_aply.resolve_object(svc, err);
@@ -130,8 +130,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
+  hst_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.expand_objects(pb_indexed_config.state());
 
   configuration::error_cnt err;
   hst_aply.resolve_object(hst, err);
@@ -185,8 +185,8 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(pb_config);
-  svc_aply.expand_objects(pb_config);
+  hst_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.expand_objects(pb_indexed_config.state());
 
   configuration::error_cnt err;
   hst_aply.resolve_object(hst, err);

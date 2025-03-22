@@ -53,7 +53,7 @@ class PbServiceCheck : public TestEngine {
   void SetUp() override {
     init_config_state();
 
-    pb_config.clear_contacts();
+    pb_indexed_config.state().clear_contacts();
     configuration::applier::contact ct_aply;
     configuration::Contact ctct = new_pb_configuration_contact("admin", true);
     ct_aply.add_object(ctct);
@@ -87,7 +87,7 @@ class PbServiceCheck : public TestEngine {
     _svc->set_notify_on(static_cast<uint32_t>(-1));
 
     // This is to not be bothered by host checks during service checks
-    pb_config.set_host_check_timeout(10000);
+    pb_indexed_config.state().set_host_check_timeout(10000);
   }
 
   void TearDown() override {

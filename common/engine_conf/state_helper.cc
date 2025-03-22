@@ -332,7 +332,6 @@ void state_helper::_init() {
   obj->set_log_v2_enabled(true);
   obj->set_log_legacy_enabled(false);
   obj->set_log_v2_logger("file");
-  obj->set_log_file("/var/log/centreon-engine");
   obj->set_log_level_functions(LogLevel::error);
   obj->set_log_level_config(LogLevel::info);
   obj->set_log_level_events(LogLevel::info);

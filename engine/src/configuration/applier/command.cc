@@ -42,7 +42,7 @@ void applier::command::add_object(const configuration::Command& obj) {
   config_logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
-  auto* cmd = pb_config.add_commands();
+  auto* cmd = pb_indexed_config.state().add_commands();
   cmd->CopyFrom(obj);
 
   if (obj.connector().empty()) {
@@ -151,7 +151,7 @@ void applier::command::modify_object(configuration::Command* to_modify,
  * @param idx The position in configuration of the configuration to remove.
  */
 void applier::command::remove_object(ssize_t idx) {
-  const configuration::Command& obj = pb_config.commands()[idx];
+  const configuration::Command& obj = pb_indexed_config.state().commands()[idx];
   // Logging.
   config_logger->debug("Removing command '{}'.", obj.command_name());
 
@@ -166,7 +166,7 @@ void applier::command::remove_object(ssize_t idx) {
         "Could not remove command '{}': it does not exist", obj.command_name());
 
   // Remove command from the global configuration set.
-  pb_config.mutable_commands()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_commands()->DeleteSubrange(idx, 1);
 }
 
 /**

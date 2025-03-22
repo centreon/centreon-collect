@@ -103,7 +103,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
     configuration::state_helper config_hlp(&config);
     {
       configuration::parser p;
-      std::string path(::pb_config.cfg_main());
+      std::string path(::pb_indexed_config.state().cfg_main());
       p.parse(path, &config, err);
     }
     configuration::extended_conf::update_state(&config);
@@ -183,14 +183,17 @@ void loop::_dispatching() {
 
     configuration::applier::state::instance().lock();
 
-    time_t time_change_threshold = pb_config.time_change_threshold();
+    time_t time_change_threshold =
+        pb_indexed_config.state().time_change_threshold();
     uint32_t max_parallel_service_checks =
-        pb_config.max_parallel_service_checks();
-    bool execute_service_checks = pb_config.execute_service_checks();
-    bool execute_host_checks = pb_config.execute_host_checks();
-    uint32_t interval_length = pb_config.interval_length();
-    double sleep_time = pb_config.sleep_time();
-    int32_t command_check_interval = pb_config.command_check_interval();
+        pb_indexed_config.state().max_parallel_service_checks();
+    bool execute_service_checks =
+        pb_indexed_config.state().execute_service_checks();
+    bool execute_host_checks = pb_indexed_config.state().execute_host_checks();
+    uint32_t interval_length = pb_indexed_config.state().interval_length();
+    double sleep_time = pb_indexed_config.state().sleep_time();
+    int32_t command_check_interval =
+        pb_indexed_config.state().command_check_interval();
 
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)

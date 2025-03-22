@@ -63,14 +63,14 @@ class EngineRpc : public TestEngine {
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(
 
-    pb_config.set_execute_service_checks(true);
+    pb_indexed_config.state().set_execute_service_checks(true);
 
     configuration::error_cnt err;
     /* contact */
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    ct_aply.expand_objects(pb_indexed_config.state());
     ct_aply.resolve_object(ctct, err);
 
     /* hosts */
@@ -108,7 +108,7 @@ class EngineRpc : public TestEngine {
     hg.set_hostgroup_name("test_hg");
     hg_hlp.hook("members", "test_host");
     hg_aply.add_object(hg);
-    hg_aply.expand_objects(pb_config);
+    hg_aply.expand_objects(pb_indexed_config.state());
     hg_aply.resolve_object(hg, err);
 
     /* service */
@@ -168,7 +168,7 @@ class EngineRpc : public TestEngine {
     sg_hlp.hook("members", "test_host,test_svc");
 
     sg_aply.add_object(sg);
-    sg_aply.expand_objects(pb_config);
+    sg_aply.expand_objects(pb_indexed_config.state());
     sg_aply.resolve_object(sg, err);
   }
 

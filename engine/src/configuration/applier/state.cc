@@ -111,7 +111,7 @@ void applier::state::apply(configuration::State& new_cfg,
                            error_cnt& err,
                            retention::state* state) {
   configuration::State save;
-  save.CopyFrom(pb_config);
+  save.CopyFrom(pb_indexed_config.state());
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
@@ -136,12 +136,12 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
                                 error_cnt& err,
                                 retention::state* state) {
   configuration::State save;
-  save.CopyFrom(pb_config);
+  save.CopyFrom(pb_indexed_config.state());
   try {
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
     std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-    pb_config.SerializeToOstream(&f);
+    pb_indexed_config.state().SerializeToOstream(&f);
     f.close();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
@@ -273,29 +273,30 @@ void applier::state::_apply(const configuration::State& new_cfg,
                             error_cnt& err) {
   // Check variables should not be change after the first execution.
   if (has_already_been_loaded) {
-    if (!std::equal(
-            pb_config.broker_module().begin(), pb_config.broker_module().end(),
-            new_cfg.broker_module().begin(), new_cfg.broker_module().end())) {
+    if (!std::equal(pb_indexed_config.state().broker_module().begin(),
+                    pb_indexed_config.state().broker_module().end(),
+                    new_cfg.broker_module().begin(),
+                    new_cfg.broker_module().end())) {
       config_logger->warn(
           "Warning: Broker modules cannot be changed nor reloaded");
       ++err.config_warnings;
     }
-    if (pb_config.broker_module_directory() !=
+    if (pb_indexed_config.state().broker_module_directory() !=
         new_cfg.broker_module_directory()) {
       config_logger->warn("Warning: Broker module directory cannot be changed");
       ++err.config_warnings;
     }
-    if (pb_config.command_file() != new_cfg.command_file()) {
+    if (pb_indexed_config.state().command_file() != new_cfg.command_file()) {
       config_logger->warn("Warning: Command file cannot be changed");
       ++err.config_warnings;
     }
-    if (pb_config.external_command_buffer_slots() !=
+    if (pb_indexed_config.state().external_command_buffer_slots() !=
         new_cfg.external_command_buffer_slots()) {
       config_logger->warn(
           "Warning: External command buffer slots cannot be changed");
       ++err.config_warnings;
     }
-    if (pb_config.use_timezone() != new_cfg.use_timezone()) {
+    if (pb_indexed_config.state().use_timezone() != new_cfg.use_timezone()) {
       config_logger->warn("Warning: Timezone can not be changed");
       ++err.config_warnings;
     }
@@ -304,7 +305,7 @@ void applier::state::_apply(const configuration::State& new_cfg,
   // Initialize status file.
   bool modify_status(false);
   if (!has_already_been_loaded ||
-      pb_config.status_file() != new_cfg.status_file())
+      pb_indexed_config.state().status_file() != new_cfg.status_file())
     modify_status = true;
 
   // Cleanup.
@@ -314,161 +315,216 @@ void applier::state::_apply(const configuration::State& new_cfg,
     xsddefault_cleanup_status_data(true);
 
   // Set new values.
-  pb_config.set_accept_passive_host_checks(
+  pb_indexed_config.state().set_accept_passive_host_checks(
       new_cfg.accept_passive_host_checks());
-  pb_config.set_accept_passive_service_checks(
+  pb_indexed_config.state().set_accept_passive_service_checks(
       new_cfg.accept_passive_service_checks());
-  pb_config.set_additional_freshness_latency(
+  pb_indexed_config.state().set_additional_freshness_latency(
       new_cfg.additional_freshness_latency());
-  pb_config.set_admin_email(new_cfg.admin_email());
-  pb_config.set_admin_pager(new_cfg.admin_pager());
-  pb_config.set_allow_empty_hostgroup_assignment(
+  pb_indexed_config.state().set_admin_email(new_cfg.admin_email());
+  pb_indexed_config.state().set_admin_pager(new_cfg.admin_pager());
+  pb_indexed_config.state().set_allow_empty_hostgroup_assignment(
       new_cfg.allow_empty_hostgroup_assignment());
-  pb_config.set_cached_host_check_horizon(new_cfg.cached_host_check_horizon());
-  pb_config.set_cached_service_check_horizon(
+  pb_indexed_config.state().set_cached_host_check_horizon(
+      new_cfg.cached_host_check_horizon());
+  pb_indexed_config.state().set_cached_service_check_horizon(
       new_cfg.cached_service_check_horizon());
-  pb_config.set_cfg_main(new_cfg.cfg_main());
-  pb_config.set_check_external_commands(new_cfg.check_external_commands());
-  pb_config.set_check_host_freshness(new_cfg.check_host_freshness());
-  pb_config.set_check_orphaned_hosts(new_cfg.check_orphaned_hosts());
-  pb_config.set_check_orphaned_services(new_cfg.check_orphaned_services());
-  pb_config.set_check_reaper_interval(new_cfg.check_reaper_interval());
-  pb_config.set_check_service_freshness(new_cfg.check_service_freshness());
-  pb_config.set_command_check_interval(new_cfg.command_check_interval());
-  pb_config.set_command_check_interval_is_seconds(
+  pb_indexed_config.state().set_cfg_main(new_cfg.cfg_main());
+  pb_indexed_config.state().set_check_external_commands(
+      new_cfg.check_external_commands());
+  pb_indexed_config.state().set_check_host_freshness(
+      new_cfg.check_host_freshness());
+  pb_indexed_config.state().set_check_orphaned_hosts(
+      new_cfg.check_orphaned_hosts());
+  pb_indexed_config.state().set_check_orphaned_services(
+      new_cfg.check_orphaned_services());
+  pb_indexed_config.state().set_check_reaper_interval(
+      new_cfg.check_reaper_interval());
+  pb_indexed_config.state().set_check_service_freshness(
+      new_cfg.check_service_freshness());
+  pb_indexed_config.state().set_command_check_interval(
+      new_cfg.command_check_interval());
+  pb_indexed_config.state().set_command_check_interval_is_seconds(
       new_cfg.command_check_interval_is_seconds());
-  pb_config.set_date_format(new_cfg.date_format());
-  pb_config.set_debug_file(new_cfg.debug_file());
-  pb_config.set_debug_level(new_cfg.debug_level());
-  pb_config.set_debug_verbosity(new_cfg.debug_verbosity());
-  pb_config.set_enable_environment_macros(new_cfg.enable_environment_macros());
-  pb_config.set_enable_event_handlers(new_cfg.enable_event_handlers());
-  pb_config.set_enable_flap_detection(new_cfg.enable_flap_detection());
-  pb_config.set_enable_notifications(new_cfg.enable_notifications());
-  pb_config.set_enable_predictive_host_dependency_checks(
+  pb_indexed_config.state().set_date_format(new_cfg.date_format());
+  pb_indexed_config.state().set_debug_file(new_cfg.debug_file());
+  pb_indexed_config.state().set_debug_level(new_cfg.debug_level());
+  pb_indexed_config.state().set_debug_verbosity(new_cfg.debug_verbosity());
+  pb_indexed_config.state().set_enable_environment_macros(
+      new_cfg.enable_environment_macros());
+  pb_indexed_config.state().set_enable_event_handlers(
+      new_cfg.enable_event_handlers());
+  pb_indexed_config.state().set_enable_flap_detection(
+      new_cfg.enable_flap_detection());
+  pb_indexed_config.state().set_enable_notifications(
+      new_cfg.enable_notifications());
+  pb_indexed_config.state().set_enable_predictive_host_dependency_checks(
       new_cfg.enable_predictive_host_dependency_checks());
-  pb_config.set_enable_predictive_service_dependency_checks(
+  pb_indexed_config.state().set_enable_predictive_service_dependency_checks(
       new_cfg.enable_predictive_service_dependency_checks());
-  pb_config.set_event_broker_options(new_cfg.event_broker_options());
-  pb_config.set_event_handler_timeout(new_cfg.event_handler_timeout());
-  pb_config.set_execute_host_checks(new_cfg.execute_host_checks());
-  pb_config.set_execute_service_checks(new_cfg.execute_service_checks());
-  pb_config.set_global_host_event_handler(new_cfg.global_host_event_handler());
-  pb_config.set_global_service_event_handler(
+  pb_indexed_config.state().set_event_broker_options(
+      new_cfg.event_broker_options());
+  pb_indexed_config.state().set_event_handler_timeout(
+      new_cfg.event_handler_timeout());
+  pb_indexed_config.state().set_execute_host_checks(
+      new_cfg.execute_host_checks());
+  pb_indexed_config.state().set_execute_service_checks(
+      new_cfg.execute_service_checks());
+  pb_indexed_config.state().set_global_host_event_handler(
+      new_cfg.global_host_event_handler());
+  pb_indexed_config.state().set_global_service_event_handler(
       new_cfg.global_service_event_handler());
-  pb_config.set_high_host_flap_threshold(new_cfg.high_host_flap_threshold());
-  pb_config.set_high_service_flap_threshold(
+  pb_indexed_config.state().set_high_host_flap_threshold(
+      new_cfg.high_host_flap_threshold());
+  pb_indexed_config.state().set_high_service_flap_threshold(
       new_cfg.high_service_flap_threshold());
-  pb_config.set_host_check_timeout(new_cfg.host_check_timeout());
-  pb_config.set_host_freshness_check_interval(
+  pb_indexed_config.state().set_host_check_timeout(
+      new_cfg.host_check_timeout());
+  pb_indexed_config.state().set_host_freshness_check_interval(
       new_cfg.host_freshness_check_interval());
-  pb_config.mutable_host_inter_check_delay_method()->CopyFrom(
+  pb_indexed_config.state().mutable_host_inter_check_delay_method()->CopyFrom(
       new_cfg.host_inter_check_delay_method());
-  pb_config.set_illegal_object_chars(new_cfg.illegal_object_chars());
-  pb_config.set_illegal_output_chars(new_cfg.illegal_output_chars());
-  pb_config.set_interval_length(new_cfg.interval_length());
-  pb_config.set_log_event_handlers(new_cfg.log_event_handlers());
-  pb_config.set_log_external_commands(new_cfg.log_external_commands());
-  pb_config.set_log_file(new_cfg.log_file());
-  pb_config.set_log_host_retries(new_cfg.log_host_retries());
-  pb_config.set_log_notifications(new_cfg.log_notifications());
-  pb_config.set_log_passive_checks(new_cfg.log_passive_checks());
-  pb_config.set_log_service_retries(new_cfg.log_service_retries());
-  pb_config.set_low_host_flap_threshold(new_cfg.low_host_flap_threshold());
-  pb_config.set_low_service_flap_threshold(
+  pb_indexed_config.state().set_illegal_object_chars(
+      new_cfg.illegal_object_chars());
+  pb_indexed_config.state().set_illegal_output_chars(
+      new_cfg.illegal_output_chars());
+  pb_indexed_config.state().set_interval_length(new_cfg.interval_length());
+  pb_indexed_config.state().set_log_event_handlers(
+      new_cfg.log_event_handlers());
+  pb_indexed_config.state().set_log_external_commands(
+      new_cfg.log_external_commands());
+  pb_indexed_config.state().set_log_file(new_cfg.log_file());
+  pb_indexed_config.state().set_log_host_retries(new_cfg.log_host_retries());
+  pb_indexed_config.state().set_log_notifications(new_cfg.log_notifications());
+  pb_indexed_config.state().set_log_passive_checks(
+      new_cfg.log_passive_checks());
+  pb_indexed_config.state().set_log_service_retries(
+      new_cfg.log_service_retries());
+  pb_indexed_config.state().set_low_host_flap_threshold(
+      new_cfg.low_host_flap_threshold());
+  pb_indexed_config.state().set_low_service_flap_threshold(
       new_cfg.low_service_flap_threshold());
-  pb_config.set_max_debug_file_size(new_cfg.max_debug_file_size());
-  pb_config.set_max_host_check_spread(new_cfg.max_host_check_spread());
-  pb_config.set_max_log_file_size(new_cfg.max_log_file_size());
-  pb_config.set_max_parallel_service_checks(
+  pb_indexed_config.state().set_max_debug_file_size(
+      new_cfg.max_debug_file_size());
+  pb_indexed_config.state().set_max_host_check_spread(
+      new_cfg.max_host_check_spread());
+  pb_indexed_config.state().set_max_log_file_size(new_cfg.max_log_file_size());
+  pb_indexed_config.state().set_max_parallel_service_checks(
       new_cfg.max_parallel_service_checks());
-  pb_config.set_max_service_check_spread(new_cfg.max_service_check_spread());
-  pb_config.set_notification_timeout(new_cfg.notification_timeout());
-  pb_config.set_obsess_over_hosts(new_cfg.obsess_over_hosts());
-  pb_config.set_obsess_over_services(new_cfg.obsess_over_services());
-  pb_config.set_ochp_command(new_cfg.ochp_command());
-  pb_config.set_ochp_timeout(new_cfg.ochp_timeout());
-  pb_config.set_ocsp_command(new_cfg.ocsp_command());
-  pb_config.set_ocsp_timeout(new_cfg.ocsp_timeout());
-  pb_config.set_perfdata_timeout(new_cfg.perfdata_timeout());
-  pb_config.set_process_performance_data(new_cfg.process_performance_data());
-  pb_config.mutable_resource_file()->CopyFrom(new_cfg.resource_file());
-  pb_config.set_retain_state_information(new_cfg.retain_state_information());
-  pb_config.set_retained_contact_host_attribute_mask(
+  pb_indexed_config.state().set_max_service_check_spread(
+      new_cfg.max_service_check_spread());
+  pb_indexed_config.state().set_notification_timeout(
+      new_cfg.notification_timeout());
+  pb_indexed_config.state().set_obsess_over_hosts(new_cfg.obsess_over_hosts());
+  pb_indexed_config.state().set_obsess_over_services(
+      new_cfg.obsess_over_services());
+  pb_indexed_config.state().set_ochp_command(new_cfg.ochp_command());
+  pb_indexed_config.state().set_ochp_timeout(new_cfg.ochp_timeout());
+  pb_indexed_config.state().set_ocsp_command(new_cfg.ocsp_command());
+  pb_indexed_config.state().set_ocsp_timeout(new_cfg.ocsp_timeout());
+  pb_indexed_config.state().set_perfdata_timeout(new_cfg.perfdata_timeout());
+  pb_indexed_config.state().set_process_performance_data(
+      new_cfg.process_performance_data());
+  pb_indexed_config.state().mutable_resource_file()->CopyFrom(
+      new_cfg.resource_file());
+  pb_indexed_config.state().set_retain_state_information(
+      new_cfg.retain_state_information());
+  pb_indexed_config.state().set_retained_contact_host_attribute_mask(
       new_cfg.retained_contact_host_attribute_mask());
-  pb_config.set_retained_contact_service_attribute_mask(
+  pb_indexed_config.state().set_retained_contact_service_attribute_mask(
       new_cfg.retained_contact_service_attribute_mask());
-  pb_config.set_retained_host_attribute_mask(
+  pb_indexed_config.state().set_retained_host_attribute_mask(
       new_cfg.retained_host_attribute_mask());
-  pb_config.set_retained_process_host_attribute_mask(
+  pb_indexed_config.state().set_retained_process_host_attribute_mask(
       new_cfg.retained_process_host_attribute_mask());
-  pb_config.set_retention_scheduling_horizon(
+  pb_indexed_config.state().set_retention_scheduling_horizon(
       new_cfg.retention_scheduling_horizon());
-  pb_config.set_retention_update_interval(new_cfg.retention_update_interval());
-  pb_config.set_service_check_timeout(new_cfg.service_check_timeout());
-  pb_config.set_service_freshness_check_interval(
+  pb_indexed_config.state().set_retention_update_interval(
+      new_cfg.retention_update_interval());
+  pb_indexed_config.state().set_service_check_timeout(
+      new_cfg.service_check_timeout());
+  pb_indexed_config.state().set_service_freshness_check_interval(
       new_cfg.service_freshness_check_interval());
-  pb_config.mutable_service_inter_check_delay_method()->CopyFrom(
-      new_cfg.service_inter_check_delay_method());
-  pb_config.mutable_service_interleave_factor_method()->CopyFrom(
-      new_cfg.service_interleave_factor_method());
-  pb_config.set_sleep_time(new_cfg.sleep_time());
-  pb_config.set_soft_state_dependencies(new_cfg.soft_state_dependencies());
-  pb_config.set_state_retention_file(new_cfg.state_retention_file());
-  pb_config.set_status_file(new_cfg.status_file());
-  pb_config.set_status_update_interval(new_cfg.status_update_interval());
-  pb_config.set_time_change_threshold(new_cfg.time_change_threshold());
-  pb_config.set_use_large_installation_tweaks(
+  pb_indexed_config.state()
+      .mutable_service_inter_check_delay_method()
+      ->CopyFrom(new_cfg.service_inter_check_delay_method());
+  pb_indexed_config.state()
+      .mutable_service_interleave_factor_method()
+      ->CopyFrom(new_cfg.service_interleave_factor_method());
+  pb_indexed_config.state().set_sleep_time(new_cfg.sleep_time());
+  pb_indexed_config.state().set_soft_state_dependencies(
+      new_cfg.soft_state_dependencies());
+  pb_indexed_config.state().set_state_retention_file(
+      new_cfg.state_retention_file());
+  pb_indexed_config.state().set_status_file(new_cfg.status_file());
+  pb_indexed_config.state().set_status_update_interval(
+      new_cfg.status_update_interval());
+  pb_indexed_config.state().set_time_change_threshold(
+      new_cfg.time_change_threshold());
+  pb_indexed_config.state().set_use_large_installation_tweaks(
       new_cfg.use_large_installation_tweaks());
-  pb_config.set_instance_heartbeat_interval(
+  pb_indexed_config.state().set_instance_heartbeat_interval(
       new_cfg.instance_heartbeat_interval());
-  pb_config.set_use_regexp_matches(new_cfg.use_regexp_matches());
-  pb_config.set_use_retained_program_state(
+  pb_indexed_config.state().set_use_regexp_matches(
+      new_cfg.use_regexp_matches());
+  pb_indexed_config.state().set_use_retained_program_state(
       new_cfg.use_retained_program_state());
-  pb_config.set_use_retained_scheduling_info(
+  pb_indexed_config.state().set_use_retained_scheduling_info(
       new_cfg.use_retained_scheduling_info());
-  pb_config.set_use_setpgid(new_cfg.use_setpgid());
-  pb_config.set_use_syslog(new_cfg.use_syslog());
-  pb_config.set_log_v2_enabled(new_cfg.log_v2_enabled());
-  pb_config.set_log_legacy_enabled(new_cfg.log_legacy_enabled());
-  pb_config.set_log_v2_logger(new_cfg.log_v2_logger());
-  pb_config.set_log_level_functions(new_cfg.log_level_functions());
-  pb_config.set_log_level_config(new_cfg.log_level_config());
-  pb_config.set_log_level_events(new_cfg.log_level_events());
-  pb_config.set_log_level_checks(new_cfg.log_level_checks());
-  pb_config.set_log_level_notifications(new_cfg.log_level_notifications());
-  pb_config.set_log_level_eventbroker(new_cfg.log_level_eventbroker());
-  pb_config.set_log_level_external_command(
+  pb_indexed_config.state().set_use_setpgid(new_cfg.use_setpgid());
+  pb_indexed_config.state().set_use_syslog(new_cfg.use_syslog());
+  pb_indexed_config.state().set_log_v2_enabled(new_cfg.log_v2_enabled());
+  pb_indexed_config.state().set_log_legacy_enabled(
+      new_cfg.log_legacy_enabled());
+  pb_indexed_config.state().set_log_v2_logger(new_cfg.log_v2_logger());
+  pb_indexed_config.state().set_log_level_functions(
+      new_cfg.log_level_functions());
+  pb_indexed_config.state().set_log_level_config(new_cfg.log_level_config());
+  pb_indexed_config.state().set_log_level_events(new_cfg.log_level_events());
+  pb_indexed_config.state().set_log_level_checks(new_cfg.log_level_checks());
+  pb_indexed_config.state().set_log_level_notifications(
+      new_cfg.log_level_notifications());
+  pb_indexed_config.state().set_log_level_eventbroker(
+      new_cfg.log_level_eventbroker());
+  pb_indexed_config.state().set_log_level_external_command(
       new_cfg.log_level_external_command());
-  pb_config.set_log_level_commands(new_cfg.log_level_commands());
-  pb_config.set_log_level_downtimes(new_cfg.log_level_downtimes());
-  pb_config.set_log_level_comments(new_cfg.log_level_comments());
-  pb_config.set_log_level_macros(new_cfg.log_level_macros());
-  pb_config.set_log_level_otl(new_cfg.log_level_otl());
-  pb_config.set_log_level_runtime(new_cfg.log_level_runtime());
-  pb_config.set_use_true_regexp_matching(new_cfg.use_true_regexp_matching());
-  pb_config.set_send_recovery_notifications_anyways(
+  pb_indexed_config.state().set_log_level_commands(
+      new_cfg.log_level_commands());
+  pb_indexed_config.state().set_log_level_downtimes(
+      new_cfg.log_level_downtimes());
+  pb_indexed_config.state().set_log_level_comments(
+      new_cfg.log_level_comments());
+  pb_indexed_config.state().set_log_level_macros(new_cfg.log_level_macros());
+  pb_indexed_config.state().set_log_level_otl(new_cfg.log_level_otl());
+  pb_indexed_config.state().set_log_level_runtime(new_cfg.log_level_runtime());
+  pb_indexed_config.state().set_use_true_regexp_matching(
+      new_cfg.use_true_regexp_matching());
+  pb_indexed_config.state().set_send_recovery_notifications_anyways(
       new_cfg.send_recovery_notifications_anyways());
-  pb_config.set_host_down_disable_service_checks(
+  pb_indexed_config.state().set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
-  pb_config.set_broker_module_cfg_file(new_cfg.broker_module_cfg_file());
-  pb_config.clear_user();
+  pb_indexed_config.state().set_broker_module_cfg_file(new_cfg.broker_module_cfg_file());
+  pb_indexed_config.state().clear_user();
   for (auto& p : new_cfg.user())
-    pb_config.mutable_user()->at(p.first) = p.second;
+    pb_indexed_config.state().mutable_user()->at(p.first) = p.second;
 
-  if (pb_config.max_file_descriptors() != new_cfg.max_file_descriptors()) {
-    pb_config.set_max_file_descriptors(new_cfg.max_file_descriptors());
+  if (pb_indexed_config.state().max_file_descriptors() !=
+      new_cfg.max_file_descriptors()) {
+    pb_indexed_config.state().set_max_file_descriptors(
+        new_cfg.max_file_descriptors());
     increase_fd_limit(new_cfg.max_file_descriptors());
   }
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
-    pb_config.mutable_broker_module()->CopyFrom(new_cfg.broker_module());
-    pb_config.set_broker_module_directory(new_cfg.broker_module_directory());
-    pb_config.set_command_file(new_cfg.command_file());
-    pb_config.set_external_command_buffer_slots(
+    pb_indexed_config.state().mutable_broker_module()->CopyFrom(
+        new_cfg.broker_module());
+    pb_indexed_config.state().set_broker_module_directory(
+        new_cfg.broker_module_directory());
+    pb_indexed_config.state().set_command_file(new_cfg.command_file());
+    pb_indexed_config.state().set_external_command_buffer_slots(
         new_cfg.external_command_buffer_slots());
-    pb_config.set_use_timezone(new_cfg.use_timezone());
+    pb_indexed_config.state().set_use_timezone(new_cfg.use_timezone());
   }
 
   // Initialize.
@@ -479,10 +535,13 @@ void applier::state::_apply(const configuration::State& new_cfg,
   if (verify_config) {
     events_logger->info("Checking global event handlers...");
   }
-  if (!pb_config.global_host_event_handler().empty()) {
+  if (!pb_indexed_config.state().global_host_event_handler().empty()) {
     // Check the event handler command.
-    std::string temp_command_name(pb_config.global_host_event_handler().substr(
-        0, pb_config.global_host_event_handler().find_first_of('!')));
+    std::string temp_command_name(
+        pb_indexed_config.state().global_host_event_handler().substr(
+            0,
+            pb_indexed_config.state().global_host_event_handler().find_first_of(
+                '!')));
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
@@ -495,11 +554,13 @@ void applier::state::_apply(const configuration::State& new_cfg,
     } else
       global_host_event_handler_ptr = found->second.get();
   }
-  if (!pb_config.global_service_event_handler().empty()) {
+  if (!pb_indexed_config.state().global_service_event_handler().empty()) {
     // Check the event handler command.
     std::string temp_command_name(
-        pb_config.global_service_event_handler().substr(
-            0, pb_config.global_service_event_handler().find_first_of('!')));
+        pb_indexed_config.state().global_service_event_handler().substr(
+            0, pb_indexed_config.state()
+                   .global_service_event_handler()
+                   .find_first_of('!')));
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
@@ -517,9 +578,10 @@ void applier::state::_apply(const configuration::State& new_cfg,
   if (verify_config) {
     events_logger->info("Checking obsessive compulsive processor commands...");
   }
-  if (!pb_config.ocsp_command().empty()) {
-    std::string temp_command_name(pb_config.ocsp_command().substr(
-        0, pb_config.ocsp_command().find_first_of('!')));
+  if (!pb_indexed_config.state().ocsp_command().empty()) {
+    std::string temp_command_name(
+        pb_indexed_config.state().ocsp_command().substr(
+            0, pb_indexed_config.state().ocsp_command().find_first_of('!')));
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
@@ -535,9 +597,10 @@ void applier::state::_apply(const configuration::State& new_cfg,
     } else
       ocsp_command_ptr = found->second.get();
   }
-  if (!pb_config.ochp_command().empty()) {
-    std::string temp_command_name(pb_config.ochp_command().substr(
-        0, pb_config.ochp_command().find_first_of('!')));
+  if (!pb_indexed_config.state().ochp_command().empty()) {
+    std::string temp_command_name(
+        pb_indexed_config.state().ochp_command().substr(
+            0, pb_indexed_config.state().ochp_command().find_first_of('!')));
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
@@ -622,7 +685,7 @@ void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
 
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, Severity*>
       current_severities;
-  for (auto& s : *pb_config.mutable_severities())
+  for (auto& s : *pb_indexed_config.state().mutable_severities())
     current_severities[{s.key().id(), s.key().type()}] = &s;
 
   // Modify objects.
@@ -644,7 +707,7 @@ void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
   // Erase objects.
   for (auto& r : diff.removed()) {
     uint32_t idx = 0;
-    for (auto& s : pb_config.severities()) {
+    for (auto& s : pb_indexed_config.state().severities()) {
       if (r.id() == s.key().id() && r.type() == s.key().type()) {
         if (!verify_config)
           aplyr.remove_object(idx);
@@ -1359,7 +1422,7 @@ void applier::state::_processing(configuration::State& new_cfg,
   pb_difference<configuration::Timeperiod, std::string> diff_timeperiods;
   google::protobuf::RepeatedPtrField<
       ::com::centreon::engine::configuration::Timeperiod>
-      old = *pb_config.mutable_timeperiods();
+      old = *pb_indexed_config.state().mutable_timeperiods();
   const google::protobuf::RepeatedPtrField<
       ::com::centreon::engine::configuration::Timeperiod>
       new_conf = new_cfg.timeperiods();
@@ -1368,19 +1431,21 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   // Build difference for connectors.
   pb_difference<configuration::Connector, std::string> diff_connectors;
-  diff_connectors.parse(*pb_config.mutable_connectors(), new_cfg.connectors(),
+  diff_connectors.parse(*pb_indexed_config.state().mutable_connectors(),
+                        new_cfg.connectors(),
                         &configuration::Connector::connector_name);
 
   // Build difference for commands.
   pb_difference<configuration::Command, std::string> diff_commands;
-  diff_commands.parse(*pb_config.mutable_commands(), new_cfg.commands(),
+  diff_commands.parse(*pb_indexed_config.state().mutable_commands(),
+                      new_cfg.commands(),
                       &configuration::Command::command_name);
 
   // Build difference for severities.
   pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
       diff_severities;
   diff_severities.parse(
-      *pb_config.mutable_severities(), new_cfg.severities(),
+      *pb_indexed_config.state().mutable_severities(), new_cfg.severities(),
       [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(sev.key().id(), sev.key().type());
       });
@@ -1388,37 +1453,39 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Build difference for tags.
   pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;
   diff_tags.parse(
-      *pb_config.mutable_tags(), new_cfg.tags(),
+      *pb_indexed_config.state().mutable_tags(), new_cfg.tags(),
       [](const configuration::Tag& tg) -> std::pair<uint64_t, uint32_t> {
         return std::make_pair(tg.key().id(), tg.key().type());
       });
 
   // Build difference for contacts.
   pb_difference<configuration::Contact, std::string> diff_contacts;
-  diff_contacts.parse(*pb_config.mutable_contacts(), new_cfg.contacts(),
+  diff_contacts.parse(*pb_indexed_config.state().mutable_contacts(),
+                      new_cfg.contacts(),
                       &configuration::Contact::contact_name);
 
   // Build difference for contactgroups.
   pb_difference<configuration::Contactgroup, std::string> diff_contactgroups;
-  diff_contactgroups.parse(*pb_config.mutable_contactgroups(),
+  diff_contactgroups.parse(*pb_indexed_config.state().mutable_contactgroups(),
                            new_cfg.contactgroups(),
                            &configuration::Contactgroup::contactgroup_name);
 
   // Build difference for hosts.
   pb_difference<configuration::Host, uint64_t> diff_hosts;
-  diff_hosts.parse(*pb_config.mutable_hosts(), new_cfg.hosts(),
+  diff_hosts.parse(*pb_indexed_config.state().mutable_hosts(), new_cfg.hosts(),
                    &configuration::Host::host_id);
 
   // Build difference for hostgroups.
   pb_difference<configuration::Hostgroup, std::string> diff_hostgroups;
-  diff_hostgroups.parse(*pb_config.mutable_hostgroups(), new_cfg.hostgroups(),
+  diff_hostgroups.parse(*pb_indexed_config.state().mutable_hostgroups(),
+                        new_cfg.hostgroups(),
                         &configuration::Hostgroup::hostgroup_name);
 
   // Build difference for services.
   pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>
       diff_services;
-  diff_services.parse(*pb_config.mutable_services(), new_cfg.services(),
-                      [](const configuration::Service& s) {
+  diff_services.parse(*pb_indexed_config.state().mutable_services(),
+                      new_cfg.services(), [](const configuration::Service& s) {
                         return std::make_pair(s.host_id(), s.service_id());
                       });
 
@@ -1426,46 +1493,47 @@ void applier::state::_processing(configuration::State& new_cfg,
   pb_difference<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>>
       diff_anomalydetections;
   diff_anomalydetections.parse(
-      *pb_config.mutable_anomalydetections(), new_cfg.anomalydetections(),
+      *pb_indexed_config.state().mutable_anomalydetections(),
+      new_cfg.anomalydetections(),
       [](const configuration::Anomalydetection& ad) {
         return std::make_pair(ad.host_id(), ad.service_id());
       });
 
   // Build difference for servicegroups.
   pb_difference<configuration::Servicegroup, std::string> diff_servicegroups;
-  diff_servicegroups.parse(*pb_config.mutable_servicegroups(),
+  diff_servicegroups.parse(*pb_indexed_config.state().mutable_servicegroups(),
                            new_cfg.servicegroups(),
                            &configuration::Servicegroup::servicegroup_name);
 
   // Build difference for hostdependencies.
   pb_difference<configuration::Hostdependency, size_t> diff_hostdependencies;
   typedef size_t (*key_func)(const configuration::Hostdependency&);
-  diff_hostdependencies.parse<key_func>(*pb_config.mutable_hostdependencies(),
-                                        new_cfg.hostdependencies(),
-                                        configuration::hostdependency_key);
+  diff_hostdependencies.parse<key_func>(
+      *pb_indexed_config.state().mutable_hostdependencies(),
+      new_cfg.hostdependencies(), configuration::hostdependency_key);
 
   // Build difference for servicedependencies.
   pb_difference<configuration::Servicedependency, size_t>
       diff_servicedependencies;
   typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
   diff_servicedependencies.parse<key_func_sd>(
-      *pb_config.mutable_servicedependencies(), new_cfg.servicedependencies(),
-      configuration::servicedependency_key);
+      *pb_indexed_config.state().mutable_servicedependencies(),
+      new_cfg.servicedependencies(), configuration::servicedependency_key);
 
   // Build difference for hostdependencies.
   pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
   typedef size_t (*key_func_he)(const configuration::Hostescalation&);
-  diff_hostescalations.parse<key_func_he>(*pb_config.mutable_hostescalations(),
-                                          new_cfg.hostescalations(),
-                                          configuration::hostescalation_key);
+  diff_hostescalations.parse<key_func_he>(
+      *pb_indexed_config.state().mutable_hostescalations(),
+      new_cfg.hostescalations(), configuration::hostescalation_key);
 
   // Build difference for servicedependencies.
   pb_difference<configuration::Serviceescalation, size_t>
       diff_serviceescalations;
   typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
   diff_serviceescalations.parse<key_func_se>(
-      *pb_config.mutable_serviceescalations(), new_cfg.serviceescalations(),
-      configuration::serviceescalation_key);
+      *pb_indexed_config.state().mutable_serviceescalations(),
+      new_cfg.serviceescalations(), configuration::serviceescalation_key);
 
   // Timing.
   gettimeofday(tv + 1, nullptr);
@@ -1509,29 +1577,29 @@ void applier::state::_processing(configuration::State& new_cfg,
     _apply<configuration::Timeperiod, std::string, applier::timeperiod>(
         diff_timeperiods, err);
     _resolve<configuration::Timeperiod, applier::timeperiod>(
-        pb_config.timeperiods(), err);
+        pb_indexed_config.state().timeperiods(), err);
 
     // Apply connectors.
     _apply<configuration::Connector, std::string, applier::connector>(
         diff_connectors, err);
     _resolve<configuration::Connector, applier::connector>(
-        pb_config.connectors(), err);
+        pb_indexed_config.state().connectors(), err);
 
     // Apply commands.
     _apply<configuration::Command, std::string, applier::command>(diff_commands,
                                                                   err);
-    _resolve<configuration::Command, applier::command>(pb_config.commands(),
-                                                       err);
+    _resolve<configuration::Command, applier::command>(
+        pb_indexed_config.state().commands(), err);
 
     // Apply contacts and contactgroups.
     _apply<configuration::Contact, std::string, applier::contact>(diff_contacts,
                                                                   err);
     _apply<configuration::Contactgroup, std::string, applier::contactgroup>(
         diff_contactgroups, err);
-    _resolve<configuration::Contact, applier::contact>(pb_config.contacts(),
-                                                       err);
+    _resolve<configuration::Contact, applier::contact>(
+        pb_indexed_config.state().contacts(), err);
     _resolve<configuration::Contactgroup, applier::contactgroup>(
-        pb_config.contactgroups(), err);
+        pb_indexed_config.state().contactgroups(), err);
 
     // Apply severities.
     _apply<configuration::Severity, std::pair<uint64_t, uint32_t>,
@@ -1559,45 +1627,46 @@ void applier::state::_processing(configuration::State& new_cfg,
         diff_servicegroups, err);
 
     // Resolve hosts, services, host groups.
-    _resolve<configuration::Host, applier::host>(pb_config.hosts(), err);
+    _resolve<configuration::Host, applier::host>(
+        pb_indexed_config.state().hosts(), err);
     _resolve<configuration::Hostgroup, applier::hostgroup>(
-        pb_config.hostgroups(), err);
+        pb_indexed_config.state().hostgroups(), err);
 
     // Resolve services.
-    _resolve<configuration::Service, applier::service>(pb_config.services(),
-                                                       err);
+    _resolve<configuration::Service, applier::service>(
+        pb_indexed_config.state().services(), err);
 
     // Resolve anomalydetections.
     _resolve<configuration::Anomalydetection, applier::anomalydetection>(
-        pb_config.anomalydetections(), err);
+        pb_indexed_config.state().anomalydetections(), err);
 
     // Resolve service groups.
     _resolve<configuration::Servicegroup, applier::servicegroup>(
-        pb_config.servicegroups(), err);
+        pb_indexed_config.state().servicegroups(), err);
 
     // Apply host dependencies.
     _apply<configuration::Hostdependency, size_t, applier::hostdependency>(
         diff_hostdependencies, err);
     _resolve<configuration::Hostdependency, applier::hostdependency>(
-        pb_config.hostdependencies(), err);
+        pb_indexed_config.state().hostdependencies(), err);
 
     // Apply service dependencies.
     _apply<configuration::Servicedependency, size_t,
            applier::servicedependency>(diff_servicedependencies, err);
     _resolve<configuration::Servicedependency, applier::servicedependency>(
-        pb_config.servicedependencies(), err);
+        pb_indexed_config.state().servicedependencies(), err);
 
     // Apply host escalations.
     _apply<configuration::Hostescalation, size_t, applier::hostescalation>(
         diff_hostescalations, err);
     _resolve<configuration::Hostescalation, applier::hostescalation>(
-        pb_config.hostescalations(), err);
+        pb_indexed_config.state().hostescalations(), err);
 
     // Apply service escalations.
     _apply<configuration::Serviceescalation, size_t,
            applier::serviceescalation>(diff_serviceescalations, err);
     _resolve<configuration::Serviceescalation, applier::serviceescalation>(
-        pb_config.serviceescalations(), err);
+        pb_indexed_config.state().serviceescalations(), err);
 
 #ifdef DEBUG_CONFIG
     std::cout << "WARNING!! You are using a version of Centreon Engine for "

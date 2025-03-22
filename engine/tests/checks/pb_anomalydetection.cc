@@ -55,7 +55,7 @@ class PbAnomalydetectionCheck : public TestEngine {
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    ct_aply.expand_objects(pb_indexed_config.state());
     configuration::error_cnt err;
     ct_aply.resolve_object(ctct, err);
 

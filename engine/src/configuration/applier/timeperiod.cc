@@ -48,7 +48,7 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   }
 
   // Add time period to the global configuration set.
-  configuration::Timeperiod* c_tp = pb_config.add_timeperiods();
+  configuration::Timeperiod* c_tp = pb_indexed_config.state().add_timeperiods();
   c_tp->CopyFrom(obj);
 
   // Create time period.
@@ -122,7 +122,7 @@ void applier::timeperiod::modify_object(
 
 void applier::timeperiod::remove_object(ssize_t idx) {
   /* obj is the object to remove */
-  auto& obj = pb_config.timeperiods()[idx];
+  auto& obj = pb_indexed_config.state().timeperiods()[idx];
   config_logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
@@ -134,7 +134,7 @@ void applier::timeperiod::remove_object(ssize_t idx) {
   }
 
   // Remove time period from the global configuration set.
-  pb_config.mutable_timeperiods()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_timeperiods()->DeleteSubrange(idx, 1);
 }
 
 /**

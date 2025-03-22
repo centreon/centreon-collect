@@ -913,8 +913,8 @@ class timeperiod_config_parser_test
     : public ::testing::TestWithParam<std::vector<std::string>> {
  protected:
  public:
-  static void SetUpTestSuite() { pb_config.Clear(); }
-  static void TearDownTestSuite() {};
+  static void SetUpTestSuite() { pb_indexed_config.state().Clear(); }
+  static void TearDownTestSuite(){};
 
  protected:
   void SetUp() override {}

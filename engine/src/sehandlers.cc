@@ -52,9 +52,9 @@ int obsessive_compulsive_host_check_processor(
 
   bool obsess_over_hosts;
   uint32_t ochp_timeout;
-  obsess_over_hosts = pb_config.obsess_over_hosts();
-  const std::string& ochp_command = pb_config.ochp_command();
-  ochp_timeout = pb_config.ochp_timeout();
+  obsess_over_hosts = pb_indexed_config.state().obsess_over_hosts();
+  const std::string& ochp_command = pb_indexed_config.state().ochp_command();
+  ochp_timeout = pb_indexed_config.state().ochp_timeout();
 
   engine_logger(dbg_functions, basic)
       << "obsessive_compulsive_host_check_processor()";
@@ -164,11 +164,11 @@ int run_global_service_event_handler(nagios_macros* mac,
   bool enable_event_handlers;
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  enable_event_handlers = pb_config.enable_event_handlers();
+  enable_event_handlers = pb_indexed_config.state().enable_event_handlers();
   const std::string& global_service_event_handler =
-      pb_config.global_service_event_handler();
-  log_event_handlers = pb_config.log_event_handlers();
-  event_handler_timeout = pb_config.event_handler_timeout();
+      pb_indexed_config.state().global_service_event_handler();
+  log_event_handlers = pb_indexed_config.state().log_event_handlers();
+  event_handler_timeout = pb_indexed_config.state().event_handler_timeout();
 
   if (svc == nullptr)
     return ERROR;
@@ -280,8 +280,8 @@ int run_service_event_handler(nagios_macros* mac,
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  log_event_handlers = pb_config.log_event_handlers();
-  event_handler_timeout = pb_config.event_handler_timeout();
+  log_event_handlers = pb_indexed_config.state().log_event_handlers();
+  event_handler_timeout = pb_indexed_config.state().event_handler_timeout();
 
   engine_logger(dbg_functions, basic) << "run_service_event_handler()";
   functions_logger->trace("run_service_event_handler()");
@@ -385,8 +385,9 @@ int handle_host_event(com::centreon::engine::host* hst) {
 
   bool enable_event_handlers;
   std::string_view global_host_event_handler;
-  enable_event_handlers = pb_config.enable_event_handlers();
-  global_host_event_handler = pb_config.global_host_event_handler();
+  enable_event_handlers = pb_indexed_config.state().enable_event_handlers();
+  global_host_event_handler =
+      pb_indexed_config.state().global_host_event_handler();
 
   /* bail out if we shouldn't be running event handlers */
   if (!enable_event_handlers)
@@ -428,11 +429,11 @@ int run_global_host_event_handler(nagios_macros* mac,
   bool enable_event_handlers;
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  enable_event_handlers = pb_config.enable_event_handlers();
+  enable_event_handlers = pb_indexed_config.state().enable_event_handlers();
   const std::string& global_host_event_handler =
-      pb_config.global_host_event_handler();
-  log_event_handlers = pb_config.log_event_handlers();
-  event_handler_timeout = pb_config.event_handler_timeout();
+      pb_indexed_config.state().global_host_event_handler();
+  log_event_handlers = pb_indexed_config.state().log_event_handlers();
+  event_handler_timeout = pb_indexed_config.state().event_handler_timeout();
 
   if (hst == nullptr)
     return ERROR;
@@ -538,8 +539,8 @@ int run_host_event_handler(nagios_macros* mac,
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  log_event_handlers = pb_config.log_event_handlers();
-  event_handler_timeout = pb_config.event_handler_timeout();
+  log_event_handlers = pb_indexed_config.state().log_event_handlers();
+  event_handler_timeout = pb_indexed_config.state().event_handler_timeout();
 
   engine_logger(dbg_functions, basic) << "run_host_event_handler()";
   functions_logger->trace("run_host_event_handler()");

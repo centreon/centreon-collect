@@ -52,7 +52,7 @@ void applier::anomalydetection::add_object(
                       obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
-  auto* cfg_obj = pb_config.add_anomalydetections();
+  auto* cfg_obj = pb_indexed_config.state().add_anomalydetections();
   cfg_obj->CopyFrom(obj);
 
   // Create anomalydetection.
@@ -99,7 +99,7 @@ void applier::anomalydetection::add_object(
                                       obj.service_description()}]
       ->set_service_id(obj.service_id());
   ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                  pb_config.interval_length());
+                                  pb_indexed_config.state().interval_length());
   ad->set_last_acknowledgement(0);
 
   // Add contacts.
@@ -275,7 +275,7 @@ void applier::anomalydetection::modify_object(
   s->set_host_id(new_obj.host_id());
   s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
 
   // Contacts.
@@ -332,7 +332,8 @@ void applier::anomalydetection::modify_object(
 }
 
 void applier::anomalydetection::remove_object(ssize_t idx) {
-  Anomalydetection& obj = pb_config.mutable_anomalydetections()->at(idx);
+  Anomalydetection& obj =
+      pb_indexed_config.state().mutable_anomalydetections()->at(idx);
   const std::string& host_name(obj.host_name());
   const std::string& service_description(obj.service_description());
 
@@ -374,7 +375,7 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
   }
 
   // Remove anomalydetection from the global configuration set.
-  pb_config.mutable_anomalydetections()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_anomalydetections()->DeleteSubrange(idx, 1);
 }
 
 /**

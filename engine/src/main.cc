@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
   /* It's time to set the logger. Later, we will have access from multiple
    * threads and we'll only be able to change loggers atomic values. */
   // init pb_config to default values
-  configuration::state_helper state_hlp(&pb_config);
+  configuration::state_helper state_hlp(&pb_indexed_config.state());
 
   init_loggers();
   configuration::applier::logging::instance();
@@ -472,7 +472,8 @@ int main(int argc, char* argv[]) {
                                  NEBFLAG_USER_INITIATED);
 
           // Save service and host state information.
-          retention::dump::save(::pb_config.state_retention_file());
+          retention::dump::save(
+              ::pb_indexed_config.state().state_retention_file());
 
           // Clean up the status data.
           cleanup_status_data(true);
