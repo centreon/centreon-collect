@@ -556,9 +556,9 @@ TEST_F(MacroHostname, HostGroupName) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
@@ -600,9 +600,9 @@ TEST_F(MacroHostname, HostGroupAlias) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1116,9 +1116,9 @@ TEST_F(MacroHostname, HostGroupNames) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1286,9 +1286,9 @@ TEST_F(MacroHostname, HostGroupNotes) {
   hg.set_notes("test_note");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1331,9 +1331,9 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   hg.set_notes_url("test_note_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1376,9 +1376,9 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   hg.set_action_url("test_action_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1421,9 +1421,9 @@ TEST_F(MacroHostname, HostGroupMembers) {
   hg.set_action_url("test_action_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config.state()));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config.state()));
 
   configuration::error_cnt err;
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
@@ -1579,7 +1579,7 @@ TEST_F(MacroHostname, HostChildren) {
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
   configuration::error_cnt err;
-  hst_aply.expand_objects(pb_config);
+  hst_aply.expand_objects(pb_indexed_config.state());
   hst_aply.resolve_object(hst_child, err);
   hst_aply.resolve_object(hst_parent, err);
 

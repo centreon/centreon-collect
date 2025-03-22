@@ -44,7 +44,7 @@ void applier::host::add_object(const configuration::Host& obj) {
   config_logger->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
-  auto* cfg_obj = pb_config.add_hosts();
+  auto* cfg_obj = pb_indexed_config.state().add_hosts();
   cfg_obj->CopyFrom(obj);
 
   // Create host.
@@ -86,7 +86,7 @@ void applier::host::add_object(const configuration::Host& obj) {
   h->set_should_reschedule_current_check(false);
   h->set_host_id(obj.host_id());
   h->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   h->set_last_acknowledgement(0);
 
   // Contacts
@@ -256,7 +256,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_timezone(new_obj.timezone());
   h->set_host_id(new_obj.host_id());
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   h->set_icon_id(new_obj.icon_id());
 
@@ -388,7 +388,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
  *  @param[in] obj The new host to remove from the monitoring engine.
  */
 void applier::host::remove_object(ssize_t idx) {
-  const Host& obj = pb_config.hosts()[idx];
+  const Host& obj = pb_indexed_config.state().hosts()[idx];
   // Logging.
   config_logger->debug("Removing host '{}'.", obj.host_name());
 
@@ -430,7 +430,7 @@ void applier::host::remove_object(ssize_t idx) {
   }
 
   // Remove host from the global configuration set.
-  pb_config.mutable_hosts()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hosts()->DeleteSubrange(idx, 1);
 }
 
 /**
@@ -447,7 +447,7 @@ void applier::host::resolve_object(const configuration::Host& obj,
   // remove all the child backlinks of all the hosts.
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
-  if (&obj == &(*pb_config.hosts().begin())) {
+  if (&obj == &(*pb_indexed_config.state().hosts().begin())) {
     for (const auto& [_, sptr_host] : engine::host::hosts)
       sptr_host->child_hosts.clear();
   }

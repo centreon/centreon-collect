@@ -32,21 +32,21 @@
 using namespace com::centreon::engine;
 using com::centreon::engine::configuration::TagType;
 
-extern configuration::State pb_config;
+extern configuration::indexed_state pb_indexed_config;
 
 class ApplierState : public ::testing::Test {
  protected:
  public:
   void SetUp() override {
     init_config_state();
-    auto tps = pb_config.mutable_timeperiods();
+    auto tps = pb_indexed_config.state().mutable_timeperiods();
     for (int i = 0; i < 10; i++) {
       auto* tp = tps->Add();
       tp->set_alias(fmt::format("timeperiod {}", i));
       tp->set_timeperiod_name(fmt::format("Timeperiod {}", i));
     }
     for (int i = 0; i < 5; i++) {
-      configuration::Contact* ct = pb_config.add_contacts();
+      configuration::Contact* ct = pb_indexed_config.state().add_contacts();
       configuration::contact_helper ct_hlp(ct);
       std::string name(fmt::format("name{:2}", i));
       ct->set_contact_name(name);
@@ -280,17 +280,17 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnTimeperiod) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //
 //   std::string output;
 //   MessageDifferencer differencer;
 //   differencer.set_report_matches(false);
 //   differencer.ReportDifferencesToString(&output);
-//   EXPECT_TRUE(differencer.Compare(pb_config, new_config));
+//   EXPECT_TRUE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_TRUE(dstate.to_add().empty());
 //   ASSERT_TRUE(dstate.to_remove().empty());
@@ -299,7 +299,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //
 // TEST_F(ApplierState, DiffOnTimeperiodOneRemoved) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   new_config.mutable_timeperiods()->RemoveLast();
 //
 //   std::string output;
@@ -308,11 +308,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_EQ(dstate.to_remove().size(), 1u);
 //   // Number 142 is to remove.
@@ -325,7 +325,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnTimeperiodNewOne) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto tps = new_config.mutable_timeperiods();
 //   auto* tp = tps->Add();
 //   tp->set_alias("timeperiod 11");
@@ -337,11 +337,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_TRUE(dstate.to_remove().empty());
 //   ASSERT_TRUE(dstate.to_modify().empty());
@@ -355,7 +355,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnTimeperiodAliasRenamed) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto tps = new_config.mutable_timeperiods();
 //   tps->at(7).set_alias("timeperiod changed");
 //
@@ -365,11 +365,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_TRUE(dstate.to_remove().empty());
 //   ASSERT_TRUE(dstate.to_add().empty());
@@ -391,7 +391,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnContactOneRemoved) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   new_config.mutable_contacts()->DeleteSubrange(4, 1);
 //
 //   std::string output;
@@ -400,11 +400,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_EQ(dstate.to_remove().size(), 1u);
 //
@@ -420,8 +420,8 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnContactOneAdded) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
-//   pb_config.mutable_contacts()->DeleteSubrange(4, 1);
+//   new_config.CopyFrom(pb_indexed_config.state());
+//   pb_indexed_config.state().mutable_contacts()->DeleteSubrange(4, 1);
 //
 //   std::string output;
 //   MessageDifferencer differencer;
@@ -429,11 +429,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_TRUE(dstate.to_remove().empty());
 //   ASSERT_TRUE(dstate.to_modify().empty());
@@ -454,7 +454,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
  */
 // TEST_F(ApplierState, DiffOnContactOneNewAddress) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto& ct = new_config.mutable_contacts()->at(3);
 //   ct.add_address("new address");
 //
@@ -464,11 +464,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_EQ(dstate.to_add().size(), 1u);
 //   ASSERT_TRUE(dstate.to_modify().empty());
@@ -495,7 +495,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
  */
 // TEST_F(ApplierState, DiffOnContactFirstAddressRemoved) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto& ct = new_config.mutable_contacts()->at(3);
 //   ct.mutable_address()->erase(ct.mutable_address()->begin());
 //
@@ -505,11 +505,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   ASSERT_TRUE(dstate.to_add().empty());
 //   ASSERT_EQ(dstate.to_modify().size(), 2u);
@@ -546,7 +546,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
  */
 // TEST_F(ApplierState, DiffOnContactSecondAddressUpdated) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto& ct = new_config.mutable_contacts()->at(3);
 //   (*ct.mutable_address())[1] = "this address is different";
 //
@@ -556,11 +556,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
 //   //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());
@@ -573,7 +573,7 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnContactRemoveCustomvariable) {
 //   configuration::State new_config;
-//   new_config.CopyFrom(pb_config);
+//   new_config.CopyFrom(pb_indexed_config.state());
 //   auto& ct = new_config.mutable_contacts()->at(3);
 //   ct.mutable_customvariables()->erase(ct.mutable_customvariables()->begin());
 //
@@ -583,11 +583,11 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 //   differencer.ReportDifferencesToString(&output);
 //   // differencer.set_repeated_field_comparison(
 //   //     util::MessageDifferencer::AS_SMART_LIST);
-//   EXPECT_FALSE(differencer.Compare(pb_config, new_config));
+//   EXPECT_FALSE(differencer.Compare(pb_indexed_config.state(), new_config));
 //   std::cout << "Output= " << output << std::endl;
 //
 //   configuration::DiffState dstate =
-//       configuration::applier::state::instance().build_difference(pb_config,
+//       configuration::applier::state::instance().build_difference(pb_indexed_config.state(),
 //                                                                  new_config);
 //   //  ASSERT_TRUE(dstate.dcontacts().to_add().empty());
 //   //  ASSERT_TRUE(dstate.dcontacts().to_remove().empty());

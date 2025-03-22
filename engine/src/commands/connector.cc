@@ -73,9 +73,10 @@ connector::connector(const std::string& connector_name,
   }
   {
     UNIQUE_LOCK(lck, _lock);
-    _process.setpgid_on_exec(pb_config.use_setpgid());
+    _process.setpgid_on_exec(pb_indexed_config.state().use_setpgid());
   }
-  bool enable_environment_macros = pb_config.enable_environment_macros();
+  bool enable_environment_macros =
+      pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
     engine_logger(log_runtime_warning, basic)
         << "Warning: Connector does not enable environment macros";
@@ -427,7 +428,8 @@ void connector::_connector_close() {
   // Waiting connector quit.
   bool is_timeout{
       _cv_query.wait_for(
-          lock, std::chrono::seconds(pb_config.service_check_timeout())) ==
+          lock, std::chrono::seconds(
+                    pb_indexed_config.state().service_check_timeout())) ==
       std::cv_status::timeout};
   if (is_timeout || !_query_quit_ok) {
     _process.kill();
@@ -473,7 +475,8 @@ void connector::_connector_start() {
 
     // Waiting connector version, or 1 seconds.
     bool is_timeout{!_cv_query.wait_for(
-        lock, std::chrono::seconds(pb_config.service_check_timeout()),
+        lock,
+        std::chrono::seconds(pb_indexed_config.state().service_check_timeout()),
         [this] { return _version_set; })};
 
     if (is_timeout || !_query_version_ok) {

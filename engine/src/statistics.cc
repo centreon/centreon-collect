@@ -56,10 +56,10 @@ pid_t statistics::get_pid() const noexcept {
  */
 bool statistics::get_external_command_buffer_stats(
     buffer_stats& retval) const noexcept {
-  if (pb_config.check_external_commands()) {
+  if (pb_indexed_config.state().check_external_commands()) {
     retval.used = external_command_buffer.size();
     retval.high = external_command_buffer.high();
-    retval.total = pb_config.external_command_buffer_slots();
+    retval.total = pb_indexed_config.state().external_command_buffer_slots();
     return true;
   } else
     return false;

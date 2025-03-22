@@ -63,7 +63,8 @@ TEST_F(ApplierPbConnector, PbModifyConnector) {
   aply.add_object(cnn);
 
   cnn.set_connector_line("date");
-  configuration::Connector* old = &pb_config.mutable_connectors()->at(0);
+  configuration::Connector* old =
+      &pb_indexed_config.state().mutable_connectors()->at(0);
   aply.modify_object(old, cnn);
 
   connector_map::iterator found_con =
@@ -87,6 +88,6 @@ TEST_F(ApplierPbConnector, PbRemoveConnector) {
 
   aply.add_object(cnn);
   aply.remove_object(0);
-  ASSERT_TRUE(pb_config.connectors().size() == 0);
+  ASSERT_TRUE(pb_indexed_config.state().connectors().size() == 0);
   ASSERT_TRUE(commands::connector::connectors.size() == 0);
 }

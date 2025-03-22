@@ -49,7 +49,7 @@ void applier::serviceescalation::add_object(
                        obj.hosts().data()[0]);
 
   // Add escalation to the global configuration set.
-  auto* se_cfg = pb_config.add_serviceescalations();
+  auto* se_cfg = pb_indexed_config.state().add_serviceescalations();
   se_cfg->CopyFrom(obj);
 
   size_t key = configuration::serviceescalation_key(obj);
@@ -176,7 +176,7 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
   config_logger->debug("Removing a service escalation.");
 
   configuration::Serviceescalation& obj =
-      pb_config.mutable_serviceescalations()->at(idx);
+      pb_indexed_config.state().mutable_serviceescalations()->at(idx);
   // Find service escalation.
   const std::string& host_name{obj.hosts().data()[0]};
   const std::string& description{obj.service_description().data()[0]};
@@ -222,7 +222,8 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
   }
 
   /* And we clear the configuration */
-  pb_config.mutable_serviceescalations()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_serviceescalations()->DeleteSubrange(idx,
+                                                                         1);
 }
 
 /**
