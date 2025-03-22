@@ -21,8 +21,6 @@
 
 #include "com/centreon/engine/globals.hh"
 
-extern com::centreon::engine::configuration::State pb_config;
-
 void init_config_state(void);
 void deinit_config_state(void);
 
