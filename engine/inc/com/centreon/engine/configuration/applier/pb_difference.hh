@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon
+ * Copyright 2023-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
-
-#include <iterator>
 
 namespace com::centreon::engine {
 
@@ -128,6 +126,35 @@ class pb_difference {
       const T& item = *it;
       if (!new_keys.contains(f(item)))
         _deleted.push_back({i, f(item)});
+      ++i;
+    }
+  }
+
+  template <typename Function>
+  void parse(absl::flat_hash_map<Key, std::unique_ptr<T>>& old_content,
+             const Container& new_list,
+             Function f) {
+    absl::flat_hash_set<Key> new_keys;
+    for (auto it = new_list.begin(); it != new_list.end(); ++it) {
+      const T& item = *it;
+      auto inserted = new_keys.insert(f(item));
+      if (!old_content.contains(*inserted.first)) {
+        // New object to add
+        _added.push_back(&item);
+      } else {
+        // Object to modify or equal
+        if (!MessageDifferencer::Equals(item, *old_content[f(item)])) {
+          // There are changes in this object
+          _modified.push_back(
+              std::make_pair(old_content[f(item)].get(), &item));
+        }
+      }
+    }
+
+    ssize_t i = 0;
+    for (auto& [k, _] : old_content) {
+      if (!new_keys.contains(k))
+        _deleted.push_back({i, k});
       ++i;
     }
   }
