@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/applier/severity.hh"
-#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -41,8 +40,9 @@ void applier::severity::add_object(const configuration::Severity& obj) {
                        obj.key().type());
 
   // Add severity to the global configuration set.
-  auto* new_sv = pb_indexed_config.state().add_severities();
+  auto new_sv = std::make_unique<Severity>();
   new_sv->CopyFrom(obj);
+  pb_indexed_config.add_severity(std::move(new_sv));
 
   auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
                                              obj.icon_id(), obj.severity_name(),
@@ -106,9 +106,11 @@ void applier::severity::modify_object(
  *
  * @param idx The index of the object to remove.
  */
-void applier::severity::remove_object(ssize_t idx) {
+template <>
+void applier::severity::remove_object(
+    const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
   const configuration::Severity& obj =
-      pb_indexed_config.state().severities()[idx];
+      pb_indexed_config.state().severities()[p.first];
 
   // Logging.
 
@@ -130,5 +132,5 @@ void applier::severity::remove_object(ssize_t idx) {
   }
 
   // Remove severity from the global configuration set.
-  pb_indexed_config.state().mutable_severities()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_severities()->DeleteSubrange(p.first, 1);
 }

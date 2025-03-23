@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -178,9 +177,11 @@ void applier::servicegroup::modify_object(
  *
  *  @param[in] idw  Index of the servicegroup to remove in the configuration.
  */
-void applier::servicegroup::remove_object(ssize_t idx) {
+template <>
+void applier::servicegroup::remove_object(
+    const std::pair<ssize_t, std::string>& p) {
   // Logging.
-  auto obj = pb_indexed_config.state().servicegroups(idx);
+  auto obj = pb_indexed_config.state().servicegroups(p.first);
   config_logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
 
   // Find service group.
@@ -195,7 +196,7 @@ void applier::servicegroup::remove_object(ssize_t idx) {
   }
 
   // Remove service group from the global configuration state.
-  pb_indexed_config.state().mutable_servicegroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_servicegroups()->DeleteSubrange(p.first, 1);
 }
 
 void applier::servicegroup::resolve_object(

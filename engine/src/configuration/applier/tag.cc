@@ -23,7 +23,6 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/tag.hh"
 #include "gtest/gtest.h"
 
 using namespace com::centreon;
@@ -103,8 +102,10 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  *
  * @param idx The idx in the tags configuration objects to remove.
  */
-void applier::tag::remove_object(ssize_t idx) {
-  const configuration::Tag& obj = pb_indexed_config.state().tags().at(idx);
+template <>
+void applier::tag::remove_object(
+    const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
+  const configuration::Tag& obj = pb_indexed_config.state().tags().at(p.first);
 
   // Logging.
   config_logger->debug("Removing tag ({},{}).", obj.key().id(),
@@ -124,7 +125,7 @@ void applier::tag::remove_object(ssize_t idx) {
   }
 
   // Remove tag from the global configuration set.
-  pb_indexed_config.state().mutable_tags()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_tags()->DeleteSubrange(p.first, 1);
 }
 
 /**

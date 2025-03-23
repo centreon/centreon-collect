@@ -21,11 +21,35 @@
 #include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::engine::configuration {
+/**
+ * @brief This class is used to index the configuration state. Many objects
+ * in the state are stored in vectors and so not indexed. This class is used
+ * to index these objects. So it is easier to access to any service or host.
+ *
+ * Indexed objects are moved to the appropriate containers. The state has its
+ * containers set to empty.
+ */
 class indexed_state {
   State _state;
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+      _severities;
+
+  void _apply_containers(State& state);
 
  public:
   State& state() { return _state; }
+  void index();
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
+  severities() {
+    return _severities;
+  }
+  void add_severity(std::unique_ptr<Severity> severity) {
+    _severities.emplace(
+        std::make_pair(severity->key().id(), severity->key().type()),
+        std::move(severity));
+  }
+  State save();
+  void restore(State& state);
 };
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */

@@ -19,7 +19,6 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -171,12 +170,14 @@ void applier::serviceescalation::modify_object(
  *  @param[in] obj  The service escalation to remove from the monitoring
  *                  engine.
  */
-void applier::serviceescalation::remove_object(ssize_t idx) {
+template <>
+void applier::serviceescalation::remove_object(
+    const std::pair<ssize_t, size_t>& p) {
   // Logging.
   config_logger->debug("Removing a service escalation.");
 
   configuration::Serviceescalation& obj =
-      pb_indexed_config.state().mutable_serviceescalations()->at(idx);
+      pb_indexed_config.state().mutable_serviceescalations()->at(p.first);
   // Find service escalation.
   const std::string& host_name{obj.hosts().data()[0]};
   const std::string& description{obj.service_description().data()[0]};
@@ -222,8 +223,8 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.state().mutable_serviceescalations()->DeleteSubrange(idx,
-                                                                         1);
+  pb_indexed_config.state().mutable_serviceescalations()->DeleteSubrange(
+      p.first, 1);
 }
 
 /**

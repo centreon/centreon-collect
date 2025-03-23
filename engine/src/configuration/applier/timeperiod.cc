@@ -21,12 +21,10 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -120,9 +118,11 @@ void applier::timeperiod::modify_object(
   }
 }
 
-void applier::timeperiod::remove_object(ssize_t idx) {
+template <>
+void applier::timeperiod::remove_object(
+    const std::pair<ssize_t, std::string>& p) {
   /* obj is the object to remove */
-  auto& obj = pb_indexed_config.state().timeperiods()[idx];
+  auto& obj = pb_indexed_config.state().timeperiods()[p.first];
   config_logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
@@ -134,7 +134,7 @@ void applier::timeperiod::remove_object(ssize_t idx) {
   }
 
   // Remove time period from the global configuration set.
-  pb_indexed_config.state().mutable_timeperiods()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_timeperiods()->DeleteSubrange(p.first, 1);
 }
 
 /**

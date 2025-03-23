@@ -24,15 +24,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/globals.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/connector_helper.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/contactgroup_helper.hh"
-#include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -137,7 +128,7 @@ TEST_F(ApplierPbContact, PbRemoveContactFromConfig) {
     }
   }
   ASSERT_TRUE(found);
-  aply.remove_object(idx);
+  aply.remove_object<std::string>({idx, "test"});
   ASSERT_TRUE(engine::contact::contacts.empty());
 }
 

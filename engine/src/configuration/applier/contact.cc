@@ -292,8 +292,10 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  *
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
-void applier::contact::remove_object(ssize_t idx) {
-  const configuration::Contact& obj = pb_indexed_config.state().contacts()[idx];
+template <>
+void applier::contact::remove_object(const std::pair<ssize_t, std::string>& p) {
+  const configuration::Contact& obj =
+      pb_indexed_config.state().contacts()[p.first];
 
   // Logging.
   config_logger->debug("Removing contact '{}'.", obj.contact_name());
@@ -311,7 +313,7 @@ void applier::contact::remove_object(ssize_t idx) {
   }
 
   // Remove contact from the global configuration set.
-  pb_indexed_config.state().mutable_contacts()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_contacts()->DeleteSubrange(p.first, 1);
 }
 
 /**
