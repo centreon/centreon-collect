@@ -21,11 +21,7 @@
 
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostescalation_helper.hh"
-#include "common/engine_conf/state_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -81,9 +77,9 @@ TEST_F(PbApplierHostEscalation, PbRemoveEscalation) {
   he_apply.add_object(he);
   ASSERT_EQ(hostescalation::hostescalations.size(), 2u);
 
-  he_apply.remove_object(1);
+  he_apply.remove_object<size_t>({1, 1});
   ASSERT_EQ(hostescalation::hostescalations.size(), 1u);
-  he_apply.remove_object(0);
+  he_apply.remove_object<size_t>({0, 1});
   ASSERT_EQ(hostescalation::hostescalations.size(), 0u);
 }
 
@@ -108,11 +104,11 @@ TEST_F(PbApplierHostEscalation, RemoveEscalationFromRemovedHost) {
   he_apply.add_object(he);
   ASSERT_EQ(hostescalation::hostescalations.size(), 2u);
 
-  hst_aply.remove_object(0);
+  hst_aply.remove_object<size_t>({0, 12});
   ASSERT_EQ(host::hosts.size(), 0u);
 
-  he_apply.remove_object(0);
+  he_apply.remove_object<size_t>({0, 12});
   ASSERT_EQ(hostescalation::hostescalations.size(), 1u);
-  he_apply.remove_object(0);
+  he_apply.remove_object<size_t>({0, 12});
   ASSERT_EQ(hostescalation::hostescalations.size(), 0u);
 }

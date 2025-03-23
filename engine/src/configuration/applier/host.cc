@@ -28,7 +28,6 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/engine_conf/severity_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -387,8 +386,9 @@ void applier::host::modify_object(configuration::Host* old_obj,
  *
  *  @param[in] obj The new host to remove from the monitoring engine.
  */
-void applier::host::remove_object(ssize_t idx) {
-  const Host& obj = pb_indexed_config.state().hosts()[idx];
+template <>
+void applier::host::remove_object<size_t>(const std::pair<ssize_t, size_t>& p) {
+  const Host& obj = pb_indexed_config.state().hosts()[p.first];
   // Logging.
   config_logger->debug("Removing host '{}'.", obj.host_name());
 
@@ -430,7 +430,7 @@ void applier::host::remove_object(ssize_t idx) {
   }
 
   // Remove host from the global configuration set.
-  pb_indexed_config.state().mutable_hosts()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hosts()->DeleteSubrange(p.first, 1);
 }
 
 /**

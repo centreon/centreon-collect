@@ -21,8 +21,6 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
-#include "com/centreon/engine/globals.hh"
-#include "common/engine_conf/connector_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -87,7 +85,7 @@ TEST_F(ApplierPbConnector, PbRemoveConnector) {
   cnn.set_connector_line("echo 1");
 
   aply.add_object(cnn);
-  aply.remove_object(0);
+  aply.remove_object<std::string>({0, "connector"});
   ASSERT_TRUE(pb_indexed_config.state().connectors().size() == 0);
   ASSERT_TRUE(commands::connector::connectors.size() == 0);
 }

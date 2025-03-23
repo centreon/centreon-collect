@@ -19,7 +19,6 @@
 #ifndef CCE_OBJECTS_CONTACTGROUP_HH
 #define CCE_OBJECTS_CONTACTGROUP_HH
 
-#include <absl/container/flat_hash_map.h>
 #include <list>
 #include <memory>
 #include <string>

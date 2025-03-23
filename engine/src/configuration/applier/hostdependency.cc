@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -188,7 +187,9 @@ void applier::hostdependency::modify_object(
  *  @param[in] idx  The index of the host dependency configuration to remove
  * from engine.
  */
-void applier::hostdependency::remove_object(ssize_t idx) {
+template <>
+void applier::hostdependency::remove_object(
+    const std::pair<ssize_t, size_t>& p) {
   // Logging.
   config_logger->debug("Removing a host dependency.");
 
@@ -205,7 +206,8 @@ void applier::hostdependency::remove_object(ssize_t idx) {
   }
 
   // Remove dependency from the global configuration set.
-  pb_indexed_config.state().mutable_hostdependencies()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hostdependencies()->DeleteSubrange(p.first,
+                                                                       1);
 }
 
 /**

@@ -20,13 +20,11 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -146,10 +144,12 @@ void applier::connector::modify_object(
   to_modify->CopyFrom(new_obj);
 }
 
-void applier::connector::remove_object(ssize_t idx) {
+template <>
+void applier::connector::remove_object(
+    const std::pair<ssize_t, std::string>& p) {
   // Logging.
   const configuration::Connector& obj =
-      pb_indexed_config.state().connectors()[idx];
+      pb_indexed_config.state().connectors()[p.first];
   config_logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
@@ -163,7 +163,7 @@ void applier::connector::remove_object(ssize_t idx) {
   commands::otel_connector::remove(obj.connector_name());
 
   // Remove connector from the global configuration set.
-  pb_indexed_config.state().mutable_connectors()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_connectors()->DeleteSubrange(p.first, 1);
 }
 
 /**

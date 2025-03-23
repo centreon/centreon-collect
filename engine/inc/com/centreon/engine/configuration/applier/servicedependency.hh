@@ -46,7 +46,8 @@ class servicedependency {
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
   void expand_objects(configuration::State& s);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Servicedependency& obj,
                       error_cnt& err);
 };

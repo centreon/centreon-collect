@@ -18,10 +18,8 @@
  */
 
 #include <sys/resource.h>
+#include <cstdint>
 
-#include "com/centreon/engine/configuration/applier/state.hh"
-
-#include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -48,12 +46,9 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker_sink.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
-#include "common/log_v2/log_v2.hh"
-#include "state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -135,7 +130,7 @@ void applier::state::apply(configuration::State& new_cfg,
 void applier::state::apply_diff(configuration::DiffState& diff_conf,
                                 error_cnt& err,
                                 retention::state* state) {
-  configuration::State save;
+  configuration::State save = pb_indexed_config.save();
   save.CopyFrom(pb_indexed_config.state());
   try {
     _processing_state = state_ready;
@@ -651,12 +646,12 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
 
   // Erase objects.
   for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
-    ssize_t idx = it->first;
+    auto p = *it;
     if (!verify_config)
-      aplyr.remove_object(idx);
+      aplyr.remove_object(p);
     else {
       try {
-        aplyr.remove_object(idx);
+        aplyr.remove_object(p);
       } catch (const std::exception& e) {
         ++err.config_errors;
         config_logger->info(e.what());
@@ -710,10 +705,12 @@ void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
     for (auto& s : pb_indexed_config.state().severities()) {
       if (r.id() == s.key().id() && r.type() == s.key().type()) {
         if (!verify_config)
-          aplyr.remove_object(idx);
+          aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
+              {idx, {s.key().id(), s.key().type()}});
         else {
           try {
-            aplyr.remove_object(idx);
+            aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
+                {idx, {s.key().id(), s.key().type()}});
           } catch (const std::exception& e) {
             ++err.config_errors;
             config_logger->info(e.what());
@@ -738,6 +735,7 @@ void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
     }
   }
 }
+
 #ifdef DEBUG_CONFIG
 /**
  *  A method to check service escalations pointers of each service are well

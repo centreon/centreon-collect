@@ -23,12 +23,7 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -93,7 +88,7 @@ TEST_F(ApplierPbHost, PbHostRemoved) {
   std::shared_ptr<com::centreon::engine::host> h1(hm.begin()->second);
   ASSERT_TRUE(h1->name() == "test_host");
 
-  hst_aply.remove_object(0);
+  hst_aply.remove_object<size_t>({0, 12});
 
   ASSERT_EQ(hm.size(), 0u);
   hst.set_host_name("test_host1");

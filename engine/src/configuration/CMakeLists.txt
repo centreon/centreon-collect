@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2024 Centreon
+# Copyright 2009-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -29,4 +29,5 @@ set(FILES
     # Sources.
     "${SRC_DIR}/whitelist.cc"
     "${SRC_DIR}/extended_conf.cc"
+    ${SRC_DIR}/indexed_state.cc
     PARENT_SCOPE)
