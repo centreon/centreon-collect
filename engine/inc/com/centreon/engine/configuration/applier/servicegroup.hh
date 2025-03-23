@@ -22,9 +22,8 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/engine_conf/servicegroup_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class servicegroup {
  public:
   servicegroup();
@@ -35,7 +34,8 @@ class servicegroup {
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Servicegroup* to_modify,
                      const configuration::Servicegroup& new_object);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Servicegroup& obj, error_cnt& err);
 
  private:
@@ -46,7 +46,8 @@ class servicegroup {
       const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           sg_by_name);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+template <>
+void servicegroup::remove_object(const std::pair<ssize_t, std::string>& p);
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH

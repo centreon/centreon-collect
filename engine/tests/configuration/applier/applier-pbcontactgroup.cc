@@ -22,9 +22,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/globals.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/contactgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -113,7 +110,7 @@ TEST_F(ApplierPbContactgroup, RemoveContactgroupFromConfig) {
   aply.add_object(cg);
   ASSERT_FALSE(engine::contactgroup::contactgroups.empty());
 
-  aply.remove_object(0);
+  aply.remove_object<std::string>({0, "test"});
   ASSERT_TRUE(engine::contactgroup::contactgroups.empty());
 }
 
@@ -240,7 +237,7 @@ TEST_F(ApplierPbContactgroup, ContactRemove) {
     ASSERT_LE(idx2, pb_indexed_config.state().contacts().size());
   }
 
-  aply.remove_object(idx2);
+  aply.remove_object<std::string>({idx2, "test2"});
   ASSERT_EQ(
       engine::contactgroup::contactgroups["test_group"]->get_members().size(),
       1u);

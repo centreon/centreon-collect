@@ -21,7 +21,6 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 
 #include "common/engine_conf/anomalydetection_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -44,7 +43,8 @@ class anomalydetection {
   void add_object(const configuration::Anomalydetection& obj);
   void modify_object(configuration::Anomalydetection* old_obj,
                      const configuration::Anomalydetection& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Anomalydetection& obj,
                       error_cnt& err);

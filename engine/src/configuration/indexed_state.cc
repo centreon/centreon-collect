@@ -19,3 +19,46 @@
 #include "com/centreon/engine/configuration/indexed_state.hh"
 
 using namespace com::centreon::engine::configuration;
+
+State indexed_state::save() {
+  State save;
+  save.CopyFrom(_state);
+  _apply_containers(save);
+  return save;
+}
+
+/**
+ * @brief Move indexed objects to the appropriate containers.
+ *
+ * @param state If we have to save the state, we have to move the Indexed
+ * objects to the appropriate containers. This state is the owner of these
+ * containers.
+ */
+void indexed_state::_apply_containers(State& state) {
+  for (auto& [key, severity] : _severities) {
+    state.mutable_severities()->AddAllocated(severity.release());
+  }
+}
+
+/**
+ * @brief Index the objects in the state.
+ */
+void indexed_state::index() {
+  _severities.clear();
+  while (!_state.severities().empty()) {
+    Severity* severity = _state.mutable_severities()->ReleaseLast();
+    _severities.emplace(
+        std::make_pair(severity->key().id(), severity->key().type()),
+        std::unique_ptr<Severity>(severity));
+  }
+}
+
+/**
+ * @brief Set the given State into the indexed state and index its objects.
+ *
+ * @param state The state to set.
+ */
+void indexed_state::restore(State& state) {
+  _state.CopyFrom(state);
+  index();
+}

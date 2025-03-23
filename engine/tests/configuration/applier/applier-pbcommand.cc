@@ -19,18 +19,11 @@
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
 
-#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/connector_helper.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -202,7 +195,7 @@ TEST_F(ApplierPbCommand, PbRemoveCommand) {
 
   aply.add_object(cmd);
 
-  aply.remove_object(0);
+  aply.remove_object<std::string>({0, "cmd"});
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
   ASSERT_TRUE(pb_indexed_config.state().commands().size() == 0);
@@ -227,7 +220,7 @@ TEST_F(ApplierPbCommand, PbRemoveCommandWithConnector) {
   cnn_aply.add_object(cnn);
   aply.add_object(cmd);
 
-  aply.remove_object(0);
+  aply.remove_object<std::string>({0, "cmd"});
   command_map::iterator found{commands::command::commands.find("cmd")};
   ASSERT_EQ(found, commands::command::commands.end());
   ASSERT_TRUE(pb_indexed_config.state().commands().size() == 0);

@@ -20,11 +20,9 @@
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon::engine::configuration;
 
@@ -209,12 +207,14 @@ void applier::servicedependency::modify_object(
  *  @param[in] obj  The service dependency to remove from the monitoring
  *                  engine.
  */
-void applier::servicedependency::remove_object(ssize_t idx) {
+template <>
+void applier::servicedependency::remove_object(
+    const std::pair<ssize_t, size_t>& p) {
   // Logging.
   config_logger->debug("Removing a service dependency.");
 
   // Find service dependency.
-  auto& obj = pb_indexed_config.state().servicedependencies(idx);
+  auto& obj = pb_indexed_config.state().servicedependencies(p.first);
   size_t key = servicedependency_key(obj);
 
   servicedependency_mmap::iterator it =
@@ -227,8 +227,8 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   }
 
   // Remove dependency from the global configuration set.
-  pb_indexed_config.state().mutable_servicedependencies()->DeleteSubrange(idx,
-                                                                          1);
+  pb_indexed_config.state().mutable_servicedependencies()->DeleteSubrange(
+      p.first, 1);
 }
 
 /**

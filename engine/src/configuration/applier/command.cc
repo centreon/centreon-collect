@@ -20,11 +20,9 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -150,8 +148,10 @@ void applier::command::modify_object(configuration::Command* to_modify,
  *
  * @param idx The position in configuration of the configuration to remove.
  */
-void applier::command::remove_object(ssize_t idx) {
-  const configuration::Command& obj = pb_indexed_config.state().commands()[idx];
+template <>
+void applier::command::remove_object(const std::pair<ssize_t, std::string>& p) {
+  const configuration::Command& obj =
+      pb_indexed_config.state().commands()[p.first];
   // Logging.
   config_logger->debug("Removing command '{}'.", obj.command_name());
 
@@ -166,7 +166,7 @@ void applier::command::remove_object(ssize_t idx) {
         "Could not remove command '{}': it does not exist", obj.command_name());
 
   // Remove command from the global configuration set.
-  pb_indexed_config.state().mutable_commands()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_commands()->DeleteSubrange(p.first, 1);
 }
 
 /**

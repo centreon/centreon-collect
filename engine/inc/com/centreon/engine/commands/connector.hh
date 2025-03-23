@@ -22,14 +22,13 @@
 
 #include <thread>
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 
 namespace com::centreon::engine {
 namespace commands {
 class connector;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -141,7 +140,7 @@ class connector : public command, public process_listener {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::commands::connector const& obj);

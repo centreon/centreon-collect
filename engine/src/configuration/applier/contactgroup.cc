@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -142,9 +141,11 @@ void applier::contactgroup::modify_object(
  *
  * @param idx The index of the contactgroup configuration to remove.
  */
-void applier::contactgroup::remove_object(ssize_t idx) {
+template <>
+void applier::contactgroup::remove_object(
+    const std::pair<ssize_t, std::string>& p) {
   const configuration::Contactgroup& obj =
-      pb_indexed_config.state().contactgroups()[idx];
+      pb_indexed_config.state().contactgroups()[p.first];
 
   // Logging.
   config_logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
@@ -164,7 +165,7 @@ void applier::contactgroup::remove_object(ssize_t idx) {
   }
 
   // Remove contact group from the global configuration set.
-  pb_indexed_config.state().mutable_contactgroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_contactgroups()->DeleteSubrange(p.first, 1);
 }
 
 /**

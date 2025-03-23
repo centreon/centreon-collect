@@ -22,9 +22,8 @@
 
 #include "common/engine_conf/host_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class host {
  public:
   host() = default;
@@ -35,10 +34,14 @@ class host {
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Host& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+
+template <>
+void host::remove_object(const std::pair<ssize_t, size_t>& p);
+
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOST_HH

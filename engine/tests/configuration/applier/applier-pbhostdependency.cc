@@ -19,8 +19,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstring>
-
 #include "../../test_engine.hh"
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/clib.hh"
@@ -32,15 +30,9 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/state_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -134,7 +126,7 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
   hd_aply.resolve_object(hd1, err);
 
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
-  hd_aply.remove_object(0);
+  hd_aply.remove_object<size_t>({0, 1});
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
 }
 

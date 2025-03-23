@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
@@ -27,7 +26,6 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/engine_conf/severity_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -410,8 +408,10 @@ void applier::service::modify_object(configuration::Service* old_obj,
  *  @param[in] obj  The new service to remove from the monitoring
  *                  engine.
  */
-void applier::service::remove_object(ssize_t idx) {
-  Service& obj = pb_indexed_config.state().mutable_services()->at(idx);
+template <>
+void applier::service::remove_object(
+    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
+  Service& obj = pb_indexed_config.state().mutable_services()->at(p.first);
   const std::string& host_name = obj.host_name();
   const std::string& service_description = obj.service_description();
 
@@ -462,7 +462,7 @@ void applier::service::remove_object(ssize_t idx) {
   }
 
   // Remove service from the global configuration set.
-  pb_indexed_config.state().mutable_services()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_services()->DeleteSubrange(p.first, 1);
 }
 
 /**

@@ -22,9 +22,8 @@
 
 #include "common/engine_conf/service_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-namespace applier {
 class service {
  public:
   service() = default;
@@ -35,7 +34,8 @@ class service {
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Service& obj, error_cnt& err);
 
  private:
@@ -44,7 +44,9 @@ class service {
   void _inherits_special_vars(configuration::Service& obj,
                               const configuration::State& s);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+template <>
+void service::remove_object(
+    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p);
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICE_HH
