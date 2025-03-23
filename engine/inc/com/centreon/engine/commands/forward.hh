@@ -19,7 +19,6 @@
 #ifndef CCE_COMMANDS_FORWARD_HH
 #define CCE_COMMANDS_FORWARD_HH
 
-#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/connector.hh"
 
 namespace com::centreon::engine::commands {

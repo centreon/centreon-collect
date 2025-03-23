@@ -45,10 +45,14 @@ class connector {
   void add_object(const configuration::Connector& obj);
   void modify_object(configuration::Connector* to_modify,
                      const configuration::Connector& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Connector& obj, error_cnt& err);
 };
+
+template <>
+void connector::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace applier
 }  // namespace configuration
 

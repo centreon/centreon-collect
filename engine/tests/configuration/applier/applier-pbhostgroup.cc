@@ -21,11 +21,8 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -177,7 +174,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);
-  ASSERT_NO_THROW(hst_aply.remove_object(0));
+  ASSERT_NO_THROW(hst_aply.remove_object<size_t>({0, 1}));
   ASSERT_EQ(hg_obj->members.size(), 1u);
 
   hg.mutable_members()->clear_data();
@@ -185,7 +182,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   ASSERT_NO_THROW(hg_aply.modify_object(
       &pb_indexed_config.state().mutable_hostgroups()->at(0), hg));
 
-  hg_aply.remove_object(0);
+  hg_aply.remove_object<std::string>({0, "temphg"});
   ASSERT_TRUE(pb_indexed_config.state().hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

@@ -17,12 +17,10 @@
  *
  */
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
@@ -134,7 +132,7 @@ void applier::anomalydetection::add_object(
  *  @param[in,out] s  State being applied.
  */
 void applier::anomalydetection::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<Service> > expanded;
+  std::list<std::unique_ptr<Service>> expanded;
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
@@ -331,9 +329,11 @@ void applier::anomalydetection::modify_object(
                                MODATTR_ALL);
 }
 
-void applier::anomalydetection::remove_object(ssize_t idx) {
+template <>
+void applier::anomalydetection::remove_object(
+    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
   Anomalydetection& obj =
-      pb_indexed_config.state().mutable_anomalydetections()->at(idx);
+      pb_indexed_config.state().mutable_anomalydetections()->at(p.first);
   const std::string& host_name(obj.host_name());
   const std::string& service_description(obj.service_description());
 
@@ -375,7 +375,8 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
   }
 
   // Remove anomalydetection from the global configuration set.
-  pb_indexed_config.state().mutable_anomalydetections()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_anomalydetections()->DeleteSubrange(p.first,
+                                                                        1);
 }
 
 /**

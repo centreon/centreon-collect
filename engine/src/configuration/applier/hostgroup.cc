@@ -21,7 +21,6 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -120,8 +119,10 @@ void applier::hostgroup::modify_object(
  *  @param[in] obj  The new hostgroup to remove from the monitoring
  *                  engine.
  */
-void applier::hostgroup::remove_object(ssize_t idx) {
-  const Hostgroup& obj = pb_indexed_config.state().hostgroups(idx);
+template <>
+void applier::hostgroup::remove_object(
+    const std::pair<ssize_t, std::string>& p) {
+  const Hostgroup& obj = pb_indexed_config.state().hostgroups(p.first);
   // Logging.
   config_logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
@@ -139,7 +140,7 @@ void applier::hostgroup::remove_object(ssize_t idx) {
   }
 
   // Remove host group from the global configuration set.
-  pb_indexed_config.state().mutable_hostgroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hostgroups()->DeleteSubrange(p.first, 1);
 }
 
 /**

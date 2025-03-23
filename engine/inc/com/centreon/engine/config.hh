@@ -22,7 +22,6 @@
 
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/servicegroup.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 #ifdef __cplusplus
 extern "C" {

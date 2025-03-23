@@ -21,9 +21,8 @@
 
 #include "common/engine_conf/hostescalation_helper.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 // Forward declarations.
 class hostescalation;
 class state;
@@ -45,13 +44,15 @@ class hostescalation {
   void add_object(const configuration::Hostescalation& obj);
   void modify_object(configuration::Hostescalation* old_obj,
                      const configuration::Hostescalation& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Hostescalation& obj, error_cnt& err);
 };
-}  // namespace applier
-}  // namespace configuration
 
-}  // namespace com::centreon::engine
+template <>
+void hostescalation::remove_object(const std::pair<ssize_t, size_t>& p);
+}  // namespace applier
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH

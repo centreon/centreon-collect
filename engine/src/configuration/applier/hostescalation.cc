@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -134,9 +133,11 @@ void applier::hostescalation::modify_object(
  *  @param[in] obj  The new hostescalation to remove from the monitoring
  *                  engine.
  */
-void applier::hostescalation::remove_object(ssize_t idx) {
+template <>
+void applier::hostescalation::remove_object<size_t>(
+    const std::pair<ssize_t, size_t>& p) {
   configuration::Hostescalation obj =
-      pb_indexed_config.state().hostescalations(idx);
+      pb_indexed_config.state().hostescalations(p.first);
   // Logging.
   config_logger->debug("Removing a host escalation.");
 
@@ -194,7 +195,8 @@ void applier::hostescalation::remove_object(ssize_t idx) {
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.state().mutable_hostescalations()->DeleteSubrange(idx, 1);
+  pb_indexed_config.state().mutable_hostescalations()->DeleteSubrange(p.first,
+                                                                      1);
 }
 
 /**

@@ -27,14 +27,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/tag_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -200,7 +192,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfig) {
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
-  svc_aply.remove_object(0);
+  svc_aply.remove_object<std::pair<uint64_t, uint64_t>>({0, {1, 3}});
   ASSERT_EQ(engine::service::services_by_id.size(), 0u);
 
   svc.set_service_description("test_description2");
@@ -647,7 +639,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfigTags) {
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
-  svc_aply.remove_object(0);
+  svc_aply.remove_object<std::pair<uint64_t, uint64_t>>({0, {1, 3}});
   ASSERT_EQ(engine::service::services_by_id.size(), 0u);
 
   svc.set_service_description("test_description2");

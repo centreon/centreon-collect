@@ -38,9 +38,13 @@ class hostgroup {
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
-  void remove_object(ssize_t idx);
+  template <typename Key>
+  void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Hostgroup& obj, error_cnt& err);
 };
+
+template <>
+void hostgroup::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration
 
