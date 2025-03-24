@@ -19,10 +19,27 @@
 #ifndef CENTREON_AGENT_WINDOWS_UTIL_HH
 #define CENTREON_AGENT_WINDOWS_UTIL_HH
 
+#include <chrono>
 namespace com::centreon::agent {
 std::string get_last_error_as_string();
 
 std::string lpwcstr_to_acp(LPCWSTR lpwstr);
+
+std::chrono::file_clock::time_point convert_filetime_to_tp(uint64_t file_time);
+
+inline std::chrono::file_clock::time_point convert_filetime_to_tp(
+    FILETIME file_time) {
+  ULARGE_INTEGER uli = {.LowPart = file_time.dwLowDateTime,
+                        .HighPart = file_time.dwHighDateTime};
+  return convert_filetime_to_tp(uli.QuadPart);
+}
+
+inline std::chrono::file_clock::duration convert_filetime_to_duration(
+    FILETIME file_time) {
+  ULARGE_INTEGER uli = {.LowPart = file_time.dwLowDateTime,
+                        .HighPart = file_time.dwHighDateTime};
+  return std::chrono::file_clock::duration(uli.QuadPart);
+}
 
 }  // namespace com::centreon::agent
 

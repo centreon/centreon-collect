@@ -426,10 +426,12 @@ class concurent_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
-    std::lock_guard l(checked_m);
-    active_checks.insert(this);
-    if (active_checks.size() > max_active_check) {
-      max_active_check = active_checks.size();
+    {
+      std::lock_guard l(checked_m);
+      active_checks.insert(this);
+      if (active_checks.size() > max_active_check) {
+        max_active_check = active_checks.size();
+      }
     }
     _completion_timer.expires_after(_completion_delay);
     _completion_timer.async_wait([me = shared_from_this(), this,

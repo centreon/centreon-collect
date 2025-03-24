@@ -229,7 +229,7 @@ void event_container::_on_event(EVT_HANDLE h_event) {
 void event_container::_on_event(const event_log::event_data& raw_event,
                                 EVT_HANDLE h_event) {
   auto peremp = std::chrono::file_clock::now() - _scan_range;
-  auto event_time = event_data::convert_to_tp(raw_event.get_time_created());
+  auto event_time = convert_filetime_to_tp(raw_event.get_time_created());
   if (event_time < peremp) {
     return;
   }
@@ -245,7 +245,7 @@ void event_container::_on_event(const event_log::event_data& raw_event,
   } else if (_warning_filter->allow(raw_event)) {
     event_status = e_status::warning;
   } else {
-    _ok_events.emplace(event_data::convert_to_tp(raw_event.get_time_created()));
+    _ok_events.emplace(convert_filetime_to_tp(raw_event.get_time_created()));
   }
 
   if (event_status != e_status::ok) {

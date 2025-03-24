@@ -142,9 +142,10 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
-  ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_event_log.cc
+  ${NATIVE_SRC}/check_process.cc
+  ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
@@ -152,6 +153,9 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_service.cc
   ${NATIVE_SRC}/windows_util.cc
   ${NATIVE_SRC}/ntdll.cc
+  ${NATIVE_SRC}/process/process_container.cc
+  ${NATIVE_SRC}/process/process_data.cc
+  ${NATIVE_SRC}/process/process_filter.cc
 )
 
 set( SRC_LINUX
