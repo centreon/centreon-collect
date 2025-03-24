@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <__msvc_chrono.hpp>
-#include <chrono>
 #include "windows_util.hh"
 
 #include "filter.hh"
@@ -102,18 +100,6 @@ event_data::event_data(EVT_HANDLE render_context,
   }
 
   _data = *buffer;
-}
-
-/**
- * @brief Convert a file time to a time point
- * @param file_time The file time to convert
- * @return std::chrono::file_clock::time_point The time point
- */
-std::chrono::file_clock::time_point event_data::convert_to_tp(
-    uint64_t file_time) {
-  std::chrono::file_clock::duration d{file_time};
-
-  return std::chrono::file_clock::time_point{d};
 }
 
 /**
@@ -289,6 +275,8 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_value(
     // we may have written > -60m
     filt->calc_duration();
     filt->change_threshold_to_abs();
+    // we calculate min_written because we recalculate event status that are
+    // older than min_written
     if ((filt->get_comparison() ==
              filters::label_compare_to_value::comparison::less_than ||
          filt->get_comparison() ==
@@ -387,7 +375,7 @@ void event_filter::check_builder<data_tag_type>::set_label_compare_to_string(
       return static_cast<const data_tag_type::type&>(t).get_channel();
     });
   } else {
-    throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
+    throw exceptions::msg_fmt("unknown filter label {}", filt->get_label());
   }
 }
 
@@ -440,7 +428,7 @@ void event_filter::check_builder<data_tag_type>::set_label_in(
       return static_cast<const data_tag_type::type&>(t).get_channel();
     });
   } else {
-    throw exceptions::msg_fmt("unknwon filter label {}", filt->get_label());
+    throw exceptions::msg_fmt("unknown filter label {}", filt->get_label());
   }
 }
 

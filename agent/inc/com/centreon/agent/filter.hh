@@ -20,7 +20,7 @@
 #define CENTREON_AGENT_FILTER_HH
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "filter.hh"
+
 namespace com::centreon::agent {
 
 namespace filters {
@@ -73,6 +73,8 @@ class filter {
  protected:
   checker _checker;
 
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   filter(filter_type type) : _type(type) {}
   filter(const filter&) = default;
@@ -86,9 +88,13 @@ class filter {
 
   virtual std::unique_ptr<filter> clone() const = 0;
 
-  virtual bool check(const testable& t) const { return _checker(t); }
+  virtual bool check(const testable& t) const;
 
   virtual void visit(const visitor& visitr) const { visitr(this); }
+
+  virtual void set_logger(const std::shared_ptr<spdlog::logger>& logger) {
+    _logger = logger;
+  }
 
   virtual void apply_checker(const checker_builder& checker_builder) {
     checker_builder(this);
@@ -98,6 +104,8 @@ class filter {
   void set_checker(checker_ope&& ope) {
     _checker = std::forward<checker_ope>(ope);
   }
+
+  virtual bool get_enabled() const { return static_cast<bool>(_checker); }
 
   static bool create_filter(std::string_view filter_str,
                             const std::shared_ptr<spdlog::logger>& logger,
@@ -112,6 +120,11 @@ namespace std {
 std::ostream& operator<<(std::ostream& s,
                          const com::centreon::agent::filter& filt);
 }  // namespace std
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::agent::filter> : ostream_formatter {};
+}  // namespace fmt
 
 namespace com::centreon::agent {
 
@@ -182,6 +195,8 @@ class label_compare_to_value : public filter {
   void change_threshold_to_abs();
 
   void calc_duration();
+
+  void calc_giga_mega_kilo();
 
   template <class value_getter>
   void set_checker_from_getter(value_getter&& getter);
@@ -507,7 +522,11 @@ class filter_combinator : public filter {
 
   void visit(const visitor& visitr) const override;
 
+  void set_logger(const std::shared_ptr<spdlog::logger>& logger) override;
+
   void apply_checker(const checker_builder& checker_builder) override;
+
+  bool get_enabled() const override { return true; }
 
   void dump(std::ostream& s) const override;
 };

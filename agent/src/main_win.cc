@@ -24,6 +24,7 @@
 #include "check_event_log.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
+#include "check_process.hh"
 #include "check_service.hh"
 #include "check_uptime.hh"
 #include "drive_size.hh"
@@ -132,6 +133,7 @@ void show_help() {
   check_service::help(std::cout);
   check_health::help(std::cout);
   check_event_log::help(std::cout);
+  check_process::help(std::cout);
 }
 
 /**

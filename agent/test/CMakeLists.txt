@@ -36,6 +36,10 @@ else()
     check_event_log_filter_test.cc
     check_event_log_test.cc
     check_event_log_uniq_test.cc
+    check_process_container_test.cc
+    check_process_data_test.cc
+    check_process_filter_test.cc
+    check_process_test.cc
     check_windows_cpu_test.cc  
     check_windows_memory_test.cc 
     check_uptime_test.cc 
