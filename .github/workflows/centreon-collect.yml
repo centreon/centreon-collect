@@ -92,7 +92,7 @@ on:
 
 jobs:
   dispatch-to-maintained-branches:
-    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' && github.repository == 'centreon/centreon-collect'}}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
@@ -103,15 +103,16 @@ jobs:
         run: echo "day_of_week=$(date +%u)" >> $GITHUB_OUTPUT
         shell: bash
 
-      - if: ${{ steps.day_check.outputs.day_of_week == '1' }}
+      - name: Run nightly on a different maintenance branch depending on the day
         run: |
           NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.04.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
-          for target in "${NIGHTLY_TARGETS[@]}"; do
-            echo "[INFO] - Dispatching nightly run to $target branch."
-            gh workflow run centreon-collect.yml -r "$target" -f nightly_manual_trigger=true
-            if [[ "$target" == "dev-22.10.x" ]]; then
-              gh workflow run robot-nightly.yml -r "$target"
-            fi
+          target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
+          echo "[INFO] - Dispatching nightly run to $target_branch branch."
+          if [[ "$target_branch" == "dev-22.10.x" ]]; then
+            gh workflow run robot-nightly.yml -r "$target_branch"
+          else
+            gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
+          fi
           done
         shell: bash
         env:
