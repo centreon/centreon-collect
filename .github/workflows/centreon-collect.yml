@@ -113,7 +113,6 @@ jobs:
           else
             gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
           fi
-          done
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
