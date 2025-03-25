@@ -31,8 +31,8 @@ class conf_server_config {
   asio::ip::tcp::endpoint _listen_endpoint;
   bool _crypted;
   unsigned _second_keep_alive_interval;
-  std::string _certificate_path;
-  std::string _key_path;
+  std::string _public_cert;
+  std::string _private_key;
   unsigned _check_interval;
 
  public:
@@ -51,8 +51,8 @@ class conf_server_config {
 
   unsigned get_check_interval() const { return _check_interval; }
 
-  const std::string& get_certificate_path() const { return _certificate_path; }
-  const std::string& get_key_path() const { return _key_path; }
+  const std::string& get_public_cert() const { return _public_cert; }
+  const std::string& get_private_key() const { return _private_key; }
 
   bool operator==(const conf_server_config& right) const;
 };
@@ -72,8 +72,6 @@ class conf_session : public connection_class {
 
   void answer_to_request(const std::shared_ptr<http::request_type>& request,
                          const std::string& host);
-
-  bool _get_commands(const std::string& host_name, std::string& request_body);
 
   bool _otel_connector_to_stream(const std::string& cmd_name,
                                  const std::string& cmd_line,
