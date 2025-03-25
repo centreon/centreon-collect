@@ -18,6 +18,11 @@ BEBAMIDTU1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
+    Log To Console    Configuring core logger to info
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    rrd    core    info
+    Ctn Broker Config Log    module0    core    info
+    Log To Console    core logger configured
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
 
@@ -31,15 +36,10 @@ BEBAMIDTU1
     ${cmd_1}    Ctn Get Service Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
-    Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -67,7 +67,7 @@ BEBAMIDTU1
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIDTU2
@@ -94,7 +94,7 @@ BEBAMIDTU2
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -120,9 +120,9 @@ BEBAMIDTU2
 
     FOR    ${i}    IN RANGE    2
         # Engine is restarted
-        Ctn Stop engine
+        Ctn Stop Engine
         ${start}    Get Current Date
-        Ctn Start engine
+        Ctn Start Engine
         # Let's wait for the initial service states.
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -153,20 +153,28 @@ BEBAMIDTU2
     Should Be True    ${result}    We should have no more downtime
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDTU1
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
+    ...    The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in
+    ...    critical state, because of the second critical service. Then we apply two downtimes on this
+    ...    last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled,
+    ...    the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
+    Ctn Clear Retention
     Ctn Config Broker    module
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    module0    0
     Ctn Broker Config Log    module0    neb    trace
-    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    rrd    core    info
+    Ctn Broker Config Log    module0    core    info
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Config Engine    ${1}
@@ -192,15 +200,10 @@ BEBAMIGNDTU1
     Log To Console    service_314 has command id ${cmd_2}
     Ctn Set Command Status    ${cmd_2}    2
 
-    Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
@@ -264,15 +267,21 @@ BEBAMIGNDTU1
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDTU2
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
+    ...    The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in
+    ...    critical state, because of the second critical service. Then we apply two downtimes on this
+    ...    last one. The BA state is ok because of the policy on indicators. The first downtime reaches
+    ...    its end, the BA is still OK, but when the second downtime reaches its end, the BA should be
+    ...    CRITICAL.
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
     Ctn Config Broker    central
+    Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
@@ -293,15 +302,10 @@ BEBAMIGNDTU2
     ${cmd_2}    Ctn Get Service Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Ctn Set Command Status    ${cmd_2}    2
-    Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
-    # Let's wait for the initial service states.
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    1
 
     # KPI set to ok
     Ctn Process Service Result Hard    host_16    service_313    0    output critical for 313
@@ -354,7 +358,7 @@ BEBAMIGNDTU2
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 

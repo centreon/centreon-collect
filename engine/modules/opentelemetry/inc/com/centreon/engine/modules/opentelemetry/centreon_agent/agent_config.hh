@@ -46,6 +46,8 @@ class agent_config {
  public:
   agent_config(const rapidjson::Value& json_config_v);
 
+  agent_config();
+
   // used for tests
   agent_config(uint32_t check_interval,
                uint32_t max_concurrent_checks,

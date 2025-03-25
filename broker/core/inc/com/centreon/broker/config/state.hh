@@ -19,8 +19,6 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
-#include <fmt/format.h>
-
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "common/log_v2/config.hh"
@@ -53,6 +51,16 @@ class state {
   int _poller_id;
   std::string _poller_name;
   size_t _pool_size;
+
+  /* The directory where the engine configuration files are stored. This file
+   * has a sense only for the cbmod (usual value: /etc/centreon-engine) */
+  std::string _engine_config_dir;
+
+  /* The directory where php writes the pollers configurations. */
+  std::string _config_cache_dir;
+
+  /* The directory where broker stores all the pollers configurations. */
+  std::string _pollers_config_dir;
 
   common::log_v2::config _log_conf;
 
@@ -100,36 +108,42 @@ class state {
   uint16_t rpc_port(void) const noexcept;
   void listen_address(const std::string& listen_address) noexcept;
   const std::string& listen_address() const noexcept;
-  void broker_name(std::string const& name);
+  void broker_name(const std::string& name);
   const std::string& broker_name() const noexcept;
   void event_queues_total_size(uint64_t size);
   uint64_t event_queues_total_size() const noexcept;
   void set_bbdo_version(bbdo::bbdo_version v);
   bbdo::bbdo_version get_bbdo_version() const noexcept;
-  void cache_directory(std::string const& dir);
-  std::string const& cache_directory() const noexcept;
-  void command_file(std::string const& file);
-  std::string const& command_file() const noexcept;
-  void command_protocol(std::string const& prot);
-  std::string const& command_protocol() const noexcept;
+  void cache_directory(const std::string& dir);
+  const std::string& cache_directory() const noexcept;
+  void command_file(const std::string& file);
+  const std::string& command_file() const noexcept;
+  void command_protocol(const std::string& prot);
+  const std::string& command_protocol() const noexcept;
   void clear();
   void add_endpoint(endpoint&& out) noexcept;
   std::list<endpoint> const& endpoints() const noexcept;
   void event_queue_max_size(int val) noexcept;
   int event_queue_max_size() const noexcept;
-  std::string const& module_directory() const noexcept;
-  void module_directory(std::string const& dir);
+  const std::string& module_directory() const noexcept;
+  void module_directory(const std::string& dir);
   std::list<std::string>& module_list() noexcept;
   void add_module(std::string module);
   std::list<std::string> const& module_list() const noexcept;
   std::map<std::string, std::string>& params() noexcept;
-  std::map<std::string, std::string> const& params() const noexcept;
+  const std::map<std::string, std::string>& params() const noexcept;
   void poller_id(int id) noexcept;
   int poller_id() const noexcept;
   void pool_size(int size) noexcept;
   int pool_size() const noexcept;
-  void poller_name(std::string const& name);
-  std::string const& poller_name() const noexcept;
+  void poller_name(const std::string& name);
+  const std::string& poller_name() const noexcept;
+  void set_engine_config_dir(const std::string& dir);
+  const std::string& engine_config_dir() const noexcept;
+  void set_config_cache_dir(const std::string& config_cache_dir);
+  const std::string& config_cache_dir() const noexcept;
+  void set_pollers_config_dir(const std::string& pollers_config_dir);
+  const std::string& pollers_config_dir() const noexcept;
   common::log_v2::config& mut_log_conf();
   const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();

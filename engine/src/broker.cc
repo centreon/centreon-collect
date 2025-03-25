@@ -742,8 +742,9 @@ int broker_host_check(int type,
  *
  *  @param[in] type      Type.
  *  @param[in] hst       Host.
+ *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_host_status(int type, host* hst) {
+void broker_host_status(int type, host* hst, uint32_t attributes) {
   // Config check.
 #ifdef LEGACY_CONF
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
@@ -757,6 +758,7 @@ void broker_host_status(int type, host* hst) {
   nebstruct_host_status_data ds;
   ds.type = type;
   ds.object_ptr = hst;
+  ds.attributes = attributes;
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_HOST_STATUS_DATA, &ds);
@@ -998,8 +1000,11 @@ int broker_service_check(int type,
  *
  *  @param[in] type      Type.
  *  @param[in] svc       Target service.
+ *  @param[in] attributes Attributes from status_attribute enumeration.
  */
-void broker_service_status(int type, com::centreon::engine::service* svc) {
+void broker_service_status(int type,
+                           com::centreon::engine::service* svc,
+                           uint32_t attributes) {
   // Config check.
 #ifdef LEGACY_CONF
   if (!(config->event_broker_options() & BROKER_STATUS_DATA))
@@ -1013,6 +1018,7 @@ void broker_service_status(int type, com::centreon::engine::service* svc) {
   nebstruct_service_status_data ds;
   ds.type = type;
   ds.object_ptr = svc;
+  ds.attributes = attributes;
 
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_SERVICE_STATUS_DATA, &ds);
@@ -1117,5 +1123,16 @@ void broker_bench(unsigned id,
   nebstruct_bench_data ds = {id, mess_create};
   // Make callbacks.
   neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
+}
+
+/**
+ * @brief send agent usage statistics to broker
+ *
+ * @param stats
+ */
+void broker_agent_stats(nebstruct_agent_stats_data& stats) {
+  // Fill struct with relevant data.
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_AGENT_STATS, &stats);
 }
 }

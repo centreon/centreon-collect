@@ -623,3 +623,18 @@ TEST_F(PerfdataParser, BadMetric1) {
     ++i;
   }
 }
+
+TEST_F(PerfdataParser, ExtractPerfdataBrackets) {
+  std::string perfdata(
+      "'xx[aa a aa]'=2;3;7;1;9 '[a aa]'=12;25;50;0;118 'aa a]'=28;13;54;0;80");
+  auto lst{common::perfdata::parse_perfdata(0, 0, perfdata.c_str(), _logger)};
+  auto it = lst.begin();
+  ASSERT_NE(it, lst.end());
+  ASSERT_EQ(it->name(), "xx[aa a aa]");
+  ++it;
+  ASSERT_NE(it, lst.end());
+  ASSERT_EQ(it->name(), "[a aa]");
+  ++it;
+  ASSERT_NE(it, lst.end());
+  ASSERT_EQ(it->name(), "aa a]");
+}

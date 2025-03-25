@@ -19,7 +19,6 @@
 #include "common/engine_conf/serviceescalation_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -63,7 +62,7 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
  * @param value The value corresponding to the key
  */
 bool serviceescalation_helper::hook(std::string_view key,
-                                    const std::string_view& value) {
+                                    std::string_view value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -91,6 +90,8 @@ bool serviceescalation_helper::hook(std::string_view key,
         return false;
     }
     obj->set_escalation_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("escalation_options")->index());
     return true;
   } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
@@ -148,5 +149,73 @@ void serviceescalation_helper::_init() {
   obj->set_first_notification(-2);
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
+}
+
+/**
+ * @brief Expand the Serviceescalation object.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void serviceescalation_helper::expand(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
+    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+        servicegroups) {
+  std::list<std::unique_ptr<Serviceescalation>> resolved;
+
+  for (auto& se : *s.mutable_serviceescalations()) {
+    /* A set of all the hosts related to this escalation */
+    absl::flat_hash_set<std::string> host_names;
+    for (auto& hname : se.hosts().data())
+      host_names.insert(hname);
+    if (se.hostgroups().data().size() > 0) {
+      for (auto& hg_name : se.hostgroups().data()) {
+        auto found_hg = hostgroups.find(hg_name);
+        if (found_hg != hostgroups.end()) {
+          for (auto& h : found_hg->second->members().data())
+            host_names.emplace(h);
+        } else {
+          err.config_errors++;
+          throw msg_fmt("Could not expand non-existing host group '{}'",
+                        hg_name);
+        }
+      }
+    }
+
+    /* A set of all the pairs (hostname, service-description) impacted by this
+     * escalation. */
+    absl::flat_hash_set<std::pair<std::string, std::string>> expanded;
+    for (auto& hn : host_names) {
+      for (auto& sn : se.service_description().data())
+        expanded.emplace(hn, sn);
+    }
+
+    for (auto& sg_name : se.servicegroups().data()) {
+      auto found = servicegroups.find(sg_name);
+      if (found == servicegroups.end()) {
+        err.config_errors++;
+        throw msg_fmt("Could not resolve service group '{}'", sg_name);
+      }
+
+      for (auto& m : found->second->members().data())
+        expanded.emplace(m.first(), m.second());
+    }
+    se.mutable_hostgroups()->clear_data();
+    se.mutable_hosts()->clear_data();
+    se.mutable_servicegroups()->clear_data();
+    se.mutable_service_description()->clear_data();
+    for (auto& p : expanded) {
+      resolved.emplace_back(std::make_unique<Serviceescalation>());
+      auto& e = resolved.back();
+      e->CopyFrom(se);
+      fill_string_group(e->mutable_hosts(), p.first);
+      fill_string_group(e->mutable_service_description(), p.second);
+    }
+  }
+  s.clear_serviceescalations();
+  for (auto& e : resolved)
+    s.mutable_serviceescalations()->AddAllocated(e.release());
 }
 }  // namespace com::centreon::engine::configuration

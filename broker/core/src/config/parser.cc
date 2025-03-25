@@ -22,7 +22,6 @@
 
 #include <absl/strings/match.h>
 #include <absl/strings/str_split.h>
-#include <streambuf>
 
 #include "com/centreon/broker/exceptions/deprecated.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
@@ -263,6 +262,21 @@ state parser::parse(std::string const& file) {
           if (!misc::filesystem::readable(retval.cache_directory()))
             throw msg_fmt("The cache directory '{}' is not accessible",
                           retval.cache_directory());
+        } else if (get_conf<state>(
+                       {it.key(), it.value()}, "cache_config_directory", retval,
+                       &state::set_config_cache_dir, &json::is_string)) {
+          if (!misc::filesystem::readable(retval.config_cache_dir()))
+            throw msg_fmt(
+                "The cache configuration directory '{}' is not accessible",
+                retval.config_cache_dir());
+        } else if (get_conf<state>({it.key(), it.value()},
+                                   "pollers_config_directory", retval,
+                                   &state::set_pollers_config_dir,
+                                   &json::is_string)) {
+          if (!misc::filesystem::readable(retval.pollers_config_dir()))
+            throw msg_fmt(
+                "The pollers configuration directory '{}' is not accessible",
+                retval.pollers_config_dir());
         } else if (get_conf<int, state>({it.key(), it.value()}, "pool_size",
                                         retval, &state::pool_size,
                                         &json::is_number, &json::get<int>))
@@ -491,7 +505,10 @@ state parser::parse(std::string const& file) {
           if (it.key() == "stats")
             retval.add_module("15-stats.so");
 
-          retval.params()[it.key()] = it.value().dump();
+          if (it.value().is_string())
+            retval.params()[it.key()] = it.value().get<std::string>();
+          else
+            retval.params()[it.key()] = it.value().dump();
         }
       }
     }

@@ -16,14 +16,13 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/host.hh"
 #include <cassert>
 
 #include <fmt/chrono.h>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -31,15 +30,12 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
-#include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
@@ -65,7 +61,6 @@ host_id_map host::hosts_by_id;
  *  @param[in] alias                         Host alias.
  *  @param[in] address                       Host address.
  *  @param[in] check_period                  Check period.
- *  @param[in] initial_state                 Initial host state.
  *  @param[in] check_interval                Normal check interval.
  *  @param[in] retry_interval                Retry check interval.
  *  @param[in] max_attempts                  Max check attempts.
@@ -140,7 +135,6 @@ host::host(uint64_t host_id,
            const std::string& alias,
            const std::string& address,
            const std::string& check_period,
-           enum host::host_state initial_state,
            uint32_t check_interval,
            uint32_t retry_interval,
            int max_attempts,
@@ -255,10 +249,10 @@ host::host(uint64_t host_id,
       _total_service_check_interval{0},
       _circular_path_checked{false},
       _contains_circular_path{false},
-      _last_state{initial_state},
-      _last_hard_state{initial_state},
-      _current_state{initial_state},
-      _initial_state{initial_state} {
+      _initial_state{state_up},
+      _last_state{_initial_state},
+      _last_hard_state{_initial_state},
+      _current_state{_initial_state} {
   // Make sure we have the data we need.
   if (name.empty() || address.empty()) {
     engine_logger(log_config_error, basic)
@@ -288,7 +282,7 @@ host::host(uint64_t host_id,
   // Duplicate string vars.
   _alias = !alias.empty() ? alias : name;
 
-  set_current_attempt(initial_state == host::state_up ? 1 : max_attempts);
+  set_current_attempt(1);
   set_modified_attributes(MODATTR_NONE);
   set_state_type(hard);
 
@@ -581,13 +575,25 @@ int host::get_current_state_int() const {
 }
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj) {
-  for (host_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
-       it != end; ++it) {
-    os << it->first;
-    if (std::next(it) != end)
+  bool first = true;
+  for (const auto& [key, _] : obj) {
+    if (!first) {
       os << ", ";
-    else
-      os << "";
+    }
+    os << key;
+    first = false;
+  }
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, host_map const& obj) {
+  bool first = true;
+  for (const auto& [key, _] : obj) {
+    if (!first) {
+      os << ", ";
+    }
+    os << key;
+    first = false;
   }
   return os;
 }
@@ -1035,8 +1041,7 @@ int is_host_immediate_child_of_host(com::centreon::engine::host* parent_host,
   }
   // Mid-level/bottom hosts.
   else {
-    host_map_unsafe::const_iterator it{
-        child_host->parent_hosts.find(parent_host->name())};
+    auto it{child_host->parent_hosts.find(parent_host->name())};
     return it != child_host->parent_hosts.end();
   }
 
@@ -1070,9 +1075,8 @@ int is_host_immediate_parent_of_host(com::centreon::engine::host* child_host,
  */
 int number_of_immediate_child_hosts(com::centreon::engine::host* hst) {
   int children(0);
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it)
-    if (is_host_immediate_child_of_host(hst, it->second.get()))
+  for (const auto& [_, sptr_host] : host::hosts)
+    if (is_host_immediate_child_of_host(hst, sptr_host.get()))
       ++children;
   return children;
 }
@@ -1088,9 +1092,8 @@ int number_of_immediate_child_hosts(com::centreon::engine::host* hst) {
  */
 int number_of_immediate_parent_hosts(com::centreon::engine::host* hst) {
   int parents(0);
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it)
-    if (is_host_immediate_parent_of_host(hst, it->second.get()))
+  for (const auto& [_, sptr_host] : host::hosts)
+    if (is_host_immediate_parent_of_host(hst, sptr_host.get()))
       ++parents;
   return parents;
 }
@@ -1106,10 +1109,9 @@ int number_of_immediate_parent_hosts(com::centreon::engine::host* hst) {
  */
 int number_of_total_child_hosts(com::centreon::engine::host* hst) {
   int children(0);
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it)
-    if (is_host_immediate_child_of_host(hst, it->second.get()))
-      children += number_of_total_child_hosts(it->second.get()) + 1;
+  for (const auto& [_, sptr_host] : host::hosts)
+    if (is_host_immediate_child_of_host(hst, sptr_host.get()))
+      children += number_of_total_child_hosts(sptr_host.get()) + 1;
   return children;
 }
 
@@ -2319,9 +2321,12 @@ void host::clear_flap(double percent_change,
 
 /**
  * @brief Updates host status info. Data are sent to event broker.
+ *
+ * @param attributes A bits field based on status_attribute enum (default value:
+ * STATUS_ALL).
  */
-void host::update_status() {
-  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this);
+void host::update_status(uint32_t attributes) {
+  broker_host_status(NEBTYPE_HOSTSTATUS_UPDATE, this, attributes);
 }
 
 /**
@@ -2338,7 +2343,7 @@ void host::check_for_expired_acknowledgement() {
         SPDLOG_LOGGER_INFO(events_logger,
                            "Acknowledgement of host '{}' just expired", name());
         set_acknowledgement(AckType::NONE);
-        update_status();
+        update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
   }
@@ -2855,7 +2860,8 @@ void host::enable_flap_detection() {
   check_for_flapping(false, false, true);
 
   /* update host status */
-  update_status();
+  /* FIXME DBO: seems not necessary */
+  // update_status();
 }
 
 /*
@@ -3255,17 +3261,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
       SPDLOG_LOGGER_DEBUG(checks_logger,
                           "Propagating checks to parent host(s)...");
 
-      for (host_map_unsafe::iterator it{parent_hosts.begin()},
-           end{parent_hosts.end()};
-           it != end; it++) {
-        if (!it->second)
+      for (const auto& [key, sptr_host] : parent_hosts) {
+        if (!sptr_host)
           continue;
-        if (it->second->get_current_state() != host::state_up) {
+        if (sptr_host->get_current_state() != host::state_up) {
           engine_logger(dbg_checks, more)
-              << "Check of parent host '" << it->first << "' queued.";
+              << "Check of parent host '" << key << "' queued.";
           SPDLOG_LOGGER_DEBUG(checks_logger,
-                              "Check of parent host '{}' queued.", it->first);
-          check_hostlist.push_back(it->second);
+                              "Check of parent host '{}' queued.", key);
+          check_hostlist.push_back(sptr_host.get());
         }
       }
 
@@ -3277,17 +3281,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
       SPDLOG_LOGGER_DEBUG(checks_logger,
                           "Propagating checks to child host(s)...");
 
-      for (host_map_unsafe::iterator it{child_hosts.begin()},
-           end{child_hosts.end()};
-           it != end; it++) {
-        if (!it->second)
+      for (const auto& [key, ptr_host] : child_hosts) {
+        if (!ptr_host)
           continue;
-        if (it->second->get_current_state() != host::state_up) {
+        if (ptr_host->get_current_state() != host::state_up) {
           engine_logger(dbg_checks, more)
-              << "Check of child host '" << it->first << "' queued.";
+              << "Check of child host '" << key << "' queued.";
           SPDLOG_LOGGER_DEBUG(checks_logger, "Check of child host '{}' queued.",
-                              it->first);
-          check_hostlist.push_back(it->second);
+                              key);
+          check_hostlist.push_back(ptr_host);
         }
       }
     }
@@ -3377,24 +3379,21 @@ int host::process_check_result_3x(enum host::host_state new_state,
               "** WARNING: Max attempts = 1, so we have to run serial "
               "checks of all parent hosts!");
 
-          for (host_map_unsafe::iterator it{parent_hosts.begin()},
-               end{parent_hosts.end()};
-               it != end; it++) {
-            if (!it->second)
+          for (const auto& [key, sptr_host] : parent_hosts) {
+            if (!sptr_host)
               continue;
 
             has_parent = true;
 
             engine_logger(dbg_checks, more)
-                << "Running serial check parent host '" << it->first << "'...";
-            SPDLOG_LOGGER_DEBUG(checks_logger,
-                                "Running serial check parent host '{}'...",
-                                it->first);
+                << "Running serial check parent host '" << key << "'...";
+            SPDLOG_LOGGER_DEBUG(
+                checks_logger, "Running serial check parent host '{}'...", key);
 
             /* run an immediate check of the parent host */
-            it->second->run_sync_check_3x(&parent_state, check_options,
-                                          use_cached_result,
-                                          check_timestamp_horizon);
+            sptr_host->run_sync_check_3x(&parent_state, check_options,
+                                         use_cached_result,
+                                         check_timestamp_horizon);
 
             /* bail out as soon as we find one parent host that is UP */
             if (parent_state == host::state_up) {
@@ -3444,17 +3443,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
             checks_logger,
             "Propagating check to immediate non-UNREACHABLE child hosts...");
 
-        for (host_map_unsafe::iterator it{child_hosts.begin()},
-             end{child_hosts.end()};
-             it != end; it++) {
-          if (!it->second)
+        for (const auto& [key, ptr_host] : child_hosts) {
+          if (!ptr_host)
             continue;
-          if (it->second->get_current_state() != host::state_unreachable) {
+          if (ptr_host->get_current_state() != host::state_unreachable) {
             engine_logger(dbg_checks, more)
-                << "Check of child host '" << it->first << "' queued.";
+                << "Check of child host '" << key << "' queued.";
             SPDLOG_LOGGER_DEBUG(checks_logger,
-                                "Check of child host '{}' queued.", it->first);
-            check_hostlist.push_back(it->second);
+                                "Check of child host '{}' queued.", key);
+            check_hostlist.push_back(ptr_host);
           }
         }
       }
@@ -3488,17 +3485,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
                             "Propagating checks to immediate parent hosts that "
                             "are UP...");
 
-        for (host_map_unsafe::iterator it{parent_hosts.begin()},
-             end{parent_hosts.end()};
-             it != end; it++) {
-          if (it->second == nullptr)
+        for (const auto& [key, sptr_host] : parent_hosts) {
+          if (sptr_host == nullptr)
             continue;
-          if (it->second->get_current_state() == host::state_up) {
-            check_hostlist.push_back(it->second);
+          if (sptr_host->get_current_state() == host::state_up) {
+            check_hostlist.push_back(sptr_host.get());
             engine_logger(dbg_checks, more)
-                << "Check of host '" << it->first << "' queued.";
+                << "Check of host '" << key << "' queued.";
             SPDLOG_LOGGER_DEBUG(checks_logger, "Check of host '{}' queued.",
-                                it->first);
+                                key);
           }
         }
 
@@ -3511,17 +3506,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
                             "Propagating checks to immediate non-UNREACHABLE "
                             "child hosts...");
 
-        for (host_map_unsafe::iterator it{child_hosts.begin()},
-             end{child_hosts.end()};
-             it != end; it++) {
-          if (!it->second)
+        for (const auto& [key, ptr_host] : child_hosts) {
+          if (!ptr_host)
             continue;
-          if (it->second->get_current_state() != host::state_unreachable) {
+          if (ptr_host->get_current_state() != host::state_unreachable) {
             engine_logger(dbg_checks, more)
-                << "Check of child host '" << it->first << "' queued.";
+                << "Check of child host '" << key << "' queued.";
             SPDLOG_LOGGER_DEBUG(checks_logger,
-                                "Check of child host '{}' queued.", it->first);
-            check_hostlist.push_back(it->second);
+                                "Check of child host '{}' queued.", key);
+            check_hostlist.push_back(ptr_host);
           }
         }
 
@@ -3739,22 +3732,20 @@ enum host::host_state host::determine_host_reachability(
 
   /* check all parent hosts to see if we're DOWN or UNREACHABLE */
   else {
-    for (host_map_unsafe::iterator it{parent_hosts.begin()},
-         end{parent_hosts.end()};
-         it != end; it++) {
-      if (!it->second)
+    for (const auto& [key, sptr_host] : parent_hosts) {
+      if (!sptr_host)
         continue;
 
       /* bail out as soon as we find one parent host that is UP */
-      if (it->second->get_current_state() == host::state_up) {
+      if (sptr_host->get_current_state() == host::state_up) {
         is_host_present = true;
         /* set the current state */
         state = host::state_down;
-        engine_logger(dbg_checks, most) << "At least one parent (" << it->first
-                                        << ") is up, so host is DOWN.";
+        engine_logger(dbg_checks, most)
+            << "At least one parent (" << key << ") is up, so host is DOWN.";
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "At least one parent ({}) is up, so host is DOWN.",
-                            it->first);
+                            key);
         break;
       }
     }
@@ -4102,22 +4093,20 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check all parent parent host */
-  for (host_map_unsafe::iterator it(parent_hosts.begin()),
-       end(parent_hosts.end());
-       it != end; it++) {
-    host_map::const_iterator it_host{host::hosts.find(it->first)};
+  for (auto& [key, sptr_host] : parent_hosts) {
+    host_map::const_iterator it_host{host::hosts.find(key)};
     if (it_host == host::hosts.end() || !it_host->second) {
-      engine_logger(log_verification_error, basic) << "Error: '" << it->first
+      engine_logger(log_verification_error, basic) << "Error: '" << key
                                                    << "' is not a "
                                                       "valid parent for host '"
                                                    << name() << "'!";
       config_logger->error("Error: '{}' is not a valid parent for host '{}'!",
-                           it->first, name());
+                           key, name());
       errors++;
     } else {
-      it->second = it_host->second.get();
-      it_host->second->add_child_host(
-          this);  // add a reverse (child) link to make searches faster later on
+      sptr_host = it_host->second;
+      it_host->second->add_child_host(this);  // add a reverse (child) link to
+                                              // make searches faster later on
     }
   }
 

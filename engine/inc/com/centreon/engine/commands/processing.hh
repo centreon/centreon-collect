@@ -23,10 +23,7 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicegroup.hh"
 
 namespace com::centreon::engine {
@@ -155,6 +152,6 @@ class processing {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MOD_EXTCMD_PROCESSING_HH

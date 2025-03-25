@@ -21,11 +21,9 @@
 
 #include <climits>
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
 #include "com/centreon/broker/processing/acceptor.hh"
-#include "com/centreon/broker/processing/endpoint.hh"
 
 namespace com::centreon::broker {
 

@@ -6,14 +6,18 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      unit_tests:
+        description: 'Execute the unit tests'
+        required: true
+        default: true
+        type: boolean
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
     paths:
+      - ".version"
+      - ".version.centreon-gorgone"
       - "gorgone/**"
+      - "perl-libs/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
@@ -24,7 +28,10 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
+      - ".version"
+      - ".version.centreon-gorgone"
       - "gorgone/**"
+      - "perl-libs/**"
       - "!gorgone/tests/**"
       - "!gorgone/veracode.json"
       - "!gorgone/.veracode-exclusions"
@@ -33,65 +40,124 @@ env:
   base_directory: gorgone
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: gorgone/.version
+      version_file: .version.centreon-gorgone
 
-  veracode-analysis:
-    needs: [get-version]
-    uses: ./.github/workflows/veracode-analysis.yml
-    with:
-      module_directory: gorgone
-      module_name: centreon-gorgone
-      major_version: ${{ needs.get-version.outputs.major_version }}
-      minor_version: ${{ needs.get-version.outputs.minor_version }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
-    secrets:
-      veracode_api_id: ${{ secrets.VERACODE_API_ID_GORG }}
-      veracode_api_key: ${{ secrets.VERACODE_API_KEY_GORG }}
-      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
-      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  changes:
+    needs: [get-environment]
+    runs-on: ubuntu-24.04
+    outputs:
+      trigger_delivery: ${{ steps.filter.outputs.trigger_delivery || 'true' }}
+      trigger_unit_tests: ${{ steps.filter.outputs.trigger_unit_tests || 'true' }}
+      trigger_robot_tests: ${{ steps.filter.outputs.trigger_robot_tests || 'true' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        if: |
+          github.event_name == 'pull_request' &&
+          needs.get-environment.outputs.stability != 'testing'
+        with:
+          base: ${{ github.head_ref || github.ref_name }}
+          filters: |
+            trigger_unit_tests:
+              - '/gorgone/**'
+              - '/perl-libs/**'
+            trigger_robot_tests:
+              - '/gorgone/!(tests)/**'
+              - '/gorgone/tests/robot/**'
+              - '/perl-libs/**'
+            trigger_delivery:
+              - '/gorgone/!(tests)/**'
+              - '/perl-libs/!(lib)/**'
+              - '/perl-libs/lib/!(t)/**'
+              - '/perl-libs/*'
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+  unit-test-perl:
+    needs: [get-environment, changes]
+    if: |
+      github.event.inputs.unit_tests == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.changes.outputs.trigger_unit_tests == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bullseye-arm64, unit-tests-bookworm]
+        include:
+          - runner_name: ubuntu-22.04
+          - package_extension: rpm
+            image: unit-tests-alma8
+            distrib: el8
+          - package_extension: rpm
+            image: unit-tests-alma9
+            distrib: el9
+          - package_extension: deb
+            image: unit-tests-bullseye-arm64
+            distrib: bullseye-arm64
+            runner_name: centreon-collect-arm64
+          - package_extension: deb
+            image: unit-tests-bookworm
+            distrib: bookworm
+    runs-on: ${{ matrix.runner_name }}
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}
+      credentials:
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run unit tests
+        run: yath -L test ./perl-libs/lib/ ./gorgone/tests/unit/
+
+      - name: Upload logs as artifacts if tests failed
+        if: failure()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: centreon-collect-perl-unit-tests-${{ matrix.distrib }}
+          path: ./lastlog.jsonl
+          retention-days: 1
 
   package:
-    needs: [get-version]
-    if: ${{ needs.get-version.outputs.stability != 'stable' }}
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
-            image: packaging-nfpm-alma8
+            image: packaging-centreon-collect-alma8
             distrib: el8
           - package_extension: rpm
-            image: packaging-nfpm-alma9
+            image: packaging-centreon-collect-alma9
             distrib: el9
           - package_extension: deb
-            image: packaging-nfpm-bullseye
-            distrib: bullseye
-          - package_extension: deb
-            image: packaging-nfpm-bookworm
+            image: packaging-centreon-collect-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: packaging-nfpm-jammy
-            distrib: jammy
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     name: package ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set package version and paths according to distrib
         run: |
@@ -107,7 +173,7 @@ jobs:
         if: ${{ matrix.package_extension == 'rpm' }}
         run: |
           cd gorgone/selinux
-          sed -i "s/@VERSION@/${{ needs.get-version.outputs.major_version }}.${{ needs.get-version.outputs.minor_version }}/g" centreon-gorgoned.te
+          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" centreon-gorgoned.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 
@@ -119,27 +185,32 @@ jobs:
       - name: Package
         uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "gorgone/packaging/*.yaml"
+          nfpm_file_pattern: "gorgone/packaging/*.yaml perl-libs/packaging/*.yaml"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
-          release: ${{ needs.get-version.outputs.release }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
+          release: ${{ needs.get-environment.outputs.release }}
           arch: all
           commit_hash: ${{ github.sha }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          stability: ${{ needs.get-version.outputs.stability }}
+          stability: ${{ needs.get-environment.outputs.stability }}
 
-  test-gorgone:
-    needs: [get-version, package]
+  robot-test-gorgone:
+    needs: [get-environment, package, changes]
+    if: |
+      github.repository == 'centreon/centreon-collect' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.changes.outputs.trigger_robot_tests == 'true'
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy]
+        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -148,21 +219,15 @@ jobs:
             image: gorgone-testing-alma9
             distrib: el9
           - package_extension: deb
-            image: gorgone-testing-bullseye
-            distrib: bullseye
-          - package_extension: deb
-            image: gorgone-testing-jammy
-            distrib: jammy
-          - package_extension: deb
             image: gorgone-testing-bookworm
             distrib: bookworm
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.gorgone_docker_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     services:
       mariadb:
@@ -178,7 +243,7 @@ jobs:
       - name: Get linked branch of centreon repository
         id: centreon_repo_linked_branch
         run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-version.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-version.outputs.major_version }}.x" || echo develop)
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
 
           GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
@@ -189,10 +254,10 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: centreon/centreon
           path: centreon
@@ -201,21 +266,27 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - name: get cached gorgone package
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      - name: get cached gorgone and perl-libs package
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: ./*.${{ matrix.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
           fail-on-cache-miss: true
 
-      - name: Install gorgogne from just built package
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
+      - name: Install gorgone from just built package
         shell: bash
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y ./centreon-gorgone*${{ matrix.distrib }}*
+            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
           else
-            dnf install -y ./centreon-gorgone*${{ matrix.distrib }}* ./centreon-gorgone-centreon-config*${{ matrix.distrib }}*
+            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
             # in el8 at least, there is a package for the configuration and a package for the actual code.
             # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
           fi
@@ -234,7 +305,7 @@ jobs:
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: gorgone-debug-${{ matrix.distrib }}
           path: |
@@ -244,13 +315,18 @@ jobs:
           retention-days: 1
 
   deliver-sources:
-    runs-on: [self-hosted, common]
-    needs: [get-version, package]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
+    runs-on: centreon-common
+    needs: [get-environment, package]
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
@@ -258,14 +334,20 @@ jobs:
           bucket_directory: centreon-gorgone
           module_directory: gorgone
           module_name: centreon-gorgone
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          minor_version: ${{ needs.get-version.outputs.minor_version }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    runs-on: [self-hosted, common]
-    needs: [get-version, package]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    runs-on: centreon-common
+    needs: [get-environment, unit-test-perl, robot-test-gorgone, changes]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       matrix:
@@ -273,56 +355,70 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
         with:
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
-    runs-on: [self-hosted, common]
-    needs: [get-version, package]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    runs-on: centreon-common
+    needs: [get-environment, unit-test-perl, robot-test-gorgone, changes]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:
       matrix:
-        distrib: [bullseye, bookworm, jammy]
+        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
         with:
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-version.outputs.stability }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote:
-    needs: [get-version]
-    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) && github.event_name != 'workflow_dispatch' }}
-    runs-on: [self-hosted, common]
+    needs: [get-environment, deliver-rpm, deliver-deb]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+
+    runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -330,8 +426,17 @@ jobs:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           module_name: gorgone
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-version.outputs.major_version }}
-          stability: ${{ needs.get-version.outputs.stability }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          stability: ${{ needs.get-environment.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-version.outputs.release_type }}
-          release_cloud: ${{ needs.get-version.outputs.release_cloud }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml

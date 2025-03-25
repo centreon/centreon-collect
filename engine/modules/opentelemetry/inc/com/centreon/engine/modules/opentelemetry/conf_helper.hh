@@ -18,6 +18,8 @@
 #ifndef CCE_MOD_CONF_HELPER_OPENTELEMETRY_HH
 #define CCE_MOD_CONF_HELPER_OPENTELEMETRY_HH
 
+#include <absl/container/flat_hash_map.h>
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/service.hh"
@@ -25,6 +27,16 @@
 #include "com/centreon/engine/commands/forward.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
+
+/**
+ * @brief in this struct we store results of whitelist approvals
+ *
+ */
+struct whitelist_cache {
+  using cache = absl::flat_hash_map<std::string, bool>;
+  uint whitelist_instance_id;
+  cache data;
+};
 
 /**
  * @brief extract opentelemetry commands from an host list
@@ -39,6 +51,7 @@ namespace com::centreon::engine::modules::opentelemetry {
 template <class command_handler>
 bool get_otel_commands(const std::string& host_name,
                        command_handler&& handler,
+                       whitelist_cache& whitelist_cache,
                        const std::shared_ptr<spdlog::logger>& logger) {
   auto use_otl_command = [](const checkable& to_test) -> bool {
     if (to_test.get_check_command_ptr()) {
@@ -56,6 +69,24 @@ bool get_otel_commands(const std::string& host_name,
     return false;
   };
 
+  configuration::whitelist& wchecker = configuration::whitelist::instance();
+
+  auto allowed_by_white_list = [&](const std::string& cmd_line) {
+    auto cache_iter = whitelist_cache.data.find(cmd_line);
+    if (cache_iter != whitelist_cache.data.end()) {
+      return cache_iter->second;
+    }
+    bool allowed = wchecker.is_allowed(cmd_line);
+
+    whitelist_cache.data.emplace(cmd_line, allowed);
+    return allowed;
+  };
+
+  if (wchecker.instance_id() != whitelist_cache.whitelist_instance_id) {
+    whitelist_cache.whitelist_instance_id = wchecker.instance_id();
+    whitelist_cache.data.clear();
+  }
+
   bool ret = false;
 
   auto hst_iter = host::hosts.find(host_name);
@@ -68,10 +99,22 @@ bool get_otel_commands(const std::string& host_name,
   // host check use otl?
   if (use_otl_command(*hst)) {
     nagios_macros* macros(get_global_macros());
-
-    ret |= handler(hst->check_command(), hst->get_check_command_line(macros),
-                   "", logger);
+    cmd_line = hst->get_check_command_line(macros);
     clear_volatile_macros_r(macros);
+
+    if (allowed_by_white_list(cmd_line)) {
+      ret |= handler(hst->check_command(), cmd_line, "", logger);
+    } else {
+      SPDLOG_LOGGER_ERROR(
+          logger,
+          "host {}: this command cannot be executed because of "
+          "security restrictions on the poller. A whitelist has "
+          "been defined, and it does not include this command.",
+          host_name);
+      SPDLOG_LOGGER_DEBUG(logger,
+                          "host {}: command not allowed by whitelist {}",
+                          host_name, cmd_line);
+    }
   } else {
     SPDLOG_LOGGER_DEBUG(
         logger, "host {} doesn't use opentelemetry to do his check", host_name);
@@ -84,10 +127,23 @@ bool get_otel_commands(const std::string& host_name,
     std::shared_ptr<service> serv = serv_iter->second;
     if (use_otl_command(*serv)) {
       nagios_macros* macros(get_global_macros());
-      ret |=
-          handler(serv->check_command(), serv->get_check_command_line(macros),
-                  serv->name(), logger);
+      cmd_line = serv->get_check_command_line(macros);
       clear_volatile_macros_r(macros);
+
+      if (allowed_by_white_list(cmd_line)) {
+        ret |= handler(serv->check_command(), cmd_line, serv->name(), logger);
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            logger,
+            "service {}: this command cannot be executed because of "
+            "security restrictions on the poller. A whitelist has "
+            "been defined, and it does not include this command.",
+            serv->name());
+
+        SPDLOG_LOGGER_DEBUG(logger,
+                            "service {}: command not allowed by whitelist {}",
+                            serv->name(), cmd_line);
+      }
     } else {
       SPDLOG_LOGGER_DEBUG(
           logger,

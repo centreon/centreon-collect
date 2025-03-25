@@ -23,7 +23,6 @@
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -343,7 +342,8 @@ static time_point _epoch = system_clock::from_time_t(0);
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
-                          const common::http::response_ptr& response) {
+                          const common::http::response_ptr& response
+                          [[maybe_unused]]) {
   auto actu_stat_avg = [&]() -> void {
     if (request->get_connect_time() > _epoch &&
         request->get_send_time() > _epoch) {

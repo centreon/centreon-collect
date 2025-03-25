@@ -43,10 +43,11 @@ class factory_test : public http_tsdb::factory {
       : http_tsdb::factory(name, g_io_context) {}
 
   io::endpoint* new_endpoint(
-      config::endpoint& cfg,
-      bool& is_acceptor,
-      std::shared_ptr<persistent_cache> cache =
-          std::shared_ptr<persistent_cache>()) const override {
+      config::endpoint& cfg [[maybe_unused]],
+      const std::map<std::string, std::string>& global_params [[maybe_unused]],
+      bool& is_acceptor [[maybe_unused]],
+      std::shared_ptr<persistent_cache> cache
+      [[maybe_unused]] = std::shared_ptr<persistent_cache>()) const override {
     return nullptr;
   }
   void create_conf(const config::endpoint& cfg,

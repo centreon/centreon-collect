@@ -21,9 +21,9 @@
 #ifndef CCE_NEBSTRUCTS_HH
 #define CCE_NEBSTRUCTS_HH
 
+#include <string>
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 /* Acknowledgement structure. */
 typedef struct nebstruct_acknowledgement_struct {
@@ -187,6 +187,7 @@ typedef struct nebstruct_host_check_struct {
 typedef struct nebstruct_host_status_struct {
   int type;
   void* object_ptr;
+  uint32_t attributes;
 } nebstruct_host_status_data;
 
 /* Log data structure. */
@@ -248,11 +249,41 @@ typedef struct nebstruct_service_check_struct {
 typedef struct nebstruct_service_status_struct {
   int type;
   void* object_ptr;
+  uint32_t attributes;
 } nebstruct_service_status_data;
 
 typedef struct nebstruct_bench_struct {
   unsigned id;
   std::chrono::system_clock::time_point mess_create;
 } nebstruct_bench_data;
+
+struct nebstruct_agent_stats_data {
+  struct cumul_data {
+    cumul_data(unsigned maj,
+               unsigned min,
+               unsigned pat,
+               bool rev,
+               const std::string& operating_system,
+               const std::string& os_ver,
+               size_t nb_ag)
+        : major(maj),
+          minor(min),
+          patch(pat),
+          reverse(rev),
+          os(operating_system),
+          os_version(os_ver),
+          nb_agent(nb_ag) {}
+
+    unsigned major;
+    unsigned minor;
+    unsigned patch;
+    bool reverse;
+    std::string os;
+    std::string os_version;
+    size_t nb_agent;
+  };
+
+  std::unique_ptr<std::vector<cumul_data>> data;
+};
 
 #endif /* !CCE_NEBSTRUCTS_HH */

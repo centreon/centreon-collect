@@ -21,7 +21,6 @@
 #ifndef CCE_MACROS_GRAB_HOST_HH
 #define CCE_MACROS_GRAB_HOST_HH
 
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 #ifdef __cplusplus

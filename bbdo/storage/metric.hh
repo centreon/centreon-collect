@@ -21,7 +21,6 @@
 
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/timestamp.hh"

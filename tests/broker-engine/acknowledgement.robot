@@ -11,10 +11,15 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEACK1
-    [Documentation]    Engine has a critical service. An external command is sent to acknowledge it.
-    ...                The centreon_storage.acknowledgements table is then updated with this acknowledgement.
-    ...                The service is newly set to OK. And the acknowledgement in database is deleted from engine
-    ...                but still open on the database.
+    [Documentation]    Scenario: Acknowledging a critical service
+    ...    Given Engine has a critical service
+    ...    When an external command is sent to acknowledge it
+    ...    Then the "centreon_storage.acknowledgements" table is updated with this acknowledgement
+    ...    And a log in "centreon_storage.logs" concerning this acknowledgement is added.
+    ...    When the service is set to OK
+    ...    Then the acknowledgement is deleted from the Engine
+    ...    But it remains open in the database
+
     [Tags]    broker    engine    services    extcmd
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -39,12 +44,16 @@ BEACK1
     ...    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
+    ${start}    Ctn Get Round Current Date
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Ctn Check Acknowledgement With Timeout
     ...    host_1    service_1
     ...    ${d}    2    60    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+
+    ${result}    Ctn Check Acknowledgement In Logs Table    ${start}
+    Should Be True    ${result}    Acknowledgement should be in logs table.
 
     # The service command is set to OK to also control active checks
     Ctn Set Command Status    ${cmd_id}    ${0}
@@ -164,7 +173,7 @@ BEACK4
     ...                acknowledge it. The centreon_storage.acknowledgements table is then updated with this
     ...                acknowledgement. The acknowledgement is removed and the comment in the comments table has its
     ...                deletion_time column updated.
-    [Tags]    broker    engine    services    extcmd
+    [Tags]    broker    engine    services    extcmd    MON-150015
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -262,17 +271,17 @@ BEACK5
 
 BEACK6
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to
-    ...                acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is
-    ...                then updated with this acknowledgement. The service is newly set to WARNING.
-    ...                And the acknowledgement in database is still there.
-    [Tags]    broker    engine    services    extcmd
+    ...    acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is
+    ...    then updated with this acknowledgement. The service is newly set to WARNING.
+    ...    And the acknowledgement in database is still there.
+    [Tags]    broker    engine    services    extcmd    MON-150015
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    module0    neb    debug
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
 
     ${start}    Get Current Date
     Ctn Start Broker
@@ -303,7 +312,7 @@ BEACK6
 
     # Acknowledgement is not deleted.
     ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
-    Should Be True    not ${result}    Acknowledgement ${ack_id} should not be deleted.
+    Should Not Be True    ${result}    Acknowledgement ${ack_id} should not be deleted.
 
     Ctn Remove Service Acknowledgement    host_1    service_1
 

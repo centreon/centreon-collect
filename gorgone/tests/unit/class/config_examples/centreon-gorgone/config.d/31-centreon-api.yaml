@@ -1,0 +1,9 @@
+gorgone:
+  tpapi:
+    - name: centreonv2
+      base_url: "http://127.0.0.1/centreon/api/latest/"
+      username: "centreon-gorgone"
+      password: "secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse"
+    - name: clapi
+      username: "centreon-gorgone"
+      password: "webapiPassword!"

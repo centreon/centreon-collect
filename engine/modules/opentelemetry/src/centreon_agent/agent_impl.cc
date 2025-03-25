@@ -20,7 +20,6 @@
 
 #include "centreon_agent/agent_impl.hh"
 
-#include "conf_helper.hh"
 #include "otl_fmt.hh"
 
 #include "com/centreon/engine/command_manager.hh"
@@ -37,8 +36,9 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
  * @tparam bireactor_class
  */
 template <class bireactor_class>
-std::set<std::shared_ptr<agent_impl<bireactor_class>>>
-    agent_impl<bireactor_class>::_instances;
+std::set<std::shared_ptr<agent_impl<bireactor_class>>>*
+    agent_impl<bireactor_class>::_instances =
+        new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
 
 template <class bireactor_class>
 absl::Mutex agent_impl<bireactor_class>::_instances_m;
@@ -58,14 +58,18 @@ agent_impl<bireactor_class>::agent_impl(
     const std::string_view class_name,
     const agent_config::pointer& conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    bool reversed,
+    const agent_stat::pointer& stats)
     : _io_context(io_context),
       _class_name(class_name),
+      _reversed(reversed),
       _conf(conf),
       _metric_handler(handler),
-      _logger(logger),
       _write_pending(false),
-      _alive(true) {
+      _logger(logger),
+      _alive(true),
+      _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
@@ -77,6 +81,9 @@ agent_impl<bireactor_class>::agent_impl(
  */
 template <class bireactor_class>
 agent_impl<bireactor_class>::~agent_impl() {
+  if (_agent_info && _agent_info->has_init()) {
+    _stats->remove_agent(_agent_info->init(), _reversed, this);
+  }
   SPDLOG_LOGGER_DEBUG(_logger, "delete {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }
@@ -113,7 +120,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
   absl::MutexLock l(&_instances_m);
-  for (auto& instance : _instances) {
+  for (auto& instance : *_instances) {
     instance->calc_and_send_config_if_needed(new_conf);
   }
 }
@@ -179,7 +186,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
             return add_command_to_agent_conf(cmd_name, cmd_line, service, cnf,
                                              logger, peer);
           },
-          _logger);
+          _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
         SPDLOG_LOGGER_ERROR(_logger, "no command found for agent {}",
                             get_peer());
@@ -217,6 +224,7 @@ void agent_impl<bireactor_class>::on_request(
       agent_conf = _conf;
       _last_sent_config.reset();
     }
+    _stats->add_agent(_agent_info->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
     calc_and_send_config_if_needed(agent_conf);
   }
@@ -255,7 +263,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
   absl::MutexLock l(&_instances_m);
-  _instances.insert(strm);
+  _instances->insert(strm);
 }
 
 /**
@@ -372,7 +380,8 @@ void agent_impl<bireactor_class>::OnDone() {
     absl::MutexLock l(&_instances_m);
     SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                         static_cast<void*>(me.get()));
-    _instances.erase(std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+    _instances->erase(
+        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
   });
 }
 
@@ -403,7 +412,8 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
                           static_cast<void*>(me.get()), status.error_message(),
                           status.error_details());
     }
-    _instances.erase(std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+    _instances->erase(
+        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
   });
 }
 
@@ -425,12 +435,13 @@ void agent_impl<bireactor_class>::shutdown() {
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
-  std::set<std::shared_ptr<agent_impl>> to_shutdown;
+  std::set<std::shared_ptr<agent_impl>>* to_shutdown;
   {
     absl::MutexLock l(&_instances_m);
-    to_shutdown = std::move(_instances);
+    to_shutdown = _instances;
+    _instances = new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
   }
-  for (std::shared_ptr<agent_impl> conn : to_shutdown) {
+  for (std::shared_ptr<agent_impl> conn : *to_shutdown) {
     conn->shutdown();
   }
 }

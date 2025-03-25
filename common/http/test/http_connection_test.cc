@@ -203,14 +203,16 @@ class dummy_connection : public connection_base {
 
   void shutdown() override { _state = e_not_connected; }
 
-  void connect(connect_callback_type&& callback) override {}
+  void connect(connect_callback_type&& callback [[maybe_unused]]) override {}
 
-  void send(request_ptr request, send_callback_type&& callback) override {}
+  void send(request_ptr request [[maybe_unused]],
+            send_callback_type&& callback [[maybe_unused]]) override {}
 
-  void _on_accept(connect_callback_type&& callback) override{};
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override{};
-  void receive_request(request_callback_type&& callback) override{};
+  void _on_accept(connect_callback_type&& callback [[maybe_unused]]) override{};
+  void answer(const response_ptr& response [[maybe_unused]],
+              answer_callback_type&& callback [[maybe_unused]]) override{};
+  void receive_request(request_callback_type&& callback
+                       [[maybe_unused]]) override{};
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
@@ -339,8 +341,8 @@ class answer_no_keep_alive : public base_class {
       });
     });
   }
-  void add_keep_alive_to_server_response(
-      const response_ptr& response) const override {}
+  void add_keep_alive_to_server_response(const response_ptr& response
+                                         [[maybe_unused]]) const override {}
 };
 
 TEST_P(http_test, connect_send_answer_without_keepalive) {

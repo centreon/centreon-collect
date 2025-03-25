@@ -1,5 +1,5 @@
 #
-# Copyright 2022 Centreon
+# Copyright 2022-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -23,15 +23,10 @@ set(SRC_DIR "src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/http/test")
 
 # Sources.
-set(SOURCES
-  ${SRC_DIR}/http_client.cc
-  ${SRC_DIR}/http_connection.cc
-  ${SRC_DIR}/https_connection.cc
-  ${SRC_DIR}/http_server.cc
-)
+set(SOURCES ${SRC_DIR}/http_client.cc ${SRC_DIR}/http_connection.cc
+            ${SRC_DIR}/https_connection.cc ${SRC_DIR}/http_server.cc)
 
-
-add_library(centreon_http STATIC ${SOURCES} )
+add_library(centreon_http STATIC ${SOURCES})
 target_include_directories(centreon_http PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_http REUSE_FROM centreon_common)
@@ -41,9 +36,8 @@ set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TEST_DIR}/http_client_test.cc
-    ${TEST_DIR}/http_connection_test.cc
-    ${TEST_DIR}/http_server_test.cc
-    PARENT_SCOPE)
+      ${TESTS_SOURCES} ${TEST_DIR}/http_client_test.cc
+      ${TEST_DIR}/http_connection_test.cc ${TEST_DIR}/http_server_test.cc
+      ${TEST_DIR}/vault_test.cc
+      PARENT_SCOPE)
 endif(WITH_TESTING)

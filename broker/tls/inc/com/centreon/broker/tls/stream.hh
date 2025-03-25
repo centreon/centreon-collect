@@ -19,7 +19,6 @@
 #ifndef CCB_TLS_STREAM_HH
 #define CCB_TLS_STREAM_HH
 
-#include <gnutls/gnutls.h>
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/tls/params.hh"

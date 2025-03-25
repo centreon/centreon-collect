@@ -69,6 +69,7 @@ ${SRC_DIR}/centreon_agent/agent_config.cc
 ${SRC_DIR}/centreon_agent/agent_impl.cc
 ${SRC_DIR}/centreon_agent/agent_reverse_client.cc
 ${SRC_DIR}/centreon_agent/agent_service.cc
+${SRC_DIR}/centreon_agent/agent_stat.cc
 ${SRC_DIR}/centreon_agent/to_agent_connector.cc
 ${SRC_DIR}/grpc_config.cc
 ${SRC_DIR}/host_serv_extractor.cc
@@ -88,12 +89,15 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(opentelemetry   
   spdlog::spdlog
+  -L${PROTOBUF_LIB_DIR}
+  protobuf
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_program_options)
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
   pb_neb_lib
+  pb_common_lib
   engine_rpc)
 
 target_include_directories(opentelemetry PRIVATE

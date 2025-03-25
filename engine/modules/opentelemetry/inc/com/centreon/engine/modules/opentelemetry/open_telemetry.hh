@@ -59,6 +59,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   std::shared_ptr<asio::io_context> _io_context;
   mutable std::mutex _protect;
 
+  centreon_agent::agent_stat::pointer _agent_stats;
+
   void _forward_to_broker(const std::vector<otl_data_point>& unknown);
 
   void _create_telegraf_conf_server(

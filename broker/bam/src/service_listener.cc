@@ -60,6 +60,16 @@ void service_listener::service_update(
     io::stream* visitor [[maybe_unused]]) {}
 
 /**
+ * @brief Notify of a service status update (usually used for downtimes).
+ *
+ * @param [[maybe_unused]]
+ * @param [[maybe_unused]]
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_adaptive_service_status>& status
+    [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]]) {}
+/**
  *  Notify of a protobuf acknowledgement.
  *
  *  @param[in]  ack      Acknowledgement.

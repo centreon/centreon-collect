@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/host_helper.hh"
+#include <absl/strings/numbers.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -61,12 +62,20 @@ host_helper::host_helper(Host* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool host_helper::hook(std::string_view key, const std::string_view& value) {
+bool host_helper::hook(std::string_view key, std::string_view value) {
   Host* obj = static_cast<Host*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
-  if (key == "contactgroups") {
+  if (key == "host_name") {
+    obj->set_host_name(std::string(value));
+    set_changed(obj->descriptor()->FindFieldByName("host_name")->index());
+    if (obj->alias().empty()) {
+      obj->set_alias(obj->host_name());
+      set_changed(obj->descriptor()->FindFieldByName("alias")->index());
+    }
+    return true;
+  } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
   } else if (key == "contacts") {
@@ -79,6 +88,8 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
     uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_notification_options(options);
+      set_changed(
+          obj->descriptor()->FindFieldByName("notification_options")->index());
       return true;
     } else
       return false;
@@ -133,6 +144,97 @@ bool host_helper::hook(std::string_view key, const std::string_view& value) {
       }
     }
     return ret;
+  } else if (key == "coords_3d") {
+    std::vector<std::string_view> coords_list{absl::StrSplit(value, ',')};
+
+    if (coords_list.size() != 3)
+      return false;
+
+    double value;
+    if (absl::SimpleAtod(coords_list[0], &value))
+      obj->mutable_coords_3d()->set_x(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[1], &value))
+      obj->mutable_coords_3d()->set_y(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[2], &value))
+      obj->mutable_coords_3d()->set_z(value);
+    else
+      return false;
+
+    set_changed(obj->descriptor()->FindFieldByName("coords_3d")->index());
+
+    return true;
+  } else if (key == "coords_2d") {
+    std::vector<std::string_view> coords_list{absl::StrSplit(value, ',')};
+
+    if (coords_list.size() != 2)
+      return false;
+
+    double value;
+    if (absl::SimpleAtod(coords_list[0], &value))
+      obj->mutable_coords_2d()->set_x(value);
+    else
+      return false;
+
+    if (absl::SimpleAtod(coords_list[1], &value))
+      obj->mutable_coords_2d()->set_y(value);
+    else
+      return false;
+
+    set_changed(obj->descriptor()->FindFieldByName("coords_2d")->index());
+
+    return true;
+  } else if (key == "stalking_options") {
+    uint8_t options(action_hst_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      std::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "o" || v == "up")
+        options |= action_hst_up;
+      else if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
+      else if (v == "n" || v == "none")
+        options = action_hst_none;
+      else if (v == "a" || v == "all")
+        options = action_hst_up | action_hst_down | action_hst_unreachable;
+      else
+        return false;
+    }
+    obj->set_stalking_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("stalking_options")->index());
+
+    return true;
+  } else if (key == "flap_detection_options") {
+    uint8_t options(action_hst_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto& val : values) {
+      auto v = absl::StripAsciiWhitespace(val);
+      if (v == "o" || v == "up")
+        options |= action_hst_up;
+      else if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
+      else if (v == "n" || v == "none")
+        options = action_hst_none;
+      else if (v == "a" || v == "all")
+        options = action_hst_up | action_hst_down | action_hst_unreachable;
+      else
+        return false;
+    }
+    obj->set_flap_detection_options(options);
+    set_changed(
+        obj->descriptor()->FindFieldByName("flap_detection_options")->index());
+
+    return true;
   }
   return false;
 }
@@ -175,7 +277,6 @@ void host_helper::_init() {
                                   action_hst_unreachable);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(HostStatus::state_up);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
   obj->set_notifications_enabled(true);
@@ -222,4 +323,31 @@ bool host_helper::insert_customvariable(std::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
+
+/**
+ * @brief Expand the hosts.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void host_helper::expand(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
+  // Browse all hosts.
+  for (auto& host_cfg : *s.mutable_hosts()) {
+    for (auto& grp : host_cfg.hostgroups().data()) {
+      auto it = hgs.find(grp);
+      if (it != hgs.end()) {
+        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
+      } else {
+        err.config_errors++;
+        throw msg_fmt(
+            "Could not add host '{}' to non-existing host group '{}'\n",
+            host_cfg.host_name(), grp);
+      }
+    }
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

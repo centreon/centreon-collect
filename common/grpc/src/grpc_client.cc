@@ -79,5 +79,19 @@ grpc_client_base::grpc_client_base(
     creds = ::grpc::InsecureChannelCredentials();
   }
 
+  if (conf->get_second_max_reconnect_backoff() > 0) {
+    args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS,
+                conf->get_second_max_reconnect_backoff() * 1000);
+  }
+
+  if (conf->get_max_message_length() > 0) {
+    SPDLOG_LOGGER_DEBUG(_logger, "set max message length to {}",
+                        conf->get_max_message_length());
+    args.SetInt(GRPC_ARG_MAX_RECEIVE_MESSAGE_LENGTH,
+                conf->get_max_message_length());
+    args.SetInt(GRPC_ARG_MAX_SEND_MESSAGE_LENGTH,
+                conf->get_max_message_length());
+  }
+
   _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
 }

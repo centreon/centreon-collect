@@ -40,6 +40,15 @@ add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
 add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
 add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set (CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    # Enable debug symbol retention on Windows in Release builds, the compiler and
+    # linker will automatically silo them into a .pdb file and not the executable.
+    set (CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}   /Zi")
+    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+  endif()
+endif()
 
 # There is a bug with grpc. It is not put in the triplet directory. So we have
 # to search for its plugin.
@@ -56,6 +65,9 @@ set(VCPKG_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
 include(GNUInstallDirs)
 
 option(WITH_TESTING "Build unit tests." OFF)
+option(WITH_BUILD_AGENT_INSTALLER "Build agent windows installer." OFF)
+option(WITH_BUILD_AGENT_MODIFIER  "Build agent windows config update program (not needed if WITH_BUILD_INSTALLER=ON)." OFF)
+
 
 set(protobuf_MODULE_COMPATIBLE True)
 

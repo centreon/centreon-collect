@@ -17,6 +17,8 @@
  *
  */
 
+#include <sys/resource.h>
+
 #include "com/centreon/engine/configuration/applier/state.hh"
 
 #include "com/centreon/engine/broker.hh"
@@ -63,6 +65,43 @@ using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
+
+/**
+ * @brief increase soft limit of opened file descriptors
+ *
+ * @param soft_fd_limit
+ */
+static void increase_fd_limit(uint32_t soft_fd_limit) {
+  struct rlimit rlim;
+  if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+    if (soft_fd_limit > rlim.rlim_cur) {
+      if (soft_fd_limit > rlim.rlim_max) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Soft limit of opened file descriptors {} is greater than hard "
+            "limit {}, we will set it to hard limit",
+            soft_fd_limit, rlim.rlim_max);
+        soft_fd_limit = rlim.rlim_max;
+      }
+      rlim.rlim_cur = soft_fd_limit;
+      if (setrlimit(RLIMIT_NOFILE, &rlim) != 0) {
+        SPDLOG_LOGGER_ERROR(
+            process_logger,
+            "Failed to set soft limit of opened file descriptors "
+            "to {}",
+            soft_fd_limit);
+      } else {
+        SPDLOG_LOGGER_INFO(process_logger,
+                           "Soft limit of opened file descriptors set to {}",
+                           soft_fd_limit);
+      }
+    }
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        process_logger,
+        "Failed to get current limit of opened file descriptors");
+  }
+}
 
 #ifdef LEGACY_CONF
 /**
@@ -310,9 +349,6 @@ void applier::state::_apply(configuration::state const& new_cfg,
   config->admin_pager(new_cfg.admin_pager());
   config->allow_empty_hostgroup_assignment(
       new_cfg.allow_empty_hostgroup_assignment());
-  config->auto_reschedule_checks(new_cfg.auto_reschedule_checks());
-  config->auto_rescheduling_interval(new_cfg.auto_rescheduling_interval());
-  config->auto_rescheduling_window(new_cfg.auto_rescheduling_window());
   config->cached_host_check_horizon(new_cfg.cached_host_check_horizon());
   config->cached_service_check_horizon(new_cfg.cached_service_check_horizon());
   config->cfg_main(new_cfg.cfg_main());
@@ -429,6 +465,11 @@ void applier::state::_apply(configuration::state const& new_cfg,
   config->use_host_down_disable_service_checks(
       new_cfg.use_host_down_disable_service_checks());
   config->user(new_cfg.user());
+
+  if (config->max_file_descriptors() != new_cfg.max_file_descriptors()) {
+    config->max_file_descriptors(new_cfg.max_file_descriptors());
+    increase_fd_limit(new_cfg.max_file_descriptors());
+  }
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
@@ -593,10 +634,6 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.set_admin_pager(new_cfg.admin_pager());
   pb_config.set_allow_empty_hostgroup_assignment(
       new_cfg.allow_empty_hostgroup_assignment());
-  pb_config.set_auto_reschedule_checks(new_cfg.auto_reschedule_checks());
-  pb_config.set_auto_rescheduling_interval(
-      new_cfg.auto_rescheduling_interval());
-  pb_config.set_auto_rescheduling_window(new_cfg.auto_rescheduling_window());
   pb_config.set_cached_host_check_horizon(new_cfg.cached_host_check_horizon());
   pb_config.set_cached_service_check_horizon(
       new_cfg.cached_service_check_horizon());
@@ -727,6 +764,11 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.clear_user();
   for (auto& p : new_cfg.user())
     pb_config.mutable_user()->at(p.first) = p.second;
+
+  if (pb_config.max_file_descriptors() != new_cfg.max_file_descriptors()) {
+    pb_config.set_max_file_descriptors(new_cfg.max_file_descriptors());
+    increase_fd_limit(new_cfg.max_file_descriptors());
+  }
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
@@ -1894,9 +1936,10 @@ void applier::state::_processing(configuration::state& new_cfg,
     _apply<configuration::contact, applier::contact>(diff_contacts, err);
     _apply<configuration::contactgroup, applier::contactgroup>(
         diff_contactgroups, err);
+
+    _resolve<configuration::contact, applier::contact>(config->contacts(), err);
     _resolve<configuration::contactgroup, applier::contactgroup>(
         config->contactgroups(), err);
-    _resolve<configuration::contact, applier::contact>(config->contacts(), err);
 
     // Apply severities.
     _apply<configuration::severity, applier::severity>(diff_severities, err);
@@ -2317,10 +2360,10 @@ void applier::state::_processing(configuration::State& new_cfg,
                                                                   err);
     _apply<configuration::Contactgroup, std::string, applier::contactgroup>(
         diff_contactgroups, err);
-    _resolve<configuration::Contactgroup, applier::contactgroup>(
-        pb_config.contactgroups(), err);
     _resolve<configuration::Contact, applier::contact>(pb_config.contacts(),
                                                        err);
+    _resolve<configuration::Contactgroup, applier::contactgroup>(
+        pb_config.contactgroups(), err);
 
     // Apply severities.
     _apply<configuration::Severity, std::pair<uint64_t, uint32_t>,

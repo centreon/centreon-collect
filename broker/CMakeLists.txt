@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2023 Centreon
+# Copyright 2009-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -66,15 +66,20 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 endif()
 
 include_directories(
@@ -99,6 +104,7 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
@@ -106,20 +112,20 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
     ${SRC_DIR}/broker.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
+add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc
-                    ${CMAKE_SOURCE_DIR}/bbdo)
+                    ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_SOURCE_DIR}/bbdo)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc protobuf)
+target_link_libraries(berpc protobuf pb_common_lib)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -441,34 +447,28 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo target_extcmd)
+add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
 target_link_libraries(
   rokerbase
-  sql
   bbdo_bbdo
+  berpc
+  ctncrypto
+  dl
   pb_bbdo_lib
+  pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  berpc
-  z
-  spdlog::spdlog
-  crypto
-  ssl
   pthread
-  dl)
+  spdlog::spdlog
+  sql
+  z)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(
-  roker
-  rokerbase
-  crypto
-  ssl
-  pthread
-  dl)
+target_link_libraries(roker rokerbase crypto ssl pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -508,25 +508,32 @@ unset(MODULE_LIST)
 # sql library
 add_subdirectory(core/sql)
 
-# Generator module.
-add_broker_module(GENERATOR OFF)
-add_broker_module(STATS ON)
-#add_broker_module(STATS_EXPORTER OFF)
-add_broker_module(NEB ON)
-add_broker_module(RRD ON)
-add_broker_module(UNIFIED_SQL ON)
-add_broker_module(SQL ON)
-add_broker_module(STORAGE ON)
-add_broker_module(INFLUXDB ON)
-add_broker_module(GRAPHITE ON)
-add_broker_module(BAM ON)
-add_broker_module(TCP ON)
-add_broker_module(TLS ON)
-add_broker_module(TLS2 OFF)
-add_broker_module(DUMP OFF)
-add_broker_module(GRPC ON)
-add_broker_module(VICTORIA_METRICS ON)
-add_subdirectory(http_tsdb)
+if (ONLY_ROBOT_CMA)
+  add_broker_module(STATS ON)
+  add_broker_module(NEB ON)
+  add_broker_module(RRD ON)
+  add_broker_module(UNIFIED_SQL ON)
+  add_broker_module(TCP ON)
+else()
+  # Generator module.
+  add_broker_module(GENERATOR OFF)
+  add_broker_module(STATS ON)
+  add_broker_module(NEB ON)
+  add_broker_module(RRD ON)
+  add_broker_module(UNIFIED_SQL ON)
+  add_broker_module(SQL ON)
+  add_broker_module(STORAGE ON)
+  add_broker_module(INFLUXDB ON)
+  add_broker_module(GRAPHITE ON)
+  add_broker_module(BAM ON)
+  add_broker_module(TCP ON)
+  add_broker_module(TLS ON)
+  add_broker_module(TLS2 OFF)
+  add_broker_module(DUMP OFF)
+  add_broker_module(GRPC ON)
+  add_broker_module(VICTORIA_METRICS ON)
+  add_subdirectory(http_tsdb)
+endif()
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)
@@ -611,7 +618,7 @@ include(cmake/package.cmake)
 # Enable testing.
 option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
-if(WITH_TESTING)
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(test)
 endif()
 

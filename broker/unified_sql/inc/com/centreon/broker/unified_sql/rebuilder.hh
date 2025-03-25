@@ -21,7 +21,6 @@
 
 #include <memory>
 
-#include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/common/pool.hh"
 

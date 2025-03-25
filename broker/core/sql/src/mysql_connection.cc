@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include <errmsg.h>
+#include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -460,18 +461,26 @@ void mysql_connection::_statement(mysql_task* t) {
           "mysql_connection {:p}: execute statement {:x} attempt {}: {}",
           static_cast<const void*>(this), task->statement_id, attempts, query);
       if (mysql_stmt_execute(stmt)) {
-        std::string err_msg(
-            fmt::format("{} errno={} {}", mysql_error::msg[task->error_code],
-                        ::mysql_errno(_conn), ::mysql_stmt_error(stmt)));
-        SPDLOG_LOGGER_ERROR(_logger,
-                            "connection fail to execute statement {:p}: {}",
-                            static_cast<const void*>(this), err_msg);
-        if (_server_error(::mysql_stmt_errno(stmt))) {
+        int32_t err_code = ::mysql_stmt_errno(stmt);
+        std::string err_msg(fmt::format("{} errno={} {}",
+                                        mysql_error::msg[task->error_code],
+                                        err_code, ::mysql_stmt_error(stmt)));
+        if (err_code == 0) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "mysql_connection: errno=0, so we simulate a "
+                              "server error CR_SERVER_LOST");
+          err_code = CR_SERVER_LOST;
+        } else {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "connection fail to execute statement {:p}: {}",
+                              static_cast<const void*>(this), err_msg);
+        }
+        if (_server_error(err_code)) {
           set_error_message(err_msg);
           break;
         }
-        if (mysql_stmt_errno(stmt) != 1213 &&
-            mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
+        if (err_code != ER_LOCK_DEADLOCK &&
+            err_code != ER_LOCK_WAIT_TIMEOUT)  // Dead Lock error
           attempts = MAX_ATTEMPTS;
 
         if (mysql_commit(_conn)) {

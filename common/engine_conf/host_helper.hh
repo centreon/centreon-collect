@@ -37,10 +37,14 @@ class host_helper : public message_helper {
   ~host_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
-  bool hook(std::string_view key, const std::string_view& value) override;
+  bool hook(std::string_view key, std::string_view value) override;
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+  static void expand(
+      configuration::State& s,
+      configuration::error_cnt& err,
+      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs);
 };
 }  // namespace com::centreon::engine::configuration
 

@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/sql/database_config.hh"
 
 namespace com::centreon::broker::influxdb {
 

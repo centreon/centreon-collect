@@ -29,7 +29,7 @@ EBBPS1
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
     FOR    ${i}    IN RANGE    ${1000}
@@ -52,6 +52,7 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
@@ -89,6 +90,7 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
@@ -109,7 +111,7 @@ EBBPS2
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
@@ -135,6 +137,7 @@ EBBPS2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    critical${i}
@@ -171,6 +174,7 @@ EBBPS2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
+    Disconnect From Database
 
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
@@ -191,7 +195,7 @@ EBMSSM
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
@@ -217,6 +221,7 @@ EBMSSM
         Sleep    1s
     END
     Should Be True    ${output[0][0]} >= 100000
+    Disconnect From Database
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
@@ -240,7 +245,7 @@ EBPS2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -294,7 +299,7 @@ RLCode
     ${start}    Get Current Date
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -364,7 +369,7 @@ metric_mapping
     ${start}    Get Current Date
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -404,7 +409,7 @@ Services_and_bulks_${id}
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Broker Set Sql Manager Stats    51001    5    5
 
     # Let's wait for the external command check start
@@ -434,6 +439,143 @@ Services_and_bulks_${id}
     Examples:    id    metric_num_char    --
     ...    1    1020
     ...    2    150
+
+EBMSSMDBD
+    [Documentation]    1000 services are configured with 100 metrics each.
+    ...    The rrd output is removed from the broker configuration.
+    ...    While metrics are written in the database, we stop the database and then restart it.
+    ...    Broker must recover its connection to the database and continue to write metrics.
+    [Tags]    broker    engine    unified_sql    MON-152743
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1000}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    ${start}    Ctn Get Round Current Date
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    Log To Console    Many service checks with 100 metrics each are processed.
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+    END
+
+    Log To Console    We wait for at least one metric to be written in the database.
+    # Let's wait for all force checks to be in the storage database.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${500}
+        ${output}    Query
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
+        IF    ${output[0][0]} >= 1    BREAK
+        Sleep    1s
+    END
+    Disconnect From Database
+
+    Log To Console    Let's start some database manipulation...
+    ${start}    Get Current Date
+
+    FOR    ${i}    IN RANGE    ${3}
+        Ctn Stop Mysql
+	Sleep    10s
+	Ctn Start Mysql
+	${content}    Create List    could not insert data in data_bin
+	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+	Log To Console    ${result}
+    END
+
+EBMSSMPART
+    [Documentation]    1000 services are configured with 100 metrics each.
+    ...    The rrd output is removed from the broker configuration.
+    ...    The data_bin table is configured with two partitions p1 and p2 such
+    ...    that p1 contains old data and p2 contains current data.
+    ...    While metrics are written in the database, we remove the p2 partition.
+    ...    Once the p2 partition is recreated, broker must recover its connection
+    ...    to the database and continue to write metrics.
+    ...    To check that last point, we force a last service check and we check
+    ...    that its metrics are written in the database.
+    [Tags]    broker    engine    unified_sql    MON-152743
+    Ctn Clear Metrics
+    Ctn Config Engine    ${1}    ${1}    ${1000}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Ctn Set Services Passive    ${0}    service_.*
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    tcp    error
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker Remove Rrd Output    central
+    Ctn Clear Retention
+
+    Ctn Prepare Partitions For Data Bin
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    1
+
+    ${start}    Ctn Get Round Current Date
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    Log To Console    Many service checks with 100 metrics each are processed.
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+    END
+
+    Log To Console    We wait for at least one metric to be written in the database.
+    # Let's wait for all force checks to be in the storage database.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${500}
+        ${output}    Query
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
+        IF    ${output[0][0]} >= 1    BREAK
+        Sleep    1s
+    END
+    Disconnect From Database
+
+    Log To Console    Let's start some database manipulation...
+    Ctn Remove P2 From Data Bin
+    ${start}    Get Current Date
+
+    ${content}    Create List    errno=
+    FOR    ${i}    IN RANGE    ${6}
+	${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+	IF    ${result}    BREAK
+    END
+
+    Log To Console    Let's recreate the p2 partition...
+    Ctn Add P2 To Data Bin
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Process Service Check Result With Metrics    host_1    service_1    0    Last Output OK    100
+
+    Log To Console    Let's wait for the last service check to be in the database...
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${120}
+        ${output}    Query    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10
+	Log To Console    ${output}
+        IF    ${output[0][0]} >= 100    BREAK
+        Sleep    1s
+    END
+    Log To Console    ${output}
+    Should Be True    ${output[0][0]} >= 100
+    Disconnect From Database
+
+    Ctn Init Data Bin Without Partition
 
 
 *** Keywords ***

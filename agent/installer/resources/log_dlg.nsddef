@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file was created by NSISDialogDesigner 1.6.0.0
+https://coolsoft.altervista.org/nsisdialogdesigner
+Do not edit manually!
+-->
+<Dialog Name="log_dlg" Title="logs" Subtitle="logs">
+  <CreateFunctionCustomScript>Call init_log_dlg
+Call on_log_type_changed</CreateFunctionCustomScript>
+  <GroupBox Name="file_group" Location="12, 57" Size="388, 102" Text="Log File" TabIndex="0">
+    <Bitmap Name="max_files_help" Location="270, 67" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="0" onClick="max_files_help_onClick" />
+    <Bitmap Name="max_file_size_help" Location="270, 42" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="1" onClick="max_file_size_help_onClick" />
+    <Label Name="label_max_files" Location="8, 69" Size="111, 16" Text="Max number of files:" TabIndex="2" />
+    <FileRequest Name="log_file" Location="122, 14" Size="260, 20" TabIndex="3" DialogMode="save" Filter=".log files|*.log" />
+    <Label Name="label_max_file_size" Location="8, 42" Size="111, 18" Text="Max File Size (Mo):" TabIndex="4" />
+    <Number Name="max_file_size" Location="122, 40" Size="142, 20" TabIndex="5" />
+    <Label Name="label_log_file" Location="8, 18" Size="100, 16" Text="Log file:" TabIndex="6" />
+    <Number Name="max_files" Location="122, 66" Size="142, 20" TabIndex="7" />
+  </GroupBox>
+  <DropList Name="log_type" Location="168, 3" TabIndex="1" onChange="on_log_type_changed">
+    <Items>
+      <value>event-log</value>
+      <value>file</value>
+    </Items>
+  </DropList>
+  <DropList Name="log_level" Location="168, 30" TabIndex="2">
+    <Items>
+      <value>Off</value>
+      <value>Critical</value>
+      <value>Error</value>
+      <value>Warning</value>
+      <value>Info</value>
+      <value>Debug</value>
+      <value>Trace</value>
+    </Items>
+  </DropList>
+  <Label Name="Label12" Location="12, 33" Size="86, 18" Text="Log level:" TabIndex="3" />
+  <Label Name="Label13" Location="12, 6" Size="86, 18" Text="Log type:" TabIndex="4" />
+</Dialog>

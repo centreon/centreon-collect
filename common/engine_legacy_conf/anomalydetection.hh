@@ -87,7 +87,6 @@ class anomalydetection : public object {
   bool set_host_id(uint64_t id);
   std::string const& icon_image() const noexcept;
   std::string const& icon_image_alt() const noexcept;
-  unsigned int initial_state() const noexcept;
   bool is_volatile() const noexcept;
   unsigned int low_flap_threshold() const noexcept;
   unsigned int max_check_attempts() const noexcept;
@@ -152,7 +151,6 @@ class anomalydetection : public object {
   bool _set_host_name(std::string const& value);
   bool _set_icon_image(std::string const& value);
   bool _set_icon_image_alt(std::string const& value);
-  bool _set_initial_state(std::string const& value);
   bool _set_is_volatile(bool value);
   bool _set_low_flap_threshold(unsigned int value);
   bool _set_max_check_attempts(unsigned int value);
@@ -201,7 +199,6 @@ class anomalydetection : public object {
   std::string _host_name;
   std::string _icon_image;
   std::string _icon_image_alt;
-  opt<unsigned int> _initial_state;
   opt<bool> _is_volatile;
   opt<unsigned int> _low_flap_threshold;
   opt<unsigned int> _max_check_attempts;

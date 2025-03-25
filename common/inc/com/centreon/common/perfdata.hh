@@ -59,7 +59,7 @@ class perfdata {
   float min() const { return _min; }
   void min(float val) { _min = val; }
   const std::string& name() const { return _name; }
-  void name(const std::string&& val) { _name = val; }
+  void name(std::string_view val) { _name = val; }
   void resize_name(size_t new_size);
   const std::string& unit() const { return _unit; }
   void resize_unit(size_t new_size);
@@ -76,11 +76,11 @@ class perfdata {
   void warning_mode(bool val) { _warning_mode = val; }
 };
 
-}  // namespace com::centreon::common
-
 bool operator==(com::centreon::common::perfdata const& left,
                 com::centreon::common::perfdata const& right);
 bool operator!=(com::centreon::common::perfdata const& left,
                 com::centreon::common::perfdata const& right);
+
+}  // namespace com::centreon::common
 
 #endif

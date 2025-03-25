@@ -22,10 +22,10 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/timeperiod.hh"
 
 /* Event broker options. */
 #define BROKER_NOTHING 0
@@ -454,7 +454,9 @@ int broker_host_check(int type,
                       int check_type,
                       const char* cmdline,
                       char* output);
-void broker_host_status(int type, com::centreon::engine::host* hst);
+void broker_host_status(int type,
+                        com::centreon::engine::host* hst,
+                        uint32_t attributes);
 void broker_log_data(char* data, time_t entry_time);
 int broker_notification_data(int type,
                              int flags,
@@ -484,7 +486,9 @@ int broker_service_check(int type,
                          com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
-void broker_service_status(int type, com::centreon::engine::service* svc);
+void broker_service_status(int type,
+                           com::centreon::engine::service* svc,
+                           uint32_t attributes);
 void broker_statechange_data(int type,
                              int flags,
                              int attr,
@@ -516,6 +520,10 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
 void broker_bench(unsigned id,
                   const std::chrono::system_clock::time_point& mess_create);
+
+struct nebstruct_agent_stats_data;
+
+void broker_agent_stats(nebstruct_agent_stats_data& stats);
 
 #ifdef __cplusplus
 }

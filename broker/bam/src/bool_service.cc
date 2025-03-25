@@ -168,6 +168,33 @@ void bool_service::service_update(
 }
 
 /**
+ * @brief Notify of a service status update (usually used for downtimes).
+ *
+ * @param status The adaptive status of the service.
+ * @param visitor The visitor to handle events.
+ */
+void bool_service::service_update(
+    const std::shared_ptr<neb::pb_adaptive_service_status>& status,
+    io::stream* visitor) {
+  auto& o = status->obj();
+  if (o.has_scheduled_downtime_depth()) {
+    SPDLOG_LOGGER_TRACE(_logger,
+                        "bool_service: service ({},{}) updated with "
+                        "neb::pb_adaptive_service_status downtime: {}",
+                        o.host_id(), o.service_id(),
+                        o.scheduled_downtime_depth());
+    if (o.host_id() == _host_id && o.service_id() == _service_id) {
+      bool new_in_downtime = o.scheduled_downtime_depth() > 0;
+      if (_in_downtime != new_in_downtime) {
+        _in_downtime = new_in_downtime;
+        _logger->trace("bool_service: updated with downtime: {}", _in_downtime);
+        notify_parents_of_change(visitor);
+      }
+    }
+  }
+}
+
+/**
  *  Get the hard value.
  *
  *  @return Hard value.

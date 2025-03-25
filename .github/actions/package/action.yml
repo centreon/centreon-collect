@@ -16,6 +16,12 @@ inputs:
   minor_version:
     description: The minor version
     required: false
+  cma_major_version:
+    description: The major version of cma
+    required: false
+  cma_minor_version:
+    description: The minor version of cma
+    required: false
   release:
     description: The package release number
     required: false
@@ -40,11 +46,16 @@ inputs:
   stability:
     description: "branch stability (stable, testing, unstable, canary)"
     required: true
-
 runs:
   using: composite
 
   steps:
+    - name: Parse distrib name
+      id: parse-distrib
+      uses: ./.github/actions/parse-distrib
+      with:
+        distrib: ${{ inputs.distrib }}
+
     - name: Import gpg key
       env:
         RPM_GPG_SIGNING_KEY: ${{ inputs.rpm_gpg_key }}
@@ -58,23 +69,19 @@ runs:
       run: |
         export MAJOR_VERSION="${{ inputs.major_version }}"
         export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
+        export CMA_VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
         if  [ "${{ inputs.package_extension }}" = "rpm" ]; then
-          export DIST=".${{ inputs.distrib }}"
+          export DIST="${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}"
         else
           export DIST=""
-          if [ "${{ inputs.stability }}" = "unstable" ] || [ "${{ inputs.stability }}" = "canary" ]; then
-            export RELEASE="$RELEASE~${{ inputs.distrib }}"
-          else
-            export RELEASE="1~${{ inputs.distrib }}"
-          fi
+          export RELEASE="$RELEASE${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}"
         fi
 
         MAJOR_LEFT=$( echo $MAJOR_VERSION | cut -d "." -f1 )
         MAJOR_RIGHT=$( echo $MAJOR_VERSION | cut -d "-" -f1 | cut -d "." -f2 )
-        BUMP_MAJOR_RIGHT=$(( MAJOR_RIGHT_PART + 1 ))
         if [ "$MAJOR_RIGHT" = "04" ]; then
           BUMP_MAJOR_LEFT="$MAJOR_LEFT"
           BUMP_MAJOR_RIGHT="10"
@@ -104,16 +111,15 @@ runs:
       shell: bash
 
     - name: Cache packages
-      uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       with:
         path: ./*.${{ inputs.package_extension }}
         key: ${{ inputs.cache_key }}
 
-    # Update if condition to true to get packages as artifacts
-    - if: ${{ false }}
+    - if: ${{ contains(github.event.pull_request.labels.*.name, 'upload-artifacts') }}
       name: Upload package artifacts
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
-        name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}
+        name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
         path: ./*.${{ inputs.package_extension}}
         retention-days: 1

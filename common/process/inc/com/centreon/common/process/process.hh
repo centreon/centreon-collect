@@ -26,6 +26,33 @@ namespace detail {
 struct boost_process;
 }  // namespace detail
 
+namespace detail {
+template <bool use_mutex>
+class mutex;
+
+template <bool use_mutex>
+class lock;
+
+template <>
+class mutex<true> : public absl::Mutex {};
+
+template <>
+class lock<true> : public absl::MutexLock {
+ public:
+  lock(absl::Mutex* mut) : absl::MutexLock(mut) {}
+};
+
+template <>
+class mutex<false> {};
+
+template <>
+class lock<false> {
+ public:
+  lock(mutex<false>* /* dummy_mut*/) {}
+};
+
+}  // namespace detail
+
 /**
  * @brief This class allow to exec a process asynchronously.
  * It's a base class. If you want to get stdin and stdout returned data, you
@@ -37,22 +64,23 @@ struct boost_process;
  * When completion methods like on_stdout_read are called, _protect is already
  * locked
  */
-class process : public std::enable_shared_from_this<process> {
+
+template <bool use_mutex = true>
+class process : public std::enable_shared_from_this<process<use_mutex>> {
+  using std::enable_shared_from_this<process<use_mutex>>::shared_from_this;
   std::string _exe_path;
   std::vector<std::string> _args;
 
-  std::deque<std::shared_ptr<std::string>> _stdin_write_queue
-      ABSL_GUARDED_BY(_protect);
-  bool _write_pending ABSL_GUARDED_BY(_protect) = false;
+  std::deque<std::shared_ptr<std::string>> _stdin_write_queue;
+  bool _write_pending;
 
-  std::shared_ptr<detail::boost_process> _proc ABSL_GUARDED_BY(_protect);
+  std::shared_ptr<detail::boost_process> _proc;
 
   int _exit_status = 0;
 
-  absl::Mutex _protect;
+  detail::mutex<use_mutex> _protect;
 
-  void stdin_write_no_lock(const std::shared_ptr<std::string>& data)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+  void stdin_write_no_lock(const std::shared_ptr<std::string>& data);
   void stdin_write(const std::shared_ptr<std::string>& data);
 
   void stdout_read();
@@ -62,22 +90,18 @@ class process : public std::enable_shared_from_this<process> {
   std::shared_ptr<asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
 
-  char _stdout_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
-  char _stderr_read_buffer[0x1000] ABSL_GUARDED_BY(_protect);
+  char _stdout_read_buffer[0x1000];
+  char _stderr_read_buffer[0x1000];
 
   virtual void on_stdout_read(const boost::system::error_code& err,
-                              size_t nb_read)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                              size_t nb_read);
   virtual void on_stderr_read(const boost::system::error_code& err,
-                              size_t nb_read)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                              size_t nb_read);
 
   virtual void on_process_end(const boost::system::error_code& err,
-                              int raw_exit_status)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                              int raw_exit_status);
 
-  virtual void on_stdin_write(const boost::system::error_code& err)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+  virtual void on_stdin_write(const boost::system::error_code& err);
 
  public:
   template <typename string_iterator>
@@ -105,6 +129,8 @@ class process : public std::enable_shared_from_this<process> {
 
   virtual ~process() = default;
 
+  int get_pid();
+
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 
@@ -126,12 +152,13 @@ class process : public std::enable_shared_from_this<process> {
  * @param arg_begin iterator to first argument
  * @param arg_end iterator after the last argument
  */
+template <bool use_mutex>
 template <typename string_iterator>
-process::process(const std::shared_ptr<asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string_view& exe_path,
-                 string_iterator arg_begin,
-                 string_iterator arg_end)
+process<use_mutex>::process(const std::shared_ptr<asio::io_context>& io_context,
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            const std::string_view& exe_path,
+                            string_iterator arg_begin,
+                            string_iterator arg_end)
     : _exe_path(exe_path),
       _args(arg_begin, arg_end),
       _io_context(io_context),
@@ -146,11 +173,13 @@ process::process(const std::shared_ptr<asio::io_context>& io_context,
  * @param exe_path path of executable without argument
  * @param args container of arguments
  */
+template <bool use_mutex>
 template <typename args_container>
-process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string_view& exe_path,
-                 const args_container& args)
+process<use_mutex>::process(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    const std::string_view& exe_path,
+    const args_container& args)
     : _exe_path(exe_path),
       _args(args),
       _io_context(io_context),
@@ -166,11 +195,13 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
  * @param exe_path path of executable without argument
  * @param args brace of arguments {"--flag1", "arg1", "-c", "arg2"}
  */
+template <bool use_mutex>
 template <typename string_type>
-process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
-                 const std::shared_ptr<spdlog::logger>& logger,
-                 const std::string_view& exe_path,
-                 const std::initializer_list<string_type>& args)
+process<use_mutex>::process(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    const std::string_view& exe_path,
+    const std::initializer_list<string_type>& args)
     : _exe_path(exe_path), _io_context(io_context), _logger(logger) {
   _args.reserve(args.size());
   for (const auto& str : args) {
@@ -185,8 +216,9 @@ process::process(const std::shared_ptr<boost::asio::io_context>& io_context,
  * can be used to construct a std::string
  * @param content
  */
+template <bool use_mutex>
 template <typename string_class>
-void process::write_to_stdin(const string_class& content) {
+void process<use_mutex>::write_to_stdin(const string_class& content) {
   stdin_write(std::make_shared<std::string>(content));
 }
 

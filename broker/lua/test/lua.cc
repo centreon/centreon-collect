@@ -17,7 +17,6 @@
  */
 
 #include <absl/strings/str_split.h>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <absl/strings/str_split.h>
@@ -30,10 +29,7 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -57,7 +53,7 @@ class LuaTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::LUA);
 
     try {
-      config::applier::init(0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -4835,4 +4831,228 @@ TEST_F(LuaTest, WithBadFilter2) {
   auto bb{std::make_unique<luabinding>(filename, conf, *_cache)};
   ASSERT_FALSE(bb->has_filter());
   RemoveFile(filename);
+}
+
+// When a host is stored in the cache and an AdaptiveHostStatus is written
+// Then the host in cache is updated.
+TEST_F(LuaTest, AdaptiveHostCacheTest) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/neb/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::host>()};
+  hst->host_id = 1;
+  hst->host_name = "centreon";
+  hst->check_command = "echo 'John Doe'";
+  hst->alias = "alias-centreon";
+  hst->address = "4.3.2.1";
+  _cache->write(hst);
+
+  auto ahoststatus = std::make_shared<neb::pb_adaptive_host_status>();
+  auto& obj = ahoststatus->mut_obj();
+  obj.set_host_id(1);
+  obj.set_scheduled_downtime_depth(2);
+  _cache->write(ahoststatus);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hst = broker_cache:get_host(1)\n"
+               "  broker_log:info(1, 'alias ' .. hst.alias .. ' address ' .. "
+               "hst.address .. ' name ' .. hst.name .. ' "
+               "scheduled_downtime_depth ' .. hst.scheduled_downtime_depth)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon "
+                     "scheduled_downtime_depth 2"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When an AdaptiveHostStatus is written
+// Then only the written fields are available.
+TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/neb/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hst{std::make_shared<neb::host>()};
+  hst->host_id = 1;
+  hst->host_name = "centreon";
+  hst->check_command = "echo 'John Doe'";
+  hst->alias = "alias-centreon";
+  hst->address = "4.3.2.1";
+  _cache->write(hst);
+
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(1, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+
+  auto ahoststatus1 = std::make_shared<neb::pb_adaptive_host_status>();
+  {
+    auto& obj = ahoststatus1->mut_obj();
+    obj.set_host_id(1);
+    obj.set_notification_number(9);
+    binding->write(ahoststatus1);
+  }
+
+  auto ahoststatus2 = std::make_shared<neb::pb_adaptive_host_status>();
+  {
+    auto& obj = ahoststatus2->mut_obj();
+    obj.set_host_id(2);
+    obj.set_acknowledgement_type(STICKY);
+    binding->write(ahoststatus2);
+  }
+
+  auto ahoststatus3 = std::make_shared<neb::pb_adaptive_host_status>();
+  {
+    auto& obj = ahoststatus3->mut_obj();
+    obj.set_host_id(3);
+    obj.set_scheduled_downtime_depth(5);
+    binding->write(ahoststatus3);
+  }
+  std::string lst(ReadFile("/tmp/log"));
+  ASSERT_NE(lst.find("{\"_type\":65592, \"category\":1, \"element\":56, "
+                     "\"host_id\":1, \"notification_number\":9}"),
+            std::string::npos);
+  ASSERT_NE(lst.find("{\"_type\":65592, \"category\":1, \"element\":56, "
+                     "\"host_id\":2, \"acknowledgement_type\":2}"),
+            std::string::npos);
+  ASSERT_NE(lst.find("{\"_type\":65592, \"category\":1, \"element\":56, "
+                     "\"host_id\":3, \"scheduled_downtime_depth\":5}"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a service is stored in the cache and an AdaptiveServiceStatus is written
+// Then the service in cache is updated.
+TEST_F(LuaTest, AdaptiveServiceCacheTest) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/neb/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc{std::make_shared<neb::service>()};
+  svc->host_id = 1;
+  svc->service_id = 2;
+  svc->host_name = "centreon-host";
+  svc->service_description = "centreon-description";
+  svc->check_command = "echo 'John Doe'";
+  svc->display_name = "alias-centreon";
+  _cache->write(svc);
+
+  auto aservicestatus = std::make_shared<neb::pb_adaptive_service_status>();
+  auto& obj = aservicestatus->mut_obj();
+  obj.set_host_id(1);
+  obj.set_service_id(2);
+  obj.set_scheduled_downtime_depth(3);
+  _cache->write(aservicestatus);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local svc = broker_cache:get_service(1, 2)\n"
+               "  broker_log:info(1, 'display_name ' .. svc.display_name .. ' "
+               "description ' .. "
+               "svc.description .. ' check command ' .. svc.check_command .. ' "
+               "scheduled_downtime_depth ' .. svc.scheduled_downtime_depth)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(
+      lst.find("display_name alias-centreon description centreon-description "
+               "check command echo 'John Doe' scheduled_downtime_depth 3"),
+      std::string::npos);
+  RemoveFile(filename);
+  //  RemoveFile("/tmp/log");
+}
+
+// When an AdaptiveHostStatus is written
+// Then only the written fields are available.
+TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
+  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
+  modules.load_file("./broker/neb/10-neb.so");
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto svc{std::make_shared<neb::service>()};
+  svc->host_id = 1;
+  svc->service_id = 2;
+  svc->host_name = "centreon-host";
+  svc->service_description = "centreon-description";
+  svc->check_command = "echo 'John Doe'";
+  svc->display_name = "alias-centreon";
+  _cache->write(svc);
+
+  CreateScript(filename,
+               "broker_api_version = 2\n"
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  broker_log:info(1, broker.json_encode(d))\n"
+               "  return true\n"
+               "end\n");
+
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+
+  auto aservicestatus1 = std::make_shared<neb::pb_adaptive_service_status>();
+  {
+    auto& obj = aservicestatus1->mut_obj();
+    obj.set_host_id(1);
+    obj.set_service_id(2);
+    obj.set_notification_number(9);
+    binding->write(aservicestatus1);
+  }
+
+  auto aservicestatus2 = std::make_shared<neb::pb_adaptive_service_status>();
+  {
+    auto& obj = aservicestatus2->mut_obj();
+    obj.set_host_id(1);
+    obj.set_service_id(2);
+    obj.set_acknowledgement_type(STICKY);
+    binding->write(aservicestatus2);
+  }
+
+  auto aservicestatus3 = std::make_shared<neb::pb_adaptive_service_status>();
+  {
+    auto& obj = aservicestatus3->mut_obj();
+    obj.set_host_id(1);
+    obj.set_service_id(3);
+    obj.set_scheduled_downtime_depth(5);
+    binding->write(aservicestatus3);
+  }
+  std::string lst(ReadFile("/tmp/log"));
+  std::cout << lst << std::endl;
+  ASSERT_NE(lst.find("{\"_type\":65591, \"category\":1, \"element\":55, "
+                     "\"host_id\":1, \"service_id\":2, \"type\":0, "
+                     "\"internal_id\":0, \"notification_number\":9}"),
+            std::string::npos);
+  ASSERT_NE(lst.find("{\"_type\":65591, \"category\":1, \"element\":55, "
+                     "\"host_id\":1, \"service_id\":2, \"type\":0, "
+                     "\"internal_id\":0, \"acknowledgement_type\":2}"),
+            std::string::npos);
+  ASSERT_NE(lst.find("{\"_type\":65591, \"category\":1, \"element\":55, "
+                     "\"host_id\":1, \"service_id\":3, \"type\":0, "
+                     "\"internal_id\":0, \"scheduled_downtime_depth\":5}"),
+            std::string::npos);
+  RemoveFile(filename);
+  //  RemoveFile("/tmp/log");
 }

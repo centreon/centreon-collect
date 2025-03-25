@@ -19,11 +19,8 @@
 #ifndef CCB_NEB_SERVICE_CHECK_HH
 #define CCB_NEB_SERVICE_CHECK_HH
 
-#include "com/centreon/broker/io/event_info.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/neb/check.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
 

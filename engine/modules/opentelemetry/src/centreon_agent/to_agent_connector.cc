@@ -43,7 +43,8 @@ class agent_connection
                    const std::shared_ptr<to_agent_connector>& parent,
                    const agent_config::pointer& conf,
                    const metric_handler& handler,
-                   const std::shared_ptr<spdlog::logger>& logger);
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   const agent_stat::pointer& stats);
 
   ::grpc::ClientContext& get_context() { return _context; }
 
@@ -67,14 +68,17 @@ agent_connection::agent_connection(
     const std::shared_ptr<to_agent_connector>& parent,
     const agent_config::pointer& conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats)
     : agent_impl<::grpc::ClientBidiReactor<agent::MessageToAgent,
                                            agent::MessageFromAgent>>(
           io_context,
           "reverse_client",
           conf,
           handler,
-          logger),
+          logger,
+          true,
+          stats),
       _parent(parent) {
   _peer = parent->get_conf()->get_hostport();
 }
@@ -119,13 +123,15 @@ to_agent_connector::to_agent_connector(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const agent_config::pointer& agent_conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger)
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats)
     : common::grpc::grpc_client_base(agent_endpoint_conf, logger),
       _io_context(io_context),
-      _conf(agent_conf),
       _metric_handler(handler),
-      _alive(true) {
-  _stub = std::move(agent::ReversedAgentService::NewStub(_channel));
+      _conf(agent_conf),
+      _alive(true),
+      _stats(stats) {
+  _stub = agent::ReversedAgentService::NewStub(_channel);
 }
 
 /**
@@ -150,10 +156,11 @@ std::shared_ptr<to_agent_connector> to_agent_connector::load(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const agent_config::pointer& agent_conf,
     const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger) {
+    const std::shared_ptr<spdlog::logger>& logger,
+    const agent_stat::pointer& stats) {
   std::shared_ptr<to_agent_connector> ret =
       std::make_shared<to_agent_connector>(agent_endpoint_conf, io_context,
-                                           agent_conf, handler, logger);
+                                           agent_conf, handler, logger, stats);
   ret->start();
   return ret;
 }
@@ -172,8 +179,9 @@ void to_agent_connector::start() {
     _connection->shutdown();
     _connection.reset();
   }
-  _connection = std::make_shared<agent_connection>(
-      _io_context, shared_from_this(), _conf, _metric_handler, get_logger());
+  _connection =
+      std::make_shared<agent_connection>(_io_context, shared_from_this(), _conf,
+                                         _metric_handler, get_logger(), _stats);
   agent_connection::register_stream(_connection);
   _stub->async()->Import(&_connection->get_context(), _connection.get());
   _connection->start_read();

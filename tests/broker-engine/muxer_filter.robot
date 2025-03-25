@@ -259,6 +259,7 @@ CBD_RELOAD_AND_FILTERS
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
@@ -310,7 +311,7 @@ CBD_RELOAD_AND_FILTERS
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
-    Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
+    Should Be True    ${result[0]}    No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
@@ -356,6 +357,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Ctn Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
     Ctn Broker Config Log    central    config    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    rrd    rrd    debug
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}
@@ -407,7 +409,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event .* rejected by write filter
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    120
-    Should Be True    ${result}    No event rejected by the rrd output whereas only storage category is enabled.
+    Should Be True    ${result[0]}    No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration

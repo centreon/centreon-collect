@@ -23,7 +23,7 @@ import "google/protobuf/timestamp.proto";
 package com.centreon.broker;
 
 
-
+/* Ignore */
 message TimePoint {
   string name = 1;
   string function = 2;
@@ -36,7 +36,7 @@ message TimePoint {
   * from engine to dest with several timepoints (one per muxer)
   *
   */
-/*io::extcmd, extcmd::de_pb_bench*/
+/* io::extcmd, extcmd::de_pb_bench, 3 */
 message Bench {
   uint32 id = 1;
   repeated TimePoint points = 2;

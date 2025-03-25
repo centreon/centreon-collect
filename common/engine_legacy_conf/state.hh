@@ -444,6 +444,8 @@ class state {
   void use_send_recovery_notifications_anyways(bool value);
   bool use_host_down_disable_service_checks() const;
   void use_host_down_disable_service_checks(bool value);
+  uint32_t max_file_descriptors() const;
+  void max_file_descriptors(uint32_t value);
 
   using setter_map =
       absl::flat_hash_map<std::string_view, std::unique_ptr<setter_base>>;
@@ -612,6 +614,7 @@ class state {
   bool _use_true_regexp_matching;
   bool _send_recovery_notifications_anyways;
   bool _host_down_disable_service_checks;
+  uint32_t _max_file_descriptors;
 };
 
 }  // namespace com::centreon::engine::configuration

@@ -30,26 +30,32 @@
 using namespace com::centreon;
 using namespace com::centreon::common;
 
+#ifdef _WIN32
+#define JSON_FILE_PATH "C:/Users/Public/toto.json"
+#else
+#define JSON_FILE_PATH "/tmp/toto.json"
+#endif
+
 TEST(rapidjson_helper_test, unknown_file) {
-  ::unlink("/tmp/toto.json");
-  ASSERT_THROW(rapidjson_helper::read_from_file("/tmp/toto.json"),
+  ::unlink(JSON_FILE_PATH);
+  ASSERT_THROW(rapidjson_helper::read_from_file(JSON_FILE_PATH),
                exceptions::msg_fmt);
 }
 
 TEST(rapidjson_helper_test, bad_file) {
-  ::unlink("/tmp/toto.json");
+  ::unlink(JSON_FILE_PATH);
 
-  std::ofstream oss("/tmp/toto.json");
+  std::ofstream oss(JSON_FILE_PATH);
   oss << "fkjsdgheirgiergegeg";
   oss.close();
-  ASSERT_THROW(rapidjson_helper::read_from_file("/tmp/toto.json"),
+  ASSERT_THROW(rapidjson_helper::read_from_file(JSON_FILE_PATH),
                exceptions::msg_fmt);
 }
 
 TEST(rapidjson_helper_test, good_file) {
-  ::unlink("/tmp/toto.json");
+  ::unlink(JSON_FILE_PATH);
 
-  std::ofstream oss("/tmp/toto.json");
+  std::ofstream oss(JSON_FILE_PATH);
   oss << R"(
 {
     "int_val":5,
@@ -61,7 +67,7 @@ TEST(rapidjson_helper_test, good_file) {
 }
 )";
   oss.close();
-  auto json_doc = rapidjson_helper::read_from_file("/tmp/toto.json");
+  auto json_doc = rapidjson_helper::read_from_file(JSON_FILE_PATH);
   rapidjson_helper test(json_doc);
 
   ASSERT_EQ(5, test.get_int("int_val"));
@@ -73,16 +79,16 @@ TEST(rapidjson_helper_test, good_file) {
 }
 
 TEST(rapidjson_helper_test, bad_array) {
-  ::unlink("/tmp/toto.json");
+  ::unlink(JSON_FILE_PATH);
 
-  std::ofstream oss("/tmp/toto.json");
+  std::ofstream oss(JSON_FILE_PATH);
   oss << R"(
 {
     "toto": 5
 }
 )";
   oss.close();
-  auto json_doc = rapidjson_helper::read_from_file("/tmp/toto.json");
+  auto json_doc = rapidjson_helper::read_from_file(JSON_FILE_PATH);
   rapidjson_helper test(json_doc);
   ASSERT_THROW(test.begin(), exceptions::msg_fmt);
 }

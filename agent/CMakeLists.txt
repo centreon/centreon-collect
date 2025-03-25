@@ -38,6 +38,18 @@ if(WITH_LIBCXX)
   # -fno-omit-frame-pointer")
 endif()
 
+#this library is available in boost 1.87. Unfortunately, boost-1.87 is not yet available in vcpkg so we have to import it
+# to replace by vcpkg when available
+include(FetchContent)
+FetchContent_Declare(
+        boost-parser
+        GIT_REPOSITORY https://github.com/boostorg/parser.git
+        GIT_TAG        boost-1.87.0)
+
+FetchContent_MakeAvailable(boost-parser)
+
+include_directories(${boost-parser_SOURCE_DIR}/include)
+
 #otel service
 set(service_files
   opentelemetry/proto/collector/metrics/v1/metrics_service
@@ -97,13 +109,27 @@ add_custom_command(
     ${PROJECT_SOURCE_DIR}/proto/agent.proto
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(NATIVE_DIR "native_linux")
+else()
+  set(NATIVE_DIR "native_windows")
+endif()
+
+set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
+set(NATIVE_SRC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/src")
 
 set( SRC_COMMON
+  ${NATIVE_SRC}/agent_info.cc
+  ${NATIVE_SRC}/check_cpu.cc
   ${SRC_DIR}/agent.grpc.pb.cc
   ${SRC_DIR}/agent.pb.cc
   ${SRC_DIR}/bireactor.cc
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
+  ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/check_health.cc
+  ${SRC_DIR}/filter.cc
+  ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
   ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
@@ -116,12 +142,25 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
+  ${NATIVE_SRC}/check_uptime.cc
+  ${NATIVE_SRC}/check_drive_size.cc
+  ${NATIVE_SRC}/check_event_log.cc
+  ${NATIVE_SRC}/event_log/container.cc
+  ${NATIVE_SRC}/event_log/data.cc
+  ${NATIVE_SRC}/event_log/uniq.cc
+  ${NATIVE_SRC}/check_memory.cc
+  ${NATIVE_SRC}/check_service.cc
+  ${NATIVE_SRC}/windows_util.cc
+  ${NATIVE_SRC}/ntdll.cc
 )
 
 set( SRC_LINUX
   ${SRC_DIR}/config.cc
 )
 
+#resource version
+configure_file("${SRC_DIR}/agent.rc.in"
+              "${SRC_DIR}/agent.rc")
 configure_file("${INCLUDE_DIR}/version.hh.in"
                "${INCLUDE_DIR}/version.hh")
 
@@ -129,7 +168,9 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} ${SRC_LINUX})
 else()
+  add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+  set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 
@@ -138,7 +179,8 @@ add_library(centagent_lib STATIC
 )
 
 include_directories(
-  ${INCLUDE_DIR} 
+  ${INCLUDE_DIR}
+  ${NATIVE_INC} 
   ${SRC_DIR} 
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
@@ -162,10 +204,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_process
     -L${Boost_LIBRARY_DIR_RELEASE}
     boost_program_options
+    -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
 else()
-  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc)
+  add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc  ${SRC_DIR}/agent.rc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
@@ -176,7 +219,30 @@ else()
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     absl::any absl::log absl::base absl::bits
     Boost::program_options
-    fmt::fmt)
+    fmt::fmt
+    pdh)
+
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    # The linker needs to know to retain debug symbols.
+    target_link_options (
+      ${CENTREON_AGENT}
+      PRIVATE $<$<CONFIG:RELEASE>:/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF>
+    )
+
+    # Make sure that we're giving the pdb the right name and putting it in
+    # the right place.
+    set_target_properties (
+        ${CENTREON_AGENT}
+        PROPERTIES
+            COMPILE_PDB_NAME       "${CENTREON_AGENT}"
+            COMPILE_PDB_OUTPUT_DIR "$<TARGET_FILE_DIR:${CENTREON_AGENT}>"
+    )
+  endif()
+
+  if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
+    add_subdirectory(installer)
+  endif()
+
 endif()
 
 

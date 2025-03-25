@@ -46,7 +46,8 @@ open_telemetry::open_telemetry(
     const std::shared_ptr<spdlog::logger>& logger)
     : _config_file_path(config_file_path),
       _logger(logger),
-      _io_context(io_context) {
+      _io_context(io_context),
+      _agent_stats(centreon_agent::agent_stat::load(io_context)) {
   SPDLOG_LOGGER_INFO(_logger, "load of open telemetry module");
 }
 
@@ -64,6 +65,10 @@ void open_telemetry::_reload() {
       this->_create_otl_server(new_conf->get_grpc_config(),
                                new_conf->get_centreon_agent_config());
     }
+    if (!new_conf->get_grpc_config()->is_crypted())
+      SPDLOG_LOGGER_WARN(_logger,
+                         "NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS "
+                         "NOT ALLOWED IN PRODUCTION");
     if (_conf && _conf->get_centreon_agent_config() &&
         *_conf->get_centreon_agent_config() !=
             *new_conf->get_centreon_agent_config()) {
@@ -97,6 +102,16 @@ void open_telemetry::_reload() {
 
     _conf = std::move(new_conf);
 
+    for (const auto& grpc_conf :
+         _conf->get_centreon_agent_config()->get_agent_grpc_reverse_conf()) {
+      if (!grpc_conf->is_crypted())
+        SPDLOG_LOGGER_WARN(
+            _logger,
+            "NON TLS CONNECTION ARE ALLOWED FOR Agents({}) // THIS IS "
+            "NOT ALLOWED IN PRODUCTION",
+            grpc_conf->get_hostport());
+    }
+
     if (!_agent_reverse_client) {
       _agent_reverse_client =
           std::make_unique<centreon_agent::agent_reverse_client>(
@@ -104,7 +119,7 @@ void open_telemetry::_reload() {
               [me = shared_from_this()](const metric_request_ptr& request) {
                 me->on_metric(request);
               },
-              _logger);
+              _logger, _agent_stats);
     }
     _agent_reverse_client->update(_conf->get_centreon_agent_config());
   }
@@ -157,7 +172,7 @@ void open_telemetry::_create_otl_server(
         [me = shared_from_this()](const metric_request_ptr& request) {
           me->on_metric(request);
         },
-        _logger);
+        _logger, _agent_stats);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to create opentelemetry grpc server: {}",
                         e.what());
@@ -182,7 +197,7 @@ void open_telemetry::_create_telegraf_conf_server(
         std::chrono::seconds(10), std::chrono::seconds(30),
         std::chrono::seconds(300), 30, std::chrono::seconds(10), 0,
         std::chrono::hours(1), 1, asio::ssl::context::tlsv12,
-        telegraf_conf->get_certificate_path(), telegraf_conf->get_key_path());
+        telegraf_conf->get_public_cert(), telegraf_conf->get_private_key());
 
     if (telegraf_conf->is_crypted()) {
       _telegraf_conf_server = http::server::load(
@@ -249,6 +264,7 @@ void open_telemetry::_shutdown() {
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
+  _agent_stats->stop_send_timer();
 }
 
 /**
@@ -398,4 +414,4 @@ void open_telemetry::on_metric(const metric_request_ptr& metrics) {
  * @param unknown
  */
 void open_telemetry::_forward_to_broker(
-    const std::vector<otl_data_point>& unknown) {}
+    [[maybe_unused]] const std::vector<otl_data_point>& unknown) {}

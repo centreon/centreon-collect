@@ -18,16 +18,20 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <chrono>
+#include <thread>
 
 #include "com/centreon/common/process/process.hh"
 
 using namespace com::centreon::common;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #define ECHO_PATH "tests\\echo.bat"
+#define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
 #else
 #define ECHO_PATH "/bin/echo"
+#define SLEEP_PATH "/bin/sleep"
 #define END_OF_LINE "\n"
 #endif
 
@@ -44,7 +48,7 @@ class process_test : public ::testing::Test {
   }
 };
 
-class process_wait : public process {
+class process_wait : public process<> {
   std::mutex _cond_m;
   std::condition_variable _cond;
   std::string _stdout;
@@ -143,7 +147,7 @@ TEST_F(process_test, throw_on_error) {
 
 TEST_F(process_test, script_error) {
   using namespace std::literals;
-#ifdef _WINDOWS
+#ifdef _WIN32
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "tests\\\\bad_script.bat"));
 #else
@@ -188,7 +192,7 @@ TEST_F(process_test, call_start_several_time_no_args) {
   ASSERT_EQ(to_wait->get_stderr(), "");
 }
 
-#ifndef _WINDOWS
+#ifndef _WIN32
 
 TEST_F(process_test, stdin_to_stdout) {
   ::remove("toto.sh");
@@ -233,3 +237,27 @@ TEST_F(process_test, shell_stdin_to_stdout) {
 }
 
 #endif
+
+TEST_F(process_test, kill_process) {
+  std::shared_ptr<process_wait> to_wait(
+      new process_wait(g_io_context, _logger, SLEEP_PATH, {"10"}));
+  to_wait->start_process(true);
+
+  // wait process starts
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  int pid = to_wait->get_pid();
+  // kill process
+  to_wait->kill();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+#ifdef _WIN32
+  auto process_handle =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  ASSERT_NE(process_handle, nullptr);
+  DWORD exit_code;
+  ASSERT_EQ(GetExitCodeProcess(process_handle, &exit_code), TRUE);
+  ASSERT_NE(exit_code, STILL_ACTIVE);
+  CloseHandle(process_handle);
+#else
+  ASSERT_EQ(kill(pid, 0), -1);
+#endif
+}

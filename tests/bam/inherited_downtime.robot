@@ -11,7 +11,10 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BEBAMIDT1
-    [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
+    [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical
+    ...    state, because of its service. Then we set a downtime on this last one. An inherited
+    ...    downtime is set to the BA. The downtime is removed from the service, the inherited
+    ...    downtime is then deleted.
     [Tags]    broker    downtime    engine    bam
     Ctn Clear Commands Status
     Ctn Config Broker    module
@@ -30,15 +33,10 @@ BEBAMIDT1
     ${cmd_1}    Ctn Get Service Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Ctn Set Command Status    ${cmd_1}    2
-    Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
-    # Let's wait for Engine to be ready
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    A message about checking for external commands should have raised.
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for service_314
@@ -67,8 +65,8 @@ BEBAMIDT1
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
-    Ctn Stop engine
-    Ctn Kindly Stop Broker
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker    only_central=False
 
 BEBAMIDT2
     [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -92,7 +90,7 @@ BEBAMIDT2
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for Engine to be ready
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -122,9 +120,9 @@ BEBAMIDT2
 
     FOR    ${i}    IN RANGE    2
         # Engine is restarted
-        Ctn Stop engine
+        Ctn Stop Engine
         ${start}    Get Current Date
-        Ctn Start engine
+        Ctn Start Engine
         # Let's wait for Engine to be ready
         ${content}    Create List    check_for_external_commands()
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -155,7 +153,7 @@ BEBAMIDT2
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDT1
@@ -195,7 +193,7 @@ BEBAMIGNDT1
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -265,7 +263,7 @@ BEBAMIGNDT1
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEBAMIGNDT2
@@ -294,7 +292,7 @@ BEBAMIGNDT2
     Ctn Set Command Status    ${cmd_2}    2
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -356,7 +354,7 @@ BEBAMIGNDT2
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 

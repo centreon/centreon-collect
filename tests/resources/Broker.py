@@ -37,7 +37,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
 
 TIMEOUT = 30
@@ -63,7 +63,7 @@ config = {
             "filename": "",
             "max_size": 0,
             "loggers": {{
-                "core": "trace",
+                "core": "info",
                 "config": "error",
                 "sql": "error",
                 "processing": "error",
@@ -1327,7 +1327,7 @@ def ctn_broker_config_log(name, key, value):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
+        filename = f"central-{name}.json"
     else:
         filename = "central-rrd.json"
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
@@ -1690,7 +1690,7 @@ def ctn_get_service_index(host_id: int, service_id: int, timeout: int = 60):
                 my_id = [r['id'] for r in result]
                 if len(my_id) > 0:
                     logger.console(
-                            f"Index data {id} found for service {host_id}:{service_id}")
+                        f"Index data {id} found for service {host_id}:{service_id}")
                     return my_id[0]
                 time.sleep(2)
     logger.console(f"no index data found for service {host_id}:{service_id}")
@@ -1739,6 +1739,45 @@ def ctn_get_metrics_for_service(service_id: int, metric_name: str = "%", timeout
                 time.sleep(10)
     logger.console(f"no metric found for service_id={service_id}")
     return None
+
+
+def ctn_compare_metrics_of_service(service_id: int, metrics: list, timeout: int = 60):
+    """
+    check if the metrics of a service contains the list passed in param
+
+    Warning:
+        A service is identified by a host ID and a service ID. This function should be used with caution.
+
+    Args:
+        service_id (int): The ID of the service.
+        metrics (str): expected metrics.
+        timeout (int, optional): Defaults to 60.
+
+    Returns:
+        A list of metric IDs or None if no metric found.
+    """
+
+    limit = time.time() + timeout
+
+    select_request = f"SELECT metric_name FROM metrics JOIN index_data ON index_id=id WHERE service_id={service_id}"
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                metric_in_db = [r['metric_name'] for r in result]
+                if set(metrics).issubset(set(metric_in_db)):
+                    return True
+                time.sleep(10)
+    logger.console(f"no metric found for service_id={service_id}")
+    return False
 
 
 def ctn_get_not_existing_metrics(count: int):
@@ -2042,14 +2081,16 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
                 start = dt - datetime.timedelta(days=nb_day)
                 start = int(start.timestamp())
-                logger.console(f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
+                logger.console(
+                    f">>>>>>>>>> start = {datetime.datetime.fromtimestamp(start)}")
                 value = int(r['metric_id']) // 2
                 status_value = index_id % 3
                 cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                     r['metric_id'], start))
                 # We set the value to a constant on 180 days
                 now = int(now.timestamp())
-                logger.console(f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                logger.console(
+                    f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
                 for i in range(start, now, 60 * 5):
                     if i == start:
                         logger.console(
@@ -2605,7 +2646,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
     return False
 
 
-def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
     """
     Check if at least one host monitored by a poller is enabled.
 
@@ -2627,14 +2668,55 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                if in_resources:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
+                else:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     return True
         time.sleep(2)
     return False
 
+
+def ctn_get_hosts_services_count(poller_id: int, expected_hst: int, expected_svc: int, timeout: int = 30):
+    """
+    Get the number of hosts and services monitored by a poller.
+
+    Args:
+        poller_id: The poller ID.
+        expected_hst: The expected number of hosts.
+        expected_svc: The expected number of services.
+        timeout: A timeout in seconds.
+
+    Returns:
+        A tuple (number of hosts, number of services).
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id=0 AND enabled=1")
+                result = cursor.fetchone()
+                hosts = result['COUNT(*)']
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM resources WHERE poller_id = {poller_id} AND parent_id<>0 AND enabled=1")
+                result = cursor.fetchone()
+                services = result['COUNT(*)']
+                if hosts == expected_hst and services == expected_svc:
+                    return (hosts, services)
+        time.sleep(2)
+    return (0, 0)
 
 def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """
@@ -2934,3 +3016,220 @@ def ctn_get_broker_log_info(port, log, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return str(res)
+
+
+def ctn_aes_encrypt(port, app_secret, salt, content, timeout: int = 30):
+    """
+    Send a gRPC command to aes encrypt a content
+
+    Args:
+        port (int): the port to the gRPC server.
+        app_secret (str): The APP_SECRET base64 encoded.
+        salt (str): Salt base64 encoded.
+        content (str): The content to encrypt.
+
+    Returns:
+        The encrypted result string or an error message.
+    """
+    limit = time.time() + timeout
+    encoded = ""
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            te = broker_pb2.AesMessage()
+            te.app_secret = app_secret
+            te.salt = salt
+            te.content = content
+            try:
+                encoded = stub.Aes256Encrypt(te)
+                break
+            except grpc.RpcError as rpc_error:
+                return rpc_error.details()
+            except:
+                logger.console("gRPC server not ready")
+
+    return encoded.str_arg
+
+
+def ctn_aes_decrypt(port, app_secret, salt, content, timeout: int = 30):
+    """
+    Send a gRPC command to aes decrypt a content
+
+    Args:
+        port (int): the port to the gRPC server.
+        app_secret (str): The APP_SECRET base64 encoded.
+        salt (str): Salt base64 encoded.
+        content (str): The content to decrypt.
+
+    Returns:
+        The decrypted result string or an error message.
+    """
+    limit = time.time() + timeout
+    encoded = ""
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            te = broker_pb2.AesMessage()
+            te.app_secret = app_secret
+            te.salt = salt
+            te.content = content
+            try:
+                encoded = stub.Aes256Decrypt(te)
+                break
+            except grpc.RpcError as rpc_error:
+                return rpc_error.details()
+            except:
+                logger.console("gRPC server not ready")
+
+    return encoded.str_arg
+
+
+def ctn_prepare_partitions_for_data_bin():
+    """
+    Create two partitions for the data_bin table.
+    The first one named p1 contains data with ctime older than now - 60.
+    The second one named p2 contains data with ctime older than now + 3600.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    now = int(time.time())
+    before = now - 60
+    after = now + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS data_bin")
+            sql = f"""CREATE TABLE `data_bin` (
+  `id_metric` int(11) DEFAULT NULL,
+  `ctime` int(11) DEFAULT NULL,
+  `value` float DEFAULT NULL,
+  `status` enum('0','1','2','3','4') DEFAULT NULL,
+  KEY `index_metric` (`id_metric`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+ PARTITION BY RANGE (`ctime`)
+(PARTITION `p1` VALUES LESS THAN ({before}) ENGINE = InnoDB,
+ PARTITION `p2` VALUES LESS THAN ({after}) ENGINE = InnoDB)"""
+            cursor.execute(sql)
+            connection.commit()
+
+
+def ctn_remove_p2_from_data_bin():
+    """
+    Remove the partition p2 from the data_bin table.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE data_bin DROP PARTITION p2")
+            connection.commit()
+
+
+def ctn_add_p2_to_data_bin():
+    """
+    Add the partition p2 the the data_bin table.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    after = int(time.time()) + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"ALTER TABLE data_bin ADD PARTITION (PARTITION p2 VALUES LESS THAN ({after}))")
+            connection.commit()
+
+
+def ctn_init_data_bin_without_partition():
+    """
+    Recreate the data_bin table without partition.
+    """
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    now = int(time.time())
+    before = now - 60
+    after = now + 3600
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DROP TABLE IF EXISTS data_bin")
+            sql = f"""CREATE TABLE `data_bin` (
+  `id_metric` int(11) DEFAULT NULL,
+  `ctime` int(11) DEFAULT NULL,
+  `value` float DEFAULT NULL,
+  `status` enum('0','1','2','3','4') DEFAULT NULL,
+  KEY `index_metric` (`id_metric`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1"""
+            cursor.execute(sql)
+            connection.commit()
+
+
+def ctn_get_peers(port, timeout=TIMEOUT):
+    """
+    Get the list of peers from the broker.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetPeers(empty_pb2.Empty())
+                return MessageToDict(res)
+            except:
+                logger.console("gRPC server not ready")
+
+
+def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
+    """
+    Check if a row exists in the logs table with msg_type=10 and ctime >= date.
+
+    Args:
+        date: The date to check.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True on success.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT * FROM logs WHERE msg_type=10 and ctime >= {date}")
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0 and len(result[0]) > 0:
+                    return True
+        time.sleep(2)
+    return False

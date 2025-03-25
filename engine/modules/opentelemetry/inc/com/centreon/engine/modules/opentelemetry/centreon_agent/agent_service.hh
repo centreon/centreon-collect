@@ -19,6 +19,7 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 
+#include "centreon_agent/agent.grpc.pb.h"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_impl.hh"
 
@@ -38,11 +39,14 @@ class agent_service : public agent::AgentService::Service,
   metric_handler _metric_handler;
   std::shared_ptr<spdlog::logger> _logger;
 
+  agent_stat::pointer _stats;
+
  public:
   agent_service(const std::shared_ptr<boost::asio::io_context>& io_context,
                 const agent_config::pointer& conf,
                 const metric_handler& handler,
-                const std::shared_ptr<spdlog::logger>& logger);
+                const std::shared_ptr<spdlog::logger>& logger,
+                const agent_stat::pointer& stats);
 
   void init();
 
@@ -50,7 +54,8 @@ class agent_service : public agent::AgentService::Service,
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const agent_config::pointer& conf,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger);
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats);
 
   // disable synchronous version of this method
   ::grpc::Status Export(

@@ -34,8 +34,9 @@ EBBM1
 
     FOR    ${i}    IN RANGE    ${10}
         Ctn Process Service Check Result With Big Metrics
-	...    host_1    service_1    1
-	...    Big Metrics    ${10}
+        ...    host_1    service_1    1
+        ...    Big Metrics    ${10}
+	Sleep    1s
     END
     ${content}    Create List
     ...    Out of range value for column 'current_value'

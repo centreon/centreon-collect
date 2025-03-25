@@ -19,7 +19,6 @@
 #ifndef CCB_BAM_SERVICE_LISTENER_HH
 #define CCB_BAM_SERVICE_LISTENER_HH
 
-#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
@@ -51,6 +50,9 @@ class service_listener {
   virtual void service_update(const service_state& s);
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
                               io::stream* visitor = nullptr);
+  virtual void service_update(
+      std::shared_ptr<neb::pb_adaptive_service_status> const& status,
+      io::stream* visitor = nullptr);
   virtual void service_update(
       std::shared_ptr<neb::pb_service_status> const& status,
       io::stream* visitor = nullptr);

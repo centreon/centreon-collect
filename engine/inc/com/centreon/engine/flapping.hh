@@ -22,7 +22,6 @@
 #define CCE_FLAPPING_HH
 
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 // Flapping Types
 #define HOST_FLAPPING 0

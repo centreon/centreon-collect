@@ -261,7 +261,7 @@ void global_cache_data::add_host_to_group(uint64_t group,
  */
 void global_cache_data::remove_host_from_group(uint64_t group, uint64_t host) {
   absl::WriterMutexLock l(&_protect);
-  _host_group->get<2>().erase(host_group_element{host, group});
+  _host_group->get<2>().erase(host_group_element{host, group, 0});
 }
 
 /**
@@ -317,7 +317,8 @@ void global_cache_data::remove_service_from_group(uint64_t group,
                                                   uint64_t host,
                                                   uint64_t service) {
   absl::WriterMutexLock l(&_protect);
-  _service_group->get<2>().erase(service_group_element{{host, service}, group});
+  _service_group->get<2>().erase(
+      service_group_element{{host, service}, group, 0});
 }
 
 /**

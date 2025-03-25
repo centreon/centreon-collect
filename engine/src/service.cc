@@ -17,12 +17,10 @@
  *
  */
 
-#include "com/centreon/engine/service.hh"
 
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/checkable.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
@@ -31,11 +29,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
@@ -64,7 +59,6 @@ service::service(const std::string& hostname,
                  const std::string& check_command,
                  bool checks_enabled,
                  bool accept_passive_checks,
-                 enum service::service_state initial_state,
                  uint32_t check_interval,
                  uint32_t retry_interval,
                  uint32_t notification_interval,
@@ -136,10 +130,10 @@ service::service(const std::string& hostname,
       _last_time_warning{0},
       _last_time_unknown{0},
       _last_time_critical{0},
-      _initial_state{initial_state},
-      _current_state{initial_state},
-      _last_hard_state{initial_state},
-      _last_state{initial_state},
+      _initial_state{service::state_ok},
+      _current_state{_initial_state},
+      _last_hard_state{_initial_state},
+      _last_state{_initial_state},
       _host_ptr{nullptr},
       _host_problem_at_last_check{false} {
   if (st == NONE) {
@@ -152,7 +146,7 @@ service::service(const std::string& hostname,
     else
       _service_type = SERVICE;
   }
-  set_current_attempt(initial_state == service::state_ok ? 1 : max_attempts);
+  set_current_attempt(1);
 }
 
 service::~service() noexcept {
@@ -568,7 +562,6 @@ std::ostream& operator<<(std::ostream& os,
  *  @param[in] description                  Service description.
  *  @param[in] display_name                 Display name.
  *  @param[in] check_period                 Check timeperiod name.
- *  @param[in] initial_state                Initial service state.
  *  @param[in] max_attempts                 Max check attempts.
  *  @param[in] accept_passive_checks        Does this service accept
  *                                          check result submission ?
@@ -641,7 +634,6 @@ com::centreon::engine::service* add_service(
     const std::string& description,
     const std::string& display_name,
     const std::string& check_period,
-    com::centreon::engine::service::service_state initial_state,
     int max_attempts,
     double check_interval,
     double retry_interval,
@@ -768,8 +760,8 @@ com::centreon::engine::service* add_service(
   // Allocate memory.
   auto obj{std::make_shared<service>(
       host_name, description, display_name.empty() ? description : display_name,
-      check_command, checks_enabled, accept_passive_checks, initial_state,
-      check_interval, retry_interval, notification_interval, max_attempts,
+      check_command, checks_enabled, accept_passive_checks, check_interval,
+      retry_interval, notification_interval, max_attempts,
       first_notification_delay, recovery_notification_delay,
       notification_period, notifications_enabled, is_volatile, check_period,
       event_handler, event_handler_enabled, notes, notes_url, action_url,
@@ -848,7 +840,7 @@ void service::check_for_expired_acknowledgement() {
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
-        update_status();
+        update_status(STATUS_ACKNOWLEDGEMENT);
       }
     }
   }
@@ -1112,7 +1104,9 @@ int service::handle_async_check_result(
       pb_config.cached_service_check_horizon();
 #endif
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "handle_async_service_check_result()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "handle_async_service_check_result() service {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
@@ -3169,10 +3163,13 @@ void service::disable_flap_detection() {
 }
 
 /**
- * @brief Updates service status info. Send data to event broker.
+ * @brief Updates the status of the service partially.
+ *
+ * @param status_attributes A bits field based on status_attribute enum (default
+ * value: STATUS_ALL).
  */
-void service::update_status() {
-  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this);
+void service::update_status(uint32_t status_attributes) {
+  broker_service_status(NEBTYPE_SERVICESTATUS_UPDATE, this, status_attributes);
 }
 
 /**

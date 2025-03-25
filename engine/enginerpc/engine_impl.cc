@@ -22,62 +22,47 @@
 
 #include <boost/asio.hpp>
 
-namespace asio = boost::asio;
-
 #include <absl/strings/str_join.h>
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/spdlog.h>
-
-#include <rapidjson/document.h>
 
 #include "com/centreon/common/process_stat.hh"
 #include "com/centreon/common/time.hh"
-#include "com/centreon/engine/host.hh"
 
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/processing.hh"
-#include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/contactgroup.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
-#include "com/centreon/engine/engine_impl.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/hostdependency.hh"
-#include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/service.hh"
-#include "com/centreon/engine/servicedependency.hh"
-#include "com/centreon/engine/servicegroup.hh"
-#include "com/centreon/engine/statistics.hh"
+#include "com/centreon/engine/hostescalation.hh"
+#include "com/centreon/engine/serviceescalation.hh"
+#include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::engine::string;
 
 using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine {
 
-std::ostream& operator<<(std::ostream& str, const HostIdentifier& host_id) {
+std::ostream& operator<<(std::ostream& str, const NameOrIdIdentifier& host_id) {
   switch (host_id.identifier_case()) {
-    case HostIdentifier::kName:
+    case NameOrIdIdentifier::kName:
       str << "host name=" << host_id.name();
       break;
-    case HostIdentifier::kId:
+    case NameOrIdIdentifier::kId:
       str << "host id=" << host_id.id();
       break;
     default:
@@ -106,7 +91,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
 
 namespace fmt {
 template <>
-struct formatter<HostIdentifier> : ostream_formatter {};
+struct formatter<NameOrIdIdentifier> : ostream_formatter {};
 template <>
 struct formatter<ServiceIdentifier> : ostream_formatter {};
 
@@ -227,31 +212,214 @@ grpc::Status engine_impl::NewThresholdsFile(grpc::ServerContext* context
  * @param request Host's identifier (it can be a hostname or a hostid)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the Host is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
-                                  const HostIdentifier* request
+                                  const NameOrIdIdentifier* request
                                   [[maybe_unused]],
                                   EngineHost* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, host = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::host> selectedhost;
-        std::tie(selectedhost, err) = get_host(*request);
-        if (!err.empty()) {
-          return 1;
-        }
 
-        host->set_name(selectedhost->name());
-        host->set_alias(selectedhost->get_alias());
-        host->set_address(selectedhost->get_address());
-        host->set_check_period(selectedhost->check_period());
-        host->set_current_state(
-            static_cast<EngineHost::State>(selectedhost->get_current_state()));
-        host->set_id(selectedhost->host_id());
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           host = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::host> selectedhost;
+    std::tie(selectedhost, err) = get_host(*request);
 
+    if (!err.empty()) {
+      return 1;
+    }
+
+    host->set_name(selectedhost->name());
+    host->set_alias(selectedhost->get_alias());
+    host->set_address(selectedhost->get_address());
+    host->set_check_period(selectedhost->check_period());
+    host->set_id(selectedhost->host_id());
+    host->set_current_state(
+        static_cast<EngineHost::State>(selectedhost->get_current_state()));
+    host->set_display_name(selectedhost->get_display_name());
+
+    if (!selectedhost->parent_hosts.empty())
+      for (const auto& [key, _] : selectedhost->parent_hosts)
+        host->add_parent_hosts(key);
+
+    if (!selectedhost->child_hosts.empty())
+      for (const auto& [key, _] : selectedhost->child_hosts)
+        host->add_child_hosts(key);
+
+    if (!selectedhost->services.empty())
+      for (const auto& [key, _] : selectedhost->services)
+        host->add_services(fmt::format("{},{}", key.first, key.second));
+
+    host->set_check_command(selectedhost->check_command());
+    host->set_initial_state(
+        static_cast<EngineHost::State>(selectedhost->get_initial_state()));
+    host->set_check_interval(selectedhost->check_interval());
+    host->set_retry_interval(selectedhost->retry_interval());
+    host->set_max_attempts(selectedhost->max_check_attempts());
+    host->set_event_handler(selectedhost->event_handler());
+
+    if (!selectedhost->get_contactgroups().empty())
+      for (const auto& [key, _] : selectedhost->get_contactgroups())
+        host->add_contactgroups(key);
+
+    if (!selectedhost->contacts().empty())
+      for (const auto& [key, _] : selectedhost->contacts())
+        host->add_contacts(key);
+
+    host->set_notification_interval(selectedhost->get_notification_interval());
+    host->set_first_notification_delay(
+        selectedhost->get_first_notification_delay());
+    host->set_recovery_notification_delay(
+        selectedhost->get_recovery_notification_delay());
+    host->set_notify_up(selectedhost->get_notify_on(notifier::up));
+    host->set_notify_down(selectedhost->get_notify_on(notifier::down));
+    host->set_notify_unreachable(
+        selectedhost->get_notify_on(notifier::unreachable));
+    host->set_notify_on_flappingstart(
+        selectedhost->get_notify_on(notifier::flappingstart));
+    host->set_notify_on_flappingstop(
+        selectedhost->get_notify_on(notifier::flappingstop));
+    host->set_notify_on_flappingdisabled(
+        selectedhost->get_notify_on(notifier::flappingdisabled));
+    host->set_notify_downtime(selectedhost->get_notify_on(notifier::downtime));
+    host->set_notification_period(selectedhost->notification_period());
+    host->set_flap_detection_enabled(selectedhost->flap_detection_enabled());
+    host->set_low_flap_threshold(selectedhost->get_low_flap_threshold());
+    host->set_high_flap_threshold(selectedhost->get_high_flap_threshold());
+    host->set_flap_detection_on_up(
+        selectedhost->get_flap_detection_on(notifier::up));
+    host->set_flap_detection_on_down(
+        selectedhost->get_flap_detection_on(notifier::down));
+    host->set_flap_detection_on_unreachable(
+        selectedhost->get_flap_detection_on(notifier::unreachable));
+    host->set_stalk_on_up(selectedhost->get_stalk_on(notifier::up));
+    host->set_stalk_on_down(selectedhost->get_stalk_on(notifier::down));
+    host->set_stalk_on_unreachable(
+        selectedhost->get_stalk_on(notifier::unreachable));
+    host->set_check_freshness(selectedhost->check_freshness_enabled());
+    host->set_freshness_threshold(selectedhost->get_freshness_threshold());
+    host->set_process_performance_data(
+        selectedhost->get_process_performance_data());
+    host->set_checks_enabled(selectedhost->active_checks_enabled());
+    host->set_accept_passive_checks(selectedhost->passive_checks_enabled());
+    host->set_event_handler_enabled(selectedhost->event_handler_enabled());
+    host->set_retain_status_information(
+        selectedhost->get_retain_status_information());
+    host->set_retain_nonstatus_information(
+        selectedhost->get_retain_nonstatus_information());
+    host->set_obsess_over_host(selectedhost->obsess_over());
+    host->set_notes(selectedhost->get_notes());
+    host->set_notes_url(selectedhost->get_notes_url());
+    host->set_action_url(selectedhost->get_action_url());
+    host->set_icon_image(selectedhost->get_icon_image());
+    host->set_icon_image_alt(selectedhost->get_icon_image_alt());
+    host->set_vrml_image(selectedhost->get_vrml_image());
+    host->set_statusmap_image(selectedhost->get_statusmap_image());
+    host->set_have_2d_coords(selectedhost->get_have_2d_coords());
+    host->set_x_2d(selectedhost->get_x_2d());
+    host->set_y_2d(selectedhost->get_y_2d());
+    host->set_have_3d_coords(selectedhost->get_have_3d_coords());
+    host->set_x_3d(selectedhost->get_x_3d());
+    host->set_y_3d(selectedhost->get_y_3d());
+    host->set_z_3d(selectedhost->get_z_3d());
+    host->set_should_be_drawn(selectedhost->get_should_be_drawn());
+    host->set_acknowledgement(
+        static_cast<EngineHost_AckType>(selectedhost->get_acknowledgement()));
+    host->set_check_type(
+        static_cast<EngineHost_CheckType>(selectedhost->get_check_type()));
+    host->set_last_state(
+        static_cast<EngineHost_State>(selectedhost->get_last_state()));
+    host->set_last_hard_state(
+        static_cast<EngineHost_State>(selectedhost->get_last_hard_state()));
+    host->set_plugin_output(selectedhost->get_plugin_output());
+    host->set_long_plugin_output(selectedhost->get_long_plugin_output());
+    host->set_perf_data(selectedhost->get_perf_data());
+    host->set_state_type(
+        static_cast<EngineHost_State>(selectedhost->get_state_type()));
+    host->set_current_attempt(selectedhost->get_current_attempt());
+    host->set_current_event_id(selectedhost->get_current_event_id());
+    host->set_last_event_id(selectedhost->get_last_event_id());
+    host->set_current_problem_id(selectedhost->get_current_problem_id());
+    host->set_last_problem_id(selectedhost->get_last_problem_id());
+    host->set_latency(selectedhost->get_latency());
+    host->set_execution_time(selectedhost->get_execution_time());
+    host->set_is_executing(selectedhost->get_is_executing());
+    host->set_check_options(selectedhost->get_check_options());
+    host->set_notifications_enabled(selectedhost->get_notifications_enabled());
+    host->set_last_notification(
+        string::ctime(selectedhost->get_last_notification()));
+    host->set_next_notification(
+        string::ctime(selectedhost->get_next_notification()));
+    host->set_next_check(string::ctime(selectedhost->get_next_check()));
+    host->set_should_be_scheduled(selectedhost->get_should_be_scheduled());
+    host->set_last_check(string::ctime(selectedhost->get_last_check()));
+    host->set_last_state_change(
+        string::ctime(selectedhost->get_last_state_change()));
+    host->set_last_hard_state_change(
+        string::ctime(selectedhost->get_last_hard_state_change()));
+    host->set_last_time_up(string::ctime(selectedhost->get_last_time_up()));
+    host->set_last_time_down(string::ctime(selectedhost->get_last_time_down()));
+    host->set_last_time_unreachable(
+        string::ctime(selectedhost->get_last_time_unreachable()));
+    host->set_has_been_checked(selectedhost->has_been_checked());
+    host->set_is_being_freshened(selectedhost->get_is_being_freshened());
+    host->set_notified_on_down(selectedhost->get_notified_on(notifier::down));
+    host->set_notified_on_unreachable(
+        selectedhost->get_notified_on(notifier::unreachable));
+    host->set_no_more_notifications(selectedhost->get_no_more_notifications());
+    host->set_current_notification_id(
+        selectedhost->get_current_notification_id());
+    host->set_scheduled_downtime_depth(
+        selectedhost->get_scheduled_downtime_depth());
+    host->set_pending_flex_downtime(selectedhost->get_pending_flex_downtime());
+
+    host->set_state_history(fmt::format(
+        "[{}]", fmt::join(selectedhost->get_state_history(), ", ")));
+
+    host->set_state_history_index(selectedhost->get_state_history_index());
+    host->set_last_state_history_update(
+        string::ctime(selectedhost->get_last_state_history_update()));
+    host->set_is_flapping(selectedhost->get_is_flapping());
+    host->set_flapping_comment_id(selectedhost->get_flapping_comment_id());
+    host->set_percent_state_change(selectedhost->get_percent_state_change());
+    host->set_total_services(selectedhost->get_total_services());
+    host->set_total_service_check_interval(
+        selectedhost->get_total_service_check_interval());
+    host->set_modified_attributes(selectedhost->get_modified_attributes());
+    host->set_circular_path_checked(selectedhost->get_circular_path_checked());
+    host->set_contains_circular_path(
+        selectedhost->get_contains_circular_path());
+    host->set_timezone(selectedhost->get_timezone());
+    host->set_icon_id(selectedhost->get_icon_id());
+
+    // locals
+    for (const auto& hg : selectedhost->get_parent_groups())
+      if (hg)
+        host->add_group_name(hg->get_group_name());
+
+    host->set_acknowledgement_timeout(selectedhost->acknowledgement_timeout());
+
+    const auto& host_severity = selectedhost->get_severity();
+
+    if (host_severity) {
+      host->set_severity_level(host_severity->level());
+      host->set_severity_id(host_severity->id());
+    }
+
+    if (!selectedhost->tags().empty())
+      for (const auto& tag : selectedhost->tags())
+        host->add_tag(fmt::format("id:{},name:{},type:{}", tag->id(),
+                                  tag->name(), static_cast<int>(tag->type())));
+
+    for (const auto& cv : selectedhost->custom_variables)
+      host->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", cv.first,
+          cv.second.value(), cv.second.is_sent(),
+          cv.second.has_been_modified()));
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
   int32_t res = result.get();
@@ -268,30 +436,112 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
  * @param request Contact's identifier
  * @param response The filled fields
  *
- * @return Status::OK
+ * @return Status::OK if the Contact is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  **/
 grpc::Status engine_impl::GetContact(grpc::ServerContext* context
                                      [[maybe_unused]],
-                                     const ContactIdentifier* request,
+                                     const NameIdentifier* request,
                                      EngineContact* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, contact = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::contact> selectedcontact;
-        /* get the contact by his name */
-        auto itcontactname = contact::contacts.find(request->name());
-        if (itcontactname != contact::contacts.end())
-          selectedcontact = itcontactname->second;
-        else {
-          err = fmt::format("could not find contact '{}'", request->name());
-          return 1;
-        }
-        /* recovering contact's information */
-        contact->set_name(selectedcontact->get_name());
-        contact->set_alias(selectedcontact->get_alias());
-        contact->set_email(selectedcontact->get_email());
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           contact = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contact> selectedcontact;
+    /* get the contact by his name */
+    auto itcontactname = contact::contacts.find(request->name());
+    if (itcontactname != contact::contacts.end())
+      selectedcontact = itcontactname->second;
+    else {
+      err = fmt::format("could not find contact '{}'", request->name());
+      return 1;
+    }
+    /* recovering contact's information */
+    contact->set_name(selectedcontact->get_name());
+    contact->set_alias(selectedcontact->get_alias());
+    contact->set_email(selectedcontact->get_email());
+
+    if (!selectedcontact->get_parent_groups().empty())
+      for (const auto& [key, _] : selectedcontact->get_parent_groups())
+        contact->add_contact_groups(key);
+
+    contact->set_pager(selectedcontact->get_pager());
+    contact->set_host_notification_period(
+        selectedcontact->get_host_notification_period());
+
+    if (!selectedcontact->get_host_notification_commands().empty()) {
+      for (const auto& cmd : selectedcontact->get_host_notification_commands())
+        contact->add_host_notification_commands(cmd->get_name());
+    }
+    contact->set_service_notification_period(
+        selectedcontact->get_service_notification_period());
+
+    if (!selectedcontact->get_service_notification_commands().empty()) {
+      for (const auto& cmd :
+           selectedcontact->get_service_notification_commands())
+        contact->add_service_notification_commands(cmd->get_name());
+    }
+
+    contact->set_host_notification_on_up(
+        selectedcontact->notify_on(notifier::host_notification, notifier::up));
+    contact->set_host_notification_on_down(selectedcontact->notify_on(
+        notifier::host_notification, notifier::down));
+    contact->set_host_notification_on_unreachable(selectedcontact->notify_on(
+        notifier::host_notification, notifier::unreachable));
+    contact->set_host_notification_on_flappingstart(selectedcontact->notify_on(
+        notifier::host_notification, notifier::flappingstart));
+    contact->set_host_notification_on_flappingstop(selectedcontact->notify_on(
+        notifier::host_notification, notifier::flappingstop));
+    contact->set_host_notification_on_flappingdisabled(
+        selectedcontact->notify_on(notifier::host_notification,
+                                   notifier::flappingdisabled));
+    contact->set_host_notification_on_downtime(selectedcontact->notify_on(
+        notifier::host_notification, notifier::downtime));
+
+    contact->set_service_notification_on_ok(selectedcontact->notify_on(
+        notifier::service_notification, notifier::ok));
+    contact->set_service_notification_on_warning(selectedcontact->notify_on(
+        notifier::service_notification, notifier::warning));
+    contact->set_service_notification_on_unknown(selectedcontact->notify_on(
+        notifier::service_notification, notifier::unknown));
+    contact->set_service_notification_on_critical(selectedcontact->notify_on(
+        notifier::service_notification, notifier::critical));
+    contact->set_service_notification_on_flappingstart(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingstart));
+    contact->set_service_notification_on_flappingstop(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingstop));
+    contact->set_service_notification_on_flappingdisabled(
+        selectedcontact->notify_on(notifier::service_notification,
+                                   notifier::flappingdisabled));
+    contact->set_service_notification_on_downtime(selectedcontact->notify_on(
+        notifier::service_notification, notifier::downtime));
+
+    contact->set_host_notifications_enabled(
+        selectedcontact->get_host_notifications_enabled());
+    contact->set_service_notifications_enabled(
+        selectedcontact->get_service_notifications_enabled());
+    contact->set_can_submit_commands(
+        selectedcontact->get_can_submit_commands());
+    contact->set_retain_status_information(
+        selectedcontact->get_retain_status_information());
+    contact->set_retain_nonstatus_information(
+        selectedcontact->get_retain_nonstatus_information());
+    contact->set_timezone(selectedcontact->get_timezone());
+
+    if (!selectedcontact->get_addresses().empty())
+      for (const auto& addr : selectedcontact->get_addresses())
+        contact->add_addresses(addr);
+
+    for (const auto& [key, custom_variable] :
+         selectedcontact->get_custom_variables())
+      contact->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", key,
+          custom_variable.value(), custom_variable.is_sent(),
+          custom_variable.has_been_modified()));
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
   if (result.get() == 0)
@@ -308,32 +558,696 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
  *        hostid & serviceid)
  * @param response The filled fields
  *
- *@return Status::OK
+ * @return Status::OK if the Service is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
  */
 grpc::Status engine_impl::GetService(grpc::ServerContext* context
                                      [[maybe_unused]],
                                      const ServiceIdentifier* request,
                                      EngineService* response) {
   std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           service = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::service> selectedservice;
+    std::tie(selectedservice, err) = get_serv(*request);
+    if (!err.empty()) {
+      return 1;
+    }
+    /* recovering service's information */
+    service->set_host_id(selectedservice->host_id());
+    service->set_service_id(selectedservice->service_id());
+    service->set_host_name(selectedservice->get_hostname());
+    service->set_description(selectedservice->description());
+    service->set_check_period(selectedservice->check_period());
+    service->set_current_state(static_cast<EngineService::State>(
+        selectedservice->get_current_state()));
+    service->set_display_name(selectedservice->get_display_name());
+    service->set_check_command(selectedservice->check_command());
+    service->set_event_handler(selectedservice->event_handler());
+    service->set_initial_state(static_cast<EngineService::State>(
+        selectedservice->get_initial_state()));
+    service->set_check_interval(selectedservice->check_interval());
+    service->set_retry_interval(selectedservice->retry_interval());
+    service->set_max_check_attempts(selectedservice->max_check_attempts());
+    service->set_acknowledgement_timeout(
+        selectedservice->acknowledgement_timeout());
+
+    if (!selectedservice->get_contactgroups().empty())
+      for (const auto& [key, _] : selectedservice->get_contactgroups())
+        service->add_contactgroups(key);
+
+    if (!selectedservice->contacts().empty())
+      for (const auto& [key, _] : selectedservice->contacts())
+        service->add_contacts(key);
+
+    if (!selectedservice->get_parent_groups().empty())
+      for (const auto& grp : selectedservice->get_parent_groups())
+        if (grp)
+          service->add_servicegroups(grp->get_group_name());
+
+    service->set_notification_interval(
+        selectedservice->get_notification_interval());
+    service->set_first_notification_delay(
+        selectedservice->get_first_notification_delay());
+    service->set_recovery_notification_delay(
+        selectedservice->get_recovery_notification_delay());
+    service->set_notify_on_unknown(
+        selectedservice->get_notify_on(notifier::unknown));
+    service->set_notify_on_warning(
+        selectedservice->get_notify_on(notifier::warning));
+    service->set_notify_on_critical(
+        selectedservice->get_notify_on(notifier::critical));
+    service->set_notify_on_ok(selectedservice->get_notify_on(notifier::ok));
+    service->set_notify_on_flappingstart(
+        selectedservice->get_notify_on(notifier::flappingstart));
+    service->set_notify_on_flappingstop(
+        selectedservice->get_notify_on(notifier::flappingstop));
+    service->set_notify_on_flappingdisabled(
+        selectedservice->get_notify_on(notifier::flappingdisabled));
+    service->set_notify_on_downtime(
+        selectedservice->get_notify_on(notifier::downtime));
+    service->set_stalk_on_ok(selectedservice->get_stalk_on(notifier::ok));
+    service->set_stalk_on_warning(
+        selectedservice->get_stalk_on(notifier::warning));
+    service->set_stalk_on_unknown(
+        selectedservice->get_stalk_on(notifier::unknown));
+    service->set_stalk_on_critical(
+        selectedservice->get_stalk_on(notifier::critical));
+    service->set_is_volatile(selectedservice->get_is_volatile());
+    service->set_notification_period(selectedservice->notification_period());
+    service->set_flap_detection_enabled(
+        selectedservice->flap_detection_enabled());
+    service->set_low_flap_threshold(selectedservice->get_low_flap_threshold());
+    service->set_high_flap_threshold(
+        selectedservice->get_high_flap_threshold());
+    service->set_flap_detection_on_ok(
+        selectedservice->get_flap_detection_on(notifier::ok));
+    service->set_flap_detection_on_warning(
+        selectedservice->get_flap_detection_on(notifier::warning));
+    service->set_flap_detection_on_unknown(
+        selectedservice->get_flap_detection_on(notifier::unknown));
+    service->set_flap_detection_on_critical(
+        selectedservice->get_flap_detection_on(notifier::critical));
+    service->set_process_performance_data(
+        selectedservice->get_process_performance_data());
+    service->set_check_freshness_enabled(
+        selectedservice->check_freshness_enabled());
+    service->set_freshness_threshold(
+        selectedservice->get_freshness_threshold());
+    service->set_passive_checks_enabled(
+        selectedservice->passive_checks_enabled());
+    service->set_event_handler_enabled(
+        selectedservice->event_handler_enabled());
+    service->set_active_checks_enabled(
+        selectedservice->active_checks_enabled());
+    service->set_retain_status_information(
+        selectedservice->get_retain_status_information());
+    service->set_retain_nonstatus_information(
+        selectedservice->get_retain_nonstatus_information());
+    service->set_notifications_enabled(
+        selectedservice->get_notifications_enabled());
+    service->set_obsess_over(selectedservice->obsess_over());
+    service->set_notes(selectedservice->get_notes());
+    service->set_notes_url(selectedservice->get_notes_url());
+    service->set_action_url(selectedservice->get_action_url());
+    service->set_icon_image(selectedservice->get_icon_image());
+    service->set_icon_image_alt(selectedservice->get_icon_image_alt());
+    service->set_acknowledgement(static_cast<EngineService::AckType>(
+        selectedservice->get_acknowledgement()));
+    service->set_host_problem_at_last_check(
+        selectedservice->get_host_problem_at_last_check());
+    service->set_check_type(static_cast<EngineService::CheckType>(
+        selectedservice->get_check_type()));
+    service->set_last_state(
+        static_cast<EngineService::State>(selectedservice->get_last_state()));
+    service->set_last_hard_state(static_cast<EngineService::State>(
+        selectedservice->get_last_hard_state()));
+    service->set_plugin_output(selectedservice->get_plugin_output());
+    service->set_long_plugin_output(selectedservice->get_long_plugin_output());
+    service->set_perf_data(selectedservice->get_perf_data());
+    service->set_state_type(
+        static_cast<EngineService::State>(selectedservice->get_state_type()));
+    service->set_next_check(string::ctime(selectedservice->get_next_check()));
+    service->set_should_be_scheduled(
+        selectedservice->get_should_be_scheduled());
+    service->set_last_check(string::ctime(selectedservice->get_last_check()));
+    service->set_current_attempt(selectedservice->get_current_attempt());
+    service->set_current_event_id(selectedservice->get_current_event_id());
+    service->set_last_event_id(selectedservice->get_last_event_id());
+    service->set_current_problem_id(selectedservice->get_current_problem_id());
+    service->set_last_problem_id(selectedservice->get_last_problem_id());
+    service->set_last_notification(
+        string::ctime(selectedservice->get_last_notification()));
+    service->set_next_notification(
+        string::ctime(selectedservice->get_next_notification()));
+    service->set_no_more_notifications(
+        selectedservice->get_no_more_notifications());
+    service->set_last_state_change(
+        string::ctime(selectedservice->get_last_state_change()));
+    service->set_last_hard_state_change(
+        string::ctime(selectedservice->get_last_hard_state_change()));
+    service->set_last_time_ok(
+        string::ctime(selectedservice->get_last_time_ok()));
+    service->set_last_time_warning(
+        string::ctime(selectedservice->get_last_time_warning()));
+    service->set_last_time_unknown(
+        string::ctime(selectedservice->get_last_time_unknown()));
+    service->set_last_time_critical(
+        string::ctime(selectedservice->get_last_time_critical()));
+    service->set_has_been_checked(selectedservice->has_been_checked());
+    service->set_is_being_freshened(selectedservice->get_is_being_freshened());
+    service->set_notified_on_unknown(
+        selectedservice->get_notified_on(notifier::unknown));
+    service->set_notified_on_warning(
+        selectedservice->get_notified_on(notifier::warning));
+    service->set_notified_on_critical(
+        selectedservice->get_notified_on(notifier::critical));
+    service->set_notification_number(
+        selectedservice->get_notification_number());
+    service->set_current_notification_id(
+        selectedservice->get_current_notification_id());
+    service->set_latency(selectedservice->get_latency());
+    service->set_execution_time(selectedservice->get_execution_time());
+    service->set_is_executing(selectedservice->get_is_executing());
+    service->set_check_options(selectedservice->get_check_options());
+    service->set_scheduled_downtime_depth(
+        selectedservice->get_scheduled_downtime_depth());
+    service->set_pending_flex_downtime(
+        selectedservice->get_pending_flex_downtime());
+    service->set_state_history(fmt::format(
+        "[{}]", fmt::join(selectedservice->get_state_history(), ", ")));
+    service->set_state_history_index(
+        selectedservice->get_state_history_index());
+    service->set_is_flapping(selectedservice->get_is_flapping());
+    service->set_flapping_comment_id(
+        selectedservice->get_flapping_comment_id());
+    service->set_percent_state_change(
+        selectedservice->get_percent_state_change());
+    service->set_modified_attributes(
+        selectedservice->get_modified_attributes());
+    service->set_host_ptr(selectedservice->get_host_ptr()
+                              ? selectedservice->get_host_ptr()->name()
+                              : "");
+    service->set_event_handler_args(selectedservice->get_event_handler_args());
+    service->set_check_command_args(selectedservice->get_check_command_args());
+    service->set_timezone(selectedservice->get_timezone());
+    service->set_icon_id(selectedservice->get_icon_id());
+
+    const auto& service_severity = selectedservice->get_severity();
+
+    if (service_severity) {
+      service->set_severity_level(service_severity->level());
+      service->set_severity_id(service_severity->id());
+    }
+
+    if (!selectedservice->tags().empty())
+      for (const auto& tag : selectedservice->tags())
+        service->add_tag(fmt::format("id:{},name:{},type:{}", tag->id(),
+                                     tag->name(),
+                                     static_cast<int>(tag->type())));
+
+    for (auto const& cv : selectedservice->custom_variables)
+      service->add_custom_variables(fmt::format(
+          "key : {}, value :{}, is_sent :{}, has_been_modified: {} ", cv.first,
+          cv.second.value(), cv.second.is_sent(),
+          cv.second.has_been_modified()));
+
+    service->set_service_type(static_cast<EngineService::ServiceType>(
+        selectedservice->get_service_type() + 1));
+
+    // if anomaly detection , set the anomaly detection fields
+    if (selectedservice->get_service_type() ==
+        service_type::ANOMALY_DETECTION) {
+      auto selectedanomaly =
+          std::static_pointer_cast<com::centreon::engine::anomalydetection>(
+              selectedservice);
+
+      service->set_internal_id(selectedanomaly->get_internal_id());
+      service->set_metric_name(selectedanomaly->get_metric_name());
+      service->set_thresholds_file(selectedanomaly->get_thresholds_file());
+      service->set_sensitivity(selectedanomaly->get_sensitivity());
+      service->set_dependent_service_id(
+          selectedanomaly->get_dependent_service()->service_id());
+    }
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return hostgroup informations.
+ *
+ * @param context gRPC context
+ * @param request hostgroup's identifier (it can be a hostgroupename or
+ * hostgroupid)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the HostGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetHostGroup(grpc::ServerContext* context
+                                       [[maybe_unused]],
+                                       const NameIdentifier* request,
+                                       EngineHostGroup* response) {
+  std::string err;
   auto fn = std::packaged_task<int(void)>(
-      [&err, request, service = response]() -> int32_t {
-        std::shared_ptr<com::centreon::engine::service> selectedservice;
-        std::tie(selectedservice, err) = get_serv(*request);
-        if (!err.empty()) {
+      [&err, request, hostgroup = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::hostgroup> selectedhostgroup;
+        auto ithostgroup = hostgroup::hostgroups.find(request->name());
+        if (ithostgroup != hostgroup::hostgroups.end())
+          selectedhostgroup = ithostgroup->second;
+        else {
+          err = fmt::format("could not find hostgroup '{}'", request->name());
           return 1;
         }
 
-        /* recovering service's information */
-        service->set_host_id(selectedservice->host_id());
-        service->set_service_id(selectedservice->service_id());
-        service->set_host_name(selectedservice->get_hostname());
-        service->set_description(selectedservice->description());
-        service->set_check_period(selectedservice->check_period());
-        service->set_current_state(static_cast<EngineService::State>(
-            selectedservice->get_current_state()));
+        hostgroup->set_id(selectedhostgroup->get_id());
+        hostgroup->set_name(selectedhostgroup->get_group_name());
+        hostgroup->set_alias(selectedhostgroup->get_alias());
+
+        if (!selectedhostgroup->members.empty())
+          for (const auto& [key, _] : selectedhostgroup->members)
+            hostgroup->add_members(key);
+
+        hostgroup->set_notes(selectedhostgroup->get_notes());
+        hostgroup->set_notes_url(selectedhostgroup->get_notes_url());
+        hostgroup->set_action_url(selectedhostgroup->get_action_url());
+
         return 0;
       });
 
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return ServiceGroup informations.
+ *
+ * @param context gRPC context
+ * @param request ServiceGroup's identifier (by ServiceGroup name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the ServiceGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetServiceGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const NameIdentifier* request,
+                                          EngineServiceGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           servicegroup =
+                                               response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::servicegroup> selectedservicegroup;
+    auto itservicegroup = servicegroup::servicegroups.find(request->name());
+    if (itservicegroup != servicegroup::servicegroups.end())
+      selectedservicegroup = itservicegroup->second;
+    else {
+      err = fmt::format("could not find servicegroup '{}'", request->name());
+      return 1;
+    }
+    servicegroup->set_id(selectedservicegroup->get_id());
+    servicegroup->set_name(selectedservicegroup->get_group_name());
+    servicegroup->set_alias(selectedservicegroup->get_alias());
+
+    servicegroup->set_notes(selectedservicegroup->get_notes());
+    servicegroup->set_notes_url(selectedservicegroup->get_notes_url());
+    servicegroup->set_action_url(selectedservicegroup->get_action_url());
+
+    if (!selectedservicegroup->members.empty()) {
+      for (const auto& [host_serv_pair, _] : selectedservicegroup->members) {
+        servicegroup->add_members(
+            fmt::format("{},{}", host_serv_pair.first, host_serv_pair.second));
+      }
+    }
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return ContactGroup informations.
+ *
+ * @param context gRPC context
+ * @param request ContactGroup's identifier (by ContactGroup name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the ContactGroup is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetContactGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const NameIdentifier* request,
+                                          EngineContactGroup* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           contactgroup =
+                                               response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::contactgroup> selectedcontactgroup;
+    auto itcontactgroup = contactgroup::contactgroups.find(request->name());
+    if (itcontactgroup != contactgroup::contactgroups.end())
+      selectedcontactgroup = itcontactgroup->second;
+    else {
+      err = fmt::format("could not find contactgroup '{}'", request->name());
+      return 1;
+    }
+
+    contactgroup->set_name(selectedcontactgroup->get_name());
+    contactgroup->set_alias(selectedcontactgroup->get_alias());
+
+    if (!selectedcontactgroup->get_members().empty())
+      for (const auto& [key, _] : selectedcontactgroup->get_members())
+        contactgroup->add_members(key);
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Tag informations.
+ *
+ * @param context gRPC context
+ * @param request Tag's identifier (by Tag id and type)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the tag is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetTag(grpc::ServerContext* context [[maybe_unused]],
+                                 const IdOrTypeIdentifier* request,
+                                 EngineTag* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           tag = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::tag> selectedtag;
+    auto ittag = tag::tags.find(std::make_pair(request->id(), request->type()));
+    if (ittag != tag::tags.end())
+      selectedtag = ittag->second;
+    else {
+      err = fmt::format("could not find tag id:'{}', type:'{}' ", request->id(),
+                        request->type());
+      return 1;
+    }
+
+    tag->set_name(selectedtag->name());
+    tag->set_id(selectedtag->id());
+    tag->set_type(static_cast<EngineTag::TagType>(selectedtag->type()));
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Severity informations.
+ *
+ * @param context gRPC context
+ * @param request Severity's identifier (by Severity id and type)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Severity is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetSeverity(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const IdOrTypeIdentifier* request,
+                                      EngineSeverity* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, severity = response]() -> int32_t {
+        std::shared_ptr<com::centreon::engine::severity> selectedseverity;
+        auto itseverity = severity::severities.find(
+            std::make_pair(request->id(), request->type()));
+        if (itseverity != severity::severities.end())
+          selectedseverity = itseverity->second;
+        else {
+          err = fmt::format("could not find tag id:'{}', type:'{}' ",
+                            request->id(), request->type());
+          return 1;
+        }
+
+        severity->set_name(selectedseverity->name());
+        severity->set_id(selectedseverity->id());
+        severity->set_type(static_cast<EngineSeverity::SeverityType>(
+            selectedseverity->type() + 1));
+        severity->set_level(selectedseverity->level());
+        severity->set_icon_id(selectedseverity->icon_id());
+
+        return 0;
+      });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Command informations.
+ *
+ * @param context gRPC context
+ * @param request Command's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Command is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetCommand(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const NameIdentifier* request,
+                                     EngineCommand* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>(
+      [&err, request, command = response]() -> int32_t {
+        std::shared_ptr<commands::command> selectedcommand;
+        auto itcommand = commands::command::commands.find(request->name());
+        if (itcommand != commands::command::commands.end())
+          selectedcommand = itcommand->second;
+        else {
+          err = fmt::format("could not find Command '{}'", request->name());
+          return 1;
+        }
+        command->set_command_name(selectedcommand->get_name());
+        command->set_command_line(selectedcommand->get_command_line());
+        command->set_type(
+            static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
+
+        return 0;
+      });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return Connector informations.
+ *
+ * @param context gRPC context
+ * @param request Connector's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the Connector is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetConnector(grpc::ServerContext* context
+                                       [[maybe_unused]],
+                                       const NameIdentifier* request,
+                                       EngineConnector* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           connector = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::commands::connector>
+        selectedconnector;
+    auto itconnector = commands::connector::connectors.find(request->name());
+    if (itconnector != commands::connector::connectors.end())
+      selectedconnector = itconnector->second;
+    else {
+      err = fmt::format("could not find Connector '{}'", request->name());
+      return 1;
+    }
+    connector->set_connector_name(selectedconnector->get_name());
+    connector->set_connector_line(selectedconnector->get_command_line());
+
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return HostEscalation informations.
+ *
+ * @param context gRPC context
+ * @param request HostEscalation's identifier (by name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the HostEscalation is found and populated successfully,
+ * otherwise returns Status::INVALID_ARGUMENT with an error message.
+ */
+grpc::Status engine_impl::GetHostEscalation(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const NameIdentifier* request,
+                                            EngineHostEscalation* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           escalation = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::hostescalation> selectedescalation;
+    auto itescalation = hostescalation::hostescalations.find(request->name());
+    if (itescalation != hostescalation::hostescalations.end())
+      selectedescalation = itescalation->second;
+    else {
+      err = fmt::format("could not find hostescalation '{}'", request->name());
+      return 1;
+    }
+    escalation->set_host_name(selectedescalation->get_hostname());
+    if (!selectedescalation->get_contactgroups().empty())
+      for (const auto& [name, _] : selectedescalation->get_contactgroups())
+        escalation->add_contact_group(name);
+
+    escalation->set_first_notification(
+        selectedescalation->get_first_notification());
+    escalation->set_last_notification(
+        selectedescalation->get_last_notification());
+    escalation->set_notification_interval(
+        selectedescalation->get_notification_interval());
+    escalation->set_escalation_period(
+        selectedescalation->get_escalation_period());
+    auto options = fmt::format(
+        "{}{}{}",
+        selectedescalation->get_escalate_on(notifier::down) ? "d" : "",
+        selectedescalation->get_escalate_on(notifier::unreachable) ? "u" : "",
+        selectedescalation->get_escalate_on(notifier::up) ? "r" : "");
+
+    if (options == "dur")
+      options = "all";
+
+    if (!options.empty() && options != "all" && options.length() != 1)
+      options = fmt::format("{}", fmt::join(options, ","));
+
+    escalation->set_escalation_option(options);
+    return 0;
+  });
+
+  std::future<int32_t> result = fn.get_future();
+  command_manager::instance().enqueue(std::move(fn));
+
+  if (result.get() == 0)
+    return grpc::Status::OK;
+  else
+    return grpc::Status(grpc::INVALID_ARGUMENT, err);
+}
+
+/**
+ * @brief Return ServiceEscalation informations.
+ *
+ * @param context gRPC context
+ * @param request ServiceEscalation's identifier (by host and service name)
+ * @param response The filled fields
+ *
+ * @return Status::OK if the ServiceEscalation is found and populated
+ * successfully, otherwise returns Status::INVALID_ARGUMENT with an error
+ * message.
+ */
+grpc::Status engine_impl::GetServiceEscalation(
+    grpc::ServerContext* context [[maybe_unused]],
+    const PairNamesIdentifier* request,
+    EngineServiceEscalation* response) {
+  std::string err;
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           escalation = response]() -> int32_t {
+    std::shared_ptr<com::centreon::engine::serviceescalation>
+        selectedescalation;
+    auto itescalation = serviceescalation::serviceescalations.find(
+        std::make_pair(request->host_name(), request->service_name()));
+    if (itescalation != serviceescalation::serviceescalations.end())
+      selectedescalation = itescalation->second;
+    else {
+      err = fmt::format(
+          "could not find serviceescalation with : host '{}',service '{}'",
+          request->host_name(), request->service_name());
+      return 1;
+    }
+    escalation->set_host(selectedescalation->get_hostname());
+    escalation->set_service_description(selectedescalation->get_description());
+    if (!selectedescalation->get_contactgroups().empty())
+      for (const auto& [name, _] : selectedescalation->get_contactgroups())
+        escalation->add_contact_group(name);
+
+    escalation->set_first_notification(
+        selectedescalation->get_first_notification());
+    escalation->set_last_notification(
+        selectedescalation->get_last_notification());
+    escalation->set_notification_interval(
+        selectedescalation->get_notification_interval());
+    escalation->set_escalation_period(
+        selectedescalation->get_escalation_period());
+
+    auto options = fmt::format(
+        "{}{}{}{}",
+        selectedescalation->get_escalate_on(notifier::warning) ? "w" : "",
+        selectedescalation->get_escalate_on(notifier::unknown) ? "u" : "",
+        selectedescalation->get_escalate_on(notifier::critical) ? "c" : "",
+        selectedescalation->get_escalate_on(notifier::ok) ? "r" : "");
+
+    if (options == "wucr")
+      options = "all";
+
+    if (!options.empty() && options != "all" && options.length() != 1)
+      options = fmt::format("{}", fmt::join(options, ","));
+
+    escalation->set_escalation_option(options);
+
+    return 0;
+  });
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
 
@@ -691,11 +1605,10 @@ grpc::Status engine_impl::DeleteComment(grpc::ServerContext* context
  *
  * @return Status::OK
  */
-grpc::Status engine_impl::DeleteAllHostComments(grpc::ServerContext* context
-                                                [[maybe_unused]],
-                                                const HostIdentifier* request,
-                                                CommandSuccess* response
-                                                [[maybe_unused]]) {
+grpc::Status engine_impl::DeleteAllHostComments(
+    grpc::ServerContext* context [[maybe_unused]],
+    const NameOrIdIdentifier* request,
+    CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
     std::shared_ptr<engine::host> temp_host;
@@ -762,7 +1675,7 @@ grpc::Status engine_impl::DeleteAllServiceComments(
  */
 grpc::Status engine_impl::RemoveHostAcknowledgement(
     grpc::ServerContext* context [[maybe_unused]],
-    const HostIdentifier* request,
+    const NameOrIdIdentifier* request,
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
@@ -775,7 +1688,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     /* set the acknowledgement flag */
     temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_host_acknowledgement_comments(temp_host.get());
     return 0;
@@ -815,7 +1728,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     /* set the acknowledgement flag */
     temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comments associated with the ack */
     comment::delete_service_acknowledgement_comments(temp_service.get());
     return 0;
@@ -871,7 +1784,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
                         request->ack_data(),
                         notifier::notification_option_none);
     /* update the status log with the host info */
-    temp_host->update_status();
+    temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
         comment::host, comment::acknowledgment, temp_host->host_id(), 0,
@@ -934,7 +1847,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
                            request->ack_author(), request->ack_data(),
                            notifier::notification_option_none);
     /* update the status log with the service info */
-    temp_service->update_status();
+    temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
 
     /* add a comment for the acknowledgement */
     auto com = std::make_shared<comment>(
@@ -1748,7 +2661,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
     const DowntimeCriterias* request,
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
-  auto fn = std::packaged_task<int32_t(void)>([&err, request]() -> int32_t {
+  auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
     std::list<service_downtime*> dtlist;
     /* iterate through all current downtime(s) */
     for (auto it = downtimes::downtime_manager::instance()
@@ -1759,7 +2672,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
                         .end();
          it != end; ++it) {
       service_downtime* dt = static_cast<service_downtime*>(it->second.get());
-      /* we are checking if request criteria match with the downtime criteria */
+      /* we are checking if request criteria match with the downtime criteria
+       */
       auto p =
           engine::get_host_and_service_names(dt->host_id(), dt->service_id());
       if (!request->host_name().empty() && p.first != request->host_name())
@@ -2264,7 +3178,7 @@ grpc::Status engine_impl::DelayServiceNotification(
 
     switch (request->identifier_case()) {
       case ServiceDelayIdentifier::kNames: {
-        NameIdentifier names = request->names();
+        PairNamesIdentifier names = request->names();
         auto it =
             service::services.find({names.host_name(), names.service_name()});
         if (it != service::services.end())
@@ -2276,7 +3190,7 @@ grpc::Status engine_impl::DelayServiceNotification(
         }
       } break;
       case ServiceDelayIdentifier::kIds: {
-        IdIdentifier ids = request->ids();
+        PairIdsIdentifier ids = request->ids();
         auto it =
             service::services_by_id.find({ids.host_id(), ids.service_id()});
         if (it != service::services_by_id.end())
@@ -2332,8 +3246,7 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
         /* modify the check interval */
         temp_host->set_check_interval(request->dval());
         attr = MODATTR_NORMAL_CHECK_INTERVAL;
-        temp_host->set_modified_attributes(
-            temp_host->get_modified_attributes() | attr);
+        temp_host->add_modified_attributes(attr);
 
         /* schedule a host check if previous interval was 0 (checks were not
          * regularly scheduled) */
@@ -2445,8 +3358,8 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
         temp_service->set_check_interval(request->dval());
         attr = MODATTR_NORMAL_CHECK_INTERVAL;
 
-        /* schedule a service check if previous interval was 0 (checks were not
-         * regularly scheduled) */
+        /* schedule a service check if previous interval was 0 (checks were
+         * not regularly scheduled) */
         if (old_dval == 0 && temp_service->active_checks_enabled() &&
             temp_service->check_interval() != 0) {
           time_t preferred_time(0);
@@ -3079,7 +3992,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::EnableHostAndChildNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   commands::processing::wrapper_enable_host_and_child_notifications(
@@ -3089,7 +4002,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::DisableHostAndChildNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   commands::processing::wrapper_disable_host_and_child_notifications(
@@ -3099,7 +4012,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::DisableHostNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   disable_host_notifications(host_info.first.get());
@@ -3108,7 +4021,7 @@ grpc::Status engine_impl::ShutdownProgram(
 
 ::grpc::Status engine_impl::EnableHostNotifications(
     ::grpc::ServerContext* context [[maybe_unused]],
-    const ::com::centreon::engine::HostIdentifier* request,
+    const ::com::centreon::engine::NameOrIdIdentifier* request,
     ::com::centreon::engine::CommandSuccess* response [[maybe_unused]]) {
   HOST_METHOD_BEGIN
   enable_host_notifications(host_info.first.get());
@@ -3195,10 +4108,10 @@ grpc::Status engine_impl::ShutdownProgram(
  */
 std::pair<std::shared_ptr<com::centreon::engine::host>, std::string>
 engine_impl::get_host(
-    const ::com::centreon::engine::HostIdentifier& host_info) {
+    const ::com::centreon::engine::NameOrIdIdentifier& host_info) {
   std::string err;
   switch (host_info.identifier_case()) {
-    case HostIdentifier::kName: {
+    case NameOrIdIdentifier::kName: {
       /* get the host */
       auto ithostname = host::hosts.find(host_info.name());
       if (ithostname != host::hosts.end())
@@ -3209,7 +4122,7 @@ engine_impl::get_host(
                               err);
       }
     } break;
-    case HostIdentifier::kId: {
+    case NameOrIdIdentifier::kId: {
       /* get the host */
       auto ithostid = host::hosts_by_id.find(host_info.id());
       if (ithostid != host::hosts_by_id.end())
@@ -3237,7 +4150,7 @@ engine_impl::get_serv(
   /* checking identifier sesrname (by names or by ids) */
   switch (serv_info.identifier_case()) {
     case ServiceIdentifier::kNames: {
-      const NameIdentifier& names = serv_info.names();
+      const PairNamesIdentifier& names = serv_info.names();
       /* get the service */
       auto itservicenames = service::services.find(
           std::make_pair(names.host_name(), names.service_name()));
@@ -3251,7 +4164,7 @@ engine_impl::get_serv(
       }
     } break;
     case ServiceIdentifier::kIds: {
-      const IdIdentifier& ids = serv_info.ids();
+      const PairIdsIdentifier& ids = serv_info.ids();
       /* get the service */
       auto itserviceids = service::services_by_id.find(
           std::make_pair(ids.host_id(), ids.service_id()));

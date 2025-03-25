@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_MESSAGE_HELPER_HH
 #define CCE_CONFIGURATION_MESSAGE_HELPER_HH
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <absl/strings/str_split.h>
 #include "common/engine_conf/state.pb.h"
 
@@ -172,7 +173,7 @@ class message_helper {
    * @return True on success.
    */
   virtual bool hook(std::string_view key [[maybe_unused]],
-                    const std::string_view& value [[maybe_unused]]) {
+                    std::string_view value [[maybe_unused]]) {
     return false;
   }
   virtual void check_validity(error_cnt& err [[maybe_unused]]) const {}
@@ -250,6 +251,8 @@ class message_helper {
       case state:
         retval = std::make_unique<state_helper>(
             static_cast<const state_helper&>(other));
+        break;
+      default:
         break;
     }
     retval->_obj = obj;

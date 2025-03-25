@@ -32,7 +32,6 @@
 #ifdef LEGACY_CONF
 #include "common/engine_legacy_conf/state.hh"
 #else
-#include "common/engine_conf/state.pb.h"
 #endif
 #include "common/log_v2/log_v2.hh"
 

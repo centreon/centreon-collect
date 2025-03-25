@@ -40,7 +40,7 @@ enum AckType {
   STICKY = 2;
 }
 
-/*io::neb, neb::de_pb_service*/
+/* io::neb, neb::de_pb_service, 5 */
 message Service {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -156,9 +156,24 @@ message Service {
 }
 
 /**
+ * @brief Message sent in BBDO 3.0.0 to update a service status partially
+ * changed. For example, it is convenient for downtime changed.
+ */
+/* io::neb, neb::de_pb_adaptive_service_status, 53 */
+message AdaptiveServiceStatus {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+  ServiceType type = 3;
+  uint64 internal_id = 4;
+  optional int32 scheduled_downtime_depth = 5;
+  optional AckType acknowledgement_type = 6;
+  optional int32 notification_number = 7;
+}
+
+/**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
-/*io::neb, neb::de_pb_service_status*/
+/* io::neb, neb::de_pb_service_status, 6 */
 message ServiceStatus {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -225,7 +240,7 @@ message ServiceStatus {
  *
  * Only used with BBDO 3.0
  */
-/*io::neb, neb::de_pb_adaptive_service*/
+/* io::neb, neb::de_pb_adaptive_service, 7 */
 message AdaptiveService {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -247,7 +262,7 @@ message AdaptiveService {
   optional string notification_period = 17;
 }
 
-/*io::neb, neb::de_pb_host*/
+/* io::neb, neb::de_pb_host, 8 */
 message Host {
   uint64 host_id = 1;
 
@@ -354,7 +369,7 @@ message Host {
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
-/*io::neb, neb::de_pb_host_status*/
+/* io::neb, neb::de_pb_host_status, 9 */
 message HostStatus {
   uint64 host_id = 1;
 
@@ -406,12 +421,23 @@ message HostStatus {
 }
 
 /**
+ * @brief Message sent in BBDO 3.0.0 to update a host status partially
+ * changed. For example, it is convenient for downtime changed.
+ */
+/* io::neb, neb::de_pb_adaptive_host_status, 54 */
+message AdaptiveHostStatus {
+  uint64 host_id = 1;
+  optional int32 scheduled_downtime_depth = 2;
+  optional AckType acknowledgement_type = 3;
+  optional int32 notification_number = 4;
+}
+/**
  * @brief Message used to send adaptive host configuration. When only one
  * or two configuration items change, this event is used.
  *
  * Only used with BBDO 3.0
  */
-/*io::neb, neb::de_pb_adaptive_host*/
+/* io::neb, neb::de_pb_adaptive_host, 10 */
 message AdaptiveHost {
   uint64 host_id = 1;
 
@@ -432,7 +458,7 @@ message AdaptiveHost {
   optional string notification_period = 16;
 }
 
-/*io::neb, neb::de_pb_comment*/
+/* io::neb, neb::de_pb_comment, 11 */
 message Comment {
   BBDOHeader header = 1;
 
@@ -475,7 +501,7 @@ message Comment {
  * @brief A downtime is applied on a resource when we don't want notifications
  * concerning bad states on this resource.
  */
-/*io::neb, neb::de_pb_downtime*/
+/* io::neb, neb::de_pb_downtime, 12 */
 message Downtime {
   enum DowntimeType {
     NOT_USED = 0;
@@ -503,7 +529,7 @@ message Downtime {
   bool fixed = 18;
 }
 
-/*io::neb, neb::de_pb_custom_variable*/
+/* io::neb, neb::de_pb_custom_variable, 13 */
 message CustomVariable {
   enum VarType {
     HOST = 0;
@@ -528,7 +554,7 @@ enum CheckType {
   CheckPassive = 1;
 }
 
-/*io::neb, neb::de_pb_host_check*/
+/* io::neb, neb::de_pb_host_check, 14 */
 message HostCheck {
   BBDOHeader header = 1;
 
@@ -539,7 +565,7 @@ message HostCheck {
   uint64 next_check = 6;
 }
 
-/*io::neb, neb::de_pb_service_check*/
+/* io::neb, neb::de_pb_service_check, 15 */
 message ServiceCheck {
   BBDOHeader header = 1;
 
@@ -551,7 +577,7 @@ message ServiceCheck {
   uint64 service_id = 7;
 }
 
-/*io::neb, neb::de_pb_log_entry*/
+/* io::neb, neb::de_pb_log_entry, 16 */
 message LogEntry {
   enum LogType {
     SOFT = 0;
@@ -589,7 +615,7 @@ message LogEntry {
   int32 retry = 13;
 }
 
-/*io::neb, neb::de_pb_instance_status*/
+/* io::neb, neb::de_pb_instance_status, 17 */
 message InstanceStatus {
   BBDOHeader header = 1;
 
@@ -611,7 +637,7 @@ message InstanceStatus {
   uint64 instance_id = 17;
 }
 
-/*io::neb, neb::de_pb_instance*/
+/* io::neb, neb::de_pb_instance, 18 */
 message Instance {
   BBDOHeader header = 1;
 
@@ -623,9 +649,10 @@ message Instance {
   int64 end_time = 7;
   int64 start_time = 8;
   string version = 9;
+  string engine_config_version = 10;
 }
 
-/*io::neb, neb::de_pb_responsive_instance*/
+/* io::neb, neb::de_pb_responsive_instance, 19 */
 message ResponsiveInstance {
   BBDOHeader header = 1;
 
@@ -633,7 +660,7 @@ message ResponsiveInstance {
   bool responsive = 3;
 }
 
-/*io::neb, neb::de_pb_acknowledgement*/
+/* io::neb, neb::de_pb_acknowledgement, 20 */
 message Acknowledgement {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -653,7 +680,7 @@ message Acknowledgement {
   uint32 state = 12;
 }
 
-/*io::neb, neb::de_pb_host_dependency*/
+/* io::neb, neb::de_pb_host_dependency, 21 */
 message HostDependency {
   BBDOHeader header = 1;
 
@@ -666,7 +693,7 @@ message HostDependency {
   string notification_failure_options = 8;
 }
 
-/*io::neb, neb::de_pb_service_dependency*/
+/* io::neb, neb::de_pb_service_dependency, 22 */
 message ServiceDependency {
   BBDOHeader header = 1;
 
@@ -681,7 +708,7 @@ message ServiceDependency {
   uint64 service_id = 10;
 }
 
-/*io::neb, neb::de_pb_host_group*/
+/* io::neb, neb::de_pb_host_group, 23 */
 message HostGroup {
   BBDOHeader header = 1;
 
@@ -691,7 +718,7 @@ message HostGroup {
   uint64 poller_id = 5;
 }
 
-/*io::neb, neb::de_pb_service_group*/
+/* io::neb, neb::de_pb_service_group, 24 */
 message ServiceGroup {
   BBDOHeader header = 1;
 
@@ -701,7 +728,7 @@ message ServiceGroup {
   uint64 poller_id = 5;
 }
 
-/*io::neb, neb::de_pb_host_group_member*/
+/* io::neb, neb::de_pb_host_group_member, 25 */
 message HostGroupMember {
   BBDOHeader header = 1;
 
@@ -712,7 +739,7 @@ message HostGroupMember {
   uint64 poller_id = 6;
 }
 
-/*io::neb, neb::de_pb_service_group_member*/
+/* io::neb, neb::de_pb_service_group_member, 26 */
 message ServiceGroupMember {
   BBDOHeader header = 1;
 
@@ -724,7 +751,7 @@ message ServiceGroupMember {
   uint64 service_id = 7;
 }
 
-/*io::neb, neb::de_pb_host_parent*/
+/* io::neb, neb::de_pb_host_parent, 27 */
 message HostParent {
   BBDOHeader header = 1;
 
@@ -733,7 +760,7 @@ message HostParent {
   uint64 parent_id = 4;
 }
 
-/*io::neb, neb::de_pb_instance_configuration*/
+/* io::neb, neb::de_pb_instance_configuration, 28 */
 message InstanceConfiguration {
   BBDOHeader header = 1;
   bool loaded = 2;
@@ -755,7 +782,7 @@ message InstanceConfiguration {
  * relations between resources of our poller and this severity. And only if the
  * severity is no more used at all, we can remove it.
  */
-/*io::neb, neb::de_pb_severity*/
+/* io::neb, neb::de_pb_severity, 29 */
 message Severity {
   uint64 id = 1;
   enum Action {
@@ -796,7 +823,7 @@ enum TagType {
   HOSTCATEGORY = 3;
 }
 
-/*io::neb, neb::de_pb_tag*/
+/* io::neb, neb::de_pb_tag, 30 */
 message Tag {
   uint64 id = 1;
   enum Action {
@@ -810,8 +837,25 @@ message Tag {
   string name = 4;
   int64 poller_id = 5;
 }
-
+/* Ignore */
 message TagInfo {
   uint64 id = 1;
   TagType type = 2;
+}
+
+/* Ignore */
+message AgentInfo {
+  uint32 major = 1;
+  uint32 minor = 2;
+  uint32 patch = 3;
+  bool reverse = 4;
+  string os = 5;
+  string os_version = 6;
+  uint32 nb_agent = 7; 
+}
+
+/* io::neb, neb::de_pb_agent_stats, 57 */
+message AgentStats {
+  int64 poller_id = 1;
+  repeated AgentInfo stats = 2;
 }

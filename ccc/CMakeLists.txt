@@ -42,7 +42,7 @@ endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
-  ${CMAKE_SOURCE_DIR}/common/src)
+  ${CMAKE_SOURCE_DIR}/common/src ${CMAKE_SOURCE_DIR}/bbdo)
 set(ccc_files main.cc client.cc)
 
 if(WITH_ASAN)

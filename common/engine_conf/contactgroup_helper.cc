@@ -44,8 +44,7 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool contactgroup_helper::hook(std::string_view key,
-                               const std::string_view& value) {
+bool contactgroup_helper::hook(std::string_view key, std::string_view value) {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -81,4 +80,72 @@ void contactgroup_helper::_init() {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
   obj->mutable_obj()->set_register_(true);
 }
+
+/**
+ * @brief Expand the contactgroups.
+ *
+ * @param s The configuration state to expand.
+ * @param err The error count object to update in case of errors.
+ */
+void contactgroup_helper::expand(
+    configuration::State& s,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+        m_contactgroups) {
+  absl::flat_hash_set<std::string_view> resolved;
+
+  for (auto& cg : *s.mutable_contactgroups())
+    _resolve_members(s, cg, resolved, err, m_contactgroups);
+}
+
+/**
+ * @brief Resolves the members of a contact group by recursively processing its
+ * member groups.
+ *
+ * This function ensures that all members of a contact group, including those in
+ * nested groups, are resolved and added to the contact group's member list. It
+ * also handles errors when a non-existing contact group member is encountered.
+ *
+ * @param s The current configuration state.
+ * @param obj The contact group object whose members are to be resolved.
+ * @param resolved A set of already resolved contact group names to avoid
+ * circular dependencies.
+ * @param err A structure to count configuration errors.
+ * @param m_contactgroups A map of contact group names to their corresponding
+ * contact group objects.
+ *
+ * @throws msg_fmt If a non-existing contact group member is encountered.
+ */
+void contactgroup_helper::_resolve_members(
+    configuration::State& s,
+    configuration::Contactgroup& obj,
+    absl::flat_hash_set<std::string_view>& resolved,
+    configuration::error_cnt& err,
+    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+        m_contactgroups) {
+  if (resolved.contains(obj.contactgroup_name()))
+    return;
+
+  resolved.emplace(obj.contactgroup_name());
+  if (!obj.contactgroup_members().data().empty()) {
+    for (auto& cg_name : obj.contactgroup_members().data()) {
+      auto it = m_contactgroups.find(cg_name);
+
+      if (it == m_contactgroups.end()) {
+        err.config_errors++;
+        throw msg_fmt(
+            "Error: Could not add non-existing contact group member '{}' to "
+            "contactgroup '{}'",
+            cg_name, obj.contactgroup_name());
+      }
+
+      Contactgroup& inner_cg = *it->second;
+      _resolve_members(s, inner_cg, resolved, err, m_contactgroups);
+      for (auto& c_name : inner_cg.members().data())
+        fill_string_group(obj.mutable_members(), c_name);
+    }
+    obj.mutable_contactgroup_members()->clear_data();
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

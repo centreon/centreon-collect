@@ -1,5 +1,5 @@
 #
-# Copyright 2023 Centreon
+# Copyright 2023-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -21,6 +21,8 @@
 #
 
 set(TESTS_DIR "${PROJECT_SOURCE_DIR}/core/sql/test")
+
+include_directories("${CMAKE_SOURCE_DIR}/common/http/inc")
 
 add_custom_command(
   DEPENDS ${PROJECT_SOURCE_DIR}/core/sql/src/table_max_size.py
@@ -79,9 +81,10 @@ set(SOURCES
 
 # Static libraries.
 add_library(sql STATIC ${SOURCES})
+add_dependencies(sql pb_common_lib)
 set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
-target_link_libraries(sql spdlog::spdlog mariadb)
+target_link_libraries(sql spdlog::spdlog ctnvault centreon_http mariadb)
 
 # if(WITH_TESTING) set( TESTS_SOURCES ${TESTS_SOURCES}
 # ${TESTS_DIR}/engine/start_stop.cc ${TESTS_DIR}/muxer/read.cc

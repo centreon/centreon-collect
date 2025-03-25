@@ -26,6 +26,7 @@ package com.centreon.broker;
  * @brief Stores needed information for bool_service or kpi_service. Very useful
  *        when broker is stopped to save the BA's states.
  */
+/* Ignore */
 message ServiceState {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -40,7 +41,7 @@ message ServiceState {
  * @brief This message contains the living informations of the current BA's.
  *        Thanks to them we can recompute their states when Broker is restarted.
  */
-/*io::bam, bam::de_pb_services_book_state*/
+/* io::bam, bam::de_pb_services_book_state, 48 */
 message ServicesBookState {
   repeated ServiceState service = 1;
 }

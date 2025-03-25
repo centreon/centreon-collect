@@ -146,7 +146,7 @@ add_subdirectory(src/clib)
 add_subdirectory(src/logging)
 add_subdirectory(src/misc)
 add_subdirectory(src/io)
-if(WITH_TESTING)
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(test)
 endif()
 

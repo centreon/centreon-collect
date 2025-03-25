@@ -18,14 +18,12 @@
 
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include <absl/container/flat_hash_set.h>
-#include <memory>
+#include <absl/strings/str_split.h>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -101,7 +99,7 @@ macro_cache::get_metric_mapping(uint64_t metric_id) const {
  *
  *  @return             A shared pointer on the service.
  */
-const std::shared_ptr<io::data>& macro_cache::get_service(
+const std::shared_ptr<neb::pb_service>& macro_cache::get_service(
     uint64_t host_id,
     uint64_t service_id) const {
   auto found = _services.find({host_id, service_id});
@@ -119,7 +117,8 @@ const std::shared_ptr<io::data>& macro_cache::get_service(
  *
  *  @return             A shared pointer on the host.
  */
-const std::shared_ptr<io::data>& macro_cache::get_host(uint64_t host_id) const {
+const std::shared_ptr<neb::pb_host>& macro_cache::get_host(
+    uint64_t host_id) const {
   auto found = _hosts.find(host_id);
 
   if (found == _hosts.end())
@@ -141,13 +140,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
   if (found == _hosts.end())
     throw msg_fmt("lua: could not find information on host {}", host_id);
 
-  if (found->second->type() == neb::host::static_type()) {
-    auto const& s = std::static_pointer_cast<neb::host>(found->second);
-    return s->host_name;
-  } else {
-    auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
-    return s->obj().name();
-  }
+  return found->second->obj().name();
 }
 
 /**
@@ -210,13 +203,8 @@ std::string_view macro_cache::get_check_command(uint64_t host_id,
           "lua: could not find the check command of the service (host_id: {}, "
           "service_id: {})",
           host_id, service_id);
-    if (found->second->type() == neb::service::static_type()) {
-      neb::service& s = static_cast<neb::service&>(*found->second);
-      retval = s.check_command;
-    } else {
-      neb::pb_service& s = static_cast<neb::pb_service&>(*found->second);
-      retval = s.obj().check_command();
-    }
+    neb::pb_service& s = static_cast<neb::pb_service&>(*found->second);
+    retval = s.obj().check_command();
   }
   /* Case of hosts */
   else {
@@ -225,13 +213,8 @@ std::string_view macro_cache::get_check_command(uint64_t host_id,
       throw msg_fmt(
           "lua: could not find the check command of the host (host_id: {})",
           host_id);
-    if (found->second->type() == neb::host::static_type()) {
-      neb::host& s = static_cast<neb::host&>(*found->second);
-      retval = s.check_command;
-    } else {
-      neb::pb_host& s = static_cast<neb::pb_host&>(*found->second);
-      retval = s.obj().check_command();
-    }
+    neb::pb_host& s = static_cast<neb::pb_host&>(*found->second);
+    retval = s.obj().check_command();
   }
   return retval;
 }
@@ -252,26 +235,14 @@ std::string const& macro_cache::get_notes_url(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: could not find information on service ({}, {})",
                     host_id, service_id);
-    if (found->second->type() == neb::service::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::service>(found->second);
-      return s->notes_url;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->obj().notes_url();
-    }
+    return found->second->obj().notes_url();
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
 
-    if (found->second->type() == neb::host::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::host>(found->second);
-      return s->notes_url;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
-      return s->obj().notes_url();
-    }
+    return found->second->obj().notes_url();
   }
 }
 
@@ -291,26 +262,14 @@ std::string const& macro_cache::get_action_url(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: could not find information on service ({}, {})",
                     host_id, service_id);
-    if (found->second->type() == neb::service::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::service>(found->second);
-      return s->action_url;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->obj().action_url();
-    }
+    return found->second->obj().action_url();
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
 
-    if (found->second->type() == neb::host::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::host>(found->second);
-      return s->action_url;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
-      return s->obj().action_url();
-    }
+    return found->second->obj().action_url();
   }
 }
 
@@ -330,26 +289,13 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
     if (found == _services.end())
       throw msg_fmt("lua: cound not find information on service ({}, {})",
                     host_id, service_id);
-    if (found->second->type() == neb::service::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::service>(found->second);
-      return s->notes;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-      return s->obj().notes();
-    }
+    return found->second->obj().notes();
   } else {
     auto found = _hosts.find(host_id);
 
     if (found == _hosts.end())
       throw msg_fmt("lua: could not find information on host {}", host_id);
-
-    if (found->second->type() == neb::host::static_type()) {
-      auto const& s = std::static_pointer_cast<neb::host>(found->second);
-      return s->notes;
-    } else {
-      auto const& s = std::static_pointer_cast<neb::pb_host>(found->second);
-      return s->obj().notes();
-    }
+    return found->second->obj().notes();
   }
 }
 
@@ -396,13 +342,7 @@ std::string const& macro_cache::get_service_description(
   if (found == _services.end())
     throw msg_fmt("lua: could not find information on service ({}, {})",
                   host_id, service_id);
-  if (found->second->type() == neb::service::static_type()) {
-    auto const& s = std::static_pointer_cast<neb::service>(found->second);
-    return s->service_description;
-  } else {
-    auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->obj().description();
-  }
+  return found->second->obj().description();
 }
 
 /**
@@ -529,6 +469,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::pb_adaptive_host::static_type():
       _process_pb_adaptive_host(data);
       break;
+    case neb::pb_adaptive_host_status::static_type():
+      _process_pb_adaptive_host_status(data);
+      break;
     case neb::host_group::static_type():
       _process_host_group(data);
       break;
@@ -549,6 +492,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
       break;
     case neb::pb_service_status::static_type():
       _process_pb_service_status(data);
+      break;
+    case neb::pb_adaptive_service_status::static_type():
+      _process_pb_adaptive_service_status(data);
       break;
     case neb::pb_adaptive_service::static_type():
       _process_pb_adaptive_service(data);
@@ -632,14 +578,105 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
  *
  *  @param h  The event.
  */
-void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<neb::host> const& h =
+void macro_cache::_process_host(const std::shared_ptr<io::data>& data) {
+  const std::shared_ptr<neb::host>& h =
       std::static_pointer_cast<neb::host>(data);
   SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->host_name, h->host_id);
-  if (h->enabled)
-    _hosts[h->host_id] = data;
-  else
+  if (h->enabled) {
+    auto found = _hosts.find(h->host_id);
+    if (found == _hosts.end()) {
+      auto new_host = std::make_shared<neb::pb_host>();
+      _hosts[h->host_id] = new_host;
+      found = _hosts.find(h->host_id);
+    }
+    Host& current_host =
+        std::static_pointer_cast<neb::pb_host>(found->second)->mut_obj();
+    current_host.set_host_id(h->host_id);
+    current_host.set_acknowledged(h->acknowledged);
+    current_host.set_acknowledgement_type(
+        static_cast<AckType>(h->acknowledgement_type));
+    current_host.set_active_checks(h->active_checks_enabled);
+    current_host.set_enabled(h->enabled);
+    current_host.set_scheduled_downtime_depth(h->downtime_depth);
+    current_host.set_check_command(h->check_command);
+    current_host.set_check_interval(h->check_interval);
+    current_host.set_check_period(h->check_period);
+    current_host.set_check_type(static_cast<Host_CheckType>(h->check_type));
+    current_host.set_check_attempt(h->current_check_attempt);
+    current_host.set_state(static_cast<Host_State>(h->current_state));
+    current_host.set_event_handler_enabled(h->event_handler_enabled);
+    current_host.set_event_handler(h->event_handler);
+    current_host.set_execution_time(h->execution_time);
+    current_host.set_flap_detection(h->default_flap_detection_enabled);
+    current_host.set_checked(h->has_been_checked);
+    current_host.set_flapping(h->is_flapping);
+    current_host.set_last_check(h->last_check);
+    current_host.set_last_hard_state(
+        static_cast<Host_State>(h->last_hard_state));
+    current_host.set_last_hard_state_change(h->last_hard_state_change);
+    current_host.set_last_notification(h->last_notification);
+    current_host.set_notification_number(h->notification_number);
+    current_host.set_last_state_change(h->last_state_change);
+    current_host.set_last_time_down(h->last_time_down);
+    current_host.set_last_time_unreachable(h->last_time_unreachable);
+    current_host.set_last_time_up(h->last_time_up);
+    current_host.set_last_update(h->last_update);
+    current_host.set_latency(h->latency);
+    current_host.set_max_check_attempts(h->max_check_attempts);
+    current_host.set_next_check(h->next_check);
+    current_host.set_next_host_notification(h->next_notification);
+    current_host.set_no_more_notifications(h->no_more_notifications);
+    current_host.set_notify(h->notifications_enabled);
+    current_host.set_output(h->output);
+    current_host.set_passive_checks(h->passive_checks_enabled);
+    current_host.set_percent_state_change(h->percent_state_change);
+    current_host.set_perfdata(h->perf_data);
+    current_host.set_retry_interval(h->retry_interval);
+    current_host.set_should_be_scheduled(h->should_be_scheduled);
+    current_host.set_obsess_over_host(h->obsess_over);
+    current_host.set_state_type(static_cast<Host_StateType>(h->state_type));
+    current_host.set_action_url(h->action_url);
+    current_host.set_address(h->address);
+    current_host.set_alias(h->alias);
+    current_host.set_check_freshness(h->check_freshness);
+    current_host.set_default_active_checks(h->default_active_checks_enabled);
+    current_host.set_default_event_handler_enabled(
+        h->default_event_handler_enabled);
+    current_host.set_default_flap_detection(h->default_flap_detection_enabled);
+    current_host.set_default_notify(h->default_notifications_enabled);
+    current_host.set_default_passive_checks(h->default_passive_checks_enabled);
+    current_host.set_display_name(h->display_name);
+    current_host.set_first_notification_delay(h->first_notification_delay);
+    current_host.set_flap_detection_on_down(h->flap_detection_on_down);
+    current_host.set_flap_detection_on_unreachable(
+        h->flap_detection_on_unreachable);
+    current_host.set_flap_detection_on_up(h->flap_detection_on_up);
+    current_host.set_freshness_threshold(h->freshness_threshold);
+    current_host.set_high_flap_threshold(h->high_flap_threshold);
+    current_host.set_low_flap_threshold(h->low_flap_threshold);
+    current_host.set_name(h->host_name);
+    current_host.set_icon_image(h->icon_image);
+    current_host.set_icon_image_alt(h->icon_image_alt);
+    current_host.set_instance_id(h->poller_id);
+    current_host.set_notes(h->notes);
+    current_host.set_notes_url(h->notes_url);
+    current_host.set_notification_interval(h->notification_interval);
+    current_host.set_notification_period(h->notification_period);
+    current_host.set_notify_on_down(h->notify_on_down);
+    current_host.set_notify_on_downtime(h->notify_on_downtime);
+    current_host.set_notify_on_flapping(h->notify_on_flapping);
+    current_host.set_notify_on_recovery(h->notify_on_recovery);
+    current_host.set_notify_on_unreachable(h->notify_on_unreachable);
+    current_host.set_stalk_on_down(h->stalk_on_down);
+    current_host.set_stalk_on_unreachable(h->stalk_on_unreachable);
+    current_host.set_stalk_on_up(h->stalk_on_up);
+    current_host.set_statusmap_image(h->statusmap_image);
+    current_host.set_retain_nonstatus_information(
+        h->retain_nonstatus_information);
+    current_host.set_retain_status_information(h->retain_status_information);
+    current_host.set_timezone(h->timezone);
+  } else
     _hosts.erase(h->host_id);
 }
 
@@ -649,12 +686,11 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
  *  @param h  The event.
  */
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<neb::pb_host> const& h =
-      std::static_pointer_cast<neb::pb_host>(data);
+  const auto& h = std::static_pointer_cast<neb::pb_host>(data);
   SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
                       h->obj().name(), h->obj().host_id());
   if (h->obj().enabled())
-    _hosts[h->obj().host_id()] = data;
+    _hosts[h->obj().host_id()] = h;
   else
     _hosts.erase(h->obj().host_id());
 }
@@ -676,67 +712,67 @@ void macro_cache::_process_pb_host_status(
     return;
   }
 
-  if (it->second->type() == make_type(io::neb, neb::de_host)) {
-    auto& hst = *std::static_pointer_cast<neb::host>(it->second);
-    hst.has_been_checked = obj.checked();
-    hst.check_type = obj.check_type();
-    hst.current_state = obj.state();
-    hst.state_type = obj.state_type();
-    hst.last_state_change = obj.last_state_change();
-    hst.last_hard_state = obj.last_hard_state();
-    hst.last_hard_state_change = obj.last_hard_state_change();
-    hst.last_time_up = obj.last_time_up();
-    hst.last_time_down = obj.last_time_down();
-    hst.last_time_unreachable = obj.last_time_unreachable();
-    hst.output = obj.output();
-    hst.perf_data = obj.perfdata();
-    hst.is_flapping = obj.flapping();
-    hst.percent_state_change = obj.percent_state_change();
-    hst.latency = obj.latency();
-    hst.execution_time = obj.execution_time();
-    hst.last_check = obj.last_check();
-    hst.next_check = obj.next_check();
-    hst.should_be_scheduled = obj.should_be_scheduled();
-    hst.current_check_attempt = obj.check_attempt();
-    hst.notification_number = obj.notification_number();
-    hst.no_more_notifications = obj.no_more_notifications();
-    hst.last_notification = obj.last_notification();
-    hst.next_notification = obj.next_host_notification();
-    hst.acknowledgement_type = obj.acknowledgement_type();
-    hst.downtime_depth = obj.scheduled_downtime_depth();
-  } else if (it->second->type() == make_type(io::neb, neb::de_pb_host)) {
-    auto& hst = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
-    hst.set_checked(obj.checked());
-    hst.set_check_type(static_cast<Host_CheckType>(obj.check_type()));
-    hst.set_state(static_cast<Host_State>(obj.state()));
-    hst.set_state_type(static_cast<Host_StateType>(obj.state_type()));
-    hst.set_last_state_change(obj.last_state_change());
-    hst.set_last_hard_state(static_cast<Host_State>(obj.last_hard_state()));
-    hst.set_last_hard_state_change(obj.last_hard_state_change());
-    hst.set_last_time_up(obj.last_time_up());
-    hst.set_last_time_down(obj.last_time_down());
-    hst.set_last_time_unreachable(obj.last_time_unreachable());
-    hst.set_output(obj.output());
-    hst.set_perfdata(obj.perfdata());
-    hst.set_flapping(obj.flapping());
-    hst.set_percent_state_change(obj.percent_state_change());
-    hst.set_latency(obj.latency());
-    hst.set_execution_time(obj.execution_time());
-    hst.set_last_check(obj.last_check());
-    hst.set_next_check(obj.next_check());
-    hst.set_should_be_scheduled(obj.should_be_scheduled());
-    hst.set_check_attempt(obj.check_attempt());
-    hst.set_notification_number(obj.notification_number());
-    hst.set_no_more_notifications(obj.no_more_notifications());
-    hst.set_last_notification(obj.last_notification());
-    hst.set_next_host_notification(obj.next_host_notification());
-    hst.set_acknowledgement_type(obj.acknowledgement_type());
-    hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-  } else {
-    _cache->logger()->error("lua: The host ({}) stored in cache is corrupted",
-                            obj.host_id());
-  }
+  auto& hst = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
+  hst.set_checked(obj.checked());
+  hst.set_check_type(static_cast<Host_CheckType>(obj.check_type()));
+  hst.set_state(static_cast<Host_State>(obj.state()));
+  hst.set_state_type(static_cast<Host_StateType>(obj.state_type()));
+  hst.set_last_state_change(obj.last_state_change());
+  hst.set_last_hard_state(static_cast<Host_State>(obj.last_hard_state()));
+  hst.set_last_hard_state_change(obj.last_hard_state_change());
+  hst.set_last_time_up(obj.last_time_up());
+  hst.set_last_time_down(obj.last_time_down());
+  hst.set_last_time_unreachable(obj.last_time_unreachable());
+  hst.set_output(obj.output());
+  hst.set_perfdata(obj.perfdata());
+  hst.set_flapping(obj.flapping());
+  hst.set_percent_state_change(obj.percent_state_change());
+  hst.set_latency(obj.latency());
+  hst.set_execution_time(obj.execution_time());
+  hst.set_last_check(obj.last_check());
+  hst.set_next_check(obj.next_check());
+  hst.set_should_be_scheduled(obj.should_be_scheduled());
+  hst.set_check_attempt(obj.check_attempt());
+  hst.set_notification_number(obj.notification_number());
+  hst.set_no_more_notifications(obj.no_more_notifications());
+  hst.set_last_notification(obj.last_notification());
+  hst.set_next_host_notification(obj.next_host_notification());
+  hst.set_acknowledgement_type(obj.acknowledgement_type());
+  hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
 }
+
+/**
+ * @brief Process a pb adaptive host event.
+ *
+ * @param data An AdaptiveHostStatus event.
+ */
+void macro_cache::_process_pb_adaptive_host_status(
+    const std::shared_ptr<io::data>& data) {
+  const auto& s = std::static_pointer_cast<neb::pb_adaptive_host_status>(data);
+  const auto& obj = s->obj();
+
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing adaptive host status ({})",
+                      obj.host_id());
+
+  auto it = _hosts.find(obj.host_id());
+  if (it == _hosts.end()) {
+    _cache->logger()->warn(
+        "lua: Attempt to update host ({}) in lua cache, but it does not "
+        "exist. Maybe Engine should be restarted to update the cache.",
+        obj.host_id());
+    return;
+  }
+
+  auto& hst = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
+  if (obj.has_scheduled_downtime_depth())
+    hst.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  if (obj.has_acknowledgement_type())
+    hst.set_acknowledgement_type(obj.acknowledgement_type());
+  if (obj.has_notification_number())
+    hst.set_notification_number(obj.notification_number());
+}
+
 /**
  *  Process a pb adaptive host event.
  *
@@ -750,71 +786,37 @@ void macro_cache::_process_pb_adaptive_host(
   auto& ah = h->obj();
   auto it = _hosts.find(ah.host_id());
   if (it != _hosts.end()) {
-    if (it->second->type() == make_type(io::neb, neb::de_host)) {
-      auto& h = *std::static_pointer_cast<neb::host>(it->second);
-      if (ah.has_notify())
-        h.notifications_enabled = ah.notify();
-      if (ah.has_active_checks())
-        h.active_checks_enabled = ah.active_checks();
-      if (ah.has_should_be_scheduled())
-        h.should_be_scheduled = ah.should_be_scheduled();
-      if (ah.has_passive_checks())
-        h.passive_checks_enabled = ah.passive_checks();
-      if (ah.has_event_handler_enabled())
-        h.event_handler_enabled = ah.event_handler_enabled();
-      if (ah.has_flap_detection())
-        h.flap_detection_enabled = ah.flap_detection();
-      if (ah.has_obsess_over_host())
-        h.obsess_over = ah.obsess_over_host();
-      if (ah.has_event_handler())
-        h.event_handler = ah.event_handler();
-      if (ah.has_check_command())
-        h.check_command = ah.check_command();
-      if (ah.has_check_interval())
-        h.check_interval = ah.check_interval();
-      if (ah.has_retry_interval())
-        h.retry_interval = ah.retry_interval();
-      if (ah.has_max_check_attempts())
-        h.max_check_attempts = ah.max_check_attempts();
-      if (ah.has_check_freshness())
-        h.check_freshness = ah.check_freshness();
-      if (ah.has_check_period())
-        h.check_period = ah.check_period();
-      if (ah.has_notification_period())
-        h.notification_period = ah.notification_period();
-    } else {
-      auto& h = std::static_pointer_cast<neb::pb_host>(it->second)->mut_obj();
-      if (ah.has_notify())
-        h.set_notify(ah.notify());
-      if (ah.has_active_checks())
-        h.set_active_checks(ah.active_checks());
-      if (ah.has_should_be_scheduled())
-        h.set_should_be_scheduled(ah.should_be_scheduled());
-      if (ah.has_passive_checks())
-        h.set_passive_checks(ah.passive_checks());
-      if (ah.has_event_handler_enabled())
-        h.set_event_handler_enabled(ah.event_handler_enabled());
-      if (ah.has_flap_detection())
-        h.set_flap_detection(ah.flap_detection());
-      if (ah.has_obsess_over_host())
-        h.set_obsess_over_host(ah.obsess_over_host());
-      if (ah.has_event_handler())
-        h.set_event_handler(ah.event_handler());
-      if (ah.has_check_command())
-        h.set_check_command(ah.check_command());
-      if (ah.has_check_interval())
-        h.set_check_interval(ah.check_interval());
-      if (ah.has_retry_interval())
-        h.set_retry_interval(ah.retry_interval());
-      if (ah.has_max_check_attempts())
-        h.set_max_check_attempts(ah.max_check_attempts());
-      if (ah.has_check_freshness())
-        h.set_check_freshness(ah.check_freshness());
-      if (ah.has_check_period())
-        h.set_check_period(ah.check_period());
-      if (ah.has_notification_period())
-        h.set_notification_period(ah.notification_period());
-    }
+    auto& h = it->second->mut_obj();
+    if (ah.has_notify())
+      h.set_notify(ah.notify());
+    if (ah.has_active_checks())
+      h.set_active_checks(ah.active_checks());
+    if (ah.has_should_be_scheduled())
+      h.set_should_be_scheduled(ah.should_be_scheduled());
+    if (ah.has_passive_checks())
+      h.set_passive_checks(ah.passive_checks());
+    if (ah.has_event_handler_enabled())
+      h.set_event_handler_enabled(ah.event_handler_enabled());
+    if (ah.has_flap_detection())
+      h.set_flap_detection(ah.flap_detection());
+    if (ah.has_obsess_over_host())
+      h.set_obsess_over_host(ah.obsess_over_host());
+    if (ah.has_event_handler())
+      h.set_event_handler(ah.event_handler());
+    if (ah.has_check_command())
+      h.set_check_command(ah.check_command());
+    if (ah.has_check_interval())
+      h.set_check_interval(ah.check_interval());
+    if (ah.has_retry_interval())
+      h.set_retry_interval(ah.retry_interval());
+    if (ah.has_max_check_attempts())
+      h.set_max_check_attempts(ah.max_check_attempts());
+    if (ah.has_check_freshness())
+      h.set_check_freshness(ah.check_freshness());
+    if (ah.has_check_period())
+      h.set_check_period(ah.check_period());
+    if (ah.has_notification_period())
+      h.set_notification_period(ah.notification_period());
   } else
     SPDLOG_LOGGER_WARN(
         _cache->logger(),
@@ -958,9 +960,138 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing service ({}, {}) (description:{})",
                       s->host_id, s->service_id, s->service_description);
-  if (s->enabled)
-    _services[{s->host_id, s->service_id}] = data;
-  else
+  if (s->enabled) {
+    auto found = _services.find({s->host_id, s->service_id});
+    if (found == _services.end()) {
+      auto new_service = std::make_shared<neb::pb_service>();
+      _services[{s->host_id, s->service_id}] = new_service;
+      found = _services.find({s->host_id, s->service_id});
+    }
+    Service& current_service =
+        std::static_pointer_cast<neb::pb_service>(found->second)->mut_obj();
+    current_service.set_host_id(s->host_id);
+    current_service.set_service_id(s->service_id);
+    current_service.set_acknowledged(s->acknowledged);
+    current_service.set_acknowledgement_type(
+        static_cast<AckType>(s->acknowledgement_type));
+    current_service.set_active_checks(s->active_checks_enabled);
+    current_service.set_enabled(s->enabled);
+    current_service.set_scheduled_downtime_depth(s->downtime_depth);
+    current_service.set_check_command(s->check_command);
+    current_service.set_check_interval(s->check_interval);
+    current_service.set_check_period(s->check_period);
+    current_service.set_check_type(
+        static_cast<Service_CheckType>(s->check_type));
+    current_service.set_check_attempt(s->current_check_attempt);
+    current_service.set_state(static_cast<Service_State>(s->current_state));
+    current_service.set_event_handler_enabled(s->event_handler_enabled);
+    current_service.set_event_handler(s->event_handler);
+    current_service.set_execution_time(s->execution_time);
+    current_service.set_flap_detection(s->default_flap_detection_enabled);
+    current_service.set_checked(s->has_been_checked);
+    current_service.set_flapping(s->is_flapping);
+    current_service.set_last_check(s->last_check);
+    current_service.set_last_hard_state(
+        static_cast<Service_State>(s->last_hard_state));
+    current_service.set_last_hard_state_change(s->last_hard_state_change);
+    current_service.set_last_notification(s->last_notification);
+    current_service.set_notification_number(s->notification_number);
+    current_service.set_last_state_change(s->last_state_change);
+    current_service.set_last_time_ok(s->last_time_ok);
+    current_service.set_last_time_warning(s->last_time_warning);
+    current_service.set_last_time_critical(s->last_time_critical);
+    current_service.set_last_time_unknown(s->last_time_unknown);
+    current_service.set_last_update(s->last_update);
+    current_service.set_latency(s->latency);
+    current_service.set_max_check_attempts(s->max_check_attempts);
+    current_service.set_next_check(s->next_check);
+    current_service.set_next_notification(s->next_notification);
+    current_service.set_no_more_notifications(s->no_more_notifications);
+    current_service.set_notify(s->notifications_enabled);
+    std::string_view long_output = s->output;
+    std::vector<std::string_view> output =
+        absl::StrSplit(long_output, absl::MaxSplits('\n', 2));
+    switch (output.size()) {
+      case 2:
+        current_service.set_long_output(std::string(output[1]));
+        [[fallthrough]];
+      case 1:
+        current_service.set_output(std::string(output[0]));
+        break;
+    }
+    current_service.set_passive_checks(s->passive_checks_enabled);
+    current_service.set_percent_state_change(s->percent_state_change);
+    current_service.set_perfdata(s->perf_data);
+    current_service.set_retry_interval(s->retry_interval);
+    current_service.set_host_name(s->host_name);
+    current_service.set_description(s->service_description);
+    current_service.set_should_be_scheduled(s->should_be_scheduled);
+    current_service.set_obsess_over_service(s->obsess_over);
+    current_service.set_state_type(
+        static_cast<Service_StateType>(s->state_type));
+    current_service.set_action_url(s->action_url);
+    current_service.set_check_freshness(s->check_freshness);
+    current_service.set_default_active_checks(s->default_active_checks_enabled);
+    current_service.set_default_event_handler_enabled(
+        s->default_event_handler_enabled);
+    current_service.set_default_flap_detection(
+        s->default_flap_detection_enabled);
+    current_service.set_default_notify(s->default_notifications_enabled);
+    current_service.set_default_passive_checks(
+        s->default_passive_checks_enabled);
+    current_service.set_display_name(s->display_name);
+    current_service.set_first_notification_delay(s->first_notification_delay);
+    current_service.set_flap_detection_on_critical(
+        s->flap_detection_on_critical);
+    current_service.set_flap_detection_on_ok(s->flap_detection_on_ok);
+    current_service.set_flap_detection_on_unknown(s->flap_detection_on_unknown);
+    current_service.set_flap_detection_on_warning(s->flap_detection_on_warning);
+    current_service.set_freshness_threshold(s->freshness_threshold);
+    current_service.set_high_flap_threshold(s->high_flap_threshold);
+    current_service.set_low_flap_threshold(s->low_flap_threshold);
+    current_service.set_icon_image(s->icon_image);
+    current_service.set_icon_image_alt(s->icon_image_alt);
+    current_service.set_is_volatile(s->is_volatile);
+    current_service.set_notes(s->notes);
+    current_service.set_notes_url(s->notes_url);
+    current_service.set_notification_interval(s->notification_interval);
+    current_service.set_notification_period(s->notification_period);
+    current_service.set_notify_on_critical(s->notify_on_critical);
+    current_service.set_notify_on_downtime(s->notify_on_downtime);
+    current_service.set_notify_on_flapping(s->notify_on_flapping);
+    current_service.set_notify_on_recovery(s->notify_on_recovery);
+    current_service.set_notify_on_unknown(s->notify_on_unknown);
+    current_service.set_notify_on_warning(s->notify_on_warning);
+    current_service.set_stalk_on_critical(s->stalk_on_critical);
+    current_service.set_stalk_on_ok(s->stalk_on_ok);
+    current_service.set_stalk_on_unknown(s->stalk_on_unknown);
+    current_service.set_stalk_on_warning(s->stalk_on_warning);
+    current_service.set_retain_nonstatus_information(
+        s->retain_nonstatus_information);
+    current_service.set_retain_status_information(s->retain_status_information);
+    if (std::string_view(current_service.host_name().data(), 12) ==
+        "_Module_Meta") {
+      if (std::string_view(current_service.description().data(), 5) ==
+          "meta_") {
+        current_service.set_type(METASERVICE);
+        uint64_t iid;
+        std::string_view id =
+            std::string_view(current_service.description()).substr(5);
+        if (absl::SimpleAtoi(id, &iid))
+          current_service.set_internal_id(iid);
+      }
+    } else if (std::string_view(current_service.host_name().data(), 11) ==
+               "_Module_BAM") {
+      if (std::string_view(current_service.description().data(), 3) == "ba_") {
+        current_service.set_type(BA);
+        uint64_t iid;
+        std::string_view id =
+            std::string_view(current_service.description()).substr(3);
+        if (absl::SimpleAtoi(id, &iid))
+          current_service.set_internal_id(iid);
+      }
+    }
+  } else
     _services.erase({s->host_id, s->service_id});
 }
 
@@ -975,9 +1106,42 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
       _cache->logger(), "lua: processing service ({}, {}) (description:{})",
       s->obj().host_id(), s->obj().service_id(), s->obj().description());
   if (s->obj().enabled())
-    _services[{s->obj().host_id(), s->obj().service_id()}] = data;
+    _services[{s->obj().host_id(), s->obj().service_id()}] = s;
   else
     _services.erase({s->obj().host_id(), s->obj().service_id()});
+}
+
+/**
+ * @brief Process a pb adaptive service event.
+ *
+ * @param data An AdaptiveServiceStatus event.
+ */
+void macro_cache::_process_pb_adaptive_service_status(
+    const std::shared_ptr<io::data>& data) {
+  const auto& s =
+      std::static_pointer_cast<neb::pb_adaptive_service_status>(data);
+  const auto& obj = s->obj();
+
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing adaptive service status ({}, {})",
+                      obj.host_id(), obj.service_id());
+
+  auto it = _services.find({obj.host_id(), obj.service_id()});
+  if (it == _services.end()) {
+    _cache->logger()->warn(
+        "lua: Attempt to update service ({}, {}) in lua cache, but it does not "
+        "exist. Maybe Engine should be restarted to update the cache.",
+        obj.host_id(), obj.service_id());
+    return;
+  }
+
+  auto& svc = std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
+  if (obj.has_acknowledgement_type())
+    svc.set_acknowledgement_type(obj.acknowledgement_type());
+  if (obj.has_scheduled_downtime_depth())
+    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  if (obj.has_notification_number())
+    svc.set_notification_number(obj.notification_number());
 }
 
 void macro_cache::_process_pb_service_status(
@@ -998,70 +1162,34 @@ void macro_cache::_process_pb_service_status(
     return;
   }
 
-  if (it->second->type() == make_type(io::neb, neb::de_service)) {
-    auto& svc = *std::static_pointer_cast<neb::service>(it->second);
-    svc.has_been_checked = obj.checked();
-    svc.check_type = obj.check_type();
-    svc.current_state = obj.state();
-    svc.state_type = obj.state_type();
-    svc.last_state_change = obj.last_state_change();
-    svc.last_hard_state = obj.last_hard_state();
-    svc.last_hard_state_change = obj.last_hard_state_change();
-    svc.last_time_ok = obj.last_time_ok();
-    svc.last_time_warning = obj.last_time_warning();
-    svc.last_time_critical = obj.last_time_critical();
-    svc.last_time_unknown = obj.last_time_unknown();
-    svc.output = obj.output();
-    svc.perf_data = obj.perfdata();
-    svc.is_flapping = obj.flapping();
-    svc.percent_state_change = obj.percent_state_change();
-    svc.latency = obj.latency();
-    svc.execution_time = obj.execution_time();
-    svc.last_check = obj.last_check();
-    svc.next_check = obj.next_check();
-    svc.should_be_scheduled = obj.should_be_scheduled();
-    svc.current_check_attempt = obj.check_attempt();
-    svc.notification_number = obj.notification_number();
-    svc.no_more_notifications = obj.no_more_notifications();
-    svc.last_notification = obj.last_notification();
-    svc.next_notification = obj.next_notification();
-    svc.acknowledgement_type = obj.acknowledgement_type();
-    svc.downtime_depth = obj.scheduled_downtime_depth();
-  } else if (it->second->type() == make_type(io::neb, neb::de_pb_service)) {
-    auto& svc =
-        std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
-    svc.set_checked(obj.checked());
-    svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
-    svc.set_state(static_cast<Service_State>(obj.state()));
-    svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
-    svc.set_last_state_change(obj.last_state_change());
-    svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
-    svc.set_last_hard_state_change(obj.last_hard_state_change());
-    svc.set_last_time_ok(obj.last_time_ok());
-    svc.set_last_time_warning(obj.last_time_warning());
-    svc.set_last_time_critical(obj.last_time_critical());
-    svc.set_last_time_unknown(obj.last_time_unknown());
-    svc.set_output(obj.output());
-    svc.set_perfdata(obj.perfdata());
-    svc.set_flapping(obj.flapping());
-    svc.set_percent_state_change(obj.percent_state_change());
-    svc.set_latency(obj.latency());
-    svc.set_execution_time(obj.execution_time());
-    svc.set_last_check(obj.last_check());
-    svc.set_next_check(obj.next_check());
-    svc.set_should_be_scheduled(obj.should_be_scheduled());
-    svc.set_check_attempt(obj.check_attempt());
-    svc.set_notification_number(obj.notification_number());
-    svc.set_no_more_notifications(obj.no_more_notifications());
-    svc.set_last_notification(obj.last_notification());
-    svc.set_next_notification(obj.next_notification());
-    svc.set_acknowledgement_type(obj.acknowledgement_type());
-    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-  } else {
-    _cache->logger()->error(
-        "lua: The service ({}, {}) stored in cache is corrupted", obj.host_id(),
-        obj.service_id());
-  }
+  auto& svc = it->second->mut_obj();
+  svc.set_checked(obj.checked());
+  svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
+  svc.set_state(static_cast<Service_State>(obj.state()));
+  svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
+  svc.set_last_state_change(obj.last_state_change());
+  svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
+  svc.set_last_hard_state_change(obj.last_hard_state_change());
+  svc.set_last_time_ok(obj.last_time_ok());
+  svc.set_last_time_warning(obj.last_time_warning());
+  svc.set_last_time_critical(obj.last_time_critical());
+  svc.set_last_time_unknown(obj.last_time_unknown());
+  svc.set_output(obj.output());
+  svc.set_perfdata(obj.perfdata());
+  svc.set_flapping(obj.flapping());
+  svc.set_percent_state_change(obj.percent_state_change());
+  svc.set_latency(obj.latency());
+  svc.set_execution_time(obj.execution_time());
+  svc.set_last_check(obj.last_check());
+  svc.set_next_check(obj.next_check());
+  svc.set_should_be_scheduled(obj.should_be_scheduled());
+  svc.set_check_attempt(obj.check_attempt());
+  svc.set_notification_number(obj.notification_number());
+  svc.set_no_more_notifications(obj.no_more_notifications());
+  svc.set_last_notification(obj.last_notification());
+  svc.set_next_notification(obj.next_notification());
+  svc.set_acknowledgement_type(obj.acknowledgement_type());
+  svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
 }
 
 /**
@@ -1078,72 +1206,37 @@ void macro_cache::_process_pb_adaptive_service(
   auto& as = s->obj();
   auto it = _services.find({as.host_id(), as.service_id()});
   if (it != _services.end()) {
-    if (it->second->type() == make_type(io::neb, neb::de_service)) {
-      auto& s = *std::static_pointer_cast<neb::service>(it->second);
-      if (as.has_notify())
-        s.notifications_enabled = as.notify();
-      if (as.has_active_checks())
-        s.active_checks_enabled = as.active_checks();
-      if (as.has_should_be_scheduled())
-        s.should_be_scheduled = as.should_be_scheduled();
-      if (as.has_passive_checks())
-        s.passive_checks_enabled = as.passive_checks();
-      if (as.has_event_handler_enabled())
-        s.event_handler_enabled = as.event_handler_enabled();
-      if (as.has_flap_detection_enabled())
-        s.flap_detection_enabled = as.flap_detection_enabled();
-      if (as.has_obsess_over_service())
-        s.obsess_over = as.obsess_over_service();
-      if (as.has_event_handler())
-        s.event_handler = as.event_handler();
-      if (as.has_check_command())
-        s.check_command = as.check_command();
-      if (as.has_check_interval())
-        s.check_interval = as.check_interval();
-      if (as.has_retry_interval())
-        s.retry_interval = as.retry_interval();
-      if (as.has_max_check_attempts())
-        s.max_check_attempts = as.max_check_attempts();
-      if (as.has_check_freshness())
-        s.check_freshness = as.check_freshness();
-      if (as.has_check_period())
-        s.check_period = as.check_period();
-      if (as.has_notification_period())
-        s.notification_period = as.notification_period();
-    } else {
-      auto& s =
-          std::static_pointer_cast<neb::pb_service>(it->second)->mut_obj();
-      if (as.has_notify())
-        s.set_notify(as.notify());
-      if (as.has_active_checks())
-        s.set_active_checks(as.active_checks());
-      if (as.has_should_be_scheduled())
-        s.set_should_be_scheduled(as.should_be_scheduled());
-      if (as.has_passive_checks())
-        s.set_passive_checks(as.passive_checks());
-      if (as.has_event_handler_enabled())
-        s.set_event_handler_enabled(as.event_handler_enabled());
-      if (as.has_flap_detection_enabled())
-        s.set_flap_detection(as.flap_detection_enabled());
-      if (as.has_obsess_over_service())
-        s.set_obsess_over_service(as.obsess_over_service());
-      if (as.has_event_handler())
-        s.set_event_handler(as.event_handler());
-      if (as.has_check_command())
-        s.set_check_command(as.check_command());
-      if (as.has_check_interval())
-        s.set_check_interval(as.check_interval());
-      if (as.has_retry_interval())
-        s.set_retry_interval(as.retry_interval());
-      if (as.has_max_check_attempts())
-        s.set_max_check_attempts(as.max_check_attempts());
-      if (as.has_check_freshness())
-        s.set_check_freshness(as.check_freshness());
-      if (as.has_check_period())
-        s.set_check_period(as.check_period());
-      if (as.has_notification_period())
-        s.set_notification_period(as.notification_period());
-    }
+    auto& s = it->second->mut_obj();
+    if (as.has_notify())
+      s.set_notify(as.notify());
+    if (as.has_active_checks())
+      s.set_active_checks(as.active_checks());
+    if (as.has_should_be_scheduled())
+      s.set_should_be_scheduled(as.should_be_scheduled());
+    if (as.has_passive_checks())
+      s.set_passive_checks(as.passive_checks());
+    if (as.has_event_handler_enabled())
+      s.set_event_handler_enabled(as.event_handler_enabled());
+    if (as.has_flap_detection_enabled())
+      s.set_flap_detection(as.flap_detection_enabled());
+    if (as.has_obsess_over_service())
+      s.set_obsess_over_service(as.obsess_over_service());
+    if (as.has_event_handler())
+      s.set_event_handler(as.event_handler());
+    if (as.has_check_command())
+      s.set_check_command(as.check_command());
+    if (as.has_check_interval())
+      s.set_check_interval(as.check_interval());
+    if (as.has_retry_interval())
+      s.set_retry_interval(as.retry_interval());
+    if (as.has_max_check_attempts())
+      s.set_max_check_attempts(as.max_check_attempts());
+    if (as.has_check_freshness())
+      s.set_check_freshness(as.check_freshness());
+    if (as.has_check_period())
+      s.set_check_period(as.check_period());
+    if (as.has_notification_period())
+      s.set_notification_period(as.notification_period());
   } else {
     SPDLOG_LOGGER_WARN(
         _cache->logger(),

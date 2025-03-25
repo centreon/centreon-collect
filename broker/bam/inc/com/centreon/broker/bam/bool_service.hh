@@ -21,8 +21,6 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker::bam {
 /**
@@ -56,6 +54,9 @@ class bool_service : public bool_value, public service_listener {
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
                       io::stream* visitor = nullptr) override;
+  void service_update(
+      const std::shared_ptr<neb::pb_adaptive_service_status>& status,
+      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::service_status>& status,
                       io::stream* visitor = nullptr) override;
   double value_hard() const override;

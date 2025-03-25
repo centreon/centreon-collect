@@ -1,0 +1,15 @@
+---
+name: config.yaml
+description: simple configuration exemple without other file include.
+configuration:
+  gorgone:
+    key1: a string with all char &é"'(-è_çà)=!:;,*$^ù%µ£¨/.\e?/§
+    key2:
+      - array1
+      - array2
+      - array3
+    TrueVal: true
+    FalseVal: false
+    vault:
+      badFormat: "secret::hashicorp::thereIsOnlyOneColon"
+      correctFormat: "secret::hashicorp_vault::SecretPathArg::secretNameFromApiResponse"

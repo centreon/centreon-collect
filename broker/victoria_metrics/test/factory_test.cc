@@ -43,19 +43,19 @@ TEST_F(VictoriaMetricsFactory, MissingParams) {
 
   bool is_acceptor;
 
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
   cfg.params["db_user"] = "admin";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
   cfg.params["db_password"] = "pass";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
   cfg.params["db_host"] = "host";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
   cfg.params["db_name"] = "centreon";
-  ASSERT_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr), msg_fmt);
+  ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr), msg_fmt);
   cfg.params["db_host"] = "localhost";
-  ASSERT_NO_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr));
+  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr));
   cfg.params["db_host"] = "127.0.0.1";
-  ASSERT_NO_THROW(fact.new_endpoint(cfg, is_acceptor, nullptr));
+  ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, nullptr));
   ASSERT_FALSE(is_acceptor);
 }
 
@@ -82,7 +82,7 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
 
   bool is_acceptor;
   victoria_metrics::connector* conn = static_cast<victoria_metrics::connector*>(
-      fact.new_endpoint(cfg, is_acceptor, nullptr));
+      fact.new_endpoint(cfg, {}, is_acceptor, nullptr));
   ASSERT_FALSE(is_acceptor);
 
   const http_tsdb::http_tsdb_config& conf = *conn->get_conf();

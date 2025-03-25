@@ -142,6 +142,13 @@ https_connection::https_connection(
   }
   _stream = std::make_unique<ssl_stream>(beast::net::make_strand(*io_context),
                                          _sslcontext);
+  if (!SSL_set_tlsext_host_name(_stream->native_handle(),
+                                conf->get_server_name().c_str())) {
+    beast::error_code ec{static_cast<int>(::ERR_get_error()),
+                         boost::beast::net::error::get_ssl_category()};
+    SPDLOG_LOGGER_ERROR(logger, "Failed to initialize the https connection: {}",
+                        ec.message());
+  }
   SPDLOG_LOGGER_DEBUG(_logger, "create https_connection {:p} to {}",
                       static_cast<void*>(this), *conf);
 }
@@ -191,10 +198,18 @@ void https_connection::connect(connect_callback_type&& callback) {
                       *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(*_stream).expires_after(_conf->get_connect_timeout());
-  beast::get_lowest_layer(*_stream).async_connect(
-      _conf->get_endpoint(),
-      [me = shared_from_this(), cb = std::move(callback)](
-          const beast::error_code& err) mutable { me->on_connect(err, cb); });
+  if (_conf->get_endpoints_list().empty())
+    beast::get_lowest_layer(*_stream).async_connect(
+        _conf->get_endpoint(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const beast::error_code& err) mutable { me->on_connect(err, cb); });
+  else
+    beast::get_lowest_layer(*_stream).async_connect(
+        _conf->get_endpoints_list(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const beast::error_code& err,
+            const asio::ip::tcp::endpoint& endpoint
+            [[maybe_unused]]) mutable { me->on_connect(err, cb); });
 }
 
 /**
@@ -206,8 +221,13 @@ void https_connection::connect(connect_callback_type&& callback) {
 void https_connection::on_connect(const beast::error_code& err,
                                   connect_callback_type& callback) {
   if (err) {
-    std::string detail = fmt::format("fail connect to {}: {}",
-                                     _conf->get_endpoint(), err.message());
+    std::string detail;
+    if (_conf->get_endpoints_list().empty())
+      detail = fmt::format("fail connect to {}: {}", _conf->get_endpoint(),
+                           err.message());
+    else
+      detail = fmt::format("fail connect to {}: {}", _conf->get_server_name(),
+                           err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail);
     shutdown();

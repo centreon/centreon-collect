@@ -1009,7 +1009,6 @@ not15
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif,command_notif1
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif,command_notif1
 
-
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine

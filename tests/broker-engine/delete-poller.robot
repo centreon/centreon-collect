@@ -98,9 +98,9 @@ EBDP2
     Terminate Process    e1
     Terminate Process    e2
 
-    ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
+    ${content}    Create List    feeder 'central-broker-master-input-\\d', connection closed
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
-    Should Be True    ${result}    connection closed not found.
+    Should Be True    ${result[0]}    connection closed not found.
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
@@ -171,9 +171,9 @@ EBDP_GRPC2
     Terminate Process    e1
     Terminate Process    e2
 
-    ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
+    ${content}    Create List    feeder 'central-broker-master-input-\\d', connection closed
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
-    Should Be True    ${result}    connection closed not found.
+    Should Be True    ${result[0]}    connection closed not found.
 
     Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
@@ -359,6 +359,7 @@ EBDP5
     Ctn Config Broker    module    ${4}
     Ctn Config BBDO3    ${4}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
@@ -416,6 +417,7 @@ EBDP6
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -483,6 +485,7 @@ EBDP7
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    central    core    trace
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine

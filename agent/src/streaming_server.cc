@@ -17,9 +17,8 @@
  */
 
 #include "streaming_server.hh"
-#include "check_exec.hh"
+#include "agent_info.hh"
 #include "scheduler.hh"
-#include "version.hh"
 
 using namespace com::centreon::agent;
 
@@ -83,17 +82,12 @@ void server_reactor::_start() {
           parent->write(request);
         }
       },
-      check_exec::load);
+      scheduler::default_check_builder);
 
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =
       std::make_shared<MessageFromAgent>();
-  auto infos = who_i_am->mutable_init();
-
-  infos->mutable_centreon_version()->set_major(CENTREON_AGENT_VERSION_MAJOR);
-  infos->mutable_centreon_version()->set_minor(CENTREON_AGENT_VERSION_MINOR);
-  infos->mutable_centreon_version()->set_patch(CENTREON_AGENT_VERSION_PATCH);
-  infos->set_host(_supervised_host);
+  fill_agent_info(_supervised_host, who_i_am->mutable_init());
 
   write(who_i_am);
 }
@@ -111,7 +105,8 @@ std::shared_ptr<server_reactor> server_reactor::load(
 
 void server_reactor::on_incomming_request(
     const std::shared_ptr<MessageToAgent>& request) {
-  _io_context->post([sched = _sched, request]() { sched->update(request); });
+  asio::post(*_io_context,
+             [sched = _sched, request]() { sched->update(request); });
 }
 
 void server_reactor::on_error() {

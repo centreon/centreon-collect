@@ -25,7 +25,6 @@ LCDNU
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    central    lua    debug
-    Ctn Config Broker Sql Output    central    unified_sql
 
     ${new_content}    Catenate    SEPARATOR=\n
     ...    function init(params)
@@ -70,7 +69,10 @@ LCDNU
     Wait Until Created    /tmp/test-LUA.log
     FOR    ${i}    IN RANGE    60
         ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
-        IF    len("""${result}""") > 0    BREAK
+        IF    len("""${result}""") > 0
+	    Log To Console    ${result}
+	    BREAK
+	END
 	Sleep    1s
     END
     Should Not Be Empty    ${result}    Configuration error

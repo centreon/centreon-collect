@@ -20,7 +20,6 @@
 
 #include <absl/strings/match.h>
 
-#include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/sql/connector.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -53,18 +52,16 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
-  (void)cache;
-
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Database configuration.
-  database_config dbcfg(cfg);
+  database_config dbcfg(cfg, global_params);
 
   // Cleanup check interval.
   uint32_t cleanup_check_interval = 0;
   {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("cleanup_check_interval")};
+    auto it = cfg.params.find("cleanup_check_interval");
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &cleanup_check_interval)) {
       log_v2::instance()
@@ -78,8 +75,7 @@ io::endpoint* factory::new_endpoint(
 
   bool enable_cmd_cache = false;
   {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("enable_command_cache"));
+    auto it = cfg.params.find("enable_command_cache");
     if (it != cfg.params.end() &&
         !absl::SimpleAtob(it->second, &enable_cmd_cache)) {
       log_v2::instance()
@@ -101,8 +97,7 @@ io::endpoint* factory::new_endpoint(
   // By default, 5 minutes.
   uint32_t instance_timeout(5 * 60);
   {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("instance_timeout"));
+    auto it = cfg.params.find("instance_timeout");
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &instance_timeout)) {
       log_v2::instance()
@@ -117,8 +112,7 @@ io::endpoint* factory::new_endpoint(
   // Use state events ?
   bool wse = false;
   {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("with_state_events"));
+    auto it = cfg.params.find("with_state_events");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &wse)) {
         log_v2::instance()

@@ -161,6 +161,25 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
 }
 
 /**
+ * @brief Propagate events of type neb::service_status to the concerned services
+ * and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
+void service_book::update(
+    const std::shared_ptr<neb::pb_adaptive_service_status>& t,
+    io::stream* visitor) {
+  auto obj = t->obj();
+  auto found = _book.find(std::make_pair(obj.host_id(), obj.service_id()));
+  if (found == _book.end())
+    return;
+
+  for (auto l : found->second.listeners)
+    l->service_update(t, visitor);
+}
+
+/**
  * @brief Propagate events of type pb_service to the
  * concerned services and then to the corresponding kpi.
  *

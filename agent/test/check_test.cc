@@ -22,6 +22,30 @@
 
 using namespace com::centreon::agent;
 
+TEST(duration_from_str, values) {
+  EXPECT_EQ(duration{0}, duration_from_string("", 's'));
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45s", 'd'));
+  EXPECT_EQ(std::chrono::seconds(45), duration_from_string("45", 's'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33m", 'd'));
+  EXPECT_EQ(std::chrono::minutes(33), duration_from_string("33", 'm'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17h", 'd'));
+  EXPECT_EQ(std::chrono::hours(17), duration_from_string("17", 'h'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13d", 'd'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13d", 'h'));
+  EXPECT_EQ(std::chrono::hours(13 * 24), duration_from_string("13", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24), duration_from_string("11w", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24), duration_from_string("11", 'w'));
+  EXPECT_EQ(std::chrono::hours(-11 * 7 * 24), duration_from_string("-11", 'w'));
+  EXPECT_EQ(std::chrono::hours(-11 * 7 * 24),
+            duration_from_string("-11w", 'd'));
+  EXPECT_EQ(std::chrono::hours(11 * 7 * 24),
+            duration_from_string("-11w", 'd', true));
+  EXPECT_EQ(std::chrono::hours(7 * 24) + std::chrono::hours(3 * 24) +
+                std::chrono::hours(13) + std::chrono::minutes(5) +
+                std::chrono::seconds(30),
+            duration_from_string("1w3d13h5m30", 's'));
+}
+
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class dummy_check : public check {
@@ -30,8 +54,10 @@ class dummy_check : public check {
 
  public:
   void start_check(const duration& timeout) override {
-    check::start_check(timeout);
-    _command_timer.expires_from_now(_command_duration);
+    if (!_start_check(timeout)) {
+      return;
+    }
+    _command_timer.expires_after(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
                                   const boost::system::error_code& err) {
@@ -53,11 +79,13 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::seconds(1),
               serv,
               command_name,
               command_line,
               nullptr,
-              handler),
+              handler,
+              std::make_shared<checks_statistics>()),
         _command_duration(command_duration),
         _command_timer(*g_io_context) {}
 };
@@ -77,7 +105,8 @@ TEST(check_test, timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {
@@ -114,7 +143,8 @@ TEST(check_test, no_timeout) {
       serv, cmd_name, cmd_line, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
-          const std::list<com::centreon::common::perfdata>& perfdata,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
           const std::list<std::string>& outputs) {
         status = statuss;
         if (outputs.size() == 1) {

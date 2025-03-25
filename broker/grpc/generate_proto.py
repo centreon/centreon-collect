@@ -21,6 +21,7 @@ from os import listdir
 from os.path import isfile, join
 import re
 import argparse
+import sys
 
 
 file_begin_content = """syntax = "proto3";
@@ -32,7 +33,6 @@ file_message_centreon_event = """
 message CentreonEvent {
     oneof content {
         bytes buffer = 1;
-
 """
 
 cc_file_begin_content = """/**
@@ -112,7 +112,7 @@ class received_protobuf : public io::protobuf<T, Typ> {
 
   T& mut_obj() override { return *((*_received).*_mutable_access)(); }
 
-  void set_obj(T&& obj) override {
+  void set_obj([[maybe_unused]] T&& obj) override {
     throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
                                              static_cast<const char*>(typeid(*this).name()));
   }
@@ -177,50 +177,89 @@ parser.add_argument('-d', '--proto_directory',
 args = parser.parse_args()
 
 message_parser = r'^message\s+(\w+)\s+\{'
-io_protobuf_parser = r'\/\*\s*(\w+::\w+\s*,\s*\w+::\w+)\s*\*\/'
+io_protobuf_parser = r'\/\*\s*(\w+::\w+\s*,\s*\w+::\w+)\s*,\s*(\d+)\s*\*\/'
+ignore_message = "/* Ignore */"
 
 one_of_index = 2
+message_save = []
 
 for directory in args.proto_directory:
     proto_files = [f for f in listdir(
         directory) if f[-6:] == ".proto" and isfile(join(directory, f))]
     for file in proto_files:
+        line_counter = 0
+        flag_ignore = False
         with open(join(directory, file)) as proto_file:
             messages = []
             io_protobuf_match = None
             for line in proto_file.readlines():
+                line_counter += 1
                 m = re.match(message_parser, line)
-                if m is not None and io_protobuf_match is not None:
-                    messages.append([m.group(1), io_protobuf_match.group(1)])
+                if m and io_protobuf_match:
+                    # Check that the message and the io_protobuf_match are coherent
+                    # Let's take the message name and remove the de_pb_ prefix if it exists
+                    message_name = io_protobuf_match.group(1).split(',')[
+                        1].split('::')[1]
+                    message_name = message_name[3:] if message_name.startswith(
+                        'de_') else message_name
+                    message_name = message_name[3:] if message_name.startswith(
+                        'pb_') else message_name
+                    # Let's change the name into SnakeCase
+                    message_name = ''.join(word.title()
+                                           for word in message_name.split('_'))
+                    if m.group(1) != message_name:
+                        print(
+                            f"generate_proto.py : Error: Message {{ {m.group(1)} }} does not match the io_protobuf_match {{ {io_protobuf_match[1]} }} : file :{file}:{line_counter}", file=sys.stderr)
+                        exit(2)
+                    messages.append(
+                        [m.group(1), io_protobuf_match.group(1), io_protobuf_match.group(2)])
                     io_protobuf_match = None
+                    flag_ignore = True
                 else:
                     io_protobuf_match = re.match(io_protobuf_parser, line)
 
-            if len(messages) > 0:
-                file_begin_content += f"import \"{file}\";\n"
-                for mess, id in messages:
-                    # proto file
-                    file_message_centreon_event += f"        {mess} {mess}_ = {one_of_index};\n"
-                    one_of_index += 1
-                    lower_mess = mess.lower()
-                    # cc file
-                    cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
-            return std::make_shared<detail::received_protobuf<
-                {mess}, make_type({id})>>(
-                stream_content, &grpc_event_type::{lower_mess}_,
-                &grpc_event_type::mutable_{lower_mess}_);
+                # check if no bbo message have the comment: Ignore
+                if ignore_message in line:
+                    flag_ignore = True
+                # check if message has comment ignore or it's bbdo message
+                if flag_ignore and m:
+                    flag_ignore = False
+                elif not flag_ignore and m:
+                    print(
+                        f"generate_proto.py : Error: Message {{ {m.group(1)} }} has no protobuf id or missing the comment /* Ignore */ : file :{file}:{line_counter}", file=sys.stderr)
+                    print(
+                        f"Error Add /* Ignore */ or a protobuf id as example: /*io::bam, bam::de_pb_services_book_state, XXX */", file=sys.stderr)
+                    exit(1)
+
+        if len(messages) > 0:
+            file_begin_content += f"import \"{file}\";\n"
+            message_save += messages
+# sort the message with index (io_protobuf_match.group(2))
+message_save.sort(key=lambda x: int(x[2]))
+for mess, id, index in message_save:
+    # proto file
+    file_message_centreon_event += f"        {mess} {mess}_ = {index};\n"
+    # count index : needed for opentelemetry
+    one_of_index += 1
+    lower_mess = mess.lower()
+    # cc file
+    cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
+return std::make_shared<detail::received_protobuf<
+    {mess}, make_type({id})>>(
+    stream_content, &grpc_event_type::{lower_mess}_,
+    &grpc_event_type::mutable_{lower_mess}_);
 """
-                    cc_file_create_event_with_data_function += f"""        case make_type({id}):
-            ret = std::make_shared<event_with_data>(
-                event, reinterpret_cast<event_with_data::releaser_type>(
-                &grpc_event_type::release_{lower_mess}_));
-            ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
-            break;
+    cc_file_create_event_with_data_function += f"""        case make_type({id}):
+    ret = std::make_shared<event_with_data>(
+        event, reinterpret_cast<event_with_data::releaser_type>(
+        &grpc_event_type::release_{lower_mess}_));
+    ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
+    break;
 
 """
 
-#The following message is not in bbdo protobuff files so we need to add manually.
-                    
+# The following message is not in bbdo protobuff files so we need to add manually.
+
 file_message_centreon_event += f"        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest ExportMetricsServiceRequest_ = {one_of_index};\n"
 
 cc_file_protobuf_to_event_function += """

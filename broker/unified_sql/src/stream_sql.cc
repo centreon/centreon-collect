@@ -15,23 +15,24 @@
  *
  * For more information : contact@centreon.com
  */
-#include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 
-#include "bbdo/neb.pb.h"
+#include <rapidjson/document.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/common/file.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
+#include "common/engine_conf/parser.hh"
+#include "common/engine_conf/state_helper.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -282,17 +283,20 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
-        "UPDATE hosts AS h "
-        "SET h.state=h.real_state WHERE h.instance_id={} and h.real_state IS "
-        "NOT NULL",
+        "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
+        "instance_id={} AND real_state IS NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
     query = fmt::format(
         "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
-        "SET s.state=s.real_state WHERE h.instance_id={} and s.real_state IS "
-        "NOT NULL",
+        "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
+        "and s.real_state IS NOT NULL",
         id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 1 WHERE poller_id={}", id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::services);
   } else {
@@ -309,6 +313,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
+    query = fmt::format(
+        "UPDATE agent_information SET enabled = 0 WHERE poller_id={}", id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   }
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   SPDLOG_LOGGER_TRACE(
@@ -852,10 +860,8 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_INFO(_logger_sql,
                      "unified_sql: processing downtime event (poller: {}"
                      ", host: {}, service: {}, start time: {}, end_time: {}"
-                     ", actual start time: {}"
-                     ", actual end time: {}"
-                     ", duration: {}, entry time: {}"
-                     ", deletion time: {})",
+                     ", actual start time: {}, actual end time: {}, duration: "
+                     "{}, entry time: {}, deletion time: {})",
                      dd.poller_id, dd.host_id, dd.service_id, dd.start_time,
                      dd.end_time, dd.actual_start_time, dd.actual_end_time,
                      dd.duration, dd.entry_time, dd.deletion_time);
@@ -950,11 +956,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(_logger_sql,
                      "unified_sql: processing pb downtime event (poller: {}"
-                     ", host: {}, service: {}, start time: {}, end_time: {}"
-                     ", actual start time: {}"
-                     ", actual end time: {}"
-                     ", duration: {}, entry time: {}"
-                     ", deletion time: {})",
+                     ", host: {}, service: {}, start time: {}, end_time: {}, "
+                     "actual start time: {}, actual end time: {}, duration: "
+                     "{}, entry time: {}, deletion time: {})",
                      dt_obj.instance_id(), dt_obj.host_id(),
                      dt_obj.service_id(), dt_obj.start_time(),
                      dt_obj.end_time(), dt_obj.actual_start_time(),
@@ -1503,7 +1507,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     std::string query = fmt::format(
-        "DELETE FROM hosts_hostgroup WHERE host_id={} and hostgroup_id = {}",
+        "DELETE FROM hosts_hostgroups WHERE host_id={} and hostgroup_id = {}",
         hgm.host_id(), hgm.hostgroup_id());
 
     _mysql.run_query(query, database::mysql_error::delete_host_group_member,
@@ -1648,7 +1652,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
                        hp.parent_id(), hp.child_id());
 
     // Prepare queries.
-    if (!_host_parent_insert.prepared()) {
+    if (!_pb_host_parent_insert.prepared()) {
       query_preparator::event_pb_unique unique{
           {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
           {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
@@ -1691,11 +1695,301 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ * @brief Process a Protobuf instance configuration. This event is sent once all
+ * the configuration is sent by Engine. Even if Engine doesn't need to send it,
+ * this event is sent so Broker can handle some configurations if needed.
+ *
+ * @param d Uncasted Protobuf instance configuration.
+ */
+void stream::_process_pb_instance_configuration(
+    const std::shared_ptr<io::data>& d) {
+  /* The configuration has just been updated, so we can get the configuration
+   * from the php cache directory and copy it into the broker cache engine
+   * configuration directory. */
+  std::shared_ptr<neb::pb_instance_configuration> ic =
+      std::static_pointer_cast<neb::pb_instance_configuration>(d);
+  auto obj = ic->obj();
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: processing Pb instance configuration (poller {})",
+      obj.poller_id());
+  std::string current_version =
+      config::applier::state::instance().engine_configuration(obj.poller_id());
+  /* The instance configuration message is only interesting with extended
+   * negociation. */
+  if (!current_version.empty() &&
+      !config::applier::state::instance().config_cache_dir().empty()) {
+    std::filesystem::path poller_dir =
+        config::applier::state::instance().pollers_config_dir() /
+        fmt::to_string(obj.poller_id());
+    std::filesystem::path cache_dir =
+        config::applier::state::instance().config_cache_dir() /
+        fmt::to_string(obj.poller_id());
+    if (!std::filesystem::exists(cache_dir)) {
+      _logger_sql->error(
+          "unified_sql: The cache directory that should contain the engine "
+          "configuration does not exist: '{}'",
+          cache_dir.string());
+      return;
+    }
+    std::error_code ec;
+    std::string new_version = common::hash_directory(cache_dir, ec);
+    if (ec) {
+      _logger_sql->error(
+          "unified_sql: Error while hashing the cache directory '{}': {}",
+          cache_dir.string(), ec.message());
+    }
+    if (new_version != current_version) {
+      _logger_sql->debug(
+          "unified_sql: New engine configuration, broker directories updated");
+      std::filesystem::path pollers_dir =
+          config::applier::state::instance().pollers_config_dir();
+      if (!std::filesystem::exists(pollers_dir)) {
+        _logger_sql->trace(
+            "unified_sql: Broker poller directory '{}' does not exist, "
+            "creating "
+            "it",
+            cache_dir.string());
+        std::filesystem::create_directories(cache_dir);
+      }
+      if (!std::filesystem::is_empty(poller_dir)) {
+        _logger_sql->trace(
+            "unified_sql: Broker poller directory '{}' is not empty, cleaning "
+            "it",
+            poller_dir.string());
+        std::filesystem::remove_all(poller_dir);
+      }
+      std::filesystem::copy(cache_dir, poller_dir,
+                            std::filesystem::copy_options::recursive);
+      config::applier::state::instance().set_engine_configuration(
+          obj.poller_id(), new_version);
+      _logger_sql->info("SQL: Poller {} configuration updated in '{}'",
+                        obj.poller_id(), poller_dir.string());
+    } else {
+      _logger_sql->debug(
+          "unified_sql: Engine configuration already known by Broker");
+    }
+
+    if (_is_valid_poller(obj.poller_id())) {
+      engine::configuration::State state;
+      engine::configuration::state_helper state_hlp(&state);
+      engine::configuration::error_cnt err;
+      engine::configuration::parser p;
+      try {
+        p.parse(poller_dir / "centengine.cfg", &state, err);
+        state_hlp.expand(err);
+
+        if (_store_in_hosts_services) {
+          if (!_eh_update) {
+            if (_bulk_prepared_statement) {
+              auto eh = std::make_unique<database::mysql_bulk_stmt>(
+                  "UPDATE hosts SET enabled = 1 WHERE host_id = ?");
+              _mysql.prepare_statement(*eh);
+              _eh_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *eh, _logger_sql);
+              _eh_update = std::move(eh);
+            } else {
+              _eh_update = std::make_unique<database::mysql_stmt>(
+                  "UPDATE hosts SET enabled = 1 WHERE host_id = ?");
+              _mysql.prepare_statement(*_eh_update);
+            }
+          }
+
+          if (!_es_update) {
+            if (_bulk_prepared_statement) {
+              auto es = std::make_unique<database::mysql_bulk_stmt>(
+                  "UPDATE services SET enabled=1 WHERE host_id=? AND "
+                  "service_id=?");
+              _mysql.prepare_statement(*es);
+              _es_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *es, _logger_sql);
+              _es_update = std::move(es);
+            } else {
+              _es_update = std::make_unique<database::mysql_stmt>(
+                  "UPDATE services SET enabled=1 WHERE host_id=? AND "
+                  "service_id=?");
+              _mysql.prepare_statement(*_es_update);
+            }
+          }
+
+          if (_bulk_prepared_statement) {
+            for (const auto& h : state.hosts()) {
+              if (!_eh_bind->bind(0))
+                _eh_bind->init_from_stmt(0);
+              auto* b = _eh_bind->bind(0).get();
+              b->set_value_as_u64(0, h.host_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, eh_bind connections "
+                "count = {}",
+                _eh_bind->connections_count());
+            if (_eh_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} hosts in hosts table",
+                                  _eh_bind->size(0));
+              // Setting the good bind to the stmt
+              _eh_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_eh_update, database::mysql_error::update_hosts_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              if (!_es_bind->bind(0))
+                _es_bind->init_from_stmt(0);
+              auto* b = _es_bind->bind(0).get();
+              b->set_value_as_u64(0, s.host_id());
+              b->set_value_as_u64(1, s.service_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, es_bind connections "
+                "count = {}",
+                _es_bind->connections_count());
+            if (_es_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} services in services table",
+                                  _es_bind->size(0));
+              // Setting the good bind to the stmt
+              _es_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_es_update, database::mysql_error::update_services_enabled,
+                  0);
+            }
+          } else {
+            for (const auto& h : state.hosts()) {
+              _eh_update->bind_value_as_u64(0, h.host_id());
+              _mysql.run_statement(
+                  *_eh_update, database::mysql_error::update_hosts_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              _es_update->bind_value_as_u64(0, s.host_id());
+              _es_update->bind_value_as_u64(1, s.service_id());
+              _mysql.run_statement(
+                  *_es_update, database::mysql_error::update_services_enabled,
+                  0);
+            }
+          }
+        }
+        if (_store_in_resources) {
+          if (!_ehr_update) {
+            std::string query =
+                "UPDATE resources SET enabled=1 WHERE id=? AND parent_id=0";
+            if (_bulk_prepared_statement) {
+              auto ehr = std::make_unique<database::mysql_bulk_stmt>(query);
+              _mysql.prepare_statement(*ehr);
+              _ehr_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *ehr, _logger_sql);
+              _ehr_update = std::move(ehr);
+            } else {
+              _ehr_update = std::make_unique<database::mysql_stmt>(query);
+              _mysql.prepare_statement(*_ehr_update);
+            }
+          }
+          if (!_esr_update) {
+            std::string query =
+                "UPDATE resources SET enabled=1 WHERE parent_id=? AND id=?";
+            if (_bulk_prepared_statement) {
+              auto esr = std::make_unique<database::mysql_bulk_stmt>(query);
+              _mysql.prepare_statement(*esr);
+              _esr_bind = std::make_unique<bulk_bind>(
+                  _dbcfg.get_connections_count(), dt_queue_timer_duration,
+                  _max_pending_queries, *esr, _logger_sql);
+              _esr_update = std::move(esr);
+            } else {
+              _esr_update = std::make_unique<database::mysql_stmt>(query);
+              _mysql.prepare_statement(*_esr_update);
+            }
+          }
+
+          if (_bulk_prepared_statement) {
+            for (const auto& h : state.hosts()) {
+              if (!_ehr_bind->bind(0))
+                _ehr_bind->init_from_stmt(0);
+              auto* b = _ehr_bind->bind(0).get();
+              _logger_sql->debug("Enabling host_id: {}", h.host_id());
+              b->set_value_as_u64(0, h.host_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, ehr_bind connections "
+                "count = {}",
+                _ehr_bind->connections_count());
+
+            if (_ehr_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} hosts in resources table",
+                                  _ehr_bind->size(0));
+              // Setting the good bind to the stmt
+              _ehr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_ehr_update,
+                  database::mysql_error::update_hosts_resources_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              if (!_esr_bind->bind(0))
+                _esr_bind->init_from_stmt(0);
+              _logger_sql->debug("Enabling service ({}:{})", s.host_id(),
+                                 s.service_id());
+              auto* b = _esr_bind->bind(0).get();
+              b->set_value_as_u64(0, s.host_id());
+              b->set_value_as_u64(1, s.service_id());
+              b->next_row();
+            }
+            SPDLOG_LOGGER_TRACE(
+                _logger_sql,
+                "Check if some statements are ready, esr_bind connections "
+                "count = {}",
+                _esr_bind->connections_count());
+            if (_esr_bind->size(0) > 0) {
+              SPDLOG_LOGGER_DEBUG(_logger_sql,
+                                  "Enabling {} services in resources table",
+                                  _esr_bind->size(0));
+              // Setting the good bind to the stmt
+              _esr_bind->apply_to_stmt(0);
+              // Executing the stmt
+              _mysql.run_statement(
+                  *_esr_update,
+                  database::mysql_error::update_services_resources_enabled, 0);
+            }
+          } else {
+            for (const auto& h : state.hosts()) {
+              _ehr_update->bind_value_as_u64(0, h.host_id());
+              _mysql.run_statement(
+                  *_ehr_update,
+                  database::mysql_error::update_hosts_resources_enabled, 0);
+            }
+            for (const auto& s : state.services()) {
+              _esr_update->bind_value_as_u64(0, s.host_id());
+              _esr_update->bind_value_as_u64(1, s.service_id());
+              _mysql.run_statement(
+                  *_esr_update,
+                  database::mysql_error::update_services_resources_enabled, 0);
+            }
+          }
+        }
+      } catch (const std::exception& e) {
+        _logger_sql->error(
+            "unified_sql: error while parsing poller {} Engine configuration: "
+            "{}",
+            obj.poller_id(), e.what());
+      }
+    }
+  }
+}
+
+/**
  *  Process a host status event.
  *
  *  @param[in] e Uncasted host status.
- *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
   if (!_store_in_hosts_services)
@@ -1925,8 +2219,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "notes,"
               "action_url,"
               "notifications_enabled,passive_checks_enabled,"
-              "active_checks_enabled,enabled,icon_id) "
-              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?"
+              "active_checks_enabled,enabled,icon_id,"
+              "flapping,percent_state_change)"
+              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?"
               ")");
           _resources_host_update = _mysql.prepare_query(
               "UPDATE resources SET "
@@ -1937,7 +2232,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
               "parent_name=?,notes_url=?,notes=?,action_url=?,"
               "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,icon_id=?,enabled=1 WHERE "
+              "active_checks_enabled=?,icon_id=?,enabled=1, flapping=?,"
+              "percent_state_change=? WHERE "
               "resource_id=?");
           if (!_resources_tags_remove.prepared())
             _resources_tags_remove = _mysql.prepare_query(
@@ -2053,6 +2349,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_insert.bind_value_as_bool(19, h.passive_checks());
       _resources_host_insert.bind_value_as_bool(20, h.active_checks());
       _resources_host_insert.bind_value_as_u64(21, h.icon_id());
+      _resources_host_insert.bind_value_as_bool(22, h.flapping());
+      _resources_host_insert.bind_value_as_f64(23, h.percent_state_change());
 
       std::promise<uint64_t> p;
       std::future<uint64_t> future = p.get_future();
@@ -2148,7 +2446,9 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_update.bind_value_as_bool(18, h.passive_checks());
       _resources_host_update.bind_value_as_bool(19, h.active_checks());
       _resources_host_update.bind_value_as_u64(20, h.icon_id());
-      _resources_host_update.bind_value_as_u64(21, res_id);
+      _resources_host_update.bind_value_as_bool(21, h.flapping());
+      _resources_host_update.bind_value_as_f64(22, h.percent_state_change());
+      _resources_host_update.bind_value_as_u64(23, res_id);
 
       _mysql.run_statement(_resources_host_update,
                            database::mysql_error::store_host_resources, conn);
@@ -2528,7 +2828,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         else
           b->set_value_as_u64(9, hscr.last_check());
         b->set_value_as_str(10, hscr.output());
-        b->set_value_as_u64(11, hscr.host_id());
+        b->set_value_as_bool(11, hscr.flapping());
+        b->set_value_as_f64(12, hscr.percent_state_change());
+        b->set_value_as_u64(13, hscr.host_id());
         b->next_row();
       } else {
         _hscr_resources_update->bind_value_as_i32(0, hscr.state());
@@ -2548,7 +2850,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update->bind_value_as_u64_ext(
             9, hscr.last_check(), mapping::entry::invalid_on_zero);
         _hscr_resources_update->bind_value_as_str(10, hscr.output());
-        _hscr_resources_update->bind_value_as_u64(11, hscr.host_id());
+        _hscr_resources_update->bind_value_as_bool(11, hscr.flapping());
+        _hscr_resources_update->bind_value_as_f64(12,
+                                                  hscr.percent_state_change());
+        _hscr_resources_update->bind_value_as_u64(13, hscr.host_id());
 
         _mysql.run_statement(*_hscr_resources_update,
                              database::mysql_error::store_host_status, conn);
@@ -2566,6 +2871,80 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         "{}))",
         hscr.host_id(), hscr.check_type(), hscr.last_check(), hscr.next_check(),
         now, hscr.state(), hscr.state_type());
+}
+
+void stream::_process_pb_adaptive_host_status(
+    const std::shared_ptr<io::data>& d) {
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
+  // Processed object.
+  auto h{static_cast<const neb::pb_adaptive_host_status*>(d.get())};
+  auto& hscr = h->obj();
+
+  SPDLOG_LOGGER_DEBUG(
+      _logger_sql, "unified_sql: pb adaptive host {} status -{}{}{}",
+      hscr.host_id(),
+      hscr.has_acknowledgement_type() ? " with acknowledgement type" : "",
+      hscr.has_notification_number() ? " with notification number" : "",
+      hscr.has_scheduled_downtime_depth() ? " with scheduled downtime depth"
+                                          : "");
+
+  if (!_host_instance_known(hscr.host_id())) {
+    SPDLOG_LOGGER_WARN(_logger_sql,
+                       "unified_sql: pb adaptive host status {} thrown away "
+                       "because host {} is not known by "
+                       "any poller",
+                       hscr.host_id(), hscr.host_id());
+    return;
+  }
+
+  int32_t conn = _mysql.choose_connection_by_instance(
+      _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+
+  if (_store_in_hosts_services) {
+    constexpr std::string_view buf("UPDATE hosts SET ");
+    std::string query{buf};
+    if (hscr.has_acknowledgement_type())
+      query += fmt::format("acknowledged='{}',acknowledgement_type='{}',",
+                           hscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
+                           hscr.acknowledgement_type());
+    if (hscr.has_notification_number())
+      query +=
+          fmt::format("notification_number={},", hscr.notification_number());
+    if (hscr.has_scheduled_downtime_depth())
+      query += fmt::format("scheduled_downtime_depth={},",
+                           hscr.scheduled_downtime_depth());
+    if (query.size() > buf.size()) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={}", hscr.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_host_status, conn);
+      _add_action(conn, actions::hosts);
+    }
+  }
+
+  if (_store_in_resources) {
+    constexpr std::string_view res_buf("UPDATE resources SET ");
+    std::string res_query{res_buf};
+    if (hscr.has_acknowledgement_type())
+      res_query +=
+          fmt::format("acknowledged='{}',",
+                      hscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
+    if (hscr.has_notification_number())
+      res_query +=
+          fmt::format("notification_number={},", hscr.notification_number());
+    if (hscr.has_scheduled_downtime_depth())
+      res_query +=
+          fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
+    if (res_query.size() > res_buf.size()) {
+      res_query.resize(res_query.size() - 1);
+      res_query += fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
+      _mysql.run_query(res_query, database::mysql_error::update_resources,
+                       conn);
+      _add_action(conn, actions::resources);
+    }
+  }
 }
 
 /**
@@ -2636,8 +3015,8 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
                          actions::comments | actions::servicegroups |
                          actions::hostgroups);
 
-  /* Now, the local::pb_stop is handled by unified_sql. So the pb_instance with
-   * running = false, seems no more useful. */
+  /* Now, the local::pb_stop is handled by unified_sql. So the pb_instance
+   * with running = false, seems no more useful. */
   // Log message.
   SPDLOG_LOGGER_INFO(
       _logger_sql,
@@ -2746,10 +3125,10 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
                          actions::comments);
 
   // Log message.
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql,
-      "unified_sql: processing poller status event (id: {}, last alive: {} {})",
-      is.instance_id(), is.last_alive(), is.ShortDebugString());
+  SPDLOG_LOGGER_DEBUG(_logger_sql,
+                      "unified_sql: processing poller status event (id: {}, "
+                      "last alive: {} {})",
+                      is.instance_id(), is.last_alive(), is.ShortDebugString());
 
   // Processing.
   if (_is_valid_poller(is.instance_id())) {
@@ -2885,10 +3264,10 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
   const auto& le_obj = le.obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing pb log of poller '{}' generated at {} (type {})",
-      le_obj.instance_name(), le_obj.ctime(), le_obj.msg_type());
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: processing pb log of poller '{}' "
+                     "generated at {} (type {})",
+                     le_obj.instance_name(), le_obj.ctime(), le_obj.msg_type());
 
   if (_logs->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
@@ -3448,10 +3827,10 @@ void stream::_process_service(const std::shared_ptr<io::data>& d) {
   // Processed object.
   const neb::service& s(*static_cast<neb::service const*>(d.get()));
   if (!_host_instance_known(s.host_id)) {
-    SPDLOG_LOGGER_WARN(
-        _logger_sql,
-        "unified_sql: service ({0}, {1}) thrown away because host {0} unknown",
-        s.host_id, s.service_id);
+    SPDLOG_LOGGER_WARN(_logger_sql,
+                       "unified_sql: service ({0}, {1}) thrown away because "
+                       "host {0} unknown",
+                       s.host_id, s.service_id);
     return;
   }
   auto cache_ptr = cache::global_cache::instance_ptr();
@@ -3666,8 +4045,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "severity_id,name,parent_name,notes_url,notes,action_url,"
             "notifications_enabled,passive_checks_enabled,active_"
             "checks_"
-            "enabled,enabled,icon_id) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?)");
+            "enabled,enabled,icon_id, flapping, percent_state_change) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)");
         _resources_service_update = _mysql.prepare_query(
             "UPDATE resources SET "
             "type=?,internal_id=?,status=?,status_ordered=?,last_"
@@ -3679,7 +4058,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             ","
             "notes=?,action_url=?,notifications_enabled=?,"
             "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?"
-            ","
+            ", flapping=?, percent_state_change=?,"
             "enabled=1 WHERE resource_id=?");
         if (!_resources_disable.prepared()) {
           _resources_disable = _mysql.prepare_query(
@@ -3757,6 +4136,9 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           5, svc_ordered_status[s.state()]);
       _resources_service_insert.bind_value_as_u64_ext(
           6, s.last_state_change(), mapping::entry::invalid_on_zero);
+      _logger_sql->debug("service1 ({}, {}) scheduled_downtime_depth: {}",
+                         s.host_id(), s.service_id(),
+                         s.scheduled_downtime_depth());
       _resources_service_insert.bind_value_as_bool(
           7, s.scheduled_downtime_depth() > 0);
       _resources_service_insert.bind_value_as_bool(
@@ -3786,6 +4168,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_insert.bind_value_as_bool(20, s.passive_checks());
       _resources_service_insert.bind_value_as_bool(21, s.active_checks());
       _resources_service_insert.bind_value_as_u64(22, s.icon_id());
+      _resources_service_insert.bind_value_as_bool(23, s.flapping());
+      _resources_service_insert.bind_value_as_f64(24, s.percent_state_change());
 
       std::promise<uint64_t> p;
       std::future<uint64_t> future = p.get_future();
@@ -3850,6 +4234,9 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           3, svc_ordered_status[s.state()]);
       _resources_service_update.bind_value_as_u64_ext(
           4, s.last_state_change(), mapping::entry::invalid_on_zero);
+      _logger_sql->debug("service2 ({}, {}) scheduled_downtime_depth: {}",
+                         s.host_id(), s.service_id(),
+                         s.scheduled_downtime_depth());
       _resources_service_update.bind_value_as_bool(
           5, s.scheduled_downtime_depth() > 0);
       _resources_service_update.bind_value_as_bool(
@@ -3879,7 +4266,9 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_update.bind_value_as_bool(18, s.passive_checks());
       _resources_service_update.bind_value_as_bool(19, s.active_checks());
       _resources_service_update.bind_value_as_u64(20, s.icon_id());
-      _resources_service_update.bind_value_as_u64(21, res_id);
+      _resources_service_update.bind_value_as_bool(21, s.flapping());
+      _resources_service_update.bind_value_as_f64(22, s.percent_state_change());
+      _resources_service_update.bind_value_as_u64(23, res_id);
 
       _mysql.run_statement(_resources_service_update,
                            database::mysql_error::store_service, conn);
@@ -3990,96 +4379,98 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   int32_t conn = _mysql.choose_connection_by_instance(
       _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
-  constexpr std::string_view buf("UPDATE services SET");
-  std::string query{buf.data(), buf.size()};
-  if (as.has_notify())
-    query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
-  if (as.has_active_checks())
-    query += fmt::format(" active_checks='{}',", as.active_checks() ? 1 : 0);
-  if (as.has_should_be_scheduled())
-    query += fmt::format(" should_be_scheduled='{}',",
-                         as.should_be_scheduled() ? 1 : 0);
-  if (as.has_passive_checks())
-    query += fmt::format(" passive_checks='{}',", as.passive_checks() ? 1 : 0);
-  if (as.has_event_handler_enabled())
-    query += fmt::format(" event_handler_enabled='{}',",
-                         as.event_handler_enabled() ? 1 : 0);
-  if (as.has_flap_detection_enabled())
-    query += fmt::format(" flap_detection='{}',",
-                         as.flap_detection_enabled() ? 1 : 0);
-  if (as.has_obsess_over_service())
-    query += fmt::format(" obsess_over_service='{}',",
-                         as.obsess_over_service() ? 1 : 0);
-  if (as.has_event_handler())
-    query += fmt::format(
-        " event_handler='{}',",
-        misc::string::escape(as.event_handler(),
-                             get_centreon_storage_services_col_size(
-                                 centreon_storage_services_event_handler)));
-  if (as.has_check_command())
-    query += fmt::format(
-        " check_command='{}',",
-        misc::string::escape(as.check_command(),
-                             get_centreon_storage_services_col_size(
-                                 centreon_storage_services_check_command)));
-  if (as.has_check_interval())
-    query += fmt::format(" check_interval={},", as.check_interval());
-  if (as.has_retry_interval())
-    query += fmt::format(" retry_interval={},", as.retry_interval());
-  if (as.has_max_check_attempts())
-    query += fmt::format(" max_check_attempts={},", as.max_check_attempts());
-  if (as.has_check_freshness())
-    query +=
-        fmt::format(" check_freshness='{}',", as.check_freshness() ? 1 : 0);
-  if (as.has_check_period())
-    query += fmt::format(
-        " check_period='{}',",
-        misc::string::escape(as.check_period(),
-                             get_centreon_storage_services_col_size(
-                                 centreon_storage_services_check_period)));
-  if (as.has_notification_period())
-    query +=
-        fmt::format(" notification_period='{}',",
-                    misc::string::escape(
-                        as.notification_period(),
-                        get_centreon_storage_services_col_size(
-                            centreon_storage_services_notification_period)));
+  if (_store_in_hosts_services) {
+    constexpr std::string_view buf("UPDATE services SET");
+    std::string query{buf.data(), buf.size()};
+    if (as.has_notify())
+      query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
+    if (as.has_active_checks())
+      query += fmt::format(" active_checks='{}',", as.active_checks() ? 1 : 0);
+    if (as.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           as.should_be_scheduled() ? 1 : 0);
+    if (as.has_passive_checks())
+      query +=
+          fmt::format(" passive_checks='{}',", as.passive_checks() ? 1 : 0);
+    if (as.has_event_handler_enabled())
+      query += fmt::format(" event_handler_enabled='{}',",
+                           as.event_handler_enabled() ? 1 : 0);
+    if (as.has_flap_detection_enabled())
+      query += fmt::format(" flap_detection='{}',",
+                           as.flap_detection_enabled() ? 1 : 0);
+    if (as.has_obsess_over_service())
+      query += fmt::format(" obsess_over_service='{}',",
+                           as.obsess_over_service() ? 1 : 0);
+    if (as.has_event_handler())
+      query += fmt::format(
+          " event_handler='{}',",
+          misc::string::escape(as.event_handler(),
+                               get_centreon_storage_services_col_size(
+                                   centreon_storage_services_event_handler)));
+    if (as.has_check_command())
+      query += fmt::format(
+          " check_command='{}',",
+          misc::string::escape(as.check_command(),
+                               get_centreon_storage_services_col_size(
+                                   centreon_storage_services_check_command)));
+    if (as.has_check_interval())
+      query += fmt::format(" check_interval={},", as.check_interval());
+    if (as.has_retry_interval())
+      query += fmt::format(" retry_interval={},", as.retry_interval());
+    if (as.has_max_check_attempts())
+      query += fmt::format(" max_check_attempts={},", as.max_check_attempts());
+    if (as.has_check_freshness())
+      query +=
+          fmt::format(" check_freshness='{}',", as.check_freshness() ? 1 : 0);
+    if (as.has_check_period())
+      query += fmt::format(
+          " check_period='{}',",
+          misc::string::escape(as.check_period(),
+                               get_centreon_storage_services_col_size(
+                                   centreon_storage_services_check_period)));
+    if (as.has_notification_period())
+      query +=
+          fmt::format(" notification_period='{}',",
+                      misc::string::escape(
+                          as.notification_period(),
+                          get_centreon_storage_services_col_size(
+                              centreon_storage_services_notification_period)));
 
-  // If nothing was added to query, we can exit immediately.
-  if (query.size() > buf.size()) {
-    query.resize(query.size() - 1);
-    query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
-                         as.service_id());
-    SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-    _mysql.run_query(query, database::mysql_error::store_service, conn);
-    _add_action(conn, actions::services);
+    // If nothing was added to query, we can exit immediately.
+    if (query.size() > buf.size()) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
+                           as.service_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_service, conn);
+      _add_action(conn, actions::services);
+    }
+  }
 
-    if (_store_in_resources) {
-      constexpr std::string_view res_buf("UPDATE resources SET");
-      std::string res_query{res_buf.data(), res_buf.size()};
-      if (as.has_notify())
-        res_query +=
-            fmt::format(" notifications_enabled='{}',", as.notify() ? 1 : 0);
-      if (as.has_active_checks())
-        res_query += fmt::format(" active_checks_enabled='{}',",
-                                 as.active_checks() ? 1 : 0);
-      if (as.has_passive_checks())
-        res_query += fmt::format(" passive_checks_enabled='{}',",
-                                 as.passive_checks() ? 1 : 0);
-      if (as.has_max_check_attempts())
-        res_query +=
-            fmt::format(" max_check_attempts={},", as.max_check_attempts());
+  if (_store_in_resources) {
+    constexpr std::string_view res_buf("UPDATE resources SET");
+    std::string res_query{res_buf.data(), res_buf.size()};
+    if (as.has_notify())
+      res_query +=
+          fmt::format(" notifications_enabled='{}',", as.notify() ? 1 : 0);
+    if (as.has_active_checks())
+      res_query += fmt::format(" active_checks_enabled='{}',",
+                               as.active_checks() ? 1 : 0);
+    if (as.has_passive_checks())
+      res_query += fmt::format(" passive_checks_enabled='{}',",
+                               as.passive_checks() ? 1 : 0);
+    if (as.has_max_check_attempts())
+      res_query +=
+          fmt::format(" max_check_attempts={},", as.max_check_attempts());
 
-      if (res_query.size() > res_buf.size()) {
-        res_query.resize(res_query.size() - 1);
-        res_query += fmt::format(" WHERE parent_id={} AND id={}", as.host_id(),
-                                 as.service_id());
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
-                            res_query);
-        _mysql.run_query(res_query, database::mysql_error::update_resources,
-                         conn);
-        _add_action(conn, actions::resources);
-      }
+    if (res_query.size() > res_buf.size()) {
+      res_query.resize(res_query.size() - 1);
+      res_query += fmt::format(" WHERE parent_id={} AND id={}", as.host_id(),
+                               as.service_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
+      _mysql.run_query(res_query, database::mysql_error::update_resources,
+                       conn);
+      _add_action(conn, actions::resources);
     }
   }
 }
@@ -4263,7 +4654,8 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         _logger_sql,
-        "unified_sql: not processing service status event (host: {}, service: "
+        "unified_sql: not processing service status event (host: {}, "
+        "service: "
         "{}, "
         "check type: {}, last check: {}, next check: {}, now: {}, state ({}, "
         "{}))",
@@ -4369,6 +4761,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(26, sscr.acknowledgement_type());
+        _logger_sql->debug("service3 ({}, {}) scheduled_downtime_depth: {}",
+                           sscr.host_id(), sscr.service_id(),
+                           sscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
         b->set_value_as_i32(28, sscr.host_id());
         b->set_value_as_i32(29, sscr.service_id());
@@ -4424,6 +4819,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update->bind_value_as_bool(
             25, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
+        _logger_sql->debug("service4 ({}, {}) scheduled_downtime_depth: {}",
+                           sscr.host_id(), sscr.service_id(),
+                           sscr.scheduled_downtime_depth());
         _sscr_update->bind_value_as_i32(27, sscr.scheduled_downtime_depth());
         _sscr_update->bind_value_as_i32(28, sscr.host_id());
         _sscr_update->bind_value_as_i32(29, sscr.service_id());
@@ -4456,6 +4854,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change(),
                             mapping::entry::invalid_on_zero);
+        _logger_sql->debug("service5 ({}, {}) scheduled_downtime_depth: {}",
+                           sscr.host_id(), sscr.service_id(),
+                           sscr.scheduled_downtime_depth());
         b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
@@ -4469,21 +4870,27 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           b->set_value_as_u64(9, sscr.last_check());
         b->set_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        b->set_value_as_u64(11, sscr.service_id());
-        b->set_value_as_u64(12, sscr.host_id());
+        b->set_value_as_bool(11, sscr.flapping());
+        b->set_value_as_f64(12, sscr.percent_state_change());
+        b->set_value_as_u64(13, sscr.service_id());
+        b->set_value_as_u64(14, sscr.host_id());
         b->next_row();
         SPDLOG_LOGGER_TRACE(
             _logger_sql, "{} waiting updates for service status in resources",
             b->current_row());
       } else {
         _logger_sql->debug(
-            "unified_sql: NOT BULK pb service status ({}, {}) {} in resources",
+            "unified_sql: NOT BULK pb service status ({}, {}) {} in "
+            "resources",
             sscr.host_id(), sscr.service_id(), sscr.state());
         _sscr_resources_update->bind_value_as_i32(0, sscr.state());
         _sscr_resources_update->bind_value_as_i32(
             1, svc_ordered_status[sscr.state()]);
         _sscr_resources_update->bind_value_as_u64_ext(
             2, sscr.last_state_change(), mapping::entry::invalid_on_zero);
+        _logger_sql->debug("service6 ({}, {}) scheduled_downtime_depth: {}",
+                           sscr.host_id(), sscr.service_id(),
+                           sscr.scheduled_downtime_depth());
         _sscr_resources_update->bind_value_as_bool(
             3, sscr.scheduled_downtime_depth() > 0);
         _sscr_resources_update->bind_value_as_bool(
@@ -4497,8 +4904,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             9, sscr.last_check(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
-        _sscr_resources_update->bind_value_as_u64(11, sscr.service_id());
-        _sscr_resources_update->bind_value_as_u64(12, sscr.host_id());
+        _sscr_resources_update->bind_value_as_bool(11, sscr.flapping());
+        _sscr_resources_update->bind_value_as_f64(12,
+                                                  sscr.percent_state_change());
+        _sscr_resources_update->bind_value_as_u64(13, sscr.service_id());
+        _sscr_resources_update->bind_value_as_u64(14, sscr.host_id());
 
         _mysql.run_statement(*_sscr_resources_update,
                              database::mysql_error::store_service_status, conn);
@@ -4509,7 +4919,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Do nothing.
     SPDLOG_LOGGER_INFO(
         _logger_sql,
-        "unified_sql: not processing service status check result event (host: "
+        "unified_sql: not processing service status check result event "
+        "(host: "
         "{}, "
         "service: {}, "
         "check type: {}, last check: {}, next check: {}, now: {}, "
@@ -4520,6 +4931,98 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
   /* perfdata part */
   _unified_sql_process_pb_service_status(d);
+}
+
+/**
+ * @brief Process an adaptive service status event.
+ *
+ * @param d The event to process.
+ */
+void stream::_process_pb_adaptive_service_status(
+    const std::shared_ptr<io::data>& d) {
+  _finish_action(
+      -1, actions::host_parents | actions::comments | actions::downtimes);
+  // Processed object.
+  auto s{static_cast<const neb::pb_adaptive_service_status*>(d.get())};
+  auto& sscr = s->obj();
+
+  SPDLOG_LOGGER_DEBUG(
+      _logger_sql,
+      "unified_sql: processing pb adaptive service status of ({}, {}) "
+      "-{}{}{}",
+      sscr.host_id(), sscr.service_id(),
+      sscr.has_acknowledgement_type() ? "with acknowledge type" : "",
+      sscr.has_notification_number() ? "with notification number" : "",
+      sscr.has_scheduled_downtime_depth() ? "with scheduled downtime depth"
+                                          : "");
+
+  if (!_host_instance_known(sscr.host_id())) {
+    SPDLOG_LOGGER_WARN(
+        _logger_sql,
+        "unified_sql: pb adaptive service status ({}, {}) thrown "
+        "away because host {} is not known by any poller",
+        sscr.host_id(), sscr.service_id(), sscr.host_id());
+    return;
+  }
+
+  int32_t conn = _mysql.choose_connection_by_instance(
+      _cache_host_instance[sscr.host_id()]);
+
+  if (_store_in_hosts_services) {
+    constexpr std::string_view query("UPDATE services SET ");
+    std::string buf_query(query);
+    if (sscr.has_acknowledgement_type())
+      buf_query +=
+          fmt::format("acknowledged='{}',acknowledgement_type={},",
+                      sscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
+                      sscr.acknowledgement_type());
+    if (sscr.has_notification_number())
+      buf_query +=
+          fmt::format("notification_number={},", sscr.notification_number());
+    _logger_sql->debug("service7 ({}, {}) scheduled_downtime_depth: {}",
+                       sscr.host_id(), sscr.service_id(),
+                       sscr.scheduled_downtime_depth());
+    if (sscr.has_scheduled_downtime_depth())
+      buf_query += fmt::format("scheduled_downtime_depth={},",
+                               sscr.scheduled_downtime_depth());
+    if (buf_query.size() > query.size()) {
+      buf_query.resize(buf_query.size() - 1);
+      buf_query += fmt::format(" WHERE host_id={} AND service_id={}",
+                               sscr.host_id(), sscr.service_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", buf_query);
+      _mysql.run_query(buf_query, database::mysql_error::store_service_status,
+                       conn);
+      _add_action(conn, actions::services);
+    }
+  }
+
+  if (_store_in_resources) {
+    constexpr std::string_view res_query("UPDATE resources SET ");
+    std::string buf_res_query(res_query);
+    if (sscr.has_acknowledgement_type())
+      buf_res_query +=
+          fmt::format("acknowledged='{}',",
+                      sscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
+    if (sscr.has_notification_number())
+      buf_res_query +=
+          fmt::format("notification_number={},", sscr.notification_number());
+    _logger_sql->debug("service8 ({}, {}) scheduled_downtime_depth: {}",
+                       sscr.host_id(), sscr.service_id(),
+                       sscr.scheduled_downtime_depth());
+    if (sscr.has_scheduled_downtime_depth())
+      buf_res_query +=
+          fmt::format("in_downtime={},", sscr.scheduled_downtime_depth() > 0);
+    if (buf_res_query.size() > res_query.size()) {
+      buf_res_query.resize(buf_res_query.size() - 1);
+      buf_res_query += fmt::format(" WHERE parent_id={} AND id={}",
+                                   sscr.host_id(), sscr.service_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
+                          buf_res_query);
+      _mysql.run_query(buf_res_query, database::mysql_error::update_resources,
+                       conn);
+      _add_action(conn, actions::resources);
+    }
+  }
 }
 
 void stream::_process_severity(const std::shared_ptr<io::data>& d) {
@@ -4695,6 +5198,50 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       SPDLOG_LOGGER_ERROR(_logger_sql, "Bad action in tag object");
       break;
   }
+}
+
+void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: processing agent stats");
+  std::shared_ptr<neb::pb_agent_stats> as{
+      std::static_pointer_cast<neb::pb_agent_stats>(d)};
+
+  std::string json_infos;
+
+  const AgentStats& stats = as->obj();
+
+  using namespace rapidjson;
+  Document doc(rapidjson::kArrayType);
+
+  for (const AgentInfo& info : stats.stats()) {
+    rapidjson::Value stat(rapidjson::kObjectType);
+    stat.AddMember("agent_major", info.major(), doc.GetAllocator());
+    stat.AddMember("agent_minor", info.minor(), doc.GetAllocator());
+    stat.AddMember("agent_patch", info.patch(), doc.GetAllocator());
+    stat.AddMember("reverse", info.reverse(), doc.GetAllocator());
+    stat.AddMember("os", StringRef(info.os().c_str()), doc.GetAllocator());
+    stat.AddMember("os_version", StringRef(info.os_version().c_str()),
+                   doc.GetAllocator());
+    stat.AddMember("nb_agent", info.nb_agent(), doc.GetAllocator());
+    doc.PushBack(stat, doc.GetAllocator());
+  }
+  StringBuffer out_buff;
+  Writer<StringBuffer> writer(out_buff);
+  doc.Accept(writer);
+
+  if (!_agent_information_insert_update.prepared()) {
+    _agent_information_insert_update = _mysql.prepare_query(
+        "INSERT INTO agent_information (poller_id, enabled, infos) VALUES "
+        "(?,?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled), "
+        "infos=VALUES(infos)");
+  }
+  int32_t conn = _mysql.choose_connection_by_instance(stats.poller_id());
+
+  _agent_information_insert_update.bind_value_as_u32(0, stats.poller_id());
+  _agent_information_insert_update.bind_value_as_bool(1, true);
+  _agent_information_insert_update.bind_value_as_str(2, out_buff.GetString());
+  _mysql.run_statement(_agent_information_insert_update,
+                       database::mysql_error::insert_update_agent_information,
+                       conn);
 }
 
 /**

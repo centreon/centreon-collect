@@ -17,10 +17,8 @@
  */
 
 #include <rapidjson/document.h>
-#include <re2/re2.h>
 
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
@@ -61,7 +59,7 @@ const std::string_view config::config_schema(R"(
             "description": "Name of the SSL certification authority",
             "type": "string"
         },
-        "reverse_connection": {
+        "reversed_grpc_streaming": {
             "description": "Set to true to make Engine connect to the agent. Requires the agent to be configured as a server. Default: false",
             "type": "boolean"
         },
@@ -80,15 +78,25 @@ const std::string_view config::config_schema(R"(
             "type": "string",
             "minLength": 5
         },
-        "log_files_max_size": {
-            "description:": "Maximum size (in megabytes) of the log file before it will be rotated. To be valid, log_files_max_number must be also be provided",
+        "log_max_file_size": {
+            "description:": "Maximum size (in megabytes) of the log file before it is rotated. To be valid, log_max_files must be also be supplied",
             "type": "integer",
             "min": 1
         },
-        "log_files_max_number": {
-            "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
+        "log_max_files": {
+            "description:": "Maximum number of log files to keep. Excess files will be deleted. To be valid, log_max_file_size must be also be supplied",
             "type": "integer",
             "min": 1
+        },
+        "second_max_reconnect_backoff": {
+            "description": "Maximum time between subsequent connection attempts, in seconds. Default: 60s",
+            "type": "integer",
+            "min": 0
+        },
+        "max_message_length": {
+            "description": "maximum protobuf message length in Mo",
+            "type": "integer",
+            "minimum": 4
         }
     },
     "required": [
@@ -98,6 +106,8 @@ const std::string_view config::config_schema(R"(
 }
 
 )");
+
+std::unique_ptr<config> config::_global_conf;
 
 config::config(const std::string& path) {
   static common::json_validator validator(config_schema);
@@ -121,10 +131,10 @@ config::config(const std::string& path) {
   _endpoint = json_config.get_string("endpoint");
 
   // pattern schema doesn't work so we do it ourselves
-  if (!RE2::FullMatch(_endpoint, "[\\w\\.:]+:\\w+")) {
+  if (!RE2::FullMatch(_endpoint, "[\\w\\.\\-:]+:\\w+")) {
     throw exceptions::msg_fmt(
-        "bad format for endpoint {}, it must match to the regex: "
-        "[\\w\\.:]+:\\w+",
+        "bad format for endpoint {}, it must match the regex: "
+        "[\\w\\.\\-:]+:\\w+",
         _endpoint);
   }
   _log_level =
@@ -133,8 +143,8 @@ config::config(const std::string& path) {
                   ? to_file
                   : to_stdout;
   _log_file = json_config.get_string("log_file", "");
-  _log_files_max_size = json_config.get_unsigned("log_files_max_size", 0);
-  _log_files_max_number = json_config.get_unsigned("log_files_max_number", 0);
+  _log_max_file_size = json_config.get_unsigned("log_max_file_size", 0);
+  _log_max_files = json_config.get_unsigned("log_max_files", 0);
   _encryption = json_config.get_bool("encryption", false);
   _public_cert_file = json_config.get_string("public_cert", "");
   _private_key_file = json_config.get_string("private_key", "");
@@ -144,5 +154,9 @@ config::config(const std::string& path) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = json_config.get_bool("reverse_connection", false);
+  _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
+  _second_max_reconnect_backoff =
+      json_config.get_unsigned("second_max_reconnect_backoff", 60);
+  _max_message_length =
+      json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 }

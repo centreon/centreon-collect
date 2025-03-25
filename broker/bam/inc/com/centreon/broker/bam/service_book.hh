@@ -78,6 +78,8 @@ class service_book {
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_service_status>& t,
               io::stream* visitor = nullptr);
+  void update(const std::shared_ptr<neb::pb_adaptive_service_status>& t,
+              io::stream* visitor = nullptr);
   void save_to_cache(persistent_cache& cache) const;
   void apply_services_state(const ServicesBookState& state);
 };

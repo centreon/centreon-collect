@@ -19,7 +19,6 @@
 #ifndef CCB_IO_RAW_HH
 #define CCB_IO_RAW_HH
 
-#include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 

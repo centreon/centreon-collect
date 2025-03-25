@@ -32,7 +32,7 @@ detail::process::process(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          const std::string& cmd_line,
                          const std::shared_ptr<check_exec>& parent)
-    : common::process(io_context, logger, cmd_line), _parent(parent) {}
+    : common::process<false>(io_context, logger, cmd_line), _parent(parent) {}
 
 /**
  * @brief start a new process, if a previous one is already running, it's killed
@@ -44,7 +44,7 @@ void detail::process::start(unsigned running_index) {
   _stdout_eof = false;
   _running_index = running_index;
   _stdout.clear();
-  common::process::start_process(false);
+  common::process<false>::start_process(false);
 }
 
 /**
@@ -61,7 +61,7 @@ void detail::process::on_stdout_read(const boost::system::error_code& err,
     _stdout_eof = true;
     _on_completion();
   }
-  common::process::on_stdout_read(err, nb_read);
+  common::process<false>::on_stdout_read(err, nb_read);
 }
 
 /**
@@ -76,7 +76,7 @@ void detail::process::on_stderr_read(const boost::system::error_code& err,
     SPDLOG_LOGGER_ERROR(_logger, "process error: {}",
                         std::string_view(_stderr_read_buffer, nb_read));
   }
-  common::process::on_stderr_read(err, nb_read);
+  common::process<false>::on_stderr_read(err, nb_read);
 }
 
 /**
@@ -91,7 +91,7 @@ void detail::process::on_process_end(const boost::system::error_code& err,
     _stdout += fmt::format("fail to execute process {} : {}", get_exe_path(),
                            err.message());
   }
-  common::process::on_process_end(err, raw_exit_status);
+  common::process<false>::on_process_end(err, raw_exit_status);
   _process_ended = true;
   _on_completion();
 }
@@ -116,20 +116,24 @@ void detail::process::_on_completion() {
 
 check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
                        const std::shared_ptr<spdlog::logger>& logger,
-                       time_point exp,
+                       time_point first_start_expected,
+                       duration check_interval,
                        const std::string& serv,
                        const std::string& cmd_name,
                        const std::string& cmd_line,
                        const engine_to_agent_request_ptr& cnf,
-                       check::completion_handler&& handler)
+                       check::completion_handler&& handler,
+                       const checks_statistics::pointer& stat)
     : check(io_context,
             logger,
-            exp,
+            first_start_expected,
+            check_interval,
             serv,
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler)) {}
+            std::move(handler),
+            stat) {}
 
 /**
  * @brief create and initialize a check_exec object (don't use constructor)
@@ -137,7 +141,9 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
  * @tparam handler_type
  * @param io_context
  * @param logger
- * @param exp start expected
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
  * @param serv
  * @param cmd_name
  * @param cmd_line
@@ -148,15 +154,17 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
 std::shared_ptr<check_exec> check_exec::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
-    time_point exp,
+    time_point first_start_expected,
+    duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler) {
-  std::shared_ptr<check_exec> ret =
-      std::make_shared<check_exec>(io_context, logger, exp, serv, cmd_name,
-                                   cmd_line, cnf, std::move(handler));
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
+  std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, cnf, std::move(handler), stat);
   ret->_init();
   return ret;
 }
@@ -185,14 +193,17 @@ void check_exec::_init() {
  * @param timeout
  */
 void check_exec::start_check(const duration& timeout) {
-  check::start_check(timeout);
+  if (!check::_start_check(timeout)) {
+    return;
+  }
   if (!_process) {
-    _io_context->post([me = check::shared_from_this(),
-                       start_check_index = _get_running_check_index()]() {
-      me->on_completion(start_check_index, 3,
-                        std::list<com::centreon::common::perfdata>(),
-                        {"empty command"});
-    });
+    asio::post(*_io_context,
+               [me = check::shared_from_this(),
+                start_check_index = _get_running_check_index()]() {
+                 me->on_completion(start_check_index, e_status::unknown,
+                                   std::list<com::centreon::common::perfdata>(),
+                                   {"empty command"});
+               });
   }
 
   try {
@@ -200,44 +211,48 @@ void check_exec::start_check(const duration& timeout) {
   } catch (const boost::system::system_error& e) {
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
-    _io_context->post([me = check::shared_from_this(),
-                       start_check_index = _get_running_check_index(), e]() {
-      me->on_completion(
-          start_check_index, 3, std::list<com::centreon::common::perfdata>(),
-          {fmt::format("Fail to execute {} : {}", me->get_command_line(),
-                       e.code().message())});
-    });
+    asio::post(*_io_context,
+               [me = check::shared_from_this(),
+                start_check_index = _get_running_check_index(), e]() {
+                 me->on_completion(
+                     start_check_index, e_status::unknown,
+                     std::list<com::centreon::common::perfdata>(),
+                     {fmt::format("Fail to execute {} : {}",
+                                  me->get_command_line(), e.code().message())});
+               });
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.what());
-    _io_context->post([me = check::shared_from_this(),
+    asio::post(
+        *_io_context, [me = check::shared_from_this(),
                        start_check_index = _get_running_check_index(), e]() {
-      me->on_completion(start_check_index, 3,
-                        std::list<com::centreon::common::perfdata>(),
-                        {fmt::format("Fail to execute {} : {}",
-                                     me->get_command_line(), e.what())});
-    });
+          me->on_completion(start_check_index, e_status::unknown,
+                            std::list<com::centreon::common::perfdata>(),
+                            {fmt::format("Fail to execute {} : {}",
+                                         me->get_command_line(), e.what())});
+        });
   }
 }
 
+/**
+ * @brief get process id of the check (only used by tests)
+ *
+ * @return int
+ */
+int check_exec::get_pid() const {
+  if (!_process) {
+    return 0;
+  }
+  return _process->get_pid();
+}
 /**
  * @brief process is killed in case of timeout and handler is called
  *
  * @param err
  * @param start_check_index
  */
-void check_exec::_timeout_timer_handler(const boost::system::error_code& err,
-                                        unsigned start_check_index) {
-  if (err) {
-    return;
-  }
-  if (start_check_index == _get_running_check_index()) {
-    _process->kill();
-    check::_timeout_timer_handler(err, start_check_index);
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "start_check_index={}, running_index={}",
-                        start_check_index, _get_running_check_index());
-  }
+void check_exec::_on_timeout() {
+  _process->kill();
 }
 
 /**
@@ -256,7 +271,8 @@ void check_exec::on_completion(unsigned running_index) {
   std::list<com::centreon::common::perfdata> perfs;
 
   // split multi line output
-  outputs = absl::StrSplit(_process->get_stdout(), '\n', absl::SkipEmpty());
+  outputs = absl::StrSplit(_process->get_stdout(), absl::ByAnyChar("\r\n"),
+                           absl::SkipEmpty());
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
@@ -269,4 +285,87 @@ void check_exec::on_completion(unsigned running_index) {
   }
   check::on_completion(running_index, _process->get_exit_status(), perfs,
                        outputs);
+}
+
+/******************************************************************
+ * check_dummy
+ ******************************************************************/
+
+check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
+                         const std::shared_ptr<spdlog::logger>& logger,
+                         time_point first_start_expected,
+                         duration check_interval,
+                         const std::string& serv,
+                         const std::string& cmd_name,
+                         const std::string& cmd_line,
+                         const std::string& output,
+                         const engine_to_agent_request_ptr& cnf,
+                         check::completion_handler&& handler,
+                         const checks_statistics::pointer& stat)
+    : check(io_context,
+            logger,
+            first_start_expected,
+            check_interval,
+            serv,
+            cmd_name,
+            cmd_line,
+            cnf,
+            std::move(handler),
+            stat),
+      _output(output) {}
+
+/**
+ * @brief create and initialize a check_dummy object (don't use constructor)
+ *
+ * @tparam handler_type
+ * @param io_context
+ * @param logger
+ * @param first_start_expected start expected
+ * @param check_interval check interval between two checks (not only this but
+ * also others)
+ * @param serv
+ * @param cmd_name
+ * @param cmd_line
+ * @param cnf   agent configuration
+ * @param handler  completion handler
+ * @return std::shared_ptr<check_dummy>
+ */
+std::shared_ptr<check_dummy> check_dummy::load(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    duration check_interval,
+    const std::string& serv,
+    const std::string& cmd_name,
+    const std::string& cmd_line,
+    const std::string& output,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat) {
+  std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, output, cnf, std::move(handler), stat);
+  return ret;
+}
+
+/**
+ * @brief start a check, completion handler is always called asynchronously even
+ * in case of failure
+ *
+ * @param timeout
+ */
+void check_dummy::start_check(const duration& timeout) {
+  if (!check::_start_check(timeout)) {
+    return;
+  }
+
+  asio::post(*_io_context, [me = check::shared_from_this(),
+                            start_check_index = _get_running_check_index(),
+                            this]() {
+    me->on_completion(
+        start_check_index, e_status::critical,
+        std::list<com::centreon::common::perfdata>(),
+        {fmt::format("unable to execute native check {} , output error : {}",
+                     me->get_command_line(), get_output())});
+  });
 }

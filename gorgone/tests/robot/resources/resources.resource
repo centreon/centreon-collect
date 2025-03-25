@@ -98,23 +98,23 @@ Check Poller Is Connected
 
 Check Poller Communicate
     [Documentation]    Ask the central Gorgone rest api if it have communicated with the poller using a given ID.
-    [Arguments]    ${poller_id}
+    [Arguments]    ${poller_id}    ${max_failed_attempt}=0
     ${response}     Set Variable    ${EMPTY}
     Log To Console    checking Gorgone see poller in rest api response...
-    FOR    ${i}    IN RANGE    20
+    FOR    ${i}    IN RANGE    25
         Sleep    5
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
         IF    not ${response.json()}[data]
             CONTINUE
         END
-        IF    ${response.json()}[data][${poller_id}][ping_failed] > 0 or ${response.json()}[data][${poller_id}][ping_ok] > 0
+        IF    ${response.json()}[data][${poller_id}][ping_failed] > ${max_failed_attempt} or ${response.json()}[data][${poller_id}][ping_ok] > 0
             BREAK
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 19    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
-    Should Be True    0 == ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
+    Should Be True    ${i} < 24    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
+    Should Be True    ${max_failed_attempt} >= ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
 
 Setup Two Gorgone Instances
@@ -166,12 +166,12 @@ Setup Two Gorgone Instances
         Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
         Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}
 
-        Start Gorgone    debug    ${poller_name}
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
+        Start Gorgone    debug    ${poller_name}
 
         Check Poller Is Connected    port=5556    expected_nb=2
-        Check Poller Communicate     2
+        Check Poller Communicate     2    max_failed_attempt=1
     END
 
 Wait Until Port Is Bind

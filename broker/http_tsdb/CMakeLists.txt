@@ -43,6 +43,7 @@ set(HEADERS
 add_library(http_tsdb STATIC ${SOURCES} ${HEADERS})
 add_dependencies(http_tsdb
 	pb_neb_lib
+	pb_common_lib
 	pb_header_lib
 	pb_storage_lib
 	)

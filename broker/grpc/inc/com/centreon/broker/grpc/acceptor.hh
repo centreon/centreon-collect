@@ -22,6 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/common/grpc/grpc_server.hh"
 #include "grpc_config.hh"
+#include "grpc_stream.grpc.pb.h"
 
 namespace com::centreon::broker::grpc {
 

@@ -20,7 +20,6 @@
 
 #include <absl/container/flat_hash_set.h>
 #include <grpc/impl/codegen/log.h>
-#include <spdlog/common.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -30,7 +29,6 @@
 
 #include <atomic>
 #include <initializer_list>
-#include <memory>
 
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
@@ -76,13 +74,21 @@ constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> logger_name{
  * @param args grpc logging params
  */
 static void grpc_logger(gpr_log_func_args* args) {
-  auto logger = log_v2::instance().get(log_v2::GRPC);
-  if (logger) {
-    spdlog::level::level_enum grpc_level = logger->level();
+  auto default_logger = log_v2::instance().get(log_v2::GRPC);
+  auto otl_logger = log_v2::instance().get(log_v2::OTL);
+  auto min_level = spdlog::level::level_enum::off;  // default
+  if (default_logger) {
+    min_level = default_logger->level();
+  }
+  if (otl_logger) {
+    min_level = std::min(min_level, otl_logger->level());
+    if (!default_logger) {
+      default_logger = otl_logger;
+    }
+  }
+  if (min_level != spdlog::level::off) {
     const char* start;
-    if (grpc_level == spdlog::level::off)
-      return;
-    else if (grpc_level > spdlog::level::debug) {
+    if (min_level > spdlog::level::debug) {
       start = strstr(args->message, "}: ");
       if (!start)
         return;
@@ -91,22 +97,22 @@ static void grpc_logger(gpr_log_func_args* args) {
       start = args->message;
     switch (args->severity) {
       case GPR_LOG_SEVERITY_DEBUG:
-        if (grpc_level == spdlog::level::trace ||
-            grpc_level == spdlog::level::debug) {
-          SPDLOG_LOGGER_DEBUG(logger, "{} ({}:{})", start, args->file,
+        if (min_level == spdlog::level::trace ||
+            min_level == spdlog::level::debug) {
+          SPDLOG_LOGGER_DEBUG(default_logger, "{} ({}:{})", start, args->file,
                               args->line);
         }
         break;
       case GPR_LOG_SEVERITY_INFO:
-        if (grpc_level == spdlog::level::trace ||
-            grpc_level == spdlog::level::debug ||
-            grpc_level == spdlog::level::info) {
+        if (min_level == spdlog::level::trace ||
+            min_level == spdlog::level::debug ||
+            min_level == spdlog::level::info) {
           if (start)
-            SPDLOG_LOGGER_INFO(logger, "{}", start);
+            SPDLOG_LOGGER_INFO(default_logger, "{}", start);
         }
         break;
       case GPR_LOG_SEVERITY_ERROR:
-        SPDLOG_LOGGER_ERROR(logger, "{}", start);
+        SPDLOG_LOGGER_ERROR(default_logger, "{}", start);
         break;
     }
   }
@@ -261,7 +267,7 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
     _loggers[id] = std::move(logger);
 
     /* Hook for gRPC, not beautiful, but no idea how to do better. */
-    if (id == GRPC)
+    if (id == GRPC || id == OTL)
       gpr_set_log_function(grpc_logger);
   }
   _not_threadsafe_configuration = false;
@@ -361,7 +367,8 @@ void log_v2::apply(const config& log_conf) {
   _flush_interval = std::chrono::seconds(
       log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
   spdlog::flush_every(_flush_interval);
-  /* This is for all loggers, a slave will overwrite the master configuration */
+  /* This is for all loggers, a slave will overwrite the master configuration
+   */
   for (int32_t id = 0; id < LOGGER_SIZE; id++) {
     auto& name = logger_name[id];
     if (log_conf.loggers().contains(name)) {

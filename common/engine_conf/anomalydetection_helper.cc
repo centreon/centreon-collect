@@ -19,7 +19,6 @@
 #include "common/engine_conf/anomalydetection_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/state.pb.h"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -57,7 +56,7 @@ anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
  * @param value The value corresponding to the key
  */
 bool anomalydetection_helper::hook(std::string_view key,
-                                   const std::string_view& value) {
+                                   std::string_view value) {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
@@ -90,20 +89,6 @@ bool anomalydetection_helper::hook(std::string_view key,
         return false;
     }
     obj->set_flap_detection_options(options);
-    return true;
-  } else if (key == "initial_state") {
-    ServiceStatus initial_state;
-    if (value == "o" || value == "ok")
-      initial_state = ServiceStatus::state_ok;
-    else if (value == "w" || value == "warning")
-      initial_state = ServiceStatus::state_warning;
-    else if (value == "u" || value == "unknown")
-      initial_state = ServiceStatus::state_unknown;
-    else if (value == "c" || value == "critical")
-      initial_state = ServiceStatus::state_critical;
-    else
-      return false;
-    obj->set_initial_state(initial_state);
     return true;
   } else if (key == "notification_options") {
     uint16_t options(action_svc_none);
@@ -249,7 +234,6 @@ void anomalydetection_helper::_init() {
                                   action_svc_unknown | action_svc_critical);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(ServiceStatus::state_ok);
   obj->set_is_volatile(false);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);

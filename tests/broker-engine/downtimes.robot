@@ -32,10 +32,8 @@ BEDTMASS1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
@@ -80,10 +78,8 @@ BEDTMASS2
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${17}
@@ -123,10 +119,7 @@ BEDTSVCREN1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
@@ -166,10 +159,8 @@ BEDTSVCFIXED
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # It's time to schedule a downtime
     Ctn Schedule Service Downtime    host_1    service_1    ${3600}
@@ -201,10 +192,7 @@ BEDTHOSTFIXED
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     log to console    step1
     # It's time to schedule downtimes
@@ -297,10 +285,7 @@ DTIM
     Ctn Start Broker
     Ctn Start engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog4}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${5}
 
     # It's time to schedule downtimes
     FOR    ${i}    IN RANGE    ${50}
@@ -327,6 +312,71 @@ DTIM
     Should Be True    ${result}    There are still some downtimes enabled.
 
     Ctn Stop engine
+    Ctn Kindly Stop Broker
+
+
+BEDTRRD1
+    [Documentation]    A service is forced checked then a downtime is set on this service.
+    ...    The service is forced checked again and the downtime is removed.
+    ...    This test is done with BBDO 3.0.0.
+    ...    Then we should not get any error in cbd RRD of kind 'ignored update error in file...'.
+    [Tags]    broker    engine    services    protobuf    MON-150015
+    Ctn Config Engine    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Check Result With Metrics    host_1    service_1    2    host_1:service_1 is CRITICAL HARD    20
+    Sleep    1s
+    Ctn Process Service Check Result With Metrics    host_1    service_1    2    host_1:service_1 is CRITICAL HARD    20
+    Sleep    1s
+    Ctn Process Service Check Result With Metrics    host_1    service_1    2    host_1:service_1 is CRITICAL HARD    20
+    Sleep    1s
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    2    ${60}    HARD
+    Should Be True    ${result}    The service should be in CRITICAL state HARD.
+
+    ${result}    Grep File    ${rrdLog}    "ignored update error in file"
+    Should Be Empty
+    ...    ${result}
+    ...    There should not be any error in cbd RRD of kind 'ignored update error in file...' After step 1.
+
+    Ctn Schedule Service Downtime    host_1    service_1    ${3600}
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    1    ${60}
+    Should Be True    ${result}    The service should be in downtime.
+
+    ${result}    Grep File    ${rrdLog}    "ignored update error in file"
+    Should Be Empty    ${result}    There should not be any error in cbd RRD of kind 'ignored update error in file...' After step 2.
+
+    Ctn Process Service Check Result With Metrics    host_1    service_1    1    host_1:service_1 is WARNING HARD    20
+    Sleep    1s
+    Ctn Process Service Check Result With Metrics    host_1    service_1    1    host_1:service_1 is WARNING HARD    20
+    Sleep    1s
+    Ctn Process Service Check Result With Metrics    host_1    service_1    1    host_1:service_1 is WARNING HARD    20
+    Sleep    1s
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    1    ${60}    HARD
+    Should Be True    ${result}    The service should be in CRITICAL state HARD.
+
+    ${result}    Grep File    ${rrdLog}    "ignored update error in file"
+    Should Be Empty    ${result}    There should not be any error in cbd RRD of kind 'ignored update error in file...' After step 3.
+
+    Ctn Delete Service Downtime    host_1    service_1
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${120}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    ${result}    Grep File    ${rrdLog}    "ignored update error in file"
+    Should Be Empty    ${result}    There should not be any error in cbd RRD of kind 'ignored update error in file...' After step 4.
+
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2024-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,13 @@ using namespace com::centreon::ccc;
  * @param channel The channel to use to the gRPC server.
  * @param color_enabled A boolean telling if we should use colors or not.
  */
-client::client(std::shared_ptr<grpc::Channel> channel, bool color_enabled)
+client::client(std::shared_ptr<grpc::Channel> channel,
+               bool color_enabled,
+               bool always_print_primitive_fields)
     : _stub{std::make_unique<grpc::GenericStub>(channel)},
       _server{CCC_NONE},
-      _color_enabled{color_enabled} {
+      _color_enabled{color_enabled},
+      _always_print_primitive_fields{always_print_primitive_fields} {
   const ::google::protobuf::Empty e;
   com::centreon::broker::Version broker_v;
   com::centreon::engine::Version engine_v;
@@ -210,6 +213,7 @@ std::string client::call(const std::string& cmd, const std::string& args) {
     std::string retval;
     google::protobuf::util::JsonPrintOptions json_options;
     json_options.add_whitespace = true;
+    json_options.always_print_primitive_fields = _always_print_primitive_fields;
     auto status = google::protobuf::util::MessageToJsonString(
         *output_message, &retval, json_options);
 

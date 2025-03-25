@@ -18,25 +18,12 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
-#include <absl/synchronization/mutex.h>
-#include <cassert>
-#include <cstring>
-#include <thread>
 
-#include "bbdo/events.hh"
-#include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
-#include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
-#include "com/centreon/broker/sql/mysql_result.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/common/perfdata.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -118,8 +105,10 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_service_group,
     &stream::_process_pb_service_group_member,
     &stream::_process_pb_host_parent,
-    nullptr  // pb_instance_configuration
-};
+    &stream::_process_pb_instance_configuration,
+    &stream::_process_pb_adaptive_service_status,
+    &stream::_process_pb_adaptive_host_status,
+    &stream::_process_agent_stats};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
@@ -1379,8 +1368,10 @@ void stream::_init_statements() {
       "has_graph=?,"                  // 7: perfdata != ""
       "last_check_type=?,"            // 8: check_type
       "last_check=?,"                 // 9: last_check
-      "output=? "                     // 10: output
-      "WHERE id=? AND parent_id=0");  // 11: host_id
+      "output=?,"                     // 10: output
+      "flapping=?,"                   // 11: is_flapping
+      "percent_state_change=? "       // 12: percent_state_change
+      "WHERE id=? AND parent_id=0");  // 13: host_id
 
   const std::string sscr_resources_query(
       "UPDATE resources SET "
@@ -1394,8 +1385,10 @@ void stream::_init_statements() {
       "has_graph=?,"                  // 7: perfdata != ""
       "last_check_type=?,"            // 8: check_type
       "last_check=?,"                 // 9: last_check
-      "output=? "                     // 10: output
-      "WHERE id=? AND parent_id=?");  // 11, 12: service_id and host_id
+      "output=? ,"                    // 10: output
+      "flapping=?,"                   // 11: is_flapping
+      "percent_state_change=? "       // 12: percent_state_change
+      "WHERE id=? AND parent_id=?");  // 13, 14: service_id and host_id
   if (_store_in_hosts_services) {
     if (_bulk_prepared_statement) {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);

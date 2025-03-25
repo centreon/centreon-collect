@@ -21,9 +21,11 @@
 
 #include <deque>
 #include <iostream>
+#include <limits>
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <fmt/chrono.h>
@@ -31,15 +33,35 @@
 #include <spdlog/spdlog.h>
 
 #include <absl/base/thread_annotations.h>
+#include <absl/container/btree_set.h>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_cat.h>
 #include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
+
+#include <re2/re2.h>
 
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
 
 #include <boost/algorithm/string.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <boost/process/v2.hpp>
 #include <boost/program_options.hpp>
+
+#include <rapidjson/document.h>
+
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+namespace multi_index = boost::multi_index;
 
 #endif

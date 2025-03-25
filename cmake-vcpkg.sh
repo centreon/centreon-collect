@@ -104,6 +104,9 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     elif [[ "$maj" == "centos7" ]] ; then
       yum -y install epel-release cmake3
       cmake='cmake3'
+    elif [[ "$maj" == "centos9" ]] ; then
+      dnf config-manager --set-enabled crb
+      dnf -y install epel-release
     else
       dnf -y install cmake
       cmake='cmake'
@@ -145,6 +148,7 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     openssl-devel
     libssh2-devel
     libcurl-devel
+    tar
     zlib-devel
   )
   if [[ "$maj" == 'centos8' ]] ; then

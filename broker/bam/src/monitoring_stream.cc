@@ -23,23 +23,15 @@
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
-#include "bbdo/events.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
-#include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_status.hh"
-#include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/common/pool.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -405,6 +397,18 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           "BAM: processing pb service status (host: {}, service: {}, hard "
           "state {}, current state {})",
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
+      multiplexing::publisher pblshr;
+      event_cache_visitor ev_cache;
+      _applier.book_service().update(ss, &ev_cache);
+      ev_cache.commit_to(pblshr);
+    } break;
+    case neb::pb_adaptive_service_status::static_type(): {
+      auto ss = std::static_pointer_cast<neb::pb_adaptive_service_status>(data);
+      auto& o = ss->obj();
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "BAM: processing pb adaptive service status (host: "
+                          "{}, service: {})",
+                          o.host_id(), o.service_id());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(ss, &ev_cache);

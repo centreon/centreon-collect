@@ -19,12 +19,11 @@
  */
 
 #include "com/centreon/engine/broker/loader.hh"
+#include <filesystem>
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/io/directory_entry.hh"
-#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -92,43 +91,45 @@ loader& loader::instance() {
  */
 unsigned int loader::load_directory(std::string const& dir) {
   // Get directory entries.
-  io::directory_entry directory(dir);
-  std::list<io::file_entry> const& files(directory.entry_list("*.so"));
+
+  std::filesystem::path directory(dir);
+  std::list<std::filesystem::path> files;
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".so") {
+      files.push_back(entry.path());
+    }
+  }
 
   // Sort by file name.
-  std::multimap<std::string, io::file_entry> sort_files;
-  for (std::list<io::file_entry>::const_iterator it(files.begin()),
-       end(files.end());
-       it != end; ++it)
-    sort_files.insert(std::make_pair(it->file_name(), *it));
+  std::multimap<std::string, std::filesystem::path> sort_files;
+  for (const auto& file : files)
+    sort_files.insert(std::make_pair(file.filename().string(), file));
 
   // Load modules.
-  unsigned int loaded(0);
-  for (std::multimap<std::string, io::file_entry>::const_iterator
-           it(sort_files.begin()),
-       end(sort_files.end());
-       it != end; ++it) {
-    io::file_entry const& f(it->second);
-    std::string config_file(dir + "/" + f.base_name() + ".cfg");
-    if (io::file_stream::exists(config_file.c_str()) == false)
-      config_file = "";
+  unsigned int loaded = 0;
+  for (const auto& [name, f] : sort_files) {
+    std::string cfg_file = f.stem().string() + ".cfg";
+    std::filesystem::path config_file = dir / std::filesystem::path(cfg_file);
+    if (!std::filesystem::exists(config_file))
+      config_file.clear();
+
     std::shared_ptr<handle> module;
     try {
-      module = add_module(dir + "/" + f.file_name(), config_file);
+      module = add_module(dir / f, config_file);
       module->open();
       engine_logger(log_info_message, basic)
-          << "Event broker module '" << f.file_name()
+          << "Event broker module '" << f.filename()
           << "' initialized successfully.";
       events_logger->info("Event broker module '{}' initialized successfully.",
-                          f.file_name());
+                          f.filename().string());
       ++loaded;
     } catch (error const& e) {
       del_module(module);
       engine_logger(log_runtime_error, basic)
-          << "Error: Could not load module '" << f.file_name() << "' -> "
+          << "Error: Could not load module '" << f.filename() << "' -> "
           << e.what();
       runtime_logger->error("Error: Could not load module '{}' -> {}",
-                            f.file_name(), e.what());
+                            f.filename().string(), e.what());
     }
   }
   return loaded;

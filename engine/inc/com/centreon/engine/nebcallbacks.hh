@@ -75,7 +75,8 @@
 
 #define NEBCALLBACK_BENCH_DATA 45
 #define NEBCALLBACK_OTL_METRICS 46
-#define NEBCALLBACK_NUMITEMS 47 /* Total number of callback types we have. */
+#define NEBCALLBACK_AGENT_STATS 47
+#define NEBCALLBACK_NUMITEMS 48 /* Total number of callback types we have. */
 
 #ifdef __cplusplus
 extern "C" {

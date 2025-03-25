@@ -119,6 +119,10 @@ otl_config::otl_config(const std::string_view& file_path,
         "nor an grpc server, nor a reverse client configured");
   }
 
+  if (!_centreon_agent_config) {
+    _centreon_agent_config = std::make_shared<centreon_agent::agent_config>();
+  }
+
   if (file_content.has_member("telegraf_conf_server")) {
     try {
       _telegraf_conf_server_config =

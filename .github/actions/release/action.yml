@@ -24,7 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Checkout sources
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         fetch-depth: 0
 
@@ -33,7 +33,7 @@ runs:
         set -eux
 
         # Variables
-        COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone")
+        COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone" "centreon-common")
         CURRENT_STABLE_BRANCH_MAJOR_VERSION=""
         declare -a TMP_STABLE_TAGS=()
         declare -a NEW_STABLE_TAGS=()
@@ -60,7 +60,7 @@ runs:
         # Get previous and new version tags for components
         for component in ${COMPONENTS_COLLECT[@]}; do
           MAJOR_VERSION=$(grep -E "MAJOR" .version | cut -d '=' -f2)
-          MINOR_VERSION=$(grep -E "MINOR" .version | cut -d '=' -f2)
+          MINOR_VERSION=$(grep -E "MINOR" .version.$component | cut -d '=' -f2)
           # Previous stable tags array
           if [[ $RELEASE_CLOUD -eq 1 ]]; then
             PREVIOUS_STABLE_TAGS+=($(git tag -l --sort=-version:refname "$component-$CURRENT_STABLE_BRANCH_MAJOR_VERSION.*-*" | head -n 1))

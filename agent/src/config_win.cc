@@ -18,12 +18,11 @@
 
 #include <windows.h>
 
-#include <re2/re2.h>
-
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "config.hh"
 
 using namespace com::centreon::agent;
+
+std::unique_ptr<config> config::_global_conf;
 
 /**
  * @brief Construct a new config::config object
@@ -61,22 +60,23 @@ config::config(const std::string& registry_key) {
     return result == ERROR_SUCCESS && value;
   };
 
-  auto get_unsigned = [&](const char* value_name) -> uint32_t {
+  auto get_unsigned = [&](const char* value_name,
+                          unsigned default_value = 0) -> uint32_t {
     uint32_t value;
     DWORD size = sizeof(value);
     LSTATUS result = RegGetValueA(h_key, nullptr, value_name, RRF_RT_DWORD,
                                   nullptr, &value, &size);
-    return result == ERROR_SUCCESS ? value : 0;
+    return result == ERROR_SUCCESS ? value : default_value;
   };
 
   _endpoint = get_sz_reg_or_default("endpoint", "");
 
   // pattern schema doesn't work so we do it ourselves
-  if (!RE2::FullMatch(_endpoint, "[\\w\\.:]+:\\w+")) {
+  if (!RE2::FullMatch(_endpoint, "[\\w\\.\\-:]+:\\w+")) {
     RegCloseKey(h_key);
     throw exceptions::msg_fmt(
-        "bad format for endpoint {}, it must match to the regex: "
-        "[\\w\\.:]+:\\w+",
+        "bad format for endpoint {}, it must match the regex: "
+        "[\\w\\.\\-:]+:\\w+",
         _endpoint);
   }
   _log_level =
@@ -92,8 +92,8 @@ config::config(const std::string& registry_key) {
   }
 
   _log_file = get_sz_reg_or_default("log_file", "");
-  _log_files_max_size = get_unsigned("log_files_max_size");
-  _log_files_max_number = get_unsigned("log_files_max_number");
+  _log_max_file_size = get_unsigned("log_max_file_size");
+  _log_max_files = get_unsigned("log_max_files");
   _encryption = get_bool("encryption");
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
@@ -103,7 +103,10 @@ config::config(const std::string& registry_key) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
-  _reverse_connection = get_bool("reverse_connection");
+  _reverse_connection = get_bool("reversed_grpc_streaming");
+  _second_max_reconnect_backoff =
+      get_unsigned("second_max_reconnect_backoff", 60);
+  _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
 
   RegCloseKey(h_key);
 }
