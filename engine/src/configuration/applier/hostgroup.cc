@@ -38,7 +38,7 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   config_logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
-  auto* new_obj = pb_indexed_config.state().add_hostgroups();
+  auto* new_obj = pb_indexed_config.mut_state().add_hostgroups();
   new_obj->CopyFrom(obj);
 
   // Create host group.
@@ -62,7 +62,7 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
  *
  *  @param[in,out] s  State being applied.
  */
-void applier::hostgroup::expand_objects(configuration::State& s
+void applier::hostgroup::expand_objects(configuration::indexed_state& s
                                         [[maybe_unused]]) {}
 
 /**
@@ -140,7 +140,8 @@ void applier::hostgroup::remove_object(
   }
 
   // Remove host group from the global configuration set.
-  pb_indexed_config.state().mutable_hostgroups()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_hostgroups()->DeleteSubrange(p.first,
+                                                                     1);
 }
 
 /**

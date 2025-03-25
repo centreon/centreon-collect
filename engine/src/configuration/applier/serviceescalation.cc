@@ -48,7 +48,7 @@ void applier::serviceescalation::add_object(
                        obj.hosts().data()[0]);
 
   // Add escalation to the global configuration set.
-  auto* se_cfg = pb_indexed_config.state().add_serviceescalations();
+  auto* se_cfg = pb_indexed_config.mut_state().add_serviceescalations();
   se_cfg->CopyFrom(obj);
 
   size_t key = configuration::serviceescalation_key(obj);
@@ -83,24 +83,25 @@ void applier::serviceescalation::add_object(
  *
  *  @param[in,out] s  Configuration being applied.
  */
-void applier::serviceescalation::expand_objects(configuration::State& s) {
+void applier::serviceescalation::expand_objects(
+    configuration::indexed_state& s) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
   // Browse all escalations.
   config_logger->debug("Expanding service escalations");
 
-  for (auto& se : *s.mutable_serviceescalations()) {
+  for (auto& se : *s.mut_state().mutable_serviceescalations()) {
     /* A set of all the hosts related to this escalation */
     absl::flat_hash_set<std::string> host_names;
     for (auto& hname : se.hosts().data())
       host_names.insert(hname);
     if (se.hostgroups().data().size() > 0) {
       for (auto& hg_name : se.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found_hg != s.hostgroups().end()) {
+        auto found_hg = std::find_if(s.state().hostgroups().begin(),
+                                     s.state().hostgroups().end(),
+                                     [&hg_name](const Hostgroup& hg) {
+                                       return hg.hostgroup_name() == hg_name;
+                                     });
+        if (found_hg != s.state().hostgroups().end()) {
           for (auto& h : found_hg->members().data())
             host_names.emplace(h);
         } else
@@ -118,12 +119,12 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
     }
 
     for (auto& sg_name : se.servicegroups().data()) {
-      auto found =
-          std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
-                       [&sg_name](const Servicegroup& sg) {
-                         return sg.servicegroup_name() == sg_name;
-                       });
-      if (found == s.servicegroups().end())
+      auto found = std::find_if(s.state().servicegroups().begin(),
+                                s.state().servicegroups().end(),
+                                [&sg_name](const Servicegroup& sg) {
+                                  return sg.servicegroup_name() == sg_name;
+                                });
+      if (found == s.state().servicegroups().end())
         throw engine_error()
             << fmt::format("Could not resolve service group '{}'", sg_name);
 
@@ -142,9 +143,9 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
       fill_string_group(e->mutable_service_description(), p.second);
     }
   }
-  s.clear_serviceescalations();
+  s.mut_state().clear_serviceescalations();
   for (auto& e : resolved)
-    s.mutable_serviceescalations()->AddAllocated(e.release());
+    s.mut_state().mutable_serviceescalations()->AddAllocated(e.release());
 }
 
 /**
@@ -177,7 +178,7 @@ void applier::serviceescalation::remove_object(
   config_logger->debug("Removing a service escalation.");
 
   configuration::Serviceescalation& obj =
-      pb_indexed_config.state().mutable_serviceescalations()->at(p.first);
+      pb_indexed_config.mut_state().mutable_serviceescalations()->at(p.first);
   // Find service escalation.
   const std::string& host_name{obj.hosts().data()[0]};
   const std::string& description{obj.service_description().data()[0]};
@@ -223,7 +224,7 @@ void applier::serviceescalation::remove_object(
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.state().mutable_serviceescalations()->DeleteSubrange(
+  pb_indexed_config.mut_state().mutable_serviceescalations()->DeleteSubrange(
       p.first, 1);
 }
 

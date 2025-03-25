@@ -50,7 +50,7 @@ TEST_F(ApplierServicegroup, PbModifyUnexistingServicegroupFromConfig) {
   sg.set_servicegroup_name("test");
   fill_pair_string_group(sg.mutable_members(), "host1,service1");
   configuration::Servicegroup* new_sg =
-      pb_indexed_config.state().add_servicegroups();
+      pb_indexed_config.mut_state().add_servicegroups();
   new_sg->CopyFrom(sg);
   ASSERT_THROW(aply.modify_object(new_sg, sg), std::exception);
 }
@@ -70,7 +70,8 @@ TEST_F(ApplierServicegroup, PbModifyServicegroupFromConfig) {
   ASSERT_TRUE(it->second->get_alias() == "test");
 
   sg.set_alias("test_renamed");
-  aply.modify_object(pb_indexed_config.state().mutable_servicegroups(0), sg);
+  aply.modify_object(pb_indexed_config.mut_state().mutable_servicegroups(0),
+                     sg);
   it = engine::servicegroup::servicegroups.find("test");
   ASSERT_TRUE(it->second->get_alias() == "test_renamed");
 }
@@ -85,7 +86,7 @@ TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
   configuration::servicegroup_helper grp_hlp(&grp);
   grp.set_servicegroup_name("test");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config.state());
+  aplyr.expand_objects(pb_indexed_config);
   aplyr.resolve_object(grp, err);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -103,7 +104,7 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   grp.set_servicegroup_name("test");
   fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config.state());
+  aplyr.expand_objects(pb_indexed_config);
   ASSERT_THROW(aplyr.resolve_object(grp, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -146,7 +147,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
@@ -189,7 +190,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().data().size() == 1);
 
@@ -198,7 +199,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   grp1.set_servicegroup_name("big_group");
   fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
 
   // grp1 must be reload because the expand_objects reload them totally.
   auto found = std::find_if(pb_indexed_config.state().servicegroups().begin(),
@@ -247,7 +248,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 1);
@@ -257,7 +258,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   grp1.set_servicegroup_name("big_group");
   fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   auto found = std::find_if(pb_indexed_config.state().servicegroups().begin(),
                             pb_indexed_config.state().servicegroups().end(),
                             [](const configuration::Servicegroup& sg) {
@@ -320,7 +321,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
 
   grp_hlp.hook("members", "test_host,test,test_host,test2");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 2);
@@ -332,7 +333,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   ASSERT_EQ(sg->members.size(), 1u);
 
   grp_hlp.hook("members", "test_host,test,test_host,test2");
-  aply_grp.modify_object(pb_indexed_config.state().mutable_servicegroups(0),
+  aply_grp.modify_object(pb_indexed_config.mut_state().mutable_servicegroups(0),
                          grp);
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);

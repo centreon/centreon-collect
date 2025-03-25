@@ -53,11 +53,11 @@ class PbServiceRetention : public TestEngine {
   void SetUp() override {
     init_config_state();
 
-    pb_indexed_config.state().clear_contacts();
+    pb_indexed_config.mut_state().clear_contacts();
     configuration::applier::contact ct_aply;
     configuration::Contact ctct = new_pb_configuration_contact("admin", true);
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config.state());
+    ct_aply.expand_objects(pb_indexed_config);
     configuration::error_cnt err;
     ct_aply.resolve_object(ctct, err);
 

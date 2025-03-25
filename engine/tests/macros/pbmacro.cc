@@ -34,6 +34,7 @@
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
@@ -82,7 +83,8 @@ class Macro : public TestEngine {
 // Then the applier add_object throws an exception.
 TEST_F(Macro, PbPollerName) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -93,7 +95,7 @@ TEST_F(Macro, PbPollerName) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
@@ -103,7 +105,8 @@ TEST_F(Macro, PbPollerName) {
 
 TEST_F(Macro, PbPollerId) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -114,7 +117,7 @@ TEST_F(Macro, PbPollerId) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$POLLERID$", out, 0);
@@ -339,7 +342,8 @@ TEST_F(Macro, PbContactPager) {
 
 TEST_F(Macro, PbAdminEmail) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -350,7 +354,7 @@ TEST_F(Macro, PbAdminEmail) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
 
   init_macros();
 
@@ -361,8 +365,9 @@ TEST_F(Macro, PbAdminEmail) {
 }
 
 TEST_F(Macro, PbAdminPager) {
+  configuration::indexed_state state;
   configuration::parser parser;
-  configuration::State st;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -373,7 +378,7 @@ TEST_F(Macro, PbAdminPager) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
 
   init_macros();
 
@@ -385,7 +390,8 @@ TEST_F(Macro, PbAdminPager) {
 
 TEST_F(Macro, PbMainConfigFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -395,7 +401,7 @@ TEST_F(Macro, PbMainConfigFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -406,7 +412,8 @@ TEST_F(Macro, PbMainConfigFile) {
 
 TEST_F(Macro, PbStatusDataFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -417,7 +424,7 @@ TEST_F(Macro, PbStatusDataFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -428,7 +435,8 @@ TEST_F(Macro, PbStatusDataFile) {
 
 TEST_F(Macro, PbRetentionDataFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -440,7 +448,8 @@ TEST_F(Macro, PbRetentionDataFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  state.index();
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -451,7 +460,8 @@ TEST_F(Macro, PbRetentionDataFile) {
 
 TEST_F(Macro, PbTempFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -461,7 +471,7 @@ TEST_F(Macro, PbTempFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -472,7 +482,8 @@ TEST_F(Macro, PbTempFile) {
 
 TEST_F(Macro, PbLogFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -482,7 +493,7 @@ TEST_F(Macro, PbLogFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -493,7 +504,8 @@ TEST_F(Macro, PbLogFile) {
 
 TEST_F(Macro, PbCommandFile) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State& st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -504,7 +516,7 @@ TEST_F(Macro, PbCommandFile) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -515,7 +527,8 @@ TEST_F(Macro, PbCommandFile) {
 
 TEST_F(Macro, PbTempPath) {
   configuration::parser parser;
-  configuration::State st;
+  configuration::indexed_state state;
+  configuration::State st = state.mut_state();
 
   std::remove("/tmp/test-config.cfg");
 
@@ -525,7 +538,7 @@ TEST_F(Macro, PbTempPath) {
 
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", &st, err);
-  configuration::applier::state::instance().apply(st, err);
+  configuration::applier::state::instance().apply(state, err);
   init_macros();
 
   std::string out;
@@ -540,7 +553,7 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -549,7 +562,7 @@ TEST_F(Macro, PbContactGroupName) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_indexed_config.state());
+  cg_aply.expand_objects(pb_indexed_config);
   cg_aply.resolve_object(cg, err);
 
   init_macros();
@@ -568,7 +581,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -577,7 +590,7 @@ TEST_F(Macro, PbContactGroupAlias) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_indexed_config.state());
+  cg_aply.expand_objects(pb_indexed_config);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -595,7 +608,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -604,7 +617,7 @@ TEST_F(Macro, PbContactGroupMembers) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_indexed_config.state());
+  cg_aply.expand_objects(pb_indexed_config);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -622,7 +635,7 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contact_helper ctct_hlp(&ctct);
   fill_pb_configuration_contact(&ctct_hlp, "test_contact", true);
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
 
@@ -631,7 +644,7 @@ TEST_F(Macro, PbContactGroupNames) {
   configuration::contactgroup_helper cg_hlp(&cg);
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(pb_indexed_config.state());
+  cg_aply.expand_objects(pb_indexed_config);
   cg_aply.resolve_object(cg, err);
   init_macros();
   int now{500000000};
@@ -654,7 +667,7 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -662,7 +675,7 @@ TEST_F(Macro, PbNotificationRecipients) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -717,7 +730,7 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -725,7 +738,7 @@ TEST_F(Macro, PbNotificationAuthor) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -780,7 +793,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::contact_helper ctct1_hlp(&ctct1);
   fill_pb_configuration_contact(&ctct1_hlp, "admin1", false, "c,r");
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
@@ -788,7 +801,7 @@ TEST_F(Macro, PbNotificationAuthorName) {
   configuration::contact_helper ctct2_hlp(&ctct2);
   fill_pb_configuration_contact(&ctct2_hlp, "test_contact", false);
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst;
@@ -839,14 +852,14 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
@@ -893,14 +906,14 @@ TEST_F(Macro, PbNotificationComment) {
   configuration::Contact ctct1{
       new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   ct_aply.resolve_object(ctct, err);
   ct_aply.resolve_object(ctct1, err);
   configuration::Contact ctct2{
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct2);
-  ct_aply.expand_objects(pb_indexed_config.state());
+  ct_aply.expand_objects(pb_indexed_config);
   ct_aply.resolve_object(ctct2, err);
 
   configuration::Host hst{new_pb_configuration_host("test_host", "admin")};

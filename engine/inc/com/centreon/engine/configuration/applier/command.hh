@@ -19,6 +19,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #define CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/command_helper.hh"
 
 namespace com::centreon::engine {
@@ -44,7 +45,7 @@ class command {
   ~command() noexcept = default;
 
   void add_object(const configuration::Command& obj);
-  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
   template <typename Key>

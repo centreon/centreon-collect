@@ -20,6 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 
 namespace com::centreon::engine::configuration {
@@ -29,7 +30,7 @@ class state;
 
 namespace applier {
 class contactgroup {
-  void _resolve_members(configuration::State& s,
+  void _resolve_members(configuration::indexed_state& s,
                         configuration::Contactgroup& obj,
                         absl::flat_hash_set<std::string_view>& resolved);
 
@@ -49,7 +50,7 @@ class contactgroup {
                      const configuration::Contactgroup& new_object);
   template <typename Key>
   void remove_object(const std::pair<ssize_t, Key>& p);
-  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::indexed_state& s);
   void resolve_object(const configuration::Contactgroup& obj, error_cnt& err);
 };
 

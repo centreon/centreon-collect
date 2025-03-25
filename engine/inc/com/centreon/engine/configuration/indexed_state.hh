@@ -31,13 +31,17 @@ namespace com::centreon::engine::configuration {
  */
 class indexed_state {
   State _state;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
       _severities;
 
   void _apply_containers(State& state);
 
  public:
-  State& state() { return _state; }
+  indexed_state() = default;
+  indexed_state(const indexed_state& other);
+  const State& state() const { return _state; }
+  State& mut_state() { return _state; }
   void index();
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
   severities() {
@@ -47,6 +51,18 @@ class indexed_state {
     _severities.emplace(
         std::make_pair(severity->key().id(), severity->key().type()),
         std::move(severity));
+  }
+  Severity& severity(std::pair<uint64_t, uint32_t> key) {
+    return *_severities[key];
+  }
+  void remove_severity(std::pair<uint64_t, uint32_t> key) {
+    _severities.erase(key);
+  }
+  const absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& hosts() const {
+    return _hosts;
+  }
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& mut_hosts() {
+    return _hosts;
   }
   State save();
   void restore(State& state);

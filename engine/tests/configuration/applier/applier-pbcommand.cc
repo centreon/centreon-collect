@@ -174,7 +174,7 @@ TEST_F(ApplierPbCommand, PbModifyCommandWithConnector) {
   aply.add_object(cmd);
 
   configuration::Command* to_modify =
-      &pb_indexed_config.state().mutable_commands()->at(0);
+      &pb_indexed_config.mut_state().mutable_commands()->at(0);
   cmd.set_command_line("date");
   aply.modify_object(to_modify, cmd);
   command_map::iterator found{commands::command::commands.find("cmd")};
@@ -248,7 +248,6 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   hst.set_host_name("hst_test");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
-  hst.set_host_id(1);
   configuration::CustomVariable* cv = hst.add_customvariables();
   cv->set_name("PACKETNUMBER");
   cv->set_value("42");
@@ -268,9 +267,9 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_indexed_config.state().hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config.state());
+  hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
@@ -333,9 +332,9 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
 
   host_map::iterator hst_found = engine::host::hosts.find("hst_test");
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_indexed_config.state().hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config.state());
+  hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());

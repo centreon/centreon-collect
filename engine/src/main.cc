@@ -21,7 +21,6 @@
 
 #include <unistd.h>
 #include <random>
-#include <string>
 
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
@@ -31,14 +30,11 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-
-#include <rapidjson/document.h>
 
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
@@ -58,7 +54,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/retention/state.hh"
@@ -67,7 +62,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/logging/engine.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
@@ -95,7 +89,7 @@ int main(int argc, char* argv[]) {
   /* It's time to set the logger. Later, we will have access from multiple
    * threads and we'll only be able to change loggers atomic values. */
   // init pb_config to default values
-  configuration::state_helper state_hlp(&pb_indexed_config.state());
+  configuration::state_helper state_hlp(&pb_indexed_config.mut_state());
 
   init_loggers();
   configuration::applier::logging::instance();
@@ -227,14 +221,15 @@ int main(int argc, char* argv[]) {
           // resource and object config files).
           configuration::error_cnt err;
           cbm = std::make_unique<cbmod>(proto_conf);
-          configuration::State pb_config;
+          configuration::indexed_state indexed_config;
+          configuration::State& pb_config = indexed_config.mut_state();
           {
             configuration::parser p;
             p.parse(config_file, &pb_config, err);
             if (broker_config.empty())
               broker_config = pb_config.broker_module_cfg_file();
           }
-          configuration::applier::state::instance().apply(pb_config, err);
+          configuration::applier::state::instance().apply(indexed_config, err);
           std::cout << "\n Checked " << commands::command::commands.size()
                     << " commands.\n Checked "
                     << commands::connector::connectors.size()
@@ -284,7 +279,8 @@ int main(int argc, char* argv[]) {
       else if (test_scheduling) {
         try {
           // Parse configuration.
-          configuration::State pb_config;
+          configuration::indexed_state indexed_config;
+          configuration::State& pb_config = indexed_config.mut_state();
           configuration::error_cnt err;
           {
             configuration::parser p;
@@ -304,7 +300,7 @@ int main(int argc, char* argv[]) {
           }
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(pb_config, err,
+          configuration::applier::state::instance().apply(indexed_config, err,
                                                           &state);
 
           display_scheduling_info();
@@ -334,7 +330,8 @@ int main(int argc, char* argv[]) {
         try {
           // Parse configuration.
           configuration::error_cnt err;
-          configuration::State new_config;
+          configuration::indexed_state indexed_config;
+          configuration::State& new_config = indexed_config.mut_state();
           std::filesystem::path proto_conf_file(proto_conf / "state.prot");
           if (!proto_conf.empty()) {
             std::ifstream ifs(proto_conf_file);
@@ -348,6 +345,7 @@ int main(int argc, char* argv[]) {
               p.parse(config_file, &new_config, err);
             }
           }
+          indexed_config.index();
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
 
@@ -415,7 +413,7 @@ int main(int argc, char* argv[]) {
               &backend_broker_log, logging::log_all, logging::basic);
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(new_config, err,
+          configuration::applier::state::instance().apply(indexed_config, err,
                                                           &state);
 
           // Initialize status data.

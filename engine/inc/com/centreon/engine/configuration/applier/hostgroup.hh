@@ -20,6 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
 
 namespace com::centreon::engine::configuration {
@@ -35,7 +36,7 @@ class hostgroup {
   ~hostgroup() noexcept = default;
   hostgroup& operator=(hostgroup const& right) = delete;
   void add_object(const configuration::Hostgroup& obj);
-  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
   template <typename Key>

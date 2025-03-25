@@ -65,7 +65,7 @@ void applier::servicedependency::add_object(
       obj.hosts().data()[0]);
 
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_indexed_config.state().add_servicedependencies();
+  auto* new_obj = pb_indexed_config.mut_state().add_servicedependencies();
   new_obj->CopyFrom(obj);
 
   std::shared_ptr<engine::servicedependency> sd;
@@ -113,10 +113,11 @@ void applier::servicedependency::add_object(
  *
  *  @param[in,out] s  Configuration being applied.
  */
-void applier::servicedependency::expand_objects(configuration::State& s) {
+void applier::servicedependency::expand_objects(
+    configuration::indexed_state& s) {
   // Browse all dependencies.
   std::list<std::unique_ptr<Servicedependency>> expanded;
-  for (auto& dep : s.servicedependencies()) {
+  for (auto& dep : s.state().servicedependencies()) {
     // Expand service dependency instances.
     if (dep.hosts().data().size() != 1 || !dep.hostgroups().data().empty() ||
         dep.service_description().data().size() != 1 ||
@@ -179,9 +180,9 @@ void applier::servicedependency::expand_objects(configuration::State& s) {
   }
 
   // Set expanded service dependencies in configuration state.
-  s.clear_servicedependencies();
+  s.mut_state().clear_servicedependencies();
   for (auto& e : expanded)
-    s.mutable_servicedependencies()->AddAllocated(e.release());
+    s.mut_state().mutable_servicedependencies()->AddAllocated(e.release());
 }
 
 /**
@@ -227,7 +228,7 @@ void applier::servicedependency::remove_object(
   }
 
   // Remove dependency from the global configuration set.
-  pb_indexed_config.state().mutable_servicedependencies()->DeleteSubrange(
+  pb_indexed_config.mut_state().mutable_servicedependencies()->DeleteSubrange(
       p.first, 1);
 }
 
@@ -270,7 +271,7 @@ void applier::servicedependency::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& hg,
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
-    configuration::State& s,
+    configuration::indexed_state& s,
     absl::flat_hash_set<std::pair<std::string, std::string>>& expanded) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;
@@ -282,9 +283,9 @@ void applier::servicedependency::_expand_services(
   for (auto& hgn : hg) {
     // Find host group
     auto found = std::find_if(
-        s.hostgroups().begin(), s.hostgroups().end(),
+        s.state().hostgroups().begin(), s.state().hostgroups().end(),
         [&hgn](const Hostgroup& hgg) { return hgg.hostgroup_name() == hgn; });
-    if (found == s.hostgroups().end())
+    if (found == s.state().hostgroups().end())
       throw engine_error() << fmt::format("Could not resolve host group '{}'",
                                           hgn);
     // Add host group members.
@@ -300,12 +301,12 @@ void applier::servicedependency::_expand_services(
   // Service groups.
   for (auto& sgn : sg) {
     // Find service group.
-    auto found =
-        std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
-                     [&sgn](const Servicegroup& sgg) {
-                       return sgg.servicegroup_name() == sgn;
-                     });
-    if (found == s.servicegroups().end())
+    auto found = std::find_if(s.state().servicegroups().begin(),
+                              s.state().servicegroups().end(),
+                              [&sgn](const Servicegroup& sgg) {
+                                return sgg.servicegroup_name() == sgn;
+                              });
+    if (found == s.state().servicegroups().end())
       throw engine_error() << fmt::format(
           "Coulx not resolve service group '{}'", sgn);
 

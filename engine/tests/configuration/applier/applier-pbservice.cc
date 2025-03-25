@@ -142,8 +142,9 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_indexed_config.state().mutable_services(0), svc);
-  svc_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.modify_object(pb_indexed_config.mut_state().mutable_services(0),
+                         svc);
+  svc_aply.expand_objects(pb_indexed_config);
 
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
@@ -428,8 +429,9 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
   ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_indexed_config.state().mutable_services(0), svc);
-  svc_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.modify_object(pb_indexed_config.mut_state().mutable_services(0),
+                         svc);
+  svc_aply.expand_objects(pb_indexed_config);
 
   ASSERT_EQ(sm.size(), 1u);
   ASSERT_EQ(sm.begin()->first.first, 1u);
@@ -570,8 +572,9 @@ TEST_F(ApplierService, PbRenameServiceFromConfigTags) {
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_indexed_config.state().mutable_services(0), svc);
-  svc_aply.expand_objects(pb_indexed_config.state());
+  svc_aply.modify_object(pb_indexed_config.mut_state().mutable_services(0),
+                         svc);
+  svc_aply.expand_objects(pb_indexed_config);
 
   const service_id_map& sm = engine::service::services_by_id;
   ASSERT_EQ(sm.size(), 1u);

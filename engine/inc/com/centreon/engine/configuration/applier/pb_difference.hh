@@ -130,25 +130,22 @@ class pb_difference {
     }
   }
 
-  template <typename Function>
-  void parse(absl::flat_hash_map<Key, std::unique_ptr<T>>& old_content,
-             const Container& new_list,
-             Function f) {
+  void parse(const absl::flat_hash_map<Key, std::unique_ptr<T>>& old_content,
+             const absl::flat_hash_map<Key, std::unique_ptr<T>>& new_content) {
     absl::flat_hash_set<Key> new_keys;
-    for (auto it = new_list.begin(); it != new_list.end(); ++it) {
-      const T& item = *it;
-      auto inserted = new_keys.insert(f(item));
-      if (!old_content.contains(*inserted.first)) {
+    for (auto& p : new_content) {
+      if (!old_content.contains(p.first)) {
         // New object to add
-        _added.push_back(&item);
+        _added.push_back(p.second.get());
       } else {
         // Object to modify or equal
-        if (!MessageDifferencer::Equals(item, *old_content[f(item)])) {
+        if (!MessageDifferencer::Equals(*p.second, *old_content.at(p.first))) {
           // There are changes in this object
           _modified.push_back(
-              std::make_pair(old_content[f(item)].get(), &item));
+              std::make_pair(old_content.at(p.first).get(), p.second.get()));
         }
       }
+      new_keys.insert(p.first);
     }
 
     ssize_t i = 0;

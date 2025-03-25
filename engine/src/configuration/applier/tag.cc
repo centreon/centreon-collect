@@ -40,7 +40,7 @@ void applier::tag::add_object(const configuration::Tag& obj) {
                        obj.key().type());
 
   // Add tag to the global configuration set.
-  configuration::Tag* new_tg = pb_indexed_config.state().add_tags();
+  configuration::Tag* new_tg = pb_indexed_config.mut_state().add_tags();
   new_tg->CopyFrom(obj);
 
   auto tg = std::make_shared<engine::tag>(
@@ -125,7 +125,7 @@ void applier::tag::remove_object(
   }
 
   // Remove tag from the global configuration set.
-  pb_indexed_config.state().mutable_tags()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_tags()->DeleteSubrange(p.first, 1);
 }
 
 /**

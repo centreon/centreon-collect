@@ -31,6 +31,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "common/engine_conf/service_helper.hh"
 #include "helper.hh"
@@ -51,7 +52,7 @@ class HostDependency : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     configuration::error_cnt err;
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config.state());
+    ct_aply.expand_objects(pb_indexed_config);
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::host hst_aply;
@@ -77,13 +78,13 @@ TEST_F(HostDependency, PbCircularDependency2) {
   configuration::applier::hostdependency hd_aply;
   configuration::Hostdependency hd1{
       new_pb_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd1);
   hd_aply.resolve_object(hd1, err);
 
   configuration::Hostdependency hd2{
       new_pb_configuration_hostdependency("host2", "host1")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd2);
   hd_aply.resolve_object(hd2, err);
 
@@ -95,20 +96,20 @@ TEST_F(HostDependency, PbCircularDependency3) {
   configuration::applier::hostdependency hd_aply;
   configuration::Hostdependency hd1{
       new_pb_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd1);
   configuration::error_cnt err;
   hd_aply.resolve_object(hd1, err);
 
   configuration::Hostdependency hd2{
       new_pb_configuration_hostdependency("host2", "host3")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd2);
   hd_aply.resolve_object(hd2, err);
 
   configuration::Hostdependency hd3{
       new_pb_configuration_hostdependency("host3", "host1")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd3);
   hd_aply.resolve_object(hd3, err);
 
@@ -120,7 +121,7 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
   configuration::applier::hostdependency hd_aply;
   configuration::Hostdependency hd1{
       new_pb_configuration_hostdependency("host1", "host2")};
-  hd_aply.expand_objects(pb_indexed_config.state());
+  hd_aply.expand_objects(pb_indexed_config);
   hd_aply.add_object(hd1);
   configuration::error_cnt err;
   hd_aply.resolve_object(hd1, err);
@@ -131,13 +132,14 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
 }
 
 TEST_F(HostDependency, PbExpandHostdependency) {
-  configuration::State s;
+  configuration::indexed_state state;
+  configuration::State& s = state.mut_state();
   configuration::Hostdependency hd{
       new_pb_configuration_hostdependency("host1,host3,host5", "host2,host6")};
   auto* new_hd = s.add_hostdependencies();
   new_hd->CopyFrom(std::move(hd));
   configuration::applier::hostdependency hd_aply;
-  hd_aply.expand_objects(s);
+  hd_aply.expand_objects(state);
   ASSERT_EQ(s.hostdependencies().size(), 6);
   ASSERT_TRUE(std::all_of(s.hostdependencies().begin(),
                           s.hostdependencies().end(), [](const auto& hd) {

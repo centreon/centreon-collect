@@ -20,6 +20,7 @@
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 
 namespace com::centreon::engine {
@@ -46,7 +47,7 @@ namespace applier {
  */
 class state {
  public:
-  void apply(configuration::State& new_cfg,
+  void apply(configuration::indexed_state& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
   void apply_diff(configuration::DiffState& diff_conf,
@@ -58,9 +59,11 @@ class state {
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
-  std::unordered_map<std::string, std::string>& user_macros();
-  std::unordered_map<std::string, std::string>::const_iterator user_macros_find(
-      std::string const& key) const;
+  absl::flat_hash_map<std::string, std::string>& user_macros();
+  absl::flat_hash_map<std::string, std::string>::const_iterator
+  user_macros_find(std::string const& key) const;
+  absl::flat_hash_map<std::string, std::string>::const_iterator
+  user_macros_find(const std::string_view& key) const;
   void lock();
   void unlock();
 
@@ -86,17 +89,17 @@ class state {
 #endif
 
   state& operator=(state const&);
-  void _apply(const configuration::State& new_cfg, error_cnt& err);
+  void _apply(const configuration::indexed_state& new_cfg, error_cnt& err);
   template <typename ConfigurationType, typename Key, typename ApplierType>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
   void _apply_ng(const DiffSeverity& diff, error_cnt& err);
-  void _apply(configuration::State& new_cfg,
+  void _apply(configuration::indexed_state& new_cfg,
               retention::state& state,
               error_cnt& err);
   template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::State& new_state, error_cnt& err);
-  void _processing(configuration::State& new_cfg,
+  void _expand(configuration::indexed_state& new_state, error_cnt& err);
+  void _processing(configuration::indexed_state& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);
   void _processing_diff(configuration::DiffState& diff_conf,
@@ -106,12 +109,17 @@ class state {
   void _resolve(
       const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
       error_cnt& err);
+  template <typename ConfigurationType, typename KeyType, typename ApplierType>
+  void _resolve(
+      const absl::flat_hash_map<KeyType, std::unique_ptr<ConfigurationType>>&
+          cfg,
+      error_cnt& err);
 
   std::mutex _apply_lock;
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;
-  std::unordered_map<std::string, std::string> _user_macros;
+  absl::flat_hash_map<std::string, std::string> _user_macros;
 };
 }  // namespace applier
 }  // namespace configuration
