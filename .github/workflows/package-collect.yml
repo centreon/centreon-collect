@@ -9,6 +9,12 @@ on:
       minor_version:
         required: true
         type: string
+      cma_major_version:
+        required: true
+        type: string
+      cma_minor_version:
+        required: true
+        type: string
       img_version:
         required: true
         type: string
@@ -23,95 +29,95 @@ on:
         type: string
       legacy_engine:
         required: true
+        type: string
+      build_debug_packages:
+        required: true
         type: boolean
       packages_in_artifact:
         required: true
         type: boolean
-
+      image:
+        required: true
+        type: string
+      distrib:
+        required: true
+        type: string
+      package_extension:
+        required: true
+        type: string
+      runner:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+      is_nightly:
+        required: false
+        type: string
+      only_robot_cma:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      collect_s3_access_key:
+        required: true
+      collect_s3_secret_key:
+        required: true
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+      rpm_gpg_key:
+        required: true
+      rpm_gpg_signing_key_id:
+        required: true
+      rpm_gpg_signing_passphrase:
+        required: true
+      jira_base_url:
+        required: true
+      jira_user_email:
+        required: true
+      jira_api_token:
+        required: true
 jobs:
   package:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: centreon-collect-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-alma9
-            distrib: el9
-            package_extension: rpm
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-debian-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-debian-bookworm
-            distrib: bookworm
-            package_extension: deb
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-ubuntu-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: collect-arm64
-            arch: arm64
-          - image: centreon-collect-debian-bookworm-arm64
-            distrib: bookworm
-            package_extension: deb
-            runner: collect-arm64
-            arch: arm64
-
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    runs-on: ${{ inputs.runner }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma  != true && 'OFF' || 'ON' }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
       credentials:
-        username: ${{ secrets.DOCKER_REGISTRY_ID }}
-        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
 
-    name: package ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: package ${{ inputs.distrib }} ${{ inputs.arch }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install sccache
         run: |
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            apt-get update
-            apt-get install -y wget
-          elif [ "${{ matrix.package_extension }}" = "rpm" ]; then
-            dnf install -y wget
-          fi
-          if [ "${{ matrix.arch }}" = "amd64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/bin/
-          elif [ "${{ matrix.arch }}" = "arm64" ]; then
-            wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            tar xzf sccache-v0.8.1-aarch64-unknown-linux-musl.tar.gz
-            mv sccache-v0.8.1-aarch64-unknown-linux-musl/sccache /usr/bin/
+          if [ "${{ inputs.arch }}" = "amd64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+          elif [ "${{ inputs.arch }}" = "arm64" ]; then
+            wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            tar xzf sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
+            mv sccache-v0.9.1-aarch64-unknown-linux-musl/sccache /usr/bin/
           fi
           ${SCCACHE_PATH} --start-server
 
       - name: Generate selinux binaries
-        if: ${{ matrix.package_extension == 'rpm' }}
+        if: ${{ inputs.package_extension == 'rpm' }}
         run: |
           cd selinux
           for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
@@ -123,32 +129,29 @@ jobs:
         shell: bash
 
       - name: Remove selinux packaging files on debian
-        if: ${{ matrix.package_extension == 'deb' }}
-        run: rm -f packaging/*-selinux.yaml
+        if: ${{ inputs.package_extension == 'deb' }}
+        run: rm -f packaging/centreon-collect/*-selinux.yaml
         shell: bash
 
       - name: Compile sources
         run: |
           CMAKE="cmake3"
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+          if [ "${{ inputs.package_extension }}" = "deb" ]; then
             CMAKE="cmake"
           fi
 
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
+          if [ "${{ inputs.arch }}" = "arm64" ]; then
             export VCPKG_FORCE_SYSTEM_BINARIES=1
             export TRIPLET=arm64-linux-release
           else
             export TRIPLET=x64-linux-release
           fi
 
-          if [ "${{ inputs.legacy_engine }}" == true ]; then
-            export LEGACY_ENGINE=ON
-          else
-            export LEGACY_ENGINE=OFF
-          fi
-          mv /root/.cache /github/home/
           export VCPKG_ROOT="/vcpkg"
           export PATH="$VCPKG_ROOT:$PATH"
+
+          mv /root/.cache /github/home/
+
           $CMAKE \
                   -B build \
                   -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
@@ -173,7 +176,8 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=$LEGACY_ENGINE \
+                  -DLEGACY_ENGINE=${{ inputs.legacy_engine }} \
+                  -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
           ninja -Cbuild
@@ -188,10 +192,11 @@ jobs:
         shell: bash
 
       - name: Generate debug files
+        if: ${{ !inputs.only_robot_cma }}
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
+            objcopy --merge-notes --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
@@ -206,37 +211,91 @@ jobs:
                "build/agent/centagent")
           for file in "${exe[@]}"; do
             echo "Making a debug file of $file"
-            objcopy --only-keep-debug $file $file.debug
+            objcopy --merge-notes --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
             objcopy --add-gnu-debuglink $file.debug $file
           done
         shell: bash
 
-      - uses: ./.github/actions/package
+      - name: Generate Mandatory CMA debug files
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
+            echo "Making a debug file of $file"
+            objcopy --merge-notes --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+          exe=("build/broker/cbd"
+               "build/engine/centengine"
+               "build/engine/centenginestats"
+               "build/ccc/ccc"
+               "build/agent/centagent")
+          for file in "${exe[@]}"; do
+            echo "Making a debug file of $file"
+            objcopy --merge-notes --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+        shell: bash
+
+      - if: ${{ inputs.build_debug_packages == false }}
+        run: rm -f packaging/centreon-collect/*debuginfo*.yaml
+        shell: bash
+
+      - name: Delete packaging files not needed by cma
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite.,broker-influxdb.,broker-victoria-metrics.,engine-bench.,broker*debuginfo,clib-debuginfo,engine*debuginfo}*
+        shell: bash
+
+      - name: Packages
+        uses: ./.github/actions/package
         with:
-          nfpm_file_pattern: "packaging/*.yaml"
-          distrib: ${{ matrix.distrib }}
-          package_extension: ${{ matrix.package_extension }}
+          nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
+          distrib: ${{ inputs.distrib }}
+          package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
+          cma_major_version: ${{ inputs.cma_major_version }}
+          cma_minor_version: ${{ inputs.cma_minor_version }}
           release: ${{ inputs.release }}
-          arch: ${{ matrix.arch }}
+          arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
-          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension}}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
 
       - name: Cleaning not needed packages
+        run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
         shell: bash
-        run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
       - if: inputs.packages_in_artifact == true
         name: Upload package artifacts
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
-          name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
-          path: ./*.${{ matrix.package_extension}}
+          name: packages-${{ inputs.distrib }}-${{ inputs.arch }}
+          path: ./*.${{ inputs.package_extension }}
           retention-days: 1
+
+  create-jira-nightly-ticket:
+    needs: [package]
+    runs-on: ubuntu-24.04
+    if: |
+      inputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled()) &&
+      startsWith(github.ref_name, 'dev') &&
+      github.repository == 'centreon/centreon-collect'
+    steps:
+      - name: Create Jira ticket on nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.jira_base_url }}
+          jira_user_email: ${{ secrets.jira_user_email }}
+          jira_api_token: ${{ secrets.jira_api_token }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "package"]'
+          ticket_squad: "DevSecOps"
