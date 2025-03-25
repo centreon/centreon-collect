@@ -52,7 +52,7 @@ void applier::hostdependency::add_object(
       obj.dependent_hosts().data(0), obj.hosts().data(0));
 
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_indexed_config.state().add_hostdependencies();
+  auto* new_obj = pb_indexed_config.mut_state().add_hostdependencies();
   new_obj->CopyFrom(obj);
 
   std::shared_ptr<engine::hostdependency> hd;
@@ -94,37 +94,37 @@ void applier::hostdependency::add_object(
  *
  *  @param[in,out] s  Configuration being applied.
  */
-void applier::hostdependency::expand_objects(configuration::State& s) {
+void applier::hostdependency::expand_objects(configuration::indexed_state& s) {
   std::list<std::unique_ptr<configuration::Hostdependency> > lst;
 
   config_logger->debug("Expanding host dependencies");
 
-  for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
-    auto* hd_conf = s.mutable_hostdependencies(i);
+  for (int i = s.state().hostdependencies_size() - 1; i >= 0; --i) {
+    auto* hd_conf = s.mut_state().mutable_hostdependencies(i);
     if (hd_conf->hosts().data().size() > 1 ||
         !hd_conf->hostgroups().data().empty() ||
         hd_conf->dependent_hosts().data().size() > 1 ||
         !hd_conf->dependent_hostgroups().data().empty() ||
         hd_conf->dependency_type() == unknown) {
       for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
+        auto found = std::find_if(
+            s.state().hostgroups().begin(), s.state().hostgroups().end(),
+            [&hg_name](const configuration::Hostgroup& hg) {
+              return hg.hostgroup_name() == hg_name;
+            });
+        if (found != s.state().hostgroups().end()) {
           auto& hg_conf = *found;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_dependent_hosts(), h);
         }
       }
       for (auto& hg_name : hd_conf->hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
+        auto found = std::find_if(
+            s.state().hostgroups().begin(), s.state().hostgroups().end(),
+            [&hg_name](const configuration::Hostgroup& hg) {
+              return hg.hostgroup_name() == hg_name;
+            });
+        if (found != s.state().hostgroups().end()) {
           auto& hg_conf = *found;
           for (auto& h : hg_conf.members().data())
             fill_string_group(hd_conf->mutable_hosts(), h);
@@ -156,11 +156,11 @@ void applier::hostdependency::expand_objects(configuration::State& s) {
           }
         }
       }
-      s.mutable_hostdependencies()->DeleteSubrange(i, 1);
+      s.mut_state().mutable_hostdependencies()->DeleteSubrange(i, 1);
     }
   }
   for (auto& hd : lst)
-    s.mutable_hostdependencies()->AddAllocated(hd.release());
+    s.mut_state().mutable_hostdependencies()->AddAllocated(hd.release());
 }
 
 /**
@@ -206,8 +206,8 @@ void applier::hostdependency::remove_object(
   }
 
   // Remove dependency from the global configuration set.
-  pb_indexed_config.state().mutable_hostdependencies()->DeleteSubrange(p.first,
-                                                                       1);
+  pb_indexed_config.mut_state().mutable_hostdependencies()->DeleteSubrange(
+      p.first, 1);
 }
 
 /**

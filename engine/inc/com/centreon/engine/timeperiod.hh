@@ -28,8 +28,8 @@ namespace com::centreon::engine {
 class timeperiod;
 }
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::timeperiod>>
+typedef absl::flat_hash_map<std::string,
+                            std::shared_ptr<com::centreon::engine::timeperiod>>
     timeperiod_map;
 typedef std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>
     timeperiodexclusion;

@@ -45,7 +45,7 @@ void applier::contact::add_object(const configuration::Contact& obj) {
   config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
-  configuration::Contact* ct_cfg = pb_indexed_config.state().add_contacts();
+  configuration::Contact* ct_cfg = pb_indexed_config.mut_state().add_contacts();
   ct_cfg->CopyFrom(obj);
 
   // Create address list.
@@ -313,7 +313,7 @@ void applier::contact::remove_object(const std::pair<ssize_t, std::string>& p) {
   }
 
   // Remove contact from the global configuration set.
-  pb_indexed_config.state().mutable_contacts()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_contacts()->DeleteSubrange(p.first, 1);
 }
 
 /**
@@ -324,17 +324,17 @@ void applier::contact::remove_object(const std::pair<ssize_t, std::string>& p) {
  *
  *  @param[in,out] s  Configuration state.
  */
-void applier::contact::expand_objects(configuration::State& s) {
+void applier::contact::expand_objects(configuration::indexed_state& s) {
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
+  for (auto& cv : s.state().macros_filter().data())
     cvs.emplace(cv);
 
   // Browse all contacts.
-  for (auto& c : *s.mutable_contacts()) {
+  for (auto& c : *s.mut_state().mutable_contacts()) {
     // Should custom variables be sent to broker ?
     for (auto& cv : *c.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
 
@@ -342,7 +342,7 @@ void applier::contact::expand_objects(configuration::State& s) {
     for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
       // Find contact group.
       Contactgroup* found_cg = nullptr;
-      for (auto& cgg : *s.mutable_contactgroups())
+      for (auto& cgg : *s.mut_state().mutable_contactgroups())
         if (cgg.contactgroup_name() == cg) {
           found_cg = &cgg;
           break;

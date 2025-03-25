@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/message_helper.hh"
@@ -39,14 +40,14 @@ class ApplierState : public ::testing::Test {
  public:
   void SetUp() override {
     init_config_state();
-    auto tps = pb_indexed_config.state().mutable_timeperiods();
+    auto tps = pb_indexed_config.mut_state().mutable_timeperiods();
     for (int i = 0; i < 10; i++) {
       auto* tp = tps->Add();
       tp->set_alias(fmt::format("timeperiod {}", i));
       tp->set_timeperiod_name(fmt::format("Timeperiod {}", i));
     }
     for (int i = 0; i < 5; i++) {
-      configuration::Contact* ct = pb_indexed_config.state().add_contacts();
+      configuration::Contact* ct = pb_indexed_config.mut_state().add_contacts();
       configuration::contact_helper ct_hlp(ct);
       std::string name(fmt::format("name{:2}", i));
       ct->set_contact_name(name);
@@ -600,29 +601,35 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 TEST_F(ApplierState, StateParsing) {
   configuration::error_cnt err;
-  configuration::State cfg;
+  configuration::indexed_state state;
+  configuration::State& cfg = state.mut_state();
   configuration::parser p;
   CreateConf(1);
   p.parse("/tmp/centengine.cfg", &cfg, err);
+  state.index();
   ASSERT_EQ(cfg.check_service_freshness(), false);
   ASSERT_EQ(cfg.enable_flap_detection(), false);
   ASSERT_EQ(cfg.instance_heartbeat_interval(), 30);
   ASSERT_EQ(cfg.log_level_functions(), configuration::LogLevel::warning);
   ASSERT_EQ(cfg.cfg_file().size(), CFG_FILES);
   ASSERT_EQ(cfg.resource_file().size(), RES_FILES);
-  ASSERT_EQ(cfg.hosts().size(), HOSTS);
-  ASSERT_EQ(cfg.hosts()[0].host_name(), std::string("Centreon-central"));
-  ASSERT_TRUE(cfg.hosts()[0].obj().register_());
-  ASSERT_EQ(cfg.hosts()[0].host_id(), 30);
-  ASSERT_EQ(cfg.hosts()[1].host_name(), std::string("Centreon-central_1"));
-  ASSERT_TRUE(cfg.hosts()[1].obj().register_());
-  ASSERT_EQ(cfg.hosts()[1].host_id(), 31);
-  ASSERT_EQ(cfg.hosts()[2].host_name(), std::string("Centreon-central_2"));
-  ASSERT_TRUE(cfg.hosts()[2].obj().register_());
-  ASSERT_EQ(cfg.hosts()[2].host_id(), 32);
-  ASSERT_EQ(cfg.hosts()[3].host_name(), std::string("Centreon-central_3"));
-  ASSERT_TRUE(cfg.hosts()[3].obj().register_());
-  ASSERT_EQ(cfg.hosts()[3].host_id(), 33);
+  ASSERT_EQ(state.hosts().size(), HOSTS);
+  auto& h1 = state.hosts().at(30);
+  ASSERT_EQ(h1->host_name(), std::string("Centreon-central"));
+  ASSERT_TRUE(h1->obj().register_());
+  ASSERT_EQ(h1->host_id(), 30);
+  auto& h2 = state.hosts().at(31);
+  ASSERT_EQ(h2->host_name(), std::string("Centreon-central_1"));
+  ASSERT_TRUE(h2->obj().register_());
+  ASSERT_EQ(h2->host_id(), 31);
+  auto& h3 = state.hosts().at(32);
+  ASSERT_EQ(h3->host_name(), std::string("Centreon-central_2"));
+  ASSERT_TRUE(h3->obj().register_());
+  ASSERT_EQ(h3->host_id(), 32);
+  auto& h4 = state.hosts().at(33);
+  ASSERT_EQ(h4->host_name(), std::string("Centreon-central_3"));
+  ASSERT_TRUE(h4->obj().register_());
+  ASSERT_EQ(h4->host_id(), 33);
 
   /* Service */
   ASSERT_EQ(cfg.services().size(), SERVICES);
@@ -872,15 +879,16 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(cnit == cfg.connectors().end());
 
   /* Severities */
-  ASSERT_EQ(cfg.severities().size(), 2);
-  auto svit = cfg.severities().begin();
-  ++svit;
-  ASSERT_TRUE(svit != cfg.severities().end());
-  ASSERT_EQ(svit->severity_name(), std::string_view("severity1"));
-  EXPECT_EQ(svit->key().id(), 5);
-  EXPECT_EQ(svit->level(), 1);
-  EXPECT_EQ(svit->icon_id(), 3);
-  ASSERT_EQ(svit->key().type(), configuration::SeverityType::service);
+  ASSERT_EQ(state.severities().size(), 2);
+  auto& sv = state.severities().at({5, configuration::SeverityType::service});
+  //  auto svit = state.severities().begin();
+  //  ++svit;
+  //  ASSERT_TRUE(svit != cfg.severities().end());
+  ASSERT_EQ(sv->severity_name(), std::string_view("severity1"));
+  EXPECT_EQ(sv->key().id(), 5);
+  EXPECT_EQ(sv->level(), 1);
+  EXPECT_EQ(sv->icon_id(), 3);
+  ASSERT_EQ(sv->key().type(), configuration::SeverityType::service);
 
   /* Serviceescalations */
   ASSERT_EQ(cfg.serviceescalations().size(), 6);
@@ -926,7 +934,8 @@ TEST_F(ApplierState, StateParsing) {
   /*Hostdependencies */
   ASSERT_EQ(cfg.hostdependencies().size(), HOSTDEPENDENCIES);
 
-  configuration::applier::state::instance().apply(cfg, err);
+  /* has_already_been_loaded is changed here */
+  configuration::applier::state::instance().apply(state, err);
 
   ASSERT_TRUE(std::all_of(cfg.hostdependencies().begin(),
                           cfg.hostdependencies().end(), [](const auto& hd) {
@@ -983,12 +992,14 @@ TEST_F(ApplierState, StateParsingHostdependencyWithoutHost) {
 }
 
 TEST_F(ApplierState, StateParsingNonexistingContactgroup) {
-  configuration::State cfg;
+  configuration::indexed_state state;
+  configuration::State& cfg = state.mut_state();
   configuration::parser p;
   CreateBadConf(ConfigurationObject::CONTACTGROUP_NE);
   configuration::error_cnt err;
   p.parse("/tmp/centengine.cfg", &cfg, err);
-  ASSERT_THROW(configuration::applier::state::instance().apply(cfg, err),
+  state.index();
+  ASSERT_THROW(configuration::applier::state::instance().apply(state, err),
                std::exception);
 }
 

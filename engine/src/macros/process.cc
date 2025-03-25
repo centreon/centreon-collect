@@ -18,7 +18,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
@@ -71,8 +70,10 @@ int process_macros_r(nagios_macros* mac,
         size_t pos{input_buffer.find("$", where + 1)};
 
         if (pos != std::string::npos) {
-          std::string const& token(
-              input_buffer.substr(where + 1, pos - where - 1));
+          std::string_view token(input_buffer.data() + where + 1,
+                                 pos - where - 1);
+          // std::string const& token(
+          //     input_buffer.substr(where + 1, pos - where - 1));
           std::string token_resolved;
           /* reset clean options */
           clean_options = 0;
@@ -82,7 +83,7 @@ int process_macros_r(nagios_macros* mac,
                                       &clean_options, &free_macro);
 
           engine_logger(dbg_macros, most)
-              << "  Processed '" << token.c_str() << "', To '" << token_resolved
+              << "  Processed '" << token << "', To '" << token_resolved
               << "', Clean Options: " << clean_options
               << ", Free: " << free_macro;
           macros_logger->trace(

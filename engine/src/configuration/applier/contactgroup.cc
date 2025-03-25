@@ -46,7 +46,7 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
 
   // Add contact group to the global configuration set.
   configuration::Contactgroup* c_cg =
-      pb_indexed_config.state().add_contactgroups();
+      pb_indexed_config.mut_state().add_contactgroups();
   c_cg->CopyFrom(obj);
 
   // Create contact group.
@@ -74,10 +74,10 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
  *
  * @param s State being applied.
  */
-void applier::contactgroup::expand_objects(configuration::State& s) {
+void applier::contactgroup::expand_objects(configuration::indexed_state& s) {
   absl::flat_hash_set<std::string_view> resolved;
 
-  for (auto& cg : *s.mutable_contactgroups())
+  for (auto& cg : *s.mut_state().mutable_contactgroups())
     _resolve_members(s, cg, resolved);
 }
 
@@ -165,7 +165,8 @@ void applier::contactgroup::remove_object(
   }
 
   // Remove contact group from the global configuration set.
-  pb_indexed_config.state().mutable_contactgroups()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_contactgroups()->DeleteSubrange(p.first,
+                                                                        1);
 }
 
 /**
@@ -203,7 +204,7 @@ void applier::contactgroup::resolve_object(
  * contactgroups.
  */
 void applier::contactgroup::_resolve_members(
-    configuration::State& s,
+    configuration::indexed_state& s,
     configuration::Contactgroup& obj,
     absl::flat_hash_set<std::string_view>& resolved) {
   if (resolved.contains(obj.contactgroup_name()))
@@ -215,13 +216,13 @@ void applier::contactgroup::_resolve_members(
     config_logger->debug("Resolving members of contact group '{}'",
                          obj.contactgroup_name());
     for (auto& cg_name : obj.contactgroup_members().data()) {
-      auto it = std::find_if(s.mutable_contactgroups()->begin(),
-                             s.mutable_contactgroups()->end(),
+      auto it = std::find_if(s.mut_state().mutable_contactgroups()->begin(),
+                             s.mut_state().mutable_contactgroups()->end(),
                              [&cg_name](const Contactgroup& cg) {
                                return cg.contactgroup_name() == cg_name;
                              });
 
-      if (it == s.mutable_contactgroups()->end())
+      if (it == s.mut_state().mutable_contactgroups()->end())
         throw engine_error() << fmt::format(
             "Error: Could not add non-existing contact group member '{}' to "
             "contactgroup '{}'",

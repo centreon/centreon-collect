@@ -20,6 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/servicegroup_helper.hh"
 
 namespace com::centreon::engine::configuration::applier {
@@ -31,7 +32,7 @@ class servicegroup {
   ~servicegroup() throw();
   servicegroup& operator=(servicegroup const& right);
   void add_object(const configuration::Servicegroup& obj);
-  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Servicegroup* to_modify,
                      const configuration::Servicegroup& new_object);
   template <typename Key>
@@ -40,7 +41,7 @@ class servicegroup {
 
  private:
   void _resolve_members(
-      configuration::State& s,
+      configuration::indexed_state& s,
       configuration::Servicegroup* sg_conf,
       absl::flat_hash_set<std::string_view>& resolved,
       const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&

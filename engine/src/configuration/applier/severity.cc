@@ -109,11 +109,9 @@ void applier::severity::modify_object(
 template <>
 void applier::severity::remove_object(
     const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
-  const configuration::Severity& obj =
-      pb_indexed_config.state().severities()[p.first];
+  const Severity& obj = pb_indexed_config.severity(p.second);
 
   // Logging.
-
   config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
                        obj.key().type());
 
@@ -132,5 +130,5 @@ void applier::severity::remove_object(
   }
 
   // Remove severity from the global configuration set.
-  pb_indexed_config.state().mutable_severities()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.remove_severity(p.second);
 }

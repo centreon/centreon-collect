@@ -45,7 +45,7 @@ void applier::connector::add_object(const configuration::Connector& obj) {
   process_macros_r(macros, obj.connector_line(), command_line, 0);
 
   // Add connector to the global configuration set.
-  auto* cfg_cnn = pb_indexed_config.state().add_connectors();
+  auto* cfg_cnn = pb_indexed_config.mut_state().add_connectors();
   cfg_cnn->CopyFrom(obj);
 
   // Create connector.
@@ -77,7 +77,7 @@ void applier::connector::add_object(const configuration::Connector& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::connector::expand_objects(configuration::State& s
+void applier::connector::expand_objects(configuration::indexed_state& s
                                         [[maybe_unused]]) {}
 
 /**
@@ -163,7 +163,8 @@ void applier::connector::remove_object(
   commands::otel_connector::remove(obj.connector_name());
 
   // Remove connector from the global configuration set.
-  pb_indexed_config.state().mutable_connectors()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_connectors()->DeleteSubrange(p.first,
+                                                                     1);
 }
 
 /**

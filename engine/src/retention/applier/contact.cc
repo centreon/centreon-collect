@@ -75,8 +75,9 @@ void applier::contact::_update(const configuration::State& config,
       if (obj->get_modified_host_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        timeperiod_map::const_iterator found(
-            timeperiod::timeperiods.find(state.host_notification_period()));
+        const std::string key = state.host_notification_period();
+        timeperiod_map::const_iterator found =
+            timeperiod::timeperiods.find(key);
 
         if (found != timeperiod::timeperiods.end())
           temp_timeperiod = found->second.get();
@@ -93,8 +94,9 @@ void applier::contact::_update(const configuration::State& config,
       if (obj->get_modified_service_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        timeperiod_map::const_iterator found(
-            timeperiod::timeperiods.find(state.host_notification_period()));
+        const std::string key = state.host_notification_period();
+        timeperiod_map::const_iterator found =
+            timeperiod::timeperiods.find(key);
 
         if (found != timeperiod::timeperiods.end())
           temp_timeperiod = found->second.get();

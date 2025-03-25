@@ -20,6 +20,19 @@
 
 using namespace com::centreon::engine::configuration;
 
+indexed_state::indexed_state(const indexed_state& other) {
+  _state.CopyFrom(other._state);
+  for (auto& [key, severity] : other._severities) {
+    _severities[key] = std::make_unique<Severity>();
+    _severities[key]->CopyFrom(*severity);
+  }
+
+  for (auto& [key, host] : other._hosts) {
+    _hosts[key] = std::make_unique<Host>();
+    _hosts[key]->CopyFrom(*host);
+  }
+}
+
 State indexed_state::save() {
   State save;
   save.CopyFrom(_state);
@@ -38,6 +51,10 @@ void indexed_state::_apply_containers(State& state) {
   for (auto& [key, severity] : _severities) {
     state.mutable_severities()->AddAllocated(severity.release());
   }
+
+  for (auto& [key, host] : _hosts) {
+    state.mutable_hosts()->AddAllocated(host.release());
+  }
 }
 
 /**
@@ -50,6 +67,11 @@ void indexed_state::index() {
     _severities.emplace(
         std::make_pair(severity->key().id(), severity->key().type()),
         std::unique_ptr<Severity>(severity));
+  }
+  _hosts.clear();
+  while (!_state.hosts().empty()) {
+    Host* host = _state.mutable_hosts()->ReleaseLast();
+    _hosts.emplace(host->host_id(), std::unique_ptr<Host>(host));
   }
 }
 

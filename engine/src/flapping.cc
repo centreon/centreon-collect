@@ -20,7 +20,6 @@
 
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
@@ -48,7 +47,7 @@ void enable_flap_detection_routines() {
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-  pb_indexed_config.state().set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
 
   /* update program status */
   update_program_status(false);
@@ -80,7 +79,7 @@ void disable_flap_detection_routines() {
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-  pb_indexed_config.state().set_enable_flap_detection(false);
+  pb_indexed_config.mut_state().set_enable_flap_detection(false);
 
   /* update program status */
   update_program_status(false);

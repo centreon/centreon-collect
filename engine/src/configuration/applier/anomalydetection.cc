@@ -50,7 +50,7 @@ void applier::anomalydetection::add_object(
                       obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
-  auto* cfg_obj = pb_indexed_config.state().add_anomalydetections();
+  auto* cfg_obj = pb_indexed_config.mut_state().add_anomalydetections();
   cfg_obj->CopyFrom(obj);
 
   // Create anomalydetection.
@@ -131,18 +131,19 @@ void applier::anomalydetection::add_object(
  *
  *  @param[in,out] s  State being applied.
  */
-void applier::anomalydetection::expand_objects(configuration::State& s) {
+void applier::anomalydetection::expand_objects(
+    configuration::indexed_state& s) {
   std::list<std::unique_ptr<Service>> expanded;
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
+  for (auto& cv : s.state().macros_filter().data())
     cvs.emplace(cv);
 
   // Browse all anomalydetections.
-  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
+  for (auto& ad_cfg : *s.mut_state().mutable_anomalydetections()) {
     // Should custom variables be sent to broker ?
     for (auto& cv : *ad_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
   }
@@ -333,7 +334,7 @@ template <>
 void applier::anomalydetection::remove_object(
     const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
   Anomalydetection& obj =
-      pb_indexed_config.state().mutable_anomalydetections()->at(p.first);
+      pb_indexed_config.mut_state().mutable_anomalydetections()->at(p.first);
   const std::string& host_name(obj.host_name());
   const std::string& service_description(obj.service_description());
 
@@ -375,8 +376,8 @@ void applier::anomalydetection::remove_object(
   }
 
   // Remove anomalydetection from the global configuration set.
-  pb_indexed_config.state().mutable_anomalydetections()->DeleteSubrange(p.first,
-                                                                        1);
+  pb_indexed_config.mut_state().mutable_anomalydetections()->DeleteSubrange(
+      p.first, 1);
 }
 
 /**

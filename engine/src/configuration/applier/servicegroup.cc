@@ -69,7 +69,7 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
                        obj.servicegroup_name());
 
   // Add service group to the global configuration set.
-  auto* new_obj = pb_indexed_config.state().add_servicegroups();
+  auto* new_obj = pb_indexed_config.mut_state().add_servicegroups();
   new_obj->CopyFrom(obj);
 
   // Create servicegroup.
@@ -96,14 +96,14 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
  *
  *  @param[in,out] s  State being applied.
  */
-void applier::servicegroup::expand_objects(configuration::State& s) {
+void applier::servicegroup::expand_objects(configuration::indexed_state& s) {
   // This set stores resolved service groups.
   absl::flat_hash_set<std::string_view> resolved;
 
   // Here, we store each Servicegroup pointer by its name.
   absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
       sg_by_name;
-  for (auto& sg_conf : *s.mutable_servicegroups())
+  for (auto& sg_conf : *s.mut_state().mutable_servicegroups())
     sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;
 
   // Each servicegroup can contain servicegroups, that is to mean the services
@@ -112,7 +112,7 @@ void applier::servicegroup::expand_objects(configuration::State& s) {
   // and for each one if it has servicegroup members, we fill its service
   // members with theirs and then we clear the servicegroup members. At that
   // step, a servicegroup is considered as resolved.
-  for (auto& sg_conf : *s.mutable_servicegroups()) {
+  for (auto& sg_conf : *s.mut_state().mutable_servicegroups()) {
     if (!resolved.contains(sg_conf.servicegroup_name())) {
       _resolve_members(s, &sg_conf, resolved, sg_by_name);
     }
@@ -196,7 +196,8 @@ void applier::servicegroup::remove_object(
   }
 
   // Remove service group from the global configuration state.
-  pb_indexed_config.state().mutable_servicegroups()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_servicegroups()->DeleteSubrange(p.first,
+                                                                        1);
 }
 
 void applier::servicegroup::resolve_object(
@@ -229,7 +230,7 @@ void applier::servicegroup::resolve_object(
  * their name.
  */
 void applier::servicegroup::_resolve_members(
-    configuration::State& s,
+    configuration::indexed_state& s,
     configuration::Servicegroup* sg_conf,
     absl::flat_hash_set<std::string_view>& resolved,
     const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&

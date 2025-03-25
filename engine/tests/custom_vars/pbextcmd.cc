@@ -88,9 +88,9 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(pb_indexed_config.state().hosts().size() == 1);
+  ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config.state());
+  hst_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
   hst_aply.resolve_object(hst, err);
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
