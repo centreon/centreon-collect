@@ -44,7 +44,7 @@ void applier::hostescalation::add_object(
                        obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
-  auto* new_obj = pb_indexed_config.state().add_hostescalations();
+  auto* new_obj = pb_indexed_config.mut_state().add_hostescalations();
   new_obj->CopyFrom(obj);
 
   size_t key = hostescalation_key(obj);
@@ -75,20 +75,20 @@ void applier::hostescalation::add_object(
  *
  *  @param[in,out] s  Configuration being applied.
  */
-void applier::hostescalation::expand_objects(configuration::State& s) {
+void applier::hostescalation::expand_objects(configuration::indexed_state& s) {
   std::list<std::unique_ptr<Hostescalation> > resolved;
-  for (auto& he : *s.mutable_hostescalations()) {
+  for (auto& he : *s.mut_state().mutable_hostescalations()) {
     if (he.hostgroups().data().size() > 0) {
       absl::flat_hash_set<std::string_view> host_names;
       for (auto& hname : he.hosts().data())
         host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found_hg != s.hostgroups().end()) {
+        auto found_hg = std::find_if(s.state().hostgroups().begin(),
+                                     s.state().hostgroups().end(),
+                                     [&hg_name](const Hostgroup& hg) {
+                                       return hg.hostgroup_name() == hg_name;
+                                     });
+        if (found_hg != s.state().hostgroups().end()) {
           for (auto& h : found_hg->members().data())
             host_names.emplace(h);
         } else
@@ -105,9 +105,9 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
       }
     }
   }
-  s.clear_hostescalations();
+  s.mut_state().clear_hostescalations();
   for (auto& e : resolved)
-    s.mutable_hostescalations()->AddAllocated(e.release());
+    s.mut_state().mutable_hostescalations()->AddAllocated(e.release());
 }
 
 /**
@@ -195,8 +195,8 @@ void applier::hostescalation::remove_object<size_t>(
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.state().mutable_hostescalations()->DeleteSubrange(p.first,
-                                                                      1);
+  pb_indexed_config.mut_state().mutable_hostescalations()->DeleteSubrange(
+      p.first, 1);
 }
 
 /**

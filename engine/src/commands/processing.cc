@@ -26,7 +26,6 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
-#include "com/centreon/engine/retention/state.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -908,7 +907,7 @@ void processing::_wrapper_read_state_information() {
         pb_indexed_config.state().state_retention_file();
     p.parse(retention_file, state);
     retention::applier::state app_state;
-    app_state.apply(pb_indexed_config.state(), state);
+    app_state.apply(pb_indexed_config.mut_state(), state);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();

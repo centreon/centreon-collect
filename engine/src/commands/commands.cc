@@ -1921,13 +1921,13 @@ int cmd_change_object_char_var(int cmd, char* args) {
   /* update the variable */
   switch (cmd) {
     case CMD_CHANGE_GLOBAL_HOST_EVENT_HANDLER:
-      pb_indexed_config.state().set_global_host_event_handler(temp_ptr);
+      pb_indexed_config.mut_state().set_global_host_event_handler(temp_ptr);
       global_host_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
 
     case CMD_CHANGE_GLOBAL_SVC_EVENT_HANDLER:
-      pb_indexed_config.state().set_global_service_event_handler(temp_ptr);
+      pb_indexed_config.mut_state().set_global_service_event_handler(temp_ptr);
       global_service_event_handler_ptr = cmd_found->second.get();
       attr = MODATTR_EVENT_HANDLER_COMMAND;
       break;
@@ -2246,7 +2246,7 @@ void enable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
-  pb_indexed_config.state().set_enable_notifications(true);
+  pb_indexed_config.mut_state().set_enable_notifications(true);
 
   /* update the status log */
   update_program_status(false);
@@ -2267,7 +2267,7 @@ void disable_all_notifications(void) {
   modified_service_process_attributes |= attr;
 
   /* update notification status */
-  pb_indexed_config.state().set_enable_notifications(false);
+  pb_indexed_config.mut_state().set_enable_notifications(false);
 
   /* update the status log */
   update_program_status(false);
@@ -2630,7 +2630,7 @@ void start_executing_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
-  pb_indexed_config.state().set_execute_service_checks(true);
+  pb_indexed_config.mut_state().set_execute_service_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2651,7 +2651,7 @@ void stop_executing_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check execution flag */
-  pb_indexed_config.state().set_execute_service_checks(false);
+  pb_indexed_config.mut_state().set_execute_service_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2672,7 +2672,7 @@ void start_accepting_passive_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
-  pb_indexed_config.state().set_accept_passive_service_checks(true);
+  pb_indexed_config.mut_state().set_accept_passive_service_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2693,7 +2693,7 @@ void stop_accepting_passive_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service check flag */
-  pb_indexed_config.state().set_accept_passive_service_checks(false);
+  pb_indexed_config.mut_state().set_accept_passive_service_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2751,7 +2751,7 @@ void start_executing_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
-  pb_indexed_config.state().set_execute_host_checks(true);
+  pb_indexed_config.mut_state().set_execute_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2770,7 +2770,7 @@ void stop_executing_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check execution flag */
-  pb_indexed_config.state().set_execute_host_checks(true);
+  pb_indexed_config.mut_state().set_execute_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2791,7 +2791,7 @@ void start_accepting_passive_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
-  pb_indexed_config.state().set_accept_passive_host_checks(true);
+  pb_indexed_config.mut_state().set_accept_passive_host_checks(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2812,7 +2812,7 @@ void stop_accepting_passive_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host check flag */
-  pb_indexed_config.state().set_accept_passive_host_checks(false);
+  pb_indexed_config.mut_state().set_accept_passive_host_checks(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2872,7 +2872,7 @@ void start_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
-  pb_indexed_config.state().set_enable_event_handlers(true);
+  pb_indexed_config.mut_state().set_enable_event_handlers(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -2894,7 +2894,7 @@ void stop_using_event_handlers(void) {
   modified_service_process_attributes |= attr;
 
   /* set the event handler flag */
-  pb_indexed_config.state().set_enable_event_handlers(false);
+  pb_indexed_config.mut_state().set_enable_event_handlers(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3052,7 +3052,7 @@ void start_obsessing_over_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
-  pb_indexed_config.state().set_obsess_over_services(true);
+  pb_indexed_config.mut_state().set_obsess_over_services(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3072,7 +3072,7 @@ void stop_obsessing_over_service_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the service obsession flag */
-  pb_indexed_config.state().set_obsess_over_services(false);
+  pb_indexed_config.mut_state().set_obsess_over_services(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3092,7 +3092,7 @@ void start_obsessing_over_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
-  pb_indexed_config.state().set_obsess_over_hosts(true);
+  pb_indexed_config.mut_state().set_obsess_over_hosts(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3112,7 +3112,7 @@ void stop_obsessing_over_host_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the host obsession flag */
-  pb_indexed_config.state().set_obsess_over_hosts(false);
+  pb_indexed_config.mut_state().set_obsess_over_hosts(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3133,7 +3133,7 @@ void enable_service_freshness_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_indexed_config.state().set_check_service_freshness(true);
+  pb_indexed_config.mut_state().set_check_service_freshness(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3154,7 +3154,7 @@ void disable_service_freshness_checks(void) {
   modified_service_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_indexed_config.state().set_check_service_freshness(false);
+  pb_indexed_config.mut_state().set_check_service_freshness(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3174,7 +3174,7 @@ void enable_host_freshness_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_indexed_config.state().set_check_host_freshness(true);
+  pb_indexed_config.mut_state().set_check_host_freshness(true);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3194,7 +3194,7 @@ void disable_host_freshness_checks(void) {
   modified_host_process_attributes |= attr;
 
   /* set the freshness check flag */
-  pb_indexed_config.state().set_check_host_freshness(false);
+  pb_indexed_config.mut_state().set_check_host_freshness(false);
 
   /* update the status log with the program info */
   update_program_status(false);
@@ -3215,7 +3215,7 @@ void enable_performance_data(void) {
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
-  pb_indexed_config.state().set_process_performance_data(true);
+  pb_indexed_config.mut_state().set_process_performance_data(true);
 
   /* update the status log */
   update_program_status(false);
@@ -3236,7 +3236,7 @@ void disable_performance_data(void) {
   modified_host_process_attributes |= attr;
   modified_service_process_attributes |= attr;
 
-  pb_indexed_config.state().set_process_performance_data(false);
+  pb_indexed_config.mut_state().set_process_performance_data(false);
 
   /* update the status log */
   update_program_status(false);

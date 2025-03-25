@@ -67,8 +67,7 @@ TEST_F(ApplierPbHost, HostRenamed) {
   ASSERT_TRUE(h1->name() == "test_host");
 
   hst.set_host_name("test_host1");
-  hst_aply.modify_object(&pb_indexed_config.state().mutable_hosts()->at(0),
-                         hst);
+  hst_aply.modify_object(pb_indexed_config.hosts().at(12).get(), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
   ASSERT_TRUE(h1->name() == "test_host1");
@@ -137,7 +136,7 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
-  hst_aply.expand_objects(pb_indexed_config.state());
+  hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst_child, err);
   hst_aply.resolve_object(hst_parent, err);
 

@@ -36,13 +36,14 @@ extern configuration::indexed_state pb_indexed_config;
 
 void init_config_state() {
   /* Cleanup */
-  pb_indexed_config.state().Clear();
+  pb_indexed_config.mut_state().Clear();
+  pb_indexed_config.index();
   if (!cbm)
     cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>("");
 
-  configuration::state_helper cfg_hlp(&pb_indexed_config.state());
-  pb_indexed_config.state().set_log_file_line(true);
-  pb_indexed_config.state().set_log_file("");
+  configuration::state_helper cfg_hlp(&pb_indexed_config.mut_state());
+  pb_indexed_config.mut_state().set_log_file_line(true);
+  pb_indexed_config.mut_state().set_log_file("");
 
   log_v2_config log_conf("engine-tests",
                          log_v2_config::logger_type::LOGGER_STDOUT,
@@ -57,13 +58,14 @@ void init_config_state() {
   log_v2::instance().apply(log_conf);
 
   // Hack to instanciate the logger.
-  configuration::applier::logging::instance().apply(pb_indexed_config.state());
+  configuration::applier::logging::instance().apply(
+      pb_indexed_config.mut_state());
 
   checks::checker::init(true);
 }
 
 void deinit_config_state(void) {
-  pb_indexed_config.state().Clear();
+  pb_indexed_config.mut_state().Clear();
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
