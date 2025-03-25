@@ -38,8 +38,14 @@ option(WITH_MALLOC_TRACE "compile centreon-malloc-trace library." OFF)
 
 option(DEBUG_ROBOT OFF)
 
+#if this option is set, we compile only mandatory modules to test centreon monitoring agent
+option(ONLY_ROBOT_CMA OFF)
+
 if(LEGACY_ENGINE)
+  message(STATUS "Collect compilation with the legacy Engine configuration library.")
   add_definitions(-DLEGACY_CONF)
+else()
+  message(STATUS "Collect compilation with the Protobuf Engine configuration library.")
 endif()
 
 if(WITH_TSAN)
@@ -177,7 +183,9 @@ add_subdirectory(common)
 add_subdirectory(broker)
 add_subdirectory(bbdo)
 add_subdirectory(engine)
-add_subdirectory(connectors)
+if (NOT ONLY_ROBOT_CMA)
+  add_subdirectory(connectors)
+endif()
 add_subdirectory(ccc)
 add_subdirectory(agent)
 
