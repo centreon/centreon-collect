@@ -62,12 +62,12 @@ static constexpr std::string_view _config_schema(R"(
               "minimum": 0,
               "maximum": 3600
           },
-          "certificate_path": {
+          "public_cert": {
               "description": "path of the certificate file of the server",
               "type": "string",
               "minLength": 5
           },
-          "key_path": {
+          "private_key": {
               "description": "path of the key file",
               "type": "string",
               "minLength": 5
@@ -122,10 +122,10 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
 
     _second_keep_alive_interval =
         http_json_config.get_unsigned("keepalive_interval", 30);
-    _certificate_path = http_json_config.get_string("certificate_path", "");
-    _key_path = http_json_config.get_string("key_path", "");
+    _public_cert = http_json_config.get_string("public_cert", "");
+    _private_key = http_json_config.get_string("private_key", "");
     if (_crypted) {
-      if (_certificate_path.empty()) {
+      if (_public_cert.empty()) {
         SPDLOG_LOGGER_ERROR(config_logger,
                             "telegraf conf server  encryption activated and no "
                             "certificate path "
@@ -135,7 +135,7 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
             "path "
             "provided");
       }
-      if (_key_path.empty()) {
+      if (_private_key.empty()) {
         SPDLOG_LOGGER_ERROR(config_logger,
                             "telegraf conf server  encryption activated and no "
                             "certificate key path provided");
@@ -144,23 +144,23 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
             "telegraf conf server  encryption activated and no certificate key "
             "path provided");
       }
-      if (::access(_certificate_path.c_str(), R_OK)) {
+      if (::access(_public_cert.c_str(), R_OK)) {
         SPDLOG_LOGGER_ERROR(
             config_logger,
             "telegraf conf server unable to read certificate file {}",
-            _certificate_path);
+            _public_cert);
         throw exceptions::msg_fmt(
             "telegraf conf server unable to read certificate file {}",
-            _certificate_path);
+            _public_cert);
       }
-      if (::access(_key_path.c_str(), R_OK)) {
+      if (::access(_private_key.c_str(), R_OK)) {
         SPDLOG_LOGGER_ERROR(
             config_logger,
             "telegraf conf server unable to read certificate key file {}",
-            _key_path);
+            _private_key);
         throw exceptions::msg_fmt(
             "telegraf conf server unable to read certificate key file {}",
-            _key_path);
+            _private_key);
       }
     }
   } else {
@@ -175,8 +175,8 @@ bool conf_server_config::operator==(const conf_server_config& right) const {
   return _listen_endpoint == right._listen_endpoint &&
          _crypted == right._crypted &&
          _second_keep_alive_interval == right._second_keep_alive_interval &&
-         _certificate_path == right._certificate_path &&
-         _key_path == right._key_path &&
+         _public_cert == right._public_cert &&
+         _private_key == right._private_key &&
          _check_interval == right._check_interval;
 }
 
@@ -295,76 +295,6 @@ bool conf_session<connection_class>::_otel_connector_to_stream(
 }
 
 /**
- * @brief Get all opentelemetry commands from an host and add its to
- * configuration response
- *
- * @param host
- * @param request_body conf to append
- * @return true at least one opentelemetry command was found
- * @return false
- */
-template <class connection_class>
-bool conf_session<connection_class>::_get_commands(const std::string& host_name,
-                                                   std::string& request_body) {
-  auto use_otl_command = [](const checkable& to_test) -> bool {
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::otel)
-      return true;
-    if (to_test.get_check_command_ptr()->get_type() ==
-        commands::command::e_type::forward) {
-      return std::static_pointer_cast<commands::forward>(
-                 to_test.get_check_command_ptr())
-                 ->get_sub_command()
-                 ->get_type() == commands::command::e_type::otel;
-    }
-    return false;
-  };
-
-  bool ret = false;
-  auto hst_iter = host::hosts.find(host_name);
-  if (hst_iter == host::hosts.end()) {
-    SPDLOG_LOGGER_ERROR(this->_logger, "unknown host:{}", host_name);
-    return false;
-  }
-  std::shared_ptr<host> hst = hst_iter->second;
-  std::string cmd_line;
-  // host check use otl?
-  if (use_otl_command(*hst)) {
-    nagios_macros* macros(get_global_macros());
-
-    ret |= _otel_connector_to_stream(hst->check_command(),
-                                     hst->get_check_command_line(macros),
-                                     hst->name(), "", request_body);
-    clear_volatile_macros_r(macros);
-  } else {
-    SPDLOG_LOGGER_DEBUG(this->_logger,
-                        "host {} doesn't use telegraf to do his check",
-                        host_name);
-  }
-
-  // services of host
-  auto serv_iter = service::services_by_id.lower_bound({hst->host_id(), 0});
-  for (; serv_iter != service::services_by_id.end() &&
-         serv_iter->first.first == hst->host_id();
-       ++serv_iter) {
-    std::shared_ptr<service> serv = serv_iter->second;
-    if (use_otl_command(*serv)) {
-      nagios_macros* macros(get_global_macros());
-      ret |= _otel_connector_to_stream(
-          serv->check_command(), serv->get_check_command_line(macros),
-          serv->get_hostname(), serv->name(), request_body);
-      clear_volatile_macros_r(macros);
-    } else {
-      SPDLOG_LOGGER_DEBUG(
-          this->_logger,
-          "host {} service {} doesn't use telegraf to do his check", host_name,
-          serv->name());
-    }
-  }
-  return ret;
-}
-
-/**
  * @brief construct and send conf to telegraf
  * As it uses host, services and command list, it must be called in the main
  * thread
@@ -389,7 +319,20 @@ void conf_session<connection_class>::answer_to_request(
 
 )",
                              _telegraf_conf->get_check_interval());
-  bool at_least_one_found = _get_commands(host, resp->body());
+
+  whitelist_cache wcache;
+
+  bool at_least_one_found = get_otel_commands(
+      host,
+      [this, &resp, &host](
+          const std::string& cmd_name, const std::string& cmd_line,
+          const std::string& service,
+          [[maybe_unused]] const std::shared_ptr<spdlog::logger>& logger) {
+        return _otel_connector_to_stream(cmd_name, cmd_line, host, service,
+                                         resp->body());
+      },
+      wcache, this->_logger);
+
   if (at_least_one_found) {
     resp->result(boost::beast::http::status::ok);
     resp->insert(boost::beast::http::field::content_type, "text/plain");

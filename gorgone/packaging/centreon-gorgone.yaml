@@ -157,7 +157,9 @@ overrides:
   rpm:
     depends:
       - centreon-common
+      - centreon-perl-libs-common
       - bzip2
+      - initscripts
       - perl-Libssh-Session >= 0.8
       - perl-CryptX
       - perl-Mojolicious
@@ -192,9 +194,11 @@ overrides:
       - perl(JSON) # gorgone_key_thumbprint.pl needs the json module, even when json::xs is already installed
       - perl(RRDs)
       - perl(lib)
+      - perl(Safe)
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
       - centreon-common
+      - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl
       - libtry-tiny-perl
@@ -226,6 +230,7 @@ overrides:
       - libjson-perl # gorgone_key_thumbprint.pl needs the json module, even when json::xs is already installed
       - librrds-perl
       - perl-base
+      - perl-modules
 
 rpm:
   summary: Centreon gorgone daemon
