@@ -511,6 +511,7 @@ sub getlog {
 
     my $query = "SELECT * FROM gorgone_history WHERE " . $filter;
     $query .= " ORDER BY id DESC LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " OFFSET " . $data->{offset} if (defined($data->{offset}) && $data->{offset} ne '');
 
     my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $query, bind_values => \@bind_values });
     if ($status == -1) {
@@ -627,8 +628,19 @@ sub add_history {
             push @bind_values, $options->{$_};
         }
     }
+    $append = '';
+    my $duplicate_query = "SELECT 1 FROM gorgone_history WHERE";
+    foreach (('data', 'token', 'ctime', 'code', 'instant')) {
+        if (defined($options->{$_})) {
+            $duplicate_query .= $append . " " . $_ . " = ? ";
+            $append = ' AND ';
+            push @bind_values, $options->{$_};
+        }
+    }
+    my $final_query = "INSERT INTO gorgone_history ($fields) SELECT $placeholder WHERE NOT EXISTS($duplicate_query)";
+
     my ($status, $sth) = $options->{dbh}->query({
-        query => "INSERT INTO gorgone_history ($fields) VALUES ($placeholder)",
+        query => $final_query,
         bind_values => \@bind_values
     });
 

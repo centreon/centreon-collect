@@ -259,7 +259,7 @@ sub routing {
                 return undef;
             }
 
-            if ($synctime_nodes->{$target}->{in_progress} == 1) {
+            if (defined($synctime_nodes->{$target}->{total_msg})) {
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -269,11 +269,15 @@ sub routing {
                 return undef;
             }
 
-            # We put the good time to get        
+            # We put the good time to get
             my $ctime = $synctime_nodes->{$target}->{ctime};
             $options{frame}->setData({ ctime => $ctime });
             $options{frame}->setRawData();
-            $synctime_nodes->{$target}->{in_progress} = 1;
+            # if total_msg is -1 it mean the query was already sent but no response was received yet.
+            # if total_msg is > 0 it mean we received the first part of the response and waiting for the rest of it.
+            $synctime_nodes->{$target}->{total_msg} = -1;
+            $synctime_nodes->{$target}->{got_msg} = 0;
+            #$synctime_nodes->{$target}->{in_progress} = 1;
             $synctime_nodes->{$target}->{in_progress_time} = time();
         }
     }
@@ -451,7 +455,7 @@ sub check {
             }
         }
 
-        if ($synctime_nodes->{$_}->{in_progress} == 1 && 
+        if (defined($synctime_nodes->{$_}->{total_msg}) &&
             time() - $synctime_nodes->{$_}->{in_progress_time} > $synctimeout_option) {
             gorgone::standard::library::add_history({
                 dbh => $options{dbh},
@@ -459,7 +463,10 @@ sub check {
                 data => { message => "proxy - getlog in timeout for '$_'" },
                 json_encode => 1
             });
-            $synctime_nodes->{$_}->{in_progress} = 0;
+            # created when querying for node logs, in routing() with GETLOG event.
+            # if the query is in timeout, delete everything to be ready for the next query.
+            delete($synctime_nodes->{$_}->{total_msg});
+            $synctime_nodes->{$_}->{got_msg} = 0
         }
     }
 
@@ -594,15 +601,31 @@ sub setlogs {
         return undef;
     }
 
-    $options{logger}->writeLogInfo("[proxy] Received setlogs for '$options{data}->{data}->{id}'");
+    # log overview of multipart message only if it's a multipart message.
+    my $logline = "";
+    if (defined($options{data}->{data}->{nb_total_msg})) {
+        $logline = " part " . $synctime_nodes->{ $options{data}->{data}->{id} }->{got_msg} . "/" . $options{data}->{data}->{nb_total_msg};
+    }
+    $options{logger}->writeLogInfo("[proxy] Received setlogs for '$options{data}->{data}->{id}'" . $logline);
 
     # we have received the setlogs (it's like a pong response. not a problem if we received the pong after)
     $constatus_ping->{ $options{data}->{data}->{id} }->{in_progress_ping} = 0;
     $constatus_ping->{ $options{data}->{data}->{id} }->{ping_timeout} = 0;
     $constatus_ping->{ $options{data}->{data}->{id} }->{last_ping_recv} = time();
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
+    ##$synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} = 0;
 
-    $synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} = 0;
+
+    #$synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg}
+    #    if $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1;
+use Data::Dumper;
+    if (!defined($synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg})
+    or $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1) {
+        $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg};
+        $options{logger}->writeLogInfo("[proxy-evan] setting the nb_total_msg now($options{data}->{data}->{nb_total_msg}).");
+    } elsif(!$synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg}) {
+        $options{logger}->writeLogInfo("[proxy-evan] nb_total_msg already set ?  " . Dumper($synctime_nodes->{ $options{data}->{data}->{id} }));
+    }
 
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
@@ -610,6 +633,7 @@ sub setlogs {
     $status = $options{dbh}->transaction_mode(1);
     if ($status == -1){
         $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
+        increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
         return -1;
     }
     foreach (@{$options{data}->{data}->{result}}) {
@@ -631,13 +655,17 @@ sub setlogs {
     }
     if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
         $status = $options{dbh}->commit();
-        return -1 if ($status == -1);
+        if ($status == -1) {
+            increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+            return -1;
+        }
         $options{dbh}->transaction_mode(0);
 
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0); 
     } else {
         $options{dbh}->rollback();
         $options{dbh}->transaction_mode(0);
+        increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
         return -1;
     }
 
@@ -652,8 +680,26 @@ sub setlogs {
             token => undef,
         );
     }
+    increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
 
     return 0;
+}
+use Data::Dumper;
+# when retrieving logs from a node, logs can be sent in multiple parts.
+# each part contain the total number of part to expect.
+# this function increment the number of part we got, and delete the hash if we got all the parts.
+# the routing() function check if a node is waiting for logs before sending a new request by checking if total_msg is present.
+sub increment_log_messages_retrieved {
+    my $node = shift;
+    my $logger = shift;
+    $node->{got_msg}++;
+
+    if ($node->{got_msg} >= $node->{total_msg}) {
+        $logger->writeLogInfo("[proxy-evan] All $node->{total_msg} logs received for node $node->{id} " . Dumper($node));
+        delete($node->{total_msg});
+        $node->{got_msg} = 0;
+
+    }
 }
 
 sub ping_send {
@@ -722,11 +768,11 @@ sub get_sync_time {
         $synctime_nodes->{$options{node_id}}->{synctime_error} = -1; 
         return -1;
     }
-
+    # TODO : why does this sub set in_progress to 0 ?
     $synctime_nodes->{$options{node_id}}->{synctime_error} = 0;
     if (my $row = $sth->fetchrow_hashref()) {
         $synctime_nodes->{ $row->{id} }->{ctime} = $row->{ctime};
-        $synctime_nodes->{ $row->{id} }->{in_progress} = 0;
+        delete($synctime_nodes->{ $row->{id} }->{total_msg});
         $synctime_nodes->{ $row->{id} }->{in_progress_time} = -1;
     }
 
