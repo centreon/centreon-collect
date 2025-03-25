@@ -47,7 +47,7 @@ TEST_F(ApplierPbContactgroup, ModifyUnexistingContactgroupFromConfig) {
   configuration::contactgroup_helper hlp(&cg);
   cg.set_contactgroup_name("test");
   fill_string_group(cg.mutable_members(), "contact");
-  auto* new_cg = pb_indexed_config.state().add_contactgroups();
+  auto* new_cg = pb_indexed_config.mut_state().add_contactgroups();
   new_cg->CopyFrom(cg);
   ASSERT_THROW(aply.modify_object(new_cg, cg), std::exception);
 }
@@ -71,23 +71,24 @@ TEST_F(ApplierPbContactgroup, ModifyContactgroupFromConfig) {
   fill_string_group(cg.mutable_members(), "contact");
   cg.set_alias("test");
   aply.add_object(cg);
-  auto it =
-      std::find_if(pb_indexed_config.state().mutable_contactgroups()->begin(),
-                   pb_indexed_config.state().mutable_contactgroups()->end(),
-                   [](const configuration::Contactgroup& cg) {
-                     return cg.contactgroup_name() == "test";
-                   });
+  auto it = std::find_if(
+      pb_indexed_config.mut_state().mutable_contactgroups()->begin(),
+      pb_indexed_config.mut_state().mutable_contactgroups()->end(),
+      [](const configuration::Contactgroup& cg) {
+        return cg.contactgroup_name() == "test";
+      });
 
   ASSERT_TRUE(it->alias() == "test");
 
   cg.set_alias("test_renamed");
   aply.modify_object(&*it, cg);
 
-  it = std::find_if(pb_indexed_config.state().mutable_contactgroups()->begin(),
-                    pb_indexed_config.state().mutable_contactgroups()->end(),
-                    [](const configuration::Contactgroup& cg) {
-                      return cg.contactgroup_name() == "test";
-                    });
+  it = std::find_if(
+      pb_indexed_config.mut_state().mutable_contactgroups()->begin(),
+      pb_indexed_config.mut_state().mutable_contactgroups()->end(),
+      [](const configuration::Contactgroup& cg) {
+        return cg.contactgroup_name() == "test";
+      });
   ASSERT_TRUE(it->alias() == "test_renamed");
 }
 
@@ -124,7 +125,7 @@ TEST_F(ApplierPbContactgroup, ResolveEmptyContactgroup) {
   configuration::contactgroup_helper hlp(&grp);
   grp.set_contactgroup_name("test");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config.state());
+  aplyr.expand_objects(pb_indexed_config);
   aplyr.resolve_object(grp, err);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -160,7 +161,7 @@ TEST_F(ApplierPbContactgroup, ResolveContactgroup) {
   fill_string_group(ctct.mutable_contactgroups(), "test_group");
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
@@ -182,7 +183,7 @@ TEST_F(ApplierPbContactgroup, SetContactgroupMembers) {
   aply.add_object(ctct);
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 1);
 
@@ -191,7 +192,7 @@ TEST_F(ApplierPbContactgroup, SetContactgroupMembers) {
   grp1.set_contactgroup_name("big_group");
   fill_string_group(grp1.mutable_contactgroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
 
   // grp1 must be reload because the expand_objects reload them totally.
   bool found = false;
@@ -225,7 +226,7 @@ TEST_F(ApplierPbContactgroup, ContactRemove) {
 
   grp_hlp.hook("members", "test, test2");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config.state());
+  aply_grp.expand_objects(pb_indexed_config);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(
       engine::contactgroup::contactgroups["test_group"]->get_members().size(),
@@ -250,7 +251,7 @@ TEST_F(ApplierPbContactgroup, ContactRemove) {
     ASSERT_LE(idx, pb_indexed_config.state().contactgroups().size());
   }
   aply_grp.modify_object(
-      &pb_indexed_config.state().mutable_contactgroups()->at(idx), grp);
+      &pb_indexed_config.mut_state().mutable_contactgroups()->at(idx), grp);
 }
 
 // Given a contactgroup applier
@@ -276,23 +277,24 @@ TEST_F(ApplierPbContactgroup, ModifyMembersContactgroupFromConfig) {
   fill_string_group(cg.mutable_members(), "contact,contact1");
   cg.set_alias("test");
   aply.add_object(cg);
-  auto it =
-      std::find_if(pb_indexed_config.state().mutable_contactgroups()->begin(),
-                   pb_indexed_config.state().mutable_contactgroups()->end(),
-                   [](const configuration::Contactgroup& cg) {
-                     return cg.contactgroup_name() == "test";
-                   });
+  auto it = std::find_if(
+      pb_indexed_config.mut_state().mutable_contactgroups()->begin(),
+      pb_indexed_config.mut_state().mutable_contactgroups()->end(),
+      [](const configuration::Contactgroup& cg) {
+        return cg.contactgroup_name() == "test";
+      });
 
   ASSERT_TRUE(it->alias() == "test");
 
   fill_string_group(cg.mutable_members(), "contact1");
   aply.modify_object(&*it, cg);
 
-  it = std::find_if(pb_indexed_config.state().mutable_contactgroups()->begin(),
-                    pb_indexed_config.state().mutable_contactgroups()->end(),
-                    [](const configuration::Contactgroup& cg) {
-                      return cg.contactgroup_name() == "test";
-                    });
+  it = std::find_if(
+      pb_indexed_config.mut_state().mutable_contactgroups()->begin(),
+      pb_indexed_config.mut_state().mutable_contactgroups()->end(),
+      [](const configuration::Contactgroup& cg) {
+        return cg.contactgroup_name() == "test";
+      });
   ASSERT_TRUE(it->members().data().size() == 2);
   ASSERT_TRUE(it->members().data()[0] == "contact");
   ASSERT_TRUE(it->members().data()[1] == "contact1");

@@ -45,7 +45,7 @@ class PbSimpleCommand : public ::testing::Test {
     logger = log_v2::instance().get(log_v2::COMMANDS);
     set_time(-1);
     init_config_state();
-    pb_indexed_config.state().set_interval_length(1);
+    pb_indexed_config.mut_state().set_interval_length(1);
   }
 
   void TearDown() override { deinit_config_state(); }

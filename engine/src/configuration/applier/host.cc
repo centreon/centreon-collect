@@ -43,8 +43,10 @@ void applier::host::add_object(const configuration::Host& obj) {
   config_logger->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
-  auto* cfg_obj = pb_indexed_config.state().add_hosts();
-  cfg_obj->CopyFrom(obj);
+  auto new_host_config = std::make_unique<Host>();
+  new_host_config->CopyFrom(obj);
+  pb_indexed_config.mut_hosts().emplace(obj.host_id(),
+                                        std::move(new_host_config));
 
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
@@ -387,13 +389,14 @@ void applier::host::modify_object(configuration::Host* old_obj,
  *  @param[in] obj The new host to remove from the monitoring engine.
  */
 template <>
-void applier::host::remove_object<size_t>(const std::pair<ssize_t, size_t>& p) {
-  const Host& obj = pb_indexed_config.state().hosts()[p.first];
+void applier::host::remove_object<uint64_t>(
+    const std::pair<ssize_t, uint64_t>& p) {
+  const Host& obj = *pb_indexed_config.hosts().at(p.second);
   // Logging.
   config_logger->debug("Removing host '{}'.", obj.host_name());
 
   // Find host.
-  host_id_map::iterator it(engine::host::hosts_by_id.find(obj.host_id()));
+  host_id_map::iterator it = engine::host::hosts_by_id.find(obj.host_id());
   if (it != engine::host::hosts_by_id.end()) {
     // Remove host comments.
     comment::delete_host_comments(obj.host_id());
@@ -430,7 +433,7 @@ void applier::host::remove_object<size_t>(const std::pair<ssize_t, size_t>& p) {
   }
 
   // Remove host from the global configuration set.
-  pb_indexed_config.state().mutable_hosts()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_hosts().erase(p.second);
 }
 
 /**
@@ -442,15 +445,6 @@ void applier::host::resolve_object(const configuration::Host& obj,
                                    error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving host '{}'.", obj.host_name());
-
-  // If it is the very first host to be resolved,
-  // remove all the child backlinks of all the hosts.
-  // It is necessary to do it only once to prevent the removal
-  // of valid child backlinks.
-  if (&obj == &(*pb_indexed_config.state().hosts().begin())) {
-    for (const auto& [_, sptr_host] : engine::host::hosts)
-      sptr_host->child_hosts.clear();
-  }
 
   // Find host.
   host_id_map::iterator it = engine::host::hosts_by_id.find(obj.host_id());
@@ -480,32 +474,32 @@ void applier::host::resolve_object(const configuration::Host& obj,
  *
  *  @param[int,out] s   Configuration state.
  */
-void applier::host::expand_objects(configuration::State& s) {
+void applier::host::expand_objects(configuration::indexed_state& s) {
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
+  for (auto& cv : s.state().macros_filter().data())
     cvs.emplace(cv);
 
   absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
+  for (auto& hg : *s.mut_state().mutable_hostgroups())
     hgs.emplace(hg.hostgroup_name(), &hg);
 
   // Browse all hosts.
-  for (auto& host_cfg : *s.mutable_hosts()) {
+  for (auto& [_, host_cfg] : s.hosts()) {
     // Should custom variables be sent to broker ?
-    for (auto& cv : *host_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+    for (auto& cv : *host_cfg->mutable_customvariables()) {
+      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
 
-    for (auto& grp : host_cfg.hostgroups().data()) {
+    for (auto& grp : host_cfg->hostgroups().data()) {
       auto it = hgs.find(grp);
       if (it != hgs.end()) {
-        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
+        fill_string_group(it->second->mutable_members(), host_cfg->host_name());
       } else
         throw engine_error() << fmt::format(
             "Could not add host '{}' to non-existing host group '{}'",
-            host_cfg.host_name(), grp);
+            host_cfg->host_name(), grp);
     }
   }
 }

@@ -40,7 +40,7 @@ void applier::command::add_object(const configuration::Command& obj) {
   config_logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
-  auto* cmd = pb_indexed_config.state().add_commands();
+  auto* cmd = pb_indexed_config.mut_state().add_commands();
   cmd->CopyFrom(obj);
 
   if (obj.connector().empty()) {
@@ -81,7 +81,7 @@ void applier::command::add_object(const configuration::Command& obj) {
  *
  *  @param[in] s  Unused.
  */
-void applier::command::expand_objects(configuration::State& s
+void applier::command::expand_objects(configuration::indexed_state& s
                                       [[maybe_unused]]) {}
 
 /**
@@ -166,7 +166,7 @@ void applier::command::remove_object(const std::pair<ssize_t, std::string>& p) {
         "Could not remove command '{}': it does not exist", obj.command_name());
 
   // Remove command from the global configuration set.
-  pb_indexed_config.state().mutable_commands()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_commands()->DeleteSubrange(p.first, 1);
 }
 
 /**

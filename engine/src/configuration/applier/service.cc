@@ -55,7 +55,7 @@ void applier::service::add_object(const configuration::Service& obj) {
                        obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
-  auto* cfg_svc = pb_indexed_config.state().add_services();
+  auto* cfg_svc = pb_indexed_config.mut_state().add_services();
   cfg_svc->CopyFrom(obj);
 
   // Create service.
@@ -156,22 +156,22 @@ void applier::service::add_object(const configuration::Service& obj) {
  *
  *  @param[in,out] s  State being applied.
  */
-void applier::service::expand_objects(configuration::State& s) {
+void applier::service::expand_objects(configuration::indexed_state& s) {
   std::list<std::unique_ptr<Service>> expanded;
   // Let's consider all the macros defined in s.
   absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
+  for (auto& cv : s.state().macros_filter().data())
     cvs.emplace(cv);
 
   absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
+  for (auto& hg : *s.mut_state().mutable_hostgroups())
     hgs.emplace(hg.hostgroup_name(), &hg);
 
   // Browse all services.
-  for (auto& service_cfg : *s.mutable_services()) {
+  for (auto& service_cfg : *s.mut_state().mutable_services()) {
     // Should custom variables be sent to broker ?
     for (auto& cv : *service_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
 
@@ -411,7 +411,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
 template <>
 void applier::service::remove_object(
     const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
-  Service& obj = pb_indexed_config.state().mutable_services()->at(p.first);
+  Service& obj = pb_indexed_config.mut_state().mutable_services()->at(p.first);
   const std::string& host_name = obj.host_name();
   const std::string& service_description = obj.service_description();
 
@@ -462,7 +462,7 @@ void applier::service::remove_object(
   }
 
   // Remove service from the global configuration set.
-  pb_indexed_config.state().mutable_services()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_state().mutable_services()->DeleteSubrange(p.first, 1);
 }
 
 /**
@@ -506,10 +506,11 @@ void applier::service::resolve_object(const configuration::Service& obj,
  *  @param[in]  obj Target service.
  *  @param[out] s   Configuration state.
  */
-void applier::service::_expand_service_memberships(configuration::Service& obj,
-                                                   configuration::State& s) {
+void applier::service::_expand_service_memberships(
+    configuration::Service& obj,
+    configuration::indexed_state& s) {
   absl::flat_hash_map<std::string_view, Servicegroup*> sgs;
-  for (auto& sg : *s.mutable_servicegroups())
+  for (auto& sg : *s.mut_state().mutable_servicegroups())
     sgs[sg.servicegroup_name()] = &sg;
 
   // Browse service groups.
@@ -538,35 +539,44 @@ void applier::service::_expand_service_memberships(configuration::Service& obj,
  *  @param[in,out] obj Target service.
  *  @param[in]     s   Configuration state.
  */
-void applier::service::_inherits_special_vars(configuration::Service& obj,
-                                              const configuration::State& s) {
+void applier::service::_inherits_special_vars(
+    configuration::Service& obj,
+    const configuration::indexed_state& s) {
   // Detect if any special variable has not been defined.
   if (!obj.host_id() || obj.contacts().data().empty() ||
       obj.contactgroups().data().empty() || obj.notification_interval() == 0 ||
       obj.notification_period().empty() || obj.timezone().empty()) {
+    config_logger->error("inherits_special_vars dans if");
     // Find host.
     auto it = std::find_if(s.hosts().begin(), s.hosts().end(),
-                           [name = obj.host_name()](const Host& h) {
-                             return h.host_name() == name;
+                           [name = obj.host_name()](const auto& p) {
+                             return p.second->host_name() == name;
                            });
-    if (it == s.hosts().end())
+    if (it == s.hosts().end()) {
+      config_logger->error("inherits_special_vars dans throw");
+      config_logger->error(
+          "Could not inherit special variables for service '{}': host '{}' "
+          "does not exist",
+          obj.service_description(), obj.host_name());
       throw engine_error() << fmt::format(
           "Could not inherit special variables for service '{}': host '{}' "
           "does not exist",
           obj.service_description(), obj.host_name());
+    }
 
     // Inherits variables.
     if (!obj.host_id())
-      obj.set_host_id(it->host_id());
+      obj.set_host_id(it->second->host_id());
     if (obj.contacts().data().empty() && obj.contactgroups().data().empty()) {
-      obj.mutable_contacts()->CopyFrom(it->contacts());
-      obj.mutable_contactgroups()->CopyFrom(it->contactgroups());
+      obj.mutable_contacts()->CopyFrom(it->second->contacts());
+      obj.mutable_contactgroups()->CopyFrom(it->second->contactgroups());
     }
     if (obj.notification_interval() == 0)
-      obj.set_notification_interval(it->notification_interval());
+      obj.set_notification_interval(it->second->notification_interval());
     if (obj.notification_period().empty())
-      obj.set_notification_period(it->notification_period());
+      obj.set_notification_period(it->second->notification_period());
     if (obj.timezone().empty())
-      obj.set_timezone(it->timezone());
+      obj.set_timezone(it->second->timezone());
   }
+  config_logger->error("inherits_special_vars après if");
 }

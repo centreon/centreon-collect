@@ -47,7 +47,7 @@ class HostFlappingNotification : public TestEngine {
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config.state());
+    ct_aply.expand_objects(pb_indexed_config);
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::host hst_aply;
@@ -260,7 +260,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlapping) {
-  pb_indexed_config.state().set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _host->set_flap_detection_enabled(true);
   _host->add_flap_detection_on(engine::host::up);
   _host->add_flap_detection_on(engine::host::down);
@@ -321,7 +321,7 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlappingWithHostParentDown) {
-  pb_indexed_config.state().set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);

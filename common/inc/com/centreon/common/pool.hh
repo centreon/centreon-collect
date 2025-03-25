@@ -18,6 +18,7 @@
 #ifndef CENTREON_COMMON_POOL_HH
 #define CENTREON_COMMON_POOL_HH
 
+#include <spdlog/spdlog.h>
 #include <boost/asio/io_context.hpp>
 #include <forward_list>
 

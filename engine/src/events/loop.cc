@@ -99,7 +99,8 @@ static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
-    configuration::State config;
+    configuration::indexed_state indexed_config;
+    configuration::State& config = indexed_config.mut_state();
     configuration::state_helper config_hlp(&config);
     {
       configuration::parser p;
@@ -107,7 +108,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
       p.parse(path, &config, err);
     }
     configuration::extended_conf::update_state(&config);
-    configuration::applier::state::instance().apply(config, err);
+    configuration::applier::state::instance().apply(indexed_config, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());
