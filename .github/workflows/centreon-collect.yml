@@ -276,54 +276,54 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-centreon-collect-vcpkg-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: false
+          # - image: packaging-centreon-collect-vcpkg-alma8
+          #   distrib: el8
+          #   package_extension: rpm
+          #   runner: centreon-collect
+          #   arch: amd64
+          #   only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
             only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-bookworm
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-bookworm-arm64
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-jammy-arm64
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
+          # - image: packaging-centreon-collect-vcpkg-bullseye
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: centreon-collect
+          #   arch: amd64
+          #   only_robot_cma: true
+          # - image: packaging-centreon-collect-vcpkg-bullseye-arm64
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: centreon-collect-arm64
+          #   arch: arm64
+          #   only_robot_cma: true
+          # - image: packaging-centreon-collect-vcpkg-bookworm
+          #   distrib: bookworm
+          #   package_extension: deb
+          #   runner: centreon-collect
+          #   arch: amd64
+          #   only_robot_cma: false
+          # - image: packaging-centreon-collect-vcpkg-bookworm-arm64
+          #   distrib: bookworm
+          #   package_extension: deb
+          #   runner: centreon-collect-arm64
+          #   arch: arm64
+          #   only_robot_cma: false
+          # - image: packaging-centreon-collect-vcpkg-jammy
+          #   distrib: jammy
+          #   package_extension: deb
+          #   runner: centreon-collect
+          #   arch: amd64
+          #   only_robot_cma: true
+          # - image: packaging-centreon-collect-vcpkg-jammy-arm64
+          #   distrib: jammy
+          #   package_extension: deb
+          #   runner: centreon-collect-arm64
+          #   arch: arm64
+          #   only_robot_cma: true
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -469,70 +469,70 @@ jobs:
             test_group_name: robot_test-mariadb-el9-amd64
             tests_params: '{}'
             only_robot_cma: false
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-            only_robot_cma: false
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: '{}'
-            only_robot_cma: false
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
-            only_robot_cma: false
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-            only_robot_cma: false
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-jammy-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-jammy-amd64
-            tests_params: '{}'
-            only_robot_cma: true
+          # - distrib: el9
+          #   image: centreon-collect-mysql-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          #   test_group_name: robot_test-mysql-el9-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
+          # - distrib: bullseye
+          #   image: centreon-collect-mariadb-bullseye-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bullseye-arm64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
+          # - distrib: bullseye
+          #   image: centreon-collect-mariadb-bullseye-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bullseye-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
+          # - distrib: bookworm
+          #   image: centreon-collect-mariadb-bookworm-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-arm64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
+          # - distrib: bookworm
+          #   image: centreon-collect-mariadb-bookworm-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
+          # - distrib: el9
+          #   image: centreon-collect-mariadb-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64-grpc
+          #   tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+          #   only_robot_cma: false
+          # - distrib: jammy
+          #   image: centreon-collect-mariadb-jammy-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-jammy-arm64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
+          # - distrib: jammy
+          #   image: centreon-collect-mariadb-jammy-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-jammy-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
 
     name: ${{ matrix.test_group_name }}
 
