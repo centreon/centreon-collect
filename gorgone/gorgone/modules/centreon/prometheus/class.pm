@@ -96,11 +96,11 @@ sub new {
     $connector->{service_status_help_metadata} = defined($connector->{config}->{service_status_help_metadata}) ? $connector->{config}->{service_status_help_metadata} : '# HELP service_status is OK, 1 is WARNING, 2 is CRITICAL, 3 is UNKNOWN, 4 is PENDING';
     $connector->{service_status_template} = defined($connector->{config}->{service_status_template}) ? $connector->{config}->{service_status_template} : "service_status{host='%(host_name)',service='%(service_description)'} %(service_status)";
 
-    $connector->{metric_add_metadata} = 0;
+    $connector->{metric_add_metadata} = 1;
     if (defined($connector->{config}->{metric_add_metadata}) && $connector->{config}->{metric_add_metadata} =~ /^(0|1|false|true)$/i) {
         $connector->{metric_add_metadata} = $connector->{config}->{metric_add_metadata} =~ /^(1|true)$/ ? 1 : 0;
     }
-    $connector->{metric_template} = defined($connector->{config}->{metric_template}) ? $connector->{config}->{metric_template} : "metric_name{host='%(host_name)',service='%(service_description)',dimensions='%(dimensions)'} %(perfdata)";
+    $connector->{metric_template} = defined($connector->{config}->{metric_template}) ? $connector->{config}->{metric_template} : "%(metric_name){host='%(host_name)',service='%(service_description)',dimensions='%(metric_dimensions)'} %(metric_value)";
 
     $connector->set_signal_handlers();
     return $connector;
@@ -221,7 +221,11 @@ sub load_metrics {
             shift(@{$rows = $sth->fetchall_arrayref(undef,10_000) || []}) ) 
         ) {
         # host_id . service_id => [ metric_name, metric_value ]
-        $self->{metrics}->{ $row->[0] . $row->[1] } = [ $row->[2], $row->[3] ];
+        if (!defined($self->{metrics}->{ $row->[0] . $row->[1] })) {
+           $self->{metrics}->{ $row->[0] . $row->[1] } = []; 
+        }
+
+        push @{$self->{metrics}->{ $row->[0] . $row->[1] }}, [ $row->[2], $row->[3] ];
     }
 }
 
@@ -367,6 +371,19 @@ sub add_exporter_service_ack {
     $self->{exporter_service_ack_txt} .= "$value\n";
 }
 
+sub add_exporter_metric {
+    my ($self, %options) = @_;
+
+    my $value = $self->{metric_template};
+    $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
+
+    if ($self->{metric_add_metadata} == 1) {
+        $self->{exporter_metrics_txt} .= "# UNIT " . $options{src}->{metric_name} . " " . $options{src}->{metric_unit} . "\n";
+    }
+
+    $self->{exporter_metrics_txt} .= "$value\n";
+}
+
 sub map_host_attributes {
     my ($self, %options) = @_;
 
@@ -397,6 +414,30 @@ sub map_service_attributes {
     $_[0]->{element}->{service_status} = $_[0]->{service}->[3];
     $_[0]->{element}->{service_state} = $_[0]->{service}->[4];
     $_[0]->{element}->{service_acknowledged} = $_[0]->{service}->[5];
+}
+
+sub map_metric_attributes {
+    my ($self) = shift;
+
+    my @metric = split(/#/, $_[0]->{metric}->[0]);
+
+    $_[0]->{element}->{metric_dimensions} = '';
+    $_[0]->{element}->{metric_name} = $metric[0];
+    if (defined($metric[1]) && $metric[1] ne '') {
+        $_[0]->{element}->{metric_dimensions} = $metric[0];
+        $_[0]->{element}->{metric_name} = $metric[1];
+    }
+    $_[0]->{element}->{metric_name} =~ s/[^a-zA-Z0-9_:.]/_/g;
+    $_[0]->{element}->{metric_value} = $_[0]->{metric}->[1];
+
+    $_[0]->{element}->{metric_unit} = 'gauge';
+    $_[0]->{element}->{metric_name} =~ s/\.([^.]+)$//;
+    if ($1) {
+        $_[0]->{element}->{metric_unit} = $1;
+    }
+    if ($_[0]->{element}->{metric_unit} eq 'count') {
+        $_[0]->{element}->{metric_unit} = 'gauge';
+    }
 }
 
 sub export_to_file {
@@ -452,6 +493,13 @@ sub prometheus_exporter_update {
             $self->add_exporter_service_state(src => $element);
             $self->add_exporter_service_status(src => $element);
             $self->add_exporter_service_ack(src => $element);
+
+            next if (!defined($self->{metrics}->{$host_id . $service_id}));
+
+            foreach my $metric (@{$self->{metrics}->{$host_id . $service_id}}) {
+                $self->map_metric_attributes({ element => $element, metric => $metric });
+                $self->add_exporter_metric(src => $element);
+            }
         }
     }
 
