@@ -307,7 +307,7 @@ jobs:
             package_extension: deb
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: true
+            only_robot_cma: false
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
