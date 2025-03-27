@@ -168,7 +168,7 @@ sub load_hostgroups {
  
         # tag_id => [ hg_name, hg_alias ]
         $self->{hostgroups}->{ $row->[0] } = [
-            $rows->[3],
+            $row->[3],
             defined($conf_hostgroups->{ $row->[1] }) ? $conf_hostgroups->{ $row->[0] }->[1] : ''
         ];
     }
@@ -337,7 +337,7 @@ sub map_host_attributes {
         $element->{hostgroup_aliases} .= $append . $self->{hostgroups}->{$_}->[1];
         $append = ',';
     }
-    
+
     return $element;
 }
 
@@ -384,7 +384,7 @@ sub prometheus_exporter_update {
         next if ($self->check_exclude_host_from_hostgroups(resource_id => $self->{hosts}->{$host_id}->[0]) == 1);
 
         my $element = $self->map_host_attributes(host => $self->{hosts}->{$host_id});
-        
+
         $self->add_exporter_host_state(src => $element);
         $self->add_exporter_host_status(src => $element);
     }
