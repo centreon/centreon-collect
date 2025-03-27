@@ -82,25 +82,25 @@ sub new {
 
     $connector->{host_status_type_metadata} = defined($connector->{config}->{host_status_type_metadata}) ? $connector->{config}->{host_status_type_metadata} : '# TYPE host_status gauge';
     $connector->{host_status_help_metadata} = defined($connector->{config}->{host_status_help_metadata}) ? $connector->{config}->{host_status_help_metadata} : '# HELP host_status 0 is UP, 1 is DOWN, 2 is UNREACHABLE, 4 is PENDING';
-    $connector->{host_status_template} = defined($connector->{config}->{host_status_template}) ? $connector->{config}->{host_status_template} : "host_status{host='%(host_name)'} %(host_status)";
+    $connector->{host_status_template} = defined($connector->{config}->{host_status_template}) ? $connector->{config}->{host_status_template} : 'host_status{host="%(host_name)"} %(host_status)';
 
     $connector->{service_state_type_metadata} = defined($connector->{config}->{service_state_type_metadata}) ? $connector->{config}->{service_state_type_metadata} : '# TYPE service_state gauge';
     $connector->{service_state_help_metadata} = defined($connector->{config}->{service_state_help_metadata}) ? $connector->{config}->{service_state_help_metadata} : '# HELP service_state 0 is SOFT, 1 is HARD';
-    $connector->{service_state_template} = defined($connector->{config}->{service_state_template}) ? $connector->{config}->{service_state_template} : "service_state{host='%(host_name)',service='%(service_description)'} %(service_state)";
+    $connector->{service_state_template} = defined($connector->{config}->{service_state_template}) ? $connector->{config}->{service_state_template} : 'service_state{host="%(host_name)",service="%(service_description)"} %(service_state)';
 
     $connector->{service_ack_type_metadata} = defined($connector->{config}->{service_ack_type_metadata}) ? $connector->{config}->{service_ack_type_metadata} : '# TYPE service_ack gauge';
     $connector->{service_ack_help_metadata} = defined($connector->{config}->{service_ack_help_metadata}) ? $connector->{config}->{service_ack_help_metadata} : '# HELP service_ack 0 is unacknowledged, 1 is acknowledged';
-    $connector->{service_ack_template} = defined($connector->{config}->{service_ack_template}) ? $connector->{config}->{service_ack_template} : "service_ack{host='%(host_name)',service='%(service_description)'} %(service_acknowledged)";
+    $connector->{service_ack_template} = defined($connector->{config}->{service_ack_template}) ? $connector->{config}->{service_ack_template} : 'service_ack{host="%(host_name)",service="%(service_description)"} %(service_acknowledged)';
 
     $connector->{service_status_type_metadata} = defined($connector->{config}->{service_status_type_metadata}) ? $connector->{config}->{service_status_type_metadata} : '# TYPE service_status gauge';
     $connector->{service_status_help_metadata} = defined($connector->{config}->{service_status_help_metadata}) ? $connector->{config}->{service_status_help_metadata} : '# HELP service_status is OK, 1 is WARNING, 2 is CRITICAL, 3 is UNKNOWN, 4 is PENDING';
-    $connector->{service_status_template} = defined($connector->{config}->{service_status_template}) ? $connector->{config}->{service_status_template} : "service_status{host='%(host_name)',service='%(service_description)'} %(service_status)";
+    $connector->{service_status_template} = defined($connector->{config}->{service_status_template}) ? $connector->{config}->{service_status_template} : 'service_status{host="%(host_name)",service="%(service_description)"} %(service_status)';
 
     $connector->{metric_add_metadata} = 1;
     if (defined($connector->{config}->{metric_add_metadata}) && $connector->{config}->{metric_add_metadata} =~ /^(0|1|false|true)$/i) {
         $connector->{metric_add_metadata} = $connector->{config}->{metric_add_metadata} =~ /^(1|true)$/ ? 1 : 0;
     }
-    $connector->{metric_template} = defined($connector->{config}->{metric_template}) ? $connector->{config}->{metric_template} : "%(metric_name){host='%(host_name)',service='%(service_description)',dimensions='%(metric_dimensions)'} %(metric_value)";
+    $connector->{metric_template} = defined($connector->{config}->{metric_template}) ? $connector->{config}->{metric_template} : '%(metric_name){host="%(host_name)",service="%(service_description)",dimensions="%(metric_dimensions)"} %(metric_value)';
 
     $connector->set_signal_handlers();
     return $connector;
