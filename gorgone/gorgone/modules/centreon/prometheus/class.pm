@@ -69,6 +69,8 @@ sub new {
         $connector->{exclude_acknowledged} = $connector->{config}->{exclude_acknowledged} =~ /^(1|true)$/ ? 1 : 0;
     }
 
+    $connector->{filter_hosts_from_hg_matching} = defined($connector->{config}->{filter_hosts_from_hg_matching}) && $connector->{config}->{filter_hosts_from_hg_matching} =~ /\S/ ? 
+        $connector->{config}->{filter_hosts_from_hg_matching} : '';
     $connector->{exclude_hosts_from_hg_matching} = defined($connector->{config}->{exclude_hosts_from_hg_matching}) && $connector->{config}->{exclude_hosts_from_hg_matching} =~ /\S/ ? 
         $connector->{config}->{exclude_hosts_from_hg_matching} : '';
     $connector->{display_hg_matching} = defined($connector->{config}->{display_hg_matching}) && $connector->{config}->{display_hg_matching} =~ /\S/ ? 
@@ -150,6 +152,7 @@ sub load_hostgroups {
     }
 
     $self->{hostgroups_excluded} = {};
+    $self->{hostgroups_included} = {};
     $self->{hostgroups} = {};
 
     $sth = $self->{db_centstorage}->query({ query => 'SELECT tag_id, id, type, name FROM `tags`' });
@@ -160,21 +163,28 @@ sub load_hostgroups {
         ) {
         next if ($row->[2] != 1);
 
-        if ($self->{exclude_hosts_from_hg_matching} ne '' && $self->{exclude_hosts_from_hg_matching} =~ /$row->[3]/) {
+        if ($self->{exclude_hosts_from_hg_matching} ne '' && $row->[3] =~ /$self->{exclude_hosts_from_hg_matching}/) {
             $self->{hostgroups_excluded}->{ $row->[0] } = 1;
             next;
         }
-        next if ($self->{display_hg_matching} ne '' && $row->[3] !~ /$self->{display_hg_matching}/);
- 
+
         # tag_id => [ hg_name, hg_alias ]
         $self->{hostgroups}->{ $row->[0] } = [
             $row->[3],
             defined($conf_hostgroups->{ $row->[1] }) ? $conf_hostgroups->{ $row->[0] }->[1] : ''
         ];
+
+        if ($self->{filter_hosts_from_hg_matching} ne '' && $row->[3] =~ /$self->{filter_hosts_from_hg_matching}/) {
+            $self->{hostgroups_included}->{ $row->[0] } = 1;
+        }
+        if ($self->{display_hg_matching} ne '' && $row->[3] !~ /$self->{display_hg_matching}/) {
+            delete $self->{hostgroups}->{ $row->[0] };
+        }
     }
 
     $self->{linked_host_hostgroups} = {};
     $self->{excluded_hosts} = {};
+    $self->{included_hosts} = {};
 
     $sth = $self->{db_centstorage}->query({ query => 'SELECT tag_id, resource_id FROM `resources_tags`' });
     $rows = [];
@@ -184,6 +194,9 @@ sub load_hostgroups {
         ) {
         if (defined($self->{hostgroups_excluded}->{ $row->[0] })) {
             $self->{excluded_hosts}->{ $row->[1] } = 1;
+        }
+        if ($self->{filter_hosts_from_hg_matching} ne '' && defined($self->{hostgroups_included}->{ $row->[0] })) {
+            $self->{included_hosts}->{ $row->[1] } = 1;
         }
         next if (!defined($self->{hostgroups}->{ $row->[0] }));
 
@@ -265,10 +278,13 @@ sub load_hosts_services {
     }
 }
 
-sub check_exclude_host_from_hostgroups {
+sub check_host_from_hostgroups_rules {
     my ($self, %options) = @_;
 
     if (defined($self->{excluded_hosts}->{ $options{resource_id} })) {
+        return 1;
+    }
+    if ($self->{filter_hosts_from_hg_matching} ne '' && !defined($self->{included_hosts}->{ $options{resource_id} })) {
         return 1;
     }
 
@@ -381,7 +397,7 @@ sub prometheus_exporter_update {
     $self->init_exporter();
 
     foreach my $host_id (keys %{$self->{hosts}}) {
-        next if ($self->check_exclude_host_from_hostgroups(resource_id => $self->{hosts}->{$host_id}->[0]) == 1);
+        next if ($self->check_host_from_hostgroups_rules(resource_id => $self->{hosts}->{$host_id}->[0]) == 1);
 
         my $element = $self->map_host_attributes(host => $self->{hosts}->{$host_id});
 
