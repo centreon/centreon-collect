@@ -164,7 +164,7 @@ sub load_hostgroups {
             $self->{hostgroups_excluded}->{ $row->[0] } = 1;
             next;
         }
-        next if ($self->{display_hg_matching} ne '' && $self->{display_hg_matching} !~ /$row->[3]/);
+        next if ($self->{display_hg_matching} ne '' && $row->[3] !~ /$self->{display_hg_matching}/);
  
         # tag_id => [ hg_name, hg_alias ]
         $self->{hostgroups}->{ $row->[0] } = [
