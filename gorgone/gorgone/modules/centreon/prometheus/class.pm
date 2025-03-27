@@ -301,7 +301,7 @@ $self->{host_state_help_metadata}
 $self->{host_status_help_metadata}
 ";
     $self->{exporter_service_state_txt} = "$self->{service_state_type_metadata}
-$self->{service_state_type_metadata}
+$self->{service_state_help_metadata}
 ";
     $self->{exporter_service_ack_txt} = "$self->{service_ack_type_metadata}
 $self->{service_ack_help_metadata}
@@ -334,6 +334,39 @@ sub add_exporter_host_status {
     $self->{exporter_host_status_txt} .= "$value\n";
 }
 
+sub add_exporter_service_state {
+    my ($self, %options) = @_;
+
+    return if ($self->{exclude_state} == 1);
+
+    my $value = $self->{service_state_template};
+    $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
+
+    $self->{exporter_service_state_txt} .= "$value\n";
+}
+
+sub add_exporter_service_status {
+    my ($self, %options) = @_;
+
+    return if ($self->{exclude_status} == 1);
+
+    my $value = $self->{service_status_template};
+    $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
+
+    $self->{exporter_service_status_txt} .= "$value\n";
+}
+
+sub add_exporter_service_ack {
+    my ($self, %options) = @_;
+
+    return if ($self->{exclude_status} == 1);
+
+    my $value = $self->{service_ack_template};
+    $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
+
+    $self->{exporter_service_ack_txt} .= "$value\n";
+}
+
 sub map_host_attributes {
     my ($self, %options) = @_;
 
@@ -355,6 +388,15 @@ sub map_host_attributes {
     }
 
     return $element;
+}
+
+sub map_service_attributes {
+    my ($self) = shift;
+
+    $_[0]->{element}->{service_description} = $_[0]->{service}->[1];
+    $_[0]->{element}->{service_status} = $_[0]->{service}->[3];
+    $_[0]->{element}->{service_state} = $_[0]->{service}->[4];
+    $_[0]->{element}->{service_acknowledged} = $_[0]->{service}->[5];
 }
 
 sub export_to_file {
@@ -403,6 +445,14 @@ sub prometheus_exporter_update {
 
         $self->add_exporter_host_state(src => $element);
         $self->add_exporter_host_status(src => $element);
+
+        foreach my $service_id (@{$self->{linked_host_services}->{$host_id}}) {
+            $self->map_service_attributes({ element => $element, service => $self->{services}->{$service_id} });
+
+            $self->add_exporter_service_state(src => $element);
+            $self->add_exporter_service_status(src => $element);
+            $self->add_exporter_service_ack(src => $element);
+        }
     }
 
     $self->export_to_file();
