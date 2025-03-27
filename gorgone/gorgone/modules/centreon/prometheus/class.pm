@@ -171,7 +171,7 @@ sub load_hostgroups {
         # tag_id => [ hg_name, hg_alias ]
         $self->{hostgroups}->{ $row->[0] } = [
             $row->[3],
-            defined($conf_hostgroups->{ $row->[1] }) ? $conf_hostgroups->{ $row->[0] }->[1] : ''
+            defined($conf_hostgroups->{ $row->[1] }) ? $conf_hostgroups->{ $row->[1] }->[1] : ''
         ];
 
         if ($self->{filter_hosts_from_hg_matching} ne '' && $row->[3] =~ /$self->{filter_hosts_from_hg_matching}/) {
