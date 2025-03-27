@@ -56,17 +56,23 @@ jobs:
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
+            image: packaging-centreon-collect-bookworm-arm64
+            distrib: bookworm
+            lua_version: 5.3
+            runner: centreon-collect-arm64
+            arch: arm64
+          - package_extension: deb
             image: packaging-centreon-collect-jammy
             distrib: jammy
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: packaging-centreon-collect-bookworm-arm64
-            distrib: bookworm
+            image: packaging-centreon-collect-noble
+            distrib: noble
             lua_version: 5.3
-            runner: centreon-collect-arm64
-            arch: arm64
+            runner: ubuntu-24.04
+            arch: amd64
 
     runs-on: ${{ matrix.runner }}
 
