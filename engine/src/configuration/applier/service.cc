@@ -59,8 +59,6 @@ void applier::service::add_object(const configuration::Service& obj) {
       pb_indexed_config.mut_services()[{obj.host_id(), obj.service_id()}];
   conf_svc.reset(new configuration::Service);
   conf_svc->CopyFrom(obj);
-  for (auto& [k, _] : pb_indexed_config.services())
-    std::cout << "&&&& Service " << k.first << " " << k.second << std::endl;
 
   // Create service.
   engine::service* svc{add_service(
