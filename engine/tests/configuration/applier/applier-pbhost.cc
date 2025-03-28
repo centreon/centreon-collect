@@ -32,8 +32,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierPbHost : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -136,7 +139,7 @@ TEST_F(ApplierPbHost, PbHostParentChildUnreachable) {
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
-  hst_aply.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   hst_aply.resolve_object(hst_child, err);
   hst_aply.resolve_object(hst_parent, err);
 

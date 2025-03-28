@@ -27,7 +27,5 @@ add_subdirectory(applier)
 set(FILES
     ${FILES}
     # Sources.
-    "${SRC_DIR}/whitelist.cc"
-    "${SRC_DIR}/extended_conf.cc"
-    ${SRC_DIR}/indexed_state.cc
+    "${SRC_DIR}/whitelist.cc" "${SRC_DIR}/extended_conf.cc"
     PARENT_SCOPE)

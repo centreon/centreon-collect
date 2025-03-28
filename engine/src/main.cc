@@ -330,29 +330,30 @@ int main(int argc, char* argv[]) {
         try {
           // Parse configuration.
           configuration::error_cnt err;
-          configuration::indexed_state indexed_config;
-          configuration::State& new_config = indexed_config.mut_state();
+          auto new_conf = std::make_unique<configuration::State>();
           std::filesystem::path proto_conf_file(proto_conf / "state.prot");
           if (!proto_conf.empty()) {
             std::ifstream ifs(proto_conf_file);
             if (ifs.good()) {
-              new_config.ParseFromIstream(&ifs);
+              new_conf->ParseFromIstream(&ifs);
               ifs.close();
             }
           } else {
-            {
-              configuration::parser p;
-              p.parse(config_file, &new_config, err);
-            }
+            configuration::state_helper state_hlp(new_conf.get());
+            configuration::parser p;
+            p.parse(config_file, new_conf.get(), err);
+            configuration::error_cnt err;
+            state_hlp.expand(err);
           }
-          indexed_config.index();
+          configuration::indexed_state indexed_config(std::move(new_conf));
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
 
-          configuration::extended_conf::update_state(&new_config);
+          configuration::extended_conf::update_state(
+              &indexed_config.mut_state());
           if (broker_config.empty())
-            broker_config = new_config.broker_module_cfg_file();
-          uint16_t port = new_config.grpc_port();
+            broker_config = indexed_config.broker_module_cfg_file();
+          uint16_t port = indexed_config.mut_state().grpc_port();
 
           if (broker_config.empty()) {
             std::cerr << "No module configuration file provided in the Engine "
@@ -363,7 +364,8 @@ int main(int argc, char* argv[]) {
           if (!port)
             port = generate_port();
 
-          const std::string& listen_address = new_config.rpc_listen_address();
+          const std::string& listen_address =
+              indexed_config.mut_state().rpc_listen_address();
 
           std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {
@@ -376,7 +378,7 @@ int main(int argc, char* argv[]) {
           {
             retention::parser p;
             try {
-              p.parse(new_config.state_retention_file(), state);
+              p.parse(indexed_config.mut_state().state_retention_file(), state);
             } catch (const std::exception& e) {
               config_logger->error("{}", e.what());
               engine_logger(logging::log_config_error, logging::basic)
@@ -393,6 +395,7 @@ int main(int argc, char* argv[]) {
           // Handle signals (interrupts).
           setup_sighandler();
 
+          configuration::State& new_config = indexed_config.mut_state();
           // Load broker modules.
           if (vm.count("log-file"))
             new_config.set_log_file(vm["log-file"].as<std::string>());

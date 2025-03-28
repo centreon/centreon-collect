@@ -70,18 +70,6 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
 }
 
 /**
- * @brief Expand all contactgroups.
- *
- * @param s State being applied.
- */
-void applier::contactgroup::expand_objects(configuration::indexed_state& s) {
-  absl::flat_hash_set<std::string_view> resolved;
-
-  for (auto& cg : *s.mut_state().mutable_contactgroups())
-    _resolve_members(s, cg, resolved);
-}
-
-/**
  * @brief Modify a contactgroup configuration.
  *
  * @param to_modify A pointer to the configuration to modify.

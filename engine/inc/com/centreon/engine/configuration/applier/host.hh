@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOST_HH
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/host_helper.hh"
 
 namespace com::centreon::engine::configuration::applier {
@@ -31,7 +30,6 @@ class host {
   ~host() noexcept = default;
   host& operator=(host const&) = delete;
   void add_object(const configuration::Host& obj);
-  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
   template <typename Key>

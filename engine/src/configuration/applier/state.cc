@@ -1355,27 +1355,6 @@ void applier::state::_apply(configuration::indexed_state& new_cfg,
 }
 
 /**
- *  Expand objects.
- *
- *  @param[in,out] new_state New configuration state.
- *  @param[in,out] cfg       Configuration objects.
- */
-template <typename ConfigurationType, typename ApplierType>
-void applier::state::_expand(configuration::indexed_state& new_state,
-                             error_cnt& err) {
-  ApplierType aplyr;
-  try {
-    aplyr.expand_objects(new_state);
-  } catch (std::exception const& e) {
-    if (verify_config) {
-      ++err.config_errors;
-      std::cout << e.what();
-    } else
-      throw;
-  }
-}
-
-/**
  *  Process new configuration and apply it.
  *
  *  @param[in] new_cfg        The new configuration.
@@ -1395,51 +1374,6 @@ void applier::state::_processing(configuration::indexed_state& new_cfg,
   // Expand all objects.
   //
   gettimeofday(tv, nullptr);
-
-  // Expand timeperiods.
-  _expand<configuration::Timeperiod, applier::timeperiod>(new_cfg, err);
-
-  // Expand connectors.
-  _expand<configuration::Connector, applier::connector>(new_cfg, err);
-
-  // Expand commands.
-  _expand<configuration::Command, applier::command>(new_cfg, err);
-
-  // Expand contacts.
-  _expand<configuration::Contact, applier::contact>(new_cfg, err);
-
-  // Expand contactgroups.
-  _expand<configuration::Contactgroup, applier::contactgroup>(new_cfg, err);
-
-  // Expand hosts.
-  _expand<configuration::Host, applier::host>(new_cfg, err);
-
-  // Expand hostgroups.
-  _expand<configuration::Hostgroup, applier::hostgroup>(new_cfg, err);
-
-  // Expand services.
-  _expand<configuration::Service, applier::service>(new_cfg, err);
-
-  // Expand anomalydetections.
-  _expand<configuration::Anomalydetection, applier::anomalydetection>(new_cfg,
-                                                                      err);
-
-  // Expand servicegroups.
-  _expand<configuration::Servicegroup, applier::servicegroup>(new_cfg, err);
-
-  // Expand hostdependencies.
-  _expand<configuration::Hostdependency, applier::hostdependency>(new_cfg, err);
-
-  // Expand servicedependencies.
-  _expand<configuration::Servicedependency, applier::servicedependency>(new_cfg,
-                                                                        err);
-
-  // Expand hostescalations.
-  _expand<configuration::Hostescalation, applier::hostescalation>(new_cfg, err);
-
-  // Expand serviceescalations.
-  _expand<configuration::Serviceescalation, applier::serviceescalation>(new_cfg,
-                                                                        err);
 
   //
   //  Build difference for all objects.
@@ -1507,11 +1441,7 @@ void applier::state::_processing(configuration::indexed_state& new_cfg,
   // Build difference for services.
   pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>
       diff_services;
-  diff_services.parse(*pb_indexed_config.mut_state().mutable_services(),
-                      new_cfg.state().services(),
-                      [](const configuration::Service& s) {
-                        return std::make_pair(s.host_id(), s.service_id());
-                      });
+  diff_services.parse(pb_indexed_config.services(), new_cfg.services());
 
   // Build difference for anomalydetections.
   pb_difference<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>>
@@ -1660,8 +1590,8 @@ void applier::state::_processing(configuration::indexed_state& new_cfg,
         pb_indexed_config.state().hostgroups(), err);
 
     // Resolve services.
-    _resolve<configuration::Service, applier::service>(
-        pb_indexed_config.state().services(), err);
+    _resolve<configuration::Service, std::pair<uint64_t, uint64_t>,
+             applier::service>(pb_indexed_config.services(), err);
 
     // Resolve anomalydetections.
     _resolve<configuration::Anomalydetection, applier::anomalydetection>(

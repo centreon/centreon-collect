@@ -23,12 +23,12 @@
 
 #include "com/centreon/broker/neb/cbmod.hh"
 #include "com/centreon/engine/circular_buffer.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/engine/events/timed_event.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
+#include "common/engine_conf/indexed_state.hh"
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;

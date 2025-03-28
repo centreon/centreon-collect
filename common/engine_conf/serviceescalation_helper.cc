@@ -160,8 +160,9 @@ void serviceescalation_helper::_init() {
 void serviceescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
 

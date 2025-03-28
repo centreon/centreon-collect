@@ -30,7 +30,7 @@ class servicegroup_helper : public message_helper {
       configuration::State& s,
       configuration::Servicegroup* sg_conf,
       absl::flat_hash_set<std::string_view>& resolved,
-      const absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           sg_by_name,
       configuration::error_cnt& err);
 
@@ -43,7 +43,7 @@ class servicegroup_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           m_servicegroups);
 };
 }  // namespace com::centreon::engine::configuration

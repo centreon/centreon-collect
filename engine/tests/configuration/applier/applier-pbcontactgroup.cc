@@ -30,8 +30,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierPbContactgroup : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -125,7 +128,7 @@ TEST_F(ApplierPbContactgroup, ResolveEmptyContactgroup) {
   configuration::contactgroup_helper hlp(&grp);
   grp.set_contactgroup_name("test");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   aplyr.resolve_object(grp, err);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -161,7 +164,7 @@ TEST_F(ApplierPbContactgroup, ResolveContactgroup) {
   fill_string_group(ctct.mutable_contactgroups(), "test_group");
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
@@ -183,7 +186,7 @@ TEST_F(ApplierPbContactgroup, SetContactgroupMembers) {
   aply.add_object(ctct);
   fill_string_group(grp.mutable_members(), "test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 1);
 
@@ -192,7 +195,7 @@ TEST_F(ApplierPbContactgroup, SetContactgroupMembers) {
   grp1.set_contactgroup_name("big_group");
   fill_string_group(grp1.mutable_contactgroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
 
   // grp1 must be reload because the expand_objects reload them totally.
   bool found = false;
@@ -226,7 +229,7 @@ TEST_F(ApplierPbContactgroup, ContactRemove) {
 
   grp_hlp.hook("members", "test, test2");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(
       engine::contactgroup::contactgroups["test_group"]->get_members().size(),

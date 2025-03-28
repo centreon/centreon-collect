@@ -30,33 +30,38 @@ namespace com::centreon::engine::configuration {
  * containers set to empty.
  */
 class indexed_state {
-  State _state;
+  std::unique_ptr<State> _state;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>
+      _services;
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
       _severities;
-
-  void _apply_containers(State& state);
+  void _index();
+  void _apply_containers();
+  void _clear_containers();
 
  public:
   indexed_state() = default;
+  indexed_state(std::unique_ptr<State>&& state);
   indexed_state(const indexed_state& other);
-  const State& state() const { return _state; }
-  State& mut_state() { return _state; }
-  void index();
+  ~indexed_state() noexcept = default;
+  void set_state(std::unique_ptr<State>&& state);
+  void reset();
+  State* release();
+  const State& state() const { return *_state; }
+  State& mut_state() { return *_state; }
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
   severities() {
     return _severities;
   }
-  void add_severity(std::unique_ptr<Severity> severity) {
-    _severities.emplace(
-        std::make_pair(severity->key().id(), severity->key().type()),
-        std::move(severity));
+  const absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                            std::unique_ptr<Severity>>&
+  severities() const {
+    return _severities;
   }
-  Severity& severity(std::pair<uint64_t, uint32_t> key) {
-    return *_severities[key];
-  }
-  void remove_severity(std::pair<uint64_t, uint32_t> key) {
-    _severities.erase(key);
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
+  mut_severities() {
+    return _severities;
   }
   const absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& hosts() const {
     return _hosts;
@@ -64,8 +69,15 @@ class indexed_state {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& mut_hosts() {
     return _hosts;
   }
-  State save();
-  void restore(State& state);
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>&
+  mut_services() {
+    return _services;
+  }
+  const absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                            std::unique_ptr<Service>>&
+  services() const {
+    return _services;
+  }
 };
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */

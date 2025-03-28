@@ -56,17 +56,6 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
 }
 
 /**
- *  @brief Expand time period.
- *
- *  Time period objects do not need expansion. Therefore this method
- *  does nothing.
- *
- *  @param[in] s  Unused.
- */
-void applier::timeperiod::expand_objects(configuration::indexed_state& s
-                                         [[maybe_unused]]) {}
-
-/**
  *  Modify time period.
  *
  *  @param[in] obj  The time period to modify in the monitoring engine.

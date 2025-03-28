@@ -34,8 +34,9 @@ class servicedependency_helper : public message_helper {
       const ::google::protobuf::RepeatedPtrField<std::string>& svc,
       const ::google::protobuf::RepeatedPtrField<std::string>& sg,
       absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+          hostgroups,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
 
  public:
@@ -47,8 +48,9 @@ class servicedependency_helper : public message_helper {
   static void expand(
       State& s,
       error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+          hostgroups,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
 };
 }  // namespace com::centreon::engine::configuration

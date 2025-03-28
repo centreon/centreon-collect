@@ -21,7 +21,8 @@
 
 #include "com/centreon/engine/globals.hh"
 
-void init_config_state(void);
+std::unique_ptr<com::centreon::engine::configuration::state_helper>
+init_config_state(void);
 void deinit_config_state(void);
 
 #endif  // CENTREON_ENGINE_TESTS_HELPER_HH_

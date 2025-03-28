@@ -20,8 +20,8 @@
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/servicedependency.hh"
+#include "common/engine_conf/indexed_state.hh"
 
 namespace com::centreon::engine {
 
@@ -97,8 +97,6 @@ class state {
   void _apply(configuration::indexed_state& new_cfg,
               retention::state& state,
               error_cnt& err);
-  template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::indexed_state& new_state, error_cnt& err);
   void _processing(configuration::indexed_state& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);

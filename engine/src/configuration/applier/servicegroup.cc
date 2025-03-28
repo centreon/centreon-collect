@@ -92,34 +92,6 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
 }
 
 /**
- *  Expand all service groups.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::servicegroup::expand_objects(configuration::indexed_state& s) {
-  // This set stores resolved service groups.
-  absl::flat_hash_set<std::string_view> resolved;
-
-  // Here, we store each Servicegroup pointer by its name.
-  absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
-      sg_by_name;
-  for (auto& sg_conf : *s.mut_state().mutable_servicegroups())
-    sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;
-
-  // Each servicegroup can contain servicegroups, that is to mean the services
-  // in the sub servicegroups are also in our servicegroup.
-  // So, we iterate through all the servicegroups defined in the configuration,
-  // and for each one if it has servicegroup members, we fill its service
-  // members with theirs and then we clear the servicegroup members. At that
-  // step, a servicegroup is considered as resolved.
-  for (auto& sg_conf : *s.mut_state().mutable_servicegroups()) {
-    if (!resolved.contains(sg_conf.servicegroup_name())) {
-      _resolve_members(s, &sg_conf, resolved, sg_by_name);
-    }
-  }
-}
-
-/**
  *  Modify servicegroup.
  *
  *  @param[in] obj  The new servicegroup to modify into the monitoring
