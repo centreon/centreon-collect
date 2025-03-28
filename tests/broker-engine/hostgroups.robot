@@ -10,7 +10,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
-EBNHG1
+BENHG1
     [Documentation]    New host group with several pollers and connections to DB
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
@@ -38,7 +38,7 @@ EBNHG1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-EBNHGU1
+BENHGU1
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
     Ctn Config Engine    ${3}
@@ -66,7 +66,7 @@ EBNHGU1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-EBNHGU2
+BENHGU2
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
     Ctn Config Engine    ${3}
@@ -94,7 +94,7 @@ EBNHGU2
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
 
-EBNHGU3
+BENHGU3
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
     [Tags]    broker    engine    hostgroup    unified_sql
     Ctn Config Engine    ${4}
@@ -131,7 +131,7 @@ EBNHGU3
     ${result}    Ctn Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 9 hosts members in the hostgroup 1.
 
-EBNHG4
+BENHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
@@ -141,10 +141,12 @@ EBNHG4
 
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    core   error
+    Ctn Broker Config Log    module0    processing   error
     Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
-    log to console    Interesting date: ${start}
+    log to console    Starting date: ${start}
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
@@ -181,7 +183,7 @@ EBNHG4
     END
     Should Be Equal As Strings    ${output}    (('hostgroup_test',),)
 
-EBNHGU4_${test_label}
+BENHGU4_${test_label}
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
     Ctn Config Engine    ${3}
