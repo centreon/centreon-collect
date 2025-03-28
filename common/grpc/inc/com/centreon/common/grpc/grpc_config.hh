@@ -70,9 +70,9 @@ class grpc_config {
    */
   unsigned _max_message_length;
 
-  absl::flat_hash_set<std::string> _trusted_tokens;
-  std::string _private_key_jwt;
   std::string _token;
+  absl::flat_hash_set<std::string> _trusted_tokens;
+  bool _support_token = false;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
@@ -138,7 +138,7 @@ class grpc_config {
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
-        _token(token) {}
+        _token{token} {}
 
   grpc_config(const std::string& hostp,
               bool crypted,
@@ -150,8 +150,7 @@ class grpc_config {
               int second_keepalive_interval,
               unsigned second_max_reconnect_backoff,
               unsigned max_message_length,
-              const absl::flat_hash_set<std::string>& tokens,
-              const std::string& private_key)
+              absl::flat_hash_set<std::string> trusted_tokens)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -162,8 +161,9 @@ class grpc_config {
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
-        _trusted_tokens{tokens},
-        _private_key_jwt(private_key) {}
+        _trusted_tokens{std::move(trusted_tokens)} {
+    _support_token = true;
+  }
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -186,7 +186,8 @@ class grpc_config {
   const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
     return _trusted_tokens;
   }
-  const std::string& get_private_key_jwt() const { return _private_key_jwt; }
+
+  bool support_token() const { return _support_token; }
 
   bool operator==(const grpc_config& right) const {
     return _hostport == right._hostport && _crypted == right._crypted &&

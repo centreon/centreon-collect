@@ -68,8 +68,6 @@ grpc_client_base::grpc_client_base(
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
     creds = ::grpc::SslCredentials(ssl_opts);
     if (!_conf->get_token().empty()) {
-      SPDLOG_LOGGER_INFO(logger, "the token used is : {}",
-                         _conf->get_token().substr(0, 10));
       std::shared_ptr<::grpc::CallCredentials> jwt =
           ::grpc::AccessTokenCredentials(_conf->get_token());
       creds = ::grpc::CompositeChannelCredentials(creds, jwt);

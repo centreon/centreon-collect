@@ -22,9 +22,13 @@
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
-#include "jwt-cpp/jwt.h"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/jwt.hh"
 
 #include "com/centreon/common/grpc/grpc_config.hh"
+#include "spdlog/spdlog.h"
+
+using namespace com::centreon::exceptions;
 
 namespace com::centreon::common::grpc {
 
@@ -61,17 +65,12 @@ class grpc_server_base {
 class AuthProcessor : public ::grpc::AuthMetadataProcessor {
   std::shared_ptr<spdlog::logger> _logger;
   absl::flat_hash_set<std::string> _trusted_tokens;
-  std::string _private_key_jwt;
 
  public:
   AuthProcessor(const absl::flat_hash_set<std::string>& tokens,
-                const std::string& key_jwt,
                 const std::shared_ptr<spdlog::logger>& logger)
       : _logger(logger) {
-    // Make a copy of the tokens map
     _trusted_tokens = tokens;
-    // Make a copy of the token_key string
-    _private_key_jwt = key_jwt;
   }
 
   ::grpc::Status Process(const InputMetadata& auth_metadata,
@@ -79,54 +78,55 @@ class AuthProcessor : public ::grpc::AuthMetadataProcessor {
                          OutputMetadata* consumed_auth_metadata
                          [[maybe_unused]],
                          OutputMetadata* response_metadata [[maybe_unused]]) {
-    //  some debug code to delete:
-    SPDLOG_LOGGER_INFO(_logger, "AuthProcessor::Process");
-    SPDLOG_LOGGER_INFO(_logger, "token_key: {}", _private_key_jwt);
-    for (const auto& token : _trusted_tokens) {
-      SPDLOG_LOGGER_INFO(_logger, "tokens : {}", token);
-    }
     // Extract the JWT token from the metadata
-    std::string token;
     auto auth_md = auth_metadata.find("authorization");
     if (auth_md != auth_metadata.end()) {
       std::string auth_header(auth_md->second.data(), auth_md->second.size());
-
-      SPDLOG_LOGGER_INFO(_logger, "Authorization header: {}", auth_header);
-
-      const std::string bearer_prefix = "Bearer ";
-      if (auth_header.rfind(bearer_prefix, 0) == 0) {
-        token = auth_header.substr(bearer_prefix.size());
-      }
-      if (token.empty()) {
-        std::cerr << "No JWT provided by client\n";
-        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
-                              "Missing JWT token");
-      }
+      SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
       try {
-        auto decoded = jwt::decode(token);
-        auto verifier = jwt::verify().allow_algorithm(
-            jwt::algorithm::hs256{_private_key_jwt});
-        verifier.verify(decoded);
-        // Check the expiration time
-        auto exp = decoded.get_expires_at();
-        if (std::chrono::system_clock::now() >= exp) {
-          std::cerr << "Token has expired.\n";
-          std::cerr << "Expiration time: " << exp.time_since_epoch().count()
-                    << "\n";
+        common::crypto::jwt jwt(auth_header);
+
+        // check if not expired
+        if (jwt.get_exp() < std::chrono::system_clock::now()) {
+          SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
           return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
                                 "Token expired");
         }
-        SPDLOG_LOGGER_INFO(_logger, "Token is valid and not expired.\n");
+
+        // check if token is trusted
+        if (_trusted_tokens.find(jwt.get_string()) == _trusted_tokens.end()) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "UNAUTHENTICATED : Token is not trusted");
+          return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                                "Token is not trusted");
+        }
+
+        SPDLOG_LOGGER_INFO(_logger, "Token is valid");
+        // Attach expiration as property to AuthContext
+        // context->AddProperty("jwt_expiration", jwt.get_exp_str());
+
+        // SPDLOG_LOGGER_INFO(_logger, "Authenticated token, expiration saved:
+        // {}",
+        //                    jwt.get_exp_str());
+
+        // // Indicate metadata was successfully processed
+        // consumed_auth_metadata->insert(std::make_pair(
+        //     std::string(auth_md->first.data(), auth_md->first.length()),
+        //     std::string(auth_md->second.data(), auth_md->second.length())));
+
         return ::grpc::Status::OK;
-      } catch (const std::exception& e) {
-        std::cerr << "Invalid token: " << e.what() << "\n";
+
+      } catch (const msg_fmt& ex) {
+        SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Invalid token : {}",
+                            ex.what());
         return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
-                              "Invalid JWT token");
+                              "Invalid token");
       }
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "Authorization header is missing.");
+      return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                            "Missing authorization metadata");
     }
-    std::cerr << "Authorization header is missing.\n";
-    return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
-                          "Missing authorization metadata");
   }
   bool IsBlocking() const { return true; }
 };

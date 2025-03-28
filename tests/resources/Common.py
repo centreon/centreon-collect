@@ -19,6 +19,7 @@
 # This script is a little tcp server working on port 5669. It can simulate
 # a cbd instance. It is useful to test the validity of BBDO packets sent by
 # centengine.
+import jwt
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
@@ -32,7 +33,7 @@ import random
 import shutil
 import string
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 from concurrent import futures
@@ -2322,3 +2323,20 @@ def ctn_get_process_limit(pid:int, limit:str):
     except:
         return -1, -1
     return -1, -1
+
+def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
+    """
+    ctn_create_jwt_token
+
+    create a jwt token
+    Returns: jwt token
+    """
+    value = random.randint(0, 100000)
+    payload = {
+        "sub": f"centreon{value}",
+        "iss": "centreon",
+        "iat": datetime.now(),
+        "exp": datetime.now() + timedelta(seconds=exp_s)
+    }
+    logger.console(payload)
+    return jwt.encode(payload, secret, algorithm="HS256")
