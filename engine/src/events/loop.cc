@@ -99,13 +99,15 @@ static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
   try {
-    configuration::indexed_state indexed_config;
+    auto cfg = std::make_unique<configuration::State>();
+    configuration::state_helper config_hlp(cfg.get());
+    configuration::indexed_state indexed_config(std::move(cfg));
     configuration::State& config = indexed_config.mut_state();
-    configuration::state_helper config_hlp(&config);
     {
       configuration::parser p;
       std::string path(::pb_indexed_config.state().cfg_main());
       p.parse(path, &config, err);
+      config_hlp.expand(err);
     }
     configuration::extended_conf::update_state(&config);
     configuration::applier::state::instance().apply(indexed_config, err);
