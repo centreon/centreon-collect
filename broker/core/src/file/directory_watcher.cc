@@ -95,6 +95,6 @@ directory_watcher::iterator directory_watcher::watch() {
   _bytes_read = _sd.read_some(buffer, ec);
   iterator retval(this);
   if (ec)
-    _logger->error("Error while reading from inotify: {}", ec.message());
+    _logger->debug("Unable to read from inotify: {}", ec.message());
   return retval;
 }

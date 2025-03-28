@@ -34,6 +34,7 @@ constexpr size_t BUF_LEN = sizeof(struct inotify_event) + NAME_MAX + 1;
  *  @brief Directory watcher.
  *
  *  Watch over directories for files modifications.
+ *  This watcher can't be used by multiple threads.
  */
 class directory_watcher {
   std::shared_ptr<boost::asio::io_context> _io_context;
