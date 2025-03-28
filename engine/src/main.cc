@@ -86,10 +86,20 @@ int main(int argc, char* argv[]) {
   // Load singletons and global variable.
   log_v2::load("centengine");
 
+  // Initialize the initial configuration state.
+  {
+    auto cfg = std::make_unique<configuration::State>();
+    configuration::state_helper state_hlp(cfg.get());
+    pb_indexed_config.set_state(std::move(cfg));
+  }
   /* It's time to set the logger. Later, we will have access from multiple
    * threads and we'll only be able to change loggers atomic values. */
   // init pb_config to default values
-  configuration::state_helper state_hlp(&pb_indexed_config.mut_state());
+  {
+    auto pb_config = std::make_unique<configuration::State>();
+    configuration::state_helper state_hlp(pb_config.get());
+    configuration::indexed_state pb_indexed_config(std::move(pb_config));
+  }
 
   init_loggers();
   configuration::applier::logging::instance();
@@ -221,13 +231,16 @@ int main(int argc, char* argv[]) {
           // resource and object config files).
           configuration::error_cnt err;
           cbm = std::make_unique<cbmod>(proto_conf);
-          configuration::indexed_state indexed_config;
+          auto pb_cfg = std::make_unique<configuration::State>();
+          configuration::state_helper state_hlp(pb_cfg.get());
+          configuration::indexed_state indexed_config(std::move(pb_cfg));
           configuration::State& pb_config = indexed_config.mut_state();
           {
             configuration::parser p;
             p.parse(config_file, &pb_config, err);
             if (broker_config.empty())
               broker_config = pb_config.broker_module_cfg_file();
+            state_hlp.expand(err);
           }
           configuration::applier::state::instance().apply(indexed_config, err);
           std::cout << "\n Checked " << commands::command::commands.size()
@@ -279,12 +292,15 @@ int main(int argc, char* argv[]) {
       else if (test_scheduling) {
         try {
           // Parse configuration.
-          configuration::indexed_state indexed_config;
+          auto pb_cfg = std::make_unique<configuration::State>();
+          configuration::state_helper state_hlp(pb_cfg.get());
+          configuration::indexed_state indexed_config(std::move(pb_cfg));
           configuration::State& pb_config = indexed_config.mut_state();
           configuration::error_cnt err;
           {
             configuration::parser p;
             p.parse(config_file, &pb_config, err);
+            state_hlp.expand(err);
           }
 
           // Parse retention.
