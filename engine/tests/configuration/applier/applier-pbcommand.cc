@@ -32,8 +32,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierPbCommand : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -269,7 +272,8 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   ASSERT_NE(hst_found, engine::host::hosts.end());
   ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
+  // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
@@ -334,7 +338,8 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   ASSERT_NE(hst_found, engine::host::hosts.end());
   ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
+  // hst_aply.expand_objects(pb_indexed_config);
   hst_aply.resolve_object(hst, err);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());

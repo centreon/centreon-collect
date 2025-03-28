@@ -71,46 +71,6 @@ void applier::hostescalation::add_object(
 }
 
 /**
- *  Expand a host escalation.
- *
- *  @param[in,out] s  Configuration being applied.
- */
-void applier::hostescalation::expand_objects(configuration::indexed_state& s) {
-  std::list<std::unique_ptr<Hostescalation> > resolved;
-  for (auto& he : *s.mut_state().mutable_hostescalations()) {
-    if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<std::string_view> host_names;
-      for (auto& hname : he.hosts().data())
-        host_names.emplace(hname);
-      for (auto& hg_name : he.hostgroups().data()) {
-        auto found_hg = std::find_if(s.state().hostgroups().begin(),
-                                     s.state().hostgroups().end(),
-                                     [&hg_name](const Hostgroup& hg) {
-                                       return hg.hostgroup_name() == hg_name;
-                                     });
-        if (found_hg != s.state().hostgroups().end()) {
-          for (auto& h : found_hg->members().data())
-            host_names.emplace(h);
-        } else
-          throw engine_error() << fmt::format(
-              "Could not expand non-existing host group '{}'", hg_name);
-      }
-      he.mutable_hostgroups()->clear_data();
-      he.mutable_hosts()->clear_data();
-      for (auto& n : host_names) {
-        resolved.emplace_back(std::make_unique<Hostescalation>());
-        auto& e = resolved.back();
-        e->CopyFrom(he);
-        fill_string_group(e->mutable_hosts(), n);
-      }
-    }
-  }
-  s.mut_state().clear_hostescalations();
-  for (auto& e : resolved)
-    s.mut_state().mutable_hostescalations()->AddAllocated(e.release());
-}
-
-/**
  *  @brief Modify host escalation.
  *
  *  Host escalations cannot be defined with anything else than their

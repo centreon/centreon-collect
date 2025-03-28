@@ -522,23 +522,20 @@ bool state_helper::apply_extended_conf(
 void state_helper::expand(configuration::error_cnt& err) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
 
-  absl::flat_hash_map<std::string, configuration::Host> m_host;
-  for (auto& h : pb_config.hosts()) {
-    m_host.emplace(h.host_name(), h);
-  }
+  absl::flat_hash_map<std::string_view, const configuration::Host*> m_host;
+  for (auto& h : pb_config.hosts())
+    m_host.emplace(h.host_name(), &h);
 
-  absl::flat_hash_map<std::string, configuration::Contactgroup*>
+  absl::flat_hash_map<std::string_view, configuration::Contactgroup*>
       m_contactgroups;
-  for (auto& cg : *pb_config.mutable_contactgroups()) {
+  for (auto& cg : *pb_config.mutable_contactgroups())
     m_contactgroups.emplace(cg.contactgroup_name(), &cg);
-  }
 
-  absl::flat_hash_map<std::string, configuration::Hostgroup*> m_hostgroups;
-  for (auto& hg : *pb_config.mutable_hostgroups()) {
+  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> m_hostgroups;
+  for (auto& hg : *pb_config.mutable_hostgroups())
     m_hostgroups.emplace(hg.hostgroup_name(), &hg);
-  }
 
-  absl::flat_hash_map<std::string, configuration::Servicegroup*>
+  absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
       m_servicegroups;
   for (auto& sg : *pb_config.mutable_servicegroups())
     m_servicegroups.emplace(sg.servicegroup_name(), &sg);
@@ -616,4 +613,5 @@ void state_helper::diff(const State& old_state,
   severity_helper::diff(old_state.severities(), new_state.severities(), logger,
                         result->mutable_severities());
 }
+
 }  // namespace com::centreon::engine::configuration

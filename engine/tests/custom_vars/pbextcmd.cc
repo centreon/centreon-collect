@@ -37,8 +37,11 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 class PbCustomVar : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -90,8 +93,8 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   ASSERT_NE(hst_found, engine::host::hosts.end());
   ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   hst_aply.resolve_object(hst, err);
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
   nagios_macros* macros(get_global_macros());

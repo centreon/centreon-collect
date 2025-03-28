@@ -34,10 +34,12 @@ using log_v2_config = com::centreon::common::log_v2::config;
 
 extern configuration::indexed_state pb_indexed_config;
 
-void init_config_state() {
+std::unique_ptr<configuration::state_helper> init_config_state() {
   /* Cleanup */
-  pb_indexed_config.mut_state().Clear();
-  pb_indexed_config.index();
+  auto new_state = std::make_unique<configuration::State>();
+  auto retval = std::make_unique<configuration::state_helper>(new_state.get());
+  pb_indexed_config.set_state(std::move(new_state));
+
   if (!cbm)
     cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>("");
 
@@ -62,6 +64,7 @@ void init_config_state() {
       pb_indexed_config.mut_state());
 
   checks::checker::init(true);
+  return retval;
 }
 
 void deinit_config_state(void) {

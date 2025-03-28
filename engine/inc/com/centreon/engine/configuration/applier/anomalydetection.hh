@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 
 #include "common/engine_conf/anomalydetection_helper.hh"
 
@@ -46,7 +45,6 @@ class anomalydetection {
                      const configuration::Anomalydetection& new_obj);
   template <typename Key>
   void remove_object(const std::pair<ssize_t, Key>& p);
-  void expand_objects(indexed_state& s);
   void resolve_object(const configuration::Anomalydetection& obj,
                       error_cnt& err);
 };

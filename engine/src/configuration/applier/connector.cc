@@ -70,17 +70,6 @@ void applier::connector::add_object(const configuration::Connector& obj) {
 }
 
 /**
- *  @brief Expand connector.
- *
- *  Connector configuration objects do not need expansion. Therefore
- *  this method only copy obj to expanded.
- *
- *  @param[in] s  Unused.
- */
-void applier::connector::expand_objects(configuration::indexed_state& s
-                                        [[maybe_unused]]) {}
-
-/**
  * @brief Modify connector
  *
  * @param to_modify The current configuration connector

@@ -127,29 +127,6 @@ void applier::anomalydetection::add_object(
 }
 
 /**
- *  Expand a anomalydetection object.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::anomalydetection::expand_objects(
-    configuration::indexed_state& s) {
-  std::list<std::unique_ptr<Service>> expanded;
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.state().macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all anomalydetections.
-  for (auto& ad_cfg : *s.mut_state().mutable_anomalydetections()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *ad_cfg.mutable_customvariables()) {
-      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-  }
-}
-
-/**
  *  Modified anomalydetection.
  *
  *  @param[in] obj  The new anomalydetection to modify into the monitoring

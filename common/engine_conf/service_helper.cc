@@ -286,8 +286,10 @@ bool service_helper::insert_customvariable(std::string_view key,
 void service_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Host> m_host,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*> sgs) {
+    const absl::flat_hash_map<std::string_view, const configuration::Host*>&
+        m_host,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
+        sgs) {
   // Browse all services.
   for (auto& service_cfg : *s.mutable_services()) {
     // Browse service groups.
@@ -326,20 +328,20 @@ void service_helper::expand(
 
       // Inherits variables.
       if (!service_cfg.host_id())
-        service_cfg.set_host_id(it->second.host_id());
+        service_cfg.set_host_id(it->second->host_id());
       if (service_cfg.contacts().data().empty() &&
           service_cfg.contactgroups().data().empty()) {
-        service_cfg.mutable_contacts()->CopyFrom(it->second.contacts());
+        service_cfg.mutable_contacts()->CopyFrom(it->second->contacts());
         service_cfg.mutable_contactgroups()->CopyFrom(
-            it->second.contactgroups());
+            it->second->contactgroups());
       }
       if (service_cfg.notification_interval() == 0)
         service_cfg.set_notification_interval(
-            it->second.notification_interval());
+            it->second->notification_interval());
       if (service_cfg.notification_period().empty())
-        service_cfg.set_notification_period(it->second.notification_period());
+        service_cfg.set_notification_period(it->second->notification_period());
       if (service_cfg.timezone().empty())
-        service_cfg.set_timezone(it->second.timezone());
+        service_cfg.set_timezone(it->second->timezone());
     }
   }
 }

@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 
 namespace com::centreon::engine::configuration::applier {
@@ -35,7 +34,6 @@ class serviceescalation {
                      const configuration::Serviceescalation& new_obj);
   template <typename Key>
   void remove_object(const std::pair<ssize_t, Key>& p);
-  void expand_objects(configuration::indexed_state& s);
   void resolve_object(const configuration::Serviceescalation& obj,
                       error_cnt& err);
 };

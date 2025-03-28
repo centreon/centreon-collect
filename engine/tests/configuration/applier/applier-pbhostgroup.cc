@@ -31,8 +31,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHostGroup : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -71,10 +74,7 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
   hg_hlp.hook("members", "a,b,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_b, err));
@@ -115,9 +115,7 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
@@ -128,9 +126,7 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
   hg_aply.modify_object(
       &pb_indexed_config.mut_state().mutable_hostgroups()->at(0), hg);
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
   ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 1u);
@@ -164,9 +160,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_indexed_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_indexed_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));

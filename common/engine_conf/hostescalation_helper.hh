@@ -42,7 +42,7 @@ class hostescalation_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
           m_hostgroups);
 };
 }  // namespace com::centreon::engine::configuration

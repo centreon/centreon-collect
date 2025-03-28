@@ -171,8 +171,9 @@ void hostdependency_helper::_init() {
 void hostdependency_helper::expand(
     State& s,
     error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
-  std::list<std::unique_ptr<configuration::Hostdependency> > lst;
+    absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        m_hostgroups) {
+  std::list<std::unique_ptr<configuration::Hostdependency>> lst;
 
   for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
     auto* hd_conf = s.mutable_hostdependencies(i);
