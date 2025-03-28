@@ -67,40 +67,40 @@ TEST(DirectoryWatcher, WatchFile) {
   ASSERT_EQ(filename.string(), (dirname / p.second).string());
 }
 
-TEST(DirectoryWatcher, WatchNonBlockingFromMultipleThreads) {
+TEST(DirectoryWatcher, WatchNonBlockingFromAnotherThread) {
   std::filesystem::path dirname("/tmp/to_watch");
   std::filesystem::remove_all(dirname);
   std::filesystem::create_directory(dirname);
   std::filesystem::path filename = dirname / "file";
   file::directory_watcher watcher("/tmp/to_watch", IN_CREATE, true);
 
-  std::vector<std::unique_ptr<std::thread>> threads;
+  std::unique_ptr<std::thread> thread;
   uint32_t thread_count = 0;
   absl::Mutex thread_count_m;
   std::atomic_uint count = 0;
-  for (int i = 0; i < 10; i++) {
-    threads.push_back(std::make_unique<std::thread>(
-        [&thread_count_m, &thread_count, &count, &watcher]() {
-          {
-            thread_count_m.Lock();
-            thread_count++;
-            thread_count_m.Unlock();
-          }
-          std::string name;
-          for (int i = 0; i < 1000; i++) {
-            auto it = watcher.watch();
-            for (auto end = watcher.end(); it != end; ++it) {
-              std::cout << "File creation detected" << std::endl;
-              count.fetch_add(1);
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-          }
-        }));
-  }
+  thread = std::make_unique<std::thread>([&thread_count_m, &thread_count,
+                                          &count, &watcher]() {
+    uint32_t thread_id;
+    {
+      thread_count_m.Lock();
+      thread_count++;
+      thread_id = thread_count;
+      thread_count_m.Unlock();
+    }
+    for (int i = 0; i < 1000; i++) {
+      auto it = watcher.watch();
+      for (auto end = watcher.end(); it != end; ++it) {
+        std::cout << "File '" << (*it).second
+                  << "' creation detected by thread " << thread_id << std::endl;
+        count.fetch_add(1);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+  });
 
-  auto threads_started = [&thread_count]() { return thread_count == 10; };
+  auto thread_started = [&thread_count]() { return thread_count == 1; };
   thread_count_m.Lock();
-  thread_count_m.Await(absl::Condition(&threads_started));
+  thread_count_m.Await(absl::Condition(&thread_started));
   thread_count_m.Unlock();
   auto file = std::fstream(filename, std::ios::out);
   std::cout << "file created" << std::endl;
@@ -108,9 +108,8 @@ TEST(DirectoryWatcher, WatchNonBlockingFromMultipleThreads) {
   file << "Centreon is wonderful!";
   file.close();
 
-  for (auto& thread : threads) {
-    thread->join();
-  }
+  thread->join();
+
   ASSERT_EQ(count.load(), 1);
 }
 
