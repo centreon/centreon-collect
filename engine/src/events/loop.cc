@@ -29,6 +29,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
 using namespace com::centreon::engine;
@@ -101,14 +102,14 @@ static void apply_conf(std::atomic<bool>* reloading) {
   try {
     auto cfg = std::make_unique<configuration::State>();
     configuration::state_helper config_hlp(cfg.get());
-    configuration::indexed_state indexed_config(std::move(cfg));
-    configuration::State& config = indexed_config.mut_state();
     {
       configuration::parser p;
       std::string path(::pb_indexed_config.state().cfg_main());
-      p.parse(path, &config, err);
+      p.parse(path, cfg.get(), err);
       config_hlp.expand(err);
     }
+    configuration::indexed_state indexed_config(std::move(cfg));
+    configuration::State& config = indexed_config.mut_state();
     configuration::extended_conf::update_state(&config);
     configuration::applier::state::instance().apply(indexed_config, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
