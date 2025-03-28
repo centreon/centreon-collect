@@ -52,21 +52,45 @@ sub new {
     $connector->{tmp_file} = defined($connector->{config}->{tmp_file}) && $connector->{config}->{file} =~ /\S/ ? $connector->{config}->{tmp_file} : 
         $connector->{file} . '.tmp';
 
-    $connector->{exclude_metrics} = 0;
-    if (defined($connector->{config}->{exclude_metrics}) && $connector->{config}->{exclude_metrics} =~ /^(0|1|false|true)$/i) {
-        $connector->{exclude_metrics} = $connector->{config}->{exclude_metrics} =~ /^(1|true)$/ ? 1 : 0;
+    $connector->{export_gateway} = 0;
+    if (defined($connector->{config}->{export_gateway}) && $connector->{config}->{export_gateway} =~ /^(1|true)$/i) {
+        $connector->{export_gateway} = 1;
     }
-    $connector->{exclude_status} = 0;
-    if (defined($connector->{config}->{exclude_status}) && $connector->{config}->{exclude_status} =~ /^(0|1|false|true)$/i) {
-        $connector->{exclude_status} = $connector->{config}->{exclude_status} =~ /^(1|true)$/ ? 1 : 0;
+    $connector->{prometheus_gateway_address} = defined($connector->{config}->{prometheus_gateway_address}) && $connector->{config}->{prometheus_gateway_address} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_address} : 'http://localhost';
+    $connector->{prometheus_gateway_port} = defined($connector->{config}->{prometheus_gateway_port}) && $connector->{config}->{prometheus_gateway_port} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_port} : 9091;
+    $connector->{prometheus_gateway_job} = defined($connector->{config}->{prometheus_gateway_job}) && $connector->{config}->{prometheus_gateway_job} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_job} : 'monitoring';
+    $connector->{prometheus_gateway_instance} = defined($connector->{config}->{prometheus_gateway_instance}) && $connector->{config}->{prometheus_gateway_instance} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_instance} : 'production';
+    $connector->{prometheus_gateway_wipe_interval} = defined($connector->{config}->{prometheus_gateway_wipe_interval}) && $connector->{config}->{prometheus_gateway_wipe_interval} =~ /(\d+)/ ? 
+        $connector->{config}->{prometheus_gateway_wipe_interval} : 86400;
+    $connector->{prometheus_gateway_wipe_last_time} = -1;
+    $connector->{prometheus_gateway_user} = defined($connector->{config}->{prometheus_gateway_user}) && $connector->{config}->{prometheus_gateway_user} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_user} : '';
+    $connector->{prometheus_gateway_password} = defined($connector->{config}->{prometheus_gateway_password}) && $connector->{config}->{prometheus_gateway_password} =~ /\S/ ? 
+        $connector->{config}->{prometheus_gateway_password} : '';
+    $connector->{prometheus_gateway_insecure} = 0;
+    if (defined($connector->{config}->{prometheus_gateway_insecure}) && $connector->{config}->{prometheus_gateway_insecure} =~ /^(1|true)$/i) {
+        $connector->{prometheus_gateway_insecure} = 1;
     }
-    $connector->{exclude_state} = 1;
-    if (defined($connector->{config}->{exclude_state}) && $connector->{config}->{exclude_state} =~ /^(0|1|false|true)$/i) {
-        $connector->{exclude_state} = $connector->{config}->{exclude_state} =~ /^(1|true)$/ ? 1 : 0;
+
+    $connector->{add_metrics} = 1;
+    if (defined($connector->{config}->{add_metrics}) && $connector->{config}->{add_metrics} =~ /^(0|1|false|true)$/i) {
+        $connector->{add_metrics} = $connector->{config}->{add_metrics} =~ /^(1|true)$/ ? 1 : 0;
     }
-    $connector->{exclude_acknowledged} = 1;
-    if (defined($connector->{config}->{exclude_acknowledged}) && $connector->{config}->{exclude_acknowledged} =~ /^(0|1|false|true)$/i) {
-        $connector->{exclude_acknowledged} = $connector->{config}->{exclude_acknowledged} =~ /^(1|true)$/ ? 1 : 0;
+    $connector->{add_status} = 1;
+    if (defined($connector->{config}->{add_status}) && $connector->{config}->{add_status} =~ /^(0|1|false|true)$/i) {
+        $connector->{add_status} = $connector->{config}->{add_status} =~ /^(1|true)$/ ? 1 : 0;
+    }
+    $connector->{add_state} = 0;
+    if (defined($connector->{config}->{add_state}) && $connector->{config}->{add_state} =~ /^(1|true)$/i) {
+        $connector->{add_state} = 1;
+    }
+    $connector->{add_acknowledged} = 0;
+    if (defined($connector->{config}->{add_acknowledged}) && $connector->{config}->{add_acknowledged} =~ /^(1|true)$/i) {
+        $connector->{add_acknowledged} = 1;
     }
 
     $connector->{filter_hosts_from_hg_matching} = defined($connector->{config}->{filter_hosts_from_hg_matching}) && $connector->{config}->{filter_hosts_from_hg_matching} =~ /\S/ ? 
@@ -96,9 +120,9 @@ sub new {
     $connector->{service_status_help_metadata} = defined($connector->{config}->{service_status_help_metadata}) ? $connector->{config}->{service_status_help_metadata} : '# HELP service_status is OK, 1 is WARNING, 2 is CRITICAL, 3 is UNKNOWN, 4 is PENDING';
     $connector->{service_status_template} = defined($connector->{config}->{service_status_template}) ? $connector->{config}->{service_status_template} : 'service_status{host="%(host_name)",service="%(service_description)"} %(service_status)';
 
-    $connector->{metric_add_metadata} = 1;
-    if (defined($connector->{config}->{metric_add_metadata}) && $connector->{config}->{metric_add_metadata} =~ /^(0|1|false|true)$/i) {
-        $connector->{metric_add_metadata} = $connector->{config}->{metric_add_metadata} =~ /^(1|true)$/ ? 1 : 0;
+    $connector->{add_metrics_metadata} = 1;
+    if (defined($connector->{config}->{add_metrics_metadata}) && $connector->{config}->{add_metrics_metadata} =~ /^(0|1|false|true)$/i) {
+        $connector->{add_metrics_metadata} = $connector->{config}->{add_metrics_metadata} =~ /^(1|true)$/ ? 1 : 0;
     }
     $connector->{metric_template} = defined($connector->{config}->{metric_template}) ? $connector->{config}->{metric_template} : '%(metric_name){host="%(host_name)",service="%(service_description)",dimensions="%(metric_dimensions)"} %(metric_value)';
 
@@ -211,7 +235,7 @@ sub load_hostgroups {
 sub load_metrics {
     my ($self, %options) = @_;
 
-    return if ($connector->{exclude_metrics} == 1);
+    return if ($connector->{add_metrics} == 0);
 
     $self->{metrics} = {};
     my $sth = $self->{db_centstorage}->query({ query => 'SELECT index_data.host_id, index_data.service_id, metrics.metric_name, metrics.current_value FROM index_data, metrics WHERE index_data.id = metrics.index_id' });
@@ -319,7 +343,7 @@ $self->{service_status_help_metadata}
 sub add_exporter_host_state {
     my ($self, %options) = @_;
 
-    return if ($self->{exclude_state} == 1);
+    return if ($self->{add_state} == 0);
 
     my $value = $self->{host_state_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
@@ -330,7 +354,7 @@ sub add_exporter_host_state {
 sub add_exporter_host_status {
     my ($self, %options) = @_;
 
-    return if ($self->{exclude_status} == 1);
+    return if ($self->{add_status} == 0);
 
     my $value = $self->{host_status_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
@@ -341,7 +365,7 @@ sub add_exporter_host_status {
 sub add_exporter_service_state {
     my ($self, %options) = @_;
 
-    return if ($self->{exclude_state} == 1);
+    return if ($self->{add_state} == 0);
 
     my $value = $self->{service_state_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
@@ -352,7 +376,7 @@ sub add_exporter_service_state {
 sub add_exporter_service_status {
     my ($self, %options) = @_;
 
-    return if ($self->{exclude_status} == 1);
+    return if ($self->{add_status} == 0);
 
     my $value = $self->{service_status_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
@@ -363,7 +387,7 @@ sub add_exporter_service_status {
 sub add_exporter_service_ack {
     my ($self, %options) = @_;
 
-    return if ($self->{exclude_status} == 1);
+    return if ($self->{add_acknowledged} == 0);
 
     my $value = $self->{service_ack_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
@@ -377,7 +401,7 @@ sub add_exporter_metric {
     my $value = $self->{metric_template};
     $value =~ s/%\((.*?)\)/$options{src}->{$1}/g;
 
-    if ($self->{metric_add_metadata} == 1) {
+    if ($self->{add_metrics_metadata} == 1) {
         $self->{exporter_metrics_txt} .= "# UNIT " . $options{src}->{metric_name} . " " . $options{src}->{metric_unit} . "\n";
     }
 
@@ -427,17 +451,19 @@ sub map_metric_attributes {
         $_[0]->{element}->{metric_dimensions} = $metric[0];
         $_[0]->{element}->{metric_name} = $metric[1];
     }
-    $_[0]->{element}->{metric_name} =~ s/[^a-zA-Z0-9_:.]/_/g;
-    $_[0]->{element}->{metric_value} = $_[0]->{metric}->[1];
 
-    $_[0]->{element}->{metric_unit} = 'gauge';
     $_[0]->{element}->{metric_name} =~ s/\.([^.]+)$//;
+    $_[0]->{element}->{metric_unit} = 'gauge';
     if ($1) {
         $_[0]->{element}->{metric_unit} = $1;
     }
     if ($_[0]->{element}->{metric_unit} eq 'count') {
         $_[0]->{element}->{metric_unit} = 'gauge';
     }
+
+    $_[0]->{element}->{metric_name} =~ s/\./:/g;
+    $_[0]->{element}->{metric_name} =~ s/[^a-zA-Z0-9_:]/_/g;
+    $_[0]->{element}->{metric_value} = $_[0]->{metric}->[1];
 }
 
 sub export_to_file {
@@ -449,24 +475,94 @@ sub export_to_file {
     if (!open($fh, '>', $self->{tmp_file})) {
         die "cannot open tmp file '" . $self->{tmp_file} . "': $!";
     }
-    if ($self->{exclude_state} == 0) {
+    if ($self->{add_state} == 1) {
         print $fh $self->{exporter_host_state_txt} . "\n";
         print $fh $self->{exporter_service_state_txt} . "\n";
     }
-    if ($self->{exclude_status} == 0) {
+    if ($self->{add_status} == 1) {
         print $fh $self->{exporter_host_status_txt} . "\n";
         print $fh $self->{exporter_service_status_txt} . "\n";
     }
-    if ($self->{exclude_acknowledged} == 0) {
+    if ($self->{add_acknowledged} == 1) {
         print $fh $self->{exporter_service_ack_txt} . "\n";
     }
-    if ($self->{exclude_metrics} == 0) {
+    if ($self->{add_metrics} == 1) {
         print $fh $self->{exporter_metrics_txt} . "\n";
     }
     close $fh;
 
     if (!rename($self->{tmp_file}, $self->{file})) {
         die "cannot rename tmp file '" . $self->{tmp_file} . "' to '" . $self->{file} . "': $!";
+    }
+}
+
+sub export_to_gateway {
+    my ($self, %options) = @_;
+
+    return if ($self->{export_gateway} == 0);
+
+    my %httpauth = ();
+    if ($self->{prometheus_gateway_user} ne '') {
+        $httpauth{credentials} = 1;
+        $httpauth{basic} = 1;
+        $httpauth{username} = $self->{prometheus_gateway_user};
+        $httpauth{password} = $self->{prometheus_gateway_password};
+    }
+    my $curl_opts = [];
+    if ($self->{prometheus_gateway_insecure} == 1) {
+        $curl_opts = ['CURLOPT_SSL_VERIFYPEER => 0', 'CURLOPT_SSL_VERIFYHOST => 0'];
+    }
+
+    my ($status, $response);
+    if ($self->{prometheus_gateway_wipe_last_time} < 0 || $self->{prometheus_gateway_wipe_last_time} < (time() - $self->{prometheus_gateway_wipe_interval})) {
+        ($status, $response) = $self->{http}->request(
+            method => 'DELETE',
+            hostname => '',
+            full_url => $self->{prometheus_gateway_address} . ':' . $self->{prometheus_gateway_port} . '/metrics/job/' . $self->{prometheus_gateway_job} . '/instance/' . $self->{prometheus_gateway_instance},
+            %httpauth,
+            curl_opt => $curl_opts,
+            warning_status => '',
+            unknown_status => '',
+            critical_status => ''
+        );
+        if ($self->{http}->get_code() < 200 || $self->{http}->get_code() >= 300) {
+            die "delete metrics to gateway error [code: '" . $self->{http}->get_code() . "'] [message: '" . $self->{http}->get_message() . "']";
+        }
+        $self->{prometheus_gateway_wipe_last_time} = time();
+    }
+
+    my $data = '';
+    if ($self->{add_state} == 1) {
+        $data .= $self->{exporter_host_state_txt} . "\n";
+        $data .= $self->{exporter_service_state_txt} . "\n";
+    }
+    if ($self->{add_status} == 1) {
+        $data .= $self->{exporter_host_status_txt} . "\n";
+        $data .= $self->{exporter_service_status_txt} . "\n";
+    }
+    if ($self->{add_acknowledged} == 1) {
+        $data .= $self->{exporter_service_ack_txt} . "\n";
+    }
+    if ($self->{add_metrics} == 1) {
+        $data .= $self->{exporter_metrics_txt} . "\n";
+    }
+
+    ($status, $response) = $self->{http}->request(
+        method => 'POST',
+        hostname => '',
+        full_url => $self->{prometheus_gateway_address} . ':' . $self->{prometheus_gateway_port} . '/metrics/job/' . $self->{prometheus_gateway_job} . '/instance/' . $self->{prometheus_gateway_instance},
+        %httpauth, 
+        header => [
+            'Content-Type: application/openmetrics-text',
+        ],
+        query_form_post => $data,
+        curl_opt => $curl_opts,
+        warning_status => '',
+        unknown_status => '',
+        critical_status => ''
+    );
+    if ($self->{http}->get_code() < 200 || $self->{http}->get_code() >= 300) {
+        die "post metrics to gateway error [code: '" . $self->{http}->get_code() . "'] [message: '" . $self->{http}->get_message() . "']";
     }
 }
 
@@ -504,6 +600,7 @@ sub prometheus_exporter_update {
     }
 
     $self->export_to_file();
+    $self->export_to_gateway();
 }
 
 sub action_centreonprometheusupdate {
@@ -592,19 +689,6 @@ sub run {
     }
 
     $self->{http} = gorgone::class::http::http->new(logger => $self->{logger});
-    #my ($status, $response) = $self->{http}->request(
-    #    method => 'GET', hostname => '',
-    #    full_url => $self->{config_scom}->{url} . 'alerts',
-    #    credentials => 1,
-    #    %$httpauth, 
-    #    username => $self->{config_scom}->{username},
-    #    password => $self->{config_scom}->{password},
-    #    header => [
-    #        'Accept-Type: application/json; charset=utf-8',
-    #        'Content-Type: application/json; charset=utf-8',
-    #    ],
-    #    curl_opt => $curl_opts,
-    #);
 
     my $watcher_timer = $self->{loop}->timer(5, 5, \&periodic_exec);
     my $watcher_io = $self->{loop}->io($connector->{internal_socket}->get_fd(), EV::READ, sub { $connector->event() } );
