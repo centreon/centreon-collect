@@ -180,7 +180,7 @@ jobs:
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.test_group_name}}
           if [ -d tests/failed ] ; then
-            cp -rp tests/failed reports/$FILE_PREFIX-failed
+            cp -rf tests/failed reports/$FILE_PREFIX-failed
             cp tests/log.html reports/$FILE_PREFIX-log.html
             cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
