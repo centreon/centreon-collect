@@ -42,7 +42,8 @@ void applier::severity::add_object(const configuration::Severity& obj) {
   // Add severity to the global configuration set.
   auto new_sv = std::make_unique<Severity>();
   new_sv->CopyFrom(obj);
-  pb_indexed_config.add_severity(std::move(new_sv));
+  pb_indexed_config.mut_severities().emplace(
+      std::make_pair(obj.key().id(), obj.key().type()), std::move(new_sv));
 
   auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
                                              obj.icon_id(), obj.severity_name(),
@@ -109,7 +110,7 @@ void applier::severity::modify_object(
 template <>
 void applier::severity::remove_object(
     const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
-  const Severity& obj = pb_indexed_config.severity(p.second);
+  const Severity& obj = *pb_indexed_config.severities().at(p.second);
 
   // Logging.
   config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
@@ -130,5 +131,5 @@ void applier::severity::remove_object(
   }
 
   // Remove severity from the global configuration set.
-  pb_indexed_config.remove_severity(p.second);
+  pb_indexed_config.mut_severities().erase(p.second);
 }

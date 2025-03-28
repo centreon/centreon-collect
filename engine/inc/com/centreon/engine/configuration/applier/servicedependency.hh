@@ -20,7 +20,7 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 
 namespace com::centreon::engine::configuration {
@@ -45,7 +45,6 @@ class servicedependency {
   void add_object(const configuration::Servicedependency& obj);
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
-  void expand_objects(configuration::indexed_state& s);
   template <typename Key>
   void remove_object(const std::pair<ssize_t, Key>& p);
   void resolve_object(const configuration::Servicedependency& obj,

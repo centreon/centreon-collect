@@ -205,8 +205,9 @@ void servicedependency_helper::_init() {
 void servicedependency_helper::expand(
     State& s,
     error_cnt& err [[maybe_unused]],
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   // Browse all dependencies.
   std::list<std::unique_ptr<Servicedependency>> expanded;
@@ -297,8 +298,9 @@ void servicedependency_helper::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
     absl::flat_hash_set<std::pair<std::string, std::string>>& expanded,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-    absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hostgroups,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         servicegroups) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;

@@ -58,14 +58,6 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
 }
 
 /**
- *  Expand all host groups.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::hostgroup::expand_objects(configuration::indexed_state& s
-                                        [[maybe_unused]]) {}
-
-/**
  *  Modified hostgroup.
  *
  *  @param[in] obj  The new hostgroup to modify into the monitoring

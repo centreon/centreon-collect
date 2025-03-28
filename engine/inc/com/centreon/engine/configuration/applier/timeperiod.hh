@@ -19,7 +19,6 @@
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 
 // Forward declaration.
 namespace com::centreon::engine::configuration {
@@ -42,7 +41,6 @@ class timeperiod {
   timeperiod(const timeperiod&) = delete;
   timeperiod& operator=(const timeperiod&) = delete;
   void add_object(const configuration::Timeperiod& obj);
-  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Timeperiod* to_modify,
                      const configuration::Timeperiod& new_object);
   template <typename Key>

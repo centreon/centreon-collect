@@ -88,12 +88,12 @@ void open_telemetry_test::SetUpTestSuite() {
 
 void open_telemetry_test::SetUp() {
   configuration::error_cnt err;
-  init_config_state();
+  auto state_hlp = init_config_state();
   pb_indexed_config.mut_state().mutable_contacts()->Clear();
   configuration::applier::contact ct_aply;
   configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(pb_indexed_config);
+  state_hlp->expand(err);
   ct_aply.resolve_object(ctct, err);
 
   configuration::Host hst{new_pb_configuration_host("localhost", "admin")};

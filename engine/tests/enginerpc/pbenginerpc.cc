@@ -56,9 +56,12 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class EngineRpc : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
 
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(
@@ -70,7 +73,7 @@ class EngineRpc : public TestEngine {
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     /* hosts */
@@ -108,7 +111,7 @@ class EngineRpc : public TestEngine {
     hg.set_hostgroup_name("test_hg");
     hg_hlp.hook("members", "test_host");
     hg_aply.add_object(hg);
-    hg_aply.expand_objects(pb_indexed_config);
+    _state_hlp->expand(err);
     hg_aply.resolve_object(hg, err);
 
     /* service */
@@ -168,7 +171,7 @@ class EngineRpc : public TestEngine {
     sg_hlp.hook("members", "test_host,test_svc");
 
     sg_aply.add_object(sg);
-    sg_aply.expand_objects(pb_indexed_config);
+    _state_hlp->expand(err);
     sg_aply.resolve_object(sg, err);
   }
 

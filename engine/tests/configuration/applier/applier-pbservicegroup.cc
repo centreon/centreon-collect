@@ -24,6 +24,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
+#include "common/engine_conf/message_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -32,8 +33,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierServicegroup : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -86,7 +90,7 @@ TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
   configuration::servicegroup_helper grp_hlp(&grp);
   grp.set_servicegroup_name("test");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   aplyr.resolve_object(grp, err);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -104,7 +108,7 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   grp.set_servicegroup_name("test");
   fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   ASSERT_THROW(aplyr.resolve_object(grp, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -147,7 +151,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
@@ -190,7 +194,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   aply_grp.resolve_object(grp, err);
   ASSERT_TRUE(grp.members().data().size() == 1);
 
@@ -199,7 +203,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   grp1.set_servicegroup_name("big_group");
   fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
 
   // grp1 must be reload because the expand_objects reload them totally.
   auto found = std::find_if(pb_indexed_config.state().servicegroups().begin(),
@@ -248,8 +252,8 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 1);
 
@@ -258,7 +262,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   grp1.set_servicegroup_name("big_group");
   fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
   aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_indexed_config);
+  _state_hlp->expand(err);
   auto found = std::find_if(pb_indexed_config.state().servicegroups().begin(),
                             pb_indexed_config.state().servicegroups().end(),
                             [](const configuration::Servicegroup& sg) {
@@ -321,8 +325,8 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
 
   grp_hlp.hook("members", "test_host,test,test_host,test2");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_indexed_config);
   configuration::error_cnt err;
+  _state_hlp->expand(err);
   aply_grp.resolve_object(grp, err);
   ASSERT_EQ(grp.members().data().size(), 2);
 

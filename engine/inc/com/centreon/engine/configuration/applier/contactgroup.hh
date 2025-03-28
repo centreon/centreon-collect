@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 
 namespace com::centreon::engine::configuration {
@@ -50,7 +49,6 @@ class contactgroup {
                      const configuration::Contactgroup& new_object);
   template <typename Key>
   void remove_object(const std::pair<ssize_t, Key>& p);
-  void expand_objects(configuration::indexed_state& s);
   void resolve_object(const configuration::Contactgroup& obj, error_cnt& err);
 };
 

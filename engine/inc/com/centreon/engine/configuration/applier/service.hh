@@ -19,7 +19,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "common/engine_conf/service_helper.hh"
 
 namespace com::centreon::engine::configuration::applier {
@@ -36,7 +35,6 @@ class service {
   ~service() noexcept = default;
   service& operator=(service const&) = delete;
   void add_object(const configuration::Service& obj);
-  void expand_objects(configuration::indexed_state& s);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
   template <typename Key>

@@ -1,5 +1,5 @@
-/*
- * Copyright 2023 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2023-2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@
 #include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <filesystem>
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/configuration/indexed_state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/contact_helper.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state.pb.h"
@@ -37,9 +38,11 @@ extern configuration::indexed_state pb_indexed_config;
 
 class ApplierState : public ::testing::Test {
  protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
     auto tps = pb_indexed_config.mut_state().mutable_timeperiods();
     for (int i = 0; i < 10; i++) {
       auto* tp = tps->Add();
@@ -125,12 +128,32 @@ enum class ConfigurationObject {
   CONTACTGROUP_NE = 7,
 };
 
+static void copy_cfg_files(const std::filesystem::path& source,
+                           const std::filesystem::path& destination) {
+  if (!std::filesystem::exists(source) ||
+      !std::filesystem::is_directory(source)) {
+    std::cerr << "The source doesn't exist or is not a directory.\n";
+    return;
+  }
+
+  if (!std::filesystem::exists(destination))
+    std::filesystem::create_directories(destination);
+
+  // Parse the directory
+  for (const auto& entry : std::filesystem::directory_iterator(source)) {
+    const auto& path = entry.path();
+    auto dest_path = destination / path.filename();
+
+    if (!std::filesystem::is_directory(path) && path.extension() == ".cfg")
+      std::filesystem::copy_file(
+          path, dest_path, std::filesystem::copy_options::overwrite_existing);
+  }
+}
+
 static void CreateConf(int idx) {
-  constexpr const char* cmd1 =
-      "for i in " ENGINE_CFG_TEST "/conf1/*.cfg ; do cp $i /tmp ; done";
   switch (idx) {
     case 1:
-      system(cmd1);
+      copy_cfg_files(ENGINE_CFG_TEST "/conf1", "/tmp");
       break;
     default:
       ASSERT_EQ(1, 0);
@@ -601,12 +624,15 @@ constexpr size_t HOSTDEPENDENCIES = 2u;
 
 TEST_F(ApplierState, StateParsing) {
   configuration::error_cnt err;
-  configuration::indexed_state state;
-  configuration::State& cfg = state.mut_state();
+  auto config = std::make_unique<configuration::State>();
+  configuration::state_helper cfg_hlp(config.get());
   configuration::parser p;
   CreateConf(1);
-  p.parse("/tmp/centengine.cfg", &cfg, err);
-  state.index();
+  p.parse("/tmp/centengine.cfg", config.get(), err);
+  cfg_hlp.expand(err);
+  configuration::indexed_state state(std::move(config));
+  configuration::State& cfg = state.mut_state();
+
   ASSERT_EQ(cfg.check_service_freshness(), false);
   ASSERT_EQ(cfg.enable_flap_detection(), false);
   ASSERT_EQ(cfg.instance_heartbeat_interval(), 30);
@@ -632,26 +658,23 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(h4->host_id(), 33);
 
   /* Service */
-  ASSERT_EQ(cfg.services().size(), SERVICES);
-  ASSERT_EQ(cfg.services()[0].service_id(), 196);
-  ASSERT_TRUE(cfg.services()[0].obj().register_());
-  ASSERT_TRUE(cfg.services()[0].checks_active());
-  ASSERT_EQ(cfg.services()[0].host_name(),
-            std::string_view("Centreon-central"));
-  ASSERT_EQ(cfg.services()[0].service_description(),
-            std::string_view("proc-sshd"));
-  ASSERT_EQ(cfg.services()[0].contactgroups().data().size(), 2u);
-  EXPECT_EQ(cfg.services()[0].contactgroups().data()[0],
-            std::string_view("Guest"));
-  EXPECT_EQ(cfg.services()[0].contactgroups().data()[1],
-            std::string_view("Supervisors"));
+  ASSERT_EQ(state.services().size(), SERVICES);
+  ASSERT_NE(state.services().find({30, 196}), state.services().end());
+  auto& s1 = *state.services().at({30, 196});
+  ASSERT_TRUE(s1.obj().register_());
+  ASSERT_TRUE(s1.checks_active());
+  ASSERT_EQ(s1.host_name(), std::string_view("Centreon-central"));
+  ASSERT_EQ(s1.service_description(), std::string_view("proc-sshd"));
+  ASSERT_EQ(s1.contactgroups().data().size(), 2u);
+  EXPECT_EQ(s1.contactgroups().data()[0], std::string_view("Guest"));
+  EXPECT_EQ(s1.contactgroups().data()[1], std::string_view("Supervisors"));
 
-  EXPECT_EQ(cfg.services()[0].contacts().data().size(), 1u);
-  EXPECT_EQ(cfg.services()[0].contacts().data()[0], std::string("John_Doe"));
-  EXPECT_EQ(cfg.services()[0].notification_options(), 0x3f);
+  EXPECT_EQ(s1.contacts().data().size(), 1u);
+  EXPECT_EQ(s1.contacts().data()[0], std::string("John_Doe"));
+  EXPECT_EQ(s1.notification_options(), 0x3f);
   std::set<std::pair<uint64_t, uint16_t>> exp{{2, tag::servicegroup}};
   std::set<std::pair<uint64_t, uint16_t>> res;
-  for (auto& t : cfg.services()[0].tags()) {
+  for (auto& t : s1.tags()) {
     uint16_t c;
     switch (t.second()) {
       case TagType::tag_servicegroup:
@@ -806,26 +829,6 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(sg.notes_url(), std::string_view());
   ASSERT_EQ(sg.action_url(), std::string_view());
 
-  auto sdit = cfg.servicedependencies().begin();
-  while (sdit != cfg.servicedependencies().end() &&
-         std::find(sdit->servicegroups().data().begin(),
-                   sdit->servicegroups().data().end(),
-                   "sg1") != sdit->servicegroups().data().end())
-    ++sdit;
-  ASSERT_TRUE(sdit != cfg.servicedependencies().end());
-  ASSERT_TRUE(*sdit->hosts().data().begin() ==
-              std::string_view("Centreon-central"));
-  ASSERT_TRUE(*sdit->dependent_service_description().data().begin() ==
-              std::string_view("Connections-Number"));
-  ASSERT_TRUE(*sdit->dependent_hosts().data().begin() ==
-              std::string_view("Centreon-central"));
-  ASSERT_TRUE(sdit->inherits_parent());
-  ASSERT_EQ(sdit->execution_failure_options(),
-            configuration::action_sd_unknown | configuration::action_sd_ok);
-  ASSERT_EQ(
-      sdit->notification_failure_options(),
-      configuration::action_sd_warning | configuration::action_sd_critical);
-
   // Anomalydetections
   ASSERT_TRUE(cfg.anomalydetections().empty());
   //  auto adit = cfg.anomalydetections().begin();
@@ -890,8 +893,8 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(sv->icon_id(), 3);
   ASSERT_EQ(sv->key().type(), configuration::SeverityType::service);
 
-  /* Serviceescalations */
-  ASSERT_EQ(cfg.serviceescalations().size(), 6);
+  /* Serviceescalations, after the expansion, we should have 138 of them. */
+  ASSERT_EQ(cfg.serviceescalations().size(), 138);
   auto seit = cfg.serviceescalations().begin();
   EXPECT_TRUE(seit != cfg.serviceescalations().end());
   EXPECT_EQ(*seit->hosts().data().begin(),
@@ -903,39 +906,77 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(seit->contactgroups().data().size(), 1);
   EXPECT_EQ(*seit->contactgroups().data().begin(), "Supervisors");
   ASSERT_EQ(seit->servicegroups().data().size(), 0);
-  std::list<std::string> se_names;
-  std::list<std::string> se_base{"Connection-Time", "Cpu", "Cpu",
-                                 "Database-Size"};
+  absl::flat_hash_set<std::string_view> se_names;
+  absl::flat_hash_set<std::string_view> se_base{
+      "Connection-Time",   "Cpu",           "proc-sshd", "Partitioning",
+      "Slowqueries",       "Database-Size", "Queries",   "Myisam-Keycache",
+      "Connections-Number"};
   for (auto& se : cfg.serviceescalations()) {
-    if (se.service_description().data().size()) {
-      ASSERT_EQ(se.service_description().data().size(), 1);
-      se_names.push_back(*se.service_description().data().begin());
-    }
+    ASSERT_EQ(se.service_description().data().size(), 1);
+    ASSERT_EQ(se.hosts().data().size(), 1);
+    if (se.service_description().data().size())
+      se_names.insert(*se.service_description().data().begin());
   }
-  se_names.sort();
   ASSERT_EQ(se_names, se_base);
 
   /*Hostescalations */
-  auto heit = cfg.hostescalations().begin();
-  ASSERT_TRUE(heit != cfg.hostescalations().end());
-  std::set<std::string> cts{"Supervisors"};
-  std::set<std::string> he_cts;
-  for (auto& cg : heit->contactgroups().data())
-    he_cts.insert(cg);
-  ASSERT_EQ(he_cts, cts);
-  ++heit;
-
-  std::set<std::string> hgs{"hg1"};
-  std::set<std::string> he_hgs;
-  for (auto& hg : heit->hostgroups().data())
-    he_hgs.insert(hg);
-  ASSERT_EQ(he_hgs, hgs);
+  ASSERT_EQ(cfg.hostescalations().size(), 10);
+  absl::flat_hash_set<std::string_view> expected_hosts{
+      "Centreon-central",   "Centreon-central_1",  "Centreon-central_2",
+      "Centreon-central_3", "Centreon-central_10", "Centreon-central_4"};
+  absl::flat_hash_set<std::string_view> he_hosts;
+  for (auto& he : cfg.hostescalations()) {
+    ASSERT_EQ(he.hosts().data().size(), 1);
+    he_hosts.insert(*he.hosts().data().begin());
+  }
+  ASSERT_EQ(he_hosts, expected_hosts);
 
   /*Hostdependencies */
-  ASSERT_EQ(cfg.hostdependencies().size(), HOSTDEPENDENCIES);
+  /* With hostdep1, we get 2 x 2 pairs of hosts and x 2 for execution and
+   * notification. With hostdep2, we get 3 x 5 pairs of host (3 hosts in hg1 and
+   * 5 in hg2) x 2 for execution and notification.
+   * We should have (2 * 2 + 3 * 5) *2 = 38 hostdependencies.
+   */
+  ASSERT_EQ(cfg.hostdependencies().size(), 38);
 
-  /* has_already_been_loaded is changed here */
+  for (auto& hd : cfg.hostdependencies()) {
+    ASSERT_EQ(hd.hosts().data().size(), 1);
+    ASSERT_EQ(hd.dependent_hosts().data().size(), 1);
+    ASSERT_TRUE(hd.hostgroups().data().empty());
+    ASSERT_TRUE(hd.dependent_hostgroups().data().empty());
+    ASSERT_TRUE(hd.execution_failure_options() == 0 ||
+                hd.notification_failure_options() == 0);
+    ASSERT_TRUE(hd.execution_failure_options() != 0 ||
+                hd.notification_failure_options() != 0);
+  }
+
+  /* Servicedependencies */
+  /* With servicedep1, we get 1 pair of services x 2 for execution and
+   * notification. With servicedep2, we get 1 pair of services x 2 for execution
+   * and notification.
+   * We should have 2 * 2 = 4 servicedependencies.
+   */
+  ASSERT_EQ(cfg.servicedependencies().size(), 4);
+
+  for (auto& sd : cfg.servicedependencies()) {
+    ASSERT_EQ(sd.hosts().data().size(), 1);
+    ASSERT_EQ(sd.service_description().data().size(), 1);
+    ASSERT_EQ(sd.dependent_hosts().data().size(), 1);
+    ASSERT_EQ(sd.dependent_service_description().data().size(), 1);
+    ASSERT_TRUE(sd.execution_failure_options() == 0 ||
+                sd.notification_failure_options() == 0);
+    ASSERT_TRUE(sd.execution_failure_options() != 0 ||
+                sd.notification_failure_options() != 0);
+  }
   configuration::applier::state::instance().apply(state, err);
+
+  std::ofstream ff("/tmp/broker-conf2.prot");
+  auto* ss = state.release();
+  if (ff) {
+    ff << ss->DebugString();
+    ff.close();
+  }
+  state.set_state(std::unique_ptr<configuration::State>(ss));
 
   ASSERT_TRUE(std::all_of(cfg.hostdependencies().begin(),
                           cfg.hostdependencies().end(), [](const auto& hd) {
@@ -992,13 +1033,14 @@ TEST_F(ApplierState, StateParsingHostdependencyWithoutHost) {
 }
 
 TEST_F(ApplierState, StateParsingNonexistingContactgroup) {
-  configuration::indexed_state state;
-  configuration::State& cfg = state.mut_state();
-  configuration::parser p;
   CreateBadConf(ConfigurationObject::CONTACTGROUP_NE);
+  auto cfg = std::make_unique<configuration::State>();
+  configuration::state_helper cfg_hlp(cfg.get());
+  configuration::parser p;
   configuration::error_cnt err;
-  p.parse("/tmp/centengine.cfg", &cfg, err);
-  state.index();
+  p.parse("/tmp/centengine.cfg", cfg.get(), err);
+  cfg_hlp.expand(err);
+  configuration::indexed_state state(std::move(cfg));
   ASSERT_THROW(configuration::applier::state::instance().apply(state, err),
                std::exception);
 }

@@ -317,47 +317,6 @@ void applier::contact::remove_object(const std::pair<ssize_t, std::string>& p) {
 }
 
 /**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::indexed_state& s) {
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.state().macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all contacts.
-  for (auto& c : *s.mut_state().mutable_contacts()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *c.mutable_customvariables()) {
-      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
-    // Browse current contact's groups.
-    for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
-      // Find contact group.
-      Contactgroup* found_cg = nullptr;
-      for (auto& cgg : *s.mut_state().mutable_contactgroups())
-        if (cgg.contactgroup_name() == cg) {
-          found_cg = &cgg;
-          break;
-        }
-      if (found_cg == nullptr)
-        throw engine_error() << fmt::format(
-            "Could not add contact '{}' to non-existing contact group '{}'",
-            c.contact_name(), cg);
-
-      fill_string_group(found_cg->mutable_members(), c.contact_name());
-    }
-  }
-}
-
-/**
  *  Resolve a contact.
  *
  *  @param[in,out] obj  Object to resolve.
