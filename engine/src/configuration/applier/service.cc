@@ -55,8 +55,12 @@ void applier::service::add_object(const configuration::Service& obj) {
                        obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
-  auto* cfg_svc = pb_indexed_config.mut_state().add_services();
-  cfg_svc->CopyFrom(obj);
+  auto& conf_svc =
+      pb_indexed_config.mut_services()[{obj.host_id(), obj.service_id()}];
+  conf_svc.reset(new configuration::Service);
+  conf_svc->CopyFrom(obj);
+  for (auto& [k, _] : pb_indexed_config.services())
+    std::cout << "&&&& Service " << k.first << " " << k.second << std::endl;
 
   // Create service.
   engine::service* svc{add_service(
@@ -149,38 +153,6 @@ void applier::service::add_object(const configuration::Service& obj) {
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, svc,
                                MODATTR_ALL);
-}
-
-/**
- *  Expand a service object.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::service::expand_objects(configuration::indexed_state& s) {
-  std::list<std::unique_ptr<Service>> expanded;
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.state().macros_filter().data())
-    cvs.emplace(cv);
-
-  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mut_state().mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
-
-  // Browse all services.
-  for (auto& service_cfg : *s.mut_state().mutable_services()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *service_cfg.mutable_customvariables()) {
-      if (!s.state().enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
-    // Expand membershipts.
-    _expand_service_memberships(service_cfg, s);
-
-    // Inherits special vars.
-    _inherits_special_vars(service_cfg, s);
-  }
 }
 
 /**
@@ -411,7 +383,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
 template <>
 void applier::service::remove_object(
     const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
-  Service& obj = pb_indexed_config.mut_state().mutable_services()->at(p.first);
+  const Service& obj = *pb_indexed_config.services().at(p.second);
   const std::string& host_name = obj.host_name();
   const std::string& service_description = obj.service_description();
 
@@ -462,7 +434,7 @@ void applier::service::remove_object(
   }
 
   // Remove service from the global configuration set.
-  pb_indexed_config.mut_state().mutable_services()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_services().erase(p.second);
 }
 
 /**

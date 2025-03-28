@@ -42,7 +42,7 @@ class hostdependency_helper : public message_helper {
   static void expand(
       State& s,
       error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>&
+      absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
           m_hostgroups);
 };
 }  // namespace com::centreon::engine::configuration

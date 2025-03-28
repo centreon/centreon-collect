@@ -44,9 +44,12 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class PbAnomalydetectionCheck : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
 
     init_loggers();
     checks_logger->set_level(spdlog::level::trace);
@@ -55,8 +58,8 @@ class PbAnomalydetectionCheck : public TestEngine {
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config);
     configuration::error_cnt err;
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};

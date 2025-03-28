@@ -145,13 +145,14 @@ void hostescalation_helper::_init() {
 void hostescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
-  std::list<std::unique_ptr<Hostescalation> > resolved;
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        m_hostgroups) {
+  std::list<std::unique_ptr<Hostescalation>> resolved;
   for (auto& he : *s.mutable_hostescalations()) {
+    absl::flat_hash_set<std::string> host_names;
+    for (auto& hname : he.hosts().data())
+      host_names.emplace(hname);
     if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<std::string_view> host_names;
-      for (auto& hname : he.hosts().data())
-        host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {
         auto found_hg = m_hostgroups.find(hg_name);
         if (found_hg != m_hostgroups.end()) {
@@ -163,14 +164,14 @@ void hostescalation_helper::expand(
                         hg_name);
         }
       }
-      he.mutable_hostgroups()->clear_data();
-      he.mutable_hosts()->clear_data();
-      for (auto& n : host_names) {
-        resolved.emplace_back(std::make_unique<Hostescalation>());
-        auto& e = resolved.back();
-        e->CopyFrom(he);
-        fill_string_group(e->mutable_hosts(), n);
-      }
+    }
+    he.mutable_hostgroups()->clear_data();
+    he.mutable_hosts()->clear_data();
+    for (auto& n : host_names) {
+      resolved.emplace_back(std::make_unique<Hostescalation>());
+      auto& e = resolved.back();
+      e->CopyFrom(he);
+      e->mutable_hosts()->add_data(std::move(n));
     }
   }
   s.clear_hostescalations();

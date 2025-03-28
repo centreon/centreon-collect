@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ class contact_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
           m_contactgroups);
 };
 }  // namespace com::centreon::engine::configuration

@@ -74,17 +74,6 @@ void applier::command::add_object(const configuration::Command& obj) {
 }
 
 /**
- *  @brief Expand command.
- *
- *  Command configuration objects do not need expansion. Therefore this
- *  method does nothing.
- *
- *  @param[in] s  Unused.
- */
-void applier::command::expand_objects(configuration::indexed_state& s
-                                      [[maybe_unused]]) {}
-
-/**
  * @brief Modify command.
  *
  * @param obj The new command protobuf configuration for the object to modify

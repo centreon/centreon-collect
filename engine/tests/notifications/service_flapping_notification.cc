@@ -41,15 +41,18 @@ using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
 
 class ServiceFlappingNotification : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
     error_cnt err;
-    init_config_state();
+    _state_hlp = init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_indexed_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::command cmd_aply;
