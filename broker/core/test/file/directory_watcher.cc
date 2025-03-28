@@ -72,9 +72,7 @@ TEST(DirectoryWatcher, WatchNonBlockingFromMultipleThreads) {
   std::filesystem::remove_all(dirname);
   std::filesystem::create_directory(dirname);
   std::filesystem::path filename = dirname / "file";
-  file::directory_watcher watcher(
-      "/tmp/to_watch", IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF,
-      true);
+  file::directory_watcher watcher("/tmp/to_watch", IN_CREATE, true);
 
   std::vector<std::unique_ptr<std::thread>> threads;
   uint32_t thread_count = 0;
