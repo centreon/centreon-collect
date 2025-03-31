@@ -29,6 +29,7 @@
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 #include "state.pb.h"
 
@@ -613,11 +614,14 @@ void state::_prepare_diff_for_poller(
         std::string new_version = state->config_version();
         if (f) {
           /* There is a previous configuration */
-          engine::configuration::State previous_state;
-          previous_state.ParseFromIstream(&f);
+          auto previous_state =
+              std::make_unique<engine::configuration::State>();
+          previous_state->ParseFromIstream(&f);
           diff_state = std::make_unique<engine::configuration::DiffState>();
-          engine::configuration::state_helper::diff(previous_state, *state,
-                                                    _logger, diff_state.get());
+          auto previous_indexed_state =
+              engine::configuration::indexed_state(std::move(previous_state));
+          previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                      diff_state.get());
           can_rename = true;
         } else {
           /* No previous configuration */

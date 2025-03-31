@@ -18,7 +18,10 @@
  */
 #ifndef CCE_CONFIGURATION_INDEXED_STATE
 #define CCE_CONFIGURATION_INDEXED_STATE
+#include <spdlog/spdlog.h>
 #include "common/engine_conf/state_helper.hh"
+
+using google::protobuf::util::MessageDifferencer;
 
 namespace com::centreon::engine::configuration {
 /**
@@ -31,14 +34,103 @@ namespace com::centreon::engine::configuration {
  */
 class indexed_state {
   std::unique_ptr<State> _state;
-  absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>
-      _services;
+  absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>> _timeperiods;
+  absl::flat_hash_map<std::string, std::unique_ptr<Command>> _commands;
+  absl::flat_hash_map<std::string, std::unique_ptr<Connector>> _connectors;
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
       _severities;
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>
+      _tags;
+  absl::flat_hash_map<std::string, std::unique_ptr<Contact>> _contacts;
+  absl::flat_hash_map<std::string, std::unique_ptr<Contactgroup>>
+      _contactgroups;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
+  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>> _hostgroups;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>
+      _services;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::unique_ptr<Anomalydetection>>
+      _anomalydetections;
+  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+      _servicegroups;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Hostdependency>>
+      _hostdependencies;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Servicedependency>>
+      _servicedependencies;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Hostescalation>>
+      _hostescalations;
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Serviceescalation>>
+      _serviceescalations;
   void _index();
   void _apply_containers();
   void _clear_containers();
+
+  template <typename ObjType, typename DiffType, typename SimpleKeyType>
+  void _diff(::google::protobuf::RepeatedPtrField<ObjType>* new_obj,
+             const absl::flat_hash_map<SimpleKeyType, std::unique_ptr<ObjType>>&
+                 old_obj,
+             const std::shared_ptr<spdlog::logger>& logger,
+             std::function<SimpleKeyType(ObjType*)>&& key_builder,
+             DiffType* result) {
+    logger->trace("Diff on {}", typeid(ObjType).name());
+    absl::flat_hash_set<SimpleKeyType> old_keys;
+    for (const auto& [k, _] : old_obj)
+      old_keys.insert(k);
+
+    while (!new_obj->empty()) {
+      ObjType* obj = new_obj->ReleaseLast();
+      auto key = key_builder(obj);
+      auto found = old_obj.find(key);
+      if (found == old_obj.end()) {
+        result->mutable_added()->AddAllocated(obj);
+      } else {
+        old_keys.erase(key);
+        if (!MessageDifferencer::Equals(*obj, *found->second))
+          result->mutable_modified()->AddAllocated(obj);
+        else
+          delete obj;
+      }
+    }
+    for (auto& key : old_keys)
+      result->add_removed(key);
+  }
+
+  template <typename ObjType,
+            typename DiffType,
+            typename KeyType,
+            typename ProtoKeyType>
+  void _diff(
+      ::google::protobuf::RepeatedPtrField<ObjType>* new_obj,
+      const absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& old_obj,
+      const std::shared_ptr<spdlog::logger>& logger,
+      std::function<KeyType(ObjType*)>&& key_builder,
+      std::function<void(ProtoKeyType*, const KeyType&)>&& proto_key_setter,
+      DiffType* result) {
+    /* Diff on services */
+    logger->trace("Diff on {}", typeid(ObjType).name());
+    absl::flat_hash_set<KeyType> old_keys;
+    for (const auto& [k, _] : old_obj)
+      old_keys.insert(k);
+
+    while (!new_obj->empty()) {
+      ObjType* obj = new_obj->ReleaseLast();
+      auto key = key_builder(obj);
+      auto found = old_obj.find(key);
+      if (found == old_obj.end()) {
+        result->mutable_added()->AddAllocated(obj);
+      } else {
+        old_keys.erase(key);
+        if (!MessageDifferencer::Equals(*obj, *found->second))
+          result->mutable_modified()->AddAllocated(obj);
+        else
+          delete obj;
+      }
+    }
+    for (auto& key : old_keys) {
+      auto* key_type = result->add_removed();
+      proto_key_setter(key_type, key);
+    }
+  }
 
  public:
   indexed_state() = default;
@@ -50,9 +142,28 @@ class indexed_state {
   State* release();
   const State& state() const { return *_state; }
   State& mut_state() { return *_state; }
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
-  severities() {
-    return _severities;
+  const absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>>&
+  timeperiods() const {
+    return _timeperiods;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Timeperiod>>&
+  mut_timeperiods() {
+    return _timeperiods;
+  }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Connector>>&
+  connectors() const {
+    return _connectors;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Connector>>&
+  mut_connectors() {
+    return _connectors;
+  }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Command>>& commands()
+      const {
+    return _commands;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Command>>& mut_commands() {
+    return _commands;
   }
   const absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
                             std::unique_ptr<Severity>>&
@@ -62,6 +173,15 @@ class indexed_state {
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>&
   mut_severities() {
     return _severities;
+  }
+  const absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                            std::unique_ptr<Tag>>&
+  tags() const {
+    return _tags;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Tag>>&
+  mut_tags() {
+    return _tags;
   }
   const absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& hosts() const {
     return _hosts;
@@ -78,6 +198,20 @@ class indexed_state {
   services() const {
     return _services;
   }
+  void diff_with_new_config(State& new_state,
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            DiffState* result);
 };
+// template <>
+// void indexed_state::_diff<Service, DiffService, std::pair<uint64_t,
+// uint64_t>, HostServiceId>(
+//     ::google::protobuf::RepeatedPtrField<Service>* new_obj,
+//     const absl::flat_hash_map<KeyType, std::unique_ptr<Service>>& old_obj,
+//     const std::shared_ptr<spdlog::logger>& logger,
+//     std::function<KeyType(Service*)>&& key_builder,
+//     std::function<void(HostServiceId*, const std::pair<uint64_t,
+//     uint64_t>&)>&&
+//         key_setter,
+//     DiffService* result);
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */
