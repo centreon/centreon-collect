@@ -91,22 +91,6 @@ on:
       - "!**/test/**"
 
 jobs:
-  dispatch-to-maintained-branches:
-    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - run: |
-          gh workflow run robot-nightly.yml -r "dev-24.04.x"
-          gh workflow run robot-nightly.yml -r "dev-23.10.x"
-          gh workflow run robot-nightly.yml -r "dev-23.04.x"
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
