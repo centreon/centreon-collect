@@ -26,6 +26,17 @@
 
 namespace com::centreon::agent::process {
 
+/**
+ * @brief process_container is used to store process information
+ * It contains also process filters
+ * In this, you will find two type of filters.
+ * _warning_filter and _critical_filter will be applied to each process in order
+ * to store process in _ok_processes, _warning_processes and _critical_processes
+ * _container_warning_filter and _container_critical_filter will be applied to
+ * the container in order to set the status of the container according to the
+ * number of processes in _ok_processes, _warning_processes and
+ * _critical_processes
+ */
 class container : public testable {
  public:
   using ok_process_cont = std::vector<DWORD>;

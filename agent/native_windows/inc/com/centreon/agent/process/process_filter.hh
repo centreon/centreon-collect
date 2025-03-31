@@ -26,6 +26,12 @@
 namespace com::centreon::agent::process {
 class process_data;
 
+/**
+ * @brief process_filter
+ * This class is used to filter process data and get a field_mask
+ * (process_field) that will be used to get the only needed process data
+ *
+ */
 class process_filter {
   filters::filter_combinator _filter;
   unsigned _fields_mask;

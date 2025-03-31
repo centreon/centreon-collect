@@ -24,10 +24,22 @@ using namespace com::centreon::agent;
 using namespace com::centreon::agent::process;
 
 namespace com::centreon::agent::process::detail {
+/**
+ * @brief safe handle close function that can be used by an unique_ptr
+ *
+ */
 struct handle_close {
   void operator()(HANDLE* h) { CloseHandle(*h); }
 };
 }  // namespace com::centreon::agent::process::detail
+
+/**
+ * @brief Construct a new process_data::process_data object
+ *
+ * @param pid process id
+ * @param fields fields to be read
+ * @param logger logger to use
+ */
 process_data::process_data(DWORD pid,
                            unsigned fields,
                            const std::shared_ptr<spdlog::logger>& logger)
@@ -99,8 +111,13 @@ process_data::process_data(DWORD pid,
 constexpr std::string_view _started = "started";
 constexpr std::string_view _unreadable = "unreadable";
 constexpr std::string_view _hung = "hung";
-constexpr std::string_view _unknown = "_unknown";
+constexpr std::string_view _unknown = "unknown";
 
+/**
+ * @brief get the process state as a string
+ *
+ * @return const std::string_view&
+ */
 const std::string_view& process_data::get_str_state() const {
   switch (_state) {
     case e_state::started:
@@ -114,10 +131,22 @@ const std::string_view& process_data::get_str_state() const {
   }
 }
 
+/**
+ * @brief get
+ *
+ * @return std::string
+ */
 std::string process_data::get_creation_time_str() const {
   return std::format("{:%FT%T}", _creation_time);
 }
 
+/**
+ * @brief calculate the percentage of time used by the process
+ *
+ * @param process_start start time of the process
+ * @param consumed_time time used by the process
+ * @return unsigned percentage of time used by the process
+ */
 inline unsigned calc_percent_duration(
     const std::chrono::file_clock::time_point& process_start,
     const std::chrono::file_clock::duration& consumed_time) {

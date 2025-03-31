@@ -24,6 +24,11 @@
 #include "filter.hh"
 
 namespace com::centreon::agent::process {
+/**
+ * @brief in order to save CPU, this mask is used to extract only mandatory
+ * process datas
+ *
+ */
 enum process_field : unsigned {
   exe_filename = 1,
   times = 2,
@@ -31,6 +36,10 @@ enum process_field : unsigned {
   memory = 8
 };
 
+/**
+ * @brief process_data is used to store process information
+ *
+ */
 class process_data : public testable {
  public:
   enum e_state : unsigned { started, unreadable, hung };

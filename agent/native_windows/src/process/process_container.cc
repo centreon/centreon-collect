@@ -26,6 +26,18 @@
 using namespace com::centreon::agent::process;
 using namespace com::centreon::agent;
 
+/**
+ * @brief Construct a new process::container::container object
+ *
+ * @param filter_str filter to be applied to the processes
+ * @param exclude_filter_str filter used to exclude some processes
+ * @param warning_filter_str filter to be applied to the processes in order to
+ * store them in _warning_processes
+ * @param critical_filter_str filter to be applied to the processes in order to
+ * store them in _critical_processes
+ * @param needed_output_fields fields that are needed for the output
+ * @param logger logger to use
+ */
 container::container(const std::string_view& filter_str,
                      const std::string_view& exclude_filter_str,
                      const std::string_view& warning_filter_str,
@@ -93,6 +105,13 @@ container::container(const std::string_view& filter_str,
 
 using pid_set = absl::flat_hash_set<DWORD>;
 
+/**
+ * @brief Callback function used by hung windows enumeration
+ *
+ * @param hwnd handle to the window
+ * @param l_param pointer to the pid_set
+ * @return TRUE to continue enumeration, FALSE to stop
+ */
 static BOOL CALLBACK enum_hung_window_proc(HWND hwnd, LPARAM l_param) {
   pid_set* data = reinterpret_cast<pid_set*>(l_param);
   if (!IsWindowVisible(hwnd))
@@ -107,6 +126,13 @@ static BOOL CALLBACK enum_hung_window_proc(HWND hwnd, LPARAM l_param) {
   return TRUE;
 }
 
+/**
+ * @brief Refresh the process container
+ *
+ * This function will enumerate all processes and store them in the
+ * _ok_processes, _warning_processes and _critical_processes vectors
+ *
+ */
 void container::refresh() {
   _ok_processes.clear();
   _warning_processes.clear();
@@ -149,6 +175,14 @@ void container::refresh() {
   }
 }
 
+/**
+ * @brief Check the container status
+ * Once we have refreshed process list, we call this function to check
+ * the container status according to filter (ok_count, warning_count..
+ * This function will check the container status and return it
+ *
+ * @return e_status
+ */
 e_status container::check_container() const {
   if (_container_critical_filter && _container_critical_filter->check(*this)) {
     return e_status::critical;

@@ -101,6 +101,11 @@ check_process::check_process(
   }
 }
 
+/**
+ * @brief The goal of this array is not only to replace process detail labels by
+ * std::format placeholder but also to calculate needed process fields
+ *
+ */
 constexpr std::array<std::tuple<std::string_view, std::string_view, unsigned>,
                      30>
     _label_to_process_detail{
@@ -149,6 +154,12 @@ struct const_formatter {
 };
 }  // namespace com::centreon::agent::process::detail
 
+/**
+ * @brief set _process_detail_syntax
+ *
+ * @param param process-detail-syntax
+ * @return unsigned process_field mask
+ */
 unsigned check_process::_calc_process_detail_syntax(
     const std::string_view& param) {
   unsigned mask = 0;
@@ -219,6 +230,12 @@ void check_process::start_check([[maybe_unused]] const duration& timeout) {
       });
 }
 
+/**
+ * @brief Print process information to check output
+ *
+ * @param proc process to print
+ * @param to_append string to append the process information
+ */
 void check_process::_print_process(const process::process_data& proc,
                                    std::string* to_append) const {
   std::string creation_time;
@@ -239,6 +256,14 @@ void check_process::_print_process(const process::process_data& proc,
           proc.get_user_handle_count(), proc.get_pid()));
 }
 
+/**
+ * @brief Compute the check status and output
+ *
+ * @param cont process container
+ * @param output output string
+ * @param perfs perfdata to fill
+ * @return e_status check status
+ */
 e_status check_process::compute(process::container& cont,
                                 std::string* output,
                                 common::perfdata* perfs) {
@@ -305,6 +330,11 @@ e_status check_process::compute(process::container& cont,
   return ret;
 }
 
+/**
+ * @brief Check process help printed to stdout
+ *
+ * @param help_stream stream to write the help
+ */
 void check_process::help(std::ostream& help_stream) {
   help_stream << R"(
 - process params:
@@ -314,10 +344,13 @@ void check_process::help(std::ostream& help_stream) {
   ok-syntax : output format when status is ok, default: "{status}: All processes are ok"
   process-detail-syntax : output format for each event, default: "{exe}={state}"
   filter-process: first filter applied to process before applying warning and critical ones, default: "state = 'started'"
+  exclude-process: filter to apply on process to exclude them from the check
+                default: ""
+                This filter is applied after filter-process
   warning-status: filter to apply on process to get warning processes. 
                 You can also add count labels to put for example service in warning state if you have less than 2 processes
                 default: "state != 'started'"
-  criticalt-status: filter to apply on process to get critical processes. 
+  critical-status: filter to apply on process to get critical processes. 
                 You can also add count labels to put for example service in critical state if you have zero process
                 default: "count = 0"
   filter keywords:
@@ -346,6 +379,21 @@ void check_process::help(std::ostream& help_stream) {
     - count : number of processes (ok + critical + warning)
     - problem_list : list of no ok processes seperated by a space
   process detail print keywords:
+    - {exe} : process executable name
+    - {filename} : process executable path
+    - {status} : process status (started, hung, unreadable)
+    - {state} : same as status
+    - {creation} : process creation time (ISO format)
+    - {kernel} : kernel time
+    - {kernel_percent} : kernel time in percent
+    - {user} : user time
+    - {user_percent} : user time in percent
+    - {time} : kernel + user time
+    - {time_percent} : kernel + user time in percent
+    - {virtual} : virtual memory
+    - {gdi_handle} : number of gdi handles opened by process
+    - {user_handle} : number of user handles opened by process
+    - {pid} : process pid
   Examples of output:
     with these params: { "check":"process_nscp", 
         "args": { 

@@ -23,6 +23,12 @@
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::process;
 
+/**
+ * @brief Construct a new process filter::process filter object
+ *
+ * @param filter_str
+ * @param logger
+ */
 process_filter::process_filter(const std::string_view filter_str,
                                const std::shared_ptr<spdlog::logger>& logger)
     : _fields_mask(0) {
@@ -38,6 +44,11 @@ process_filter::process_filter(const std::string_view filter_str,
   }
 }
 
+/**
+ * @brief Create a checker for the filter according to field label
+ *
+ * @param f
+ */
 void process_filter::_set_label_compare_to_value(
     filters::label_compare_to_value* filt) {
   if (filt->get_label() == "creation") {
@@ -166,9 +177,9 @@ void process_filter::_set_label_compare_to_value(
     });
   } else if (filt->get_label() == "count" || filt->get_label() == "ok_count" ||
              filt->get_label() == "warn_count" ||
-             filt->get_label() ==
-                 "crit_count") {  // count is not taken into account
-    // on process evaluation so by not provide a checker,
+             filt->get_label() == "crit_count") {
+    // count is not taken into account
+    // on process evaluation so by not providing a checker,
     // we disable it
   } else {
     throw exceptions::msg_fmt("label_to_compare: unknown filter label {}",
@@ -176,6 +187,12 @@ void process_filter::_set_label_compare_to_value(
   }
 }
 
+/**
+ * @brief setter used by label_compare_to_string and label_in
+ *
+ * @tparam filter_type
+ * @param filt
+ */
 template <class filter_type>
 void process_filter::_set_getter(filter_type* filt) {
   if (filt->get_label() == "exe") {
@@ -197,6 +214,11 @@ void process_filter::_set_getter(filter_type* filt) {
   }
 }
 
+/**
+ * @brief initialize filter checkers
+ *
+ * @param f
+ */
 void process_filter::_create_checker(filter* f) {
   switch (f->get_type()) {
     case filter::filter_type::label_compare_to_value:
@@ -214,6 +236,12 @@ void process_filter::_create_checker(filter* f) {
   }
 }
 
+/**
+ * @brief check process
+ *
+ * @param data process_data to check
+ * @return true if process matches the filter
+ */
 bool process_filter::check(const process_data& data) const {
   return _filter.check(data);
 }

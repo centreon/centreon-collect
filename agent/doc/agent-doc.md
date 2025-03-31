@@ -97,10 +97,13 @@ Some tips:
 Filtering is done in two steps in order to be more reusable.
 - First step
     Filtering parse filter string, it builds a tree of object composed of filter objects (label_compare_to_value, label_in...). Then you get a filter object that contains filter tree with a check method. But there is no even checking checker in this filters.
-- Second strp
+- Second step
     Once you have your tree, you just have a just configuration tree. You have to:
   * define a data object that inherit from testable struct with all mandatory data for filters.
   * define a checker constructor that will be applied to tree config. This checker builder will set _checker member of each filter. Then when you will call root object::check, it will apply checker to each sub filter according to logical rules.
+
+If you have problems on filter testing, you can call the set_logger method. By setting logger to the top filter and enabling trace level, you will see in log which filter return false.
+Another feature is filter enable disable, If you don't set checker in one or more filters, they won't be taken into account in logical and, or filters combinations.
 
 ![Filter Example](pictures/filter_example.png)
 
@@ -170,3 +173,11 @@ In order to do a parameterizable output, we rely on std::format, we just replace
 Another point is uniq. When we print event to output, we avoid to print each of them. User can pass a uniq string that acts as a group by in order to not print several events that have for example the same event_id. In order to do that, class event_comparator is used to hash and compare events according to user parameters. Then these class is used by a flat_hash_set to do the 'unique' job.
 
 Use of flyweight: we may create a lot of event objects. As we can have the same string in several objects, we use boost flyweight library in order to store only one string in memory for several events.
+
+### process_log
+On each check, it scans all running processes on host. 
+In order to save CPU, at check construction, we set a field mask (process_field) in order to only get needed data.
+Then it:
+ * enumerates hangs processes and update processes states
+ * applies filters
+ * calc status, output and perfdata
