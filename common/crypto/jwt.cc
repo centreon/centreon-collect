@@ -134,7 +134,7 @@ jwt::jwt(const std::string& token)
 
   // check the experation date used
   if (payload_json.has_member("exp")) {
-    _exp_str = payload_json.get_string("exp");
+    _exp_str = std::to_string(payload_json.get_uint64_t("exp"));
     _exp = std::chrono::system_clock::time_point(
         std::chrono::seconds(payload_json.get_uint64_t("exp")));
   }
