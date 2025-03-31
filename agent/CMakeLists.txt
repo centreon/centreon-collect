@@ -38,18 +38,6 @@ if(WITH_LIBCXX)
   # -fno-omit-frame-pointer")
 endif()
 
-#this library is available in boost 1.87. Unfortunately, boost-1.87 is not yet available in vcpkg so we have to import it
-# to replace by vcpkg when available
-include(FetchContent)
-FetchContent_Declare(
-        boost-parser
-        GIT_REPOSITORY https://github.com/boostorg/parser.git
-        GIT_TAG        boost-1.87.0)
-
-FetchContent_MakeAvailable(boost-parser)
-
-include_directories(${boost-parser_SOURCE_DIR}/include)
-
 #otel service
 set(service_files
   opentelemetry/proto/collector/metrics/v1/metrics_service

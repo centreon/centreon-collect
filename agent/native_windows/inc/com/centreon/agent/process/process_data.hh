@@ -58,7 +58,7 @@ class process_data : public testable {
   unsigned _gdi_handle_count;
   unsigned _user_handle_count;
 
-  PROCESS_MEMORY_COUNTERS_EX2 _memory_counters;
+  PROCESS_MEMORY_COUNTERS_EX _memory_counters;
 
   /**
    * used only for tests
@@ -105,7 +105,7 @@ class process_data : public testable {
   const unsigned& get_gdi_handle_count() const { return _gdi_handle_count; }
   const unsigned& get_user_handle_count() const { return _user_handle_count; }
 
-  const PROCESS_MEMORY_COUNTERS_EX2& get_memory_counters() const {
+  const PROCESS_MEMORY_COUNTERS_EX& get_memory_counters() const {
     return _memory_counters;
   }
 };

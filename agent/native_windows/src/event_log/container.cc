@@ -38,9 +38,9 @@ using namespace com::centreon::agent::event_log;
  * @param logger The logger instance for logging.
  */
 event_container::event_container(const std::string_view& file,
-                                 const std::string_view& primary_filter,
-                                 const std::string_view& warning_filter,
-                                 const std::string_view& critical_filter,
+                                 std::string_view primary_filter,
+                                 std::string_view warning_filter,
+                                 std::string_view critical_filter,
                                  duration scan_range,
                                  bool need_to_decode_message_content,
                                  const std::shared_ptr<spdlog::logger>& logger)
@@ -55,6 +55,10 @@ event_container::event_container(const std::string_view& file,
       _read_message_buffer(static_cast<LPWSTR>(malloc(4096 * sizeof(wchar_t)))),
       _message_buffer_size(4095),
       _logger(logger) {
+  primary_filter = absl::StripLeadingAsciiWhitespace(primary_filter);
+  warning_filter = absl::StripLeadingAsciiWhitespace(warning_filter);
+  critical_filter = absl::StripLeadingAsciiWhitespace(critical_filter);
+
   if (!primary_filter.empty()) {
     try {
       _primary_filter = std::make_unique<event_filter>(

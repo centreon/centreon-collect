@@ -17,7 +17,7 @@
  */
 
 #include "process/process_data.hh"
-#include <string>
+#include <chrono>
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
@@ -137,7 +137,10 @@ const std::string_view& process_data::get_str_state() const {
  * @return std::string
  */
 std::string process_data::get_creation_time_str() const {
-  return std::format("{:%FT%T}", _creation_time);
+  return std::format(
+      "{:%FT%T}",
+      std::chrono::floor<std::chrono::seconds, std::chrono::file_clock>(
+          _creation_time));
 }
 
 /**
@@ -152,7 +155,7 @@ inline unsigned calc_percent_duration(
     const std::chrono::file_clock::duration& consumed_time) {
   std::chrono::file_clock::duration process_time =
       std::chrono::file_clock::now() - process_start;
-  return process_time.count() ? (consumed_time * 100) / process_time : 0;
+  return process_time.count() ? (consumed_time * 100) / process_time : 100;
 }
 
 unsigned process_data::get_percent_kernel_time() const {

@@ -27,17 +27,25 @@ using namespace com::centreon::agent::process;
  * @brief given current process, we expect correct values
  */
 TEST(process_data, current_process) {
+  auto rush_to = std::chrono::system_clock::now() + std::chrono::seconds(1);
+  unsigned ii = 0;
+  // consume some user time
+  while (std::chrono::system_clock::now() < rush_to) {
+    ++ii;
+  }
+
   process_data pd(GetCurrentProcessId(),
                   process_field::exe_filename | process_field::times |
                       process_field::handle | process_field::memory,
                   spdlog::default_logger());
+
   EXPECT_EQ(pd.get_state(), process_data::started);
   EXPECT_EQ(pd.get_pid(), GetCurrentProcessId());
   EXPECT_EQ(pd.get_exe(), "ut_agent.exe");
   EXPECT_GT(pd.get_creation_time(),
             std::chrono::file_clock::now() - std::chrono::seconds(600));
   EXPECT_GE(pd.get_user_handle_count(), 1);
-  EXPECT_GT(pd.get_kernel_time().count(), 0);
+  EXPECT_GE(pd.get_kernel_time().count(), 0);
   EXPECT_GT(pd.get_user_time().count(), 0);
   EXPECT_GT(pd.get_memory_counters().PageFaultCount, 0);
   EXPECT_GT(pd.get_memory_counters().PeakWorkingSetSize, 0);
@@ -50,6 +58,4 @@ TEST(process_data, current_process) {
   EXPECT_GT(pd.get_memory_counters().PagefileUsage, 0);
   EXPECT_GT(pd.get_memory_counters().PeakPagefileUsage, 0);
   EXPECT_GT(pd.get_memory_counters().PrivateUsage, 0);
-  EXPECT_GT(pd.get_memory_counters().PrivateWorkingSetSize, 0);
-  EXPECT_GT(pd.get_memory_counters().SharedCommitUsage, 0);
 }

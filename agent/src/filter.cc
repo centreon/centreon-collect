@@ -121,7 +121,6 @@ label_compare_to_value::label_compare_to_value(double value,
   } else if (_comparison == comparison::greater_than_or_equal) {
     _comparison = comparison::less_than_or_equal;
   }
-  dump(std::cout);
 }
 
 /**

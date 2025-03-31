@@ -19,6 +19,7 @@
 #ifndef CHECK_EVENT_LOG_DATA_TEST_HH
 #define CHECK_EVENT_LOG_DATA_TEST_HH
 
+#include "process/process_container.hh"
 #include "process/process_data.hh"
 
 class mock_process_data : public com::centreon::agent::process::process_data {
@@ -70,7 +71,7 @@ class mock_process_data : public com::centreon::agent::process::process_data {
     return *this;
   }
 
-  mock_process_data& operator<<(const PROCESS_MEMORY_COUNTERS_EX2& mc) {
+  mock_process_data& operator<<(const PROCESS_MEMORY_COUNTERS_EX& mc) {
     _memory_counters = mc;
     return *this;
   }
@@ -78,6 +79,51 @@ class mock_process_data : public com::centreon::agent::process::process_data {
   template <typename... Args>
   mock_process_data(Args&&... args) {
     (*this << ... << args);
+  }
+};
+
+class process_container_mock : public com::centreon::agent::process::container {
+ public:
+  std::map<DWORD, mock_process_data> processes;
+
+  process_container_mock(std::string_view filter_str,
+                         std::string_view exclude_filter_str,
+                         std::string_view warning_process_filter_str,
+                         std::string_view critical_process_filter_str,
+                         std::string_view warning_rules_str,
+                         std::string_view critical_rules_str,
+                         unsigned needed_output_fields,
+                         const std::shared_ptr<spdlog::logger>& logger)
+      : com::centreon::agent::process::container(filter_str,
+                                                 exclude_filter_str,
+                                                 warning_process_filter_str,
+                                                 critical_process_filter_str,
+                                                 warning_rules_str,
+                                                 critical_rules_str,
+                                                 needed_output_fields,
+                                                 logger) {}
+
+  process_container_mock(com::centreon::agent::process::container&& src)
+      : com::centreon::agent::process::container(std::move(src)) {}
+
+  com::centreon::agent::process::process_data create_process_data(
+      DWORD pid) override {
+    auto search = processes.find(pid);
+    if (search != processes.end()) {
+      return std::move(search->second);
+    } else {
+      throw std::invalid_argument("unknown pid");
+    }
+  }
+
+  void refresh(const std::vector<DWORD> pids,
+               const com::centreon::agent::process::pid_set& hungs) {
+    _refresh(pids.data(), pids.size(), hungs);
+  }
+
+  template <typename... Args>
+  void add_process(DWORD pid, Args&&... args) {
+    processes.emplace(pid, mock_process_data(pid, args...));
   }
 };
 

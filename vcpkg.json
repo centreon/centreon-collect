@@ -49,6 +49,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-parser",
+      "platform": "windows"
+    },
+    {
       "name": "boost-serialization",
       "platform": "linux"
     },

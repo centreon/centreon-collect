@@ -37,8 +37,11 @@ class check_process : public check {
   bool _verbose;
   std::string _output_syntax;
 
+ protected:
+  // protected for ut
   std::unique_ptr<process::container> _processes;
 
+ public:
   unsigned _calc_process_detail_syntax(const std::string_view& param);
   void _calc_output_format();
 

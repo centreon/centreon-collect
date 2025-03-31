@@ -85,14 +85,17 @@ check_process::check_process(
       unsigned field_mask = _calc_process_detail_syntax(
           arg.get_string("process-detail-syntax", "'${exe}=${state}'"));
 
-      std::string_view filter, exclude_filter, warning_filter, critical_filter;
+      std::string_view filter, exclude_filter, warning_process,
+          critical_process, warning_rules, critical_rules;
       filter = arg.get_string("filter-process", "state = 'started'");
-      exclude_filter = arg.get_string("exclude-filter", "");
-      warning_filter = arg.get_string("warning-status", "state != 'started'");
-      critical_filter = arg.get_string("critical-status", "count = 0");
+      exclude_filter = arg.get_string("exclude-process", "");
+      warning_process = arg.get_string("warning-process", "state != 'started'");
+      critical_process = arg.get_string("critical-process", "count = 0");
+      warning_rules = arg.get_string("warning-rules", "");
+      critical_rules = arg.get_string("critical-rules", "");
       _processes = std::make_unique<process::container>(
-          filter, exclude_filter, warning_filter, critical_filter, field_mask,
-          logger);
+          filter, exclude_filter, warning_process, critical_process,
+          warning_rules, critical_rules, field_mask, logger);
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_process, fail to parse arguments: {}",
@@ -110,7 +113,7 @@ constexpr std::array<std::tuple<std::string_view, std::string_view, unsigned>,
                      30>
     _label_to_process_detail{
         {{"${exe}", "{0}", process_field::exe_filename},
-         {"${exe}", "{0}", process_field::exe_filename},
+         {"{exe}", "{0}", process_field::exe_filename},
          {"${filename}", "{1}", process_field::exe_filename},
          {"{filename}", "{1}", process_field::exe_filename},
          {"${status}", "{2}", 0},
@@ -245,13 +248,17 @@ void check_process::_print_process(const process::process_data& proc,
   unsigned percent_kernel_time = proc.get_percent_kernel_time();
   unsigned percent_user_time = proc.get_percent_user_time();
   unsigned percent_cpu_time = proc.get_percent_cpu_time();
-  auto cpu_time = proc.get_kernel_time() + proc.get_user_time();
+  auto kernel_time =
+      std::chrono::floor<std::chrono::seconds>(proc.get_kernel_time());
+  auto user_time =
+      std::chrono::floor<std::chrono::seconds>(proc.get_user_time());
+  auto cpu_time = kernel_time + user_time;
   std::vformat_to(
       std::back_inserter(*to_append), _process_detail_syntax,
       std::make_format_args(
           proc.get_exe(), proc.get_file_name(), proc.get_str_state(),
-          creation_time, proc.get_kernel_time(), percent_kernel_time,
-          proc.get_user_time(), percent_user_time, cpu_time, percent_cpu_time,
+          creation_time, kernel_time, percent_kernel_time, user_time,
+          percent_user_time, cpu_time, percent_cpu_time,
           proc.get_memory_counters().PrivateUsage, proc.get_gdi_handle_count(),
           proc.get_user_handle_count(), proc.get_pid()));
 }
@@ -347,17 +354,18 @@ void check_process::help(std::ostream& help_stream) {
   exclude-process: filter to apply on process to exclude them from the check
                 default: ""
                 This filter is applied after filter-process
-  warning-status: filter to apply on process to get warning processes. 
-                You can also add count labels to put for example service in warning state if you have less than 2 processes
-                default: "state != 'started'"
-  critical-status: filter to apply on process to get critical processes. 
-                You can also add count labels to put for example service in critical state if you have zero process
-                default: "count = 0"
-  filter keywords:
+  warning-process: filter to apply on process to get warning processes. 
+  critical-process: filter to apply on process to get critical processes. 
+  warning-rules: filter to apply on the amount of process to set the check status
+                to warning if the filter is true.
+  critical-rules: filter to apply on the amount of process to set the check status
+                to critical if the filter is true.
+  status keywords:
     - count: total number of processes filtered by filter-process
-    - ok-count: number of processes filtered by filter-process but not filtered by warning-status nor critical-status
-    - warning-count: number of processes filtered by warning-status
-    - critical-count: number of processes filtered by critical-status
+    - ok_count: number of processes filtered by filter-process but not filtered by warning-status nor critical-status
+    - warn_count: number of processes filtered by warning-status
+    - crit_count: number of processes filtered by critical-status
+  filter keywords:
     - creation: delay from process start to now (units can be h, m, s, d, w)
     - pid: process pid
     - gdi_handles: number of gdi handles opened by process
@@ -374,6 +382,9 @@ void check_process::help(std::ostream& help_stream) {
     - peak_virtual: same as peak_pagefile
     - peak_working_set: The peak working set size, in (g, m, k, b)
     - working_set: The current working set size
+    - exe : process executable name
+    - filename : process executable path
+    - status : process status (started, hung, unreadable)
   output keywords:
     - status : status of the check
     - count : number of processes (ok + critical + warning)

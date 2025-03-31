@@ -38,15 +38,24 @@ using namespace com::centreon::agent;
  * @param needed_output_fields fields that are needed for the output
  * @param logger logger to use
  */
-container::container(const std::string_view& filter_str,
-                     const std::string_view& exclude_filter_str,
-                     const std::string_view& warning_filter_str,
-                     const std::string_view& critical_filter_str,
+container::container(std::string_view filter_str,
+                     std::string_view exclude_filter_str,
+                     std::string_view warning_filter_str,
+                     std::string_view critical_filter_str,
+                     std::string_view warning_rules_str,
+                     std::string_view critical_rules_str,
                      unsigned needed_output_fields,
                      const std::shared_ptr<spdlog::logger>& logger)
     : _needed_output_fields(needed_output_fields),
       _enumerate_buffer_size(1024),
       _logger(logger) {
+  filter_str = absl::StripLeadingAsciiWhitespace(filter_str);
+  exclude_filter_str = absl::StripLeadingAsciiWhitespace(exclude_filter_str);
+  warning_filter_str = absl::StripLeadingAsciiWhitespace(warning_filter_str);
+  critical_filter_str = absl::StripLeadingAsciiWhitespace(critical_filter_str);
+  warning_rules_str = absl::StripLeadingAsciiWhitespace(warning_rules_str);
+  critical_rules_str = absl::StripLeadingAsciiWhitespace(critical_rules_str);
+
   if (!filter_str.empty()) {
     _filter = std::make_unique<process_filter>(filter_str, logger);
     _needed_output_fields |= _filter->get_fields_mask();
@@ -67,17 +76,19 @@ container::container(const std::string_view& filter_str,
                  _critical_processes.size();
         });
       } else if (flt->get_label() == "ok_count") {
-        flt->set_checker_from_getter(
-            [this](const testable&) { return _ok_processes.size(); });
+        flt->set_checker_from_getter([](const testable& t) {
+          return static_cast<const container&>(t)._ok_processes.size();
+        });
       } else if (flt->get_label() == "warn_count") {
-        flt->set_checker_from_getter(
-            [this](const testable&) { return _warning_processes.size(); });
+        flt->set_checker_from_getter([](const testable& t) {
+          return static_cast<const container&>(t)._warning_processes.size();
+        });
       } else if (flt->get_label() == "crit_count") {
-        flt->set_checker_from_getter(
-            [this](const testable&) { return _critical_processes.size(); });
+        flt->set_checker_from_getter([](const testable& t) {
+          return static_cast<const container&>(t)._critical_processes.size();
+        });
       }
-      // only counts are taken into account on process evaluation so by not
-      // provide a checker for others, we disable them
+      // only counts are taken into account
     }
   };
 
@@ -85,25 +96,30 @@ container::container(const std::string_view& filter_str,
     _warning_filter =
         std::make_unique<process_filter>(warning_filter_str, logger);
     _needed_output_fields |= _warning_filter->get_fields_mask();
-    _container_warning_filter = std::make_unique<filters::filter_combinator>();
-    filter::create_filter(warning_filter_str, logger,
-                          _container_warning_filter.get());
-    _container_warning_filter->apply_checker(container_checker_builder);
   }
+
+  if (!warning_rules_str.empty()) {
+    _warning_rules_filter = std::make_unique<filters::filter_combinator>();
+    filter::create_filter(warning_rules_str, logger,
+                          _warning_rules_filter.get());
+    _warning_rules_filter->apply_checker(container_checker_builder);
+  }
+
   if (!critical_filter_str.empty()) {
     _critical_filter =
         std::make_unique<process_filter>(critical_filter_str, logger);
     _needed_output_fields |= _critical_filter->get_fields_mask();
-    _container_critical_filter = std::make_unique<filters::filter_combinator>();
-    filter::create_filter(critical_filter_str, logger,
-                          _container_critical_filter.get());
-    _container_critical_filter->apply_checker(container_checker_builder);
+  }
+
+  if (!critical_rules_str.empty()) {
+    _critical_rules_filter = std::make_unique<filters::filter_combinator>();
+    filter::create_filter(critical_rules_str, logger,
+                          _critical_rules_filter.get());
+    _critical_rules_filter->apply_checker(container_checker_builder);
   }
 
   _enumerate_buffer = std::make_unique<DWORD[]>(_enumerate_buffer_size);
 }
-
-using pid_set = absl::flat_hash_set<DWORD>;
 
 /**
  * @brief Callback function used by hung windows enumeration
@@ -134,9 +150,6 @@ static BOOL CALLBACK enum_hung_window_proc(HWND hwnd, LPARAM l_param) {
  *
  */
 void container::refresh() {
-  _ok_processes.clear();
-  _warning_processes.clear();
-  _critical_processes.clear();
   DWORD used;
   while (1) {
     EnumProcesses(_enumerate_buffer.get(),
@@ -152,10 +165,19 @@ void container::refresh() {
   // get freeze windows
   pid_set hungs;
   EnumWindows(&enum_hung_window_proc, reinterpret_cast<LPARAM>(&hungs));
+  _refresh(_enumerate_buffer.get(), used / sizeof(DWORD), hungs);
+}
 
-  const DWORD* end = _enumerate_buffer.get() + used / sizeof(DWORD);
-  for (DWORD* pid = _enumerate_buffer.get(); pid != end; ++pid) {
-    process_data proc(*pid, _needed_output_fields, _logger);
+void container::_refresh(const DWORD* pids,
+                         DWORD nb_pids,
+                         const pid_set& hungs) {
+  _ok_processes.clear();
+  _warning_processes.clear();
+  _critical_processes.clear();
+
+  const DWORD* end = pids + nb_pids;
+  for (const DWORD* pid = pids; pid != end; ++pid) {
+    process_data proc = create_process_data(*pid);
     if (hungs.contains(proc.get_pid())) {
       proc.set_hung();
     }
@@ -184,10 +206,9 @@ void container::refresh() {
  * @return e_status
  */
 e_status container::check_container() const {
-  if (_container_critical_filter && _container_critical_filter->check(*this)) {
+  if (_critical_rules_filter && _critical_rules_filter->check(*this)) {
     return e_status::critical;
-  } else if (_container_warning_filter &&
-             _container_warning_filter->check(*this)) {
+  } else if (_warning_rules_filter && _warning_rules_filter->check(*this)) {
     return e_status::warning;
   }
   return e_status::ok;
