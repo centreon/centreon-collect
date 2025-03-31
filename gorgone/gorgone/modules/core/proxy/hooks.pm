@@ -692,6 +692,11 @@ use Data::Dumper;
 sub increment_log_messages_retrieved {
     my $node = shift;
     my $logger = shift;
+
+    if (!$node->{total_msg} or $node->{total_msg} == -1){
+        return;
+    }
+
     $node->{got_msg}++;
 
     if ($node->{got_msg} >= $node->{total_msg}) {
