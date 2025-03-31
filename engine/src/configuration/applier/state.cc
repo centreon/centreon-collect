@@ -702,24 +702,20 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   }
 }
 
+template <>
 void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
   // Applier.
   configuration::applier::severity aplyr;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, Severity*>
-      current_severities;
-  for (auto& s : *pb_indexed_config.mut_state().mutable_severities())
-    current_severities[{s.key().id(), s.key().type()}] = &s;
-
   // Modify objects.
   for (auto& s : diff.modified()) {
+    auto* current_severity =
+        pb_indexed_config.severities().at({s.key().id(), s.key().type()}).get();
     if (!verify_config) {
-      aplyr.modify_object(current_severities[{s.key().id(), s.key().type()}],
-                          s);
+      aplyr.modify_object(current_severity, s);
     } else {
       try {
-        aplyr.modify_object(current_severities[{s.key().id(), s.key().type()}],
-                            s);
+        aplyr.modify_object(current_severity, s);
       } catch (const std::exception& e) {
         ++err.config_errors;
         config_logger->info(e.what());
@@ -1476,14 +1472,14 @@ void applier::state::_processing(configuration::indexed_state& new_cfg,
       new_cfg.state().servicedependencies(),
       configuration::servicedependency_key);
 
-  // Build difference for hostdependencies.
+  // Build difference for hostescalations.
   pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
   typedef size_t (*key_func_he)(const configuration::Hostescalation&);
   diff_hostescalations.parse<key_func_he>(
       *pb_indexed_config.mut_state().mutable_hostescalations(),
       new_cfg.state().hostescalations(), configuration::hostescalation_key);
 
-  // Build difference for servicedependencies.
+  // Build difference for serviceescalations.
   pb_difference<configuration::Serviceescalation, size_t>
       diff_serviceescalations;
   typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
@@ -1742,14 +1738,15 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     /* The previous version wasn't known by broker, the diff contains the full
      * state. So let's parse it as usual. */
     config_logger->debug("Processing full configuration from diff.");
-    configuration::indexed_state new_cfg;
-    new_cfg.mut_state().CopyFrom(diff_conf.state());
-    _processing(new_cfg, err, state);
-    return;
-  }
+    std::unique_ptr<configuration::State> new_cfg(diff_conf.release_state());
 
-  /* The full state was not sent by Broker. */
-  _apply_ng(*diff_conf.mutable_severities(), err);
+    configuration::indexed_state new_idx_cfg(std::move(new_cfg));
+    _processing(new_idx_cfg, err, state);
+    return;
+  } else {
+    /* The full state was not sent by Broker. */
+    _apply_ng(*diff_conf.mutable_severities(), err);
+  }
 }
 
 /**

@@ -410,6 +410,15 @@ message StringSet {
   bool additive = 2;
 }
 
+message DiffAnomalydetection {
+  /* Added services */
+  repeated Anomalydetection added = 1;
+  /* Removed services given by their key in the old list. */
+  repeated HostServiceId removed = 2;
+  /* Modified services */
+  repeated Anomalydetection modified = 3;
+}
+
 message Anomalydetection {
   Object obj = 1;
   int32 acknowledgement_timeout = 2;  // Optional - Default value: 0
@@ -469,6 +478,15 @@ message Anomalydetection {
   double sensitivity = 51;
 }
 
+message DiffCommand {
+  /* Added commands */
+  repeated Command added = 1;
+  /* Removed commands given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified commands */
+  repeated Command modified = 3;
+}
+
 message Command {
   Object obj = 1;
   string command_line = 2;
@@ -476,10 +494,28 @@ message Command {
   string connector = 4;
 }
 
+message DiffConnector {
+  /* Added connectors */
+  repeated Connector added = 1;
+  /* Removed connectors given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified connectors */
+  repeated Connector modified = 3;
+}
+
 message Connector {
   Object obj = 1;
   string connector_line = 2;
   string connector_name = 3;
+}
+
+message DiffContact {
+  /* Added contacts */
+  repeated Contact added = 1;
+  /* Removed contacts given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified contacts */
+  repeated Contact modified = 3;
 }
 
 message Contact {
@@ -507,12 +543,30 @@ message Contact {
   optional string timezone = 20;            // Optional
 }
 
+message DiffContactgroup {
+  /* Added contactgroups */
+  repeated Contactgroup added = 1;
+  /* Removed contactgroups given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified contactgroups */
+  repeated Contactgroup modified = 3;
+}
+
 message Contactgroup {
   Object obj = 1;
   string alias = 2;
   StringSet contactgroup_members = 3;
   string contactgroup_name = 4;
   StringSet members = 5;
+}
+
+message DiffHost {
+  /* Added hosts */
+  repeated Host added = 1;
+  /* Removed hosts given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hosts */
+  repeated Host modified = 3;
 }
 
 message Host {
@@ -573,6 +627,15 @@ message Host {
   repeated PairUint64_32 tags = 51;
 }
 
+message DiffHostdependency {
+  /* Added hostdependencies */
+  repeated Hostdependency added = 1;
+  /* Removed hostdependencies given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hostdependencies */
+  repeated Hostdependency modified = 3;
+}
+
 message Hostdependency {
   Object obj = 1;
   string dependency_period = 2;
@@ -588,6 +651,15 @@ message Hostdependency {
       10;  // Optional - Default value: action_hd_none
 }
 
+message DiffHostescalation {
+  /* Added hostescalations */
+  repeated Hostescalation added = 1;
+  /* Removed hostescalations given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hostescalations */
+  repeated Hostescalation modified = 3;
+}
+
 message Hostescalation {
   Object obj = 1;
   StringSet contactgroups = 2;
@@ -600,6 +672,15 @@ message Hostescalation {
   uint32 notification_interval = 9;  // Optional - Default value: 0
 }
 
+message DiffHostgroup {
+  /* Added hostgroups */
+  repeated Hostgroup added = 1;
+  /* Removed hostgroups given by their key in the old list. */
+  repeated string removed = 2;
+  /* Modified hostgroups */
+  repeated Hostgroup modified = 3;
+}
+
 message Hostgroup {
   Object obj = 1;
   string action_url = 2;
@@ -609,6 +690,15 @@ message Hostgroup {
   StringSet members = 6;
   string notes = 7;
   string notes_url = 8;
+}
+
+message DiffService {
+  /* Added services */
+  repeated Service added = 1;
+  /* Removed services given by their key in the old list. */
+  repeated HostServiceId removed = 2;
+  /* Modified services */
+  repeated Service modified = 3;
 }
 
 message Service {
@@ -667,6 +757,15 @@ message Service {
   repeated PairUint64_32 tags = 48;
 }
 
+message DiffServicedependency {
+  /* Added servicedependencies */
+  repeated Servicedependency added = 1;
+  /* Removed servicedependencies given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified servicedependencies */
+  repeated Servicedependency modified = 3;
+}
+
 message Servicedependency {
   Object obj = 1;
   string dependency_period = 2;
@@ -686,6 +785,15 @@ message Servicedependency {
   StringList service_description = 14;
 }
 
+message DiffServiceescalation {
+  /* Added serviceescalations */
+  repeated Serviceescalation added = 1;
+  /* Removed serviceescalations given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified serviceescalations */
+  repeated Serviceescalation modified = 3;
+}
+
 message Serviceescalation {
   Object obj = 1;
   StringSet contactgroups = 2;
@@ -700,6 +808,15 @@ message Serviceescalation {
   StringList service_description = 11;
 }
 
+message DiffServicegroup {
+  /* Added servicegroup */
+  repeated Servicegroup added = 1;
+  /* Removed servicegroups given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified servicegroups */
+  repeated Servicegroup modified = 3;
+}
+
 message Servicegroup {
   Object obj = 1;
   string action_url = 2;
@@ -712,6 +829,15 @@ message Servicegroup {
   string servicegroup_name = 9;
 }
 
+message DiffSeverity {
+  /* Added severities */
+  repeated Severity added = 1;
+  /* Removed severities given by there key in the old list. */
+  repeated KeyType removed = 2;
+  /* Modified severities */
+  repeated Severity modified = 3;
+}
+
 message Severity {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
@@ -720,19 +846,33 @@ message Severity {
   string severity_name = 5;
 }
 
-message DiffSeverity {
-  /* Added severities */
-  repeated Severity added = 1;
-  /* Removed severities given by they key in the old list. */
+message HostServiceId {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+}
+
+message DiffTag {
+  /* Added tags */
+  repeated Tag added = 1;
+  /* Removed tags given by there key in the old list. */
   repeated KeyType removed = 2;
-  /* Modified severities */
-  repeated Severity modified = 3;
+  /* Modified tags */
+  repeated Tag modified = 3;
 }
 
 message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   string tag_name = 3;
+}
+
+message DiffTimeperiod {
+  /* Added timeperiods */
+  repeated Timeperiod added = 1;
+  /* Removed timeperiods given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified timeperiods */
+  repeated Timeperiod modified = 3;
 }
 
 message Timeperiod {
@@ -746,9 +886,54 @@ message Timeperiod {
 
 /* io::bbdo, bbdo::de_pb_diff_state, 52 */
 message DiffState {
+  /* Modifications concerning timeperiods */
+  DiffTimeperiod timeperiods = 1;
+
+  /* Modifications concerning commands */
+  DiffCommand commands = 2;
+
+  /* Modifications concerning connectors */
+  DiffConnector connectors = 3;
+
   /* Modifications concerning severities */
-  DiffSeverity severities = 1;
+  DiffSeverity severities = 4;
+
+  /* Modifications concerning tags */
+  DiffTag tags = 5;
+
+  /* Modifications concerning contacts */
+  DiffContact contacts = 6;
+
+  /* Modifications concerning contactgroups */
+  DiffContactgroup contactgroups = 7;
+
+  /* Modifications concerning hosts */
+  DiffHost hosts = 8;
+
+  /* Modifications concerning hostgroups */
+  DiffHostgroup hostgroups = 9;
+
+  /* Modifications concerning services */
+  DiffService services = 10;
+
+  /* Modifications concerning anomalydetections */
+  DiffAnomalydetection anomalydetections = 11;
+
+  /* Modifications concerning servicegroups */
+  DiffServicegroup servicegroups = 12;
+
+  /* Modifications concerning hostdependencies */
+  DiffHostdependency hostdependencies = 13;
+
+  /* Modifications concerning servicedependencies */
+  DiffServicedependency servicedependencies = 14;
+
+  /* Modifications concerning hostescalations */
+  DiffHostescalation hostescalations = 15;
+
+  /* Modifications concerning serviceescalations */
+  DiffServiceescalation serviceescalations = 16;
 
   /* If all the configuration has to be sent */
-  State state = 2;
+  State state = 17;
 }

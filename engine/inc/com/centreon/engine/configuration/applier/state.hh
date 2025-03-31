@@ -93,7 +93,8 @@ class state {
   template <typename ConfigurationType, typename Key, typename ApplierType>
   void _apply(const pb_difference<ConfigurationType, Key>& diff,
               error_cnt& err);
-  void _apply_ng(const DiffSeverity& diff, error_cnt& err);
+  template <typename DiffType>
+  void _apply_ng(const DiffType& diff, error_cnt& err);
   void _apply(configuration::indexed_state& new_cfg,
               retention::state& state,
               error_cnt& err);
@@ -119,6 +120,7 @@ class state {
   servicedependency_mmap _servicedependencies;
   absl::flat_hash_map<std::string, std::string> _user_macros;
 };
+
 }  // namespace applier
 }  // namespace configuration
 
