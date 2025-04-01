@@ -14,9 +14,6 @@ on:
       minor_version:
         required: true
         type: string
-      img_version:
-        required: true
-        type: string
     secrets:
       veracode_api_id:
         required: true
