@@ -627,7 +627,6 @@ use Data::Dumper;
         $options{logger}->writeLogInfo("[proxy-evan] nb_total_msg already set ?  " . Dumper($synctime_nodes->{ $options{data}->{data}->{id} }));
     }
 
-    my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
     $status = $options{dbh}->transaction_mode(1);
@@ -650,12 +649,17 @@ use Data::Dumper;
             instant => $_->{instant},
             data => $_->{data}
         });
-        last if ($status == -1);
-        $ctime_recent = $_->{ctime} if ($ctime_recent < $_->{ctime});
+        if ($status == -1){
+            $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
+            increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+            last;
+        }
+        $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  = $_->{ctime} if ($synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  < $_->{ctime});
     }
     if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
+            $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
             increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
             return -1;
         }
@@ -665,6 +669,8 @@ use Data::Dumper;
     } else {
         $options{dbh}->rollback();
         $options{dbh}->transaction_mode(0);
+        $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
+
         increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
         return -1;
     }
