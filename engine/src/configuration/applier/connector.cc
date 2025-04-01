@@ -45,8 +45,8 @@ void applier::connector::add_object(const configuration::Connector& obj) {
   process_macros_r(macros, obj.connector_line(), command_line, 0);
 
   // Add connector to the global configuration set.
-  auto* cfg_cnn = pb_indexed_config.mut_state().add_connectors();
-  cfg_cnn->CopyFrom(obj);
+  pb_indexed_config.mut_connectors()[obj.connector_name()] =
+      std::make_unique<Connector>(obj);
 
   // Create connector.
   boost::trim(command_line);
@@ -133,27 +133,21 @@ void applier::connector::modify_object(
   to_modify->CopyFrom(new_obj);
 }
 
-template <>
-void applier::connector::remove_object(
-    const std::pair<ssize_t, std::string>& p) {
+void applier::connector::remove_object(const std::string& key) {
   // Logging.
-  const configuration::Connector& obj =
-      pb_indexed_config.state().connectors()[p.first];
-  config_logger->debug("Removing connector '{}'.", obj.connector_name());
+  config_logger->debug("Removing connector '{}'.", key);
 
   // Find connector.
-  connector_map::iterator it =
-      commands::connector::connectors.find(obj.connector_name());
+  connector_map::iterator it = commands::connector::connectors.find(key);
   if (it != commands::connector::connectors.end()) {
     // Remove connector object.
     commands::connector::connectors.erase(it);
   }
 
-  commands::otel_connector::remove(obj.connector_name());
+  commands::otel_connector::remove(key);
 
   // Remove connector from the global configuration set.
-  pb_indexed_config.mut_state().mutable_connectors()->DeleteSubrange(p.first,
-                                                                     1);
+  pb_indexed_config.mut_connectors().erase(key);
 }
 
 /**

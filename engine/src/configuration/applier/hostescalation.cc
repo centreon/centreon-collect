@@ -44,10 +44,9 @@ void applier::hostescalation::add_object(
                        obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
-  auto* new_obj = pb_indexed_config.mut_state().add_hostescalations();
-  new_obj->CopyFrom(obj);
-
   size_t key = hostescalation_key(obj);
+  pb_indexed_config.mut_hostescalations().emplace(
+      key, std::make_unique<Hostescalation>(obj));
 
   // Create host escalation.
   auto he = std::make_shared<engine::hostescalation>(
@@ -93,11 +92,9 @@ void applier::hostescalation::modify_object(
  *  @param[in] obj  The new hostescalation to remove from the monitoring
  *                  engine.
  */
-template <>
-void applier::hostescalation::remove_object<size_t>(
-    const std::pair<ssize_t, size_t>& p) {
+void applier::hostescalation::remove_object(uint64_t hash_key) {
   configuration::Hostescalation obj =
-      pb_indexed_config.state().hostescalations(p.first);
+      *pb_indexed_config.hostescalations().at(hash_key);
   // Logging.
   config_logger->debug("Removing a host escalation.");
 
@@ -155,8 +152,7 @@ void applier::hostescalation::remove_object<size_t>(
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.mut_state().mutable_hostescalations()->DeleteSubrange(
-      p.first, 1);
+  pb_indexed_config.mut_hostescalations().erase(hash_key);
 }
 
 /**

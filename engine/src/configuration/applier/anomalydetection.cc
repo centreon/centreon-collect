@@ -50,8 +50,9 @@ void applier::anomalydetection::add_object(
                       obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
-  auto* cfg_obj = pb_indexed_config.mut_state().add_anomalydetections();
-  cfg_obj->CopyFrom(obj);
+  pb_indexed_config.mut_anomalydetections().emplace(
+      std::make_pair(obj.host_id(), obj.service_id()),
+      std::make_unique<Anomalydetection>(obj));
 
   // Create anomalydetection.
   engine::anomalydetection* ad{add_anomalydetection(
@@ -307,11 +308,9 @@ void applier::anomalydetection::modify_object(
                                MODATTR_ALL);
 }
 
-template <>
 void applier::anomalydetection::remove_object(
-    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
-  Anomalydetection& obj =
-      pb_indexed_config.mut_state().mutable_anomalydetections()->at(p.first);
+    const std::pair<uint64_t, uint64_t>& key) {
+  Anomalydetection& obj = *pb_indexed_config.mut_anomalydetections().at(key);
   const std::string& host_name(obj.host_name());
   const std::string& service_description(obj.service_description());
 
@@ -353,8 +352,7 @@ void applier::anomalydetection::remove_object(
   }
 
   // Remove anomalydetection from the global configuration set.
-  pb_indexed_config.mut_state().mutable_anomalydetections()->DeleteSubrange(
-      p.first, 1);
+  pb_indexed_config.mut_anomalydetections().erase(key);
 }
 
 /**

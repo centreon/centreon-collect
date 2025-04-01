@@ -378,10 +378,8 @@ void applier::service::modify_object(configuration::Service* old_obj,
  *  @param[in] obj  The new service to remove from the monitoring
  *                  engine.
  */
-template <>
-void applier::service::remove_object(
-    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p) {
-  const Service& obj = *pb_indexed_config.services().at(p.second);
+void applier::service::remove_object(const std::pair<uint64_t, uint64_t>& key) {
+  const Service& obj = *pb_indexed_config.services().at(key);
   const std::string& host_name = obj.host_name();
   const std::string& service_description = obj.service_description();
 
@@ -390,11 +388,10 @@ void applier::service::remove_object(
                        service_description, host_name);
 
   // Find anomaly detections depending on this service
-  for (auto cad : pb_indexed_config.state().anomalydetections()) {
-    if (cad.host_id() == obj.host_id() &&
-        cad.dependent_service_id() == obj.service_id()) {
-      auto ad = engine::service::services_by_id.find(
-          {cad.host_id(), cad.service_id()});
+  for (auto& [key, cad] : pb_indexed_config.anomalydetections()) {
+    if (cad->host_id() == obj.host_id() &&
+        cad->dependent_service_id() == obj.service_id()) {
+      auto ad = engine::service::services_by_id.find(key);
       if (ad != engine::service::services_by_id.end())
         std::static_pointer_cast<engine::anomalydetection>(ad->second)
             ->set_dependent_service(nullptr);
@@ -432,7 +429,7 @@ void applier::service::remove_object(
   }
 
   // Remove service from the global configuration set.
-  pb_indexed_config.mut_services().erase(p.second);
+  pb_indexed_config.mut_services().erase(key);
 }
 
 /**
@@ -479,15 +476,11 @@ void applier::service::resolve_object(const configuration::Service& obj,
 void applier::service::_expand_service_memberships(
     configuration::Service& obj,
     configuration::indexed_state& s) {
-  absl::flat_hash_map<std::string_view, Servicegroup*> sgs;
-  for (auto& sg : *s.mut_state().mutable_servicegroups())
-    sgs[sg.servicegroup_name()] = &sg;
-
   // Browse service groups.
   for (auto& sg_name : obj.servicegroups().data()) {
     // Find service group.
-    auto found = sgs.find(sg_name);
-    if (found == sgs.end())
+    auto found = s.mut_servicegroups().find(sg_name);
+    if (found == s.mut_servicegroups().end())
       throw engine_error() << fmt::format(
           "Could not add service '{}' of host '{}' to non-existing service "
           "group '{}'",

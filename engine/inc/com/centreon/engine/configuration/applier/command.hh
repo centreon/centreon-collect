@@ -46,12 +46,9 @@ class command {
   void add_object(const configuration::Command& obj);
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Command& obj, error_cnt& err);
 };
-template <>
-void command::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace applier
 }  // namespace configuration
 

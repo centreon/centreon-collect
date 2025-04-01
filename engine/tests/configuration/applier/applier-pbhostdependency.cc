@@ -127,11 +127,12 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
       new_pb_configuration_hostdependency("host1", "host2")};
   configuration::error_cnt err;
   _state_hlp->expand(err);
+  uint64_t hash_key = hostdependency_key(hd1);
   hd_aply.add_object(hd1);
   hd_aply.resolve_object(hd1, err);
 
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
-  hd_aply.remove_object<size_t>({0, 1});
+  hd_aply.remove_object(hash_key);
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
 }
 
@@ -143,13 +144,13 @@ TEST_F(HostDependency, PbExpandHostdependency) {
   auto* new_hd = config->add_hostdependencies();
   new_hd->CopyFrom(std::move(hd));
   configuration::indexed_state state(std::move(config));
-  configuration::State& s = state.mut_state();
   configuration::error_cnt err;
   s_hlp.expand(err);
-  ASSERT_EQ(s.hostdependencies().size(), 6);
-  ASSERT_TRUE(std::all_of(s.hostdependencies().begin(),
-                          s.hostdependencies().end(), [](const auto& hd) {
-                            return hd.hostgroups().data().empty() &&
-                                   hd.dependent_hostgroups().data().empty();
-                          }));
+  ASSERT_EQ(state.hostdependencies().size(), 6);
+  ASSERT_TRUE(
+      std::all_of(state.hostdependencies().begin(),
+                  state.hostdependencies().end(), [](const auto& hd) {
+                    return hd.second->hostgroups().data().empty() &&
+                           hd.second->dependent_hostgroups().data().empty();
+                  }));
 }

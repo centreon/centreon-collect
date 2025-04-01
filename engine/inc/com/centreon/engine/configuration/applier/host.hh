@@ -32,13 +32,9 @@ class host {
   void add_object(const configuration::Host& obj);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(uint64_t host_id);
   void resolve_object(const configuration::Host& obj, error_cnt& err);
 };
-
-template <>
-void host::remove_object(const std::pair<ssize_t, uint64_t>& p);
 
 }  // namespace com::centreon::engine::configuration::applier
 

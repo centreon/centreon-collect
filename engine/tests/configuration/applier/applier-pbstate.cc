@@ -300,7 +300,6 @@ constexpr size_t TIMEPERIODS = 2u;
 constexpr size_t CONTACTS = 1u;
 constexpr size_t HOSTGROUPS = 2u;
 constexpr size_t SERVICEGROUPS = 1u;
-constexpr size_t HOSTDEPENDENCIES = 2u;
 
 // TEST_F(ApplierState, DiffOnTimeperiod) {
 //   configuration::State new_config;

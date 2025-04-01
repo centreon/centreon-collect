@@ -388,10 +388,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
  *
  *  @param[in] obj The new host to remove from the monitoring engine.
  */
-template <>
-void applier::host::remove_object<uint64_t>(
-    const std::pair<ssize_t, uint64_t>& p) {
-  const Host& obj = *pb_indexed_config.hosts().at(p.second);
+void applier::host::remove_object(uint64_t host_id) {
+  const Host& obj = *pb_indexed_config.hosts().at(host_id);
   // Logging.
   config_logger->debug("Removing host '{}'.", obj.host_name());
 
@@ -433,7 +431,7 @@ void applier::host::remove_object<uint64_t>(
   }
 
   // Remove host from the global configuration set.
-  pb_indexed_config.mut_hosts().erase(p.second);
+  pb_indexed_config.mut_hosts().erase(host_id);
 }
 
 /**
