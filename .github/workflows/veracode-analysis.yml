@@ -14,12 +14,19 @@ on:
       minor_version:
         required: true
         type: string
+      img_version:
+        required: true
+        type: string
     secrets:
       veracode_api_id:
         required: true
       veracode_api_key:
         required: true
       veracode_srcclr_token:
+        required: true
+      docker_registry_id:
+        required: true
+      docker_registry_passwd:
         required: true
 
 jobs:
