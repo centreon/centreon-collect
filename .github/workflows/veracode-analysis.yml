@@ -21,10 +21,6 @@ on:
         required: true
       veracode_srcclr_token:
         required: true
-      docker_registry_id:
-        required: true
-      docker_registry_passwd:
-        required: true
 
 jobs:
   build:
