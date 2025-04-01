@@ -47,13 +47,10 @@ class contactgroup {
   void add_object(const configuration::Contactgroup& obj);
   void modify_object(configuration::Contactgroup* to_modify,
                      const configuration::Contactgroup& new_object);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Contactgroup& obj, error_cnt& err);
 };
 
-template <>
-void contactgroup::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace applier
 
 }  // namespace com::centreon::engine::configuration

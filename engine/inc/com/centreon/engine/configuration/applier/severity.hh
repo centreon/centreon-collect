@@ -31,8 +31,7 @@ class severity {
   void add_object(const configuration::Severity& obj);
   void modify_object(configuration::Severity* to_modify,
                      const configuration::Severity& new_object);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::pair<uint64_t, uint32_t>& p);
   void resolve_object(const configuration::Severity& obj, error_cnt& err);
 };
 }  // namespace com::centreon::engine::configuration::applier

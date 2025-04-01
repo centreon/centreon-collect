@@ -24,6 +24,7 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "helper.hh"
 
@@ -124,16 +125,7 @@ TEST_F(ApplierPbContact, PbRemoveContactFromConfig) {
   _state_hlp->expand(err);
   engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
   ASSERT_EQ(my_contact->get_addresses().size(), 3u);
-  int idx;
-  bool found = false;
-  for (idx = 0; idx < pb_indexed_config.state().contacts().size(); idx++) {
-    if (pb_indexed_config.state().contacts()[idx].contact_name() == "test") {
-      found = true;
-      break;
-    }
-  }
-  ASSERT_TRUE(found);
-  aply.remove_object<std::string>({idx, "test"});
+  aply.remove_object("test");
   ASSERT_TRUE(engine::contact::contacts.empty());
 }
 
@@ -176,8 +168,8 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ctct.set_alias("newAlias");
   ASSERT_EQ(ctct.customvariables().size(), 2u);
   ctct_hlp.hook("service_notification_options", "n");
-  aply.modify_object(
-      &*pb_indexed_config.mut_state().mutable_contacts()->begin(), ctct);
+  aply.modify_object(pb_indexed_config.mut_contacts().begin()->second.get(),
+                     ctct);
   contact_map::const_iterator ct_it{engine::contact::contacts.find("test")};
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
@@ -189,15 +181,8 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
                                         notifier::unknown));
 
-  bool found = false;
-  for (auto it = (*pb_indexed_config.mut_state().mutable_commands()).begin();
-       it != (*pb_indexed_config.mut_state().mutable_commands()).end(); ++it) {
-    if (it->command_name() == "cmd") {
-      pb_indexed_config.mut_state().mutable_commands()->erase(it);
-      found = true;
-      break;
-    }
-  }
+  auto found = pb_indexed_config.mut_commands().contains("cmd");
+  pb_indexed_config.mut_commands().erase("cmd");
   ASSERT_TRUE(found)
       << "Command 'cmd' not found among the configuration commands";
 
@@ -206,8 +191,7 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   configuration::applier::command aplyr;
   aplyr.add_object(cmd);
   ctct_hlp.hook("host_notification_commands", "cmd");
-  auto* old_ct = &pb_indexed_config.mut_state().mutable_contacts()->at(0);
-  ASSERT_TRUE(old_ct->contact_name() == "test");
+  auto* old_ct = pb_indexed_config.mut_contacts().at("test").get();
   aply.modify_object(old_ct, ctct);
   {
     command_map::iterator found{commands::command::commands.find("cmd")};

@@ -168,7 +168,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);
-  ASSERT_NO_THROW(hst_aply.remove_object<size_t>({0, 1}));
+  ASSERT_NO_THROW(hst_aply.remove_object(1));
   ASSERT_EQ(hg_obj->members.size(), 1u);
 
   hg.mutable_members()->clear_data();
@@ -176,7 +176,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   ASSERT_NO_THROW(hg_aply.modify_object(
       &pb_indexed_config.mut_state().mutable_hostgroups()->at(0), hg));
 
-  hg_aply.remove_object<std::string>({0, "temphg"});
+  hg_aply.remove_object("temphg");
   ASSERT_TRUE(pb_indexed_config.state().hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

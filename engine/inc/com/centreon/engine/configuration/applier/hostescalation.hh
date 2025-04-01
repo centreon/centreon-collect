@@ -43,13 +43,10 @@ class hostescalation {
   void add_object(const configuration::Hostescalation& obj);
   void modify_object(configuration::Hostescalation* old_obj,
                      const configuration::Hostescalation& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(uint64_t hash_key);
   void resolve_object(const configuration::Hostescalation& obj, error_cnt& err);
 };
 
-template <>
-void hostescalation::remove_object(const std::pair<ssize_t, size_t>& p);
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration
 

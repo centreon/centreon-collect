@@ -107,18 +107,14 @@ void applier::severity::modify_object(
  *
  * @param idx The index of the object to remove.
  */
-template <>
 void applier::severity::remove_object(
-    const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
-  const Severity& obj = *pb_indexed_config.severities().at(p.second);
-
+    const std::pair<uint64_t, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
-                       obj.key().type());
+  config_logger->debug("Removing severity ({}, {}).", key.first, key.second);
 
   // Find severity.
   severity_map::iterator it =
-      engine::severity::severities.find({obj.key().id(), obj.key().type()});
+      engine::severity::severities.find({key.first, key.second});
 
   if (it != engine::severity::severities.end()) {
     engine::severity* sv = it->second.get();
@@ -131,5 +127,5 @@ void applier::severity::remove_object(
   }
 
   // Remove severity from the global configuration set.
-  pb_indexed_config.mut_severities().erase(p.second);
+  pb_indexed_config.mut_severities().erase(key);
 }

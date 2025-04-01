@@ -32,13 +32,10 @@ class serviceescalation {
   void add_object(const configuration::Serviceescalation& obj);
   void modify_object(configuration::Serviceescalation* old_obj,
                      const configuration::Serviceescalation& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(uint64_t hash_key);
   void resolve_object(const configuration::Serviceescalation& obj,
                       error_cnt& err);
 };
-template <>
-void serviceescalation::remove_object(const std::pair<ssize_t, size_t>& p);
 }  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH

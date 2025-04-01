@@ -40,8 +40,8 @@ void applier::command::add_object(const configuration::Command& obj) {
   config_logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
-  auto* cmd = pb_indexed_config.mut_state().add_commands();
-  cmd->CopyFrom(obj);
+  pb_indexed_config.mut_commands()[obj.command_name()] =
+      std::make_unique<Command>(obj);
 
   if (obj.connector().empty()) {
     auto raw = std::make_shared<commands::raw>(
@@ -137,25 +137,22 @@ void applier::command::modify_object(configuration::Command* to_modify,
  *
  * @param idx The position in configuration of the configuration to remove.
  */
-template <>
-void applier::command::remove_object(const std::pair<ssize_t, std::string>& p) {
-  const configuration::Command& obj =
-      pb_indexed_config.state().commands()[p.first];
+void applier::command::remove_object(const std::string& key) {
   // Logging.
-  config_logger->debug("Removing command '{}'.", obj.command_name());
+  config_logger->debug("Removing command '{}'.", key);
 
   // Find command.
   std::unordered_map<std::string, std::shared_ptr<commands::command> >::iterator
-      it = commands::command::commands.find(obj.command_name());
+      it = commands::command::commands.find(key);
   if (it != commands::command::commands.end()) {
     // Erase command (will effectively delete the object).
     commands::command::commands.erase(it);
   } else
     throw engine_error() << fmt::format(
-        "Could not remove command '{}': it does not exist", obj.command_name());
+        "Could not remove command '{}': it does not exist", key);
 
   // Remove command from the global configuration set.
-  pb_indexed_config.mut_state().mutable_commands()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_commands().erase(key);
 }
 
 /**

@@ -69,8 +69,8 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
                        obj.servicegroup_name());
 
   // Add service group to the global configuration set.
-  auto* new_obj = pb_indexed_config.mut_state().add_servicegroups();
-  new_obj->CopyFrom(obj);
+  pb_indexed_config.mut_servicegroups().emplace(
+      obj.servicegroup_name(), std::make_unique<Servicegroup>(obj));
 
   // Create servicegroup.
   auto sg = std::make_shared<engine::servicegroup>(
@@ -149,16 +149,12 @@ void applier::servicegroup::modify_object(
  *
  *  @param[in] idw  Index of the servicegroup to remove in the configuration.
  */
-template <>
-void applier::servicegroup::remove_object(
-    const std::pair<ssize_t, std::string>& p) {
+void applier::servicegroup::remove_object(const std::string& key) {
   // Logging.
-  auto obj = pb_indexed_config.state().servicegroups(p.first);
-  config_logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
+  config_logger->debug("Removing servicegroup '{}'", key);
 
   // Find service group.
-  servicegroup_map::iterator it =
-      engine::servicegroup::servicegroups.find(obj.servicegroup_name());
+  servicegroup_map::iterator it = engine::servicegroup::servicegroups.find(key);
   if (it != engine::servicegroup::servicegroups.end()) {
     // Notify event broker.
     broker_group(NEBTYPE_SERVICEGROUP_DELETE, it->second.get());
@@ -168,8 +164,7 @@ void applier::servicegroup::remove_object(
   }
 
   // Remove service group from the global configuration state.
-  pb_indexed_config.mut_state().mutable_servicegroups()->DeleteSubrange(p.first,
-                                                                        1);
+  pb_indexed_config.mut_servicegroups().erase(key);
 }
 
 void applier::servicegroup::resolve_object(

@@ -43,8 +43,7 @@ class anomalydetection {
   void add_object(const configuration::Anomalydetection& obj);
   void modify_object(configuration::Anomalydetection* old_obj,
                      const configuration::Anomalydetection& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::pair<uint64_t, uint64_t>& key);
   void resolve_object(const configuration::Anomalydetection& obj,
                       error_cnt& err);
 };

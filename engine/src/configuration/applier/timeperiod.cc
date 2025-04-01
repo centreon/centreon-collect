@@ -46,9 +46,8 @@ void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   }
 
   // Add time period to the global configuration set.
-  configuration::Timeperiod* c_tp =
-      pb_indexed_config.mut_state().add_timeperiods();
-  c_tp->CopyFrom(obj);
+  pb_indexed_config.mut_timeperiods().emplace(
+      obj.timeperiod_name(), std::make_unique<Timeperiod>(obj));
 
   // Create time period.
   auto tp = std::make_shared<engine::timeperiod>(obj);
@@ -109,23 +108,18 @@ void applier::timeperiod::modify_object(
 }
 
 template <>
-void applier::timeperiod::remove_object(
-    const std::pair<ssize_t, std::string>& p) {
-  /* obj is the object to remove */
-  auto& obj = pb_indexed_config.state().timeperiods()[p.first];
-  config_logger->debug("Removing time period '{}'.", obj.timeperiod_name());
+void applier::timeperiod::remove_object(const std::string& key) {
+  config_logger->debug("Removing time period '{}'.", key);
 
   // Find time period.
-  timeperiod_map::iterator it =
-      engine::timeperiod::timeperiods.find(obj.timeperiod_name());
+  timeperiod_map::iterator it = engine::timeperiod::timeperiods.find(key);
   if (it != engine::timeperiod::timeperiods.end() && it->second) {
     // Erase time period (will effectively delete the object).
     engine::timeperiod::timeperiods.erase(it);
   }
 
   // Remove time period from the global configuration set.
-  pb_indexed_config.mut_state().mutable_timeperiods()->DeleteSubrange(p.first,
-                                                                      1);
+  pb_indexed_config.mut_timeperiods().erase(key);
 }
 
 /**

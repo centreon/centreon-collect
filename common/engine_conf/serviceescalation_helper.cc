@@ -17,7 +17,7 @@
  *
  */
 #include "common/engine_conf/serviceescalation_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -25,11 +25,16 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se) {
-  return absl::HashOf(se.hosts().data(0), se.service_description().data(0),
-                      // se.contactgroups(),
-                      se.escalation_options(), se.escalation_period(),
-                      se.first_notification(), se.last_notification(),
-                      se.notification_interval());
+  uint64_t result = 0;
+  boost::hash_combine(result, se.hosts().data(0));
+  boost::hash_combine(result, se.service_description().data(0));
+  // boost::hash_combine(result, se.contactgroups());
+  boost::hash_combine(result, se.escalation_options());
+  boost::hash_combine(result, se.escalation_period());
+  boost::hash_combine(result, se.first_notification());
+  boost::hash_combine(result, se.last_notification());
+  boost::hash_combine(result, se.notification_interval());
+  return result;
 }
 
 /**

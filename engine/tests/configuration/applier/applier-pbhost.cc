@@ -90,7 +90,7 @@ TEST_F(ApplierPbHost, PbHostRemoved) {
   std::shared_ptr<com::centreon::engine::host> h1(hm.begin()->second);
   ASSERT_TRUE(h1->name() == "test_host");
 
-  hst_aply.remove_object<size_t>({0, 12});
+  hst_aply.remove_object(12);
 
   ASSERT_EQ(hm.size(), 0u);
   hst.set_host_name("test_host1");
