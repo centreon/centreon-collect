@@ -497,9 +497,18 @@ sub getlog {
     my %filters = ();
     my ($filter, $filter_append) = ('', '');
     my @bind_values = ();
-    foreach ((['id', '>'], ['token', '='], ['ctime', '>'], ['etime', '>'], ['code', '='])) {
+    foreach ((['id', '>'], ['token', '='], ['code', '='])) {
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . $_->[0] . ' ' . $_->[1] . ' ?';
+            $filter_append = ' AND ';
+            push @bind_values, $data->{ $_->[0] };
+        }
+    }
+    # TODO:  check if it's still usefull ?
+    # sqlite don't round correctly float. to be sure the same log is not send over and over we round to 3 digits (input should contains 4 digit as it use time::hires)
+    foreach ((['ctime', '>'], ['etime', '>'])){
+        if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
+            $filter .= $filter_append . "ROUND(" . $_->[0] . ', 5) ' . $_->[1] . ' ROUND( ?, 5)';
             $filter_append = ' AND ';
             push @bind_values, $data->{ $_->[0] };
         }
