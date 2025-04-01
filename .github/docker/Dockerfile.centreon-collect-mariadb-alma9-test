@@ -46,4 +46,8 @@ dnf remove -y gcc gcc-c++ python3-devel
 
 dnf clean all
 
+sudo sed -i '/pam_unix.so/ s/$/ debug/' /etc/pam.d/system-auth
+sudo sed -i '/pam_sss.so/ s/$/ debug/' /etc/pam.d/system-auth
+sudo sed -i '/pam_ldap.so/ s/$/ debug/' /etc/pam.d/system-auth
+
 EOF
