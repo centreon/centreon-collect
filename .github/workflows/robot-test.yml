@@ -111,6 +111,7 @@ jobs:
           else
             FEATURES_PATTERN=".robot"
           fi
+          # FORCES FEATURES_PATTERN
           FEATURES_PATTERN="connector_ssh.robot"
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
