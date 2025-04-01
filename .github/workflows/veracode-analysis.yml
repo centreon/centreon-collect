@@ -25,7 +25,7 @@ on:
 jobs:
   build:
     name: Binary preparation
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
 
     steps:
       - name: Set routing mode
