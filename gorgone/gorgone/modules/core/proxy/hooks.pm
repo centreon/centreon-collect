@@ -656,7 +656,7 @@ use Data::Dumper;
         }
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  = $_->{ctime} if ($synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  < $_->{ctime});
     }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
+    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} ) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
@@ -664,8 +664,6 @@ use Data::Dumper;
             return -1;
         }
         $options{dbh}->transaction_mode(0);
-
-        $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0); 
     } else {
         $options{dbh}->rollback();
         $options{dbh}->transaction_mode(0);
