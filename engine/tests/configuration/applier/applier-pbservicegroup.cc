@@ -272,7 +272,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   ASSERT_EQ(found->members().data().size(), 1);
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 2u);
-  aply_grp.remove_object<std::string>({0, "big_group"});
+  aply_grp.remove_object("big_group");
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
 }
 
@@ -333,7 +333,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   engine::servicegroup* sg =
       engine::servicegroup::servicegroups["test_group"].get();
   ASSERT_EQ(sg->members.size(), 2u);
-  aply_svc.remove_object<std::pair<uint64_t, uint64_t>>({1, {12, 18}});
+  aply_svc.remove_object({12, 18});
   ASSERT_EQ(sg->members.size(), 1u);
 
   grp_hlp.hook("members", "test_host,test,test_host,test2");

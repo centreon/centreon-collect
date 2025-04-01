@@ -18,6 +18,7 @@
  */
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
+#include <cstdint>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/engine_conf/service_helper.hh"
 
@@ -37,13 +38,9 @@ class service {
   void add_object(const configuration::Service& obj);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::pair<uint64_t, uint64_t>& key);
   void resolve_object(const configuration::Service& obj, error_cnt& err);
 };
-template <>
-void service::remove_object(
-    const std::pair<ssize_t, std::pair<uint64_t, uint64_t>>& p);
 }  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICE_HH

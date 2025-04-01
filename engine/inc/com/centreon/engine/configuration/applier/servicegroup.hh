@@ -33,8 +33,7 @@ class servicegroup {
   void add_object(const configuration::Servicegroup& obj);
   void modify_object(configuration::Servicegroup* to_modify,
                      const configuration::Servicegroup& new_object);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Servicegroup& obj, error_cnt& err);
 
  private:
@@ -45,8 +44,6 @@ class servicegroup {
       const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           sg_by_name);
 };
-template <>
-void servicegroup::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH

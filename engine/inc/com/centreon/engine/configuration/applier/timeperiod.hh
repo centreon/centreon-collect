@@ -44,7 +44,7 @@ class timeperiod {
   void modify_object(configuration::Timeperiod* to_modify,
                      const configuration::Timeperiod& new_object);
   template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const Key& p);
   void resolve_object(const configuration::Timeperiod& obj, error_cnt& err);
 };
 }  // namespace applier

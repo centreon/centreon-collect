@@ -165,6 +165,21 @@ class indexed_state {
   absl::flat_hash_map<std::string, std::unique_ptr<Command>>& mut_commands() {
     return _commands;
   }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Contact>>& contacts()
+      const {
+    return _contacts;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Contact>>& mut_contacts() {
+    return _contacts;
+  }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Contactgroup>>&
+  contactgroups() const {
+    return _contactgroups;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Contactgroup>>&
+  mut_contactgroups() {
+    return _contactgroups;
+  }
   const absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
                             std::unique_ptr<Severity>>&
   severities() const {
@@ -189,6 +204,24 @@ class indexed_state {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& mut_hosts() {
     return _hosts;
   }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>&
+  hostgroups() const {
+    return _hostgroups;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>&
+  mut_hostgroups() {
+    return _hostgroups;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::unique_ptr<Anomalydetection>>&
+  mut_anomalydetections() {
+    return _anomalydetections;
+  }
+  const absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                            std::unique_ptr<Anomalydetection>>&
+  anomalydetections() const {
+    return _anomalydetections;
+  }
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>&
   mut_services() {
     return _services;
@@ -198,20 +231,50 @@ class indexed_state {
   services() const {
     return _services;
   }
+  const absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  servicegroups() const {
+    return _servicegroups;
+  }
+  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  mut_servicegroups() {
+    return _servicegroups;
+  }
+  const absl::flat_hash_map<uint64_t, std::unique_ptr<Hostdependency>>&
+  hostdependencies() const {
+    return _hostdependencies;
+  }
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Hostdependency>>&
+  mut_hostdependencies() {
+    return _hostdependencies;
+  }
+  const absl::flat_hash_map<uint64_t, std::unique_ptr<Servicedependency>>&
+  servicedependencies() const {
+    return _servicedependencies;
+  }
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Servicedependency>>&
+  mut_servicedependencies() {
+    return _servicedependencies;
+  }
+  const absl::flat_hash_map<uint64_t, std::unique_ptr<Hostescalation>>&
+  hostescalations() const {
+    return _hostescalations;
+  }
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Hostescalation>>&
+  mut_hostescalations() {
+    return _hostescalations;
+  }
+  const absl::flat_hash_map<uint64_t, std::unique_ptr<Serviceescalation>>&
+  serviceescalations() const {
+    return _serviceescalations;
+  }
+  absl::flat_hash_map<uint64_t, std::unique_ptr<Serviceescalation>>&
+  mut_serviceescalations() {
+    return _serviceescalations;
+  }
+
   void diff_with_new_config(State& new_state,
                             const std::shared_ptr<spdlog::logger>& logger,
                             DiffState* result);
 };
-// template <>
-// void indexed_state::_diff<Service, DiffService, std::pair<uint64_t,
-// uint64_t>, HostServiceId>(
-//     ::google::protobuf::RepeatedPtrField<Service>* new_obj,
-//     const absl::flat_hash_map<KeyType, std::unique_ptr<Service>>& old_obj,
-//     const std::shared_ptr<spdlog::logger>& logger,
-//     std::function<KeyType(Service*)>&& key_builder,
-//     std::function<void(HostServiceId*, const std::pair<uint64_t,
-//     uint64_t>&)>&&
-//         key_setter,
-//     DiffService* result);
 }  // namespace com::centreon::engine::configuration
 #endif /* !CCE_CONFIGURATION_INDEXED_STATE */

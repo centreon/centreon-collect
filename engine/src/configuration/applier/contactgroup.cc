@@ -45,9 +45,8 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
                          << "' has already been defined";
 
   // Add contact group to the global configuration set.
-  configuration::Contactgroup* c_cg =
-      pb_indexed_config.mut_state().add_contactgroups();
-  c_cg->CopyFrom(obj);
+  pb_indexed_config.mut_contactgroups().emplace(
+      name, std::make_unique<Contactgroup>(obj));
 
   // Create contact group.
   auto cg = std::make_shared<engine::contactgroup>(obj);
@@ -129,18 +128,12 @@ void applier::contactgroup::modify_object(
  *
  * @param idx The index of the contactgroup configuration to remove.
  */
-template <>
-void applier::contactgroup::remove_object(
-    const std::pair<ssize_t, std::string>& p) {
-  const configuration::Contactgroup& obj =
-      pb_indexed_config.state().contactgroups()[p.first];
-
+void applier::contactgroup::remove_object(const std::string& key) {
   // Logging.
-  config_logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
+  config_logger->debug("Removing contactgroup '{}'", key);
 
   // Find contact group.
-  contactgroup_map::iterator it =
-      engine::contactgroup::contactgroups.find(obj.contactgroup_name());
+  contactgroup_map::iterator it = engine::contactgroup::contactgroups.find(key);
   if (it != engine::contactgroup::contactgroups.end()) {
     // Remove contact group from its list.
     // unregister_object<contactgroup>(&contactgroup_list, grp);
@@ -153,8 +146,7 @@ void applier::contactgroup::remove_object(
   }
 
   // Remove contact group from the global configuration set.
-  pb_indexed_config.mut_state().mutable_contactgroups()->DeleteSubrange(p.first,
-                                                                        1);
+  pb_indexed_config.mut_contactgroups().erase(key);
 }
 
 /**
@@ -184,7 +176,7 @@ void applier::contactgroup::resolve_object(
  * @brief Resolve members of a contact group. A contact group can be defined
  * from others contactgroups. But we only want for engine, contactgroups defined
  * with contacts. So if it contains contactgroups, we have to copy their
- * contacts into this contactgroup and then empty the contactgroups members.
+ * contacts into this contactgroup and then empty the contactgroups' members.
  *
  * @param s  Configuration being applied.
  * @param obj Object that should be processed.
@@ -204,21 +196,16 @@ void applier::contactgroup::_resolve_members(
     config_logger->debug("Resolving members of contact group '{}'",
                          obj.contactgroup_name());
     for (auto& cg_name : obj.contactgroup_members().data()) {
-      auto it = std::find_if(s.mut_state().mutable_contactgroups()->begin(),
-                             s.mut_state().mutable_contactgroups()->end(),
-                             [&cg_name](const Contactgroup& cg) {
-                               return cg.contactgroup_name() == cg_name;
-                             });
-
-      if (it == s.mut_state().mutable_contactgroups()->end())
+      configuration::Contactgroup* inner_cg =
+          s.mut_contactgroups()[cg_name].get();
+      if (inner_cg == nullptr)
         throw engine_error() << fmt::format(
             "Error: Could not add non-existing contact group member '{}' to "
             "contactgroup '{}'",
             cg_name, obj.contactgroup_name());
 
-      Contactgroup& inner_cg = *it;
-      _resolve_members(s, inner_cg, resolved);
-      for (auto& c_name : inner_cg.members().data())
+      _resolve_members(s, *inner_cg, resolved);
+      for (auto& c_name : inner_cg->members().data())
         fill_string_group(obj.mutable_members(), c_name);
     }
     obj.mutable_contactgroup_members()->clear_data();
