@@ -618,8 +618,11 @@ sub setlogs {
 
     #$synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg}
     #    if $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1;
-use Data::Dumper;
-    if (!defined($synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg})
+    use Data::Dumper;
+    if (!defined($options{data}->{data}->{nb_total_msg})){
+        $options{logger}->writeLogInfo("[proxy-evan] nb_total_msg not set in the message. " . Dumper($options{data}->{data}));
+
+    } elsif (!defined($synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg})
     or $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1) {
         $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg};
         $options{logger}->writeLogInfo("[proxy-evan] setting the nb_total_msg now($options{data}->{data}->{nb_total_msg}).");
@@ -685,10 +688,11 @@ use Data::Dumper;
         );
     }
     increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+    # let's log progress here to show how many logs we have received and correctly ingested so far.
+    $options{logger}->writeLogDebug("[proxy-evan] Logs received so far: " . $synctime_nodes->{ $options{data}->{data}->{id} }->{got_msg} . "/" . $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg});
 
     return 0;
 }
-use Data::Dumper;
 # when retrieving logs from a node, logs can be sent in multiple parts.
 # each part contain the total number of part to expect.
 # this function increment the number of part we got, and delete the hash if we got all the parts.
@@ -704,7 +708,7 @@ sub increment_log_messages_retrieved {
     $node->{got_msg}++;
 
     if ($node->{got_msg} >= $node->{total_msg}) {
-        $logger->writeLogInfo("[proxy-evan] All $node->{total_msg} logs received for node $node->{id} " . Dumper($node));
+        $logger->writeLogInfo("[proxy-evan] All $node->{total_msg} logs received for node $node->{id}, last log is from $node->{ctime}");
         delete($node->{total_msg});
         $node->{got_msg} = 0;
 

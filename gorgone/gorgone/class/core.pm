@@ -790,8 +790,6 @@ sub router_internal_event {
         and ref($response->{result}) eq "ARRAY")
         and scalar(@{$response->{result}}) > 1) {
 
-            $self->{logger}->writeLogError('[core] sent getlog using our new ways');
-
             my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};
             my $to_send      = { action => "getlog", id => $response->{id}, result => [] };
             my $size         = 0;
@@ -813,7 +811,6 @@ sub router_internal_event {
 
                 }
                 push(@{$to_send->{result}}, $log);
-                $self->{logger}->writeLogError('[core:Evan] adding ' . length($log->{data}).  'bytes to the next msg.');
                 $size += length($log->{data});
             }
             if (scalar(@{$to_send->{result}}) > 0) {
@@ -823,7 +820,7 @@ sub router_internal_event {
             my $i = 1;
             for my $msg (@msg_to_send) {
                 $msg->{nb_total_msg} = $nb_msg_to_send;
-                $self->{logger}->writeLogInfo("[core:Evan] sending msg nb $i / $nb_msg_to_send containing " . scalar($msg->{result}) ." logs.");
+                $self->{logger}->writeLogInfo("[core:Evan] sending msg nb $i / $nb_msg_to_send containing " . scalar(@{$msg->{result}}) ." logs.");
                 $i++;
 
                 $self->send_internal_response(
@@ -835,7 +832,13 @@ sub router_internal_event {
                 );
             }
         } else {
-            $self->{logger}->writeLogDebug("[core:Evan] sending msg $response->{action} without splitting it.");
+            my $tmp = $response->{action} ? $response->{action} : 'unknown';
+            if ($tmp eq "unknown") {
+                use Data::Dumper;
+                $self->{logger}->writeLogDebug("[core:Evan] strange msg here : ". Dumper($response));
+            } else {
+                $self->{logger}->writeLogDebug("[core:Evan] sending msg $tmp without splitting it.");
+            }
             $self->send_internal_response(
                 identity      => $identity,
                 response_type => $response_type,

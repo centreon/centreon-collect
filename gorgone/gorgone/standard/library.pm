@@ -533,6 +533,10 @@ sub getlog {
     foreach (sort keys %{$results}) {
         push @result, $results->{$_};
     }
+    use Data::Dumper; # TODO : add this in the query sub to have all request logged ? maybe add the trace mode in logger before doing it?
+    $options{logger}->writeLogDebug("[library-evan] getlog sql query : $query");
+    $options{logger}->writeLogDebug("[library-evan] getlog result contain " . scalar(@result) . " entries, first one : "
+        . Dumper($result[0]) . " And last one : " . Dumper($result[-1]));
 
     return (GORGONE_ACTION_BEGIN, { action => 'getlog', result => \@result, id => $options{gorgone}->{id} });
 }

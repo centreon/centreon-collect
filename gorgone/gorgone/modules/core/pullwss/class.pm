@@ -116,9 +116,6 @@ sub disconnect_zmq_socket_and_exit {
 sub send_message {
     my ($self, %options) = @_;
     my $message = HTML::Entities::encode_entities($options{message});
-        if ($options{message} =~ /SETLOGS/ or $options{message} =~ /GETLOG/) {
-            $connector->{logger}->writeLogDebug("[pullwss-evan] input msg seem like getlog: $options{message}");
-        }
     $self->{tx}->send({text => $message });
 }
 
