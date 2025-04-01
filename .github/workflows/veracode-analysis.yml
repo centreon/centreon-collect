@@ -25,7 +25,7 @@ on:
 jobs:
   build:
     name: Binary preparation
-    runs-on: ubuntu-24.04
+    runs-on: centreon-collect
 
     steps:
       - name: Set routing mode
