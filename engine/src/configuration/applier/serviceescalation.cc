@@ -48,10 +48,9 @@ void applier::serviceescalation::add_object(
                        obj.hosts().data()[0]);
 
   // Add escalation to the global configuration set.
-  auto* se_cfg = pb_indexed_config.mut_state().add_serviceescalations();
-  se_cfg->CopyFrom(obj);
-
   size_t key = configuration::serviceescalation_key(obj);
+  pb_indexed_config.mut_serviceescalations().emplace(
+      key, std::make_unique<configuration::Serviceescalation>(obj));
 
   // Create service escalation.
   auto se = std::make_shared<engine::serviceescalation>(
@@ -101,14 +100,12 @@ void applier::serviceescalation::modify_object(
  *  @param[in] obj  The service escalation to remove from the monitoring
  *                  engine.
  */
-template <>
-void applier::serviceescalation::remove_object(
-    const std::pair<ssize_t, size_t>& p) {
+void applier::serviceescalation::remove_object(uint64_t hash_key) {
   // Logging.
   config_logger->debug("Removing a service escalation.");
 
   configuration::Serviceescalation& obj =
-      pb_indexed_config.mut_state().mutable_serviceescalations()->at(p.first);
+      *pb_indexed_config.mut_serviceescalations().at(hash_key);
   // Find service escalation.
   const std::string& host_name{obj.hosts().data()[0]};
   const std::string& description{obj.service_description().data()[0]};
@@ -154,8 +151,7 @@ void applier::serviceescalation::remove_object(
   }
 
   /* And we clear the configuration */
-  pb_indexed_config.mut_state().mutable_serviceescalations()->DeleteSubrange(
-      p.first, 1);
+  pb_indexed_config.mut_serviceescalations().erase(hash_key);
 }
 
 /**

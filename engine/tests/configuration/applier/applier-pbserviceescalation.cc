@@ -117,9 +117,9 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   se_apply.add_object(se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 
-  se_apply.remove_object<size_t>({0, 1});
+  se_apply.remove_object(1);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  se_apply.remove_object<size_t>({0, 2});
+  se_apply.remove_object(2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }
 
@@ -164,14 +164,13 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   se_apply.add_object(se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 
-  hst_aply.remove_object<size_t>({0, 12});
+  hst_aply.remove_object(12);
   ASSERT_EQ(host::hosts.size(), 0u);
-  svc_aply.remove_object<std::pair<uint64_t, uint64_t>>(
-      {0, std::make_pair(12, 12)});
+  svc_aply.remove_object(std::make_pair(12, 12));
   ASSERT_EQ(service::services.size(), 0u);
 
-  se_apply.remove_object<size_t>({0, 1});
+  se_apply.remove_object(1);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  se_apply.remove_object<size_t>({0, 2});
+  se_apply.remove_object(2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }

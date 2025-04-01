@@ -41,13 +41,10 @@ class contact {
   void add_object(const configuration::Contact& obj);
   void modify_object(configuration::Contact* to_modify,
                      const configuration::Contact& new_object);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Contact& obj, error_cnt& err);
 };
 
-template <>
-void contact::remove_object(const std::pair<ssize_t, std::string>& p);
 }  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONTACT_HH

@@ -45,8 +45,8 @@ void applier::contact::add_object(const configuration::Contact& obj) {
   config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
-  configuration::Contact* ct_cfg = pb_indexed_config.mut_state().add_contacts();
-  ct_cfg->CopyFrom(obj);
+  pb_indexed_config.mut_contacts().emplace(
+      obj.contact_name(), std::make_unique<configuration::Contact>(obj));
 
   // Create address list.
   std::vector<std::string> addresses;
@@ -292,28 +292,24 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  *
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
-template <>
-void applier::contact::remove_object(const std::pair<ssize_t, std::string>& p) {
-  const configuration::Contact& obj =
-      pb_indexed_config.state().contacts()[p.first];
-
+void applier::contact::remove_object(const std::string& key) {
   // Logging.
-  config_logger->debug("Removing contact '{}'.", obj.contact_name());
+  config_logger->debug("Removing contact '{}'.", key);
 
   // Find contact.
-  contact_map::iterator it{engine::contact::contacts.find(obj.contact_name())};
+  contact_map::iterator it = engine::contact::contacts.find(key);
   if (it != engine::contact::contacts.end()) {
     engine::contact* cntct(it->second.get());
 
     for (auto& it_c : cntct->get_parent_groups())
-      it_c.second->get_members().erase(obj.contact_name());
+      it_c.second->get_members().erase(key);
 
     // Erase contact object (this will effectively delete the object).
     engine::contact::contacts.erase(it);
   }
 
   // Remove contact from the global configuration set.
-  pb_indexed_config.mut_state().mutable_contacts()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_contacts().erase(key);
 }
 
 /**

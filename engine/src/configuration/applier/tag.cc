@@ -40,25 +40,21 @@ void applier::tag::add_object(const configuration::Tag& obj) {
                        obj.key().type());
 
   // Add tag to the global configuration set.
-  configuration::Tag* new_tg = pb_indexed_config.mut_state().add_tags();
-  new_tg->CopyFrom(obj);
+  auto key = std::make_pair(obj.key().id(), obj.key().type());
+  pb_indexed_config.mut_tags().emplace(key, std::make_unique<Tag>(obj));
 
   auto tg = std::make_shared<engine::tag>(
-      new_tg->key().id(),
-      static_cast<engine::tag::tagtype>(new_tg->key().type()),
-      new_tg->tag_name());
+      key.first, static_cast<engine::tag::tagtype>(key.second), obj.tag_name());
   if (!tg)
     throw engine_error() << fmt::format("Could not register tag ({},{})",
-                                        new_tg->key().id(),
-                                        new_tg->key().type());
+                                        key.first, key.second);
 
   // Add new items to the configuration state.
-  auto res = engine::tag::tags.insert(
-      {{new_tg->key().id(), new_tg->key().type()}, tg});
+  auto res = engine::tag::tags.insert({{key.first, key.second}, tg});
   if (!res.second)
     config_logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
-        new_tg->key().id(), new_tg->key().type());
+        key.first, key.second);
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
@@ -102,18 +98,12 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  *
  * @param idx The idx in the tags configuration objects to remove.
  */
-template <>
-void applier::tag::remove_object(
-    const std::pair<ssize_t, std::pair<uint64_t, uint32_t>>& p) {
-  const configuration::Tag& obj = pb_indexed_config.state().tags().at(p.first);
-
+void applier::tag::remove_object(const std::pair<uint64_t, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing tag ({},{}).", obj.key().id(),
-                       obj.key().type());
+  config_logger->debug("Removing tag ({},{}).", key.first, key.second);
 
   // Find tag.
-  tag_map::iterator it =
-      engine::tag::tags.find({obj.key().id(), obj.key().type()});
+  tag_map::iterator it = engine::tag::tags.find(key);
   if (it != engine::tag::tags.end()) {
     engine::tag* tg = it->second.get();
 
@@ -125,7 +115,7 @@ void applier::tag::remove_object(
   }
 
   // Remove tag from the global configuration set.
-  pb_indexed_config.mut_state().mutable_tags()->DeleteSubrange(p.first, 1);
+  pb_indexed_config.mut_tags().erase(key);
 }
 
 /**

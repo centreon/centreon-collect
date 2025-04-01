@@ -17,7 +17,7 @@
  *
  */
 #include "common/engine_conf/hostescalation_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -33,11 +33,15 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostescalation_key(const Hostescalation& he) {
-  return absl::HashOf(he.hosts().data(0),
-                      // he.contactgroups().data(),
-                      he.escalation_options(), he.escalation_period(),
-                      he.first_notification(), he.last_notification(),
-                      he.notification_interval());
+  uint64_t result = 0;
+  boost::hash_combine(result, he.hosts().data(0));
+  // boost::hash_combine(result, he.contactgroups().data());
+  boost::hash_combine(result, he.escalation_options());
+  boost::hash_combine(result, he.escalation_period());
+  boost::hash_combine(result, he.first_notification());
+  boost::hash_combine(result, he.last_notification());
+  boost::hash_combine(result, he.notification_interval());
+  return result;
 }
 
 /**

@@ -35,7 +35,8 @@ class servicedependency {
       const ::google::protobuf::RepeatedPtrField<std::string>& svc,
       const ::google::protobuf::RepeatedPtrField<std::string>& sg,
       configuration::indexed_state& s,
-      absl::flat_hash_set<std::pair<std::string, std::string>>& expanded);
+      absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+          expanded);
 
  public:
   servicedependency() = default;
@@ -45,8 +46,7 @@ class servicedependency {
   void add_object(const configuration::Servicedependency& obj);
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
-  template <typename Key>
-  void remove_object(const std::pair<ssize_t, Key>& p);
+  void remove_object(uint64_t hash_key);
   void resolve_object(const configuration::Servicedependency& obj,
                       error_cnt& err);
 };

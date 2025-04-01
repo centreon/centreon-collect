@@ -23,6 +23,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::engine::configuration;
 
@@ -65,16 +66,16 @@ void applier::servicedependency::add_object(
       obj.hosts().data()[0]);
 
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_indexed_config.mut_state().add_servicedependencies();
-  new_obj->CopyFrom(obj);
+  uint64_t hash_key = configuration::servicedependency_key(obj);
+  pb_indexed_config.mut_servicedependencies().emplace(
+      hash_key, std::make_unique<Servicedependency>(obj));
 
   std::shared_ptr<engine::servicedependency> sd;
 
   if (obj.dependency_type() == execution_dependency)
     // Create execution dependency.
     sd = std::make_shared<engine::servicedependency>(
-        configuration::servicedependency_key(obj),
-        obj.dependent_hosts().data()[0],
+        hash_key, obj.dependent_hosts().data()[0],
         obj.dependent_service_description().data()[0], obj.hosts().data()[0],
         obj.service_description().data()[0], dependency::execution,
         obj.inherits_parent(),
@@ -87,7 +88,7 @@ void applier::servicedependency::add_object(
   else
     // Create notification dependency.
     sd = std::make_shared<engine::servicedependency>(
-        servicedependency_key(obj), obj.dependent_hosts().data()[0],
+        hash_key, obj.dependent_hosts().data()[0],
         obj.dependent_service_description().data()[0], obj.hosts().data()[0],
         obj.service_description().data()[0], dependency::notification,
         obj.inherits_parent(),
@@ -131,28 +132,24 @@ void applier::servicedependency::modify_object(
  *  @param[in] obj  The service dependency to remove from the monitoring
  *                  engine.
  */
-template <>
-void applier::servicedependency::remove_object(
-    const std::pair<ssize_t, size_t>& p) {
+void applier::servicedependency::remove_object(uint64_t hash_key) {
   // Logging.
   config_logger->debug("Removing a service dependency.");
 
   // Find service dependency.
-  auto& obj = pb_indexed_config.state().servicedependencies(p.first);
-  size_t key = servicedependency_key(obj);
+  auto& obj = *pb_indexed_config.servicedependencies().at(hash_key);
 
   servicedependency_mmap::iterator it =
-      engine::servicedependency::servicedependencies_find(
-          std::make_tuple(obj.dependent_hosts().data(0),
-                          obj.dependent_service_description().data(0), key));
+      engine::servicedependency::servicedependencies_find(std::make_tuple(
+          obj.dependent_hosts().data(0),
+          obj.dependent_service_description().data(0), hash_key));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Remove service dependency from its list.
     engine::servicedependency::servicedependencies.erase(it);
   }
 
   // Remove dependency from the global configuration set.
-  pb_indexed_config.mut_state().mutable_servicedependencies()->DeleteSubrange(
-      p.first, 1);
+  pb_indexed_config.mut_servicedependencies().erase(hash_key);
 }
 
 /**
@@ -195,7 +192,8 @@ void applier::servicedependency::_expand_services(
     const ::google::protobuf::RepeatedPtrField<std::string>& svc,
     const ::google::protobuf::RepeatedPtrField<std::string>& sg,
     configuration::indexed_state& s,
-    absl::flat_hash_set<std::pair<std::string, std::string>>& expanded) {
+    absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+        expanded) {
   // Expanded hosts.
   absl::flat_hash_set<std::string> all_hosts;
 
@@ -205,15 +203,14 @@ void applier::servicedependency::_expand_services(
   // Host groups.
   for (auto& hgn : hg) {
     // Find host group
-    auto found = std::find_if(
-        s.state().hostgroups().begin(), s.state().hostgroups().end(),
-        [&hgn](const Hostgroup& hgg) { return hgg.hostgroup_name() == hgn; });
-    if (found == s.state().hostgroups().end())
+    auto found = s.hostgroups().find(hgn);
+    if (found == s.hostgroups().end())
       throw engine_error() << fmt::format("Could not resolve host group '{}'",
                                           hgn);
+
     // Add host group members.
-    all_hosts.insert(found->members().data().begin(),
-                     found->members().data().end());
+    all_hosts.insert(found->second->members().data().begin(),
+                     found->second->members().data().end());
   }
 
   // Hosts * services.
@@ -224,17 +221,13 @@ void applier::servicedependency::_expand_services(
   // Service groups.
   for (auto& sgn : sg) {
     // Find service group.
-    auto found = std::find_if(s.state().servicegroups().begin(),
-                              s.state().servicegroups().end(),
-                              [&sgn](const Servicegroup& sgg) {
-                                return sgg.servicegroup_name() == sgn;
-                              });
-    if (found == s.state().servicegroups().end())
+    auto found = s.servicegroups().find(sgn);
+    if (found == s.servicegroups().end())
       throw engine_error() << fmt::format(
           "Coulx not resolve service group '{}'", sgn);
 
     // Add service group members.
-    for (auto& m : found->members().data())
+    for (auto& m : found->second->members().data())
       expanded.insert({m.first(), m.second()});
   }
 }

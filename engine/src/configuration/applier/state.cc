@@ -49,6 +49,7 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -128,7 +129,7 @@ void applier::state::apply(configuration::indexed_state& new_cfg,
 
 void applier::state::apply_diff(configuration::DiffState& diff_conf,
                                 error_cnt& err,
-                                retention::state* state) {
+                                retention::state* state [[maybe_unused]]) {
   configuration::indexed_state save(pb_indexed_config);
   try {
     _processing_state = state_ready;
@@ -674,12 +675,11 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
 
   // Erase objects.
   for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
-    auto p = *it;
     if (!verify_config)
-      aplyr.remove_object(p);
+      aplyr.remove_object(it->second);
     else {
       try {
-        aplyr.remove_object(p);
+        aplyr.remove_object(it->second);
       } catch (const std::exception& e) {
         ++err.config_errors;
         config_logger->info(e.what());
@@ -702,63 +702,64 @@ void applier::state::_apply(const pb_difference<ConfigurationType, Key>& diff,
   }
 }
 
-template <>
-void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
-  // Applier.
-  configuration::applier::severity aplyr;
-
-  // Modify objects.
-  for (auto& s : diff.modified()) {
-    auto* current_severity =
-        pb_indexed_config.severities().at({s.key().id(), s.key().type()}).get();
-    if (!verify_config) {
-      aplyr.modify_object(current_severity, s);
-    } else {
-      try {
-        aplyr.modify_object(current_severity, s);
-      } catch (const std::exception& e) {
-        ++err.config_errors;
-        config_logger->info(e.what());
-      }
-    }
-  }
-
-  // Erase objects.
-  for (auto& r : diff.removed()) {
-    uint32_t idx = 0;
-    for (auto& s : pb_indexed_config.state().severities()) {
-      if (r.id() == s.key().id() && r.type() == s.key().type()) {
-        if (!verify_config)
-          aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
-              {idx, {s.key().id(), s.key().type()}});
-        else {
-          try {
-            aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
-                {idx, {s.key().id(), s.key().type()}});
-          } catch (const std::exception& e) {
-            ++err.config_errors;
-            config_logger->info(e.what());
-          }
-        }
-      }
-      idx++;
-    }
-  }
-
-  // Add objects.
-  for (auto& obj : diff.added()) {
-    if (!verify_config)
-      aplyr.add_object(obj);
-    else {
-      try {
-        aplyr.add_object(obj);
-      } catch (const std::exception& e) {
-        ++err.config_errors;
-        config_logger->info(e.what());
-      }
-    }
-  }
-}
+// template <>
+// void applier::state::_apply_ng(const DiffSeverity& diff, error_cnt& err) {
+//   // Applier.
+//   configuration::applier::severity aplyr;
+//
+//   // Modify objects.
+//   for (auto& s : diff.modified()) {
+//     auto* current_severity =
+//         pb_indexed_config.severities().at({s.key().id(),
+//         s.key().type()}).get();
+//     if (!verify_config) {
+//       aplyr.modify_object(current_severity, s);
+//     } else {
+//       try {
+//         aplyr.modify_object(current_severity, s);
+//       } catch (const std::exception& e) {
+//         ++err.config_errors;
+//         config_logger->info(e.what());
+//       }
+//     }
+//   }
+//
+//   // Erase objects.
+//   for (auto& r : diff.removed()) {
+//     uint32_t idx = 0;
+//     for (auto& s : pb_indexed_config.state().severities()) {
+//       if (r.id() == s.key().id() && r.type() == s.key().type()) {
+//         if (!verify_config)
+//           aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
+//               {idx, {s.key().id(), s.key().type()}});
+//         else {
+//           try {
+//             aplyr.remove_object<std::pair<uint64_t, uint32_t>>(
+//                 {idx, {s.key().id(), s.key().type()}});
+//           } catch (const std::exception& e) {
+//             ++err.config_errors;
+//             config_logger->info(e.what());
+//           }
+//         }
+//       }
+//       idx++;
+//     }
+//   }
+//
+//   // Add objects.
+//   for (auto& obj : diff.added()) {
+//     if (!verify_config)
+//       aplyr.add_object(obj);
+//     else {
+//       try {
+//         aplyr.add_object(obj);
+//       } catch (const std::exception& e) {
+//         ++err.config_errors;
+//         config_logger->info(e.what());
+//       }
+//     }
+//   }
+// }
 
 #ifdef DEBUG_CONFIG
 /**
@@ -1745,7 +1746,26 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     return;
   } else {
     /* The full state was not sent by Broker. */
-    _apply_ng(*diff_conf.mutable_severities(), err);
+
+    auto timeperiod_build_key = [](const Timeperiod& obj) -> std::string {
+      return obj.timeperiod_name();
+    };
+    /* Applying timeperiods diff */
+    _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
+              Timeperiod>(*diff_conf.mutable_timeperiods(),
+                          pb_indexed_config.mut_timeperiods(),
+                          timeperiod_build_key);
+
+    /* Applying severities diff */
+    _apply_ng<configuration::applier::severity, DiffSeverity,
+              std::pair<uint64_t, uint32_t>, Severity, KeyType>(
+        *diff_conf.mutable_severities(), pb_indexed_config.mut_severities(),
+        [](const Severity& obj) {
+          return std::make_pair(obj.key().id(), obj.key().type());
+        },
+        [](const KeyType& key) {
+          return std::make_pair(key.id(), key.type());
+        });
   }
 }
 
