@@ -23,7 +23,7 @@ on:
         required: true
 
 jobs:
-  routing:
+  build:
     name: Binary preparation
     runs-on: ubuntu-24.04
 
