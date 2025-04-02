@@ -23,11 +23,8 @@
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-size_t servicedependency_key(const servicedependency& sd);
-
-namespace applier {
 class servicedependency {
   void _expand_services(
       const ::google::protobuf::RepeatedPtrField<std::string>& hst,
@@ -50,7 +47,6 @@ class servicedependency {
   void resolve_object(const configuration::Servicedependency& obj,
                       error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH

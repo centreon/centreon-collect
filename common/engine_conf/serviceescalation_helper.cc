@@ -25,15 +25,17 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se) {
+  assert(se.hosts().data().size() == 1 && se.hostgroups().data().empty() &&
+         se.servicegroups().data().empty());
   uint64_t result = 0;
-  boost::hash_combine(result, se.hosts().data(0));
-  boost::hash_combine(result, se.service_description().data(0));
-  // boost::hash_combine(result, se.contactgroups());
+  boost::hash_combine(result, se.contactgroups().data());
   boost::hash_combine(result, se.escalation_options());
   boost::hash_combine(result, se.escalation_period());
   boost::hash_combine(result, se.first_notification());
+  boost::hash_combine(result, se.hosts().data(0));
   boost::hash_combine(result, se.last_notification());
   boost::hash_combine(result, se.notification_interval());
+  boost::hash_combine(result, se.service_description().data(0));
   return result;
 }
 

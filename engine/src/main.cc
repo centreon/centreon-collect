@@ -233,16 +233,14 @@ int main(int argc, char* argv[]) {
           cbm = std::make_unique<cbmod>(proto_conf);
           auto pb_cfg = std::make_unique<configuration::State>();
           configuration::state_helper state_hlp(pb_cfg.get());
-          configuration::indexed_state indexed_config(std::move(pb_cfg));
-          configuration::State& pb_config = indexed_config.mut_state();
           {
             configuration::parser p;
-            p.parse(config_file, &pb_config, err);
+            p.parse(config_file, pb_cfg.get(), err);
             if (broker_config.empty())
-              broker_config = pb_config.broker_module_cfg_file();
+              broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
           }
-          configuration::applier::state::instance().apply(indexed_config, err);
+          configuration::applier::state::instance().apply(*pb_cfg, err);
           std::cout << "\n Checked " << commands::command::commands.size()
                     << " commands.\n Checked "
                     << commands::connector::connectors.size()
@@ -294,21 +292,19 @@ int main(int argc, char* argv[]) {
           // Parse configuration.
           auto pb_cfg = std::make_unique<configuration::State>();
           configuration::state_helper state_hlp(pb_cfg.get());
-          configuration::indexed_state indexed_config(std::move(pb_cfg));
-          configuration::State& pb_config = indexed_config.mut_state();
           configuration::error_cnt err;
           {
             configuration::parser p;
-            p.parse(config_file, &pb_config, err);
+            p.parse(config_file, pb_cfg.get(), err);
             state_hlp.expand(err);
           }
 
           // Parse retention.
           retention::state state;
-          if (!pb_config.state_retention_file().empty()) {
+          if (!pb_cfg->state_retention_file().empty()) {
             retention::parser p;
             try {
-              p.parse(pb_config.state_retention_file(), state);
+              p.parse(pb_cfg->state_retention_file(), state);
             } catch (std::exception const& e) {
               std::cout << "Error while parsing the retention: {}" << e.what()
                         << std::endl;
@@ -316,8 +312,7 @@ int main(int argc, char* argv[]) {
           }
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(indexed_config, err,
-                                                          &state);
+          configuration::applier::state::instance().apply(*pb_cfg, err, &state);
 
           display_scheduling_info();
           retval = EXIT_SUCCESS;
@@ -361,15 +356,13 @@ int main(int argc, char* argv[]) {
             configuration::error_cnt err;
             state_hlp.expand(err);
           }
-          configuration::indexed_state indexed_config(std::move(new_conf));
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
 
-          configuration::extended_conf::update_state(
-              &indexed_config.mut_state());
+          configuration::extended_conf::update_state(new_conf.get());
           if (broker_config.empty())
-            broker_config = indexed_config.broker_module_cfg_file();
-          uint16_t port = indexed_config.mut_state().grpc_port();
+            broker_config = new_cfg->broker_module_cfg_file();
+          uint16_t port = new_conf->grpc_port();
 
           if (broker_config.empty()) {
             std::cerr << "No module configuration file provided in the Engine "
@@ -380,8 +373,7 @@ int main(int argc, char* argv[]) {
           if (!port)
             port = generate_port();
 
-          const std::string& listen_address =
-              indexed_config.mut_state().rpc_listen_address();
+          const std::string& listen_address = new_conf->rpc_listen_address();
 
           std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {
@@ -394,7 +386,7 @@ int main(int argc, char* argv[]) {
           {
             retention::parser p;
             try {
-              p.parse(indexed_config.mut_state().state_retention_file(), state);
+              p.parse(new_conf->state_retention_file(), state);
             } catch (const std::exception& e) {
               config_logger->error("{}", e.what());
               engine_logger(logging::log_config_error, logging::basic)
@@ -411,17 +403,15 @@ int main(int argc, char* argv[]) {
           // Handle signals (interrupts).
           setup_sighandler();
 
-          configuration::State& new_config = indexed_config.mut_state();
           // Load broker modules.
           if (vm.count("log-file"))
-            new_config.set_log_file(vm["log-file"].as<std::string>());
+            new_conf->set_log_file(vm["log-file"].as<std::string>());
 
-          configuration::applier::state::instance().apply_log_config(
-              new_config);
+          configuration::applier::state::instance().apply_log_config(*new_conf);
 
           neb_init_callback_list();
 
-          for (auto& m : new_config.broker_module()) {
+          for (auto& m : new_conf->broker_module()) {
             std::pair<std::string, std::string> p =
                 absl::StrSplit(m, absl::MaxSplits(' ', 1));
             broker::loader::instance().add_module(p.first, p.second);
@@ -432,7 +422,7 @@ int main(int argc, char* argv[]) {
               &backend_broker_log, logging::log_all, logging::basic);
 
           // Apply configuration.
-          configuration::applier::state::instance().apply(indexed_config, err,
+          configuration::applier::state::instance().apply(*new_conf, err,
                                                           &state);
 
           // Initialize status data.

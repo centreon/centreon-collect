@@ -18,8 +18,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
-#include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "common/engine_conf/state.pb.h"
 
@@ -38,13 +36,7 @@ namespace configuration::applier {
  */
 class scheduler {
  public:
-  void apply(configuration::State& config,
-             const pb_difference<configuration::Host, uint64_t>& diff_hosts,
-             const pb_difference<configuration::Service,
-                                 std::pair<uint64_t, uint64_t> >& diff_services,
-             const pb_difference<configuration::Anomalydetection,
-                                 std::pair<uint64_t, uint64_t> >&
-                 diff_anomalydetections);
+  void apply(configuration::State& config, const DiffState& diff);
   static scheduler& instance();
   void clear();
   void remove_host(uint64_t host_id);

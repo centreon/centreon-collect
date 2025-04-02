@@ -108,10 +108,8 @@ static void apply_conf(std::atomic<bool>* reloading) {
       p.parse(path, cfg.get(), err);
       config_hlp.expand(err);
     }
-    configuration::indexed_state indexed_config(std::move(cfg));
-    configuration::State& config = indexed_config.mut_state();
-    configuration::extended_conf::update_state(&config);
-    configuration::applier::state::instance().apply(indexed_config, err);
+    configuration::extended_conf::update_state(cfg.get());
+    configuration::applier::state::instance().apply(*cfg, err);
     process_logger->info("Configuration reloaded, main loop continuing.");
   } catch (std::exception const& e) {
     config_logger->error("Error: {}", e.what());

@@ -18,8 +18,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_STATE_HH
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
-#include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "common/engine_conf/indexed_state.hh"
 
@@ -47,7 +45,7 @@ namespace applier {
  */
 class state {
  public:
-  void apply(configuration::indexed_state& new_cfg,
+  void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
   void apply_diff(configuration::DiffState& diff_conf,
@@ -89,10 +87,7 @@ class state {
 #endif
 
   state& operator=(state const&);
-  void _apply(const configuration::indexed_state& new_cfg, error_cnt& err);
-  template <typename ConfigurationType, typename Key, typename ApplierType>
-  void _apply(const pb_difference<ConfigurationType, Key>& diff,
-              error_cnt& err);
+  void _apply(const configuration::State& new_cfg, error_cnt& err);
   template <typename Applier,
             typename DiffType,
             typename KeyType,
@@ -150,19 +145,15 @@ class state {
       aplyr.add_object(obj);
     }
   }
-  void _apply(configuration::indexed_state& new_cfg,
+  void _apply(configuration::State& new_cfg,
               retention::state& state,
               error_cnt& err);
-  void _processing(configuration::indexed_state& new_cfg,
+  void _processing(configuration::State& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);
   void _processing_diff(configuration::DiffState& diff_conf,
                         error_cnt& err,
                         retention::state* state = nullptr);
-  template <typename ConfigurationType, typename ApplierType>
-  void _resolve(
-      const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
-      error_cnt& err);
   template <typename ConfigurationType, typename KeyType, typename ApplierType>
   void _resolve(
       const absl::flat_hash_map<KeyType, std::unique_ptr<ConfigurationType>>&
