@@ -86,9 +86,8 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
 }
 
 // Given a host configuration
-// When we change the host name in the configuration
-// Then the applier modify_object changes the host name without changing
-// the host id.
+// When we reduce the number of hosts in a hostgroup
+// Then the applier modify_object changes the hostgroup members properly.
 TEST_F(ApplierHostGroup, PbHostRenamed) {
   configuration::error_cnt err;
   configuration::applier::hostgroup hg_aply;
@@ -123,8 +122,8 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  hg_aply.modify_object(
-      &pb_indexed_config.mut_state().mutable_hostgroups()->at(0), hg);
+  hg_aply.modify_object(pb_indexed_config.mut_hostgroups().at("temphg").get(),
+                        hg);
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
@@ -174,9 +173,9 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
   ASSERT_NO_THROW(hg_aply.modify_object(
-      &pb_indexed_config.mut_state().mutable_hostgroups()->at(0), hg));
+      pb_indexed_config.mut_hostgroups().at("temphg").get(), hg));
 
   hg_aply.remove_object("temphg");
-  ASSERT_TRUE(pb_indexed_config.state().hostgroups().empty());
+  ASSERT_TRUE(pb_indexed_config.hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

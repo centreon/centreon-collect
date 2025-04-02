@@ -143,9 +143,9 @@ TEST_F(HostDependency, PbExpandHostdependency) {
       new_pb_configuration_hostdependency("host1,host3,host5", "host2,host6")};
   auto* new_hd = config->add_hostdependencies();
   new_hd->CopyFrom(std::move(hd));
-  configuration::indexed_state state(std::move(config));
   configuration::error_cnt err;
   s_hlp.expand(err);
+  configuration::indexed_state state(std::move(config));
   ASSERT_EQ(state.hostdependencies().size(), 6);
   ASSERT_TRUE(
       std::all_of(state.hostdependencies().begin(),
