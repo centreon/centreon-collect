@@ -116,7 +116,6 @@ set( SRC_COMMON
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
   ${SRC_DIR}/check_health.cc
-  ${SRC_DIR}/filter.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
@@ -130,6 +129,7 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
+  ${SRC_DIR}/filter.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_event_log.cc
   ${NATIVE_SRC}/check_process.cc
