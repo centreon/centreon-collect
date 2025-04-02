@@ -24,7 +24,6 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/timeperiod_helper.hh"

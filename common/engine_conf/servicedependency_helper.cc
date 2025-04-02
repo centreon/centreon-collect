@@ -25,16 +25,22 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t servicedependency_key(const Servicedependency& sd) {
+  assert(sd.hosts().data().size() == 1 && sd.hostgroups().data().empty() &&
+         sd.servicegroups().data().empty() &&
+         sd.dependent_hostgroups().data().empty() &&
+         sd.dependent_hosts().data().size() == 1 &&
+         sd.dependent_servicegroups().data().empty() &&
+         sd.dependent_service_description().data().size() == 1);
   uint64_t result = 0;
   boost::hash_combine(result, sd.dependency_period());
   boost::hash_combine(result, sd.dependency_type());
-  boost::hash_combine(result, sd.hosts().data(0));
-  boost::hash_combine(result, sd.service_description().data(0));
   boost::hash_combine(result, sd.dependent_hosts().data(0));
   boost::hash_combine(result, sd.dependent_service_description().data(0));
   boost::hash_combine(result, sd.execution_failure_options());
+  boost::hash_combine(result, sd.hosts().data(0));
   boost::hash_combine(result, sd.inherits_parent());
   boost::hash_combine(result, sd.notification_failure_options());
+  boost::hash_combine(result, sd.service_description().data(0));
   return result;
 }
 

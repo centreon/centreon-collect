@@ -41,6 +41,7 @@ size_t hostdependency_key(const Hostdependency& hd) {
   boost::hash_combine(result, hd.dependency_type());
   boost::hash_combine(result, hd.dependent_hosts().data(0));
   boost::hash_combine(result, hd.hosts().data(0));
+  boost::hash_combine(result, hd.execution_failure_options());
   boost::hash_combine(result, hd.inherits_parent());
   boost::hash_combine(result, hd.notification_failure_options());
   return result;

@@ -23,6 +23,7 @@
 #include <com/centreon/engine/configuration/applier/service.hh>
 #include <com/centreon/engine/configuration/applier/serviceescalation.hh>
 #include <com/centreon/engine/serviceescalation.hh>
+#include "common/engine_conf/serviceescalation_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -110,16 +111,18 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   se1_hlp.hook("hosts", "test_host");
   se1_hlp.hook("service_description", "test_svc");
   se1.set_first_notification(4);
+  uint64_t hash_se1 = configuration::serviceescalation_key(se1);
   se_apply.add_object(se1);
   se2_hlp.hook("hosts", "test_host");
   se2_hlp.hook("service_description", "test_svc");
   se2.set_first_notification(8);
+  uint64_t hash_se2 = configuration::serviceescalation_key(se2);
   se_apply.add_object(se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 
-  se_apply.remove_object(1);
+  se_apply.remove_object(hash_se1);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  se_apply.remove_object(2);
+  se_apply.remove_object(hash_se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }
 
@@ -157,10 +160,12 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   se1_hlp.hook("hosts", "test_host");
   se1_hlp.hook("service_description", "test_svc");
   se1.set_first_notification(4);
+  uint64_t hash_se1 = configuration::serviceescalation_key(se1);
   se_apply.add_object(se1);
   se2_hlp.hook("hosts", "test_host");
   se2_hlp.hook("service_description", "test_svc");
   se2.set_first_notification(8);
+  uint64_t hash_se2 = configuration::serviceescalation_key(se2);
   se_apply.add_object(se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 
@@ -169,8 +174,8 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   svc_aply.remove_object(std::make_pair(12, 12));
   ASSERT_EQ(service::services.size(), 0u);
 
-  se_apply.remove_object(1);
+  se_apply.remove_object(hash_se2);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
-  se_apply.remove_object(2);
+  se_apply.remove_object(hash_se1);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }

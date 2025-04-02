@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
-#include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/events/loop.hh"
@@ -44,14 +43,8 @@ using namespace com::centreon::logging;
  *  @param[in] diff_anomalydetections The difference between old and the
  *                           new cwanomalydetectionservice configuration.
  */
-void applier::scheduler::apply(
-    configuration::State& config,
-    const pb_difference<configuration::Host, uint64_t>& diff_hosts,
-    const pb_difference<configuration::Service, std::pair<uint64_t, uint64_t> >&
-        diff_services,
-    const pb_difference<configuration::Anomalydetection,
-                        std::pair<uint64_t, uint64_t> >&
-        diff_anomalydetections) {
+void applier::scheduler::apply(configuration::State& config,
+                               const configuration::DiffState& diff) {
   // Internal pointer will be used in private methods.
   _pb_config = &config;
 
@@ -60,95 +53,84 @@ void applier::scheduler::apply(
 
   // Objects set.
   std::vector<uint64_t> hst_to_unschedule;
-  for (auto& d : diff_hosts.deleted())
-    hst_to_unschedule.emplace_back(d.second);
+  for (auto& d : diff.hosts().removed())
+    hst_to_unschedule.emplace_back(d);
 
   std::vector<std::pair<uint64_t, uint64_t> > svc_to_unschedule;
-  for (auto& d : diff_services.deleted())
-    svc_to_unschedule.emplace_back(d.second);
+  for (auto& d : diff.services().removed())
+    svc_to_unschedule.emplace_back(d.host_id(), d.service_id());
 
   std::vector<std::pair<uint64_t, uint64_t> > ad_to_unschedule;
-  for (auto& d : diff_anomalydetections.deleted())
-    ad_to_unschedule.emplace_back(d.second);
+  for (auto& d : diff.anomalydetections().removed())
+    ad_to_unschedule.emplace_back(d.host_id(), d.service_id());
 
   std::vector<uint64_t> hst_to_schedule;
-  for (auto& a : diff_hosts.added())
-    hst_to_schedule.emplace_back(a->host_id());
+  for (auto& a : diff.hosts().added())
+    hst_to_schedule.emplace_back(a.host_id());
 
   std::vector<std::pair<uint64_t, uint64_t> > svc_to_schedule;
-  for (auto& a : diff_services.added())
-    svc_to_schedule.emplace_back(a->host_id(), a->service_id());
+  for (auto& a : diff.services().added())
+    svc_to_schedule.emplace_back(a.host_id(), a.service_id());
 
   std::vector<std::pair<uint64_t, uint64_t> > ad_to_schedule;
-  for (auto& a : diff_anomalydetections.added())
-    ad_to_schedule.emplace_back(a->host_id(), a->service_id());
+  for (auto& a : diff.anomalydetections().added())
+    ad_to_schedule.emplace_back(a.host_id(), a.service_id());
 
-  for (auto& m : diff_hosts.modified()) {
-    auto it_hst = engine::host::hosts.find(m.second->host_name());
+  for (auto& m : diff.hosts().modified()) {
+    auto it_hst = engine::host::hosts.find(m.host_name());
     if (it_hst != engine::host::hosts.end()) {
       bool has_event(events::loop::instance().find_event(
                          events::loop::low, timed_event::EVENT_HOST_CHECK,
                          it_hst->second.get()) !=
                      events::loop::instance().list_end(events::loop::low));
-      bool should_schedule(m.second->checks_active() &&
-                           m.second->check_interval() > 0);
+      bool should_schedule(m.checks_active() && m.check_interval() > 0);
       if (has_event && should_schedule) {
-        hst_to_unschedule.emplace_back(m.second->host_id());
-        hst_to_schedule.emplace_back(m.second->host_id());
+        hst_to_unschedule.emplace_back(m.host_id());
+        hst_to_schedule.emplace_back(m.host_id());
       } else if (!has_event && should_schedule)
-        hst_to_schedule.emplace_back(m.second->host_id());
+        hst_to_schedule.emplace_back(m.host_id());
       else if (has_event && !should_schedule)
-        hst_to_unschedule.emplace_back(m.second->host_id());
+        hst_to_unschedule.emplace_back(m.host_id());
       // Else it has no event and should not be scheduled, so do nothing.
     }
   }
 
-  for (auto& m : diff_services.modified()) {
-    auto it_svc = engine::service::services_by_id.find(
-        {m.second->host_id(), m.second->service_id()});
+  for (auto& m : diff.services().modified()) {
+    auto it_svc =
+        engine::service::services_by_id.find({m.host_id(), m.service_id()});
     if (it_svc != engine::service::services_by_id.end()) {
       bool has_event(events::loop::instance().find_event(
                          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
                          it_svc->second.get()) !=
                      events::loop::instance().list_end(events::loop::low));
-      bool should_schedule(m.second->checks_active() &&
-                           (m.second->check_interval() > 0));
+      bool should_schedule(m.checks_active() && (m.check_interval() > 0));
       if (has_event && should_schedule) {
-        svc_to_unschedule.emplace_back(m.second->host_id(),
-                                       m.second->service_id());
-        svc_to_schedule.emplace_back(m.second->host_id(),
-                                     m.second->service_id());
+        svc_to_unschedule.emplace_back(m.host_id(), m.service_id());
+        svc_to_schedule.emplace_back(m.host_id(), m.service_id());
       } else if (!has_event && should_schedule)
-        svc_to_schedule.emplace_back(m.second->host_id(),
-                                     m.second->service_id());
+        svc_to_schedule.emplace_back(m.host_id(), m.service_id());
       else if (has_event && !should_schedule)
-        svc_to_unschedule.emplace_back(m.second->host_id(),
-                                       m.second->service_id());
+        svc_to_unschedule.emplace_back(m.host_id(), m.service_id());
       // Else it has no event and should not be scheduled, so do nothing.
     }
   }
 
-  for (auto& m : diff_anomalydetections.modified()) {
-    auto it_svc = engine::service::services_by_id.find(
-        {m.second->host_id(), m.second->service_id()});
+  for (auto& m : diff.anomalydetections().modified()) {
+    auto it_svc =
+        engine::service::services_by_id.find({m.host_id(), m.service_id()});
     if (it_svc != engine::service::services_by_id.end()) {
       bool has_event(events::loop::instance().find_event(
                          events::loop::low, timed_event::EVENT_SERVICE_CHECK,
                          it_svc->second.get()) !=
                      events::loop::instance().list_end(events::loop::low));
-      bool should_schedule =
-          m.second->checks_active() && m.second->check_interval() > 0;
+      bool should_schedule = m.checks_active() && m.check_interval() > 0;
       if (has_event && should_schedule) {
-        ad_to_unschedule.emplace_back(m.second->host_id(),
-                                      m.second->service_id());
-        ad_to_schedule.emplace_back(m.second->host_id(),
-                                    m.second->service_id());
+        ad_to_unschedule.emplace_back(m.host_id(), m.service_id());
+        ad_to_schedule.emplace_back(m.host_id(), m.service_id());
       } else if (!has_event && should_schedule)
-        ad_to_schedule.emplace_back(m.second->host_id(),
-                                    m.second->service_id());
+        ad_to_schedule.emplace_back(m.host_id(), m.service_id());
       else if (has_event && !should_schedule)
-        ad_to_unschedule.emplace_back(m.second->host_id(),
-                                      m.second->service_id());
+        ad_to_unschedule.emplace_back(m.host_id(), m.service_id());
       // Else it has no event and should not be scheduled, so do nothing.
     }
   }

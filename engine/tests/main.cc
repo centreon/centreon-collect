@@ -60,10 +60,9 @@ int main(int argc, char* argv[]) {
   com::centreon::common::pool::set_pool_size(0);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
-  time_t now = time(NULL);
-  set_time(now + 1000);
   g_io_context->stop();
   com::centreon::common::pool::unload();
   spdlog::shutdown();
+  set_time(1617707800 + 1000);
   return ret;
 }
