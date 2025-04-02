@@ -780,14 +780,19 @@ sub router_internal_event {
                 router_type => 'internal'
             }
         );
+        # websocket have a size limit on each message, so we need to split the response if it's too big
+        # For now we split only for a getlog response (which should be a setlog message).
+        # the getlog will be transformed into a setlog message by gorgone::modules::core::*::class::transmit_back sub.
         # we don't want to fragment the response if the max size is configured to 0 (which would mean unlimited size)
         # so we don't use defined() here.
         if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} and
+        # Now let's check the response, it should be the correct type and have a non empty array of logs
         (defined($response)
         and defined($response->{action})
         and $response->{action} eq "getlog"
         and defined($response->{result})
         and ref($response->{result}) eq "ARRAY")
+        # If the response don't contain any log, we don't need to split it.
         and scalar(@{$response->{result}}) > 1) {
 
             my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};

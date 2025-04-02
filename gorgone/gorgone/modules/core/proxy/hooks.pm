@@ -587,8 +587,16 @@ sub pathway {
     # if there are here, we use the first pathway (because all pathways had an issue)
     return (1, 0, $first_target . '~~' . $target, $first_target, $target);
 }
-
+# Store log from a distant poller to local database, and the last log creation time (ctime) to avoid asking the same logs again.
+# called by routing() to process the SETLOGS event.
+# it's a getlog response from a distant node. on single node getlogs are not transformed in setlog.
+# each getlog can generate multiples setlogs depending on the size/number of logs on remote host. (see class::core::router_internal_event() and pullwss::hook::transmit_back)
+# For now if a message is lost during transit it's not asked again.
 sub setlogs {
+    # data: the zmq message received
+    # logger : the logger object
+    # token: unique token for the setlogs operation
+    # dbh: the gorgone internal database handler (sqlite for now)
     my (%options) = @_;
 
     if (!defined($options{data}->{data}->{id}) || $options{data}->{data}->{id} eq '') {

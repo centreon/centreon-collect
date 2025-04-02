@@ -509,7 +509,6 @@ sub getlog {
     foreach ((['ctime', '>'], ['etime', '>'])){
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . "ROUND(" . $_->[0] . ', 5) ' . $_->[1] . ' ROUND( ?, 5)';
-            $filter_append = ' AND ';
             push @bind_values, $data->{ $_->[0] };
         }
     }
