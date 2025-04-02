@@ -55,12 +55,6 @@ void grpc_server_base::_init(const builder_option& options) {
     ssl_opts.pem_key_cert_pairs.push_back(pkcp);
 
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
-    if (_conf->support_token()) {
-      SPDLOG_LOGGER_INFO(_logger,
-                         "Token server supports token based authentication");
-      server_creds->SetAuthMetadataProcessor(std::make_shared<AuthProcessor>(
-          _conf->get_trusted_tokens(), _logger));
-    }
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted server listening on {}",
                        _conf->get_hostport());
