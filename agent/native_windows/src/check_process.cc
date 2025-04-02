@@ -18,11 +18,7 @@
 
 #include "check_process.hh"
 #include <format>
-#include <iterator>
-#include <tuple>
 #include "com/centreon/common/rapidjson_helper.hh"
-#include "process/process_container.hh"
-#include "process/process_data.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::process;
@@ -144,6 +140,13 @@ constexpr std::array<std::tuple<std::string_view, std::string_view, unsigned>,
          {"{pid}", "{13}", 0}}};
 
 namespace com::centreon::agent::process::detail {
+/**
+ * @brief const_formatter is a functor used to replace labels in the
+ * process detail syntax with their corresponding indices and to update the
+ * field mask.
+ *
+ * @tparam FindResultT The type of the result of the find operation.
+ */
 struct const_formatter {
   std::string_view new_string;
   unsigned field_mask;
@@ -245,6 +248,8 @@ void check_process::_print_process(const process::process_data& proc,
   if (_process_detail_syntax_contains_creation_time) {
     creation_time = proc.get_creation_time_str();
   }
+  // vformat_t accepts only non const lvalues, so we need to store rvalues in
+  // lvalues before
   unsigned percent_kernel_time = proc.get_percent_kernel_time();
   unsigned percent_user_time = proc.get_percent_user_time();
   unsigned percent_cpu_time = proc.get_percent_cpu_time();
@@ -282,15 +287,14 @@ e_status check_process::compute(process::container& cont,
   ret = cont.check_container();
   if (cont.empty()) {
     output_format = &_empty_output;
-  } else if (ret == e_status::critical) {
-    output_format = &_output_syntax;
-  } else if (ret == e_status::warning) {
+  } else if (ret == e_status::critical || ret == e_status::warning) {
     output_format = &_output_syntax;
   } else {
     output_format = &_ok_syntax;
   }
 
   try {
+    // need problem_list?
     if (output_format->find("{2}") != std::string::npos) {
       for (const process::process_data& to_dump :
            cont.get_critical_processes()) {
@@ -345,7 +349,7 @@ e_status check_process::compute(process::container& cont,
 void check_process::help(std::ostream& help_stream) {
   help_stream << R"(
 - process params:
-  verbose : display all process in long plugins output format (one line per process), default: true
+  verbose : display all no ok process in long plugins output format (one line per process), default: true
   empty-state : message to display when no event is found, default: "Empty or no match for this filter"
   output-syntax : output format when status is not ok, default: "{status}: {problem_list}"
   ok-syntax : output format when status is ok, default: "{status}: All processes are ok"
@@ -360,11 +364,11 @@ void check_process::help(std::ostream& help_stream) {
                 to warning if the filter is true.
   critical-rules: filter to apply on the amount of process to set the check status
                 to critical if the filter is true.
-  status keywords:
+  rules keywords:
     - count: total number of processes filtered by filter-process
-    - ok_count: number of processes filtered by filter-process but not filtered by warning-status nor critical-status
-    - warn_count: number of processes filtered by warning-status
-    - crit_count: number of processes filtered by critical-status
+    - ok_count: number of processes filtered by filter-process but not filtered by warning-process nor critical-process
+    - warn_count: number of processes filtered by warning-process
+    - crit_count: number of processes filtered by critical-process
   filter keywords:
     - creation: delay from process start to now (units can be h, m, s, d, w)
     - pid: process pid
@@ -388,7 +392,7 @@ void check_process::help(std::ostream& help_stream) {
   output keywords:
     - status : status of the check
     - count : number of processes (ok + critical + warning)
-    - problem_list : list of no ok processes seperated by a space
+    - problem_list : list of no ok processes separated by a space
   process detail print keywords:
     - {exe} : process executable name
     - {filename} : process executable path
@@ -408,7 +412,7 @@ void check_process::help(std::ostream& help_stream) {
   Examples of output:
     with these params: { "check":"process_nscp", 
         "args": { 
-            "warning-status": " exe = 'RuntimeBroker.exe' && warn_count > 2"
+            "warning-process": " exe = 'RuntimeBroker.exe' && warn_count > 2"
             }
       }
     output will be: WARNING: 'RuntimeBroker.exe=started' 'RuntimeBroker.exe=started' 'RuntimeBroker.exe=started' 

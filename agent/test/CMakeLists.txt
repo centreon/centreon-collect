@@ -21,7 +21,6 @@ set( SRC_COMMON
     check_exec_test.cc
     drive_size_test.cc
     check_health_test.cc
-    filter_test.cc
     scheduler_test.cc
     test_main.cc
 )
@@ -32,6 +31,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
   set(SRC ${SRC_COMMON}
+    filter_test.cc
     check_event_log_data_test.cc
     check_event_log_filter_test.cc
     check_event_log_test.cc

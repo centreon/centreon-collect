@@ -17,11 +17,6 @@
  */
 
 #include "process/process_container.hh"
-#include <memory>
-#include "absl/container/flat_hash_set.h"
-#include "check.hh"
-#include "filter.hh"
-#include "process/process_data.hh"
 
 using namespace com::centreon::agent::process;
 using namespace com::centreon::agent;
@@ -35,6 +30,10 @@ using namespace com::centreon::agent;
  * store them in _warning_processes
  * @param critical_filter_str filter to be applied to the processes in order to
  * store them in _critical_processes
+ * @param warning_rules_str rules to be the container to set the status of the
+ * container (Ex: warn_count > 1)
+ * @param critical_rules_str rules to be the container to set the status of the
+ * container (Ex: crit_count > 1)
  * @param needed_output_fields fields that are needed for the output
  * @param logger logger to use
  */
@@ -163,11 +162,19 @@ void container::refresh() {
   }
 
   // get freeze windows
+  // we enumerate all active windows and fill hungs with freezed window pids
   pid_set hungs;
   EnumWindows(&enum_hung_window_proc, reinterpret_cast<LPARAM>(&hungs));
   _refresh(_enumerate_buffer.get(), used / sizeof(DWORD), hungs);
 }
 
+/**
+ * @brief clear and fill process containers according to filters
+ *
+ * @param pids array of pids
+ * @param nb_pids  number of pids
+ * @param hungs pids of hungs windows
+ */
 void container::_refresh(const DWORD* pids,
                          DWORD nb_pids,
                          const pid_set& hungs) {
@@ -200,7 +207,7 @@ void container::_refresh(const DWORD* pids,
 /**
  * @brief Check the container status
  * Once we have refreshed process list, we call this function to check
- * the container status according to filter (ok_count, warning_count..
+ * the container status according to filter (ok_count, warn_count..
  * This function will check the container status and return it
  *
  * @return e_status

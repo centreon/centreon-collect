@@ -19,7 +19,6 @@
 #ifndef CENTREON_AGENT_WINDOWS_UTIL_HH
 #define CENTREON_AGENT_WINDOWS_UTIL_HH
 
-#include <chrono>
 namespace com::centreon::agent {
 std::string get_last_error_as_string();
 

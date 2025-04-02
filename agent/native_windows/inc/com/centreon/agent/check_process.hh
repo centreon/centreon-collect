@@ -21,7 +21,6 @@
 
 #include "check.hh"
 #include "process/process_container.hh"
-#include "process/process_data.hh"
 
 namespace com::centreon::agent {
 

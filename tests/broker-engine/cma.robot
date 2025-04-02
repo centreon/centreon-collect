@@ -764,9 +764,9 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     Ctn Set Services Passive       0    service_1
 
 
-    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
-    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
-    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -1376,11 +1376,11 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_process_warning
-    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-status": "virtual > 1k", "warning-rules": "warn_count > 0", "output-syntax": "{status} '{problem_list}', "process-detail-syntax": "{exe} {pid} {virtual}"} }
+    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-process": "virtual > 1k", "warning-rules": "warn_count > 0", "output-syntax": "{status} '{problem_list}'", "process-detail-syntax": "{exe} {pid} {virtual}"} }
     ...    OTEL connector
 
     Ctn Engine Config Add Command    ${0}    agent_process_critical
-    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-status": "virtual > 1k", "warning-rules": "warn_count > 0", "critical-status": "virtual > 2k", "critical-rules": "crit_count > 0", "output-syntax": "{status} '{problem_list}', "process-detail-syntax": "{exe} {pid} {virtual}", "verbose": false} }
+    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-process": "virtual > 1k", "warning-rules": "warn_count > 0", "critical-process": "virtual > 2k", "critical-rules": "crit_count > 0", "output-syntax": "{status} '{problem_list}'", "process-detail-syntax": "{exe} {pid} {virtual}", "verbose": false} }
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace

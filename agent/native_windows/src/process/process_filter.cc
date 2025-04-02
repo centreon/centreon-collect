@@ -17,8 +17,6 @@
  */
 
 #include "process/process_filter.hh"
-#include <chrono>
-#include "process/process_data.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::process;

@@ -17,7 +17,6 @@
  */
 
 #include "process/process_data.hh"
-#include <chrono>
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
