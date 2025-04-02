@@ -33,12 +33,13 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostescalation_key(const Hostescalation& he) {
+  assert(he.hosts().data().size() == 1 && he.hostgroups().data().empty());
   uint64_t result = 0;
-  boost::hash_combine(result, he.hosts().data(0));
-  // boost::hash_combine(result, he.contactgroups().data());
+  boost::hash_combine(result, he.contactgroups().data());
   boost::hash_combine(result, he.escalation_options());
   boost::hash_combine(result, he.escalation_period());
   boost::hash_combine(result, he.first_notification());
+  boost::hash_combine(result, he.hosts().data(0));
   boost::hash_combine(result, he.last_notification());
   boost::hash_combine(result, he.notification_interval());
   return result;

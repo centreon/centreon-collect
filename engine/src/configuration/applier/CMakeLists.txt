@@ -54,7 +54,6 @@ set(
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/contact.hh"
   "${INC_DIR}/contactgroup.hh"
-  "${INC_DIR}/difference.hh"
   "${INC_DIR}/host.hh"
   "${INC_DIR}/hostdependency.hh"
   "${INC_DIR}/hostescalation.hh"

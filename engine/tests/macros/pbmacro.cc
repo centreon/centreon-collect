@@ -85,7 +85,6 @@ class Macro : public TestEngine {
 // Then the applier add_object throws an exception.
 TEST_F(Macro, PbPollerName) {
   configuration::parser parser;
-  configuration::indexed_state state;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
 
@@ -99,8 +98,7 @@ TEST_F(Macro, PbPollerName) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
 
   std::string out;
   nagios_macros* mac(get_global_macros());
@@ -110,7 +108,6 @@ TEST_F(Macro, PbPollerName) {
 
 TEST_F(Macro, PbPollerId) {
   configuration::parser parser;
-  configuration::indexed_state state;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
 
@@ -124,8 +121,7 @@ TEST_F(Macro, PbPollerId) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   std::string out;
   nagios_macros* mac(get_global_macros());
   process_macros_r(mac, "$POLLERID$", out, 0);
@@ -350,7 +346,6 @@ TEST_F(Macro, PbContactPager) {
 
 TEST_F(Macro, PbAdminEmail) {
   configuration::parser parser;
-  configuration::indexed_state state;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
 
@@ -364,8 +359,7 @@ TEST_F(Macro, PbAdminEmail) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
 
   init_macros();
 
@@ -376,7 +370,6 @@ TEST_F(Macro, PbAdminEmail) {
 }
 
 TEST_F(Macro, PbAdminPager) {
-  configuration::indexed_state state;
   configuration::parser parser;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
@@ -391,8 +384,7 @@ TEST_F(Macro, PbAdminPager) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
 
   init_macros();
 
@@ -404,7 +396,6 @@ TEST_F(Macro, PbAdminPager) {
 
 TEST_F(Macro, PbMainConfigFile) {
   configuration::parser parser;
-  configuration::indexed_state state;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
 
@@ -417,8 +408,7 @@ TEST_F(Macro, PbMainConfigFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -429,7 +419,6 @@ TEST_F(Macro, PbMainConfigFile) {
 
 TEST_F(Macro, PbStatusDataFile) {
   configuration::parser parser;
-  configuration::indexed_state state;
   auto st = std::make_unique<configuration::State>();
   configuration::state_helper st_hlp(st.get());
 
@@ -443,8 +432,7 @@ TEST_F(Macro, PbStatusDataFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  state.set_state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -469,8 +457,7 @@ TEST_F(Macro, PbRetentionDataFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  configuration::indexed_state state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -493,8 +480,7 @@ TEST_F(Macro, PbTempFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  configuration::indexed_state state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -517,8 +503,7 @@ TEST_F(Macro, PbLogFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  configuration::indexed_state state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -542,8 +527,7 @@ TEST_F(Macro, PbCommandFile) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  configuration::indexed_state state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
@@ -566,8 +550,7 @@ TEST_F(Macro, PbTempPath) {
   configuration::error_cnt err;
   parser.parse("/tmp/test-config.cfg", st.get(), err);
   st_hlp.expand(err);
-  configuration::indexed_state state(std::move(st));
-  configuration::applier::state::instance().apply(state, err);
+  configuration::applier::state::instance().apply(*st, err);
   init_macros();
 
   std::string out;
