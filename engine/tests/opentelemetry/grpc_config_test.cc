@@ -127,7 +127,7 @@ TEST(otl_grpc_config, tokens) {
   ASSERT_EQ(c.get_ca_name(), "toto");
   ASSERT_TRUE(c.get_ca().empty());
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
-  ASSERT_EQ(c.get_trusted_tokens().size(), 2);
-  ASSERT_TRUE(c.get_trusted_tokens().contains("toto"));
-  ASSERT_TRUE(c.get_trusted_tokens().contains("titi"));
+  ASSERT_EQ(c.get_trusted_tokens()->size(), 2);
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("toto"));
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("titi"));
 }

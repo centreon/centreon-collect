@@ -2333,7 +2333,7 @@ def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
     """
     value = random.randint(0, 100000)
     payload = {
-        "iss": "centreon",
+        "iss": f"centreon{value}",
         "iat": int(datetime.now().timestamp()),
         "exp": int((datetime.now() + timedelta(seconds=exp_s)).timestamp())
     }

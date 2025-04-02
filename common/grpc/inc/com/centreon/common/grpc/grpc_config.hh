@@ -71,7 +71,7 @@ class grpc_config {
   unsigned _max_message_length;
 
   std::string _token;
-  absl::flat_hash_set<std::string> _trusted_tokens;
+  std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
   bool _support_token = false;
 
  public:
@@ -140,17 +140,18 @@ class grpc_config {
         _max_message_length(max_message_length),
         _token{token} {}
 
-  grpc_config(const std::string& hostp,
-              bool crypted,
-              const std::string& certificate,
-              const std::string& cert_key,
-              const std::string& ca_cert,
-              const std::string& ca_name,
-              bool compression,
-              int second_keepalive_interval,
-              unsigned second_max_reconnect_backoff,
-              unsigned max_message_length,
-              absl::flat_hash_set<std::string> trusted_tokens)
+  grpc_config(
+      const std::string& hostp,
+      bool crypted,
+      const std::string& certificate,
+      const std::string& cert_key,
+      const std::string& ca_cert,
+      const std::string& ca_name,
+      bool compression,
+      int second_keepalive_interval,
+      unsigned second_max_reconnect_backoff,
+      unsigned max_message_length,
+      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -161,9 +162,7 @@ class grpc_config {
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
-        _trusted_tokens{std::move(trusted_tokens)} {
-    _support_token = true;
-  }
+        _trusted_tokens{trusted_tokens} {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -183,7 +182,8 @@ class grpc_config {
   unsigned get_max_message_length() const { return _max_message_length; }
 
   const std::string& get_token() const { return _token; }
-  const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
+  const std::shared_ptr<absl::flat_hash_set<std::string>>&
+  get_trusted_tokens() {
     return _trusted_tokens;
   }
 

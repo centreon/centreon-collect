@@ -155,7 +155,8 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
       hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
       second_keepalive_interval, second_max_reconnect_backoff,
-      max_message_length, std::move(trusted_tokens));
+      max_message_length,
+      std::make_shared<absl::flat_hash_set<std::string>>(trusted_tokens));
 }
 
 /**
