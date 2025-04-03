@@ -192,7 +192,7 @@ BEDB2
     ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEDB3
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -224,7 +224,7 @@ BEDB3
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEDB4
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -250,7 +250,7 @@ BEDB4
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BDBM1
     [Documentation]    start broker/engine and then start MariaDB => connection is established
@@ -276,7 +276,7 @@ BDBM1
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at least ${c} + 1 connections to the database.
         Ctn Kindly Stop Broker
-        Ctn Stop engine
+        Ctn Stop Engine
     END
 
 BDBU1

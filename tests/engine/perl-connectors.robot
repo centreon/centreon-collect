@@ -26,4 +26,4 @@ EPC1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    Missing a message telling data is available from the Perl connector
 
-    Ctn Stop engine
+    Ctn Stop Engine

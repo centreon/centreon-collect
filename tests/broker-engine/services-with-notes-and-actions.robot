@@ -40,7 +40,7 @@ EBSNU1
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSAU2
@@ -73,7 +73,7 @@ EBSAU2
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSN3
@@ -106,5 +106,5 @@ EBSN3
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

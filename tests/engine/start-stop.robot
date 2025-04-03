@@ -47,10 +47,10 @@ E_FD_LIMIT
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    
+
     ${pid}    Get Process Id    e0
     ${limits}    Ctn Get Process Limit    ${pid}    Max open files
-    
+
     Should Be Equal As Numbers    ${limits[0]}    1048576    Engine should have 1048576 file descriptors
 
     Ctn Stop Engine
