@@ -164,10 +164,12 @@ void loop::_dispatching() {
       if (!reloading) {
         reloading = true;
         if (_need_reload) {
+	  process_logger->info("Need reload.");
           process_logger->info("Reloading...");
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_conf, &reloading);
         } else {
+	  process_logger->info("New differential configuration to load.");
           process_logger->info("Reloading from Broker...");
           auto future [[maybe_unused]] = std::async(
               std::launch::async, apply_diff, std::move(diff_conf), &reloading);
