@@ -242,6 +242,7 @@ Ctn Save SSH Logs
     Copy File    /tmp/pam.log   ${failDir}
     Run    journalctl -f -u sshd | grep testconnssh > ${failDir}/journalctl.log
     Run    tail -f /var/log/secure | grep testconnssh > ${failDir}/secure.log
+    Run    grep -E 'AllowUsers|DenyUsers' /etc/ssh/sshd_config
 
 Ctn Clean Whitelist
     Ctn Clean After Suite
