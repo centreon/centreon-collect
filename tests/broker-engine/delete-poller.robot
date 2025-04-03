@@ -36,7 +36,7 @@ EBDP1
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${3}    ${50}    ${20}
@@ -52,7 +52,7 @@ EBDP1
     Ctn Remove Poller    51001    Poller3
     Sleep    6s
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -118,7 +118,7 @@ EBDP2
 
     Ctn Remove Poller    51001    Poller2
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -191,7 +191,7 @@ EBDP_GRPC2
 
     Ctn Remove Poller    51001    Poller2
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -251,7 +251,7 @@ EBDP3
 
     Ctn Remove Poller    51001    Poller2
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -311,7 +311,7 @@ EBDP4
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
     ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
-    Ctn Stop engine
+    Ctn Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
     Move File
@@ -347,7 +347,7 @@ EBDP4
     Log To Console    date ${start}
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBDP5
@@ -377,7 +377,7 @@ EBDP5
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Ctn Config Engine    ${3}    ${50}    ${20}
@@ -398,7 +398,7 @@ EBDP5
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -526,7 +526,7 @@ EBDP7
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
@@ -587,7 +587,7 @@ EBDP8
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
     ${result}    Ctn Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
-    Ctn Stop engine
+    Ctn Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
     Move File
@@ -617,5 +617,5 @@ EBDP8
     Log To Console    date ${start}
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

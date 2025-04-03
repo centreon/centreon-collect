@@ -35,7 +35,7 @@ BECC1
             ${result}    Ctn Check Connections
             Should Be True    ${result}    Engine and Broker not connected
             Ctn Kindly Stop Broker
-            Ctn Stop engine
+            Ctn Stop Engine
             ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"

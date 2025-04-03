@@ -213,7 +213,7 @@ Ctn Start Engine
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -230,7 +230,7 @@ Ctn Start Engine With Extend Conf
         Start Process
         ...    /usr/sbin/centengine
         ...    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json
-        ...    --config-file\=/tmp/centengine_extend.json
+        ...    --extended-config\=/tmp/centengine_extend.json
         ...    ${conf}
         ...    alias=${alias}
     END
