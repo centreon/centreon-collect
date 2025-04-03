@@ -117,8 +117,7 @@ runs:
         key: ${{ inputs.cache_key }}
 
     #- if: ${{ contains(github.event.pull_request.labels.*.name, 'upload-artifacts') }}
-    - if: ${{ true }}
-      name: Upload package artifacts
+    - name: Upload package artifacts
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
