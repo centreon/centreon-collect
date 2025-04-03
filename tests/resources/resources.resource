@@ -213,7 +213,7 @@ Ctn Start Engine
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
