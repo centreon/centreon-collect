@@ -240,7 +240,8 @@ Ctn Save SSH Logs
     Run    chmod 666 /tmp/sshd.log
     Copy File    /tmp/sshd.log    ${failDir}
     Copy File    /tmp/pam.log   ${failDir}
-    Run    journalctl | tail -50 > ${failDir}/journalctl.log
+    Run    journalctl -f -u sshd | grep testconnssh > ${failDir}/journalctl.log
+    Run    tail -f /var/log/secure | grep testconnssh > ${failDir}/secure.log
 
 Ctn Clean Whitelist
     Ctn Clean After Suite
