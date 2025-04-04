@@ -36,12 +36,7 @@ using namespace com::centreon::logging;
  *  Apply new configuration.
  *
  *  @param[in] config        The new configuration.
- *  @param[in] diff_hosts    The difference between old and the
- *                           new host configuration.
- *  @param[in] diff_services The difference between old and the
- *                           new service configuration.
- *  @param[in] diff_anomalydetections The difference between old and the
- *                           new cwanomalydetectionservice configuration.
+ *  @param[in] diff          The diff to apply.
  */
 void applier::scheduler::apply(configuration::State& config,
                                const configuration::DiffState& diff) {
