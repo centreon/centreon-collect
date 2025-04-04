@@ -17,7 +17,10 @@
  *
  */
 
+#include <absl/container/fixed_array.h>
+#include <fmt/chrono.h>
 #include <sys/resource.h>
+#include <chrono>
 #include <cstdint>
 
 #include "com/centreon/engine/commands/connector.hh"
@@ -49,7 +52,6 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
-#include "state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -137,7 +139,7 @@ void applier::state::apply_diff(configuration::DiffState& diff_conf,
     _processing_state = state_ready;
     _processing_diff(diff_conf, err);
     std::ofstream f(proto_conf / "state.prot", std::ios::binary);
-    pb_indexed_config.state().SerializeToOstream(&f);
+    pb_indexed_config.serialize_to_ostream(&f);
     f.close();
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
@@ -1284,6 +1286,347 @@ void applier::state::_apply(configuration::State& new_cfg,
   }
 }
 
+void applier::state::_apply_diff_conf(
+    DiffState& diff,
+    absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
+    error_cnt& err) {
+  // Timing.
+  tv->at(1) = std::chrono::system_clock::now();
+
+#define apply_diff(field) \
+  if (diff.has_##field()) \
+    pb_indexed_config.mut_state().set_##field(diff.field());
+
+#define apply_repeated_diff(field)                     \
+  if (!diff.field().empty()) {                         \
+    pb_indexed_config.mut_state().clear_##field();     \
+    for (auto& item : diff.field())                    \
+      pb_indexed_config.mut_state().add_##field(item); \
+  }
+
+  apply_diff(cfg_main);
+  apply_repeated_diff(cfg_file);
+  apply_repeated_diff(resource_file);
+  apply_diff(instance_heartbeat_interval);
+  apply_diff(check_service_freshness);
+  apply_diff(enable_flap_detection);
+  apply_diff(rpc_listen_address);
+  apply_diff(grpc_port);
+  // apply_diff(users);
+  apply_repeated_diff(cfg_dir);
+  apply_diff(state_retention_file);
+  apply_repeated_diff(broker_module);
+  apply_diff(broker_module_directory);
+  apply_diff(enable_macros_filter);
+  // apply_diff(macros_filter);
+
+  apply_diff(log_v2_enabled);
+  apply_diff(log_legacy_enabled);
+  apply_diff(use_syslog);
+  apply_diff(log_v2_logger);
+  apply_diff(log_file);
+  apply_diff(debug_file);
+  apply_diff(debug_level);
+  apply_diff(debug_verbosity);
+  apply_diff(max_debug_file_size);
+  apply_diff(log_pid);
+  apply_diff(log_file_line);
+  apply_diff(log_flush_period);
+  apply_diff(log_level_checks);
+  apply_diff(log_level_commands);
+  apply_diff(log_level_comments);
+  apply_diff(log_level_config);
+  apply_diff(log_level_downtimes);
+  apply_diff(log_level_eventbroker);
+  apply_diff(log_level_events);
+  apply_diff(log_level_external_command);
+  apply_diff(log_level_functions);
+  apply_diff(log_level_macros);
+  apply_diff(log_level_notifications);
+  apply_diff(log_level_process);
+  apply_diff(log_level_runtime);
+  apply_diff(log_level_otl);
+  apply_diff(global_host_event_handler);
+  apply_diff(global_service_event_handler);
+  apply_diff(illegal_object_chars);
+  apply_diff(illegal_output_chars);
+  apply_diff(interval_length);
+  apply_diff(ochp_command);
+  apply_diff(ocsp_command);
+  apply_diff(use_timezone);
+  apply_diff(accept_passive_host_checks);
+  apply_diff(accept_passive_service_checks);
+  apply_diff(additional_freshness_latency);
+  apply_diff(cached_host_check_horizon);
+  apply_diff(check_external_commands);
+  apply_diff(check_host_freshness);
+  apply_diff(check_reaper_interval);
+  apply_diff(enable_event_handlers);
+  apply_diff(enable_notifications);
+  apply_diff(execute_host_checks);
+  apply_diff(execute_service_checks);
+  apply_diff(max_host_check_spread);
+  apply_diff(max_service_check_spread);
+  apply_diff(notification_timeout);
+  apply_diff(obsess_over_hosts);
+  apply_diff(obsess_over_services);
+  apply_diff(process_performance_data);
+  apply_diff(soft_state_dependencies);
+  apply_diff(use_large_installation_tweaks);
+  apply_diff(admin_email);
+  apply_diff(admin_pager);
+  apply_diff(allow_empty_hostgroup_assignment);
+  apply_diff(command_file);
+  apply_diff(status_file);
+  apply_diff(poller_name);
+  apply_diff(poller_id);
+  apply_diff(cached_service_check_horizon);
+  apply_diff(check_orphaned_hosts);
+  apply_diff(check_orphaned_services);
+  apply_diff(command_check_interval);
+  apply_diff(command_check_interval_is_seconds);
+  apply_diff(enable_environment_macros);
+  apply_diff(event_broker_options);
+  apply_diff(event_handler_timeout);
+  apply_diff(external_command_buffer_slots);
+  apply_diff(high_host_flap_threshold);
+  apply_diff(high_service_flap_threshold);
+  apply_diff(host_check_timeout);
+  apply_diff(host_freshness_check_interval);
+  apply_diff(service_freshness_check_interval);
+  apply_diff(log_event_handlers);
+  apply_diff(log_external_commands);
+  apply_diff(log_notifications);
+  apply_diff(log_passive_checks);
+  apply_diff(log_host_retries);
+  apply_diff(log_service_retries);
+  apply_diff(max_log_file_size);
+  apply_diff(low_host_flap_threshold);
+  apply_diff(low_service_flap_threshold);
+  apply_diff(max_parallel_service_checks);
+  apply_diff(ochp_timeout);
+  apply_diff(ocsp_timeout);
+  apply_diff(perfdata_timeout);
+  apply_diff(retained_host_attribute_mask);
+  apply_diff(retained_process_host_attribute_mask);
+  apply_diff(retained_contact_host_attribute_mask);
+  apply_diff(retained_contact_service_attribute_mask);
+  apply_diff(retain_state_information);
+  apply_diff(retention_scheduling_horizon);
+  apply_diff(retention_update_interval);
+  apply_diff(service_check_timeout);
+  apply_diff(sleep_time);
+  apply_diff(status_update_interval);
+  apply_diff(time_change_threshold);
+  apply_diff(use_regexp_matches);
+  apply_diff(use_retained_program_state);
+  apply_diff(use_retained_scheduling_info);
+  apply_diff(use_setpgid);
+  apply_diff(use_true_regexp_matching);
+  apply_diff(date_format);
+  // apply_repeated_diff(host_inter_check_delay_method);
+  // apply_repeated_diff(service_inter_check_delay_method);
+  // apply_repeated_diff(service_interleave_factor_method);
+  apply_diff(enable_predictive_host_dependency_checks);
+  apply_diff(enable_predictive_service_dependency_checks);
+  apply_diff(send_recovery_notifications_anyways);
+  apply_diff(host_down_disable_service_checks);
+  // Apply logging configurations.
+
+  applier::logging::instance().apply(pb_indexed_config.mut_state());
+
+  // Apply globals configurations.
+  applier::globals::instance().apply(pb_indexed_config.mut_state());
+
+  // Apply macros configurations.
+  applier::macros::instance().apply(pb_indexed_config.mut_state());
+
+  // Timing.
+  tv->at(2) = std::chrono::system_clock::now();
+
+  if (!has_already_been_loaded && !verify_config && !test_scheduling) {
+    // This must be logged after we read config data,
+    // as user may have changed location of main log file.
+    process_logger->info(
+        "Centreon Engine {} starting ... (PID={}) (Protobuf configuration)",
+        CENTREON_ENGINE_VERSION_STRING, getpid());
+
+    // Log the local time - may be different than clock
+    // time due to timezone offset.
+    process_logger->info("Local time is {}", string::ctime(program_start));
+    process_logger->info("LOG VERSION: {}", LOG_VERSION_2);
+  }
+
+  //
+  //  Apply and resolve all objects.
+  //
+
+  // Apply timeperiods.
+  _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
+            Timeperiod>(*diff.mutable_timeperiods(),
+                        pb_indexed_config.mut_timeperiods(),
+                        [](const Timeperiod& obj) -> std::string {
+                          return obj.timeperiod_name();
+                        });
+  _resolve<configuration::Timeperiod, std::string, applier::timeperiod>(
+      pb_indexed_config.timeperiods(), err);
+
+  // Apply connectors.
+  _apply_ng<configuration::applier::connector, DiffConnector, std::string,
+            Connector>(
+      *diff.mutable_connectors(), pb_indexed_config.mut_connectors(),
+      [](const Connector& obj) -> std::string { return obj.connector_name(); });
+  _resolve<configuration::Connector, std::string, applier::connector>(
+      pb_indexed_config.connectors(), err);
+
+  // Apply commands.
+  _apply_ng<configuration::applier::command, DiffCommand, std::string, Command>(
+      *diff.mutable_commands(), pb_indexed_config.mut_commands(),
+      [](const Command& obj) -> std::string { return obj.command_name(); });
+  _resolve<configuration::Command, std::string, applier::command>(
+      pb_indexed_config.commands(), err);
+
+  // Apply contacts and contactgroups.
+  _apply_ng<configuration::applier::contact, DiffContact, std::string, Contact>(
+      *diff.mutable_contacts(), pb_indexed_config.mut_contacts(),
+      [](const Contact& obj) -> std::string { return obj.contact_name(); });
+  _apply_ng<configuration::applier::contactgroup, DiffContactgroup, std::string,
+            Contactgroup>(*diff.mutable_contactgroups(),
+                          pb_indexed_config.mut_contactgroups(),
+                          [](const Contactgroup& obj) -> std::string {
+                            return obj.contactgroup_name();
+                          });
+  _resolve<configuration::Contact, std::string, applier::contact>(
+      pb_indexed_config.contacts(), err);
+  _resolve<configuration::Contactgroup, std::string, applier::contactgroup>(
+      pb_indexed_config.contactgroups(), err);
+
+  // Apply severities.
+  _apply_ng<configuration::applier::severity, DiffSeverity,
+            std::pair<uint64_t, uint32_t>, Severity, KeyType>(
+      *diff.mutable_severities(), pb_indexed_config.mut_severities(),
+      [](const Severity& obj) {
+        return std::make_pair(obj.key().id(), obj.key().type());
+      },
+      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+
+  // Apply tags.
+  _apply_ng<configuration::applier::tag, DiffTag, std::pair<uint64_t, uint32_t>,
+            Tag, KeyType>(
+      *diff.mutable_tags(), pb_indexed_config.mut_tags(),
+      [](const Tag& obj) {
+        return std::make_pair(obj.key().id(), obj.key().type());
+      },
+      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+
+  // Apply hosts and hostgroups.
+  _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
+      *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
+      [](const Host& obj) -> uint64_t { return obj.host_id(); });
+  _apply_ng<configuration::applier::hostgroup, DiffHostgroup, std::string,
+            Hostgroup>(
+      *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
+      [](const Hostgroup& obj) -> std::string { return obj.hostgroup_name(); });
+
+  // Apply services.
+  _apply_ng<configuration::applier::service, DiffService,
+            std::pair<uint64_t, uint64_t>, Service, HostServiceId>(
+      *diff.mutable_services(), pb_indexed_config.mut_services(),
+      [](const Service& obj) -> std::pair<uint64_t, uint64_t> {
+        return std::make_pair(obj.host_id(), obj.service_id());
+      },
+      [](const HostServiceId& key) {
+        return std::make_pair(key.host_id(), key.service_id());
+      });
+
+  // Apply anomalydetections.
+  _apply_ng<configuration::applier::anomalydetection, DiffAnomalydetection,
+            std::pair<uint64_t, uint64_t>, Anomalydetection, HostServiceId>(
+      *diff.mutable_anomalydetections(),
+      pb_indexed_config.mut_anomalydetections(),
+      [](const Anomalydetection& obj) -> std::pair<uint64_t, uint64_t> {
+        return std::make_pair(obj.host_id(), obj.service_id());
+      },
+      [](const HostServiceId& key) {
+        return std::make_pair(key.host_id(), key.service_id());
+      });
+
+  // Apply servicegroups.
+  _apply_ng<configuration::applier::servicegroup, DiffServicegroup, std::string,
+            Servicegroup>(*diff.mutable_servicegroups(),
+                          pb_indexed_config.mut_servicegroups(),
+                          [](const Servicegroup& obj) -> std::string {
+                            return obj.servicegroup_name();
+                          });
+
+  // Resolve hosts, services, host groups.
+  _resolve<configuration::Host, uint64_t, applier::host>(
+      pb_indexed_config.hosts(), err);
+  _resolve<configuration::Hostgroup, std::string, applier::hostgroup>(
+      pb_indexed_config.hostgroups(), err);
+
+  // Resolve services.
+  _resolve<configuration::Service, std::pair<uint64_t, uint64_t>,
+           applier::service>(pb_indexed_config.services(), err);
+
+  // Resolve anomalydetections.
+  _resolve<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>,
+           applier::anomalydetection>(pb_indexed_config.anomalydetections(),
+                                      err);
+
+  // Resolve service groups.
+  _resolve<configuration::Servicegroup, std::string, applier::servicegroup>(
+      pb_indexed_config.servicegroups(), err);
+
+  // Apply host dependencies.
+  _apply_ng<configuration::applier::hostdependency, DiffHostdependency, size_t,
+            Hostdependency>(*diff.mutable_hostdependencies(),
+                            pb_indexed_config.mut_hostdependencies(),
+                            configuration::hostdependency_key);
+  _resolve<configuration::Hostdependency, uint64_t, applier::hostdependency>(
+      pb_indexed_config.hostdependencies(), err);
+
+  // Apply service dependencies.
+  _apply_ng<configuration::applier::servicedependency, DiffServicedependency,
+            size_t, Servicedependency>(
+      *diff.mutable_servicedependencies(),
+      pb_indexed_config.mut_servicedependencies(),
+      configuration::servicedependency_key);
+  _resolve<configuration::Servicedependency, uint64_t,
+           applier::servicedependency>(pb_indexed_config.servicedependencies(),
+                                       err);
+
+  // Apply host escalations.
+  _apply_ng<configuration::applier::hostescalation, DiffHostescalation, size_t,
+            Hostescalation>(*diff.mutable_hostescalations(),
+                            pb_indexed_config.mut_hostescalations(),
+                            configuration::hostescalation_key);
+  _resolve<configuration::Hostescalation, uint64_t, applier::hostescalation>(
+      pb_indexed_config.hostescalations(), err);
+
+  // Apply service escalations.
+  _apply_ng<configuration::applier::serviceescalation, DiffServiceescalation,
+            size_t, Serviceescalation>(
+      *diff.mutable_serviceescalations(),
+      pb_indexed_config.mut_serviceescalations(),
+      configuration::serviceescalation_key);
+  _resolve<configuration::Serviceescalation, uint64_t,
+           applier::serviceescalation>(pb_indexed_config.serviceescalations(),
+                                       err);
+
+#ifdef DEBUG_CONFIG
+  std::cout << "WARNING!! You are using a version of Centreon Engine for "
+               "developers!!! This is not a production version.";
+  // Checks on configuration
+  _check_serviceescalations();
+  _check_hostescalations();
+  _check_contacts();
+  _check_contactgroups();
+  _check_services();
+  _check_hosts();
+#endif
+}
+
 /**
  *  Process new configuration and apply it.
  *
@@ -1294,7 +1637,8 @@ void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
   // Timing.
-  struct timeval tv[5];
+  absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
+      {}, {}, {}, {}, {}};
 
   // Call prelauch broker event the first time to run applier state.
   if (!has_already_been_loaded)
@@ -1303,7 +1647,7 @@ void applier::state::_processing(configuration::State& new_cfg,
   //
   // Expand all objects.
   //
-  gettimeofday(tv, nullptr);
+  tv[0] = std::chrono::system_clock::now();
 
   //
   //  Build difference for all objects.
@@ -1311,333 +1655,10 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   DiffState diff;
   pb_indexed_config.diff_with_new_config(new_cfg, config_logger, &diff);
-  //  // Build difference for timeperiods.
-  //  pb_difference<configuration::Timeperiod, std::string> diff_timeperiods;
-  //  auto old = pb_indexed_config.mut_timeperiods();
-  //  const google::protobuf::RepeatedPtrField<
-  //      ::com::centreon::engine::configuration::Timeperiod>
-  //      new_conf = new_cfg.state().timeperiods();
-  //  diff_timeperiods.parse(old, new_conf,
-  //                         &configuration::Timeperiod::timeperiod_name);
-  //
-  //  // Build difference for connectors.
-  //  pb_difference<configuration::Connector, std::string> diff_connectors;
-  //  diff_connectors.parse(*pb_indexed_config.mut_state().mutable_connectors(),
-  //                        new_cfg.state().connectors(),
-  //                        &configuration::Connector::connector_name);
-  //
-  //  // Build difference for commands.
-  //  pb_difference<configuration::Command, std::string> diff_commands;
-  //  diff_commands.parse(*pb_indexed_config.mut_state().mutable_commands(),
-  //                      new_cfg.state().commands(),
-  //                      &configuration::Command::command_name);
-  //
-  //  // Build difference for severities.
-  //  pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
-  //      diff_severities;
-  //  diff_severities.parse(pb_indexed_config.severities(),
-  //  new_cfg.severities());
-  //
-  //  // Build difference for tags.
-  //  pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>>
-  //  diff_tags; diff_tags.parse(
-  //      *pb_indexed_config.mut_state().mutable_tags(), new_cfg.state().tags(),
-  //      [](const configuration::Tag& tg) -> std::pair<uint64_t, uint32_t> {
-  //        return std::make_pair(tg.key().id(), tg.key().type());
-  //      });
-  //
-  //  // Build difference for contacts.
-  //  pb_difference<configuration::Contact, std::string> diff_contacts;
-  //  diff_contacts.parse(*pb_indexed_config.mut_state().mutable_contacts(),
-  //                      new_cfg.state().contacts(),
-  //                      &configuration::Contact::contact_name);
-  //
-  //  // Build difference for contactgroups.
-  //  pb_difference<configuration::Contactgroup, std::string>
-  //  diff_contactgroups; diff_contactgroups.parse(
-  //      *pb_indexed_config.mut_state().mutable_contactgroups(),
-  //      new_cfg.state().contactgroups(),
-  //      &configuration::Contactgroup::contactgroup_name);
-  //
-  //  // Build difference for hosts.
-  //  pb_difference<configuration::Host, uint64_t> diff_hosts;
-  //  diff_hosts.parse(pb_indexed_config.hosts(), new_cfg.hosts());
-  //
-  //  // Build difference for hostgroups.
-  //  pb_difference<configuration::Hostgroup, std::string> diff_hostgroups;
-  //  diff_hostgroups.parse(*pb_indexed_config.mut_state().mutable_hostgroups(),
-  //                        new_cfg.state().hostgroups(),
-  //                        &configuration::Hostgroup::hostgroup_name);
-  //
-  //  // Build difference for services.
-  //  pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>
-  //      diff_services;
-  //  diff_services.parse(pb_indexed_config.services(), new_cfg.services());
-  //
-  //  // Build difference for anomalydetections.
-  //  pb_difference<configuration::Anomalydetection, std::pair<uint64_t,
-  //  uint64_t>>
-  //      diff_anomalydetections;
-  //  diff_anomalydetections.parse(
-  //      *pb_indexed_config.mut_state().mutable_anomalydetections(),
-  //      new_cfg.state().anomalydetections(),
-  //      [](const configuration::Anomalydetection& ad) {
-  //        return std::make_pair(ad.host_id(), ad.service_id());
-  //      });
-  //
-  //  // Build difference for servicegroups.
-  //  pb_difference<configuration::Servicegroup, std::string>
-  //  diff_servicegroups; diff_servicegroups.parse(
-  //      *pb_indexed_config.mut_state().mutable_servicegroups(),
-  //      new_cfg.state().servicegroups(),
-  //      &configuration::Servicegroup::servicegroup_name);
-  //
-  //  // Build difference for hostdependencies.
-  //  pb_difference<configuration::Hostdependency, size_t>
-  //  diff_hostdependencies; typedef size_t (*key_func)(const
-  //  configuration::Hostdependency&); diff_hostdependencies.parse<key_func>(
-  //      *pb_indexed_config.mut_state().mutable_hostdependencies(),
-  //      new_cfg.state().hostdependencies(),
-  //      configuration::hostdependency_key);
-  //
-  //  // Build difference for servicedependencies.
-  //  pb_difference<configuration::Servicedependency, size_t>
-  //      diff_servicedependencies;
-  //  typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
-  //  diff_servicedependencies.parse<key_func_sd>(
-  //      *pb_indexed_config.mut_state().mutable_servicedependencies(),
-  //      new_cfg.state().servicedependencies(),
-  //      configuration::servicedependency_key);
-  //
-  //  // Build difference for hostescalations.
-  //  pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
-  //  typedef size_t (*key_func_he)(const configuration::Hostescalation&);
-  //  diff_hostescalations.parse<key_func_he>(
-  //      *pb_indexed_config.mut_state().mutable_hostescalations(),
-  //      new_cfg.state().hostescalations(), configuration::hostescalation_key);
-  //
-  //  // Build difference for serviceescalations.
-  //  pb_difference<configuration::Serviceescalation, size_t>
-  //      diff_serviceescalations;
-  //  typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
-  //  diff_serviceescalations.parse<key_func_se>(
-  //      *pb_indexed_config.mut_state().mutable_serviceescalations(),
-  //      new_cfg.state().serviceescalations(),
-  //      configuration::serviceescalation_key);
-
-  // Timing.
-  gettimeofday(tv + 1, nullptr);
 
   try {
     std::lock_guard<std::mutex> locker(_apply_lock);
-
-    // Apply logging configurations.
-
-    applier::logging::instance().apply(new_cfg);
-
-    // apply_log_config(new_cfg);
-
-    // Apply globals configurations.
-    applier::globals::instance().apply(new_cfg);
-
-    // Apply macros configurations.
-    applier::macros::instance().apply(new_cfg);
-
-    // Timing.
-    gettimeofday(tv + 2, nullptr);
-
-    if (!has_already_been_loaded && !verify_config && !test_scheduling) {
-      // This must be logged after we read config data,
-      // as user may have changed location of main log file.
-      process_logger->info(
-          "Centreon Engine {} starting ... (PID={}) (Protobuf configuration)",
-          CENTREON_ENGINE_VERSION_STRING, getpid());
-
-      // Log the local time - may be different than clock
-      // time due to timezone offset.
-      process_logger->info("Local time is {}", string::ctime(program_start));
-      process_logger->info("LOG VERSION: {}", LOG_VERSION_2);
-    }
-
-    //
-    //  Apply and resolve all objects.
-    //
-
-    // Apply timeperiods.
-    _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
-              Timeperiod>(*diff.mutable_timeperiods(),
-                          pb_indexed_config.mut_timeperiods(),
-                          [](const Timeperiod& obj) -> std::string {
-                            return obj.timeperiod_name();
-                          });
-    _resolve<configuration::Timeperiod, std::string, applier::timeperiod>(
-        pb_indexed_config.timeperiods(), err);
-
-    // Apply connectors.
-    _apply_ng<configuration::applier::connector, DiffConnector, std::string,
-              Connector>(*diff.mutable_connectors(),
-                         pb_indexed_config.mut_connectors(),
-                         [](const Connector& obj) -> std::string {
-                           return obj.connector_name();
-                         });
-    _resolve<configuration::Connector, std::string, applier::connector>(
-        pb_indexed_config.connectors(), err);
-
-    // Apply commands.
-    _apply_ng<configuration::applier::command, DiffCommand, std::string,
-              Command>(
-        *diff.mutable_commands(), pb_indexed_config.mut_commands(),
-        [](const Command& obj) -> std::string { return obj.command_name(); });
-    _resolve<configuration::Command, std::string, applier::command>(
-        pb_indexed_config.commands(), err);
-
-    // Apply contacts and contactgroups.
-    _apply_ng<configuration::applier::contact, DiffContact, std::string,
-              Contact>(
-        *diff.mutable_contacts(), pb_indexed_config.mut_contacts(),
-        [](const Contact& obj) -> std::string { return obj.contact_name(); });
-    _apply_ng<configuration::applier::contactgroup, DiffContactgroup,
-              std::string, Contactgroup>(
-        *diff.mutable_contactgroups(), pb_indexed_config.mut_contactgroups(),
-        [](const Contactgroup& obj) -> std::string {
-          return obj.contactgroup_name();
-        });
-    _resolve<configuration::Contact, std::string, applier::contact>(
-        pb_indexed_config.contacts(), err);
-    _resolve<configuration::Contactgroup, std::string, applier::contactgroup>(
-        pb_indexed_config.contactgroups(), err);
-
-    // Apply severities.
-    _apply_ng<configuration::applier::severity, DiffSeverity,
-              std::pair<uint64_t, uint32_t>, Severity, KeyType>(
-        *diff.mutable_severities(), pb_indexed_config.mut_severities(),
-        [](const Severity& obj) {
-          return std::make_pair(obj.key().id(), obj.key().type());
-        },
-        [](const KeyType& key) {
-          return std::make_pair(key.id(), key.type());
-        });
-
-    // Apply tags.
-    _apply_ng<configuration::applier::tag, DiffTag,
-              std::pair<uint64_t, uint32_t>, Tag, KeyType>(
-        *diff.mutable_tags(), pb_indexed_config.mut_tags(),
-        [](const Tag& obj) {
-          return std::make_pair(obj.key().id(), obj.key().type());
-        },
-        [](const KeyType& key) {
-          return std::make_pair(key.id(), key.type());
-        });
-
-    // Apply hosts and hostgroups.
-    _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
-        *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
-        [](const Host& obj) -> uint64_t { return obj.host_id(); });
-    _apply_ng<configuration::applier::hostgroup, DiffHostgroup, std::string,
-              Hostgroup>(*diff.mutable_hostgroups(),
-                         pb_indexed_config.mut_hostgroups(),
-                         [](const Hostgroup& obj) -> std::string {
-                           return obj.hostgroup_name();
-                         });
-
-    // Apply services.
-    _apply_ng<configuration::applier::service, DiffService,
-              std::pair<uint64_t, uint64_t>, Service, HostServiceId>(
-        *diff.mutable_services(), pb_indexed_config.mut_services(),
-        [](const Service& obj) -> std::pair<uint64_t, uint64_t> {
-          return std::make_pair(obj.host_id(), obj.service_id());
-        },
-        [](const HostServiceId& key) {
-          return std::make_pair(key.host_id(), key.service_id());
-        });
-
-    // Apply anomalydetections.
-    _apply_ng<configuration::applier::anomalydetection, DiffAnomalydetection,
-              std::pair<uint64_t, uint64_t>, Anomalydetection, HostServiceId>(
-        *diff.mutable_anomalydetections(),
-        pb_indexed_config.mut_anomalydetections(),
-        [](const Anomalydetection& obj) -> std::pair<uint64_t, uint64_t> {
-          return std::make_pair(obj.host_id(), obj.service_id());
-        },
-        [](const HostServiceId& key) {
-          return std::make_pair(key.host_id(), key.service_id());
-        });
-
-    // Apply servicegroups.
-    _apply_ng<configuration::applier::servicegroup, DiffServicegroup,
-              std::string, Servicegroup>(
-        *diff.mutable_servicegroups(), pb_indexed_config.mut_servicegroups(),
-        [](const Servicegroup& obj) -> std::string {
-          return obj.servicegroup_name();
-        });
-
-    // Resolve hosts, services, host groups.
-    _resolve<configuration::Host, uint64_t, applier::host>(
-        pb_indexed_config.hosts(), err);
-    _resolve<configuration::Hostgroup, std::string, applier::hostgroup>(
-        pb_indexed_config.hostgroups(), err);
-
-    // Resolve services.
-    _resolve<configuration::Service, std::pair<uint64_t, uint64_t>,
-             applier::service>(pb_indexed_config.services(), err);
-
-    // Resolve anomalydetections.
-    _resolve<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>,
-             applier::anomalydetection>(pb_indexed_config.anomalydetections(),
-                                        err);
-
-    // Resolve service groups.
-    _resolve<configuration::Servicegroup, std::string, applier::servicegroup>(
-        pb_indexed_config.servicegroups(), err);
-
-    // Apply host dependencies.
-    _apply_ng<configuration::applier::hostdependency, DiffHostdependency,
-              size_t, Hostdependency>(*diff.mutable_hostdependencies(),
-                                      pb_indexed_config.mut_hostdependencies(),
-                                      configuration::hostdependency_key);
-    _resolve<configuration::Hostdependency, uint64_t, applier::hostdependency>(
-        pb_indexed_config.hostdependencies(), err);
-
-    // Apply service dependencies.
-    _apply_ng<configuration::applier::servicedependency, DiffServicedependency,
-              size_t, Servicedependency>(
-        *diff.mutable_servicedependencies(),
-        pb_indexed_config.mut_servicedependencies(),
-        configuration::servicedependency_key);
-    _resolve<configuration::Servicedependency, uint64_t,
-             applier::servicedependency>(
-        pb_indexed_config.servicedependencies(), err);
-
-    // Apply host escalations.
-    _apply_ng<configuration::applier::hostescalation, DiffHostescalation,
-              size_t, Hostescalation>(*diff.mutable_hostescalations(),
-                                      pb_indexed_config.mut_hostescalations(),
-                                      configuration::hostescalation_key);
-    _resolve<configuration::Hostescalation, uint64_t, applier::hostescalation>(
-        pb_indexed_config.hostescalations(), err);
-
-    // Apply service escalations.
-    _apply_ng<configuration::applier::serviceescalation, DiffServiceescalation,
-              size_t, Serviceescalation>(
-        *diff.mutable_serviceescalations(),
-        pb_indexed_config.mut_serviceescalations(),
-        configuration::serviceescalation_key);
-    _resolve<configuration::Serviceescalation, uint64_t,
-             applier::serviceescalation>(pb_indexed_config.serviceescalations(),
-                                         err);
-
-#ifdef DEBUG_CONFIG
-    std::cout << "WARNING!! You are using a version of Centreon Engine for "
-                 "developers!!! This is not a production version.";
-    // Checks on configuration
-    _check_serviceescalations();
-    _check_hostescalations();
-    _check_contacts();
-    _check_contactgroups();
-    _check_services();
-    _check_hosts();
-#endif
-
+    _apply_diff_conf(diff, &tv, err);
     // Load retention.
     if (state)
       _apply(new_cfg, *state, err);
@@ -1660,7 +1681,7 @@ void applier::state::_processing(configuration::State& new_cfg,
     }
 
     // Timing.
-    gettimeofday(tv + 3, nullptr);
+    tv[3] = std::chrono::system_clock::now();
 
     // Check for circular paths between hosts.
     pre_flight_circular_check(&err.config_warnings, &err.config_errors);
@@ -1692,14 +1713,11 @@ void applier::state::_processing(configuration::State& new_cfg,
     }
 
     // Timing.
-    gettimeofday(tv + 4, nullptr);
+    tv[4] = std::chrono::system_clock::now();
     if (test_scheduling) {
-      double runtimes[5];
-      runtimes[4] = 0.0;
-      for (unsigned int i(0); i < (sizeof(runtimes) / sizeof(*runtimes) - 1);
-           ++i) {
-        runtimes[i] = tv[i + 1].tv_sec - tv[i].tv_sec +
-                      (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
+      absl::FixedArray<double, 5> runtimes{0, 0, 0, 0, 0};
+      for (uint32_t i = 0; i < runtimes.size() - 1; i++) {
+        runtimes[i] = (tv[i + 1] - tv[i]).count();
         runtimes[4] += runtimes[i];
       }
       std::cout
@@ -1737,6 +1755,7 @@ void applier::state::_processing(configuration::State& new_cfg,
 void applier::state::_processing_diff(configuration::DiffState& diff_conf,
                                       error_cnt& err,
                                       retention::state* state) {
+  /* Particular case with a diff containing the full state */
   if (diff_conf.has_state()) {
     /* The previous version wasn't known by broker, the diff contains the full
      * state. So let's parse it as usual. */
@@ -1744,123 +1763,74 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
 
     _processing(*diff_conf.mutable_state(), err, state);
     return;
-  } else {
-    /* The full state was not sent by Broker. */
-
-    auto timeperiod_build_key = [](const Timeperiod& obj) -> std::string {
-      return obj.timeperiod_name();
-    };
-    /* Applying timeperiods diff */
-    _apply_ng<configuration::applier::timeperiod, DiffTimeperiod, std::string,
-              Timeperiod>(*diff_conf.mutable_timeperiods(),
-                          pb_indexed_config.mut_timeperiods(),
-                          timeperiod_build_key);
-
-    /* Applying connectors diff */
-    _apply_ng<configuration::applier::connector, DiffConnector, std::string,
-              Connector>(*diff_conf.mutable_connectors(),
-                         pb_indexed_config.mut_connectors(),
-                         [](const Connector& obj) -> std::string {
-                           return obj.connector_name();
-                         });
-
-    /* Applying commands diff */
-    _apply_ng<configuration::applier::command, DiffCommand, std::string,
-              Command>(
-        *diff_conf.mutable_commands(), pb_indexed_config.mut_commands(),
-        [](const Command& obj) -> std::string { return obj.command_name(); });
-
-    /* Applying contacts and contactgroups diff */
-    _apply_ng<configuration::applier::contact, DiffContact, std::string,
-              Contact>(
-        *diff_conf.mutable_contacts(), pb_indexed_config.mut_contacts(),
-        [](const Contact& obj) -> std::string { return obj.contact_name(); });
-    _apply_ng<configuration::applier::contactgroup, DiffContactgroup,
-              std::string, Contactgroup>(
-        *diff_conf.mutable_contactgroups(),
-        pb_indexed_config.mut_contactgroups(),
-        [](const Contactgroup& obj) -> std::string {
-          return obj.contactgroup_name();
-        });
-
-    /* Applying severities diff */
-    _apply_ng<configuration::applier::severity, DiffSeverity,
-              std::pair<uint64_t, uint32_t>, Severity, KeyType>(
-        *diff_conf.mutable_severities(), pb_indexed_config.mut_severities(),
-        [](const Severity& obj) {
-          return std::make_pair(obj.key().id(), obj.key().type());
-        },
-        [](const KeyType& key) {
-          return std::make_pair(key.id(), key.type());
-        });
-
-    /* Applying tags diff */
-    _apply_ng<configuration::applier::tag, DiffTag,
-              std::pair<uint64_t, uint32_t>, Tag, KeyType>(
-        *diff_conf.mutable_tags(), pb_indexed_config.mut_tags(),
-        [](const Tag& obj) {
-          return std::make_pair(obj.key().id(), obj.key().type());
-        },
-        [](const KeyType& key) {
-          return std::make_pair(key.id(), key.type());
-        });
-
-    /* Applying hosts and hostgroups diff */
-    _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
-        *diff_conf.mutable_hosts(), pb_indexed_config.mut_hosts(),
-        [](const Host& obj) -> uint64_t { return obj.host_id(); });
-    _apply_ng<configuration::applier::hostgroup, DiffHostgroup, std::string,
-              Hostgroup>(*diff_conf.mutable_hostgroups(),
-                         pb_indexed_config.mut_hostgroups(),
-                         [](const Hostgroup& obj) -> std::string {
-                           return obj.hostgroup_name();
-                         });
-
-    /* Applying services diff */
-    _apply_ng<configuration::applier::service, DiffService,
-              std::pair<uint64_t, uint64_t>, Service, HostServiceId>(
-        *diff_conf.mutable_services(), pb_indexed_config.mut_services(),
-        [](const Service& obj) -> std::pair<uint64_t, uint64_t> {
-          return std::make_pair(obj.host_id(), obj.service_id());
-        },
-        [](const HostServiceId& key) {
-          return std::make_pair(key.host_id(), key.service_id());
-        });
-
-    /* Applying anomalydetections diff */
-    _apply_ng<configuration::applier::anomalydetection, DiffAnomalydetection,
-              std::pair<uint64_t, uint64_t>, Anomalydetection, HostServiceId>(
-        *diff_conf.mutable_anomalydetections(),
-        pb_indexed_config.mut_anomalydetections(),
-        [](const Anomalydetection& obj) -> std::pair<uint64_t, uint64_t> {
-          return std::make_pair(obj.host_id(), obj.service_id());
-        },
-        [](const HostServiceId& key) {
-          return std::make_pair(key.host_id(), key.service_id());
-        });
-
-    /* Applying servicegroups diff */
-    _apply_ng<configuration::applier::servicegroup, DiffServicegroup,
-              std::string, Servicegroup>(
-        *diff_conf.mutable_servicegroups(),
-        pb_indexed_config.mut_servicegroups(),
-        [](const Servicegroup& obj) -> std::string {
-          return obj.servicegroup_name();
-        });
-
-    /* Applying host dependencies diff */
-    _apply_ng<configuration::applier::hostdependency, DiffHostdependency,
-              size_t, Hostdependency>(*diff_conf.mutable_hostdependencies(),
-                                      pb_indexed_config.mut_hostdependencies(),
-                                      configuration::hostdependency_key);
-
-    /* Applying service dependencies diff */
-    _apply_ng<configuration::applier::servicedependency, DiffServicedependency,
-              size_t, Servicedependency>(
-        *diff_conf.mutable_servicedependencies(),
-        pb_indexed_config.mut_servicedependencies(),
-        configuration::servicedependency_key);
   }
+
+  // Timing.
+  absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
+      {}, {}, {}, {}, {}};
+
+  // Call prelaunch broker event the first time to run applier state.
+  if (!has_already_been_loaded)
+    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE);
+
+  //
+  // Expand all objects.
+  //
+  tv[0] = std::chrono::system_clock::now();
+
+  try {
+    std::lock_guard<std::mutex> lock(_apply_lock);
+    _apply_diff_conf(diff_conf, &tv, err);
+
+    config_logger->debug("Duration to apply the diff state configuration {}",
+                         tv[2] - tv[1]);
+    // Apply scheduler
+    applier::scheduler::instance().apply(pb_indexed_config.mut_state(),
+                                         diff_conf);
+    whitelist::reload();
+
+    // Timing.
+    tv[3] = std::chrono::system_clock::now();
+
+    config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
+    // Check for circular paths between hosts.
+    pre_flight_circular_check(&err.config_warnings, &err.config_errors);
+
+    // Call start broker event the first time to run applier state.
+    if (!has_already_been_loaded) {
+      neb_load_all_modules();
+
+      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
+    } else {
+      apply_log_config(pb_indexed_config.mut_state());
+      cbm->reload();
+      neb_reload_all_modules();
+    }
+
+    // Print initial states of new hosts and services.
+    for (auto a : diff_conf.hosts().added()) {
+      auto it_hst = engine::host::hosts_by_id.find(a.host_id());
+      if (it_hst != engine::host::hosts_by_id.end())
+        log_host_state(INITIAL_STATES, it_hst->second.get());
+    }
+    for (auto a : diff_conf.services().added()) {
+      auto it_svc =
+          engine::service::services_by_id.find({a.host_id(), a.service_id()});
+      if (it_svc != engine::service::services_by_id.end())
+        log_service_state(INITIAL_STATES, it_svc->second.get());
+    }
+
+    // Timing.
+    tv[4] = std::chrono::system_clock::now();
+    config_logger->debug("Duration to apply resources change {}",
+                         tv[4] - tv[3]);
+  } catch (...) {
+    _processing_state = state_error;
+    throw;
+  }
+
+  has_already_been_loaded = true;
+  _processing_state = state_ready;
 }
 
 template <typename ConfigurationType, typename KeyType, typename ApplierType>

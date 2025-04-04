@@ -148,7 +148,7 @@ BEDW
 BEDWEN
     [Documentation]    Scenario: Verify Broker configured with cache_config_directory listens to it
     ...    Given the Central Broker is started with cache_config_directory set to a specific Directory
-    ...    And the pollers_config_directory is set to /var/lib/centreon-broker/pollers-config.
+    ...    And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
     ...    When a file of the form <poller_id>.lck is created in the cache_config_directory
     ...    Then Broker logs a message telling the file has been created
     ...    When the corresponding configuration directory doesn't exist
@@ -188,7 +188,7 @@ BEDWEN
 BEDWENF
     [Documentation]    Scenario: Verify Broker configured with cache_config_directory creates the protobuf serialized configuration
     ...    Given the Central Broker is started with cache_config_directory set to a specific Directory
-    ...    And the pollers_config_directory is set to /var/lib/centreon-broker/pollers-config.
+    ...    And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
     ...    When a file of the form <poller_id>.lck is created after the <poller_id> directory is filled correctly
     ...    Then Broker logs a message telling the file has been created
     ...    And Broker dumps a file <poller_id>.prot if the pollers_conf directory
