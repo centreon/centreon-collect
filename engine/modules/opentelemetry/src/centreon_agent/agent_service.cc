@@ -17,6 +17,9 @@
  */
 
 #include "centreon_agent/agent_service.hh"
+#include <boost/asio/steady_timer.hpp>
+#include <chrono>
+#include <memory>
 #include "common/crypto/jwt.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
@@ -31,6 +34,7 @@ class server_bireactor
     : public agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
                                                   agent::MessageToAgent>> {
   const std::string _peer;
+  std::shared_ptr<boost::asio::steady_timer> _timer;
 
  public:
   template <class otel_request_handler>
@@ -53,6 +57,46 @@ class server_bireactor
     SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
   }
 
+  template <class otel_request_handler>
+  server_bireactor(const std::shared_ptr<boost::asio::io_context>& io_context,
+                   const agent_config::pointer& conf,
+                   const otel_request_handler& handler,
+                   const std::shared_ptr<spdlog::logger>& logger,
+                   const std::string& peer,
+                   agent_stat::pointer& stats,
+                   const std::chrono::system_clock::time_point& exp_time)
+      : agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
+                                             agent::MessageToAgent>>(
+            io_context,
+            "agent_server",
+            conf,
+            handler,
+            logger,
+            false,
+            stats,
+            exp_time),
+        _peer(peer) {
+    SPDLOG_LOGGER_DEBUG(_logger, "connected with agent {}", _peer);
+    _timer = std::make_shared<boost::asio::steady_timer>(*io_context);
+    _timer->expires_after(
+        std::chrono::duration_cast<boost::asio::steady_timer::duration>(
+            exp_time - std::chrono::system_clock::now()));
+
+    _timer->async_wait([this](const boost::system::error_code& ec) {
+      if (!ec) {
+        absl::MutexLock l(&_protect);
+        if (!_alive) {
+          return;
+        }
+        SPDLOG_LOGGER_DEBUG(_logger, "agent {} timeout", get_peer());
+        _alive = false;
+        Finish(::grpc::Status(::grpc::StatusCode::CANCELLED, "Token expired"));
+        SPDLOG_LOGGER_DEBUG(_logger, "end of agent connection with {}", _peer);
+        return;
+      }
+    });
+  }
+
   const std::string& get_peer() const override { return _peer; }
 
   void on_error() override;
@@ -65,6 +109,10 @@ void server_bireactor::on_error() {
 
 void server_bireactor::shutdown() {
   absl::MutexLock l(&_protect);
+  if (_timer) {
+    _timer->cancel();
+    SPDLOG_LOGGER_DEBUG(_logger, "cancel timer for {}", _peer);
+  }
   if (_alive) {
     _alive = false;
     agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
@@ -171,6 +219,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
               ::grpc::StatusCode::UNAUTHENTICATED, "Token expired"));
           ;
         }
+        SPDLOG_LOGGER_INFO(_logger, "Token exp time {}", jwt.get_exp());
         // check if token is trusted by the service
         if (_trusted_tokens->find(jwt.get_string()) == _trusted_tokens->end()) {
           SPDLOG_LOGGER_ERROR(_logger,
@@ -198,7 +247,8 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
   {
     absl::MutexLock l(&_conf_m);
     new_reactor = std::make_shared<server_bireactor>(
-        _io_context, _conf, _metric_handler, _logger, context->peer(), _stats);
+        _io_context, _conf, _metric_handler, _logger, context->peer(), _stats,
+        exp_time);
   }
   server_bireactor::register_stream(new_reactor);
   new_reactor->start_read();
