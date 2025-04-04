@@ -184,7 +184,7 @@ jobs:
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
             ./.github/scripts/collect-test-robot.sh \
             ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
-    
+
       # - name: Generate Xray Token
       #   id: generate-xray-token
       #   run: |
