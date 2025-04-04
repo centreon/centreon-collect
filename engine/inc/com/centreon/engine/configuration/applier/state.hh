@@ -44,6 +44,11 @@ namespace applier {
  *  Simple configuration applier for state class.
  */
 class state {
+  void _apply_diff_conf(
+      DiffState& diff,
+      absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
+      error_cnt& err);
+
  public:
   void apply(configuration::State& new_cfg,
              error_cnt& err,
