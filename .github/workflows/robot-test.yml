@@ -148,38 +148,25 @@ jobs:
         run: |
           docker load --input ./${{ inputs.image }}
 
-      - name: Test ${{ matrix.feature }}
-        if: ${{ matrix.feature != 'connector_ssh/connector_ssh.robot' }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-        run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
-            -v $(pwd):/test_collect  \
-            --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-            --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-            --env AWS_BUCKET=centreon-collect-robot-report \
-            --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
-            ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
-
       #  pam sshd authentication doesn't work with privileged containers
-      - name: Test ${{ matrix.feature }} (no privileged)
-        if: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' }}
+      - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
         run: |
-          docker run --rm --ulimit core=-1 --security-opt seccomp=unconfined \
+          privilege_status=""
+          if [[ ${{ matrix.feature != 'connector_ssh/connector_ssh.robot' }} ]]; then
+            privilege_status="--privileged"
+          fi
+          docker run --rm $privilege_status --ulimit core=-1 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
             --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
             --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_test }} \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+            ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
