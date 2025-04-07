@@ -342,14 +342,17 @@ int main(int argc, char* argv[]) {
           // Parse configuration.
           configuration::error_cnt err;
           auto new_conf = std::make_unique<configuration::State>();
-          std::filesystem::path proto_conf_file(proto_conf / "state.prot");
+          bool proto_valid = false;
           if (!proto_conf.empty()) {
+            std::filesystem::path proto_conf_file(proto_conf / "state.prot");
             std::ifstream ifs(proto_conf_file);
             if (ifs.good()) {
               new_conf->ParseFromIstream(&ifs);
               ifs.close();
+              proto_valid = true;
             }
-          } else {
+          }
+          if (!proto_valid) {
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
             p.parse(config_file, new_conf.get(), err);

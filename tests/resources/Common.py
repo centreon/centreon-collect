@@ -26,7 +26,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToDict, MessageToJson
 import time
 import json
 import psutil
@@ -40,6 +40,7 @@ from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
+import state_pb2
 
 
 def import_robot_resources():
@@ -1014,7 +1015,8 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int = T
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                logger.console(f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
+                logger.console(
+                    f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT current_status FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
@@ -1132,9 +1134,11 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                 first = True
                 if enabled != '0':
                     if first:
-                        logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        logger.console(
+                            f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                         first = False
-                    cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    cursor.execute(
+                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
                         logger.console(
@@ -1462,11 +1466,11 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         time.sleep(1)
 
     connection = pymysql.connect(host=DB_HOST,
-                             user=DB_USER,
-                             password=DB_PASS,
-                             database=DB_NAME_STORAGE,
-                             charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
 
     with connection:
         with connection.cursor() as cursor:
@@ -2415,3 +2419,67 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
     }
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_check_state_configurations_are_equal(file1, file2):
+    """
+    ctn_check_state_configurations_are_equal
+
+    Compare two dump protobuf state configurations files
+    Args:
+        file1: first file to compare
+        file2: second file to compare
+
+    Returns: True if they are equal
+    """
+
+    def compare_dicts(d1, d2):
+        """
+        Compare two dictionaries recursively, considering lists equal if
+        they contain the same elements in any order.
+
+        Returns:
+            True if the dictionaries are equal, False otherwise.
+        """
+
+        if isinstance(d1, dict) and isinstance(d2, dict):
+            if d1.keys() != d2.keys():
+                return False
+            return all(compare_dicts(d1[k], d2[k]) for k in d1)
+
+        elif isinstance(d1, list) and isinstance(d2, list):
+            if len(d1) != len(d2):
+                return False
+            try:
+                from collections import Counter
+                return Counter(d1) == Counter(d2)
+            except TypeError:
+                d2_copy = d2[:]
+                for item in d1:
+                    for i, candidate in enumerate(d2_copy):
+                        if compare_dicts(item, candidate):
+                            del d2_copy[i]
+                            break
+                    else:
+                        return False
+                return not d2_copy
+
+        else:
+            return d1 == d2
+
+    with open(file1, "rb") as f1:
+        content1 = f1.read()
+    with open(file2, "rb") as f2:
+        content2 = f2.read()
+
+    pb1 = state_pb2.State()
+    pb2 = state_pb2.State()
+
+    pb1.ParseFromString(content1)
+    pb2.ParseFromString(content2)
+
+    dico1 = MessageToDict(pb1)
+    dico2 = MessageToDict(pb2)
+
+    return compare_dicts(dico1, dico2)
+>>>>>>> 5761c9c7f6 (fix(tests): errors raised by ruff fixed and tests improved)

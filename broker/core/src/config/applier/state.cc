@@ -61,7 +61,8 @@ state::state(common::PeerType peer_type,
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
       _modules{logger},
-      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
+      _center{std::make_shared<com::centreon::broker::stats::center>()},
+      _watch_occupied{false} {}
 
 /**
  * @brief Destructor of the state class.
@@ -519,12 +520,40 @@ std::vector<uint32_t> state::_watch_engine_conf() {
   return retval;
 }
 
+/**
+ * @brief If occipied is true, set the occupied flag to true if possible (we
+ * cannot set it to true if it is already enabled). If occupied is false,
+ * set the occupied flag to false.
+ *
+ * @param occupied True if we want to set the occupied flag to true, false if we
+ * want to set it to false.
+ *
+ * @return True on success, false otherwise. An action linked to this occupied
+ * flag should work only if this function returns true.
+ */
+bool state::set_engine_conf_watcher_occupied(bool occupied,
+                                             const std::string_view& owner) {
+  if (occupied) {
+    _logger->debug("watcher occupied by '{}'", owner);
+    bool expected = false;
+    return _watch_occupied.compare_exchange_strong(expected, true);
+  } else {
+    _watch_occupied = false;
+    _logger->debug("watcher released by '{}'", owner);
+    return true;
+  }
+}
+
 void state::_start_watch_engine_conf_timer() {
   _watch_engine_conf_timer->expires_from_now(std::chrono::seconds(5));
   _watch_engine_conf_timer->async_wait(
       [this](const boost::system::error_code& ec) {
         if (!ec) {
-          _check_last_engine_conf();
+          if (set_engine_conf_watcher_occupied(true,
+                                               "applier::state::watcher")) {
+            _check_last_engine_conf();
+            set_engine_conf_watcher_occupied(false, "applier::state::watcher");
+          }
           _start_watch_engine_conf_timer();
         }
       });
@@ -592,6 +621,13 @@ void state::_check_last_engine_conf() {
   }
 }
 
+/**
+ * @brief Prepare the diff between the previous and the new Engine
+ * configurations.
+ *
+ * @param poller_id The poller ID.
+ * @param state The new Engine configuration.
+ */
 void state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
@@ -610,7 +646,6 @@ void state::_prepare_diff_for_poller(
             pollers_config_dir() / fmt::format("{}.prot", poller_id);
         std::fstream f(previous_prot_conf);
         std::unique_ptr<engine::configuration::DiffState> diff_state;
-        bool can_rename = false;
         std::string new_version = state->config_version();
         if (f) {
           /* There is a previous configuration */
@@ -622,7 +657,6 @@ void state::_prepare_diff_for_poller(
               engine::configuration::indexed_state(std::move(previous_state));
           previous_indexed_state.diff_with_new_config(*state, _logger,
                                                       diff_state.get());
-          can_rename = true;
         } else {
           /* No previous configuration */
           diff_state = std::make_unique<engine::configuration::DiffState>();
@@ -634,20 +668,7 @@ void state::_prepare_diff_for_poller(
         if (df) {
           diff_state->SerializeToOstream(&df);
           df.close();
-          /* FIXME: this should be done once the new configuration sent to the
-           * poller. */
-          if (can_rename) {
-            std::error_code ec;
-            std::filesystem::remove(previous_prot_conf);
-            std::filesystem::path new_prot_conf =
-                pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
-            std::filesystem::rename(new_prot_conf, previous_prot_conf, ec);
-            if (ec) {
-              _logger->error("Cannot rename '{}' to '{}': {}",
-                             new_prot_conf.string(),
-                             previous_prot_conf.string(), ec.message());
-            }
-          }
+
           /* The new configuration to send to the poller is new-<poller ID>.prot
            * Once sent to it, this file must be renamed into <poller ID>.prot
            * and the diff file can be removed. */
