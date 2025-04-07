@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015,2017, 2021-2024 Centreon
+ * Copyright 2013,2015,2017, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -764,12 +764,14 @@ void stream::negotiate(stream::negotiation_type neg) {
       obj.set_broker_name(config::applier::state::instance().broker_name());
       obj.set_peer_type(config::applier::state::instance().peer_type());
       /* I know I'm Engine, and I have access to the configuration. */
-      if (!config::applier::state::instance().proto_conf().empty())
+      if (!config::applier::state::instance().proto_conf().empty()) {
         obj.set_extended_negotiation(true);
+      }
       /* I know I'm Broker, and I have access to the php cache configuration
        * directory. */
-      else if (!config::applier::state::instance().cache_config_dir().empty())
+      else if (!config::applier::state::instance().cache_config_dir().empty()) {
         obj.set_extended_negotiation(true);
+      }
       /* I don't know what I am. */
       else
         obj.set_extended_negotiation(false);
