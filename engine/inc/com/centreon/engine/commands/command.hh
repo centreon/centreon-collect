@@ -22,20 +22,17 @@
 #include "com/centreon/engine/commands/command_listener.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
-namespace com::centreon::engine {
-namespace commands {
+namespace com::centreon::engine::commands {
 class command;
-}
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::commands
 
 typedef std::unordered_map<
     std::string,
     std::shared_ptr<com::centreon::engine::commands::command> >
     command_map;
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 /**
  *  @class command command.hh
  *  @brief Execute command and send the result.
@@ -165,9 +162,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
   return s;
 }
 
-}  // namespace commands
-
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::commands
 
 namespace fmt {
 template <>
