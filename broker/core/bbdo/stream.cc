@@ -1186,33 +1186,43 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   }
   if (_peer_type == common::ENGINE &&
       config::applier::state::instance().engine_peer_needs_update(_poller_id)) {
-    _logger->debug("BBDO: We should send the Engine configuration to the peer");
-    auto pb_conf = std::make_shared<pb_diff_state>();
-    auto& obj = pb_conf->mut_obj();
-    std::filesystem::path diff_name(
-        config::applier::state::instance().pollers_config_dir() /
-        fmt::format("diff-{}.prot", _poller_id));
-    std::ifstream f(diff_name);
-    if (f) {
-      std::error_code ec;
-      obj.ParseFromIstream(&f);
-      f.close();
-      _logger->debug("BBDO: Sending Engine configuration to poller {}",
-                     _poller_id);
-      _write(pb_conf);
-      std::filesystem::remove(diff_name);
-      std::filesystem::path new_name(
+    if (config::applier::state::instance().set_engine_conf_watcher_occupied(
+            true, "bbdo::stream")) {
+      _logger->debug(
+          "BBDO: We should send the Engine configuration to the peer");
+      auto pb_conf = std::make_shared<pb_diff_state>();
+      auto& obj = pb_conf->mut_obj();
+      std::filesystem::path diff_name(
           config::applier::state::instance().pollers_config_dir() /
-          fmt::format("new-{}.prot", _poller_id));
-      std::filesystem::path name(
-          config::applier::state::instance().pollers_config_dir() /
-          fmt::format("{}.prot", _poller_id));
-      std::filesystem::remove(name, ec);
-      std::filesystem::rename(new_name, name, ec);
-      if (ec)
-        _logger->error("Unable to rename the file from '{}' to '{}'",
-                       new_name.string(), name.string());
-      config::applier::state::instance().set_engine_peer_updated(_poller_id);
+          fmt::format("diff-{}.prot", _poller_id));
+      std::ifstream f(diff_name);
+      if (f) {
+        std::error_code ec;
+        obj.ParseFromIstream(&f);
+        f.close();
+        _logger->debug("BBDO: Sending Engine configuration to poller {}",
+                       _poller_id);
+        _write(pb_conf);
+        _logger->debug("BBDO: Removing diff file '{}'", diff_name.string());
+        std::filesystem::remove(diff_name);
+        std::filesystem::path new_name(
+            config::applier::state::instance().pollers_config_dir() /
+            fmt::format("new-{}.prot", _poller_id));
+        std::filesystem::path name(
+            config::applier::state::instance().pollers_config_dir() /
+            fmt::format("{}.prot", _poller_id));
+        _logger->error("bbdo::stream removing {}", name.string());
+        std::filesystem::remove(name, ec);
+        _logger->error("bbdo::stream renaming {} into {}", new_name.string(),
+                       name.string());
+        std::filesystem::rename(new_name, name, ec);
+        if (ec)
+          _logger->error("Unable to rename the file from '{}' to '{}'",
+                         new_name.string(), name.string());
+        config::applier::state::instance().set_engine_peer_updated(_poller_id);
+      }
+      config::applier::state::instance().set_engine_conf_watcher_occupied(
+          false, "bbdo::stream");
     }
   }
 

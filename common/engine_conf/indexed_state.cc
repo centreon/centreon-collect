@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/indexed_state.hh"
+#include <absl/container/btree_map.h>
 #include <google/protobuf/util/message_differencer.h>
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
@@ -431,146 +432,188 @@ void indexed_state::diff_with_new_config(
       result->mutable_serviceescalations());
 
   /* Diff on state values */
-#define set_if_changed(field)               \
+#define SET_IF_CHANGED(field)               \
   if (_state->field() != new_state.field()) \
-    result->set_##field(_state->field());
+    result->set_##field(new_state.field());
 
-  set_if_changed(cfg_main);
-  if (!std::equal(_state->cfg_file().begin(), _state->cfg_file().end(),
-                  new_state.cfg_file().begin(), new_state.cfg_file().end())) {
-    for (auto& file : new_state.cfg_file())
-      result->add_cfg_file(file);
+#define SET_REPEATED_IF_CHANGED(field)                                   \
+  if (!std::equal(_state->field().begin(), _state->field().end(),        \
+                  new_state.field().begin(), new_state.field().end())) { \
+    for (auto& item : new_state.field())                                 \
+      result->add_##field(item);                                         \
   }
-  if (!std::equal(
-          _state->resource_file().begin(), _state->resource_file().end(),
-          new_state.resource_file().begin(), new_state.resource_file().end())) {
-    for (auto& file : new_state.resource_file())
-      result->add_resource_file(file);
-  }
-  set_if_changed(instance_heartbeat_interval);
-  set_if_changed(check_service_freshness);
-  set_if_changed(enable_flap_detection);
-  set_if_changed(rpc_listen_address);
-  set_if_changed(grpc_port);
-  // set_if_changed(users);
-  // set_if_changed(cfg_dir);
-  set_if_changed(state_retention_file);
-  // set_if_changed(broker_module);
-  set_if_changed(broker_module_directory);
-  set_if_changed(enable_macros_filter);
-  // set_if_changed(macros_filter);
 
-  set_if_changed(log_v2_enabled);
-  set_if_changed(log_legacy_enabled);
-  set_if_changed(use_syslog);
-  set_if_changed(log_v2_logger);
-  set_if_changed(log_file);
-  set_if_changed(debug_file);
-  set_if_changed(debug_level);
-  set_if_changed(debug_verbosity);
-  set_if_changed(max_debug_file_size);
-  set_if_changed(log_pid);
-  set_if_changed(log_file_line);
-  set_if_changed(log_flush_period);
-  set_if_changed(log_level_checks);
-  set_if_changed(log_level_commands);
-  set_if_changed(log_level_comments);
-  set_if_changed(log_level_config);
-  set_if_changed(log_level_downtimes);
-  set_if_changed(log_level_eventbroker);
-  set_if_changed(log_level_events);
-  set_if_changed(log_level_external_command);
-  set_if_changed(log_level_functions);
-  set_if_changed(log_level_macros);
-  set_if_changed(log_level_notifications);
-  set_if_changed(log_level_process);
-  set_if_changed(log_level_runtime);
-  set_if_changed(log_level_otl);
-  set_if_changed(global_host_event_handler);
-  set_if_changed(global_service_event_handler);
-  set_if_changed(illegal_object_chars);
-  set_if_changed(illegal_output_chars);
-  set_if_changed(interval_length);
-  set_if_changed(ochp_command);
-  set_if_changed(ocsp_command);
-  set_if_changed(use_timezone);
-  set_if_changed(accept_passive_host_checks);
-  set_if_changed(accept_passive_service_checks);
-  set_if_changed(additional_freshness_latency);
-  set_if_changed(cached_host_check_horizon);
-  set_if_changed(check_external_commands);
-  set_if_changed(check_host_freshness);
-  set_if_changed(check_reaper_interval);
-  set_if_changed(enable_event_handlers);
-  set_if_changed(enable_notifications);
-  set_if_changed(execute_host_checks);
-  set_if_changed(execute_service_checks);
-  set_if_changed(max_host_check_spread);
-  set_if_changed(max_service_check_spread);
-  set_if_changed(notification_timeout);
-  set_if_changed(obsess_over_hosts);
-  set_if_changed(obsess_over_services);
-  set_if_changed(process_performance_data);
-  set_if_changed(soft_state_dependencies);
-  set_if_changed(use_large_installation_tweaks);
-  set_if_changed(admin_email);
-  set_if_changed(admin_pager);
-  set_if_changed(allow_empty_hostgroup_assignment);
-  set_if_changed(command_file);
-  set_if_changed(status_file);
-  set_if_changed(poller_name);
-  set_if_changed(poller_id);
-  set_if_changed(cached_service_check_horizon);
-  set_if_changed(check_orphaned_hosts);
-  set_if_changed(check_orphaned_services);
-  set_if_changed(command_check_interval);
-  set_if_changed(command_check_interval_is_seconds);
-  set_if_changed(enable_environment_macros);
-  set_if_changed(event_broker_options);
-  set_if_changed(event_handler_timeout);
-  set_if_changed(external_command_buffer_slots);
-  set_if_changed(high_host_flap_threshold);
-  set_if_changed(high_service_flap_threshold);
-  set_if_changed(host_check_timeout);
-  set_if_changed(host_freshness_check_interval);
-  set_if_changed(service_freshness_check_interval);
-  set_if_changed(log_event_handlers);
-  set_if_changed(log_external_commands);
-  set_if_changed(log_notifications);
-  set_if_changed(log_passive_checks);
-  set_if_changed(log_host_retries);
-  set_if_changed(log_service_retries);
-  set_if_changed(max_log_file_size);
-  set_if_changed(low_host_flap_threshold);
-  set_if_changed(low_service_flap_threshold);
-  set_if_changed(max_parallel_service_checks);
-  set_if_changed(ochp_timeout);
-  set_if_changed(ocsp_timeout);
-  set_if_changed(perfdata_timeout);
-  set_if_changed(retained_host_attribute_mask);
-  set_if_changed(retained_process_host_attribute_mask);
-  set_if_changed(retained_contact_host_attribute_mask);
-  set_if_changed(retained_contact_service_attribute_mask);
-  set_if_changed(retain_state_information);
-  set_if_changed(retention_scheduling_horizon);
-  set_if_changed(retention_update_interval);
-  set_if_changed(service_check_timeout);
-  set_if_changed(sleep_time);
-  set_if_changed(status_update_interval);
-  set_if_changed(time_change_threshold);
-  set_if_changed(use_regexp_matches);
-  set_if_changed(use_retained_program_state);
-  set_if_changed(use_retained_scheduling_info);
-  set_if_changed(use_setpgid);
-  set_if_changed(use_true_regexp_matching);
-  set_if_changed(date_format);
-  // set_if_changed(host_inter_check_delay_method);
-  // set_if_changed(service_inter_check_delay_method);
-  // set_if_changed(service_interleave_factor_method);
-  set_if_changed(enable_predictive_host_dependency_checks);
-  set_if_changed(enable_predictive_service_dependency_checks);
-  set_if_changed(send_recovery_notifications_anyways);
-  set_if_changed(host_down_disable_service_checks);
+#define SET_STR_LST_IF_CHANGED(field)                                          \
+  if (!std::equal(                                                             \
+          _state->field().data().begin(), _state->field().data().end(),        \
+          new_state.field().data().begin(), new_state.field().data().end())) { \
+    for (auto& item : new_state.field().data())                                \
+      result->mutable_##field()->add_data(item);                               \
+  }
+
+  SET_IF_CHANGED(cfg_main);
+  for (auto& c : _state->cfg_file()) {
+    logger->error("cfg_file: {}", c);
+  }
+  for (auto& c : new_state.cfg_file()) {
+    logger->error("cfg_file: {}", c);
+  }
+  SET_REPEATED_IF_CHANGED(cfg_file);
+  for (auto& c : result->cfg_file()) {
+    logger->error("cfg_file: {}", c);
+  }
+
+  SET_REPEATED_IF_CHANGED(resource_file);
+  SET_IF_CHANGED(instance_heartbeat_interval);
+  SET_IF_CHANGED(check_service_freshness);
+  SET_IF_CHANGED(enable_flap_detection);
+  SET_IF_CHANGED(rpc_listen_address);
+  SET_IF_CHANGED(grpc_port);
+  {
+    absl::btree_map<std::string, std::string> old_users;
+    absl::btree_map<std::string, std::string> new_users;
+    for (auto& user : _state->users())
+      old_users.emplace(user.first, user.second);
+    for (auto& user : new_state.users())
+      new_users.emplace(user.first, user.second);
+    if (old_users != new_users) {
+      for (auto& user : new_users)
+        (*result->mutable_users())[user.first] = user.second;
+    }
+  }
+  SET_REPEATED_IF_CHANGED(cfg_dir);
+  SET_IF_CHANGED(state_retention_file);
+  SET_REPEATED_IF_CHANGED(broker_module);
+  SET_IF_CHANGED(broker_module_directory);
+  SET_IF_CHANGED(enable_macros_filter);
+  SET_STR_LST_IF_CHANGED(macros_filter);
+  SET_IF_CHANGED(log_v2_enabled);
+  SET_IF_CHANGED(log_legacy_enabled);
+  SET_IF_CHANGED(use_syslog);
+  SET_IF_CHANGED(log_v2_logger);
+  SET_IF_CHANGED(log_file);
+  SET_IF_CHANGED(debug_file);
+  SET_IF_CHANGED(debug_level);
+  SET_IF_CHANGED(debug_verbosity);
+  SET_IF_CHANGED(max_debug_file_size);
+  SET_IF_CHANGED(log_pid);
+  SET_IF_CHANGED(log_file_line);
+  SET_IF_CHANGED(log_flush_period);
+  SET_IF_CHANGED(log_level_checks);
+  SET_IF_CHANGED(log_level_commands);
+  SET_IF_CHANGED(log_level_comments);
+  SET_IF_CHANGED(log_level_config);
+  SET_IF_CHANGED(log_level_downtimes);
+  SET_IF_CHANGED(log_level_eventbroker);
+  SET_IF_CHANGED(log_level_events);
+  SET_IF_CHANGED(log_level_external_command);
+  SET_IF_CHANGED(log_level_functions);
+  SET_IF_CHANGED(log_level_macros);
+  SET_IF_CHANGED(log_level_notifications);
+  SET_IF_CHANGED(log_level_process);
+  SET_IF_CHANGED(log_level_runtime);
+  SET_IF_CHANGED(log_level_otl);
+  SET_IF_CHANGED(global_host_event_handler);
+  SET_IF_CHANGED(global_service_event_handler);
+  SET_IF_CHANGED(illegal_object_chars);
+  SET_IF_CHANGED(illegal_output_chars);
+  SET_IF_CHANGED(interval_length);
+  SET_IF_CHANGED(ochp_command);
+  SET_IF_CHANGED(ocsp_command);
+  SET_IF_CHANGED(use_timezone);
+  SET_IF_CHANGED(accept_passive_host_checks);
+  SET_IF_CHANGED(accept_passive_service_checks);
+  SET_IF_CHANGED(additional_freshness_latency);
+  SET_IF_CHANGED(cached_host_check_horizon);
+  SET_IF_CHANGED(check_external_commands);
+  SET_IF_CHANGED(check_host_freshness);
+  SET_IF_CHANGED(check_reaper_interval);
+  SET_IF_CHANGED(enable_event_handlers);
+  SET_IF_CHANGED(enable_notifications);
+  SET_IF_CHANGED(execute_host_checks);
+  SET_IF_CHANGED(execute_service_checks);
+  SET_IF_CHANGED(max_host_check_spread);
+  SET_IF_CHANGED(max_service_check_spread);
+  SET_IF_CHANGED(notification_timeout);
+  SET_IF_CHANGED(obsess_over_hosts);
+  SET_IF_CHANGED(obsess_over_services);
+  SET_IF_CHANGED(process_performance_data);
+  SET_IF_CHANGED(soft_state_dependencies);
+  SET_IF_CHANGED(use_large_installation_tweaks);
+  SET_IF_CHANGED(admin_email);
+  SET_IF_CHANGED(admin_pager);
+  SET_IF_CHANGED(allow_empty_hostgroup_assignment);
+  SET_IF_CHANGED(command_file);
+  SET_IF_CHANGED(status_file);
+  SET_IF_CHANGED(poller_name);
+  SET_IF_CHANGED(poller_id);
+  SET_IF_CHANGED(cached_service_check_horizon);
+  SET_IF_CHANGED(check_orphaned_hosts);
+  SET_IF_CHANGED(check_orphaned_services);
+  SET_IF_CHANGED(command_check_interval);
+  SET_IF_CHANGED(command_check_interval_is_seconds);
+  SET_IF_CHANGED(enable_environment_macros);
+  SET_IF_CHANGED(event_broker_options);
+  SET_IF_CHANGED(event_handler_timeout);
+  SET_IF_CHANGED(external_command_buffer_slots);
+  SET_IF_CHANGED(high_host_flap_threshold);
+  SET_IF_CHANGED(high_service_flap_threshold);
+  SET_IF_CHANGED(host_check_timeout);
+  SET_IF_CHANGED(host_freshness_check_interval);
+  SET_IF_CHANGED(service_freshness_check_interval);
+  SET_IF_CHANGED(log_event_handlers);
+  SET_IF_CHANGED(log_external_commands);
+  SET_IF_CHANGED(log_notifications);
+  SET_IF_CHANGED(log_passive_checks);
+  SET_IF_CHANGED(log_host_retries);
+  SET_IF_CHANGED(log_service_retries);
+  SET_IF_CHANGED(max_log_file_size);
+  SET_IF_CHANGED(low_host_flap_threshold);
+  SET_IF_CHANGED(low_service_flap_threshold);
+  SET_IF_CHANGED(max_parallel_service_checks);
+  SET_IF_CHANGED(ochp_timeout);
+  SET_IF_CHANGED(ocsp_timeout);
+  SET_IF_CHANGED(perfdata_timeout);
+  SET_IF_CHANGED(retained_host_attribute_mask);
+  SET_IF_CHANGED(retained_process_host_attribute_mask);
+  SET_IF_CHANGED(retained_contact_host_attribute_mask);
+  SET_IF_CHANGED(retained_contact_service_attribute_mask);
+  SET_IF_CHANGED(retain_state_information);
+  SET_IF_CHANGED(retention_scheduling_horizon);
+  SET_IF_CHANGED(retention_update_interval);
+  SET_IF_CHANGED(service_check_timeout);
+  SET_IF_CHANGED(sleep_time);
+  SET_IF_CHANGED(status_update_interval);
+  SET_IF_CHANGED(time_change_threshold);
+  SET_IF_CHANGED(use_regexp_matches);
+  SET_IF_CHANGED(use_retained_program_state);
+  SET_IF_CHANGED(use_retained_scheduling_info);
+  SET_IF_CHANGED(use_setpgid);
+  SET_IF_CHANGED(use_true_regexp_matching);
+  SET_IF_CHANGED(date_format);
+  if (!MessageDifferencer::Equals(_state->host_inter_check_delay_method(),
+                                  new_state.host_inter_check_delay_method())) {
+    *result->mutable_host_inter_check_delay_method() =
+        new_state.host_inter_check_delay_method();
+  }
+  if (!MessageDifferencer::Equals(
+          _state->service_inter_check_delay_method(),
+          new_state.service_inter_check_delay_method())) {
+    *result->mutable_service_inter_check_delay_method() =
+        new_state.service_inter_check_delay_method();
+  }
+  if (!MessageDifferencer::Equals(
+          _state->service_interleave_factor_method(),
+          new_state.service_interleave_factor_method())) {
+    *result->mutable_service_interleave_factor_method() =
+        new_state.service_interleave_factor_method();
+  }
+  SET_IF_CHANGED(enable_predictive_host_dependency_checks);
+  SET_IF_CHANGED(enable_predictive_service_dependency_checks);
+  SET_IF_CHANGED(send_recovery_notifications_anyways);
+  SET_IF_CHANGED(host_down_disable_service_checks);
+  SET_IF_CHANGED(max_file_descriptors);
+  SET_IF_CHANGED(config_version);
 }
 
 void indexed_state::serialize_to_ostream(std::ostream* os) {
