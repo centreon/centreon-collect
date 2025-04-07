@@ -112,6 +112,11 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
+    if (!proto_conf.empty()) {
+      std::ofstream f(proto_conf / "state.prot", std::ios::binary);
+      pb_indexed_config.serialize_to_ostream(&f);
+      f.close();
+    }
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -1293,144 +1298,170 @@ void applier::state::_apply_diff_conf(
   // Timing.
   tv->at(1) = std::chrono::system_clock::now();
 
-#define apply_diff(field) \
+#define APPLY_DIFF(field) \
   if (diff.has_##field()) \
     pb_indexed_config.mut_state().set_##field(diff.field());
 
-#define apply_repeated_diff(field)                     \
+#define APPLY_REPEATED_DIFF(field)                     \
   if (!diff.field().empty()) {                         \
     pb_indexed_config.mut_state().clear_##field();     \
     for (auto& item : diff.field())                    \
       pb_indexed_config.mut_state().add_##field(item); \
   }
 
-  apply_diff(cfg_main);
-  apply_repeated_diff(cfg_file);
-  apply_repeated_diff(resource_file);
-  apply_diff(instance_heartbeat_interval);
-  apply_diff(check_service_freshness);
-  apply_diff(enable_flap_detection);
-  apply_diff(rpc_listen_address);
-  apply_diff(grpc_port);
-  // apply_diff(users);
-  apply_repeated_diff(cfg_dir);
-  apply_diff(state_retention_file);
-  apply_repeated_diff(broker_module);
-  apply_diff(broker_module_directory);
-  apply_diff(enable_macros_filter);
-  // apply_diff(macros_filter);
+#define APPLY_STR_LST_DIFF(field)                                      \
+  if (!diff.field().data().empty()) {                                  \
+    pb_indexed_config.mut_state().mutable_##field()->clear_data();     \
+    for (auto& item : diff.field().data())                             \
+      pb_indexed_config.mut_state().mutable_##field()->add_data(item); \
+  }
 
-  apply_diff(log_v2_enabled);
-  apply_diff(log_legacy_enabled);
-  apply_diff(use_syslog);
-  apply_diff(log_v2_logger);
-  apply_diff(log_file);
-  apply_diff(debug_file);
-  apply_diff(debug_level);
-  apply_diff(debug_verbosity);
-  apply_diff(max_debug_file_size);
-  apply_diff(log_pid);
-  apply_diff(log_file_line);
-  apply_diff(log_flush_period);
-  apply_diff(log_level_checks);
-  apply_diff(log_level_commands);
-  apply_diff(log_level_comments);
-  apply_diff(log_level_config);
-  apply_diff(log_level_downtimes);
-  apply_diff(log_level_eventbroker);
-  apply_diff(log_level_events);
-  apply_diff(log_level_external_command);
-  apply_diff(log_level_functions);
-  apply_diff(log_level_macros);
-  apply_diff(log_level_notifications);
-  apply_diff(log_level_process);
-  apply_diff(log_level_runtime);
-  apply_diff(log_level_otl);
-  apply_diff(global_host_event_handler);
-  apply_diff(global_service_event_handler);
-  apply_diff(illegal_object_chars);
-  apply_diff(illegal_output_chars);
-  apply_diff(interval_length);
-  apply_diff(ochp_command);
-  apply_diff(ocsp_command);
-  apply_diff(use_timezone);
-  apply_diff(accept_passive_host_checks);
-  apply_diff(accept_passive_service_checks);
-  apply_diff(additional_freshness_latency);
-  apply_diff(cached_host_check_horizon);
-  apply_diff(check_external_commands);
-  apply_diff(check_host_freshness);
-  apply_diff(check_reaper_interval);
-  apply_diff(enable_event_handlers);
-  apply_diff(enable_notifications);
-  apply_diff(execute_host_checks);
-  apply_diff(execute_service_checks);
-  apply_diff(max_host_check_spread);
-  apply_diff(max_service_check_spread);
-  apply_diff(notification_timeout);
-  apply_diff(obsess_over_hosts);
-  apply_diff(obsess_over_services);
-  apply_diff(process_performance_data);
-  apply_diff(soft_state_dependencies);
-  apply_diff(use_large_installation_tweaks);
-  apply_diff(admin_email);
-  apply_diff(admin_pager);
-  apply_diff(allow_empty_hostgroup_assignment);
-  apply_diff(command_file);
-  apply_diff(status_file);
-  apply_diff(poller_name);
-  apply_diff(poller_id);
-  apply_diff(cached_service_check_horizon);
-  apply_diff(check_orphaned_hosts);
-  apply_diff(check_orphaned_services);
-  apply_diff(command_check_interval);
-  apply_diff(command_check_interval_is_seconds);
-  apply_diff(enable_environment_macros);
-  apply_diff(event_broker_options);
-  apply_diff(event_handler_timeout);
-  apply_diff(external_command_buffer_slots);
-  apply_diff(high_host_flap_threshold);
-  apply_diff(high_service_flap_threshold);
-  apply_diff(host_check_timeout);
-  apply_diff(host_freshness_check_interval);
-  apply_diff(service_freshness_check_interval);
-  apply_diff(log_event_handlers);
-  apply_diff(log_external_commands);
-  apply_diff(log_notifications);
-  apply_diff(log_passive_checks);
-  apply_diff(log_host_retries);
-  apply_diff(log_service_retries);
-  apply_diff(max_log_file_size);
-  apply_diff(low_host_flap_threshold);
-  apply_diff(low_service_flap_threshold);
-  apply_diff(max_parallel_service_checks);
-  apply_diff(ochp_timeout);
-  apply_diff(ocsp_timeout);
-  apply_diff(perfdata_timeout);
-  apply_diff(retained_host_attribute_mask);
-  apply_diff(retained_process_host_attribute_mask);
-  apply_diff(retained_contact_host_attribute_mask);
-  apply_diff(retained_contact_service_attribute_mask);
-  apply_diff(retain_state_information);
-  apply_diff(retention_scheduling_horizon);
-  apply_diff(retention_update_interval);
-  apply_diff(service_check_timeout);
-  apply_diff(sleep_time);
-  apply_diff(status_update_interval);
-  apply_diff(time_change_threshold);
-  apply_diff(use_regexp_matches);
-  apply_diff(use_retained_program_state);
-  apply_diff(use_retained_scheduling_info);
-  apply_diff(use_setpgid);
-  apply_diff(use_true_regexp_matching);
-  apply_diff(date_format);
-  // apply_repeated_diff(host_inter_check_delay_method);
-  // apply_repeated_diff(service_inter_check_delay_method);
-  // apply_repeated_diff(service_interleave_factor_method);
-  apply_diff(enable_predictive_host_dependency_checks);
-  apply_diff(enable_predictive_service_dependency_checks);
-  apply_diff(send_recovery_notifications_anyways);
-  apply_diff(host_down_disable_service_checks);
+  APPLY_DIFF(cfg_main);
+  APPLY_REPEATED_DIFF(cfg_file);
+  APPLY_REPEATED_DIFF(resource_file);
+  APPLY_DIFF(instance_heartbeat_interval);
+  APPLY_DIFF(check_service_freshness);
+  APPLY_DIFF(enable_flap_detection);
+  APPLY_DIFF(rpc_listen_address);
+  APPLY_DIFF(grpc_port);
+  if (!diff.users().empty()) {
+    pb_indexed_config.mut_state().clear_users();
+    for (auto& item : diff.users())
+      pb_indexed_config.mut_state().mutable_users()->insert(item);
+  }
+  APPLY_REPEATED_DIFF(cfg_dir);
+  APPLY_DIFF(state_retention_file);
+  APPLY_REPEATED_DIFF(broker_module);
+  APPLY_DIFF(broker_module_directory);
+  APPLY_DIFF(enable_macros_filter);
+  APPLY_STR_LST_DIFF(macros_filter);
+
+  APPLY_DIFF(log_v2_enabled);
+  APPLY_DIFF(log_legacy_enabled);
+  APPLY_DIFF(use_syslog);
+  APPLY_DIFF(log_v2_logger);
+  APPLY_DIFF(log_file);
+  APPLY_DIFF(debug_file);
+  APPLY_DIFF(debug_level);
+  APPLY_DIFF(debug_verbosity);
+  APPLY_DIFF(max_debug_file_size);
+  APPLY_DIFF(log_pid);
+  APPLY_DIFF(log_file_line);
+  APPLY_DIFF(log_flush_period);
+  APPLY_DIFF(log_level_checks);
+  APPLY_DIFF(log_level_commands);
+  APPLY_DIFF(log_level_comments);
+  APPLY_DIFF(log_level_config);
+  APPLY_DIFF(log_level_downtimes);
+  APPLY_DIFF(log_level_eventbroker);
+  APPLY_DIFF(log_level_events);
+  APPLY_DIFF(log_level_external_command);
+  APPLY_DIFF(log_level_functions);
+  APPLY_DIFF(log_level_macros);
+  APPLY_DIFF(log_level_notifications);
+  APPLY_DIFF(log_level_process);
+  APPLY_DIFF(log_level_runtime);
+  APPLY_DIFF(log_level_otl);
+  APPLY_DIFF(global_host_event_handler);
+  APPLY_DIFF(global_service_event_handler);
+  APPLY_DIFF(illegal_object_chars);
+  APPLY_DIFF(illegal_output_chars);
+  APPLY_DIFF(interval_length);
+  APPLY_DIFF(ochp_command);
+  APPLY_DIFF(ocsp_command);
+  APPLY_DIFF(use_timezone);
+  APPLY_DIFF(accept_passive_host_checks);
+  APPLY_DIFF(accept_passive_service_checks);
+  APPLY_DIFF(additional_freshness_latency);
+  APPLY_DIFF(cached_host_check_horizon);
+  APPLY_DIFF(check_external_commands);
+  APPLY_DIFF(check_host_freshness);
+  APPLY_DIFF(check_reaper_interval);
+  APPLY_DIFF(enable_event_handlers);
+  APPLY_DIFF(enable_notifications);
+  APPLY_DIFF(execute_host_checks);
+  APPLY_DIFF(execute_service_checks);
+  APPLY_DIFF(max_host_check_spread);
+  APPLY_DIFF(max_service_check_spread);
+  APPLY_DIFF(notification_timeout);
+  APPLY_DIFF(obsess_over_hosts);
+  APPLY_DIFF(obsess_over_services);
+  APPLY_DIFF(process_performance_data);
+  APPLY_DIFF(soft_state_dependencies);
+  APPLY_DIFF(use_large_installation_tweaks);
+  APPLY_DIFF(admin_email);
+  APPLY_DIFF(admin_pager);
+  APPLY_DIFF(allow_empty_hostgroup_assignment);
+  APPLY_DIFF(command_file);
+  APPLY_DIFF(status_file);
+  APPLY_DIFF(poller_name);
+  APPLY_DIFF(poller_id);
+  APPLY_DIFF(cached_service_check_horizon);
+  APPLY_DIFF(check_orphaned_hosts);
+  APPLY_DIFF(check_orphaned_services);
+  APPLY_DIFF(command_check_interval);
+  APPLY_DIFF(command_check_interval_is_seconds);
+  APPLY_DIFF(enable_environment_macros);
+  APPLY_DIFF(event_broker_options);
+  APPLY_DIFF(event_handler_timeout);
+  APPLY_DIFF(external_command_buffer_slots);
+  APPLY_DIFF(high_host_flap_threshold);
+  APPLY_DIFF(high_service_flap_threshold);
+  APPLY_DIFF(host_check_timeout);
+  APPLY_DIFF(host_freshness_check_interval);
+  APPLY_DIFF(service_freshness_check_interval);
+  APPLY_DIFF(log_event_handlers);
+  APPLY_DIFF(log_external_commands);
+  APPLY_DIFF(log_notifications);
+  APPLY_DIFF(log_passive_checks);
+  APPLY_DIFF(log_host_retries);
+  APPLY_DIFF(log_service_retries);
+  APPLY_DIFF(max_log_file_size);
+  APPLY_DIFF(low_host_flap_threshold);
+  APPLY_DIFF(low_service_flap_threshold);
+  APPLY_DIFF(max_parallel_service_checks);
+  APPLY_DIFF(ochp_timeout);
+  APPLY_DIFF(ocsp_timeout);
+  APPLY_DIFF(perfdata_timeout);
+  APPLY_DIFF(retained_host_attribute_mask);
+  APPLY_DIFF(retained_process_host_attribute_mask);
+  APPLY_DIFF(retained_contact_host_attribute_mask);
+  APPLY_DIFF(retained_contact_service_attribute_mask);
+  APPLY_DIFF(retain_state_information);
+  APPLY_DIFF(retention_scheduling_horizon);
+  APPLY_DIFF(retention_update_interval);
+  APPLY_DIFF(service_check_timeout);
+  APPLY_DIFF(sleep_time);
+  APPLY_DIFF(status_update_interval);
+  APPLY_DIFF(time_change_threshold);
+  APPLY_DIFF(use_regexp_matches);
+  APPLY_DIFF(use_retained_program_state);
+  APPLY_DIFF(use_retained_scheduling_info);
+  APPLY_DIFF(use_setpgid);
+  APPLY_DIFF(use_true_regexp_matching);
+  APPLY_DIFF(date_format);
+  if (diff.has_host_inter_check_delay_method()) {
+    pb_indexed_config.mut_state()
+        .mutable_host_inter_check_delay_method()
+        ->CopyFrom(diff.host_inter_check_delay_method());
+  }
+  if (diff.has_service_inter_check_delay_method()) {
+    pb_indexed_config.mut_state()
+        .mutable_service_inter_check_delay_method()
+        ->CopyFrom(diff.service_inter_check_delay_method());
+  }
+  if (diff.has_service_interleave_factor_method()) {
+    pb_indexed_config.mut_state()
+        .mutable_service_interleave_factor_method()
+        ->CopyFrom(diff.service_interleave_factor_method());
+  }
+  APPLY_DIFF(enable_predictive_host_dependency_checks);
+  APPLY_DIFF(enable_predictive_service_dependency_checks);
+  APPLY_DIFF(send_recovery_notifications_anyways);
+  APPLY_DIFF(host_down_disable_service_checks);
+  APPLY_DIFF(max_file_descriptors);
+  APPLY_DIFF(config_version);
+
   // Apply logging configurations.
 
   applier::logging::instance().apply(pb_indexed_config.mut_state());
@@ -1614,6 +1645,9 @@ void applier::state::_apply_diff_conf(
            applier::serviceescalation>(pb_indexed_config.serviceescalations(),
                                        err);
 
+#undef APPLY_DIFF
+#undef APPLY_REPEATED_DIFF
+
 #ifdef DEBUG_CONFIG
   std::cout << "WARNING!! You are using a version of Centreon Engine for "
                "developers!!! This is not a production version.";
@@ -1636,6 +1670,15 @@ void applier::state::_apply_diff_conf(
 void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
+  // FIXME DBO
+  //  We dump the new configuration, just to be sure it is complete.
+  static uint32_t counter = 0;
+  std::ofstream os(fmt::format("/tmp/centengine_new_config{}.dump", counter++));
+  if (os.is_open()) {
+    os << new_cfg.DebugString();
+    os.close();
+  }
+
   // Timing.
   absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
       {}, {}, {}, {}, {}};
@@ -1755,15 +1798,26 @@ void applier::state::_processing(configuration::State& new_cfg,
 void applier::state::_processing_diff(configuration::DiffState& diff_conf,
                                       error_cnt& err,
                                       retention::state* state) {
+  // FIXME DBO
+  //  We dump the new configuration, just to be sure it is complete.
+  static uint32_t counter = 0;
+  std::ofstream os(
+      fmt::format("/tmp/centengine_new_diff_config{}.dump", counter++));
+  if (os.is_open()) {
+    os << diff_conf.DebugString();
+    os.close();
+  }
+
   /* Particular case with a diff containing the full state */
   if (diff_conf.has_state()) {
     /* The previous version wasn't known by broker, the diff contains the full
      * state. So let's parse it as usual. */
-    config_logger->debug("Processing full configuration from diff.");
+    config_logger->info("Processing full configuration from diff.");
 
     _processing(*diff_conf.mutable_state(), err, state);
     return;
-  }
+  } else
+    config_logger->info("Processing differential configuration.");
 
   // Timing.
   absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{

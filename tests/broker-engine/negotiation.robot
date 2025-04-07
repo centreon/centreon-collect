@@ -193,6 +193,7 @@ BEDWENF
     ...    Then Broker logs a message telling the file has been created
     ...    And Broker dumps a file <poller_id>.prot if the pollers_conf directory
     [Tags]    broker    engine    MON-153802
+    Ctn Clear Engine Logs
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -200,11 +201,14 @@ BEDWENF
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
+    Remove Files    ${VarRoot}/lib/centreon-engine/config0/state.prot
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine    ${True}
@@ -212,6 +216,8 @@ BEDWENF
     ${content}    Create List    Watching for changes in '${VarRoot}/lib/centreon/config'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
+
+    Wait Until Created    ${VarRoot}/lib/centreon-engine/config0/state.prot    timeout=30s
 
     # We fill the configuration directory with directory "1" in the cache_config_directory
     Copy Directory
@@ -229,9 +235,74 @@ BEDWENF
     Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
     Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/diff-1.prot    File 1.prot should not exist
     Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    File 1.prot should not exist
-    ${content}    Create List    Reloading from Broker    Starting to reload configuration
+    ${content}    Create List    Reloading from Broker    Starting to reload differential configuration
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should log about the new configuration
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+    ${result}    Ctn Check State Configurations Are Equal
+    ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    Should Be True    ${result}    Engine configurations seen by Broker and seen by Engine should be equal
+
+BEDWEND
+    [Documentation]    Scenario: Verify Broker configured with cache_config_directory creates the protobuf serialized configuration
+    ...    Given Central Broker is started with cache_config_directory set to a specific Directory
+    ...    And the pollers_config_directory is set (default value) to /var/lib/centreon-broker/pollers-configuration.
+    ...    And Central Broker has already sent a first configuration to Engine
+    ...    When a new configuration is put into the cache_config_directory
+    ...    Then Engine should be notified about the new configuration by Broker
+    ...    And Engine should update its configuration from a differential configuration
+    [Tags]    broker    engine    MON-153802
+    Ctn Clear Engine Logs
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.1.0
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
+    Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
+    Create Directory    ${VarRoot}/lib/centreon/config
+    Remove Files    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine    ${True}
+
+    # We fill the configuration directory with directory "1" in the cache_config_directory
+    Copy Directory
+    ...    ${EtcRoot}/centreon-engine/config0
+    ...    ${VarRoot}/lib/centreon/config/1
+    # We create a file in the cache_config_directory
+    Log To Console    File ${VarRoot}/lib/centreon/config/1.lck created
+    Create File    ${VarRoot}/lib/centreon/config/1.lck
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
+
+    # The configuration in the cache directory is updated.
+    # We create a service on poller 0, host 1 and with command 29
+    # in the cache directory.
+    Ctn Create Service    ${0}    ${1}    ${29}    ${VarRoot}/lib/centreon/config/1/services.cfg
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug    cfg_file=${VarRoot}/lib/centreon/config/1/centengine.cfg
+
+    ${start}    Ctn Get Round Current Date
+    Log To Console    File ${VarRoot}/lib/centreon/config/1.lck re-created
+    Create File    ${VarRoot}/lib/centreon/config/1.lck
+
+    ${content}    Create List    Processing differential configuration.    new service 1001    INITIAL SERVICE STATE: host_1;service_1001;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+    ${result}    Ctn Check State Configurations Are Equal
+    ...    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot
+    ...    ${VarRoot}/lib/centreon-engine/config0/state.prot
+    Should Be True    ${result}    Engine configurations seen by Broker and seen by Engine should be equal

@@ -1063,7 +1063,9 @@ message DiffState {
   optional bool enable_predictive_service_dependency_checks = 140;
   optional bool send_recovery_notifications_anyways = 141;
   optional bool host_down_disable_service_checks = 142;
+  optional uint32 max_file_descriptors = 143;
+  optional string config_version = 144;
 
   /* If all the configuration has to be sent */
-  State state = 143;
+  State state = 145;
 }

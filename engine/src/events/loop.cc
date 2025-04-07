@@ -121,7 +121,7 @@ static void apply_conf(std::atomic<bool>* reloading) {
 static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
                        std::atomic<bool>* reloading) {
   configuration::error_cnt err;
-  process_logger->info("Starting to reload configuration.");
+  process_logger->info("Starting to reload differential configuration.");
   try {
     process_logger->info("Configuration reloaded, main loop continuing.");
     configuration::applier::state::instance().apply_diff(*diff_conf, err);
@@ -129,7 +129,7 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
     config_logger->error("Error: {}", e.what());
   }
   *reloading = false;
-  process_logger->info("Reload configuration finished.");
+  process_logger->info("Reload differential configuration finished.");
 }
 
 /**
@@ -164,12 +164,12 @@ void loop::_dispatching() {
       if (!reloading) {
         reloading = true;
         if (_need_reload) {
-	  process_logger->info("Need reload.");
+          process_logger->info("Need reload.");
           process_logger->info("Reloading...");
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_conf, &reloading);
         } else {
-	  process_logger->info("New differential configuration to load.");
+          process_logger->info("New differential configuration to load.");
           process_logger->info("Reloading from Broker...");
           auto future [[maybe_unused]] = std::async(
               std::launch::async, apply_diff, std::move(diff_conf), &reloading);
