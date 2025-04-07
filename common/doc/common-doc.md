@@ -230,3 +230,25 @@ Three steps are done while a cfg file is parsed. For each key,
 * we firstly try to read it from the `hook`.
 * on failure, we try the `set` method that only uses the Protobuf reflection.
 * on failure, we try to read the key as a custom variable, and here there is another way to parse it (the idea is very similar to the legacy parser).
+
+## Abseil flyweight factory
+Flyweights are small-sized handle classes granting constant access to shared common data, thus allowing for the management of large amounts of entities within reasonable memory limits. Boost.Flyweight makes it easy to use this common programming idiom by providing the class template flyweight<T>, which acts as a drop-in replacement for const.
+
+([boost::flyweight](https://www.boost.org/doc/libs/1_87_0/libs/flyweight/doc/index.html)) only uses boost and std container. This factory uses abseil node_hash_set to improve performance.
+This factory has a bool template argument. If false, it's not thread safe, if true, it is.
+How tu use it:
+
+```c++
+#include <boost/flyweight.hpp>
+#include "absl_flyweight_factory.hh"
+
+using string_flyweight_no_lock = boost::flyweight<std::string, absl_factory<false>>;
+using string_flyweight_lock = boost::flyweight<std::string, absl_factory<true>>;
+
+string_flyweight_no_lock string1 = "toto";
+string_flyweight_no_lock string2 = "toto";
+string_flyweight_no_lock string3 = "toto";
+
+```
+
+In this example, string1, string2 and string3 are in fact the same object with only one storage.

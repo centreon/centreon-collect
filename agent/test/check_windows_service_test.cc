@@ -64,7 +64,8 @@ class mock_service_enumerator : public service_enumerator {
     serv_conf.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     serv_conf.dwStartType = start_type;
     serv_conf.dwErrorControl = SERVICE_ERROR_NORMAL;
-    serv_conf.lpBinaryPathName = "C:\\path\\to\\service.exe";
+    static char dummy_path[] = "C:\\path\\to\\service.exe";
+    serv_conf.lpBinaryPathName = dummy_path;
     serv_conf.lpLoadOrderGroup = nullptr;
     serv_conf.dwTagId = 0;
     serv_conf.lpDependencies = nullptr;
