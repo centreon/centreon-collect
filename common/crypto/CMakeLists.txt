@@ -16,12 +16,18 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/common/inc
+)
+
 
 add_library(
   ctncrypto STATIC
   # Sources.
-  aes256.cc base64.cc)
+  aes256.cc base64.cc jwt.cc)
+
+target_precompile_headers(ctncrypto REUSE_FROM centreon_common)
 
 set_property(TARGET ctncrypto PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(ctncrypto PRIVATE OpenSSL::Crypto OpenSSL::SSL)
