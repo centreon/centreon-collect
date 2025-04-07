@@ -129,7 +129,7 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
     _logger->info("BAM: removing BA {}", it->first);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled) {
-      auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(), "",
+      auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(), "", "",
                                it->second.cfg.get_service_id());
       bs->mut_obj().set_enabled(false);
       s = bs;
@@ -166,7 +166,7 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
       s = _ba_pb_service(it->first, it->second.get_host_id(),
-                         it->second.get_host_name(),
+                         it->second.get_name(), it->second.get_host_name(),
                          it->second.get_service_id());
     else
       s = _ba_service(it->first, it->second.get_host_id(),
@@ -297,6 +297,7 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
 std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t ba_id,
     uint32_t host_id,
+    const std::string& ba_name,
     const std::string& host_name,
     uint32_t service_id,
     bool in_downtime) {
@@ -310,7 +311,7 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
   o.set_host_name(host_name);
   o.set_type(BA);
   o.set_internal_id(ba_id);
-  o.set_display_name(o.description());
+  o.set_display_name(ba_name);
   o.set_last_update(time(nullptr));
   o.set_scheduled_downtime_depth(in_downtime ? 1 : 0);
   o.set_max_check_attempts(1);
@@ -407,6 +408,7 @@ void applier::ba::apply_inherited_downtime(const inherited_downtime& dwn) {
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
       s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
+                         found->second.cfg.get_name(),
                          found->second.cfg.get_host_name(),
                          found->second.cfg.get_service_id(), dwn.in_downtime);
     else
@@ -426,10 +428,10 @@ void applier::ba::apply_inherited_downtime(const pb_inherited_downtime& dwn) {
     found->second.obj->set_inherited_downtime(dwn);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled)
-      s = _ba_pb_service(found->first, found->second.cfg.get_host_id(),
-                         found->second.cfg.get_host_name(),
-                         found->second.cfg.get_service_id(),
-                         dwn.obj().in_downtime());
+      s = _ba_pb_service(
+          found->first, found->second.cfg.get_host_id(),
+          found->second.cfg.get_name(), found->second.cfg.get_host_name(),
+          found->second.cfg.get_service_id(), dwn.obj().in_downtime());
     else
       s = _ba_service(found->first, found->second.cfg.get_host_id(),
                       found->second.cfg.get_service_id(),

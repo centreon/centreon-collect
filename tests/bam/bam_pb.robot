@@ -1291,6 +1291,50 @@ BA_DISABLED
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
+BA_SERVICE_PNAME_AFTER_RELOAD
+    [Documentation]    Given a BA with her service, parent_name is not erased after cbd reload.
+    [Tags]    MON-153476
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}
+    ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    Ctn Start Broker
+    ${start}    Get Current Date
+    Ctn Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    # Both services ${state} => The BA parent is ${state}
+    Ctn Process Service Result Hard
+    ...    host_16
+    ...    service_302
+    ...    0
+    ...    output OK for service 302
+
+    ${result}    Ctn Check Ba Status With Timeout    test    0    30
+    Ctn Dump Ba On Error    ${result}    ${ba[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query
+    ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
+    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+
+    Ctn Reload Broker
+
+    Sleep    10s
+
+    ${output}    Query
+    ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
+    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+
+
+    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+
+
 
 *** Keywords ***
 Ctn BAM Setup
