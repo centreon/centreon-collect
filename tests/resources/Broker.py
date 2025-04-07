@@ -3214,13 +3214,10 @@ def ctn_init_data_bin_without_partition():
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    now = int(time.time())
-    before = now - 60
-    after = now + 3600
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("DROP TABLE IF EXISTS data_bin")
-            sql = f"""CREATE TABLE `data_bin` (
+            sql = """CREATE TABLE `data_bin` (
   `id_metric` int(11) DEFAULT NULL,
   `ctime` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,

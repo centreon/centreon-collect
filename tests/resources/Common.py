@@ -26,7 +26,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToDict, MessageToJson
 import time
 import json
 import psutil
@@ -36,10 +36,11 @@ import string
 from dateutil import parser
 from datetime import datetime, timedelta
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
+import state_pb2
 
 
 def import_robot_resources():
@@ -57,6 +58,7 @@ def import_robot_resources():
     except RobotNotRunningError:
         # Handle this case if Robot Framework is not running
         print("Robot Framework is not running. Skipping resource import.")
+
 
 DB_NAME_STORAGE = ""
 DB_NAME_CONF = ""
@@ -88,6 +90,7 @@ def ctn_set_bbdo2(value: bool):
     """
     global BBDO2
     BBDO2 = value
+
 
 def ctn_parse_tests_params():
     params = os.environ.get("TESTS_PARAMS")
@@ -198,7 +201,7 @@ def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int
     return False
 
 
-def ctn_get_date(d: str, agent_format:bool=False):
+def ctn_get_date(d: str, agent_format: bool = False):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
     Args:
@@ -212,19 +215,19 @@ def ctn_get_date(d: str, agent_format:bool=False):
         retval = datetime.fromtimestamp(int(ts))
     except ValueError:
         if (not agent_format):
-                retval = parser.parse(d[:-6])
+            retval = parser.parse(d[:-6])
         else:
-                retval = parser.parse(d)
+            retval = parser.parse(d)
     return retval
 
 
-def ctn_extract_date_from_log(line: str,agent_format:bool=False):
+def ctn_extract_date_from_log(line: str, agent_format: bool = False):
     p = re.compile(r"\[([^\]]*)\]")
     m = p.match(line)
     if m is None:
         return None
     try:
-        return ctn_get_date(m.group(1),agent_format)
+        return ctn_get_date(m.group(1), agent_format)
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -309,7 +312,7 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
-        idx = ctn_find_line_from(lines, date,agent_format)
+        idx = ctn_find_line_from(lines, date, agent_format)
 
         for c in content:
             found = False
@@ -369,6 +372,7 @@ def ctn_run_env():
     Get RUN_ENV env variable content
     """
     return os.environ.get('RUN_ENV', '')
+
 
 def ctn_get_workspace_win():
     """
@@ -481,6 +485,7 @@ def ctn_clear_retention():
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
+
 def ctn_clear_logs():
     shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
     shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
@@ -537,7 +542,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def ctn_find_line_from(lines, date, agent_format:bool=False):
+def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
     except:
@@ -549,13 +554,13 @@ def ctn_find_line_from(lines, date, agent_format:bool=False):
     idx = start
     while end > start:
         idx = (start + end) // 2
-        idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
+        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
         while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
+                idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
             else:
                 logger.console("We are at the first line and no date found")
                 return 0
@@ -613,7 +618,7 @@ def ctn_clear_commands_status():
 
 
 def ctn_set_command_status(cmd, status):
-    if os.environ.get("RUN_ENV","") == "WSL":
+    if os.environ.get("RUN_ENV", "") == "WSL":
         state_path = "states"
     else:
         state_path = "/tmp/states"
@@ -686,6 +691,7 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
         time.sleep(1)
     return False
 
+
 def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     """
     brief : same as ctn_check_service_resource_status_with_timeout but with additional return
@@ -731,13 +737,13 @@ def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_des
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
                     if state_type == 'ANY':
-                        return True,result[0]['output']
+                        return True, result[0]['output']
                     elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
-                        return True,result[0]['output']
+                        return True, result[0]['output']
                     elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
-                        return True,result[0]['output']
+                        return True, result[0]['output']
         time.sleep(1)
-    return False,""
+    return False, ""
 
 
 def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
@@ -1009,7 +1015,8 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int = T
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                logger.console(f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
+                logger.console(
+                    f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT current_status FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
@@ -1127,12 +1134,15 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                 first = True
                 if enabled != '0':
                     if first:
-                        logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        logger.console(
+                            f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                         first = False
-                    cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    cursor.execute(
+                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
-                        logger.console(f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
+                        logger.console(
+                            f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
                     if len(result) == int(enabled) and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == int(enabled):
                         return True
                     if (len(result) > 0):
@@ -1214,7 +1224,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
     return False
 
 
-def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_service_output_resource_status_with_timeout
 
@@ -1243,7 +1253,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1256,7 +1266,6 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
                         return True
         time.sleep(1)
     return False
-
 
 
 def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
@@ -1296,6 +1305,7 @@ def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
         time.sleep(1)
     return False
 
+
 def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
     """
     ctn_check_host_check_status_with_timeout
@@ -1331,12 +1341,12 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
                         return True
                     else:
                         logger.console(
-                                f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
+                            f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
         time.sleep(1)
     return False
 
 
-def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -1364,7 +1374,7 @@ def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: i
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1456,11 +1466,11 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         time.sleep(1)
 
     connection = pymysql.connect(host=DB_HOST,
-                             user=DB_USER,
-                             password=DB_PASS,
-                             database=DB_NAME_STORAGE,
-                             charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
 
     with connection:
         with connection.cursor() as cursor:
@@ -1699,7 +1709,8 @@ def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, va
                     "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
-                    logger.console(f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
+                    logger.console(
+                        f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
@@ -1991,7 +2002,8 @@ def ctn_compare_dot_files(file1: str, file2: str):
             return False
     return True
 
-def ctn_create_bbdo_grpc_server(port : int, ):
+
+def ctn_create_bbdo_grpc_server(port: int, ):
     """
     start a bbdo streamming grpc server.
     It answers nothing and simulates proxy behavior when cbd is down
@@ -2004,6 +2016,7 @@ def ctn_create_bbdo_grpc_server(port : int, ):
         """
         bbdo grpc service that does nothing
         """
+
         def exchange(self, request_iterator, context):
             time.sleep(0.01)
             for request in request_iterator:
@@ -2014,18 +2027,18 @@ def ctn_create_bbdo_grpc_server(port : int, ):
     certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
     ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
 
-
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
-    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(
+        service_implementation(), server)
     creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
-            root_certificates=ca_cert)
-    
+                                        root_certificates=ca_cert)
+
     server.add_secure_port("0.0.0.0:5669", creds)
     server.start()
     return server
 
 
-def create_random_string(length:int):
+def create_random_string(length: int):
     """
     create_random_string
 
@@ -2043,7 +2056,7 @@ def ctn_create_random_dictionary(nb_entries: int):
     create_random_dictionary
 
     create a dictionary with random keys and random string values
-    
+
     Args:
         nb_entries  dictionary size
     Returns: a dictionary
@@ -2052,48 +2065,7 @@ def ctn_create_random_dictionary(nb_entries: int):
     for ii in range(nb_entries):
         dict_ret[create_random_string(10)] = create_random_string(10)
 
-    return dict_ret;
-
-
-def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
-    """
-    extract_event_from_lua_log
-
-    extract a json object from a lua log file 
-    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
-
-    Args:
-        file1: The first file to compare.
-        file2: The second file to compare.
-
-    Returns: True if they have the same content, False otherwise.
-    """
-
-    with open(file1, "r") as f1:
-        content1 = f1.readlines()
-    with open(file2, "r") as f2:
-        content2 = f2.readlines()
-    r = re.compile(r"(.*) 0x[0-9a-f]+")
-
-    def replace_ptr(line):
-        m = r.match(line)
-        if m:
-            return m.group(1)
-        else:
-            return line
-
-    content1 = list(map(replace_ptr, content1))
-    content2 = list(map(replace_ptr, content2))
-
-    if len(content1) != len(content2):
-        return False
-    for i in range(len(content1)):
-        if content1[i] != content2[i]:
-            logger.console(
-                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
-            return False
-    return True
-
+    return dict_ret
 
 
 def ctn_protobuf_to_json(protobuf_obj):
@@ -2107,7 +2079,7 @@ def ctn_protobuf_to_json(protobuf_obj):
     return json.loads(converted)
 
 
-def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+def ctn_compare_string_with_file(string_to_compare: str, file_path: str):
     """
     ctn_compare_string_with_file
 
@@ -2127,7 +2099,6 @@ def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
         if str_line != file_line:
             return False
     return True
-
 
 
 def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict):
@@ -2158,16 +2129,19 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result)  == len(expected):
+                if len(result) == len(expected):
                     for res in result:
-                        logger.console(f"metric: {res['metric_name']}, value: {res['value']}")
+                        logger.console(
+                            f"metric: {res['metric_name']}, value: {res['value']}")
                         metric = res['metric_name']
                         value = float(res['value'])
                         if metric not in expected:
-                            logger.console(f"ERROR unexpected metric: {metric}")
+                            logger.console(
+                                f"ERROR unexpected metric: {metric}")
                             return False
                         if expected[metric] is not None and abs(value - expected[metric]) > precision:
-                            logger.console(f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
+                            logger.console(
+                                f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
                             return False
                     return True
         time.sleep(1)
@@ -2175,7 +2149,7 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
     return False
 
 
-def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int):
+def ctn_check_agent_information(total_nb_agent: int, nb_poller: int, timeout: int):
     """
     Check if agent_information table is filled. Collect version is also checked
         total_nb_agent (int): total number of agents
@@ -2201,14 +2175,15 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result)  == nb_poller:
+                if len(result) == nb_poller:
                     nb_agent = 0
                     for res in result:
                         logger.console(f"infos: {res['infos']}")
                         agent_infos = json.loads(res['infos'])
                         for by_agent_info in agent_infos:
                             if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
-                                logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
+                                logger.console(
+                                    f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
                                 return False
                             nb_agent += by_agent_info['nb_agent']
                     if nb_agent == total_nb_agent:
@@ -2218,7 +2193,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
     return False
 
 
-def ctn_get_nb_process(exe:str):
+def ctn_get_nb_process(exe: str):
     """
     ctn_get_nb_process
 
@@ -2235,6 +2210,7 @@ def ctn_get_nb_process(exe:str):
             counter += 1
     return counter
 
+
 def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: float, expected: int):
     """
     Check if performance data are near as expected.
@@ -2249,7 +2225,6 @@ def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: fl
     s_query = f"""SELECT s.flapping, s.percent_state_change FROM services s JOIN hosts h on s.host_id = h.host_id  WHERE h.name='{host}' AND description='{serv}'"""
     r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
 
-
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -2261,14 +2236,15 @@ def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(s_query)
                 result = cursor.fetchall()
-                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                     cursor.execute(r_query)
                     result = cursor.fetchall()
-                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                         return True
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False
+
 
 def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected: int):
     """
@@ -2283,7 +2259,6 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
     s_query = f"""SELECT flapping, percent_state_change FROM hosts WHERE name='{host}'"""
     r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE name='{host}' AND parent_id=0"""
 
-
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -2295,16 +2270,17 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
             with connection.cursor() as cursor:
                 cursor.execute(s_query)
                 result = cursor.fetchall()
-                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                     cursor.execute(r_query)
                     result = cursor.fetchall()
-                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                         return True
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False
 
-def ctn_get_process_limit(pid:int, limit:str):
+
+def ctn_get_process_limit(pid: int, limit: str):
     """
     ctn_get_process_limit
 
@@ -2340,3 +2316,66 @@ def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
     }
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_check_state_configurations_are_equal(file1, file2):
+    """
+    ctn_check_state_configurations_are_equal
+
+    Compare two dump protobuf state configurations files
+    Args:
+        file1: first file to compare
+        file2: second file to compare
+
+    Returns: True if they are equal
+    """
+
+    def compare_dicts(d1, d2):
+        """
+        Compare two dictionaries recursively, considering lists equal if
+        they contain the same elements in any order.
+
+        Returns:
+            True if the dictionaries are equal, False otherwise.
+        """
+
+        if isinstance(d1, dict) and isinstance(d2, dict):
+            if d1.keys() != d2.keys():
+                return False
+            return all(compare_dicts(d1[k], d2[k]) for k in d1)
+
+        elif isinstance(d1, list) and isinstance(d2, list):
+            if len(d1) != len(d2):
+                return False
+            try:
+                from collections import Counter
+                return Counter(d1) == Counter(d2)
+            except TypeError:
+                d2_copy = d2[:]
+                for item in d1:
+                    for i, candidate in enumerate(d2_copy):
+                        if compare_dicts(item, candidate):
+                            del d2_copy[i]
+                            break
+                    else:
+                        return False
+                return not d2_copy
+
+        else:
+            return d1 == d2
+
+    with open(file1, "rb") as f1:
+        content1 = f1.read()
+    with open(file2, "rb") as f2:
+        content2 = f2.read()
+
+    pb1 = state_pb2.State()
+    pb2 = state_pb2.State()
+
+    pb1.ParseFromString(content1)
+    pb2.ParseFromString(content2)
+
+    dico1 = MessageToDict(pb1)
+    dico2 = MessageToDict(pb2)
+
+    return compare_dicts(dico1, dico2)

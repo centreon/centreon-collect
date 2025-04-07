@@ -70,6 +70,7 @@ class state {
   size_t _pool_size;
   std::filesystem::path _proto_conf;
   std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
+  std::atomic_bool _watch_occupied;
 
   /* In a cbmod configuration, this string contains the directory containing
    * the Engine configuration. */
@@ -167,6 +168,8 @@ class state {
   void set_engine_peer_updated(uint64_t poller_id);
   void set_diff_state(const std::shared_ptr<io::data>& diff);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  bool set_engine_conf_watcher_occupied(bool occupied,
+                                        const std::string_view& owner);
 };
 }  // namespace com::centreon::broker::config::applier
 
