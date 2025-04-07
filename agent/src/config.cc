@@ -97,6 +97,9 @@ const std::string_view config::config_schema(R"(
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
             "minimum": 4
+        },"token":{
+            "description": "key for token",
+            "type": "string"
         }
     },
     "required": [
@@ -159,4 +162,8 @@ config::config(const std::string& path) {
       json_config.get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
+
+  if (json_config.has_member("token")) {
+    _token = json_config.get_string("token");
+  }
 }
