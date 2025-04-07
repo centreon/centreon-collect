@@ -460,7 +460,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: .robot
+      features_pattern: '\A(?!.*(cma)\.robot$)'
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}

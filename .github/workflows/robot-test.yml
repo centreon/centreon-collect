@@ -106,7 +106,7 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
