@@ -7,6 +7,11 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
+      packages_in_artifact:
+        description: 'Save packages in artifacts'
+        required: true
+        default: false
+        type: boolean
       installer_in_artifact:
         description: 'Save installer and binary in artifacts'
         required: true
@@ -398,7 +403,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'OFF'
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: false
+      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
