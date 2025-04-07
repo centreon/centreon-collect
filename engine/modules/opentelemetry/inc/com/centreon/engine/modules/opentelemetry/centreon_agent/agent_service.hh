@@ -19,6 +19,7 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 
+#include <absl/container/flat_hash_set.h>
 #include "centreon_agent/agent.grpc.pb.h"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_impl.hh"
@@ -41,12 +42,16 @@ class agent_service : public agent::AgentService::Service,
 
   agent_stat::pointer _stats;
 
+  std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
+
  public:
-  agent_service(const std::shared_ptr<boost::asio::io_context>& io_context,
-                const agent_config::pointer& conf,
-                const metric_handler& handler,
-                const std::shared_ptr<spdlog::logger>& logger,
-                const agent_stat::pointer& stats);
+  agent_service(
+      const std::shared_ptr<boost::asio::io_context>& io_context,
+      const agent_config::pointer& conf,
+      const metric_handler& handler,
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats,
+      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
 
   void init();
 
@@ -55,7 +60,8 @@ class agent_service : public agent::AgentService::Service,
       const agent_config::pointer& conf,
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
-      const agent_stat::pointer& stats);
+      const agent_stat::pointer& stats,
+      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
 
   // disable synchronous version of this method
   ::grpc::Status Export(
@@ -73,6 +79,24 @@ class agent_service : public agent::AgentService::Service,
   void update(const agent_config::pointer& conf);
 
   static void shutdown_all_accepted();
+};
+
+/*
+ * // A trivial reactor that finishes immediately with a given Status.
+ */
+class ImmediateFinishReactor
+    : public ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
+                                       com::centreon::agent::MessageToAgent> {
+ public:
+  // Constructor calls Finish(...) right away.
+  explicit ImmediateFinishReactor(const ::grpc::Status& status) {
+    Finish(status);
+  }
+
+  void OnDone() override {
+    // This reactor is now done. Typically just delete this instance.
+    delete this;
+  }
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry::centreon_agent
