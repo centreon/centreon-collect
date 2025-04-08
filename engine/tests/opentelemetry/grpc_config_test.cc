@@ -109,6 +109,7 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
 }
 
+// test if we can set trusted tokens
 TEST(otl_grpc_config, tokens) {
   grpc_config c(R"(
 {   
@@ -132,7 +133,8 @@ TEST(otl_grpc_config, tokens) {
   ASSERT_TRUE(c.get_trusted_tokens()->contains("titi"));
 }
 
-TEST(otl_grpc_config, tokens2) {
+//  test if we can compare trusted tokens
+TEST(otl_grpc_config, tokencompare) {
   grpc_config c(R"(
 {   
     "host":"127.0.0.1",

@@ -1,5 +1,5 @@
 /*
-** Copyright 2024 Centreon
+** Copyright 2025 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #define COMMON_GRPC_CONFIG_HH
 
 #include <grpc/compression.h>
-#include "absl/container/flat_hash_set.h"
 
 namespace com::centreon::common::grpc {
 

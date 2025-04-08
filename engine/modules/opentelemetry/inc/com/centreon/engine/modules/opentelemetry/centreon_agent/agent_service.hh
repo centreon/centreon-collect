@@ -19,7 +19,6 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_SERVICE_HH
 
-#include <absl/container/flat_hash_set.h>
 #include "centreon_agent/agent.grpc.pb.h"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_impl.hh"
