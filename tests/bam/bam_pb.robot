@@ -1292,8 +1292,14 @@ BA_DISABLED
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BA_SERVICE_PNAME_AFTER_RELOAD
-    [Documentation]    Given a BA with her service, parent_name is not erased after cbd reload.
-    [Tags]    MON-153476
+    [Documentation]    Scenario: Verify that the parent_name of a BA service is not erased after a broker reload
+    ...    Given a BA "test" of type "worst" with its service "host_16:service_302"
+    ...    When I start broker and engine
+    ...    Then the BA service "test" should have a status of 0 within 30 seconds
+    ...    When I reload the broker
+    ...    Then the database should still contain a BA service with name "test" and parent_name "_Module_BAM_1"
+
+    [Tags]    broker    engine    bam    MON-153476
     Ctn Bam Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_302")] }}

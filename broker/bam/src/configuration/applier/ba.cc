@@ -129,8 +129,9 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
     _logger->info("BAM: removing BA {}", it->first);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled) {
-      auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(), "", "",
-                               it->second.cfg.get_service_id());
+      auto bs = _ba_pb_service(
+          it->first, it->second.cfg.get_host_id(), it->second.cfg.get_name(),
+          it->second.cfg.get_host_name(), it->second.cfg.get_service_id());
       bs->mut_obj().set_enabled(false);
       s = bs;
     } else {
