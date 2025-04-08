@@ -378,14 +378,14 @@ jobs:
 
   robot-test:
     needs: [get-environment, package-linux]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   needs.get-environment.outputs.stability != 'stable' &&
-    #   needs.get-environment.outputs.is_nightly == 'true' &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.is_nightly == 'true' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
@@ -565,17 +565,16 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-windows:
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect' &&
-    #   (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect' &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
-    # needs: [get-environment, build-and-test-agent-windows, robot-test]
-    needs: [get-environment, build-and-test-agent-windows]
+    needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: windows-latest
 
     steps:
@@ -588,8 +587,8 @@ jobs:
 
       - name: Deliver
         run: |
-          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.major_version }}"
-          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
+          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
+          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
           $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $MODULE_NAME = "monitoring-agent-$VERSION"
@@ -601,7 +600,8 @@ jobs:
 
           Copy-Item -Path "agent\installer\centreon-monitoring-agent.exe" -Destination "${VERSION_EXE}"
           Write-Host "[DEBUG] deliver testing to - Target path: ${TARGET_PATH}"
-          # jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+        shell: powershell
 
   promote-linux:
     needs: [get-environment, deliver-rpm, deliver-deb]
@@ -649,11 +649,11 @@ jobs:
     steps:
       - name: Promote testing to stable
         run: |
-          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.major_version }}"
-          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.minor_version }}"
+          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
+          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
-          $VERSION= "${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
-          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}"
+          $VERSION= "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
+          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
           $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
@@ -668,7 +668,6 @@ jobs:
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
 
           jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-
         shell: powershell
 
   set-skip-label:

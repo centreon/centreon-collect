@@ -38,7 +38,6 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
-      - "**"
       - ".version"
       - bbdo/**
       - broker/**
