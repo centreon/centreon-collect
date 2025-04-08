@@ -94,7 +94,7 @@ jobs:
       - name: install robot framework
         run: |
           wsl pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
-          wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil
+          wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil jwt
 
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1
