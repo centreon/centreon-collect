@@ -82,6 +82,15 @@ jobs:
 
       - name: image to disk
         run: |
+          echo "checking df"
+          df -h
+          # echo "checking du on /home/runner/_work/centreon-collect/"
+          # du -sch /home/runner/_work/centreon-collect/*
+          echo "checking du on /var"
+          du -sch /var/*
+          echo "checking du on /"
+          du -sch /*
+
           docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
         shell: bash
 
@@ -148,8 +157,8 @@ jobs:
         run: |
           echo "checking df"
           df -h
-          echo "checking du on /home/runner/_work/centreon-collect/"
-          du -sch /home/runner/_work/centreon-collect/*
+          # echo "checking du on /home/runner/_work/centreon-collect/"
+          # du -sch /home/runner/_work/centreon-collect/*
           echo "checking du on /var"
           du -sch /var/*
           echo "checking du on /"
@@ -242,6 +251,15 @@ jobs:
 
       - name: Delete separated artifacts
         run: |
+          echo "checking df"
+          df -h
+          # echo "checking du on /home/runner/_work/centreon-collect/"
+          # du -sch /home/runner/_work/centreon-collect/*
+          echo "checking du on /var"
+          du -sch /var/*
+          echo "checking du on /"
+          du -sch /*
+
           artifact_pattern="reports-${{inputs.test_group_name}}-"
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           artifact_exist=true
