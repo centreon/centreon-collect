@@ -734,7 +734,8 @@ jobs:
               const fs = require('fs');
               const fileName = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe';
               github.rest.repos.uploadReleaseAsset({
-                ...context.repo,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
                 release_id: release.id,
                 name: fileName,
                 data: await fs.readFile(fileName),
