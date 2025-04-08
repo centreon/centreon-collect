@@ -712,7 +712,8 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const tag = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
+            // const tag = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
+            const tag = 'centreon-collect-24.10.5';
 
             const { data: tags } = await github.rest.git.listMatchingRefs({
               ...context.repo,
