@@ -18,7 +18,7 @@
 
 Write-Host "Work in" $pwd.ToString()
 
-[System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED","true")
+[System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED", "true")
 
 Write-Host $env:VCPKG_BINARY_SOURCES
 
@@ -40,7 +40,7 @@ $writer = [System.IO.StreamWriter]::new($stringAsStream)
 $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
-$vcpkg_release = "2025.01.13"
+$vcpkg_release = "2025.03.19"
 $vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
 $file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash + "-" + $vcpkg_release
 $file_name_extension = "${file_name}.7z"
@@ -60,8 +60,8 @@ if ( $? -ne $true ) {
     bootstrap-vcpkg.bat
     cd $current_dir
 
-    [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT",$pwd.ToString()+"\vcpkg")
-    [System.Environment]::SetEnvironmentVariable("PATH",$pwd.ToString()+"\vcpkg;" + $env:PATH)
+    [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", $pwd.ToString() + "\vcpkg")
+    [System.Environment]::SetEnvironmentVariable("PATH", $pwd.ToString() + "\vcpkg;" + $env:PATH)
 
     Write-Host "compile vcpkg dependencies"
     vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows

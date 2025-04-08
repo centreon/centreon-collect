@@ -17,7 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <chrono>
 
 #include "com/centreon/common/rapidjson_helper.hh"
 

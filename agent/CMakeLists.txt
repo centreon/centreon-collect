@@ -38,18 +38,6 @@ if(WITH_LIBCXX)
   # -fno-omit-frame-pointer")
 endif()
 
-#this library is available in boost 1.87. Unfortunately, boost-1.87 is not yet available in vcpkg so we have to import it
-# to replace by vcpkg when available
-include(FetchContent)
-FetchContent_Declare(
-        boost-parser
-        GIT_REPOSITORY https://github.com/boostorg/parser.git
-        GIT_TAG        boost-1.87.0)
-
-FetchContent_MakeAvailable(boost-parser)
-
-include_directories(${boost-parser_SOURCE_DIR}/include)
-
 #otel service
 set(service_files
   opentelemetry/proto/collector/metrics/v1/metrics_service
@@ -128,7 +116,6 @@ set( SRC_COMMON
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
   ${SRC_DIR}/check_health.cc
-  ${SRC_DIR}/filter.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
@@ -142,9 +129,11 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
-  ${NATIVE_SRC}/check_uptime.cc
+  ${SRC_DIR}/filter.cc
   ${NATIVE_SRC}/check_drive_size.cc
   ${NATIVE_SRC}/check_event_log.cc
+  ${NATIVE_SRC}/check_process.cc
+  ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
@@ -152,6 +141,9 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_service.cc
   ${NATIVE_SRC}/windows_util.cc
   ${NATIVE_SRC}/ntdll.cc
+  ${NATIVE_SRC}/process/process_container.cc
+  ${NATIVE_SRC}/process/process_data.cc
+  ${NATIVE_SRC}/process/process_filter.cc
 )
 
 set( SRC_LINUX

@@ -61,8 +61,6 @@ class event_data : public testable {
 
   ~event_data() = default;
 
-  static std::chrono::file_clock::time_point convert_to_tp(uint64_t file_time);
-
   // all getters are virtual in order to mock it in ut
   virtual std::wstring_view get_provider() const;
   virtual uint16_t get_event_id() const;
