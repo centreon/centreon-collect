@@ -3782,7 +3782,80 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
             f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
 
     with open(otl_server_config_path, "w") as f:
-        f.write(otl_server_config_json_content)
+        pretty_json = json.dumps(json.loads(otl_server_config_json_content), indent=4)
+        f.write(pretty_json)
+    if "\"encryption\": true" in otl_server_config_json_content:
+        # add token to otl_server.json
+        ctn_add_token_otl_server_module(idx, token)
+
+
+def ctn_add_token_otl_server_module(idx: int, token: str):
+    """
+    Add a token to the "trusted_tokens" list in the otl_server.json configuration file..
+    Args:
+        idx (int): The index of the configuration directory (e.g., config1, config2, etc.).
+        token (str): The token to be added to the "trusted_tokens" list.
+    Returns:
+        bool: True if the token was successfully inserted, False otherwise.
+    """
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    token_inserted = False
+
+    if not exists(otl_server_config_path):
+        return
+
+    with open(otl_server_config_path, "r") as f:
+        data = json.load(f)
+    
+    # Check if "trusted_tokens" already exists
+    if "otel_server" in data:
+        if "trusted_tokens" in data["otel_server"]:
+            if token not in data["otel_server"]["trusted_tokens"]:
+                data["otel_server"]["trusted_tokens"].append(token)
+                token_inserted = True
+        else:
+        # Insert trusted_tokens after otel_server
+            new_data = {}
+            for key, value in data.items():
+                new_data[key] = value
+                if key == "otel_server":
+                    new_data[key]["trusted_tokens"] = [token]
+                    token_inserted = True
+            data = new_data
+
+    with open(otl_server_config_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+    return token_inserted
+
+
+def ctn_del_token_otl_server_module(idx: int, token: str):
+    """
+    Remove a trusted token from the OpenTelemetry (OTel) server configuration file.
+    This function modifies the `otl_server.json` configuration file for a specific
+    Centreon Engine instance by removing a specified token from the list of trusted tokens.
+    Args:
+        idx (int): The index of the Centreon Engine instance whose configuration file
+                   should be modified.
+        token (str): The token to be removed from the list of trusted tokens.
+    Returns:
+        None: The function does not return a value. If the configuration file does not
+              exist, the function exits without making any changes.
+    """
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+
+    if not exists(otl_server_config_path):
+        return
+    
+    with open(otl_server_config_path, "r") as f:
+        data = json.load(f)
+
+    if "trusted_tokens" in data["otel_server"]:
+        if token in data["otel_server"]["trusted_tokens"]:
+            data["otel_server"]["trusted_tokens"].remove(token)
+
+    with open(otl_server_config_path, "w") as f:
+        json.dump(data, f, indent=4)
 
 
 def ctn_randomword(length):
@@ -3985,10 +4058,9 @@ def ctn_send_otl_to_engine_secure(target:str, resource_metrics: list, cert: str)
         resource_metrics: resource_metrics to add to grpc message
         cert: path to the certificate file for secure connection
     """
-    logger.console(f"Using certificate: {target}")
     with open(cert, 'rb') as f:
         creds = grpc.ssl_channel_credentials(f.read())
-    with grpc.secure_channel("soufiane-ThinkPad-E16-Gen-1:4318", creds) as channel:
+    with grpc.secure_channel(target, creds) as channel:
         # same for engine and broker
         stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(channel)
         try:
