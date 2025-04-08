@@ -727,10 +727,10 @@ jobs:
             console.log(releases);
 
             for (const release of releases) {
-              const release = await github.rest.repos.getRelease({
-                ...context.repo,
-                release_id: release.id,
-              });
+              if (release.tag_name !== monitoringAgentRelease) {
+                continue;
+              }
+
               console.log(release);
             }
 
