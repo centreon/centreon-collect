@@ -712,27 +712,24 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            // const monitoringAgentTag = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
-            const monitoringAgentTag = 'centreon-collect-24.10.5';
+            // const monitoringAgentRelease = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
+            const monitoringAgentRelease = 'centreon-collect-24.10.5';
 
-            const { data: tags } = await github.rest.git.listMatchingRefs({
+            const { data: releases } = await github.rest.git.listReleases({
               ...context.repo,
-              ref: `tags/${monitoringAgentTag}`,
             });
 
-            if (tags.length === 0) {
-              core.warning(`Tag ${monitoringAgentTag} does not exist`);
+            if (releases.length === 0) {
+              core.warning(`Release ${monitoringAgentRelease} does not exist`);
               return;
             }
 
-            console.log(tags);
+            console.log(releases);
 
-            for (const tag of tags) {
-              const nodeId = tag.node_id;
-
+            for (const release of releases) {
               const release = await github.rest.repos.getRelease({
                 ...context.repo,
-                release_id: nodeId,
+                release_id: release.id,
               });
               console.log(release);
             }
