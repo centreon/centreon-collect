@@ -729,13 +729,14 @@ jobs:
 
             for (const tag of tags) {
               const nodeId = tag.node_id;
+
+              const release = await github.rest.repos.getRelease({
+                ...context.repo,
+                release_id: nodeId,
+              });
+              console.log(release);
             }
 
-            const release = await github.rest.repos.getRelease({
-              ...context.repo,
-              release_id: nodeId,
-            });
-            console.log(release);
             /*
             await github.rest.git.uploadReleaseAsset({
               owner,
