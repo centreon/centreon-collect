@@ -146,7 +146,17 @@ jobs:
 
       - name: load image
         run: |
+          echo "checking df"
+          df -h
+          echo "checking du on /home/runner/_work/centreon-collect/"
+          du -sch /home/runner/_work/centreon-collect/*
+          echo "checking du on /var"
+          du -sch /var/*
+          echo "checking du on /"
+          du -sch /*
+
           docker load --input ./${{ inputs.image }}
+        shell: bash
 
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
