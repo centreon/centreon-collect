@@ -734,11 +734,10 @@ jobs:
               const fs = require('fs');
               const fileName = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe';
               github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                ...context.repo,
                 release_id: release.id,
                 name: fileName,
-                data: await fs.readFile(fileName),
+                data: fs.readFileSync(fileName),
               });
             }
 
