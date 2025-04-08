@@ -715,7 +715,7 @@ jobs:
             // const monitoringAgentRelease = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
             const monitoringAgentRelease = 'centreon-collect-24.10.5';
 
-            const { data: releases } = await github.rest.git.listReleases({
+            const { data: releases } = await github.rest.repos.listReleases({
               ...context.repo,
             });
 
