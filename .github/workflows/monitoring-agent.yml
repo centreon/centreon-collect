@@ -731,7 +731,7 @@ jobs:
               const nodeId = tag.node_id;
             }
 
-            const release = await octokit.rest.repos.getRelease({
+            const release = await github.rest.repos.getRelease({
               ...context.repo,
               release_id: nodeId,
             });
