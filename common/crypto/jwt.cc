@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 #include "jwt.hh"
-#include <string_view>
 #include "base64.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 
