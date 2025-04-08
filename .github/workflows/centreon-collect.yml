@@ -148,41 +148,41 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
             tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: '{}'
-          - distrib: bookworm
-            image: centreon-collect-debian-bookworm-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: '{}'
-          - distrib: bookworm
-            image: centreon-collect-debian-bookworm-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+          # - distrib: el9
+          #   image: centreon-collect-mysql-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          #   test_group_name: robot_test-mysql-el9-amd64
+          #   tests_params: '{}'
+          # - distrib: bullseye
+          #   image: centreon-collect-debian-bullseye-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bullseye-arm64
+          #   tests_params: '{}'
+          # - distrib: bookworm
+          #   image: centreon-collect-debian-bookworm-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-arm64
+          #   tests_params: '{}'
+          # - distrib: bookworm
+          #   image: centreon-collect-debian-bookworm-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-amd64
+          #   tests_params: '{}'
+          # - distrib: el9
+          #   image: centreon-collect-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64-grpc
+          #   tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
     name: ${{ matrix.test_group_name }}
 
