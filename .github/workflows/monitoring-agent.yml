@@ -737,7 +737,7 @@ jobs:
                 ...context.repo,
                 release_id: release.id,
                 name: fileName,
-                data: fs.createReadStream(fileName),
+                data: await fs.readFile(fileName),
               });
             }
 
