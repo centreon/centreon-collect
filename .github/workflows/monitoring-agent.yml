@@ -565,14 +565,14 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-windows:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect' &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect' &&
+    #   (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     # needs: [get-environment, build-and-test-agent-windows, robot-test]
     needs: [get-environment, build-and-test-agent-windows]
