@@ -175,6 +175,18 @@ jobs:
       #   run: |
       #     curl -H "Content-Type: multipart/form-data" -X POST -F info=@tests/issueFields.json -F results=@tests/output.xml -F testInfo=@tests/testIssueFields.json -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}" https://xray.cloud.getxray.app/api/v2/import/execution/robot/multipart
 
+      - name: Get diskspace usage
+        run: |
+          echo "Global diskspace usage:"
+          df -h
+
+          echo "Diskspace usage on /home/runner/work/centreon-collect/centreon-collect:"
+          du -sch /home/runner/work/centreon-collect/centreon-collect/*
+
+          echo "Diskspace usage on /var:"
+          du -sch /var/*
+        shell: bash
+
       - name: Move reports
         if: ${{ failure() }}
         run: |
