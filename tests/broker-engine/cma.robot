@@ -764,9 +764,9 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     Ctn Set Services Passive       0    service_1
 
 
-    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
-    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
-    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -1370,6 +1370,122 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
     Ctn Clear Db    resources
+
+    # wrong check command for service_1
+    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
+    # wrong args value for service_2
+    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} }    OTEL connector
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    resources table not updated for service_1
+    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
+    ...    "Error the output for invalid check command is not correct"
+ 
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
+    Should Be True    ${result}    resources table not updated for service_2
+    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
+    ...    "Error the output for invalid check args is not correct"
+
+
+BEOTEL_CENTREON_AGENT_CHECK_PROCESS
+    [Documentation]    Given an agent with eventlog check, we expect to get the correct status for thr centagent process running on windows host
+    [Tags]    broker    engine    opentelemetry    MON-155836
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_check
+    Ctn Set Services Passive       0    service_1
+
+
+    Ctn Engine Config Add Command    ${0}    agent_process_check
+    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "ok-syntax": "{status}: all is ok"} }
+    ...    OTEL connector
+    
+    Ctn Engine Config Add Command    ${0}    agent_process_warning
+    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-process": "virtual > 1k", "warning-rules": "warn_count > 0", "output-syntax": "{status} '{problem_list}'", "process-detail-syntax": "{exe} {pid} {virtual}"} }
+    ...    OTEL connector
+
+    Ctn Engine Config Add Command    ${0}    agent_process_critical
+    ...    {"check":"process_nscp", "args":{ "filter-process": "exe = 'centagent.exe'", "warning-process": "virtual > 1k", "warning-rules": "warn_count > 0", "critical-process": "virtual > 2k", "critical-rules": "crit_count > 0", "output-syntax": "{status} '{problem_list}'", "process-detail-syntax": "{exe} {pid} {virtual}", "verbose": false} }
+    ...    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    Log To Console    service_1 must be ok
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    OK: all is ok
+    Should Be True    ${result}    resources table not updated for service_1
+
+    ${metrics_list}    Create List   process.count
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    Should Be True    ${result}    process metrics not updated
+
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_warning
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} > 1    output is not multiline
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_critical
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} == 1    no verbose output must not be multiline
+
+
+
 
 *** Keywords ***
 Ctn Create Cert And Init

@@ -24,6 +24,7 @@
 #ifdef _WIN32
 #include "check_event_log.hh"
 #include "check_memory.hh"
+#include "check_process.hh"
 #include "check_service.hh"
 #include "check_uptime.hh"
 #endif
@@ -613,8 +614,12 @@ std::shared_ptr<check> scheduler::default_check_builder(
         return std::make_shared<check_service>(
             io_context, logger, first_start_expected, check_interval, service,
             cmd_name, cmd_line, *args, conf, std::move(handler), stat);
-      } else if (check_type == "eventlog"sv) {
+      } else if (check_type == "eventlog_nscp"sv) {
         return check_event_log::load(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "process_nscp"sv) {
+        return std::make_shared<check_process>(
             io_context, logger, first_start_expected, check_interval, service,
             cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #endif

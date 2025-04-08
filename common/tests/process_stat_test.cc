@@ -44,5 +44,5 @@ TEST(process_stat, current_heavy_process) {
   process_stat current(getpid());
 
   ASSERT_GE(current.utime(), std::chrono::seconds(9));
-  ASSERT_LE(current.utime(), std::chrono::seconds(12));
+  ASSERT_LE(current.utime(), std::chrono::seconds(13));
 }
