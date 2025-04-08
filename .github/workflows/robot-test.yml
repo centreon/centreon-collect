@@ -74,6 +74,12 @@ jobs:
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
+      - name: Check docker host name as a debug measure
+        run: |
+          echo "Docker host is: $DOCKER_HOST"
+          echo "Diskspace is:\r\n $(du -sch ./*)"
+        shell: bash
+
       - name: load image
         run: |
           docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
