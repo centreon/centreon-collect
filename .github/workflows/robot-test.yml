@@ -280,6 +280,16 @@ jobs:
           pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
           cd reports
           rebot -o output.xml ./*-output.xml || true
+
+          echo "checking df"
+          df -h
+          echo "checking du on /home/runner/_work/centreon-collect/"
+          du -sch /home/runner/_work/centreon-collect/*
+          echo "checking du on /var"
+          du -sch /var/*
+          echo "checking du on /"
+          du -sch /*
+
         shell: bash
 
       - name: Send report to commit
