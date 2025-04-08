@@ -40,6 +40,8 @@ labels should be a lower case string as units
 
 **************************************************************************/
 
+#define unit_grammar (bp::char_('a', 'z') | bp::char_('%'))
+
 /**
  * @brief accepted operators
  *
@@ -55,9 +57,9 @@ const bp::symbols<label_compare_to_value::comparison> comparison_symbols = {
 
 const auto label_compare_to_value_rule_def =
     (label_grammar >> *bp::ws >> comparison_symbols >> *bp::ws >> bp::double_ >>
-     *bp::char_('a', 'z')) |
-    (bp::double_ >> *bp::char_('a', 'z') >> *bp::ws >> comparison_symbols >>
-     *bp::ws >> label_grammar);
+     *unit_grammar) |
+    (bp::double_ >> *unit_grammar >> *bp::ws >> comparison_symbols >> *bp::ws >>
+     label_grammar);
 
 /************************************************************************
 label_compare_to_string grammar
