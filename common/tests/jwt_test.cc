@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  * Licensed under the Apache License, Version 2.0(the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,8 +16,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <chrono>
-#include <iostream>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/jwt.hh"

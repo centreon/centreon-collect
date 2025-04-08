@@ -18,11 +18,14 @@
 
 #ifndef CCC_CRYPTO_JWT_HH
 #define CCC_CRYPTO_JWT_HH
-#include <chrono>
-#include <string>
 
 namespace com::centreon::common::crypto {
 
+/*
+ * @brief JSON Web Token.
+ *
+ * This class is used to parse and validate JWT tokens.
+ */
 class jwt {
   std::string _header;
   std::string _payload;
