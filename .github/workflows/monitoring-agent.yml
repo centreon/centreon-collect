@@ -60,11 +60,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6
-        env:
-          JF_URL: https://centreon.jfrog.io
-          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
       # in order to have the same checksum between windows-agent and windows-agent-robot-test
       - name: No crlf conversion
         run: git config --system core.autocrlf false
@@ -578,6 +573,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6
+        env:
+          JF_URL: https://centreon.jfrog.io
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
       - name: Restore cache monitoring agent
         uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
@@ -647,6 +647,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6
+        env:
+          JF_URL: https://centreon.jfrog.io
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
       - name: Promote testing to stable
         run: |
           Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
@@ -675,6 +680,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6
+        env:
+          JF_URL: https://centreon.jfrog.io
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
       - name: Promote testing to stable
         run: |
           Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
