@@ -375,40 +375,4 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Should Be True    ${result}    "service 3 blacklisted unavailable."
 
 
-*** Keywords ***
-Ctn Create Otl Request
-    [Documentation]    create an otl request with nagios telegraf style
-    [Arguments]    ${state}    ${host}    ${service}=
-    ${state_attrib}    Create Dictionary    host=${host}    service=${service}
-    ${rta_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rta    unit=ms
-    ${rtmax_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rtmax    unit=ms
-    ${pl_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=pl    unit=%
 
-    # state
-    ${state_metric}    Ctn Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
-    # value
-    ${value_metric}    Ctn Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
-    Ctn Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
-    Ctn Add Data Point To Metric    ${value_metric}    ${pl_attrib}    ${0.001}
-
-    ${critical_gt_metric}    Ctn Create Otl Metric    check_icmp_critical_gt    1    ${rta_attrib}    ${500}
-    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${80}
-    ${critical_lt_metric}    Ctn Create Otl Metric    check_icmp_critical_lt    1    ${rta_attrib}    ${1}
-    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${0.00001}
-
-    ${metrics_list}    Create List
-    ...    ${state_metric}
-    ...    ${value_metric}
-    ...    ${critical_gt_metric}
-    ...    ${critical_lt_metric}
-
-    ${scope_attrib}    Create Dictionary
-    ${scope_metric}    Ctn Create Otl Scope Metrics    ${scope_attrib}    ${metrics_list}
-
-    ${scope_metrics_list}    Create List    ${scope_metric}
-
-    ${resource_attrib}    Create Dictionary
-    ${resource_metrics}    Ctn Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
-    ${resources_list}    Create List    ${resource_metrics}
-
-    RETURN    ${resources_list}

@@ -45,6 +45,7 @@ import time
 import re
 import stat
 import string
+import json
 
 
 sys.path.append('.')
@@ -3773,6 +3774,9 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
+    # add defaut token : 
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
+
     with open(filename, "a+") as f:
         f.write(
             f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
@@ -3970,7 +3974,36 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
             logger.console("gRPC server not ready")
 
 
-def ctn_get_host_info_grpc(id: int):
+def ctn_send_otl_to_engine_secure(target:str, resource_metrics: list, cert: str):
+    """
+    send_otl_to_engine_secure
+
+    send an otl request to engine otl server using a secure connection
+
+    Args:
+        port: port to connect to engine
+        resource_metrics: resource_metrics to add to grpc message
+        cert: path to the certificate file for secure connection
+    """
+    logger.console(f"Using certificate: {target}")
+    with open(cert, 'rb') as f:
+        creds = grpc.ssl_channel_credentials(f.read())
+    with grpc.secure_channel("soufiane-ThinkPad-E16-Gen-1:4318", creds) as channel:
+        # same for engine and broker
+        stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(channel)
+        try:
+            request = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2.ExportMetricsServiceRequest()
+            for res_metric in resource_metrics:
+                to_fill = request.resource_metrics.add()
+                to_fill.CopyFrom(res_metric)
+
+            return stub.Export(request)
+        except Exception as e:
+            logger.console(f"gRPC server not ready: {e}")
+
+
+
+def ctn_get_host_info_grpc(id:  int):
     """
     Retrieve host information via a gRPC call.
 
