@@ -74,7 +74,7 @@ jobs:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
-    runs-on: [self-hosted, collect]
+    runs-on: centreon-collect
     strategy:
       fail-fast: false
       matrix:
@@ -175,7 +175,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-sources:
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -210,7 +210,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
     needs: [get-environment, robot-test]
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -259,7 +259,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
     needs: [get-environment, robot-test]
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         include:
@@ -309,7 +309,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: [self-hosted, common]
+    runs-on: centreon-common
     strategy:
       matrix:
         distrib: [el8, el9, bullseye]
