@@ -701,12 +701,9 @@ jobs:
 
           Write-Host "[DEBUG] promote to stable from: ${SRC_PATH}${VERSION_EXE}"
 
-          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat
+          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat --fail-no-op
 
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
-
-          pwd
-          ls
 
           # jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
