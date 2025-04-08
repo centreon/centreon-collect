@@ -80,6 +80,14 @@ bool filter::create_filter(std::string_view filter_str,
   }
 }
 
+bool filter::check(const testable& t) const {
+  bool ret = _checker(t);
+  if (_logger) {
+    SPDLOG_LOGGER_TRACE(_logger, "filter {} check {}", *this, ret);
+  }
+  return ret;
+}
+
 /*************************************************************************
  *                                                                       *
  *                          label_compare_to_value                       *
@@ -113,7 +121,6 @@ label_compare_to_value::label_compare_to_value(double value,
   } else if (_comparison == comparison::greater_than_or_equal) {
     _comparison = comparison::less_than_or_equal;
   }
-  dump(std::cout);
 }
 
 /**
@@ -181,7 +188,38 @@ void label_compare_to_value::calc_duration() {
   _unit = "s";
 }
 
+/**
+ * @brief compare value in bytes (accept 1G2M30K)
+ */
+void label_compare_to_value::calc_giga_mega_kilo() {
+  if (!_unit.empty()) {
+    switch (_unit[0]) {
+      case 'g':
+      case 'G':
+        _value *= 1024 * 1024 * 1024;
+        break;
+      case 'm':
+      case 'M':
+        _value *= 1024 * 1024;
+        break;
+      case 'k':
+      case 'K':
+        _value *= 1024;
+        break;
+      default:
+        break;
+    }
+  }
+
+  _unit = "b";
+}
+
+/**
+ * @brief change threshold to absolute value and reverse comparison
+ */
 void label_compare_to_value::change_threshold_to_abs() {
+  if (_value >= 0)
+    return;
   _value = abs(_value);
   if (_comparison == comparison::greater_than) {
     _comparison = comparison::less_than;
@@ -331,17 +369,22 @@ filter_combinator& filter_combinator::operator=(
   return *this;
 }
 
+/**
+ * @brief use sub filter check results and perform logical operation
+ *
+ * @param t
+ */
 bool filter_combinator::check(const testable& t) const {
   if (_logical == logical_operator::filter_and) {
     for (auto& subfilter : _filters) {
-      if (!subfilter->check(t)) {
+      if (subfilter->get_enabled() && !subfilter->check(t)) {
         return false;
       }
     }
     return true;
   } else {
     for (auto& subfilter : _filters) {
-      if (subfilter->check(t)) {
+      if (subfilter->get_enabled() && subfilter->check(t)) {
         return true;
       }
     }
@@ -349,9 +392,25 @@ bool filter_combinator::check(const testable& t) const {
   }
 }
 
+/**
+ * @brief visit all subfilters
+ */
 void filter_combinator::visit(const visitor& visitr) const {
   for (auto& subfilter : _filters) {
     subfilter->visit(visitr);
+  }
+}
+
+/**
+ * @brief set logger for all subfilters
+ *
+ * @param logger
+ */
+void filter_combinator::set_logger(
+    const std::shared_ptr<spdlog::logger>& logger) {
+  filter::set_logger(logger);
+  for (auto& subfilter : _filters) {
+    subfilter->set_logger(logger);
   }
 }
 

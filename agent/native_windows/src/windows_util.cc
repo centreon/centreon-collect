@@ -68,3 +68,20 @@ std::string com::centreon::agent::lpwcstr_to_acp(LPCWSTR lpwstr) {
   }
   return utf8;
 }
+
+/**
+ * @brief Converts a Windows FILETIME value to a
+ * std::chrono::file_clock::time_point.
+ *
+ * @param file_time The FILETIME value represented as a 64-bit unsigned integer.
+ *                  This value typically represents the number of 100-nanosecond
+ *                  intervals since January 1, 1601 (UTC).
+ * @return A std::chrono::file_clock::time_point corresponding to the given
+ * FILETIME.
+ */
+std::chrono::file_clock::time_point
+com::centreon::agent::convert_filetime_to_tp(uint64_t file_time) {
+  std::chrono::file_clock::duration d{file_time};
+
+  return std::chrono::file_clock::time_point{d};
+}

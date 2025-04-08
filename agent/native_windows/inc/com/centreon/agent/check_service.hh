@@ -91,7 +91,8 @@ class service_enumerator {
 
   virtual bool _query_service_config(
       LPCSTR service_name,
-      QUERY_SERVICE_CONFIGA& serv_conf,
+      std::unique_ptr<unsigned char[]>& buffer,
+      size_t* buffer_size,
       const std::shared_ptr<spdlog::logger>& logger);
 
  public:

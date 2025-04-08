@@ -18,7 +18,7 @@
 
 Write-Host "Work in" $pwd.ToString()
 
-[System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED","true")
+[System.Environment]::SetEnvironmentVariable("AWS_EC2_METADATA_DISABLED", "true")
 
 Write-Host $env:VCPKG_BINARY_SOURCES
 
@@ -60,8 +60,8 @@ if ( $? -ne $true ) {
     bootstrap-vcpkg.bat
     cd $current_dir
 
-    [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT",$pwd.ToString()+"\vcpkg")
-    [System.Environment]::SetEnvironmentVariable("PATH",$pwd.ToString()+"\vcpkg;" + $env:PATH)
+    [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", $pwd.ToString() + "\vcpkg")
+    [System.Environment]::SetEnvironmentVariable("PATH", $pwd.ToString() + "\vcpkg;" + $env:PATH)
 
     Write-Host "compile vcpkg dependencies"
     vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows
