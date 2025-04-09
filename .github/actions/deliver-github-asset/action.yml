@@ -1,0 +1,65 @@
+name: "deliver-github-asset"
+description: "Deliver asset to github release"
+inputs:
+  file_path:
+    description: "The path to the file to upload"
+    required: true
+  github_release:
+    description: "The github release name"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Deliver asset to github release
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      env:
+        FILE_PATH: ${{ inputs.file_path }}
+        GITHUB_RELEASE: ${{ inputs.github_release }}
+      with:
+        script: |
+          const path = require('path');
+          const fs = require('fs');
+
+          const monitoringAgentRelease = process.env.GITHUB_RELEASE;
+          const filePath = process.env.FILE_PATH;
+          const fileName = path.basename(filePath);
+
+          const delay = ms => new Promise(res => setTimeout(res, ms));
+
+          let releases = [];
+
+          for (let i = 0; i < 10; i++) {
+            const { data } = await github.rest.repos.listReleases({
+              ...context.repo,
+              per_page: 100,
+              page: 1,
+            });
+
+            if (data.length > 0) {
+              releases = data;
+              break;
+            }
+
+            await delay(30000);
+          }
+
+          if (releases.length === 0) {
+            core.warning(`Release ${monitoringAgentRelease} does not exist`);
+            return;
+          }
+
+          for (const release of releases) {
+            if (release.tag_name !== monitoringAgentRelease) {
+              continue;
+            }
+
+            github.rest.repos.uploadReleaseAsset({
+              ...context.repo,
+              release_id: release.id,
+              name: fileName,
+              data: fs.readFileSync(filePath),
+            });
+
+            break;
+          }

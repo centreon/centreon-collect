@@ -668,7 +668,7 @@ jobs:
 
           Write-Host "[DEBUG] promote to stable from: ${SRC_PATH}${VERSION_EXE}"
 
-          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat
+          jf rt download "${SRC_PATH}${VERSION_EXE}" --flat --fail-no-op
 
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
 
@@ -694,7 +694,7 @@ jobs:
           $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/unstable/$MODULE_NAME/"
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
           $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
@@ -708,38 +708,11 @@ jobs:
           # jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
 
-      - name: Deliver assets to github release
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      - name: Deliver monitoring agent to github release
+        uses: ./.github/actions/deliver-github-asset
         with:
-          script: |
-            // const monitoringAgentRelease = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}';
-            const monitoringAgentRelease = 'centreon-collect-24.10.5';
-
-            const { data: releases } = await github.rest.repos.listReleases({
-              ...context.repo,
-              per_page: 100,
-              page: 1,
-            });
-
-            if (releases.length === 0) {
-              core.warning(`Release ${monitoringAgentRelease} does not exist`);
-              return;
-            }
-
-            for (const release of releases) {
-              if (release.tag_name !== monitoringAgentRelease) {
-                continue;
-              }
-
-              const fs = require('fs');
-              const fileName = 'centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe';
-              github.rest.repos.uploadReleaseAsset({
-                ...context.repo,
-                release_id: release.id,
-                name: fileName,
-                data: fs.readFileSync(fileName),
-              });
-            }
+          path: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
+          release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, deliver-windows, promote-linux, promote-windows]
