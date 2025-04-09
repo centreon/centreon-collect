@@ -26,6 +26,7 @@ runs:
           const fileName = path.basename(filePath);
 
           const delay = ms => new Promise(res => setTimeout(res, ms));
+          await delay(30000);
 
           let releases = [];
 
@@ -36,6 +37,7 @@ runs:
               page: 1,
             });
 
+            console.log(data);
             if (data.length > 0) {
               releases = data;
               break;
@@ -60,6 +62,7 @@ runs:
               name: fileName,
               data: fs.readFileSync(filePath),
             });
+            core.info(`Asset ${fileName} uploaded to release ${release.tag_name}`);
 
             break;
           }
