@@ -191,7 +191,8 @@ class grpc_config {
         _ca_cert != right._ca_cert || _ca_name != right._ca_name ||
         _compress != right._compress ||
         _second_keepalive_interval != right._second_keepalive_interval ||
-        _second_max_reconnect_backoff != right._second_max_reconnect_backoff) {
+        _second_max_reconnect_backoff != right._second_max_reconnect_backoff ||
+        _token != right._token) {
       return false;
     }
 
@@ -234,13 +235,21 @@ class grpc_config {
     ret = _second_keepalive_interval - right._second_keepalive_interval;
     if (ret)
       return ret;
+    ret = _token.compare(right._token);
+    if (ret)
+      return ret;
+
     if (_trusted_tokens != nullptr && right._trusted_tokens != nullptr)
       if (*_trusted_tokens != *right._trusted_tokens) {
-        return 1;  // or any non-zero value
+        if (_trusted_tokens->size() < right._trusted_tokens->size())
+          return -1;
+        else
+          return 1;
       }
 
-    if ((_trusted_tokens == nullptr && right._trusted_tokens != nullptr) ||
-        (_trusted_tokens != nullptr && right._trusted_tokens == nullptr)) {
+    if ((_trusted_tokens == nullptr&& right._trusted_tokens != nullptr) {
+          return -1;  // or any non-zero value
+        }(_trusted_tokens != nullptr && right._trusted_tokens == nullptr)) {
       return 1;  // or any non-zero value
     }
 
