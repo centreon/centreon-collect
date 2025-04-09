@@ -344,8 +344,8 @@ $exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint",
 $expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
 test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
 
-$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_3", "--endpoint", "127.0.0.6:4317","--encryption", "--token", "my_secure_token"
-$expected = @{ 'endpoint' = '127.0.0.6:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'token' = 'my_secure_token' }
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_3", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption","--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_name", "tls_ca_name_rev",'--token' = 'my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token' }
 test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
 
 Write-Host "############################  modifier test   ############################"
