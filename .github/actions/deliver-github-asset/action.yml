@@ -1,7 +1,7 @@
 name: "deliver-github-asset"
 description: "Deliver asset to github release"
 inputs:
-  file_path:
+  file_pattern:
     description: "The path to the file to upload"
     required: true
   github_release:
@@ -14,7 +14,7 @@ runs:
     - name: Deliver asset to github release
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       env:
-        FILE_PATH: ${{ inputs.file_path }}
+        FILE_PATTERN: ${{ inputs.file_pattern }}
         GITHUB_RELEASE: ${{ inputs.github_release }}
       with:
         script: |
@@ -22,8 +22,7 @@ runs:
           const fs = require('fs');
 
           const monitoringAgentRelease = process.env.GITHUB_RELEASE;
-          const filePath = process.env.FILE_PATH;
-          const fileName = path.basename(filePath);
+          const filePattern = process.env.FILE_PATTERN;
 
           const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -57,11 +56,16 @@ runs:
             return;
           }
 
-          github.rest.repos.uploadReleaseAsset({
-            ...context.repo,
-            release_id: releaseId,
-            name: fileName,
-            data: fs.readFileSync(filePath),
-          });
+          const globber = await glob.create(filePattern);
+          for await (const file of globber.globGenerator()) {
+            const fileName = path.basename(file);
 
-          core.info(`Asset ${fileName} uploaded to release ${monitoringAgentRelease}`);
+            github.rest.repos.uploadReleaseAsset({
+              ...context.repo,
+              release_id: releaseId,
+              name: fileName,
+              data: fs.readFileSync(file),
+            });
+
+            core.info(`Asset ${fileName} uploaded to release ${monitoringAgentRelease}`);
+          }
