@@ -72,6 +72,21 @@ static constexpr std::string_view _payload_schema(R"(
 }
 )");
 
+/**
+ * @brief Constructs a JWT object by parsing and validating a given token.
+ *
+ * This constructor initializes a JWT object by taking a token string,
+ * removing the "Bearer " prefix if present, and splitting the token into
+ * its three parts: header, payload, and signature. It decodes the header
+ * and payload from Base64, validates their JSON structure against predefined
+ * schemas, and extracts the "exp" (expiration) and "iat" (issued at) fields
+ * if present.
+ *
+ * @param token The JWT token string to be parsed and validated.
+ *
+ * @throws msg_fmt If the token is empty, has an invalid format, contains
+ *         forbidden values in the header or payload, or fails JSON validation.
+ */
 jwt::jwt(const std::string& token)
     : _token(token),
       _exp(std::chrono::system_clock::time_point::min()),
