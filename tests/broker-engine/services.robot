@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -58,9 +58,6 @@ SDER
     END
     Should Be Equal As Strings    ${output}    ((280,),)
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
 SRSAS
     [Documentation]
     ...    Given the service "service_1" on "host_1" has its "real_state" set to
@@ -84,8 +81,8 @@ SRSAS
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
-	IF    ${output} == ((1,),)    BREAK
-	Sleep    1s
+        IF    ${output} == ((1,),)    BREAK
+        Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
@@ -102,14 +99,11 @@ SRSAS
     Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
-	IF    ${output} == ((None, 2),)    BREAK
-	Sleep    1s
+        IF    ${output} == ((None, 2),)    BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
     Disconnect From Database
-
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
 
 HRSAS
     [Documentation]
@@ -132,9 +126,9 @@ HRSAS
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
-	IF    ${output} == ((1,),)    BREAK
-	log to console    ${output}
-	Sleep    1s
+        IF    ${output} == ((1,),)    BREAK
+        log to console    ${output}
+        Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one host named host_1 in the hosts table
@@ -151,11 +145,74 @@ HRSAS
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
-	IF    ${output} == ((None, 1),)    BREAK
-	Sleep    1s
+        IF    ${output} == ((None, 1),)    BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database
 
+ICON_UPDATE
+    [Documentation]
+    ...    Given the service "service_1" on "host_1" has its "icon_image" set to empty in the "services" and icon_id to zero in resources table
+    ...    Then the "icon_image" of "service_1" is set to "test.png" and icon_id is set to 5, we restart centengine and resources and services must be updated
+    ...    Then the "icon_image" of "service_1" is set to "test2.png" and icon_id is set to 55, we reload centengine and resources and services must be updated
+
+    [Tags]    broker    engine    service    MON-23925
+
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+
+    Ctn Clear Db    services
+    Ctn Clear Db    resources
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT s.service_id, s.icon_image, r.icon_id FROM services s JOIN resources r on s.host_id = r.parent_id and s.service_id = r.id WHERE s.service_id = 1
+        IF    ${output} == ((1, '', 0),)    BREAK
+        log to console    ${output}
+        Sleep    1s
+    END
+
+    Should Be Equal As Strings    ${output}    ((1, '', 0),)    We should have service_1 without icon in the services table
+
+    Ctn Engine Config Set Value In Services    0    service_1    icon_image    test.png
+    Ctn Engine Config Set Value In Services    0    service_1    icon_id    5
+
+    #restart engine
+    ${start}    Get Current Date
     Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT s.service_id, s.icon_image, r.icon_id FROM services s JOIN resources r on s.host_id = r.parent_id and s.service_id = r.id WHERE s.service_id = 1
+        IF    ${output} == ((1, 'test.png', 5),)    BREAK
+        log to console    ${output}
+        Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((1, 'test.png', 5),)    We should have service_1 with icon in the services table    
+
+    Ctn Engine Config Replace Value In Services    0    service_1    icon_image    test2.png
+    Ctn Engine Config Replace Value In Services    0    service_1    icon_id    55
+    
+    #reload engine
+    Ctn Reload Engine
+    FOR    ${t}    IN RANGE    ${60}
+        ${output}    Query    SELECT s.service_id, s.icon_image, r.icon_id FROM services s JOIN resources r on s.host_id = r.parent_id and s.service_id = r.id WHERE s.service_id = 1
+        IF    ${output} == ((1, 'test2.png', 55),)    BREAK
+        log to console    ${output}
+        Sleep    1s
+    END
+    Should Be Equal As Strings    ${output}    ((1, 'test2.png', 55),)    We should have service_1 with icon in the services table
+    
+    Disconnect From Database
