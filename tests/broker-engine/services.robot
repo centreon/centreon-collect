@@ -81,8 +81,8 @@ SRSAS
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
-	IF    ${output} == ((1,),)    BREAK
-	Sleep    1s
+        IF    ${output} == ((1,),)    BREAK
+        Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
@@ -99,8 +99,8 @@ SRSAS
     Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
-	IF    ${output} == ((None, 2),)    BREAK
-	Sleep    1s
+        IF    ${output} == ((None, 2),)    BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
     Disconnect From Database
@@ -126,9 +126,9 @@ HRSAS
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
-	IF    ${output} == ((1,),)    BREAK
-	log to console    ${output}
-	Sleep    1s
+        IF    ${output} == ((1,),)    BREAK
+        log to console    ${output}
+        Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one host named host_1 in the hosts table
@@ -145,8 +145,8 @@ HRSAS
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
-	    IF    ${output} == ((None, 1),)    BREAK
-	    Sleep    1s
+        IF    ${output} == ((None, 1),)    BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database
@@ -177,9 +177,9 @@ ICON_UPDATE
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT s.service_id, s.icon_image, r.icon_id FROM services s JOIN resources r on s.host_id = r.parent_id and s.service_id = r.id WHERE s.service_id = 1
-	    IF    ${output} == ((1, '', 0),)    BREAK
-	    log to console    ${output}
-	    Sleep    1s
+        IF    ${output} == ((1, '', 0),)    BREAK
+        log to console    ${output}
+        Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1, '', 0),)    We should have service_1 without icon in the services table
@@ -196,9 +196,9 @@ ICON_UPDATE
 
     FOR    ${t}    IN RANGE    ${60}
         ${output}    Query    SELECT s.service_id, s.icon_image, r.icon_id FROM services s JOIN resources r on s.host_id = r.parent_id and s.service_id = r.id WHERE s.service_id = 1
-	    IF    ${output} == ((1, 'test.png', 5),)    BREAK
-	    log to console    ${output}
-	    Sleep    1s
+        IF    ${output} == ((1, 'test.png', 5),)    BREAK
+        log to console    ${output}
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((1, 'test.png', 5),)    We should have service_1 with icon in the services table    
 
