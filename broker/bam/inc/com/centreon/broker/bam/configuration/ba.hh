@@ -50,6 +50,7 @@ class ba {
 
  private:
   std::string _name;
+  std::string _host_name;
   ba::state_source _state_source;
   double _warning_level;
   double _critical_level;
@@ -58,21 +59,21 @@ class ba {
 
  public:
   ba(uint32_t id = 0,
-     std::string const& name = "",
+     const std::string_view& name = "",
+     const std::string_view& host_name = "",
      ba::state_source source = state_source_impact,
      double warning_level = 0.0,
      double critical_level = 0.0,
      downtime_behaviour dt_behaviour = dt_ignore);
-  ba(ba const& right);
-  ~ba();
-  ba& operator=(ba const& right);
+
   bool operator==(ba const& right) const;
   bool operator!=(ba const& right) const;
 
   uint32_t get_id() const;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
-  std::string const& get_name() const;
+  const std::string& get_name() const;
+  const std::string& get_host_name() const { return _host_name; }
   ba::state_source get_state_source() const;
   double get_warning_level() const;
   double get_critical_level() const;
@@ -84,6 +85,9 @@ class ba {
   void set_host_id(uint32_t host_id);
   void set_service_id(uint32_t service_id);
   void set_name(std::string const& name);
+  void set_host_name(const std::string_view& host_name) {
+    _host_name = host_name;
+  }
   void set_state_source(ba::state_source state);
   void set_warning_level(double warning_level);
   void set_critical_level(double critical_level);
