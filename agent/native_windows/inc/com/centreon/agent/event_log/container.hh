@@ -95,9 +95,9 @@ class event_container {
 
  public:
   event_container(const std::string_view& file,
-                  const std::string_view& primary_filter,
-                  const std::string_view& warning_filter,
-                  const std::string_view& critical_filter,
+                  std::string_view primary_filter,
+                  std::string_view warning_filter,
+                  std::string_view critical_filter,
                   duration scan_range,
                   bool need_to_decode_message_content,
                   const std::shared_ptr<spdlog::logger>& logger);

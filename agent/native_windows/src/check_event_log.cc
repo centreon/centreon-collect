@@ -19,7 +19,6 @@
 #include <format>
 #include <ranges>
 
-
 #include "check.hh"
 #include "check_event_log.hh"
 #include "event_log/container.hh"
@@ -167,37 +166,37 @@ std::shared_ptr<check_event_log> check_event_log::load(
   return ret;
 }
 
-static const boost::container::flat_map<std::string_view, std::string_view>
-    _label_to_event_index = {{"${file}", "{0}"},
-                             {"${id}", "{1}"},
-                             {"${source}", "{2}"},
-                             {"${log}", "{2}"},
-                             {"${provider}", "{2}"},
-                             {"${message}", "{3}"},
-                             {"${status}", "{4}"},
-                             {"${written}", "{5}"},
-                             {"${record_id}", "{6}"},
-                             {"${record-id}", "{6}"},
-                             {"${computer}", "{7}"},
-                             {"${channel}", "{8}"},
-                             {"${keywords}", "{9}"},
-                             {"${level}", "{10}"},
-                             {"${written_str}", "{11}"},
-                             {"{file}", "{0}"},
-                             {"{id}", "{1}"},
-                             {"{source}", "{2}"},
-                             {"{log}", "{2}"},
-                             {"{provider}", "{2}"},
-                             {"{message}", "{3}"},
-                             {"{status}", "{4}"},
-                             {"{written}", "{5}"},
-                             {"{record_id}", "{6}"},
-                             {"{record-id}", "{6}"},
-                             {"{computer}", "{7}"},
-                             {"{channel}", "{8}"},
-                             {"{keywords}", "{9}"},
-                             {"{level}", "{10}"},
-                             {"{written_str}", "{11}"}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 30>
+    _label_to_event_index{{{"${file}", "{0}"},
+                           {"${id}", "{1}"},
+                           {"${source}", "{2}"},
+                           {"${log}", "{2}"},
+                           {"${provider}", "{2}"},
+                           {"${message}", "{3}"},
+                           {"${status}", "{4}"},
+                           {"${written}", "{5}"},
+                           {"${record_id}", "{6}"},
+                           {"${record-id}", "{6}"},
+                           {"${computer}", "{7}"},
+                           {"${channel}", "{8}"},
+                           {"${keywords}", "{9}"},
+                           {"${level}", "{10}"},
+                           {"${written_str}", "{11}"},
+                           {"{file}", "{0}"},
+                           {"{id}", "{1}"},
+                           {"{source}", "{2}"},
+                           {"{log}", "{2}"},
+                           {"{provider}", "{2}"},
+                           {"{message}", "{3}"},
+                           {"{status}", "{4}"},
+                           {"{written}", "{5}"},
+                           {"{record_id}", "{6}"},
+                           {"{record-id}", "{6}"},
+                           {"{computer}", "{7}"},
+                           {"{channel}", "{8}"},
+                           {"{keywords}", "{9}"},
+                           {"{level}", "{10}"},
+                           {"{written_str}", "{11}"}}};
 
 void check_event_log::_calc_event_detail_syntax(const std::string_view& param) {
   _event_detail_syntax = param;
@@ -206,12 +205,15 @@ void check_event_log::_calc_event_detail_syntax(const std::string_view& param) {
   }
 }
 
-static const boost::container::flat_map<std::string_view, std::string_view>
-    _label_to_output_index = {
-        {"${status}", "{0}"},       {"${count}", "{1}"},
-        {"${problem_list}", "{2}"}, {"${problem-list}", "{2}"},
-        {"{status}", "{0}"},        {"{count}", "{1}"},
-        {"{problem_list}", "{2}"},  {"{problem-list}", "{2}"}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 8>
+    _label_to_output_index{{{"${status}", "{0}"},
+                            {"${count}", "{1}"},
+                            {"${problem_list}", "{2}"},
+                            {"${problem-list}", "{2}"},
+                            {"{status}", "{0}"},
+                            {"{count}", "{1}"},
+                            {"{problem_list}", "{2}"},
+                            {"{problem-list}", "{2}"}}};
 
 /**
  * @brief Calculate the output format by replacing labels with their

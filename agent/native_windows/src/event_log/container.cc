@@ -38,9 +38,9 @@ using namespace com::centreon::agent::event_log;
  * @param logger The logger instance for logging.
  */
 event_container::event_container(const std::string_view& file,
-                                 const std::string_view& primary_filter,
-                                 const std::string_view& warning_filter,
-                                 const std::string_view& critical_filter,
+                                 std::string_view primary_filter,
+                                 std::string_view warning_filter,
+                                 std::string_view critical_filter,
                                  duration scan_range,
                                  bool need_to_decode_message_content,
                                  const std::shared_ptr<spdlog::logger>& logger)
@@ -55,6 +55,10 @@ event_container::event_container(const std::string_view& file,
       _read_message_buffer(static_cast<LPWSTR>(malloc(4096 * sizeof(wchar_t)))),
       _message_buffer_size(4095),
       _logger(logger) {
+  primary_filter = absl::StripLeadingAsciiWhitespace(primary_filter);
+  warning_filter = absl::StripLeadingAsciiWhitespace(warning_filter);
+  critical_filter = absl::StripLeadingAsciiWhitespace(critical_filter);
+
   if (!primary_filter.empty()) {
     try {
       _primary_filter = std::make_unique<event_filter>(
@@ -229,7 +233,7 @@ void event_container::_on_event(EVT_HANDLE h_event) {
 void event_container::_on_event(const event_log::event_data& raw_event,
                                 EVT_HANDLE h_event) {
   auto peremp = std::chrono::file_clock::now() - _scan_range;
-  auto event_time = event_data::convert_to_tp(raw_event.get_time_created());
+  auto event_time = convert_filetime_to_tp(raw_event.get_time_created());
   if (event_time < peremp) {
     return;
   }
@@ -245,7 +249,7 @@ void event_container::_on_event(const event_log::event_data& raw_event,
   } else if (_warning_filter->allow(raw_event)) {
     event_status = e_status::warning;
   } else {
-    _ok_events.emplace(event_data::convert_to_tp(raw_event.get_time_created()));
+    _ok_events.emplace(convert_filetime_to_tp(raw_event.get_time_created()));
   }
 
   if (event_status != e_status::ok) {

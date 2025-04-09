@@ -240,7 +240,8 @@ TEST_F(scheduler_test, correct_schedule) {
     }
   }
 
-  sched->stop();
+  asio::post(*g_io_context, [sched]() { sched->stop(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 TEST_F(scheduler_test, time_out) {
@@ -302,7 +303,8 @@ TEST_F(scheduler_test, time_out) {
   ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 1000000000);
   ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 1500000000);
 
-  sched->stop();
+  asio::post(*g_io_context, [sched]() { sched->stop(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 TEST_F(scheduler_test, correct_output_examplar) {
@@ -382,7 +384,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
   ASSERT_LE(first_time_point + 400000000, data_point_state2.time_unix_nano());
   ASSERT_GE(first_time_point + 600000000, data_point_state2.time_unix_nano());
 
-  sched->stop();
+  asio::post(*g_io_context, [sched]() { sched->stop(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 class concurent_check : public check {
@@ -426,10 +429,12 @@ class concurent_check : public check {
     if (!_start_check(timeout)) {
       return;
     }
-    std::lock_guard l(checked_m);
-    active_checks.insert(this);
-    if (active_checks.size() > max_active_check) {
-      max_active_check = active_checks.size();
+    {
+      std::lock_guard l(checked_m);
+      active_checks.insert(this);
+      if (active_checks.size() > max_active_check) {
+        max_active_check = active_checks.size();
+      }
     }
     _completion_timer.expires_after(_completion_delay);
     _completion_timer.async_wait([me = shared_from_this(), this,
@@ -493,5 +498,6 @@ TEST_F(scheduler_test, max_concurent) {
   EXPECT_EQ(concurent_check::max_active_check, 10);
   EXPECT_EQ(concurent_check::checked.size(), 200);
 
-  sched->stop();
+  asio::post(*g_io_context, [sched]() { sched->stop(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
