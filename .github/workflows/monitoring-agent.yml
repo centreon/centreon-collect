@@ -717,8 +717,8 @@ jobs:
       - name: Deliver monitoring agent to github release
         uses: ./.github/actions/deliver-github-asset
         with:
-          path: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
-          release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+          file_path: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}.exe
+          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
 
   set-skip-label:
     needs: [get-environment, deliver-rpm, deliver-deb, deliver-windows, promote-linux, promote-windows]
