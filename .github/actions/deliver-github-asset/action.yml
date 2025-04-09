@@ -47,6 +47,8 @@ runs:
               break;
             }
 
+            console.log(`Release ${monitoringAgentRelease} not found, retrying...`);
+
             await delay(30000);
           }
 
