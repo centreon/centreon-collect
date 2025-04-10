@@ -314,6 +314,9 @@ static std::shared_ptr<io::data> _dimension_truncate_table_signal_to_pb(
 
 std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
     const std::shared_ptr<io::data>& d) {
+  if (!d) {
+    return d;
+  }
   switch (d->type()) {
     case neb::instance::static_type():
       return _instance_to_pb(d);

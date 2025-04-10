@@ -20,7 +20,6 @@
 #define CCB_INFLUXDB_MACRO_CACHE_HH
 
 #include "com/centreon/broker/influxdb/internal.hh"
-#include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
