@@ -217,7 +217,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, noble]
 
     steps:
       - name: Checkout sources
