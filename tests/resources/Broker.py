@@ -3025,3 +3025,35 @@ def ctn_init_data_bin_without_partition():
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1"""
             cursor.execute(sql)
             connection.commit()
+
+
+def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
+    """
+    Check if a row exists in the logs table with msg_type=10 and ctime >= date.
+
+    Args:
+        date: The date to check.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True on success.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT * FROM logs WHERE msg_type=10 and ctime >= {date}")
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0 and len(result[0]) > 0:
+                    return True
+        time.sleep(2)
+    return False
