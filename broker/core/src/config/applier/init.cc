@@ -59,6 +59,7 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @param name The broker name to give to this cbd instance.
  */
 void config::applier::init(const common::PeerType peer_type,
+                           const std::string& engine_conf_version,
                            size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
@@ -74,7 +75,7 @@ void config::applier::init(const common::PeerType peer_type,
    * used, we must keep the singleton.
    */
   com::centreon::common::pool::set_pool_size(n_thread);
-  config::applier::state::load(peer_type);
+  config::applier::state::load(peer_type, engine_conf_version);
   mysql_manager::load();
   file::disk_accessor::load(event_queues_total_size);
   io::protocols::load();
@@ -111,7 +112,8 @@ void config::applier::deinit() {
  * @param conf The configuration used to initialize the all.
  */
 void config::applier::init(const common::PeerType peer_type,
+                           const std::string& engine_conf_version,
                            const config::state& conf) {
-  init(peer_type, conf.pool_size(), conf.broker_name(),
+  init(peer_type, engine_conf_version, conf.pool_size(), conf.broker_name(),
        conf.event_queues_total_size());
 }

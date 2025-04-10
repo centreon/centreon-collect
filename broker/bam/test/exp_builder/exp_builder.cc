@@ -44,7 +44,8 @@ class BamExpBuilder : public ::testing::Test {
   void SetUp() override {
     _logger = log_v2::instance().get(log_v2::BAM);
     try {
-      config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                            0);
       _logger->set_level(spdlog::level::debug);
       _logger->flush_on(spdlog::level::debug);
     } catch (std::exception const& e) {

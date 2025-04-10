@@ -54,15 +54,17 @@ state::stats state::_stats_conf;
  *  Default constructor.
  */
 state::state(common::PeerType peer_type,
+             const std::string& engine_conf_version,
              const std::shared_ptr<spdlog::logger>& logger)
     : _peer_type{peer_type},
+      _engine_conf{engine_conf_version},
       _logger{logger},
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
+      _watch_occupied{false},
       _modules{logger},
-      _center{std::make_shared<com::centreon::broker::stats::center>()},
-      _watch_occupied{false} {}
+      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
 
 /**
  * @brief Destructor of the state class.
@@ -223,9 +225,11 @@ state& state::instance() {
 /**
  *  Load singleton.
  */
-void state::load(common::PeerType peer_type) {
+void state::load(common::PeerType peer_type,
+                 const std::string& engine_conf_version) {
   if (!gl_state)
-    gl_state = new state(peer_type, log_v2::instance().get(log_v2::CONFIG));
+    gl_state = new state(peer_type, engine_conf_version,
+                         log_v2::instance().get(log_v2::CONFIG));
 }
 
 /**
@@ -326,6 +330,27 @@ void state::add_peer(uint64_t poller_id,
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
     }
+  }
+}
+
+/**
+ * @brief Set the engine configuration for a poller.
+ *
+ * @param poller_id The poller ID.
+ * @param engine_conf The new Engine configuration version.
+ */
+void state::set_poller_engine_conf(uint64_t poller_id,
+                                   const std::string& poller_name,
+                                   const std::string& broker_name,
+                                   const std::string& engine_conf) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
+  if (found == _connected_peers.end()) {
+    _logger->info("Poller with id {} not found in connected peers", poller_id);
+  } else {
+    _logger->info("Poller with id {} has its version changed from '{}' to '{}'",
+                  found->second.engine_conf, engine_conf);
+    found->second.engine_conf = engine_conf;
   }
 }
 
@@ -623,7 +648,7 @@ void state::_check_last_engine_conf() {
 
 /**
  * @brief Prepare the diff between the previous and the new Engine
- * configurations.
+ * configurations. The occupied flag must be enabled during this function.
  *
  * @param poller_id The poller ID.
  * @param state The new Engine configuration.
@@ -734,4 +759,8 @@ std::unique_ptr<com::centreon::engine::configuration::DiffState>
 state::diff_state() {
   absl::MutexLock lck(&_diff_state_m);
   return std::move(_diff_state);
+}
+
+void state::set_engine_conf(const std::string& engine_conf) {
+  _engine_conf = engine_conf;
 }

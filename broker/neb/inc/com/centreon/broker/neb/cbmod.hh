@@ -46,7 +46,8 @@ class cbmod {
 
  public:
   cbmod(const std::string& config_file,
-        const std::filesystem::path& proto_conf);
+        const std::filesystem::path& proto_conf,
+        const std::string& engine_conf_version);
   cbmod(const std::filesystem::path& proto_conf);
   cbmod& operator=(const cbmod&) = delete;
 

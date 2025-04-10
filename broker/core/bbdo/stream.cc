@@ -1204,6 +1204,8 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
         f.close();
         _logger->debug("BBDO: Sending Engine configuration to poller {}",
                        _poller_id);
+        config::applier::state::instance().set_poller_engine_conf(
+            _poller_id, _poller_name, _broker_name, obj.config_version());
         _write(pb_conf);
         _logger->debug("BBDO: Removing diff file '{}'", diff_name.string());
         std::filesystem::remove(diff_name);

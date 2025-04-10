@@ -449,7 +449,9 @@ int main(int argc, char* argv[]) {
            * database. Doing this, imply we also have to check if cbm is
            * defined in broker.cc.
            */
-          cbm = std::make_unique<cbmod>(broker_config, proto_conf);
+          cbm =
+              std::make_unique<cbmod>(broker_config, proto_conf,
+                                      pb_indexed_config.state().config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
