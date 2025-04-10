@@ -3,7 +3,8 @@
 Centreon Collect is a collection of softwares:                                                                                     
   * [Centreon Engine](#centreon-engine)                                                         
   * [Centreon Broker](#centreon-broker)                                                            
-  * [Centreon Connector](#centreon-connector)       
+  * [Centreon Connector](#centreon-connector) 
+  * [Centreon Monitoring Agent](#centreon-monitoring-agent-cma)      
                                                    
 Centreon Collect brings also [Centreon tests](centreon-tests/README.md) to test these softwares.
 
@@ -57,8 +58,7 @@ security requirements. Just give it a try!
 ## Centreon Connector                                                             
                                                                                    
 Centreon Connector is extremely fast open-source monitoring check                
-execution daemons designed to work with                                            
-[Centreon Engine](https://github.com/centreon/centreon-collect).                    
+execution daemons designed to work with [Centreon Engine](https://github.com/centreon/centreon-collect).                    
                                                                                    
 It is a low-level component of the                                                 
 [Centreon software suite](https://www.centreon.com).                               
@@ -233,14 +233,29 @@ Then you have all binaries compiled in the ubuntu distribution.
 You can access it outside the container in the /data/dev/centreon-collect/build directory
 
 ### Windows 
- Only the Centreon Monitoring Agent is compilable in windows with the installer.
-#### Compilation
-In order to compile it, you need at least:
-* [msbuild tools](https://visualstudio.microsoft.com/downloads/)
-* [git](https://git-scm.com/downloads/win). Then you have to:
-* Start a x64 command tool console
-* Execute centreon_cmake.bat. It first installs vcpkg in your home directory and then tells you to set two environment variables VCPKG_ROOT and PATH. Be careful, the next time you will start x64 command tool console, it will set VCPKG_ROOT to wrong value and you will need to set it again.
+ Only the Centreon Monitoring Agent and the CMA installer can be compiled on Windows
+#### Prerequisites
+To compile the agent, ensure the following tools are installed::
+* [Msbuild tools](https://visualstudio.microsoft.com/downloads/) install desktop development with C++
+* [Git](https://git-scm.com/downloads/win)
+* [NSIS](https://sourceforge.net/projects/nsis/files/NSIS%202/)
+* [PowerShell Core](https://github.com/PowerShell/PowerShell/releases)
+#### Compiling the Agent
+Then you have to:
+* Add NSIS path to environment variables
+* Open x64 Native Tools Command Prompt for VS
+```shell
+cd centreon-collect/
+centreon_cmake.bat
+ ```
+ When Executing centreon_cmake.bat. It first installs vcpkg in your home directory and then Prompt you to set two environment variables: VCPKG_ROOT and PATH. 
+> ⚠️ **Warning:** However, be aware that each time you open a new x64 Native Tools Command Prompt, it may set VCPKG_ROOT to an incorrect value by default.
+You will need to manually reset VCPKG_ROOT to the correct path before building again
+
 * Then install agent\conf\agent.reg in the registry and modify parameters such as server, certificates or logging.
+
+!!! note  
+    To compile the agent with the installer add the option : DWITH_BUILD_AGENT_INSTALLER=On
 
 ## Bug reports / Feature requests
 
