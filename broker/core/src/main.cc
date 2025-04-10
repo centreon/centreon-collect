@@ -284,7 +284,7 @@ int main(int argc, char* argv[]) {
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
-        config::applier::init(common::BROKER, conf);
+        config::applier::init(common::BROKER, "", conf);
 
         // Apply resulting configuration totally or partially.
         config::applier::state::instance().apply(conf, !check);

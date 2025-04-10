@@ -60,6 +60,7 @@ class state {
 
  private:
   const common::PeerType _peer_type;
+  std::string _engine_conf;
   std::string _cache_dir;
   std::shared_ptr<spdlog::logger> _logger;
   uint32_t _poller_id;
@@ -109,6 +110,7 @@ class state {
   mutable absl::Mutex _connected_peers_m;
 
   state(common::PeerType peer_type,
+        const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept;
   std::vector<uint32_t> _watch_engine_conf();
@@ -121,7 +123,8 @@ class state {
 
  public:
   static state& instance();
-  static void load(common::PeerType peer_type);
+  static void load(common::PeerType peer_type,
+                   const std::string& engine_conf_version);
   static void unload();
   static bool loaded();
 
@@ -170,6 +173,12 @@ class state {
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   bool set_engine_conf_watcher_occupied(bool occupied,
                                         const std::string_view& owner);
+  void set_engine_conf(const std::string& engine_conf);
+  void set_poller_engine_conf(uint64_t poller_id,
+                              const std::string& poller_name,
+                              const std::string& broker_name,
+
+                              const std::string& engine_conf);
 };
 }  // namespace com::centreon::broker::config::applier
 

@@ -45,7 +45,7 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    config::applier::state::load(com::centreon::common::BROKER);
+    config::applier::state::load(com::centreon::common::BROKER, "");
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
