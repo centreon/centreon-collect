@@ -189,9 +189,9 @@ TEST(otl_grpc_config, tokencompare) {
       })"_json);
 
   ASSERT_EQ(c.compare(c_same), 0);
-  ASSERT_EQ(c.compare(c2), 1);
+  ASSERT_EQ(c.compare(c2), -1);
   ASSERT_EQ(c2.compare(c), 1);
   ASSERT_EQ(c2.compare(c2_same), 0);
   ASSERT_EQ(c2.compare(c2_minos), 1);
-  ASSERT_EQ(c2.compare(c2_plus), 1);
+  ASSERT_EQ(c2.compare(c2_plus), -1);
 }
