@@ -47,7 +47,8 @@ using namespace com::centreon::broker;
 /**
  * @brief BOOST_PP_SEQ_FOR_EACH expands BOOST_PP_SEQ_FOR_EACH(traduct, ,
  * (name)(pid)); with: traduct(r, , BOOST_PP_SEQ_HEAD((name)(pid))) traduct(r, ,
- * BOOST_PP_SEQ_HEAD((pid))) Then  BOOST_PP_SEQ_HEAD((name)(pid)) returns name
+ * BOOST_PP_SEQ_HEAD((pid)))
+ * Then  BOOST_PP_SEQ_HEAD((name)(pid)) returns name
  * and BOOST_PP_SEQ_HEAD((pid) returns pid
  *
  * It's so traduced in s_pb(name) s_pb(pid)
