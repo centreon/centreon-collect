@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/influxdb/macro_cache.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
