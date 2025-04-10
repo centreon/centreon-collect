@@ -247,10 +247,11 @@ class grpc_config {
           return 1;
       }
 
-    if ((_trusted_tokens == nullptr&& right._trusted_tokens != nullptr) {
-          return -1;  // or any non-zero value
-        }(_trusted_tokens != nullptr && right._trusted_tokens == nullptr)) {
-      return 1;  // or any non-zero value
+    if (_trusted_tokens == nullptr && right._trusted_tokens != nullptr) {
+      return -1;
+    }
+    if (_trusted_tokens != nullptr && right._trusted_tokens == nullptr) {
+      return 1;
     }
 
     return 0;
