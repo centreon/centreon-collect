@@ -33,7 +33,7 @@ class CentreonBrokerEnvironment : public testing::Environment {
  public:
   void SetUp() override {
     com::centreon::broker::config::applier::state::load(
-        com::centreon::common::BROKER);
+        com::centreon::common::BROKER, "");
     com::centreon::broker::io::protocols::load();
     com::centreon::broker::io::events::load();
   }

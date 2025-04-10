@@ -48,7 +48,8 @@ class BamBA : public ::testing::Test {
   void SetUp() override {
     // Initialization.
     _logger = log_v2::instance().get(log_v2::BAM);
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                          0);
 
     _aply_state = std::make_unique<bam::configuration::applier::state>(_logger);
     _state = std::make_unique<bam::configuration::state>(_logger);
