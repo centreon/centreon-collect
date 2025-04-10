@@ -148,20 +148,25 @@ jobs:
         run: |
           docker load --input ./${{ inputs.image }}
 
-      - name: Test ${{ matrix.feature }}
+      #  pam sshd authentication doesn't work with privileged containers
+      - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
         run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          privilege_status=""
+          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+            privilege_status="--privileged"
+          fi
+          docker run --rm $privilege_status --ulimit core=-1 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
             --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
             --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_test }} \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+            ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
@@ -280,16 +285,18 @@ jobs:
     if: |
       inputs.is_nightly == 'true' && github.run_attempt == 1 &&
       (failure() || cancelled()) &&
-      startsWith(github.ref_name, 'dev')
+      startsWith(github.ref_name, 'dev') &&
+      github.repository == 'centreon/centreon-collect'
     steps:
       - name: Checkout sources
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         uses: ./.github/actions/create-jira-ticket
         with:
           jira_base_url: ${{ secrets.jira_base_url }}
           jira_user_email: ${{ secrets.jira_user_email }}
           jira_api_token: ${{ secrets.jira_api_token }}
           module_name: "centreon-collect"
-          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "robot-test"]'
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "robot-test-${{ inputs.distrib }}-${{ inputs.database_type }}"]'
+          ticket_squad: "Collect"

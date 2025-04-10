@@ -57,6 +57,8 @@ class ba {
                                             bool in_downtime = false);
   std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
                                                   uint32_t host_id,
+                                                  const std::string& ba_name,
+                                                  const std::string& host_name,
                                                   uint32_t service_id,
                                                   bool in_downtime = false);
   void _internal_copy(ba const& other);

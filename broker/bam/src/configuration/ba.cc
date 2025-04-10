@@ -1,20 +1,20 @@
 /**
-* Copyright 2014 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
@@ -33,7 +33,8 @@ static constexpr double eps = 0.000001;
  *  @param[in] inherit_kpi_downtime  Should the BA inherit kpi's downtimes?
  */
 ba::ba(uint32_t id,
-       std::string const& name,
+       const std::string_view& name,
+       const std::string_view& host_name,
        ba::state_source source,
        double warning_level,
        double critical_level,
@@ -42,53 +43,11 @@ ba::ba(uint32_t id,
       _host_id(0),
       _service_id(0),
       _name(name),
+      _host_name(host_name),
       _state_source(source),
       _warning_level(warning_level),
       _critical_level(critical_level),
       _dt_behaviour(dt_behaviour) {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other The original object.
- */
-ba::ba(const ba& other)
-    : _id(other._id),
-      _host_id(other._host_id),
-      _service_id(other._service_id),
-      _name(other._name),
-      _state_source(other._state_source),
-      _warning_level(other._warning_level),
-      _critical_level(other._critical_level),
-      _event(other._event),
-      _dt_behaviour(other._dt_behaviour) {}
-
-/**
- *  Destructor.
- */
-ba::~ba() {}
-
-/**
- *  Assignment Operator.
- *
- *  @param[in] other The original object.
- *
- *  @return this
- */
-ba& ba::operator=(const ba& other) {
-  if (this != &other) {
-    _id = other._id;
-    _host_id = other._host_id;
-    _service_id = other._service_id;
-    _name = other._name;
-    _state_source = other._state_source;
-    _warning_level = other._warning_level;
-    _critical_level = other._critical_level;
-    _event = other._event;
-    _dt_behaviour = other._dt_behaviour;
-  }
-  return *this;
-}
 
 /**
  *  Equality comparison operator.
@@ -100,6 +59,7 @@ ba& ba::operator=(const ba& other) {
 bool ba::operator==(const ba& right) const {
   return _id == right._id && _host_id == right._host_id &&
          _service_id == right._service_id && _name == right._name &&
+         _host_name == right._host_name &&
          _state_source == right._state_source &&
          std::abs(_warning_level - right._warning_level) < eps &&
          std::abs(_critical_level - right._critical_level) < eps &&

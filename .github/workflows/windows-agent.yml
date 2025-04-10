@@ -164,6 +164,7 @@ jobs:
           path: |
             agent\installer\centreon-monitoring-agent.exe
             build_windows\agent\Release\centagent.exe
+            build_windows\agent\Release\centagent.pdb
 
       - name: Deliver
         if: |

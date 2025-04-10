@@ -19,11 +19,12 @@
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_executable(ut_common
-    process_stat_test.cc
+    absl_flyweight_factory_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
     perfdata_test.cc
+    process_stat_test.cc
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
@@ -31,6 +32,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ${TESTS_SOURCES})
 else()
   add_executable(ut_common
+    absl_flyweight_factory_test.cc
     perfdata_test.cc
     process_test.cc
     rapidjson_helper_test.cc

@@ -48,7 +48,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -56,6 +56,7 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
@@ -76,7 +77,7 @@ on:
       - custom-triplets/**
       - engine/**
       - grpc/**
-      - packaging/**
+      - packaging/centreon-collect/**
       - cmake.sh
       - cmake-vcpkg.sh
       - CMakeLists.txt
@@ -84,27 +85,12 @@ on:
       - vcpkg.json
       - overlays/**
       - selinux/**
+      - "!selinux/centreon-common/**"
       - "!.veracode-exclusions"
       - "!veracode.json"
       - "!**/test/**"
 
 jobs:
-  dispatch-to-maintained-branches:
-    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - run: |
-          gh workflow run robot-nightly.yml -r "dev-24.04.x"
-          gh workflow run robot-nightly.yml -r "dev-23.10.x"
-          gh workflow run robot-nightly.yml -r "dev-23.04.x"
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
@@ -242,6 +228,20 @@ jobs:
           name: unit-test-${{ matrix.distrib }}-reports
           path: "build/ut_*.xml"
           retention-days: 1
+
+      - name: Create Jira ticket on nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   package:
     needs: [get-environment]
@@ -493,7 +493,7 @@ jobs:
           - distrib: el9
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -511,7 +511,7 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         if: |
           needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
           failure() &&
@@ -523,6 +523,7 @@ jobs:
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   deliver-deb:
     if: |
@@ -557,7 +558,7 @@ jobs:
             arch: arm64
             only_cma: true
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -576,7 +577,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           package_filter: ${{ matrix.only_cma == 'true' && 'centreon-monitoring-agent*' || '' }}
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         if: |
           needs.get-environment.outputs.is_nightly == 'true' &&
           github.run_attempt == 1 &&
@@ -590,6 +591,7 @@ jobs:
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]

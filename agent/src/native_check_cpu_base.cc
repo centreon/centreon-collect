@@ -281,9 +281,9 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "{} fail to start check: {}",
                         get_command_name(), e.what());
-    _io_context->post([me = shared_from_this(),
-                       start_check_index = _get_running_check_index(),
-                       err = e.what()] {
+    asio::post(*_io_context, [me = shared_from_this(),
+                              start_check_index = _get_running_check_index(),
+                              err = e.what()] {
       me->on_completion(start_check_index, e_status::unknown, {}, {err});
     });
   }
@@ -309,7 +309,7 @@ void native_check_cpu<nb_metric>::_measure_timer_handler(
   }
 
   std::string output;
-  std::list<common::perfdata> perfs;
+  std::list<com::centreon::common::perfdata> perfs;
 
   std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> new_measure =
       get_cpu_time_snapshot(false);
@@ -336,7 +336,7 @@ e_status native_check_cpu<nb_metric>::_compute(
     const std::string_view summary_labels[],
     const std::string_view perfdata_labels[],
     std::string* output,
-    std::list<common::perfdata>* perfs) {
+    std::list<com::centreon::common::perfdata>* perfs) {
   index_to_cpu<nb_metric> delta = second_measure.subtract(first_measure);
 
   // we need to know per cpu status to provide no ok cpu details
@@ -372,6 +372,7 @@ e_status native_check_cpu<nb_metric>::_compute(
           output->push_back(' ');
         }
         *output += status_label[cpu_status.second];
+        output->append(": ");
         delta[cpu_status.first].dump(cpu_status.first, summary_labels, output);
       }
     }
