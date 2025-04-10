@@ -22,6 +22,7 @@
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
+#include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/callback.hh"
@@ -130,6 +131,17 @@ using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
 
 }  // namespace neb
+
+namespace storage {
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+
+using pb_metric_mapping =
+    io::protobuf<MetricMapping,
+                 make_type(io::storage, storage::de_pb_metric_mapping)>;
+
+}  // namespace storage
 
 }  // namespace com::centreon::broker
 

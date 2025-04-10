@@ -19,17 +19,9 @@
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
 
-#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/lua/internal.hh"
-#include "com/centreon/broker/neb/custom_variable.hh"
-#include "com/centreon/broker/neb/host.hh"
-#include "com/centreon/broker/neb/host_group.hh"
-#include "com/centreon/broker/neb/host_group_member.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_group.hh"
-#include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker::lua {
@@ -90,8 +82,9 @@ class macro_cache {
   const std::shared_ptr<storage::pb_metric_mapping>& get_metric_mapping(
       uint64_t metric_id) const;
   const std::shared_ptr<neb::pb_host>& get_host(uint64_t host_id) const;
-  const std::shared_ptr<neb::pb_service>& get_service(uint64_t host_id,
-                                               uint64_t service_id) const;
+  const std::shared_ptr<neb::pb_service>& get_service(
+      uint64_t host_id,
+      uint64_t service_id) const;
   const std::string& get_host_name(uint64_t host_id) const;
   const std::string& get_notes_url(uint64_t host_id, uint64_t service_id) const;
   const std::string& get_notes(uint64_t host_id, uint64_t service_id) const;
@@ -124,28 +117,20 @@ class macro_cache {
  private:
   macro_cache& operator=(macro_cache const& f);
 
-  void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_pb_instance(std::shared_ptr<io::data> const& data);
-  void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host_status(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);
-  void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_pb_host_group(std::shared_ptr<io::data> const& data);
-  void _process_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_pb_host_group_member(std::shared_ptr<io::data> const& data);
-  void _process_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
-  void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service_status(const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_service_status(
       const std::shared_ptr<io::data>& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);
-  void _process_service_group(std::shared_ptr<io::data> const& data);
   void _process_pb_service_group(std::shared_ptr<io::data> const& data);
-  void _process_service_group_member(std::shared_ptr<io::data> const& data);
   void _process_pb_service_group_member(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);
   void _process_metric_mapping(std::shared_ptr<io::data> const& data);
@@ -153,8 +138,6 @@ class macro_cache {
   void _process_dimension_ba_bv_relation_event(
       std::shared_ptr<io::data> const& data);
   void _process_dimension_bv_event(std::shared_ptr<io::data> const& data);
-  void _process_dimension_truncate_table_signal(
-      std::shared_ptr<io::data> const& data);
   void _process_pb_dimension_truncate_table_signal(
       std::shared_ptr<io::data> const& data);
 
