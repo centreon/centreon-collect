@@ -284,7 +284,7 @@ Function init_encryption_dlg
     ${OrIf} $0 > 0
         ${NSD_Check} $hCtl_encryption_EncryptionCheckBox
     ${EndIf}
-    ReadRegStr $0 HKLM ${CMA_REG_KEY} "certificate"
+    ReadRegStr $0 HKLM ${CMA_REG_KEY} "public_cert"
     ${NSD_SetText} $hCtl_encryption_certificate_file_Txt $0
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "private_key"
     ${NSD_SetText} $hCtl_encryption_private_key_file_Txt $0
@@ -361,7 +361,7 @@ Function encryption_dlg_onNext
             Abort
         ${EndIf}
 
-        WriteRegStr HKLM ${CMA_REG_KEY} "certificate" $1
+        WriteRegStr HKLM ${CMA_REG_KEY} "public_cert" $1
         WriteRegStr HKLM ${CMA_REG_KEY} "private_key" $2
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_certificate" $3
         ${NSD_GetText} $hCtl_encryption_ca_name $1

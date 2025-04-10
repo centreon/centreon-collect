@@ -233,7 +233,7 @@ Function cmd_line_to_registry
                 Call silent_fatal_error
             ${EndIf}
         ${EndIf}
-        WriteRegStr HKLM ${CMA_REG_KEY} "certificate" $0
+        WriteRegStr HKLM ${CMA_REG_KEY} "public_cert" $0
 
         StrCpy $0 ""
         ${GetOptions} $cmdline_parameters "--ca" $0
@@ -360,7 +360,7 @@ Function silent_update_conf
                 Strcpy $1 "Bad certificate file path."
                 Call silent_fatal_error
             ${EndIf}
-            WriteRegStr HKLM ${CMA_REG_KEY} "certificate" $0
+            WriteRegStr HKLM ${CMA_REG_KEY} "public_cert" $0
         ${EndIf}
         ${GetOptions} $cmdline_parameters "--ca" $0
         ${IfNot} ${Errors}
@@ -396,7 +396,7 @@ Function silent_update_conf
                 Strcpy $1 "If encryption and poller-initiated connection are active, the private key is mandatory."
                 Call silent_fatal_error
             ${EndIf}
-            ReadRegStr $0 HKLM ${CMA_REG_KEY} "certificate"
+            ReadRegStr $0 HKLM ${CMA_REG_KEY} "public_cert"
             ${If} $0 == ""
                 WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
                 Strcpy $1 "If encryption and poller-initiated connection are active, the certificate is mandatory."

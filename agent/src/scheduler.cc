@@ -577,43 +577,52 @@ std::shared_ptr<check> scheduler::default_check_builder(
     rapidjson::Document native_check_info =
         common::rapidjson_helper::read_from_string(cmd_line);
     common::rapidjson_helper native_params(native_check_info);
-    std::string_view check_type = native_params.get_string("check");
-    const rapidjson::Value* args;
-    if (native_params.has_member("args")) {
-      args = &native_params.get_member("args");
-    } else {
-      static const rapidjson::Value no_arg;
-      args = &no_arg;
-    }
-    if (check_type == "cpu_percentage"sv) {
-      return std::make_shared<check_cpu>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
-    } else if (check_type == "health"sv) {
-      return std::make_shared<check_health>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+    try {
+      std::string_view check_type = native_params.get_string("check");
+      const rapidjson::Value* args;
+      if (native_params.has_member("args")) {
+        args = &native_params.get_member("args");
+      } else {
+        static const rapidjson::Value no_arg;
+        args = &no_arg;
+      }
+
+      if (check_type == "cpu_percentage"sv) {
+        return std::make_shared<check_cpu>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "health"sv) {
+        return std::make_shared<check_health>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #ifdef _WIN32
-    } else if (check_type == "uptime"sv) {
-      return std::make_shared<check_uptime>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
-    } else if (check_type == "storage"sv) {
-      return std::make_shared<check_drive_size>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
-    } else if (check_type == "memory"sv) {
-      return std::make_shared<check_memory>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
-    } else if (check_type == "service"sv) {
-      return std::make_shared<check_service>(
-          io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "uptime"sv) {
+        return std::make_shared<check_uptime>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "storage"sv) {
+        return std::make_shared<check_drive_size>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "memory"sv) {
+        return std::make_shared<check_memory>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+      } else if (check_type == "service"sv) {
+        return std::make_shared<check_service>(
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #endif
-    } else {
-      throw exceptions::msg_fmt("command {}, unknown native check:{}", cmd_name,
-                                cmd_line);
+      } else {
+        throw exceptions::msg_fmt("command {}, unknown native check:{}",
+                                  cmd_name, cmd_line);
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
+      return check_dummy::load(io_context, logger, first_start_expected,
+                               check_interval, service, cmd_name, cmd_line,
+                               std::string(e.what()), conf, std::move(handler),
+                               stat);
     }
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,

@@ -157,7 +157,7 @@ Function fnc_hCtl_encryption_certificate_file_Click
 	Pop $R0
 	${If} $R0 == $hCtl_encryption_certificate_file_Btn
 		${NSD_GetText} $hCtl_encryption_certificate_file_Txt $R0
-		nsDialogs::SelectFileDialog open "$R0" "*.key files|*.key"
+		nsDialogs::SelectFileDialog open "$R0" "*.crt files|*.crt"
 		Pop $R0
 		${If} "$R0" != ""
 			${NSD_SetText} $hCtl_encryption_certificate_file_Txt "$R0"
@@ -170,7 +170,7 @@ Function fnc_hCtl_encryption_private_key_file_Click
 	Pop $R0
 	${If} $R0 == $hCtl_encryption_private_key_file_Btn
 		${NSD_GetText} $hCtl_encryption_private_key_file_Txt $R0
-		nsDialogs::SelectFileDialog open "$R0" "*.crt files|*.crt"
+		nsDialogs::SelectFileDialog open "$R0" "*.key files|*.key"
 		Pop $R0
 		${If} "$R0" != ""
 			${NSD_SetText} $hCtl_encryption_private_key_file_Txt "$R0"
