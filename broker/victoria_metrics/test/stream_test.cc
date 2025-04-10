@@ -45,7 +45,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class victoria_stream_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
-    config::applier::state::load(com::centreon::common::BROKER);
+    config::applier::state::load(com::centreon::common::BROKER, "");
     file::disk_accessor::load(1000);
   }
   static void TearDownTestSuite() {}

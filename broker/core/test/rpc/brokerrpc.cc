@@ -34,7 +34,7 @@ using namespace com::centreon::broker;
 class BrokerRpc : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load(common::PeerType::BROKER);
+    config::applier::state::load(common::PeerType::BROKER, "");
     io::protocols::load();
     io::events::load();
   }
