@@ -20,6 +20,7 @@
 #ifndef CCE_ENGINE_CONF_PRECOMP_HH
 #define CCE_ENGINE_CONF_PRECOMP_HH
 
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <spdlog/fmt/ostr.h>
