@@ -74,7 +74,7 @@ runs:
             core.info(`Asset ${fileName} uploaded to release ${monitoringAgentRelease}`);
 
             if (process.env.TOKEN_DOWNLOAD_CENTREON_COM) {
-              const matches = fileName.match(/^([\w-]+)-(\d+\.\d+)\.(\d+).+(\.\w+)$/);
+              const matches = fileName.match(/^([\w-]+)-(\d+\.\d+)\.(\d+).*(\.\w+)$/);
               if (matches) {
                 const product = matches[1];
                 const majorVersion = matches[2];
