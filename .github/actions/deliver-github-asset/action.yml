@@ -7,6 +7,9 @@ inputs:
   github_release:
     description: "The github release name"
     required: true
+  token_download_centreon_com:
+    description: "The token to call download.centreon.com api"
+    required: false
 
 runs:
   using: "composite"
@@ -16,6 +19,7 @@ runs:
       env:
         FILE_PATTERN: ${{ inputs.file_pattern }}
         GITHUB_RELEASE: ${{ inputs.github_release }}
+        TOKEN_DOWNLOAD_CENTREON_COM: ${{ inputs.token_download_centreon_com }}
       with:
         script: |
           const path = require('path');
@@ -68,4 +72,36 @@ runs:
             });
 
             core.info(`Asset ${fileName} uploaded to release ${monitoringAgentRelease}`);
+
+            if (process.env.TOKEN_DOWNLOAD_CENTREON_COM) {
+              const matches = fileName.match(/^([\w-]+)-(\d+\.\d+)\.(\d+).+(\.\w+)$/);
+              if (matches) {
+                const product = matches[1];
+                const majorVersion = matches[2];
+                const minorVersion = matches[3];
+                const extension = matches[4];
+
+                const fileHash = require('crypto').createHash('md5').update(fs.readFileSync(file)).digest('hex');
+                const fileSize = fs.statSync(file).size;
+
+                const downloadUrl = new URL('https://download.centreon.com/api/');
+                const downloadParams = {
+                  token: process.env.TOKEN_DOWNLOAD_CENTREON_COM,
+                  product: product,
+                  release: majorVersion,
+                  version: `${majorVersion}.${minorVersion}`,
+                  extension: extension,
+                  md5: fileHash,
+                  size: fileSize,
+                  ddos: 0,
+                  dryrun: 0,
+                };
+                downloadUrl.search = new URLSearchParams(downloadParams).toString();
+                await fetch(downloadUrl);
+
+                core.info(`Asset ${fileName} uploaded to download.centreon.com`);
+              } else {
+                core.warning(`Asset ${fileName} cannot be parsed to extract product and version information, skipping download.centreon.com upload`);
+              }
+            }
           }
