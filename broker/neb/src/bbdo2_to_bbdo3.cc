@@ -22,6 +22,7 @@
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/data.hh"
@@ -34,6 +35,8 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/broker/neb/service_status.hh"
+#include "events.hh"
 #include "neb.pb.h"
 #include "storage/metric_mapping.hh"
 
@@ -57,7 +60,7 @@ using namespace com::centreon::broker;
 
 static std::shared_ptr<io::data> _instance_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::instance>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::instance>(d).get();
   auto pb = std::make_shared<neb::pb_instance>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -73,7 +76,7 @@ static std::shared_ptr<io::data> _instance_to_pb(
 
 static std::shared_ptr<io::data> _host_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::host>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::host>(d).get();
   auto pb = std::make_shared<neb::pb_host>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -110,7 +113,7 @@ static std::shared_ptr<io::data> _host_to_pb(
 
 static std::shared_ptr<io::data> _host_group_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::host_group>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::host_group>(d).get();
   auto pb = std::make_shared<neb::pb_host_group>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -122,7 +125,7 @@ static std::shared_ptr<io::data> _host_group_to_pb(
 
 static std::shared_ptr<io::data> _host_group_member_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::host_group_member>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::host_group_member>(d).get();
   auto pb = std::make_shared<neb::pb_host_group_member>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -135,7 +138,7 @@ static std::shared_ptr<io::data> _host_group_member_to_pb(
 
 static std::shared_ptr<io::data> _service_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::service>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::service>(d).get();
   auto pb = std::make_shared<neb::pb_service>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -197,7 +200,7 @@ static std::shared_ptr<io::data> _service_to_pb(
 
 static std::shared_ptr<io::data> _service_group_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::service_group>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::service_group>(d).get();
   auto pb = std::make_shared<neb::pb_service_group>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -209,7 +212,7 @@ static std::shared_ptr<io::data> _service_group_to_pb(
 
 static std::shared_ptr<io::data> _service_group_member_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in =
+  const auto& in =
       *std::static_pointer_cast<neb::service_group_member>(d).get();
   auto pb = std::make_shared<neb::pb_service_group_member>();
   pb->destination_id = d->destination_id;
@@ -221,9 +224,52 @@ static std::shared_ptr<io::data> _service_group_member_to_pb(
   return pb;
 }
 
+static std::shared_ptr<io::data> _service_status_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<neb::service_status>(d).get();
+  auto pb = std::make_shared<neb::pb_service_status>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      traduct,
+      , (host_id)(service_id)(last_state_change)(last_hard_state_change)(last_time_ok)(last_time_warning)(last_time_critical)(last_time_unknown)(percent_state_change)(latency)(execution_time)(last_check)(next_check)(should_be_scheduled)(notification_number)(no_more_notifications)(last_notification)(next_notification));
+  obj.set_checked(in.has_been_checked);
+  obj.set_check_type(
+      static_cast<::com::centreon::broker::ServiceStatus_CheckType>(
+          in.check_type));
+  obj.set_state(static_cast<::com::centreon::broker::ServiceStatus_State>(
+      in.current_state));
+  obj.set_state_type(
+      static_cast<::com::centreon::broker::ServiceStatus_StateType>(
+          in.state_type));
+  obj.set_last_hard_state(
+      static_cast<::com::centreon::broker::ServiceStatus_State>(
+          in.last_hard_state));
+  std::string_view long_output = in.output;
+  std::vector<std::string_view> output =
+      absl::StrSplit(long_output, absl::MaxSplits('\n', 2));
+  switch (output.size()) {
+    case 2:
+      obj.set_long_output(std::string(output[1]));
+      [[fallthrough]];
+    case 1:
+      obj.set_output(std::string(output[0]));
+      break;
+  }
+  obj.set_perfdata(in.perf_data);
+  obj.set_flapping(in.is_flapping);
+  obj.set_check_attempt(in.current_check_attempt);
+  obj.set_acknowledgement_type(
+      static_cast<::com::centreon::broker::AckType>(in.acknowledgement_type));
+  obj.set_scheduled_downtime_depth(in.downtime_depth);
+
+  return pb;
+}
+
 static std::shared_ptr<io::data> _custom_variable_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<neb::custom_variable>(d).get();
+  const auto& in = *std::static_pointer_cast<neb::custom_variable>(d).get();
   auto pb = std::make_shared<neb::pb_custom_variable>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -238,7 +284,7 @@ static std::shared_ptr<io::data> _custom_variable_to_pb(
 
 static std::shared_ptr<io::data> _index_mapping_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<storage::index_mapping>(d).get();
+  const auto& in = *std::static_pointer_cast<storage::index_mapping>(d).get();
   auto pb = std::make_shared<storage::pb_index_mapping>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -250,7 +296,7 @@ static std::shared_ptr<io::data> _index_mapping_to_pb(
 
 static std::shared_ptr<io::data> _metric_mapping_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<storage::metric_mapping>(d).get();
+  const auto& in = *std::static_pointer_cast<storage::metric_mapping>(d).get();
   auto pb = std::make_shared<storage::pb_metric_mapping>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -262,7 +308,7 @@ static std::shared_ptr<io::data> _metric_mapping_to_pb(
 
 static std::shared_ptr<io::data> _dimension_ba_event_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<bam::dimension_ba_event>(d).get();
+  const auto& in = *std::static_pointer_cast<bam::dimension_ba_event>(d).get();
   auto pb = std::make_shared<bam::pb_dimension_ba_event>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -276,7 +322,7 @@ static std::shared_ptr<io::data> _dimension_ba_event_to_pb(
 
 static std::shared_ptr<io::data> _dimension_ba_bv_relation_event_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in =
+  const auto& in =
       *std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(d).get();
   auto pb = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
   pb->destination_id = d->destination_id;
@@ -289,7 +335,7 @@ static std::shared_ptr<io::data> _dimension_ba_bv_relation_event_to_pb(
 
 static std::shared_ptr<io::data> _dimension_bv_event_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in = *std::static_pointer_cast<bam::dimension_bv_event>(d).get();
+  const auto& in = *std::static_pointer_cast<bam::dimension_bv_event>(d).get();
   auto pb = std::make_shared<bam::pb_dimension_bv_event>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
@@ -301,13 +347,25 @@ static std::shared_ptr<io::data> _dimension_bv_event_to_pb(
 
 static std::shared_ptr<io::data> _dimension_truncate_table_signal_to_pb(
     const std::shared_ptr<io::data>& d) {
-  auto const& in =
+  const auto& in =
       *std::static_pointer_cast<bam::dimension_truncate_table_signal>(d).get();
   auto pb = std::make_shared<bam::pb_dimension_truncate_table_signal>();
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(traduct, , (update_started));
+
+  return pb;
+}
+
+static std::shared_ptr<io::data> _inherited_downtime_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<bam::inherited_downtime>(d).get();
+  auto pb = std::make_shared<bam::pb_inherited_downtime>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(traduct, , (ba_id)(in_downtime));
 
   return pb;
 }
@@ -332,6 +390,8 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _service_group_to_pb(d);
     case neb::service_group_member::static_type():
       return _service_group_member_to_pb(d);
+    case neb::service_status::static_type():
+      return _service_status_to_pb(d);
     case neb::custom_variable::static_type():
       return _custom_variable_to_pb(d);
     case storage::index_mapping::static_type():
@@ -346,6 +406,8 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _dimension_bv_event_to_pb(d);
     case bam::dimension_truncate_table_signal::static_type():
       return _dimension_truncate_table_signal_to_pb(d);
+    case bam::inherited_downtime::static_type():
+      return _inherited_downtime_to_pb(d);
     default:
       return d;
   }
