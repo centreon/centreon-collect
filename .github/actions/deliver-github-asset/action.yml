@@ -99,7 +99,7 @@ runs:
                 downloadUrl.search = new URLSearchParams(downloadParams).toString();
                 console.log(await fetch(downloadUrl));
 
-                core.info(`Asset ${fileName} uploaded to download.centreon.com`);
+                core.info(`Asset ${fileName} published on download.centreon.com`);
               } else {
                 core.warning(`Asset ${fileName} cannot be parsed to extract product and version information, skipping download.centreon.com upload`);
               }
