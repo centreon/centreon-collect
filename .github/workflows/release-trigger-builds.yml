@@ -48,8 +48,8 @@ jobs:
           #COMPONENTS_OSS_FULL=("awie" "dsm" "gorgone" "ha" "open-tickets" "web")
           #COMPONENTS_MODULES=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm")
           #COMPONENTS_MODULES_FULL=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm" "php-pecl-gnupg" "sourceguardian-loader")
-          COMPONENTS_COLLECT=("centreon-collect" "centreon-common" "gorgone" "windows-agent")
-          COMPONENTS_COLLECT_FULL=("centreon-collect" "centreon-common" "gorgone" "windows-agent" "docker-packaging" "docker-collect-testing" "docker-gorgone-testing" "libzmq" "lua-curl")
+          COMPONENTS_COLLECT=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent")
+          COMPONENTS_COLLECT_FULL=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent" "docker-packaging" "docker-collect-testing" "docker-gorgone-testing" "libzmq" "lua-curl")
           RUNS_URL=""
 
           # Accept release prefixed or develop branches, nothing else
