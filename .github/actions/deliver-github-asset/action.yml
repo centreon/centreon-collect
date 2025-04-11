@@ -97,7 +97,7 @@ runs:
                   dryrun: 0,
                 };
                 downloadUrl.search = new URLSearchParams(downloadParams).toString();
-                await fetch(downloadUrl);
+                console.log(await fetch(downloadUrl));
 
                 core.info(`Asset ${fileName} uploaded to download.centreon.com`);
               } else {
