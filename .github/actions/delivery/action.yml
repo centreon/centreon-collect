@@ -41,7 +41,7 @@ runs:
 
     - name: Build name for DEB
       shell: bash
-      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy"]'), inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bullseye", "bookworm", "jammy", "noble"]'), inputs.distrib) }}
       run: |
         echo "extfile=deb" >> $GITHUB_ENV
 
@@ -188,7 +188,7 @@ runs:
 
           echo "[DEBUG] - Major version: $VERSION"
 
-          if [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+          if [[ "${{ inputs.distrib }}" == "jammy" ]] || [[ "${{ inputs.distrib }}" == "noble" ]]; then
             ROOT_REPO_PATH="ubuntu-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
           else
             ROOT_REPO_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}"

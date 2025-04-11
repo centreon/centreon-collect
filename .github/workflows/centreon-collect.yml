@@ -117,6 +117,8 @@ jobs:
             only_cma: "OFF"
           - distrib: jammy
             only_cma: "ON"
+          - distrib: noble
+            only_cma: "ON"
 
     runs-on: centreon-collect
 
@@ -300,6 +302,12 @@ jobs:
             runner: centreon-collect-arm64
             arch: arm64
             only_robot_cma: true
+          - image: packaging-centreon-collect-vcpkg-noble
+            distrib: noble
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
+            only_robot_cma: false
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -419,6 +427,14 @@ jobs:
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-jammy-amd64
+            tests_params: '{}'
+            only_robot_cma: true
+          - distrib: noble
+            image: centreon-collect-mariadb-noble-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-noble-amd64
             tests_params: '{}'
             only_robot_cma: true
 
@@ -557,6 +573,9 @@ jobs:
           - distrib: jammy
             arch: arm64
             only_cma: true
+          - distrib: noble
+            arch: amd64
+            only_cma: true
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -606,7 +625,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, noble]
 
     steps:
       - name: Checkout sources
