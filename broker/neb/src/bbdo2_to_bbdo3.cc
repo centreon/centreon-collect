@@ -25,7 +25,6 @@
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -36,7 +35,6 @@
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "events.hh"
 #include "neb.pb.h"
 #include "storage/metric_mapping.hh"
 
@@ -91,7 +89,7 @@ static std::shared_ptr<io::data> _host_to_pb(
   obj.set_check_type(static_cast<Host_CheckType>(in.check_type));
   obj.set_check_attempt(in.current_check_attempt);
   obj.set_state(static_cast<Host_State>(in.current_state));
-  obj.set_flap_detection(in.default_flap_detection_enabled);
+  obj.set_flap_detection(in.flap_detection_enabled);
   obj.set_checked(in.has_been_checked);
   obj.set_flapping(in.is_flapping);
   obj.set_last_hard_state(static_cast<Host_State>(in.last_hard_state));
@@ -136,6 +134,48 @@ static std::shared_ptr<io::data> _host_group_member_to_pb(
   return pb;
 }
 
+static std::shared_ptr<io::data> _host_status_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<neb::host_status>(d).get();
+  auto pb = std::make_shared<neb::pb_host_status>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  BOOST_PP_SEQ_FOR_EACH(
+      traduct, ,
+      (host_id)(last_state_change)(last_hard_state_change)(last_time_up)(last_time_down)(last_time_unreachable)(percent_state_change)(latency)(execution_time)(last_check)(next_check)(should_be_scheduled)(notification_number)(no_more_notifications)(last_notification));
+  obj.set_checked(in.has_been_checked);
+  obj.set_check_type(static_cast<::com::centreon::broker::HostStatus_CheckType>(
+      in.check_type));
+  obj.set_state(
+      static_cast<::com::centreon::broker::HostStatus_State>(in.current_state));
+  obj.set_state_type(static_cast<::com::centreon::broker::HostStatus_StateType>(
+      in.state_type));
+  obj.set_last_hard_state(
+      static_cast<::com::centreon::broker::HostStatus_State>(
+          in.last_hard_state));
+  std::string_view long_output = in.output;
+  std::vector<std::string_view> output =
+      absl::StrSplit(long_output, absl::MaxSplits('\n', 1));
+  switch (output.size()) {
+    case 2:
+      obj.set_long_output(std::string(output[1]));
+      [[fallthrough]];
+    case 1:
+      obj.set_output(std::string(output[0]));
+      break;
+  }
+  obj.set_perfdata(in.perf_data);
+  obj.set_flapping(in.is_flapping);
+  obj.set_check_attempt(in.current_check_attempt);
+  obj.set_acknowledgement_type(
+      static_cast<::com::centreon::broker::AckType>(in.acknowledgement_type));
+  obj.set_scheduled_downtime_depth(in.downtime_depth);
+  obj.set_next_host_notification(in.next_notification);
+
+  return pb;
+}
+
 static std::shared_ptr<io::data> _service_to_pb(
     const std::shared_ptr<io::data>& d) {
   const auto& in = *std::static_pointer_cast<neb::service>(d).get();
@@ -159,7 +199,7 @@ static std::shared_ptr<io::data> _service_to_pb(
   obj.set_notify(in.notifications_enabled);
   std::string_view long_output = in.output;
   std::vector<std::string_view> output =
-      absl::StrSplit(long_output, absl::MaxSplits('\n', 2));
+      absl::StrSplit(long_output, absl::MaxSplits('\n', 1));
   switch (output.size()) {
     case 2:
       obj.set_long_output(std::string(output[1]));
@@ -248,7 +288,7 @@ static std::shared_ptr<io::data> _service_status_to_pb(
           in.last_hard_state));
   std::string_view long_output = in.output;
   std::vector<std::string_view> output =
-      absl::StrSplit(long_output, absl::MaxSplits('\n', 2));
+      absl::StrSplit(long_output, absl::MaxSplits('\n', 1));
   switch (output.size()) {
     case 2:
       obj.set_long_output(std::string(output[1]));
@@ -384,6 +424,8 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _host_group_to_pb(d);
     case neb::host_group_member::static_type():
       return _host_group_member_to_pb(d);
+    case neb::host_status::static_type():
+      return _host_status_to_pb(d);
     case neb::service::static_type():
       return _service_to_pb(d);
     case neb::service_group::static_type():
