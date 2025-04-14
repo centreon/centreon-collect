@@ -23,8 +23,8 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/bbdo/factory.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -212,11 +212,6 @@ events::events_container events::get_matching_events(
  *  Default constructor.
  */
 events::events() {
-  // Register instance_broadcast
-  register_event(make_type(io::internal, io::events::de_instance_broadcast),
-                 "instance_broadcast", &instance_broadcast::operations,
-                 instance_broadcast::entries);
-
   // Register BBDO events.
   register_event(make_type(io::bbdo, bbdo::de_version_response),
                  "version_response", &bbdo::version_response::operations,
@@ -236,6 +231,8 @@ events::events() {
   register_event(bbdo::pb_engine_configuration::static_type(),
                  "EngineConfiguration",
                  &bbdo::pb_engine_configuration::operations);
+  register_event(neb::pb_instance_broadcast::static_type(), "InstanceBroadcast",
+                 &neb::pb_instance_broadcast::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
