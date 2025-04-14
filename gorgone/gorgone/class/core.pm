@@ -175,8 +175,8 @@ sub init {
     );
 
     $self->init_server_keys();
-    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} = 1500
-        if (!defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size}) || $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} !~ /\d+/);
+    $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_pullwss_com_msg_size} = 1500
+        if (!defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_pullwss_com_msg_size}) || $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_pullwss_com_msg_size} !~ /\d+/);
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
         defined($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive}) && $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =~ /^(0|1)$/ ? $1 : 1;
 
@@ -780,78 +780,14 @@ sub router_internal_event {
                 router_type => 'internal'
             }
         );
-        # websocket have a size limit on each message, so we need to split the response if it's too big
-        # For now we split only for a getlog response (which should be a setlog message).
-        # the getlog will be transformed into a setlog message by gorgone::modules::core::*::class::transmit_back sub.
-        # we don't want to fragment the response if the max size is configured to 0 (which would mean unlimited size)
-        # so we don't use defined() here.
-        if ($self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size} and
-        # Now let's check the response, it should be the correct type and have a non empty array of logs
-        (defined($response)
-        and defined($response->{action})
-        and $response->{action} eq "getlog"
-        and defined($response->{result})
-        and ref($response->{result}) eq "ARRAY")
-        # If the response don't contain any log, we don't need to split it.
-        and scalar(@{$response->{result}}) > 1) {
 
-            my $max_msg_size = $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_msg_size};
-            my $to_send      = { action => "getlog", id => $response->{id}, result => [] };
-            my $size         = 0;
-            my @msg_to_send  = ();
-            my $nb_msg_to_send = 0;
-
-            for my $log (@{$response->{result}}) {
-                 if (length($log->{data}) > $max_msg_size) {
-                    $self->{logger}->writeLogError('[core] cannot send log message created at ' .
-                        $log->ctime . ', too big : ' . length($log->{data}) . ' > ' . $max_msg_size);
-                    next;
-                }
-                if ($size + length($log->{data}) > $max_msg_size) {
-                    push(@msg_to_send, $to_send);
-
-                    $size = 0;
-                    $nb_msg_to_send++;
-                    $to_send = { action => "getlog", id => $response->{id}, result => [] };
-
-                }
-                push(@{$to_send->{result}}, $log);
-                $size += length($log->{data});
-            }
-            if (scalar(@{$to_send->{result}}) > 0) {
-                push(@msg_to_send, $to_send);
-                $nb_msg_to_send++;
-            }
-            my $i = 1;
-            for my $msg (@msg_to_send) {
-                $msg->{nb_total_msg} = $nb_msg_to_send;
-                $self->{logger}->writeLogInfo("[core:Evan] sending msg nb $i / $nb_msg_to_send containing " . scalar(@{$msg->{result}}) ." logs.");
-                $i++;
-
-                $self->send_internal_response(
-                    identity      => $identity,
-                    response_type => $response_type,
-                    data          => $msg,
-                    code          => $code,
-                    token         => $token
-                );
-            }
-        } else {
-            my $tmp = $response->{action} ? $response->{action} : 'unknown';
-            if ($tmp eq "unknown") {
-                use Data::Dumper;
-                $self->{logger}->writeLogDebug("[core:Evan] strange msg here : ". Dumper($response));
-            } else {
-                $self->{logger}->writeLogDebug("[core:Evan] sending msg $tmp without splitting it.");
-            }
-            $self->send_internal_response(
-                identity      => $identity,
-                response_type => $response_type,
-                data          => $response,
-                code          => $code,
-                token         => $token
-            );
-        }
+        $self->send_internal_response(
+            identity      => $identity,
+            response_type => $response_type,
+            data          => $response,
+            code          => $code,
+            token         => $token
+        );
     }
 }
 
