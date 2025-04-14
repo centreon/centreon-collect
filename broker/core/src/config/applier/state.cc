@@ -22,7 +22,7 @@
 #include <fmt/format.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common.pb.h"
@@ -168,11 +168,12 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   endpoint::instance().apply(st.endpoints(), st.params());
 
   // Create instance broadcast event.
-  auto ib{std::make_shared<instance_broadcast>()};
-  ib->broker_id = io::data::broker_id;
-  ib->poller_id = _poller_id;
-  ib->poller_name = _poller_name;
-  ib->enabled = true;
+  auto ib{std::make_shared<neb::pb_instance_broadcast>()};
+  ib->mut_obj().set_broker_id(io::data::broker_id);
+  ib->mut_obj().set_poller_id(_poller_id);
+  ib->mut_obj().set_poller_name(_poller_name);
+  ib->mut_obj().set_broker_name(_broker_name);
+  ib->mut_obj().set_enabled(true);
   com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
 
   // Enable multiplexing loop.
