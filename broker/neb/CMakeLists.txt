@@ -175,6 +175,7 @@ if(WITH_TESTING)
       ${TESTS_SOURCES}
       ${SRC_DIR}/set_log_data.cc
       # Actual tests
+      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc

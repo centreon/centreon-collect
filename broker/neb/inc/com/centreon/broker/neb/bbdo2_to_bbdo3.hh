@@ -19,6 +19,8 @@
 #ifndef CCB_NEB_BBDO2_TO_BBDO3_HH
 #define CCB_NEB_BBDO2_TO_BBDO3_HH
 
+#include "com/centreon/broker/io/data.hh"
+
 namespace com::centreon::broker::neb {
 std::shared_ptr<io::data> bbdo2_to_bbdo3(const std::shared_ptr<io::data>& d);
 }
