@@ -25,6 +25,7 @@
 #include "com/centreon/broker/bbdo/factory.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/protocols.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -236,6 +237,8 @@ events::events() {
   register_event(bbdo::pb_engine_configuration::static_type(),
                  "EngineConfiguration",
                  &bbdo::pb_engine_configuration::operations);
+  register_event(neb::pb_instance_broadcast::static_type(), "InstanceBroadcast",
+                 &neb::pb_instance_broadcast::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
