@@ -192,7 +192,7 @@ static std::shared_ptr<io::data> _service_to_pb(
   obj.set_check_type(static_cast<Service_CheckType>(in.check_type));
   obj.set_check_attempt(in.current_check_attempt);
   obj.set_state(static_cast<Service_State>(in.current_state));
-  obj.set_flap_detection(in.default_flap_detection_enabled);
+  obj.set_flap_detection(in.flap_detection_enabled);
   obj.set_checked(in.has_been_checked);
   obj.set_flapping(in.is_flapping);
   obj.set_last_hard_state(static_cast<Service_State>(in.last_hard_state));

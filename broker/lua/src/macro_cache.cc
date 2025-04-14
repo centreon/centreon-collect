@@ -517,8 +517,9 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   const auto& h = std::static_pointer_cast<neb::pb_host>(data);
-  SPDLOG_LOGGER_DEBUG(_cache->logger(), "lua: processing host '{}' of id {}",
-                      h->obj().name(), h->obj().host_id());
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing host '{}' of id {} enabled {}",
+                      h->obj().name(), h->obj().host_id(), h->obj().enabled());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = h;
   else
@@ -724,8 +725,10 @@ void macro_cache::_process_pb_host_group_member(
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   SPDLOG_LOGGER_DEBUG(
-      _cache->logger(), "lua: processing service ({}, {}) (description:{})",
-      s->obj().host_id(), s->obj().service_id(), s->obj().description());
+      _cache->logger(),
+      "lua: processing service ({}, {}) (description:{}) enabled {}",
+      s->obj().host_id(), s->obj().service_id(), s->obj().description(),
+      s->obj().enabled());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = s;
   else
