@@ -61,10 +61,11 @@ def ctn_files_contain_same_json(file_e: str, file_b: str):
         else:
             js1 = json.loads(c1)
             js2 = json.loads(c2)
-            if js2['_type'] in [4294901762, 131081]:
+            #we bypass instance_broadcast and stop messages
+            if js2['_type'] in [65594, 131081]:
                 idx2 += 1
                 continue
-            if js1['_type'] in [4294901762, 131081]:
+            if js1['_type'] in [65594, 131081]:
                 idx1 += 1
                 continue
 
@@ -150,7 +151,7 @@ def ctn_check_multiplicity_when_broker_restarted(eng_file: str, broker_file: str
             if m:
                 type, md5, js = int(m.group(1)), m.group(2), m.group(3)
                 if type not in [65544,          # host check
-                                4294901762,     # bbdo category
+                                65594,          # instance broadcast
                                 196613,         # index mapping => produced on new conf
                                 196619,         # pb index mapping => produced on new conf
                                 65555,          # service check
@@ -222,7 +223,7 @@ def ctn_check_multiplicity_when_engine_restarted(file1: str, file2: str):
                      a network).
                 """
                 if type not in [65544,          # host check
-                                4294901762,     # bbdo category
+                                65594,          # instance broadcast
                                 65554,          # module
                                 65561,          # instance configuration
                                 65555,          # service check
