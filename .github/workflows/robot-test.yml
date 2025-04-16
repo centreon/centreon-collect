@@ -13,9 +13,6 @@ on:
       image_test:
         required: true
         type: string
-      image_version:
-        required: true
-        type: string
       package_cache_key:
         required: true
         type: string
@@ -34,6 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
+      only_robot_cma:
+        required: false
+        type: boolean
+        default: false
     secrets:
       registry_username:
         required: true
@@ -55,10 +56,10 @@ on:
         required: true
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Login to Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -81,13 +82,13 @@ jobs:
 
       - name: image to disk
         run: |
-          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
-          path: /tmp/${{inputs.image}}
+          path: ./${{inputs.image}}
           key: ${{inputs.image_test}}
 
   robot-test-list:
@@ -98,17 +99,23 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: List features
         id: list-features
         run: |
           cd tests
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.only_robot_cma }}" == "true" ]
+          then
+            FEATURES_PATTERN="cma.robot"
+          else
+            FEATURES_PATTERN=".robot"
+          fi
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -119,19 +126,19 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Restore image
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
-          path: /tmp/${{inputs.image}}
+          path: ./${{inputs.image}}
           key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
       - name: Restore packages
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
@@ -139,7 +146,7 @@ jobs:
 
       - name: load image
         run: |
-          docker load --input /tmp/${{ inputs.image }}
+          docker load --input ./${{ inputs.image }}
 
       - name: Test ${{ matrix.feature }}
         env:
@@ -190,7 +197,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -202,17 +209,17 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download Artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           pattern: reports-${{inputs.test_group_name}}-*
           path: reports
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
@@ -250,14 +257,7 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-        # setup-python v5.0.0 relies on node20 which is not supported by el7 distributions
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        if: ${{ inputs.distrib  == 'el7'}}
-        with:
-          python-version: "3.10"
-
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        if: ${{ inputs.distrib != 'el7' }}
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: "3.10"
 
@@ -283,7 +283,7 @@ jobs:
       startsWith(github.ref_name, 'dev')
     steps:
       - name: Checkout sources
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Create Jira ticket if nightly build failure
         uses: ./.github/actions/create-jira-ticket

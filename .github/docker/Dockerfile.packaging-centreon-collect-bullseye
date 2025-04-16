@@ -1,0 +1,114 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/debian:bullseye AS centreon_collect_packaging
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN bash -e <<EOF
+
+# Base apt configuration
+echo '
+Acquire::Retries "10";
+Acquire::https::Timeout "300";
+Acquire::http::Timeout "300";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+' > /etc/apt/apt.conf.d/99custom
+
+apt-get update
+apt-get install -y ca-certificates
+
+echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' | tee -a /etc/apt/sources.list
+
+apt-get update
+
+apt-get install -y \
+    curl \
+    git \
+    libperl-dev \
+    make \
+    nfpm=2.41.1 \
+    perl-base \
+    sudo \
+    unzip \
+    wget \
+    zip \
+    zstd
+
+apt-get install -y -t bullseye-backports cmake
+
+apt-get clean
+
+EOF
+
+FROM centreon_collect_packaging AS centreon_collect_packaging_vcpkg
+
+RUN bash -e <<EOF
+
+apt-get update
+
+apt-get install -y \
+    cmake \
+    g++ \
+    gcc \
+    gdb \
+    libcurl4-openssl-dev \
+    libgcrypt20-dev \
+    libgnutls28-dev \
+    liblua5.3-dev \
+    libhttp-daemon-ssl-perl \
+    libjson-perl \
+    libmariadb-dev \
+    libmariadb3 \
+    librrd-dev \
+    libssh2-1-dev \
+    libssl-dev \
+    locales \
+    ninja-build \
+    openssl \
+    pkg-config \
+    python3 \
+    strace \
+    zlib1g-dev
+
+apt-get clean
+
+localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+EOF
+
+COPY vcpkg.json /root/vcpkg.json
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
+
+ARG TRIPLET
+
+RUN bash -e <<EOF
+
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  export VCPKG_FORCE_SYSTEM_BINARIES=arm
+fi
+
+git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+
+mkdir /src
+cp /root/vcpkg.json /src/vcpkg.json
+
+/vcpkg/vcpkg install \
+  --clean-after-build \
+  --overlay-triplets=custom-triplets \
+  --triplet ${TRIPLET}-release \
+  --vcpkg-root vcpkg \
+  --x-wait-for-lock \
+  --x-manifest-root=/src \
+  --x-install-root=vcpkg_installed \
+  --overlay-ports=overlays
+
+EOF
+
+WORKDIR /src

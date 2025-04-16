@@ -20,6 +20,8 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "log.hh"
+
 #include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -34,7 +36,6 @@ using namespace com::centreon::agent;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
-std::shared_ptr<spdlog::logger> g_logger;
 static std::shared_ptr<streaming_client> _streaming_client;
 
 static std::shared_ptr<streaming_server> _streaming_server;
@@ -185,7 +186,7 @@ int main(int argc, char* argv[]) {
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff());
+        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -193,6 +194,8 @@ int main(int argc, char* argv[]) {
   }
 
   read_os_version();
+
+  set_grpc_logger();
 
   if (conf.use_reverse_connection()) {
     _streaming_server = streaming_server::load(g_io_context, g_logger,
@@ -202,6 +205,30 @@ int main(int argc, char* argv[]) {
                                                grpc_conf, conf.get_host());
   }
 
+  if (!conf.use_encryption()) {
+    SPDLOG_LOGGER_WARN(
+        g_logger,
+        "NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION");
+
+    auto timer = std::make_shared<asio::steady_timer>(*g_io_context,
+                                                      std::chrono::hours(1));
+    timer->async_wait([timer](const boost::system::error_code& ec) {
+      if (!ec) {
+        SPDLOG_LOGGER_WARN(g_logger,
+                           "NON TLS CONNECTION TIME EXPIRED // THIS IS NOT "
+                           "ALLOWED IN PRODUCTION");
+        SPDLOG_LOGGER_WARN(g_logger,
+                           "CONNECTION KILLED, AGENT NEED TO BE RESTART");
+        if (_streaming_client) {
+          _streaming_client->shutdown();
+        }
+        if (_streaming_server) {
+          _streaming_server->shutdown();
+        }
+        g_io_context->post([]() { g_io_context->stop(); });
+      }
+    });
+  }
   try {
     g_io_context->run();
   } catch (const std::exception& e) {

@@ -40,7 +40,7 @@ $writer = [System.IO.StreamWriter]::new($stringAsStream)
 $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
-$vcpkg_release = "2024.10.21"
+$vcpkg_release = "2025.01.13"
 $vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
 $file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash + "-" + $vcpkg_release
 $file_name_extension = "${file_name}.7z"

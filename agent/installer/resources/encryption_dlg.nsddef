@@ -16,9 +16,9 @@ Call on_encryptioncheckbox_click</CreateFunctionCustomScript>
     <TextBox Name="ca_name" Location="162, 103" Size="193, 20" TabIndex="4" />
     <Label Name="label_ca_name" Location="6, 106" Size="140, 17" Text="Certificate Common Name" TabIndex="5" />
     <FileRequest Name="ca_file" Location="162, 72" Size="193, 20" TabIndex="6" Filter="*.crt files|*.crt" />
-    <FileRequest Name="certificate_file" Location="162, 42" Size="193, 20" TabIndex="7" Filter="*.key files|*.key" />
+    <FileRequest Name="certificate_file" Location="162, 42" Size="193, 20" TabIndex="7" Filter="*.crt files|*.crt" />
     <Label Name="label_ca_file" Location="6, 76" Size="150, 16" Text="Trusted CA's certificate file:" TabIndex="8" />
-    <FileRequest Name="private_key_file" Location="162, 12" Size="193, 20" TabIndex="9" Filter="*.crt files|*.crt" />
+    <FileRequest Name="private_key_file" Location="162, 12" Size="193, 20" TabIndex="9" Filter="*.key files|*.key" />
     <Label Name="label_certificate_file" Location="6, 46" Size="100, 16" Text="Certificate file:" TabIndex="10" />
     <Label Name="label_private_key_file" Location="6, 16" Size="100, 16" Text="Private key file:" TabIndex="11" />
   </GroupBox>

@@ -59,7 +59,6 @@ typedef struct sched_info_struct {
 extern "C" {
 #endif /* C++ */
 
-void adjust_check_scheduling();
 void display_scheduling_info();
 
 #ifdef __cplusplus

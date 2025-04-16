@@ -125,9 +125,9 @@ BRRDCDRBDB1
             BREAK
 	ELSE
 	    # If not available, we force checks to have them.
-            Ctn Schedule Forced Svc Check    host_1    service_1
-            Ctn Schedule Forced Svc Check    host_1    service_2
-            Ctn Schedule Forced Svc Check    host_1    service_3
+            Ctn Schedule Forced Service Check    host_1    service_1
+            Ctn Schedule Forced Service Check    host_1    service_2
+            Ctn Schedule Forced Service Check    host_1    service_3
         END
 	Sleep    1s
     END
@@ -185,9 +185,9 @@ BRRDCDRBUDB1
             BREAK
 	ELSE
 	    # If not available, we force checks to have them.
-            Ctn Schedule Forced Svc Check    host_1    service_1
-            Ctn Schedule Forced Svc Check    host_1    service_2
-            Ctn Schedule Forced Svc Check    host_1    service_3
+            Ctn Schedule Forced Service Check    host_1    service_1
+            Ctn Schedule Forced Service Check    host_1    service_2
+            Ctn Schedule Forced Service Check    host_1    service_3
         END
 	Sleep    1s
     END

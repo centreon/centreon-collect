@@ -16,6 +16,12 @@ inputs:
   minor_version:
     description: The minor version
     required: false
+  cma_major_version:
+    description: The major version of cma
+    required: false
+  cma_minor_version:
+    description: The minor version of cma
+    required: false
   release:
     description: The package release number
     required: false
@@ -63,6 +69,7 @@ runs:
       run: |
         export MAJOR_VERSION="${{ inputs.major_version }}"
         export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
+        export CMA_VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
         export RELEASE="${{ inputs.release }}"
         export ARCH="${{ inputs.arch }}"
 
@@ -104,14 +111,14 @@ runs:
       shell: bash
 
     - name: Cache packages
-      uses: actions/cache/save@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       with:
         path: ./*.${{ inputs.package_extension }}
         key: ${{ inputs.cache_key }}
 
     - if: ${{ contains(github.event.pull_request.labels.*.name, 'upload-artifacts') }}
       name: Upload package artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
         path: ./*.${{ inputs.package_extension}}
