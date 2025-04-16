@@ -19,6 +19,7 @@
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
