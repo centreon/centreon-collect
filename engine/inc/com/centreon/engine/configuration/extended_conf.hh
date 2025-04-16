@@ -20,9 +20,7 @@
 #define CCE_CONFIGURATION_EXTENDED_STATE_HH
 
 #include "com/centreon/common/rapidjson_helper.hh"
-#ifndef LEGACY_CONF
 #include "common/engine_conf/state_helper.hh"
-#endif
 
 namespace com::centreon::engine::configuration {
 
@@ -48,11 +46,7 @@ class extended_conf {
   extended_conf& operator=(const extended_conf&) = delete;
   void reload();
 
-#ifdef LEGACY_CONF
-  static void update_state(state& dest);
-#else
   static void update_state(State* pb_config);
-#endif
 
   template <class file_path_iterator>
   static void load_all(file_path_iterator begin, file_path_iterator);

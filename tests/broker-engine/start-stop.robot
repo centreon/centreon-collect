@@ -21,8 +21,10 @@ BESS1
     Ctn Start Broker
     Ctn Start Engine
 
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -38,6 +40,8 @@ BESS2
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    bbdo    info
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -66,6 +70,8 @@ BESS2U
     Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    central    bbdo    info
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Not Be True    ${result}    We should be in BBDO3 in this test.
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -100,15 +106,17 @@ BESS3
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
     ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller still visible in database
     Ctn Kindly Stop Broker
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
@@ -120,12 +128,14 @@ BESS4
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
+    Should Be True    ${result}    Poller not visible in database
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -139,6 +149,8 @@ BESS5
     Ctn Config Broker    rrd
     Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -158,10 +170,12 @@ BESS_GRPC1
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -178,6 +192,8 @@ BESS_GRPC2
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -202,6 +218,8 @@ BESS_GRPC3
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
@@ -226,10 +244,12 @@ BESS_GRPC4
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Engine
     Ctn Start Broker
     ${result}    Ctn Check Connections
-    Should Be True    ${result}
+    Should Be True    ${result}    Connections between Engine and Broker not established
     Ctn Kindly Stop Broker
     Ctn Stop Engine
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -247,6 +267,8 @@ BESS_GRPC5
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -273,6 +295,8 @@ BESS_GRPC_COMPRESS1
     Ctn Change Broker Compression Output    module0    central-module-master-output    yes
     Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${result}    Ctn Check Connections
@@ -292,6 +316,8 @@ BESS_CRYPTED_GRPC1
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
@@ -304,16 +330,18 @@ BESS_CRYPTED_GRPC1
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
         ${result}    Ctn Check Connections
-        Should Be True    ${result}
+        Should Be True    ${result}    Connection between Engine and Broker not established
         ${result}    Ctn Check Poller Enabled In Database    1    10
-        Should Be True    ${result}
+        Should Be True    ${result}    Poller not visible in database
         Ctn Stop Engine
         ${result}    Ctn Check Poller Disabled In Database    1    10
-        Should Be True    ${result}
+        Should Be True    ${result}    Poller still visible in database
         Ctn Kindly Stop Broker
     END
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
@@ -334,6 +362,8 @@ BESS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -359,6 +389,8 @@ BESS_CRYPTED_GRPC3
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -387,11 +419,13 @@ BESS_CRYPTED_REVERSED_GRPC1
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
         ${result}    Ctn Check Connections
-        Should Be True    ${result}
+        Should Be True    ${result}    Connection between Engine and Broker not established
         Sleep    2s
         Ctn Kindly Stop Broker
         Ctn Stop Engine
@@ -416,6 +450,8 @@ BESS_CRYPTED_REVERSED_GRPC2
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -441,6 +477,8 @@ BESS_CRYPTED_REVERSED_GRPC3
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker
         Ctn Start Engine
@@ -459,6 +497,8 @@ BESS_ENGINE_DELETE_HOST
     Ctn Clear Retention
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker    True
     Ctn Start Engine
     ${content}    Create List    check_for_external_commands
@@ -492,6 +532,8 @@ BESSBQ1
     Ctn Clear Retention
     Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -521,6 +563,8 @@ Start_Stop_Engine_Broker_${id}
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -561,6 +605,8 @@ Start_Stop_Broker_Engine_${id}
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Ctn Get Round Current Date
 
+    ${result}    Ctn In Bbdo2
+    Should Be True    ${result}    We should be in BBDO2 in this test.
     Ctn Start Broker
     Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
@@ -578,3 +624,28 @@ Start_Stop_Broker_Engine_${id}
     ...    1    False
     ...    2    True
     Ctn Stop Engine
+
+BESSG
+    [Documentation]    Scenario: Broker handles connection and disconnection with Engine
+    ...    Given Broker is configured with only one output that is Graphite
+    ...    When the Engine starts and connects to the Broker
+    ...    Then the Broker must be able to handle the connection
+    ...    When the Engine stops
+    ...    Then the Broker must be able to handle the disconnection
+
+    [Tags]    broker    engine    start-stop    MON-161611
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1    True
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Remove Output    central    central-broker-unified-sql
+    Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
+    Ctn Broker Config Add Output    central    { "name": "graphite-output", "db_host": "localhost", "db_port": "2003", "type": "graphite", "db_password": "", "queries_per_transaction": "1000", "metric_naming": "nagios.host.$HOST$.service.$SERVICE$.perfdata.$METRIC$", "status_naming": "nagios.host.$HOST$.service.$SERVICE$.metadata.state" }
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    ${True}
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker    ${True}

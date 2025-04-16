@@ -19,46 +19,18 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-
-#ifndef LEGACY_CONF
 #include "common/engine_conf/serviceescalation_helper.hh"
-#endif
 
 namespace com::centreon::engine::configuration {
 
 // Forward declarations.
-#ifdef LEGACY_CONF
-class serviceescalation;
-class state;
-#endif
-
 namespace applier {
 class serviceescalation {
-#ifdef LEGACY_CONF
-  void _expand_services(
-      std::list<std::string> const& hst,
-      std::list<std::string> const& hg,
-      std::list<std::string> const& svc,
-      std::list<std::string> const& sg,
-      configuration::state& s,
-      std::set<std::pair<std::string, std::string> >& expanded);
-  void _inherits_special_vars(configuration::serviceescalation& obj,
-                              configuration::state const& s);
-#endif
-
  public:
   serviceescalation() = default;
   serviceescalation(const serviceescalation&) = delete;
   ~serviceescalation() noexcept = default;
   serviceescalation& operator=(const serviceescalation&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(const configuration::serviceescalation& obj);
-  void modify_object(const configuration::serviceescalation& obj);
-  void remove_object(const configuration::serviceescalation& obj);
-  void expand_objects(configuration::state& s);
-  void resolve_object(const configuration::serviceescalation& obj,
-                      error_cnt& err);
-#else
   void add_object(const configuration::Serviceescalation& obj);
   void modify_object(configuration::Serviceescalation* old_obj,
                      const configuration::Serviceescalation& new_obj);
@@ -66,7 +38,6 @@ class serviceescalation {
   void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Serviceescalation& obj,
                       error_cnt& err);
-#endif
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

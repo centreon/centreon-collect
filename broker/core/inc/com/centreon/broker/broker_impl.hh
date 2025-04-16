@@ -133,6 +133,7 @@ class broker_impl final : public Broker::Service {
                         PeerList* response) override;
 
  public:
+  broker_impl(const std::string& name);
   void set_broker_name(const std::string& s);
 };
 }  // namespace com::centreon::broker

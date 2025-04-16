@@ -20,10 +20,8 @@
 #define CCB_STORAGE_METRIC_HH
 
 #include "bbdo/storage.pb.h"
-#include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker::storage {
 /**
@@ -35,9 +33,16 @@ namespace com::centreon::broker::storage {
 class metric : public io::data {
  public:
   metric();
-  metric(uint32_t host_id, uint32_t service_id, const std::string& name,
-         timestamp time, uint32_t interval, bool is_for_rebuild,
-         uint32_t metric_id, int32_t rrd_len, double value, int16_t value_type);
+  metric(uint32_t host_id,
+         uint32_t service_id,
+         const std::string& name,
+         timestamp time,
+         uint32_t interval,
+         bool is_for_rebuild,
+         uint32_t metric_id,
+         int32_t rrd_len,
+         double value,
+         int16_t value_type);
   metric(const metric&) = delete;
   ~metric() noexcept = default;
   metric& operator=(const metric&) = delete;
