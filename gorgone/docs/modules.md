@@ -30,6 +30,8 @@ Each module should have a hook.pm and a class.pm file with some mandatory functi
 Mainly used for creating the module process(es)
 and route events to it each time a new message is received by gorgone.
 
+Most function in this file will be called by gorgone-core and not the module process.
+
 ### const EVENTS []
 
 Array defining all events this module can process. Optionally add API endpoint for events.
