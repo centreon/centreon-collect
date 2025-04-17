@@ -334,6 +334,8 @@ sub prepare {
 
 sub query {
     my ($self) = shift;
+    $self->{logger}->writeLogDebug("[$0-sql] making an sql query : $_[0]->{query}");
+
     my ($status, $count) = (0, -1);
     my $statement_handle;
 

@@ -497,18 +497,10 @@ sub getlog {
     my %filters = ();
     my ($filter, $filter_append) = ('', '');
     my @bind_values = ();
-    foreach ((['id', '>'], ['token', '='], ['code', '='])) {
+    foreach ((['id', '>'], ['token', '='], ['ctime', '>'], ['etime', '>'], ['code', '='])) {
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . $_->[0] . ' ' . $_->[1] . ' ?';
             $filter_append = ' AND ';
-            push @bind_values, $data->{ $_->[0] };
-        }
-    }
-    # TODO:  check if it's still usefull ?
-    # sqlite don't round correctly float. to be sure the same log is not send over and over we round to 3 digits (input should contains 4 digit as it use time::hires)
-    foreach ((['ctime', '>'], ['etime', '>'])){
-        if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
-            $filter .= $filter_append . "ROUND(" . $_->[0] . ', 5) ' . $_->[1] . ' ROUND( ?, 5)';
             push @bind_values, $data->{ $_->[0] };
         }
     }
@@ -532,10 +524,7 @@ sub getlog {
     foreach (sort keys %{$results}) {
         push @result, $results->{$_};
     }
-    use Data::Dumper; # TODO : add this in the query sub to have all request logged ? maybe add the trace mode in logger before doing it?
-    $options{logger}->writeLogDebug("[library-evan] getlog sql query : $query");
-    $options{logger}->writeLogDebug("[library-evan] getlog result contain " . scalar(@result) . " entries, first one : "
-        . Dumper($result[0]) . " And last one : " . Dumper($result[-1]));
+
 
     return (GORGONE_ACTION_BEGIN, { action => 'getlog', result => \@result, id => $options{gorgone}->{id} });
 }
