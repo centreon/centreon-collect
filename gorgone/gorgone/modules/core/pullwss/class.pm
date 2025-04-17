@@ -184,10 +184,6 @@ sub wss_connect {
 
                     # We skip. Dont need to send it in gorgone-core
                     return undef if ($msg =~ /^\[ACK\]/);
-                    if ($msg =~ /SETLOGS/ or $msg =~ /GETLOG/) {
-                        $connector->{logger}->writeLogDebug("[pullwss-evan] input msg seem like getlog: $msg");
-                    }
-
                     if ($msg =~ /^\[.*\]/) {
                         $connector->{logger}->writeLogDebug('[pullwss] websocket message: ' . $msg);
                         $connector->send_internal_action({message => $msg});

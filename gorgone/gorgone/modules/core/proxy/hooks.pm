@@ -609,10 +609,11 @@ sub setlogs {
         return undef;
     }
 
+    my $node_status = $synctime_nodes->{ $options{data}->{data}->{id} };
     # log overview of multipart message only if it's a multipart message.
     my $logline = "";
     if (defined($options{data}->{data}->{nb_total_msg})) {
-        $logline = " part " . $synctime_nodes->{ $options{data}->{data}->{id} }->{got_msg} . "/" . $options{data}->{data}->{nb_total_msg};
+        $logline = " part " . $node_status->{got_msg} . "/" . $options{data}->{data}->{nb_total_msg};
     }
     $options{logger}->writeLogInfo("[proxy] Received setlogs for '$options{data}->{data}->{id}'" . $logline);
 
@@ -621,21 +622,12 @@ sub setlogs {
     $constatus_ping->{ $options{data}->{data}->{id} }->{ping_timeout} = 0;
     $constatus_ping->{ $options{data}->{data}->{id} }->{last_ping_recv} = time();
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
-    ##$synctime_nodes->{ $options{data}->{data}->{id} }->{in_progress} = 0;
 
-
-    #$synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg}
-    #    if $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1;
-    use Data::Dumper;
-    if (!defined($options{data}->{data}->{nb_total_msg})){
-        $options{logger}->writeLogInfo("[proxy-evan] nb_total_msg not set in the message. " . Dumper($options{data}->{data}));
-
-    } elsif (!defined($synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg})
-    or $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} == -1) {
-        $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg} = $options{data}->{data}->{nb_total_msg};
-        $options{logger}->writeLogInfo("[proxy-evan] setting the nb_total_msg now($options{data}->{data}->{nb_total_msg}).");
-    } elsif(!$synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg}) {
-        $options{logger}->writeLogInfo("[proxy-evan] nb_total_msg already set ?  " . Dumper($synctime_nodes->{ $options{data}->{data}->{id} }));
+    if (defined($options{data}->{data}->{nb_total_msg})
+        and !defined($node_status->{total_msg})
+        or $node_status->{total_msg} == -1) {
+        $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg};
+        $options{logger}->writeLogInfo("[proxy] SETLOGS was split in $options{data}->{data}->{nb_total_msg} messages.");
     }
 
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
@@ -643,7 +635,7 @@ sub setlogs {
     $status = $options{dbh}->transaction_mode(1);
     if ($status == -1){
         $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
-        increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+        increment_log_messages_retrieved($node_status, $options{logger});
         return -1;
     }
     foreach (@{$options{data}->{data}->{result}}) {
@@ -662,16 +654,16 @@ sub setlogs {
         });
         if ($status == -1){
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+            increment_log_messages_retrieved($node_status, $options{logger});
             last;
         }
-        $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  = $_->{ctime} if ($synctime_nodes->{ $options{data}->{data}->{id} }->{ctime}  < $_->{ctime});
+        $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
     }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} ) == 0) {
+    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $node_status->{ctime} ) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+            increment_log_messages_retrieved($node_status, $options{logger});
             return -1;
         }
         $options{dbh}->transaction_mode(0);
@@ -680,7 +672,7 @@ sub setlogs {
         $options{dbh}->transaction_mode(0);
         $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
 
-        increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
+        increment_log_messages_retrieved($node_status, $options{logger});
         return -1;
     }
 
@@ -695,9 +687,7 @@ sub setlogs {
             token => undef,
         );
     }
-    increment_log_messages_retrieved($synctime_nodes->{ $options{data}->{data}->{id} }, $options{logger});
-    # let's log progress here to show how many logs we have received and correctly ingested so far.
-    $options{logger}->writeLogDebug("[proxy-evan] Logs received so far: " . $synctime_nodes->{ $options{data}->{data}->{id} }->{got_msg} . "/" . $synctime_nodes->{ $options{data}->{data}->{id} }->{total_msg});
+    increment_log_messages_retrieved($node_status, $options{logger});
 
     return 0;
 }
@@ -716,7 +706,7 @@ sub increment_log_messages_retrieved {
     $node->{got_msg}++;
 
     if ($node->{got_msg} >= $node->{total_msg}) {
-        $logger->writeLogInfo("[proxy-evan] All $node->{total_msg} logs received for node $node->{id}, last log is from $node->{ctime}");
+        $logger->writeLogInfo("[proxy] All $node->{total_msg} logs parts received for node $node->{id}, last log is from $node->{ctime}");
         delete($node->{total_msg});
         $node->{got_msg} = 0;
 
@@ -789,7 +779,6 @@ sub get_sync_time {
         $synctime_nodes->{$options{node_id}}->{synctime_error} = -1; 
         return -1;
     }
-    # TODO : why does this sub set in_progress to 0 ?
     $synctime_nodes->{$options{node_id}}->{synctime_error} = 0;
     if (my $row = $sth->fetchrow_hashref()) {
         $synctime_nodes->{ $row->{id} }->{ctime} = $row->{ctime};
