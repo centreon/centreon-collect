@@ -360,7 +360,6 @@ Execution modes
             Extra arguments for option -I:
             -C  Extract only Centreon configuration database only. Works with option -I.
             -i  Ignore perfdata extraction from monitoring server
-            -o  Extract only perfdata from monitoring server
 
         -D  Calculate dimensions
         -E  Calculate event and availability statistics
