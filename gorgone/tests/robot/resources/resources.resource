@@ -29,6 +29,7 @@ Start Gorgone
     [Arguments]    ${SEVERITY}    ${ALIAS}
     ${process}    Start Process
     ...    /usr/bin/perl
+    ...    -I/centreon-collect/gorgone
     ...    ${gorgone_binary}
     ...    --config
     ...    /etc/centreon-gorgone/${ALIAS}/includer.yaml
