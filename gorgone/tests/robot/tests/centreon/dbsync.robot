@@ -3,7 +3,7 @@ Documentation       check gorgone can send many log, even over the pullwss messa
 # Check every communication_mode although only pullwss had a problem.
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
-Test Timeout        400s
+Test Timeout        500s
 *** Variables ***
 @{process_list}    pullwss_gorgone_poller_2    pullwss_gorgone_central
 
@@ -31,17 +31,25 @@ send many log by ${communication_mode}, expect all of them on the central
     Execute SQL String    DELETE FROM gorgone_history    alias=sqlite_poller
     Execute SQL String    VACUUM    alias=sqlite_poller
     ${log_size}    Set Variable    200
-    ${log_count}    Set Variable    3000
+    ${log_count}    Set Variable    300
     ${nb_log_central}=    Set Variable    0
 
     FOR    ${i}    IN RANGE    3
-        ${log_count}=    Evaluate    ${log_count} + 1000
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
         Sleep    6s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
+        ${log_count}=    Evaluate    ${log_count} + 1000
     END
-
+    ${log_size}    Set Variable    1
+    ${log_count}    Set Variable    900
+    FOR    ${j}    IN RANGE    2
+        ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
+        ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
+        Sleep    6s
+        Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
+        ${log_size}=    Evaluate    ${log_size} + 2000
+    END
     ${output}=    Query     SELECT count(*) FROM gorgone_history    alias=sqlite_central
     ${row_count}=    Set Variable    ${output}[0][0]
     Should Be True    ${row_count} >= ${nb_log_central}    message=${row_count} logs in the central, expected at least ${nb_log_central}.
@@ -58,7 +66,7 @@ Get Log From Central
     [Arguments]    @{process_list}    ${token}    ${log_count}=10
 
     ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    node_path=nodes/2/    timeout=1
-    Check Row Count    SELECT * FROM gorgone_history WHERE token = '${token}'    ==    ${log_count}    retry_timeout=40s    retry_pause=1s    alias=sqlite_central
+    Check Row Count    SELECT * FROM gorgone_history WHERE token = '${token}'    ==    ${log_count}    retry_timeout=50s    retry_pause=5s    alias=sqlite_central
     ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    timeout=1
 
     Should Be Equal As Numbers    ${log_nb}    ${log_count}

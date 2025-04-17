@@ -267,38 +267,36 @@ sub transmit_back {
         if (defined($msg_recv->{data}->{action}) && $msg_recv->{data}->{action} eq 'getlog') {
             # websocket have a size limit on each message, so we need to split the response if it's too big
             # For now we split only for a getlog response (which become a setlog message here for an unknown reason).
-            # external_pullwss_com_msg_size is now a required parameter, and is expected to be present for this to work.
-            # it is set to a default value in class::core.
-            my $max_msg_size = $self->{config_core}->{gorgonecore}->{external_pullwss_com_msg_size};
+            # max_msg_size is now a parameter with a default value set in pullwss::hooks::register()
+            my $max_msg_size = $self->{config}->{max_msg_size};
             my $msg_header   = "[SETLOGS] [$1] [] ";
-            my $size         = 0;  # Size of current message to be sent.
+            my $size         = length($msg_header);  # Size of current message to be sent.
             my @msg_to_send  = (); # keep all messages to send to add the total number of message to each one.
             my $logs = $msg_recv->{data}->{result};
-            # don't want to change the data of the message exept the number of logs per message.
+            # don't want to change the data of the message except the number of logs per message.
             # So we need to keep the original message and use it to construct each new smaller message to send.
             # result is an arrayref, it will be filled just before encoding to json the object, and the ref is deleted just after.
             # When size of logs is over the limit, use a new message.
-            # this is not optimal in ram usage, but with perl copy mechanism making a more efficient implementation would require to change the message format.
             $msg_recv->{data}->{result} = undef;
             my $nb_msg = 0; # This will keep track of the number of message we have to send.
             # Note that the msg 0 is the first message, so to get the number of message you should add 1.
 
             for my $log (@{$logs}) {
-                 if (length($log->{data}) > $max_msg_size) {
+                 if (get_len_msg($log) > $max_msg_size) {
                     $self->{logger}->writeLogError('[pullwss] cannot send log message created at ' .
-                        $log->{ctime} . ', too big : ' . length($log->{data}) . ' > ' . $max_msg_size);
+                        $log->{ctime} . ', too big : ' . get_len_msg($log) . ' > ' . $max_msg_size);
                     next;
                 }
-                if ($size + length($log->{data}) > $max_msg_size) {
+                if ($size + get_len_msg($log) > $max_msg_size) {
                     $nb_msg++;
-                    $size = 0;
+                    $size = length($msg_header);
                 }
                 push(@{$msg_to_send[$nb_msg]}, $log);
-                $size += length($log->{data});
+                $size += get_len_msg($log);
             }
 
             $self->{logger}->writeLogDebug("[pullwss] getlog message included "
-                . scalar(@{$logs}) . " logs, splitting into $nb_msg messages");
+                . scalar(@{$logs}) . " logs, splitting into $nb_msg messages, last log is " . $size . " character long");
 
             # let's send each message. @msg_to_send contains a list of payload (logs) to send.
             # $payload is a reference to the array of logs to send for this particular message.
@@ -324,7 +322,19 @@ sub transmit_back {
         $self->send_message(message => ${$options{message}});
     }
 }
-
+sub get_len_msg {
+    my $msg = shift;
+    my $len = 104; # a message with empty token and data take around this size, then we add up the data and token field size.
+    if (defined($msg) and ref($msg) eq "HASH") {
+        if (defined($msg->{data})) {
+            $len = $len + length($msg->{data});
+        }
+        if (defined($msg->{token})){
+            $len = $len + length($msg->{token});
+        }
+    }
+    return $len;
+}
 sub read_zmq_events {
     my ($self, %options) = @_;
 
