@@ -616,7 +616,7 @@ sub setlogs {
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
-    $status = $options{dbh}->transaction_mode(1);
+    $status = $options{dbh}->begin_transaction();
     return -1 if ($status == -1);
 
     foreach (@{$options{data}->{data}->{result}}) {
@@ -639,12 +639,10 @@ sub setlogs {
     if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
         $status = $options{dbh}->commit();
         return -1 if ($status == -1);
-        $options{dbh}->transaction_mode(0);
 
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0); 
     } else {
         $options{dbh}->rollback();
-        $options{dbh}->transaction_mode(0);
         return -1;
     }
 
