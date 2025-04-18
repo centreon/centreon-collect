@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# Copyright 2023-2024 Centreon
+# Copyright 2023-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 # This script is a little tcp server working on port 5669. It can simulate
 # a cbd instance. It is useful to test the validity of BBDO packets sent by
 # centengine.
+
+import jwt
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
@@ -31,7 +33,7 @@ import psutil
 import random
 import string
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 from concurrent import futures
@@ -2271,3 +2273,19 @@ def ctn_get_process_limit(pid:int, limit:str):
     except:
         return -1, -1
     return -1, -1
+
+def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
+    """
+    ctn_create_jwt_token
+
+    create a jwt token
+    Returns: jwt token
+    """
+    value = random.randint(0, 100000)
+    payload = {
+        "iss": f"centreon{value}",
+        "iat": int(datetime.now().timestamp()),
+        "exp": int((datetime.now() + timedelta(seconds=exp_s)).timestamp())
+    }
+    logger.console(payload)
+    return jwt.encode(payload, secret, algorithm="HS256")

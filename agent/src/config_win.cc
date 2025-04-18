@@ -99,6 +99,7 @@ config::config(const std::string& registry_key) {
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
+  _token = get_sz_reg_or_default("token", "");
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();

@@ -1,5 +1,5 @@
 /*
-** Copyright 2024 Centreon
+** Copyright 2025 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -69,6 +69,9 @@ class grpc_config {
    */
   unsigned _max_message_length;
 
+  std::string _token;
+  std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
+
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
@@ -121,7 +124,8 @@ class grpc_config {
               bool compression,
               int second_keepalive_interval,
               unsigned second_max_reconnect_backoff,
-              unsigned max_message_length)
+              unsigned max_message_length,
+              const std::string& token)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -131,7 +135,32 @@ class grpc_config {
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
-        _max_message_length(max_message_length) {}
+        _max_message_length(max_message_length),
+        _token{token} {}
+
+  grpc_config(
+      const std::string& hostp,
+      bool crypted,
+      const std::string& certificate,
+      const std::string& cert_key,
+      const std::string& ca_cert,
+      const std::string& ca_name,
+      bool compression,
+      int second_keepalive_interval,
+      unsigned second_max_reconnect_backoff,
+      unsigned max_message_length,
+      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
+      : _hostport(hostp),
+        _crypted(crypted),
+        _certificate(certificate),
+        _cert_key(cert_key),
+        _ca_cert(ca_cert),
+        _ca_name(ca_name),
+        _compress(compression),
+        _second_keepalive_interval(second_keepalive_interval),
+        _second_max_reconnect_backoff(second_max_reconnect_backoff),
+        _max_message_length(max_message_length),
+        _trusted_tokens{trusted_tokens} {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -150,13 +179,29 @@ class grpc_config {
 
   unsigned get_max_message_length() const { return _max_message_length; }
 
+  const std::string& get_token() const { return _token; }
+  const std::shared_ptr<absl::flat_hash_set<std::string>>&
+  get_trusted_tokens() {
+    return _trusted_tokens;
+  }
+
   bool operator==(const grpc_config& right) const {
-    return _hostport == right._hostport && _crypted == right._crypted &&
-           _certificate == right._certificate && _cert_key == right._cert_key &&
-           _ca_cert == right._ca_cert && _ca_name == right._ca_name &&
-           _compress == right._compress &&
-           _second_keepalive_interval == right._second_keepalive_interval &&
-           _second_max_reconnect_backoff == right._second_max_reconnect_backoff;
+    if (_hostport != right._hostport || _crypted != right._crypted ||
+        _certificate != right._certificate || _cert_key != right._cert_key ||
+        _ca_cert != right._ca_cert || _ca_name != right._ca_name ||
+        _compress != right._compress ||
+        _second_keepalive_interval != right._second_keepalive_interval ||
+        _second_max_reconnect_backoff != right._second_max_reconnect_backoff ||
+        _token != right._token) {
+      return false;
+    }
+
+    // Compare trusted_tokens
+    if (_trusted_tokens != nullptr && right._trusted_tokens != nullptr)
+      return *_trusted_tokens == *right._trusted_tokens;
+    if (_trusted_tokens == nullptr && right._trusted_tokens == nullptr)
+      return true;
+    return false;
   }
 
   /**
@@ -187,7 +232,29 @@ class grpc_config {
     ret = _compress - right._compress;
     if (ret)
       return ret;
-    return _second_keepalive_interval - right._second_keepalive_interval;
+    ret = _second_keepalive_interval - right._second_keepalive_interval;
+    if (ret)
+      return ret;
+    ret = _token.compare(right._token);
+    if (ret)
+      return ret;
+
+    if (_trusted_tokens != nullptr && right._trusted_tokens != nullptr)
+      if (*_trusted_tokens != *right._trusted_tokens) {
+        if (_trusted_tokens->size() < right._trusted_tokens->size())
+          return -1;
+        else
+          return 1;
+      }
+
+    if (_trusted_tokens == nullptr && right._trusted_tokens != nullptr) {
+      return -1;
+    }
+    if (_trusted_tokens != nullptr && right._trusted_tokens == nullptr) {
+      return 1;
+    }
+
+    return 0;
   }
 };
 }  // namespace com::centreon::common::grpc
