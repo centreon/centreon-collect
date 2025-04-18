@@ -4,18 +4,17 @@ Documentation       check gorgone can send many log, even over the pullwss messa
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
 Test Timeout        500s
-*** Variables ***
-@{process_list}    pullwss_gorgone_poller_2    pullwss_gorgone_central
-
 
 *** Test Cases ***
 send many log by ${communication_mode}, expect all of them on the central
     [Tags]    overflow
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
-    @{process_list}    Set Variable    pullwss_gorgone_poller_2    pullwss_gorgone_central
+    ${central_name}    Set Variable    ${communication_mode}_gorgone_dbsync_central
+    ${poller_name}    Set Variable    ${communication_mode}_gorgone_dbsync_poller
+    @{process_list}    Set Variable    ${poller_name}    ${central_name}
     Log To Console    \nStarting the gorgone setup
 
-    Setup Two Gorgone Instances    communication_mode=pullwss    central_name=pullwss_gorgone_central    poller_name=pullwss_gorgone_poller_2
+    Setup Two Gorgone Instances    communication_mode=pullwss    central_name=${central_name}     poller_name=${poller_name}
     #Ctn Check No Error In Logs    pullwss_gorgone_poller_2
 
     Connect To Database
@@ -37,7 +36,7 @@ send many log by ${communication_mode}, expect all of them on the central
     FOR    ${i}    IN RANGE    3
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
-        Sleep    6s
+        Sleep    2s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_count}=    Evaluate    ${log_count} + 1000
     END
@@ -46,7 +45,7 @@ send many log by ${communication_mode}, expect all of them on the central
     FOR    ${j}    IN RANGE    2
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
-        Sleep    6s
+        Sleep    2s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_size}=    Evaluate    ${log_size} + 2000
     END
