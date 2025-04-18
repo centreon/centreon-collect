@@ -13,8 +13,8 @@ apt-get install -y ca-certificates apt-transport-https software-properties-commo
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # Add Centreon repositories and their public key
-echo "deb https://packages.centreon.com/ubuntu-standard-${VERSION}-testing/ jammy main" | tee -a /etc/apt/sources.list.d/centreon-testing.list && \
-echo "deb https://packages.centreon.com/ubuntu-plugins-testing/ jammy main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list && \
+echo "deb https://packages.centreon.com/ubuntu-standard-${VERSION}-testing/ noble main" | tee -a /etc/apt/sources.list.d/centreon-testing.list && \
+echo "deb https://packages.centreon.com/ubuntu-plugins-testing/ noble main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list && \
 wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
 apt-get update
 
