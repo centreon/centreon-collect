@@ -504,7 +504,15 @@ sub getlog {
             push @bind_values, $data->{ $_->[0] };
         }
     }
-
+    # sqlite don't round correctly float. to be sure the same log is not sent over and over we round to 4 digits
+    # (input should contains 5 digit as it use time::hires)
+    foreach ((['ctime', '>'], ['etime', '>'])){
+        if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
+            $filter .= $filter_append . "ROUND(" . $_->[0] . ', 4) ' . $_->[1] . ' ROUND( ?, 4)';
+            $filter_append = ' AND ';
+            push @bind_values, $data->{ $_->[0] };
+        }
+    }
     if ($filter eq '') {
         return (GORGONE_ACTION_FINISH_KO, { message => 'need at least one filter' });
     }
