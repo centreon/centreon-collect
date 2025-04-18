@@ -25,6 +25,6 @@ See the full list [here](docs/modules.md).
 
 ## API
 
-The HTTP server module exposes a RestAPI.
+The HTTP server module exposes a RestAPI..
 
 See how to use it [here](docs/api.md).
