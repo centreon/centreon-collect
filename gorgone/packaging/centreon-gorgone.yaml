@@ -197,6 +197,7 @@ overrides:
       - perl(RRDs)
       - perl(lib)
       - perl(Safe)
+      - perl(Tie::File) # required by MBI module
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
       - centreon-common
