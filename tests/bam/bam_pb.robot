@@ -10,6 +10,61 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
+BAWORST_ACK
+    [Documentation]    Scenario: Acknowledging a service acknowledges the BA, and removing it unacknowledges the BA
+    ...    Given BBDO version is 3.0.1
+    ...    And a Business Activity of type "worst" is configured with two services
+    ...    When one of the services is acknowledged
+    ...    Then the Business Activity is acknowledged
+    ...    When the acknowledgement is removed from the service
+    ...    Then the Business Activity is no longer acknowledged
+
+    [Tags]    broker    downtime    engine    bam    MON-160249
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${result}    Ctn Check Ba Status With Timeout    test    0    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+
+    ${result}    Ctn Check Ba Output With Timeout
+    ...    test
+    ...    Status is OK - All KPIs are in an OK state
+    ...    60
+    Should Be True    ${result}    The BA test has not the expected output
+
+    # KPI set to critical
+    Ctn Process Service Result Hard    host_16    service_303    2    output unknown for 303
+
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_303    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
+
+    # The BA should become unknown
+    ${result}    Ctn Check Ba Status With Timeout    test    2    60
+    Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
+    Should Be True    ${result}    The BA test is not UNKNOWN as expected
+
+    # The CRITICAL service is acknowledged.
+    Ctn Acknowledge Service Problem    host_16    service_303
+
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    >    ${0.5}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+
+    # The acknowledgement is removed.
+    Ctn Remove Service Acknowledgement    host_16    service_303
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+
 BAWORST
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
     [Tags]    broker    downtime    engine    bam
@@ -19,7 +74,7 @@ BAWORST
     ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -158,7 +213,7 @@ BAWORST2
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -243,7 +298,7 @@ BABEST_SERVICE_CRITICAL
     Ctn Set Command Status    ${cmd_1}    2
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -346,7 +401,7 @@ BA_IMPACT_2KPI_SERVICES
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -451,7 +506,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -553,7 +608,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -659,7 +714,7 @@ BA_BOOL_KPI
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -706,7 +761,7 @@ BEPB_DIMENSION_BV_EVENT
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -738,7 +793,7 @@ BEPB_DIMENSION_BA_EVENT
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -771,7 +826,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -788,7 +843,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    ${True}
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -807,7 +862,7 @@ BEPB_DIMENSION_TIMEPERIOD
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -832,7 +887,7 @@ BEPB_DIMENSION_KPI_EVENT
     Ctn Add Boolean Kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${expected}    Catenate    (('bool test',    ${baid_svcid[0]}
@@ -863,7 +918,7 @@ BEPB_KPI_STATUS
     Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${start}    Get Current Date    result_format=epoch
 
@@ -904,7 +959,7 @@ BEPB_BA_DURATION_EVENT
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     # KPI set to critical
     ${start_event}    Ctn Get Round Current Date
@@ -956,7 +1011,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
@@ -986,7 +1041,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     Ctn Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/all_lua_event.log    30s
     FOR    ${index}    IN RANGE    10
         ${grep_res}    Grep File
@@ -1017,7 +1072,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1063,7 +1118,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1078,7 +1133,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     Ctn Start Broker
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1124,7 +1179,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
@@ -1182,7 +1237,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_IMPACT_IMPACT
     [Documentation]    A BA of type impact is defined with two BAs of type impact
@@ -1263,7 +1318,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_DISABLED
     [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
@@ -1338,7 +1393,7 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 
 
