@@ -19,7 +19,7 @@ BAWORST_ACK
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
 
-    [Tags]    broker    downtime    engine    bam    MON-160249
+    [Tags]    broker    downtime    engine    bam    MON-167250
     Ctn BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
