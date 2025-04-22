@@ -83,7 +83,7 @@ jobs:
       github.event.inputs.unit_tests == true &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.changes.outputs.trigger_unit_tests == 'true'
+      needs.changes.outputs.trigger_unit_tests == true
     strategy:
       fail-fast: false
       matrix:
