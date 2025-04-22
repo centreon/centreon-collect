@@ -97,6 +97,9 @@ state ba_ratio_percent::get_state_soft() const {
  */
 void ba_ratio_percent::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                                      ba::impact_info& impact) {
+  // Adjust values.
+  _acknowledgement_count += impact.hard_impact.get_acknowledgement();
+
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
 
@@ -114,6 +117,9 @@ void ba_ratio_percent::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
 void ba_ratio_percent::_unapply_impact(kpi* kpi_ptr,
                                        ba::impact_info& impact
                                        [[maybe_unused]]) {
+  // Adjust values.
+  _acknowledgement_count -= impact.hard_impact.get_acknowledgement();
+
   _level_soft = 0.0;
   _level_hard = 0.0;
 
@@ -205,6 +211,7 @@ std::shared_ptr<pb_ba_status> ba_ratio_percent::_generate_ba_status(
     status.set_last_state_change(_event->obj().start_time());
   else
     status.set_last_state_change(get_last_kpi_update());
+  status.set_level_acknowledgement(_acknowledgement_count);
   status.set_level_nominal(_normalize(_level_hard));
   status.set_state(com::centreon::broker::State(get_state_hard()));
   status.set_state_changed(state_changed);

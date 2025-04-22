@@ -105,8 +105,7 @@ state ba_impact::get_state_soft() const {
 void ba_impact::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
                               ba::impact_info& impact) {
   // Adjust values.
-  _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
-  _acknowledgement_soft += impact.soft_impact.get_acknowledgement();
+  _acknowledgement_count += impact.hard_impact.get_acknowledgement();
   _downtime_hard += impact.hard_impact.get_downtime();
   _downtime_soft += impact.soft_impact.get_downtime();
 
@@ -143,33 +142,13 @@ void ba_impact::_unapply_impact(kpi* kpi_ptr [[maybe_unused]],
     _recompute();
 
   // Adjust values.
-  _acknowledgement_hard -= impact.hard_impact.get_acknowledgement();
-  _acknowledgement_soft -= impact.soft_impact.get_acknowledgement();
+  _acknowledgement_count -= impact.hard_impact.get_acknowledgement();
   _downtime_hard -= impact.hard_impact.get_downtime();
   _downtime_soft -= impact.soft_impact.get_downtime();
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
   _level_hard += impact.hard_impact.get_nominal();
   _level_soft += impact.soft_impact.get_nominal();
-}
-
-/**
- *
- *  Get the hard impact introduced by acknowledged KPI.
- *
- *  @return Hard impact introduced by acknowledged KPI.
- */
-double ba_impact::get_ack_impact_hard() {
-  return _acknowledgement_hard;
-}
-
-/**
- *  Get the soft impact introduced by acknowledged KPI.
- *
- *  @return Soft impact introduced by acknowledged KPI.
- */
-double ba_impact::get_ack_impact_soft() {
-  return _acknowledgement_soft;
 }
 
 /**
@@ -255,8 +234,7 @@ std::string ba_impact::get_perfdata() const {
  *  much from their true value due to the caching system.
  */
 void ba_impact::_recompute() {
-  _acknowledgement_hard = 0.0;
-  _acknowledgement_soft = 0.0;
+  _acknowledgement_count = 0.0;
   _downtime_hard = 0.0;
   _downtime_soft = 0.0;
   _level_hard = 100.0;
@@ -278,7 +256,7 @@ std::shared_ptr<pb_ba_status> ba_impact::_generate_ba_status(
     status.set_last_state_change(_event->obj().start_time());
   else
     status.set_last_state_change(get_last_kpi_update());
-  status.set_level_acknowledgement(_normalize(_acknowledgement_hard));
+  status.set_level_acknowledgement(_acknowledgement_count);
   status.set_level_downtime(_normalize(_downtime_hard));
   status.set_level_nominal(_normalize(_level_hard));
   status.set_state(com::centreon::broker::State(get_state_hard()));
