@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,9 +38,6 @@ class ba_impact : public ba {
   double _downtime_hard = 0.0;
   double _downtime_soft = 0.0;
 
-  double _acknowledgement_hard{0.0};
-  double _acknowledgement_soft{0.0};
-
   void _recompute();
 
  protected:
@@ -61,8 +58,6 @@ class ba_impact : public ba {
             const std::shared_ptr<spdlog::logger>& logger);
   state get_state_hard() const override;
   state get_state_soft() const override;
-  double get_ack_impact_hard() override;
-  double get_ack_impact_soft() override;
   std::string get_output() const override;
   std::string get_perfdata() const override;
 };
