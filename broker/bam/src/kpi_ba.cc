@@ -68,7 +68,7 @@ void kpi_ba::impact_hard(impact_values& hard_impact) {
  *  @param[out] soft_impact Soft impacts.
  */
 void kpi_ba::impact_soft(impact_values& soft_impact) {
-  _fill_impact(soft_impact, _ba->get_state_soft(), _ba->get_ack_impact_soft(),
+  _fill_impact(soft_impact, _ba->get_state_soft(), 0,
                _ba->get_downtime_impact_soft());
 }
 
