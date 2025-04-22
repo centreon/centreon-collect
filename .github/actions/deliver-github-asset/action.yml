@@ -97,8 +97,12 @@ runs:
                   size: fileSize,
                   ddos: 0,
                   dryrun: 0,
+                  release_url: `https://github.com/centreon/centreon-collect/releases/download/${monitoringAgentRelease}/${fileName}`,
                 };
                 downloadUrl.search = new URLSearchParams(downloadParams).toString();
+
+                core.info(`Publishing asset ${fileName} to download.centreon.com`);
+
                 console.log(await fetch(downloadUrl));
 
                 core.info(`Asset ${fileName} published on download.centreon.com`);
