@@ -635,7 +635,7 @@ sub setlogs {
     $status = $options{dbh}->transaction_mode(1);
     if ($status == -1){
         $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
-        increment_log_messages_retrieved($node_status, $options{logger});
+        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
         return -1;
     }
     foreach (@{$options{data}->{data}->{result}}) {
@@ -654,7 +654,7 @@ sub setlogs {
         });
         if ($status == -1){
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($node_status, $options{logger});
+            increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
             last;
         }
         $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
@@ -663,7 +663,7 @@ sub setlogs {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($node_status, $options{logger});
+            increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
             return -1;
         }
         $options{dbh}->transaction_mode(0);
@@ -672,7 +672,7 @@ sub setlogs {
         $options{dbh}->transaction_mode(0);
         $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
 
-        increment_log_messages_retrieved($node_status, $options{logger});
+        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
         return -1;
     }
 
@@ -687,7 +687,7 @@ sub setlogs {
             token => undef,
         );
     }
-    increment_log_messages_retrieved($node_status, $options{logger});
+    increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
 
     return 0;
 }
@@ -698,6 +698,7 @@ sub setlogs {
 sub increment_log_messages_retrieved {
     my $node = shift;
     my $logger = shift;
+    my $id = shift;
 
     if (!$node->{total_msg} or $node->{total_msg} == -1){
         return;
@@ -706,7 +707,7 @@ sub increment_log_messages_retrieved {
     $node->{got_msg}++;
 
     if ($node->{got_msg} >= $node->{total_msg}) {
-        $logger->writeLogInfo("[proxy] All $node->{total_msg} logs parts received for node $node->{id}, last log is from $node->{ctime}");
+        $logger->writeLogInfo("[proxy] All $node->{total_msg} logs parts received for node $id, last log is from $node->{ctime}");
         delete($node->{total_msg});
         $node->{got_msg} = 0;
 

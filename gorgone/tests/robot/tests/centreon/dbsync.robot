@@ -36,7 +36,7 @@ send many log by ${communication_mode}, expect all of them on the central
     FOR    ${i}    IN RANGE    3
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
-        Sleep    2s
+        Sleep    6s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_count}=    Evaluate    ${log_count} + 1000
     END
@@ -45,7 +45,7 @@ send many log by ${communication_mode}, expect all of them on the central
     FOR    ${j}    IN RANGE    2
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
-        Sleep    2s
+        Sleep    6s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_size}=    Evaluate    ${log_size} + 2000
     END
