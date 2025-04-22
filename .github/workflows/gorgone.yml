@@ -64,17 +64,17 @@ jobs:
           base: ${{ github.head_ref || github.ref_name }}
           filters: |
             trigger_unit_tests:
-              - '/gorgone/**'
-              - '/perl-libs/**'
+              - 'gorgone/**'
+              - 'perl-libs/**'
             trigger_robot_tests:
-              - '/gorgone/!(tests)/**'
-              - '/gorgone/tests/robot/**'
-              - '/perl-libs/**'
+              - 'gorgone/!(tests)/**'
+              - 'gorgone/tests/robot/**'
+              - 'perl-libs/**'
             trigger_delivery:
-              - '/gorgone/!(tests)/**'
-              - '/perl-libs/!(lib)/**'
-              - '/perl-libs/lib/!(t)/**'
-              - '/perl-libs/*'
+              - 'gorgone/!(tests)/**'
+              - 'perl-libs/!(lib)/**'
+              - 'perl-libs/lib/!(t)/**'
+              - 'perl-libs/*'
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   unit-test-perl:
