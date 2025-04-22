@@ -64,6 +64,8 @@ runs:
           for await (const file of globber.globGenerator()) {
             const fileName = path.basename(file);
 
+            core.info(`Uploading asset ${fileName} to release ${monitoringAgentRelease}`);
+
             github.rest.repos.uploadReleaseAsset({
               ...context.repo,
               release_id: releaseId,
