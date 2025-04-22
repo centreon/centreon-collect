@@ -44,6 +44,10 @@ if (scalar(@$plugins) <= 0) {
 my $command;
 if ($type eq 'rpm') {
     $command = 'yum -y install';
+    `dnf --help`;
+    if ($? == 0) {
+        $command = 'dnf -y install';
+    }
     foreach (@$plugins) {
         $command .= " '" . $_ . "-*'"
     }
