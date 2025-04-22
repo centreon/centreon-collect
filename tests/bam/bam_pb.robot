@@ -12,12 +12,12 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Cases ***
 BAWORST_ACK
     [Documentation]    Scenario: Acknowledging a service acknowledges the BA, and removing it unacknowledges the BA
-    Given BBDO version is 3.0.1
-    And a Business Activity of type "worst" is configured with two services
-    When one of the services is acknowledged
-    Then the Business Activity is acknowledged
-    When the acknowledgement is removed from the service
-    Then the Business Activity is no longer acknowledged
+    ...    Given BBDO version is 3.0.1
+    ...    And a Business Activity of type "worst" is configured with two services
+    ...    When one of the services is acknowledged
+    ...    Then the Business Activity is acknowledged
+    ...    When the acknowledgement is removed from the service
+    ...    Then the Business Activity is no longer acknowledged
 
     [Tags]    broker    downtime    engine    bam    MON-160249
     Ctn BAM Init
