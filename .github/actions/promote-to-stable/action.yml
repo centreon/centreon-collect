@@ -110,7 +110,7 @@ runs:
 
           # Cleanup before next round of candidates
           mkdir -p /tmp/promoted-packages
-          mv *.rpm /tmp/promoted-packages/
+          mv *.rpm /tmp/promoted-packages/ >/dev/null 2>&1 || true
         done
       shell: bash
 
@@ -178,5 +178,5 @@ runs:
         done
 
         mkdir -p /tmp/promoted-packages
-        mv *.deb /tmp/promoted-packages/
+        mv *.deb /tmp/promoted-packages/ >/dev/null 2>&1 || true
       shell: bash
