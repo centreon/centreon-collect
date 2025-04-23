@@ -47,7 +47,7 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
     return False, None
 
 
-def ctn_get_api_log_count_with_timeout(token: str, node_path='', host='http://127.0.0.1:8085', timeout=15):
+def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='http://127.0.0.1:8085', timeout=15, ):
     """! Query gorgone log API until the response contain at least one log, and send back the number of log found.
         @param token: token to search in the API
         @param node_path: part of the API URL defining if we use the local gorgone or another one, ex node/2/
@@ -67,10 +67,13 @@ def ctn_get_api_log_count_with_timeout(token: str, node_path='', host='http://12
             return False, api_json
 
         if 'error' in api_json and api_json['error'] == "no_log":
+            time.sleep(2)
+            continue
+        elif len(api_json['data']) >= count:
+            return len(api_json['data'])
+        else:
             time.sleep(1)
             continue
-        else:
-            return len(api_json['data'])
     return 0
 
 

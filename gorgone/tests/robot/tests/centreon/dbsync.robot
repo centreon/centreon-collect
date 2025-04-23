@@ -49,7 +49,7 @@ send many log by ${communication_mode}, expect all of them on the central
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_size}=    Evaluate    ${log_size} + 2000
     END
-    ${output}=    Query     SELECT count(*) FROM gorgone_history    alias=sqlite_central
+    ${output}=    Query     SELECT count(*) FROM gorgone_history where data like '%This is test%'     alias=sqlite_central
     ${row_count}=    Set Variable    ${output}[0][0]
     Should Be True    ${row_count} >= ${nb_log_central}    message=${row_count} logs in the central, expected at least ${nb_log_central}.
     Should Be True    ${row_count} < ${nb_log_central} + 20    message=${row_count} logs in the central, expected around ${nb_log_central}.
@@ -64,9 +64,9 @@ Get Log From Central
     [Documentation]    This use the api to request logs from the poller, then wait in the database for every logs.
     [Arguments]    @{process_list}    ${token}    ${log_count}=10
 
-    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    node_path=nodes/2/    timeout=1
+    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    count=${log_count}    node_path=nodes/2/    timeout=15
     Check Row Count    SELECT * FROM gorgone_history WHERE token = '${token}'    ==    ${log_count}    retry_timeout=50s    retry_pause=5s    alias=sqlite_central
-    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    timeout=1
+    ${log_nb}    Ctn Get Api Log Count With Timeout    token=${token}    count=${log_count}    timeout=1
 
     Should Be Equal As Numbers    ${log_nb}    ${log_count}
 
