@@ -399,8 +399,18 @@ void cbmod::reload() {
   }
 }
 
+/**
+ * @brief Get the diff state. We consider Engine has it.
+ *
+ * @return The diff state.
+ */
 std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
   auto retval = config::applier::state::instance().diff_state();
   return retval;
+}
+
+void cbmod::set_diff_state_applied(const std::string& config_version) {
+  config::applier::state::instance().set_engine_conf(config_version);
+  config::applier::state::instance().set_diff_state_applied(true);
 }
 }  // namespace com::centreon::broker::neb

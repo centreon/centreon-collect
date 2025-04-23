@@ -49,6 +49,9 @@ using pb_diff_state = com::centreon::broker::io::protobuf<
     com::centreon::engine::configuration::DiffState,
     make_type(io::bbdo, bbdo::de_pb_diff_state)>;
 
+using pb_diff_state_ack = com::centreon::broker::io::
+    protobuf<DiffStateAck, make_type(io::bbdo, bbdo::de_pb_diff_state_ack)>;
+
 using pb_bench = com::centreon::broker::io::
     protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 

@@ -21,6 +21,7 @@
 
 #include <absl/container/btree_map.h>
 #include <boost/asio/steady_timer.hpp>
+#include "absl/synchronization/mutex.h"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/file/directory_watcher.hh"
@@ -99,8 +100,9 @@ class state {
   modules _modules;
 
   std::shared_ptr<com::centreon::broker::stats::center> _center;
-  absl::Mutex _diff_state_m;
+  mutable absl::Mutex _diff_state_m;
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+  bool _diff_state_applied;
 
   static stats _stats_conf;
 
@@ -171,9 +173,22 @@ class state {
   void set_engine_peer_updated(uint64_t poller_id);
   void set_diff_state(const std::shared_ptr<io::data>& diff);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  void set_diff_state_applied(bool done);
+
+  /**
+   * @brief Check if the diff state has been applied. This method is called from
+   * Engine.
+   *
+   * @return a boolean.
+   */
+  bool diff_state_applied() const {
+    absl::MutexLock lck(&_diff_state_m);
+    return _diff_state_applied;
+  }
   bool set_engine_conf_watcher_occupied(bool occupied,
                                         const std::string_view& owner);
   void set_engine_conf(const std::string& engine_conf);
+  const std::string& engine_conf() const;
   void set_poller_engine_conf(uint64_t poller_id,
                               const std::string& poller_name,
                               const std::string& broker_name,

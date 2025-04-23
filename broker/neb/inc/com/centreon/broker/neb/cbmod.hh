@@ -82,6 +82,7 @@ class cbmod {
   void remove_downtime(uint64_t downtime_id);
   void reload();
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  void set_diff_state_applied(const std::string& config_version);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker

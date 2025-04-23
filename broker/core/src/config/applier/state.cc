@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015-2016, 2020-2024 Centreon
+ * Copyright 2011-2013,2015-2016, 2020-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,7 +64,8 @@ state::state(common::PeerType peer_type,
       _bbdo_version{2u, 0u, 0u},
       _watch_occupied{false},
       _modules{logger},
-      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
+      _center{std::make_shared<com::centreon::broker::stats::center>()},
+      _diff_state_applied{false} {}
 
 /**
  * @brief Destructor of the state class.
@@ -761,6 +762,28 @@ state::diff_state() {
   return std::move(_diff_state);
 }
 
+void state::set_diff_state_applied(bool done) {
+  _logger->info("New configuration applied");
+  absl::MutexLock lck(&_diff_state_m);
+  _diff_state_applied = done;
+}
+
+/**
+ * @brief Set the Engine configuration version. This method has sense only When
+ * called from Engine. Broker instance does not have a configuration version.
+ *
+ * @param engine_conf The Engine configuration version.
+ */
 void state::set_engine_conf(const std::string& engine_conf) {
   _engine_conf = engine_conf;
+}
+
+/**
+ * @brief Get the Engine configuration version. This method has sense only when
+ * called from Engine. Broker instance does not have a configuration version.
+ *
+ * @return The Engine configuration version.
+ */
+const std::string& state::engine_conf() const {
+  return _engine_conf;
 }

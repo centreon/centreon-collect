@@ -161,9 +161,6 @@ class stream : public io::stream {
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d);
-  bool _wait_for_bbdo_event(uint32_t expected_type,
-                            std::shared_ptr<io::data>& d,
-                            time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
   /* Poller Name of the peer: used since BBDO 3.0.1 */
