@@ -277,6 +277,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
+          module_name: "centreon-collect"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
