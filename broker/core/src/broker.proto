@@ -109,6 +109,8 @@ message Peer {
   string broker_name = 3;
   google.protobuf.Timestamp connected_since = 4;
   common.PeerType type = 5;
+  string engine_conf = 6;
+  string available_conf = 7;
 }
 
 message AesMessage {

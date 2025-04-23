@@ -25,20 +25,20 @@
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/common/file.hh"
 #include "common.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
-using log_v2 = com::centreon::common::log_v2::log_v2;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Set a boolean within an object.
@@ -766,6 +766,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       /* I know I'm Engine, and I have access to the configuration. */
       if (!config::applier::state::instance().proto_conf().empty()) {
         obj.set_extended_negotiation(true);
+        obj.set_engine_conf(config::applier::state::instance().engine_conf());
       }
       /* I know I'm Broker, and I have access to the php cache configuration
        * directory. */
@@ -1098,47 +1099,18 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       SPDLOG_LOGGER_INFO(_logger, "BBDO: received diff state from Broker");
       config::applier::state::instance().set_diff_state(d);
     } break;
+    case pb_diff_state_ack::static_type(): {
+      auto& obj = std::static_pointer_cast<pb_diff_state_ack>(d)->obj();
+      config::applier::state::instance().set_poller_engine_conf(
+          _poller_id, _poller_name, _broker_name, obj.config_version());
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: received diff state ack from Engine with version '{}'",
+          obj.config_version());
+    } break;
     default:
       break;
   }
-}
-
-/**
- * @brief Wait for a BBDO event (category io::bbdo) of a specific type. While
- * received events are of category io::bbdo, they are handled as usual, and
- * when the expected event is received, it is returned. The expected event is
- * not handled.
- *
- * @param expected_type The expected type of the event.
- * @param d The event that was received with the expected type.
- * @param deadline The deadline in seconds.
- *
- * @return true if the expected event was received before the deadline, false
- * otherwise.
- */
-bool stream::_wait_for_bbdo_event(uint32_t expected_type,
-                                  std::shared_ptr<io::data>& d,
-                                  time_t deadline) {
-  for (;;) {
-    bool timed_out = !_read_any(d, deadline);
-    uint32_t event_id = !d ? 0 : d->type();
-    if (timed_out || (event_id >> 16) != io::bbdo)
-      return false;
-
-    if (event_id == expected_type)
-      return true;
-
-    _handle_bbdo_event(d);
-
-    // Control messages.
-    SPDLOG_LOGGER_DEBUG(
-        _logger,
-        "BBDO: event with ID {} was a control message, launching recursive "
-        "read",
-        event_id);
-  }
-
-  return false;
 }
 
 /**
@@ -1545,6 +1517,18 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
+  if (config::applier::state::instance().peer_type() == common::ENGINE &&
+      _peer_type == common::BROKER &&
+      config::applier::state::instance().diff_state_applied()) {
+    const std::string& version =
+        config::applier::state::instance().engine_conf();
+    _logger->debug("BBDO: diff state applied '{}'", version);
+    auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
+    auto& obj = diff_state_ack->mut_obj();
+    obj.set_config_version(version);
+    _write(diff_state_ack);
+    config::applier::state::instance().set_diff_state_applied(false);
+  }
   _write(d);
 
   int32_t retval = _acknowledged_events;
