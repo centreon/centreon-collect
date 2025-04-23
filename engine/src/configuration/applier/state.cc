@@ -525,6 +525,7 @@ void applier::state::_apply(const configuration::State& new_cfg,
       new_cfg.host_down_disable_service_checks());
   pb_indexed_config.mut_state().set_broker_module_cfg_file(
       new_cfg.broker_module_cfg_file());
+  pb_indexed_config.mut_state().set_config_version(new_cfg.config_version());
   pb_indexed_config.mut_state().clear_user();
   for (auto& p : new_cfg.user())
     pb_indexed_config.mut_state().mutable_user()->at(p.first) = p.second;
@@ -1670,15 +1671,6 @@ void applier::state::_apply_diff_conf(
 void applier::state::_processing(configuration::State& new_cfg,
                                  error_cnt& err,
                                  retention::state* state) {
-  // FIXME DBO
-  //  We dump the new configuration, just to be sure it is complete.
-  static uint32_t counter = 0;
-  std::ofstream os(fmt::format("/tmp/centengine_new_config{}.dump", counter++));
-  if (os.is_open()) {
-    os << new_cfg.DebugString();
-    os.close();
-  }
-
   // Timing.
   absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
       {}, {}, {}, {}, {}};
@@ -1710,6 +1702,9 @@ void applier::state::_processing(configuration::State& new_cfg,
     if (!verify_config)
       applier::scheduler::instance().apply(new_cfg, diff);
 
+    config_logger->debug("Old version: {} - New version: {}",
+                         pb_indexed_config.state().config_version(),
+                         new_cfg.config_version());
     // Apply new global on the current state.
     if (!verify_config) {
       _apply(new_cfg, err);
@@ -1798,16 +1793,6 @@ void applier::state::_processing(configuration::State& new_cfg,
 void applier::state::_processing_diff(configuration::DiffState& diff_conf,
                                       error_cnt& err,
                                       retention::state* state) {
-  // FIXME DBO
-  //  We dump the new configuration, just to be sure it is complete.
-  static uint32_t counter = 0;
-  std::ofstream os(
-      fmt::format("/tmp/centengine_new_diff_config{}.dump", counter++));
-  if (os.is_open()) {
-    os << diff_conf.DebugString();
-    os.close();
-  }
-
   /* Particular case with a diff containing the full state */
   if (diff_conf.has_state()) {
     /* The previous version wasn't known by broker, the diff contains the full
@@ -1815,6 +1800,7 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
     config_logger->info("Processing full configuration from diff.");
 
     _processing(*diff_conf.mutable_state(), err, state);
+    cbm->set_diff_state_applied(diff_conf.state().config_version());
     return;
   } else
     config_logger->info("Processing differential configuration.");
@@ -1885,6 +1871,7 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
+  cbm->set_diff_state_applied(diff_conf.config_version());
 }
 
 template <typename ConfigurationType, typename KeyType, typename ApplierType>
