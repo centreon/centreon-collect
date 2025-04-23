@@ -254,6 +254,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/centreon-monitoring-agent/*.yaml"
+          module_name: "centreon-monitoring-agent"
           distrib: ${{ inputs.distrib }}
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.cma_major_version }}
