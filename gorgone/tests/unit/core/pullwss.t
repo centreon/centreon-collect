@@ -7,7 +7,18 @@ use FindBin;
 use lib "$FindBin::Bin/../../../";
 use gorgone::modules::core::pullwss::class;
 use gorgone::class::module;
-use centreon::common::logger; # used to
+
+# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
+# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
+BEGIN {
+    package centreon::common::logger;
+    sub writeLogError {};
+    sub writeLogInfo {};
+    sub writeLogDebug {};
+    sub new {return bless({}, 'centreon::common::logger');}
+
+    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
+}
 
 sub test_transmit_back{
     my $mock = mock_send_message(qr/\[SETLOGS\] \[token\] \[\] (.*)/,[10, 11,12,13], [20, 21,22,23], [30, 31,32,33]);
@@ -23,14 +34,7 @@ sub test_transmit_back{
     my $track = $mock->sub_tracking;
     is(scalar(@{$track->{send_message}}), 3, 'send_message was called 3 times');
 }
-# for now we don't care about what is logged and what is not.
-sub mock_logger {
-    my $mock = mock 'centreon::common::logger';
-    $mock->override('writeLogError' => sub { },
-        'writeLogDebug' => sub { },
-        'writeLogInfo' => sub { });
-    return $mock;
-}
+
 # pullwss mother class is gorgone::class::module, so we need to mock to mock the new() to not start zmq and logger complex behaviour.
 sub mock_class_module {
     my $mock = mock 'gorgone::class::module';
@@ -79,7 +83,6 @@ sub mock_send_message {
 
 sub main {
     my $mocks = {
-        'centreon::common::logger' => mock_logger(),
         'gorgone::class::module' => mock_class_module(),
     };
     test_transmit_back();
