@@ -320,7 +320,7 @@ sub error {
     $self->{lastError} = "SQL error: $error (caller: $package:$filename:$line)
 Query: $query
 ";
-    unless ($options{no_log}) {
+    unless ($options{no_error_log}) {
         $self->{logger}->writeLogError($error);
     }
     if ($self->{transaction_begin} == 1) {
@@ -342,7 +342,7 @@ sub query {
     my $statement_handle;
     my %error_options = ();
 
-    $error_options{no_log} = 1 if ($_[0]->{no_error_log});
+    $error_options{no_error_log} = 1 if ($_[0]->{no_error_log});
 
     while (1) {
         if (!defined($self->{instance})) {
