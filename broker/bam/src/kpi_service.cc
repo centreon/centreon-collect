@@ -682,7 +682,7 @@ void kpi_service::_fill_impact(impact_values& impact, state state) {
                   static_cast<uint32_t>(state));
   double nominal{_impacts[state]};
   impact.set_nominal(nominal);
-  impact.set_acknowledgement(_acknowledged ? nominal : 0.0);
+  impact.set_acknowledgement(_acknowledged ? 1.0 : 0.0);
   impact.set_downtime(_downtimed ? nominal : 0.0);
   impact.set_state(state);
 }

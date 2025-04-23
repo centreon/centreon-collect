@@ -4,6 +4,9 @@ inputs:
   nfpm_file_pattern:
     description: The pattern of the nfpm configuration file(s)
     required: true
+  module_name:
+    description: The name of the module to be packaged
+    required: true
   package_extension:
     description: The package extension (deb or rpm)
     required: true
@@ -120,6 +123,6 @@ runs:
       name: Upload package artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: ${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
-        path: ./*.${{ inputs.package_extension}}
+        name: ${{ inputs.module_name }}-${{ inputs.arch != '' && format('packages-{0}-{1}', inputs.distrib, inputs.arch) || format('packages-{0}', inputs.distrib) }}-${{ inputs.stability }}
+        path: ./*.${{ inputs.package_extension }}
         retention-days: 1

@@ -119,6 +119,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
+          module_name: "lua-curl"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ env.major_version }}
