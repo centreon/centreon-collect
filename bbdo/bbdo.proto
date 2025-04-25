@@ -56,5 +56,6 @@ message Stop {
 
 /* io::bbdo, bbdo::de_pb_diff_state_ack, 55 */
 message DiffStateAck {
-  string config_version = 1;
+  uint64 poller_id = 1;
+  string config_version = 2;
 }

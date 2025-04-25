@@ -3068,6 +3068,22 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process an instance event. The thread executing the command is
+ * controlled so that queries depending on this one will be made by the same
+ * thread.
+ *
+ *  @param[in] e Uncasted instance.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
+  const neb::pb_global_diff_state& global_diff_state(
+      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
+  const auto& obj = global_diff_state.obj();
+  _logger_sql->info("unified_sql: processing global diff state event");
+}
+
+/**
  *  Process an instance status event. To work on an instance status, we must
  *  be sure the instance already exists in the database. So this query must
  *  be done by the same thread as the one that created the instance.
