@@ -669,3 +669,13 @@ void ba::dump(std::ofstream& output) const {
   }
   dump_parents(output);
 }
+
+/**
+ *
+ *  Get the hard impact introduced by acknowledged KPI.
+ *
+ *  @return Hard impact introduced by acknowledged KPI.
+ */
+int32_t ba::get_ack_impact_hard() const {
+  return _acknowledgement_count;
+}
