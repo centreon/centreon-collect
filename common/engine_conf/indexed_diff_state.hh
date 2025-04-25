@@ -124,6 +124,10 @@ class indexed_diff_state {
       _modified_serviceescalations;
   absl::flat_hash_set<uint64_t> _removed_serviceescalations;
 
+  /* List of the poller IDs whose configuration has been given as full and not
+   * as a differential. */
+  std::list<uint64_t> _full_conf_poller_id;
+
   template <typename DiffType, typename Type, typename Key>
   void _add_diff_message(
       DiffType* diff,

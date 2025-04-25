@@ -27,13 +27,11 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
-#include "com/centreon/common/file.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
-#include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -2965,6 +2963,8 @@ void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
       *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
   const auto& obj = global_diff_state.obj();
   _logger_sql->info("unified_sql: processing global diff state event");
+  database_configurator cfg(obj, _mysql, _logger_sql);
+  cfg.process();
 }
 
 /**
