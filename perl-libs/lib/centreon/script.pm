@@ -62,6 +62,7 @@ sub new {
        centstorage_db_conn => 0,
        severity => "info",
        noconfig => 0,
+       requireconfig => 0,
        noroot => 0,
        instance_mode => "central"
       );
@@ -145,6 +146,8 @@ sub parse_options {
         if (-e "$self->{config_file}" && -s "$self->{config_file}") {
             require $self->{config_file};
             $self->{centreon_config} = $centreon_config;
+        } elsif ($self->{requireconfig} == 1) {
+            die "Configuration file $self->{config_file} does not exist or is empty.";
         }
     }
 }
