@@ -201,6 +201,7 @@ BEDWENF
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
@@ -232,12 +233,13 @@ BEDWENF
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker should log a message when a new file of the form <poller_id>.lck is created in the cache_config_directory
 
+    ${start}    Ctn Get Round Current Date
     Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration/1.prot    timeout=30s
-    Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/diff-1.prot    File 1.prot should not exist
-    Should Not Exist    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    File 1.prot should not exist
-    ${content}    Create List    Reloading from Broker    Starting to reload differential configuration
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    Engine should log about the new configuration
+    Wait Until Removed    ${VarRoot}/lib/centreon-broker/pollers-configuration/new-1.prot    timeout=30s
+
+    ${content}    Create List    Publishing global diff state    processing global diff state
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -264,6 +266,7 @@ BEDWEND
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    sql    info
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
@@ -298,6 +301,10 @@ BEDWEND
     ${content}    Create List    Processing differential configuration.    new service 1001    INITIAL SERVICE STATE: host_1;service_1001;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should log a message when watching for changes in the cache_config_directory
+
+    ${content}    Create List    Publishing global diff state    processing global diff state
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

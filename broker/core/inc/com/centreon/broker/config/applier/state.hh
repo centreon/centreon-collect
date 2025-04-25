@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012, 2021-2024 Centreon
+ * Copyright 2011-2012, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,9 @@ class state {
     /* The current Engine configuration known by this poller. Only available
      * for an Engine peer. */
     std::string engine_conf;
+    /* The conf_acknowledged flag is set to false when a new configuration
+     * concerning this Engine peer must be sent to it. Otherwise, it is true. */
+    bool conf_acknowledged;
   };
 
  private:
@@ -102,7 +105,7 @@ class state {
   std::shared_ptr<com::centreon::broker::stats::center> _center;
   mutable absl::Mutex _diff_state_m;
   std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
-  bool _diff_state_applied;
+  std::atomic_bool _diff_state_applied;
 
   static stats _stats_conf;
 
@@ -170,23 +173,27 @@ class state {
   const std::filesystem::path& proto_conf() const;
   std::shared_ptr<com::centreon::broker::stats::center> center() const;
   bool engine_peer_needs_update(uint64_t poller_id) const;
-  void set_engine_peer_updated(uint64_t poller_id);
+  // void set_engine_peer_updated(uint64_t poller_id);
+  void acknowledge_engine_peer(uint64_t poller_id, bool ack);
   void set_diff_state(const std::shared_ptr<io::data>& diff);
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   void set_diff_state_applied(bool done);
 
   /**
    * @brief Check if the diff state has been applied. This method is called from
-   * Engine.
+   * Engine. It must return true if the diff state has been applied but only
+   * once.
    *
    * @return a boolean.
    */
-  bool diff_state_applied() const {
-    absl::MutexLock lck(&_diff_state_m);
-    return _diff_state_applied;
+  bool diff_state_applied() {
+    bool expected = true;
+    return _diff_state_applied.compare_exchange_strong(expected, false);
   }
+
   bool set_engine_conf_watcher_occupied(bool occupied,
                                         const std::string_view& owner);
+  bool all_engine_peers_acknowledged() const;
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
   void set_poller_engine_conf(uint64_t poller_id,

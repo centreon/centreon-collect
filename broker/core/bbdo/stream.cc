@@ -33,6 +33,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "common.pb.h"
+#include "common/engine_conf/indexed_diff_state.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -1096,17 +1097,72 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       pblshr.write(loc_stop);
     } break;
     case pb_diff_state::static_type(): {
-      SPDLOG_LOGGER_INFO(_logger, "BBDO: received diff state from Broker");
       config::applier::state::instance().set_diff_state(d);
     } break;
     case pb_diff_state_ack::static_type(): {
+      _logger->info("BBDO: received diff state ack");
       auto& obj = std::static_pointer_cast<pb_diff_state_ack>(d)->obj();
+      assert(obj.poller_id() == _poller_id);
       config::applier::state::instance().set_poller_engine_conf(
           _poller_id, _poller_name, _broker_name, obj.config_version());
+      config::applier::state::instance().acknowledge_engine_peer(
+          obj.poller_id(), true);
       SPDLOG_LOGGER_INFO(
           _logger,
           "BBDO: received diff state ack from Engine with version '{}'",
           obj.config_version());
+      std::filesystem::path new_name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("new-{}.prot", _poller_id));
+      std::filesystem::path name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("{}.prot", _poller_id));
+      _logger->error("bbdo::stream removing {}", name.string());
+      std::error_code ec;
+      std::filesystem::rename(new_name, name, ec);
+      if (ec)
+        _logger->error("Unable to rename the file from '{}' to '{}'",
+                       new_name.string(), name.string());
+
+      // All the peer pollers have their configuration acknowledged.
+      if (config::applier::state::instance().all_engine_peers_acknowledged()) {
+        SPDLOG_LOGGER_INFO(
+            _logger,
+            "BBDO: all engine peers have acknowledged their configuration");
+        com::centreon::engine::configuration::indexed_diff_state global_diff;
+        std::error_code ec;
+        for (const auto& entry : std::filesystem::directory_iterator(
+                 config::applier::state::instance().pollers_config_dir(), ec)) {
+          if (entry.is_regular_file() && entry.path().extension() == ".prot" &&
+              absl::StartsWith(entry.path().filename().string(), "diff-")) {
+            _logger->debug("BBDO: Merging diff file '{}' into the global one",
+                           entry.path().string());
+            std::filesystem::path diff_name(
+                config::applier::state::instance().pollers_config_dir() /
+                entry.path());
+            std::ifstream f(diff_name);
+            com::centreon::engine::configuration::DiffState diff;
+            if (f) {
+              diff.ParseFromIstream(&f);
+              f.close();
+              global_diff.add_diff_state(diff);
+              _logger->debug("BBDO: Removing diff file '{}'",
+                             diff_name.string());
+              std::filesystem::remove(diff_name);
+            }
+          }
+        }
+        auto diff = std::make_shared<neb::pb_global_diff_state>();
+        auto& obj = diff->mut_obj();
+        global_diff.release_diff_state(obj);
+        multiplexing::publisher pblshr;
+        _logger->debug("BBDO: Publishing global diff state");
+        pblshr.write(diff);
+
+        // We can now release the watcher for a new configuration.
+        config::applier::state::instance().set_engine_conf_watcher_occupied(
+            false, "bbdo::stream");
+      }
     } break;
     default:
       break;
@@ -1179,29 +1235,9 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
         config::applier::state::instance().set_poller_engine_conf(
             _poller_id, _poller_name, _broker_name, obj.config_version());
         _write(pb_conf);
-        _logger->debug("BBDO: Removing diff file '{}'", diff_name.string());
-        std::filesystem::remove(diff_name);
-        std::filesystem::path new_name(
-            config::applier::state::instance().pollers_config_dir() /
-            fmt::format("new-{}.prot", _poller_id));
-        std::filesystem::path name(
-            config::applier::state::instance().pollers_config_dir() /
-            fmt::format("{}.prot", _poller_id));
-        _logger->error("bbdo::stream removing {}", name.string());
-        std::filesystem::remove(name, ec);
-        _logger->error("bbdo::stream renaming {} into {}", new_name.string(),
-                       name.string());
-        std::filesystem::rename(new_name, name, ec);
-        if (ec)
-          _logger->error("Unable to rename the file from '{}' to '{}'",
-                         new_name.string(), name.string());
-        config::applier::state::instance().set_engine_peer_updated(_poller_id);
       }
-      config::applier::state::instance().set_engine_conf_watcher_occupied(
-          false, "bbdo::stream");
     }
   }
-
   return !timed_out;
 }
 
@@ -1522,12 +1558,12 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
       config::applier::state::instance().diff_state_applied()) {
     const std::string& version =
         config::applier::state::instance().engine_conf();
-    _logger->debug("BBDO: diff state applied '{}'", version);
+    _logger->debug("BBDO: Sending diff state '{}' acknowledgement", version);
     auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
     auto& obj = diff_state_ack->mut_obj();
+    obj.set_poller_id(config::applier::state::instance().poller_id());
     obj.set_config_version(version);
     _write(diff_state_ack);
-    config::applier::state::instance().set_diff_state_applied(false);
   }
   _write(d);
 

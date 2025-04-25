@@ -132,4 +132,215 @@ void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
       _modified_serviceescalations, _removed_serviceescalations,
       [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
 }
+
+void indexed_diff_state::reset() {
+#define CLEAR(name)         \
+  _added_##name.clear();    \
+  _modified_##name.clear(); \
+  _removed_##name.clear();
+
+  CLEAR(timeperiods);
+  CLEAR(commands);
+  CLEAR(connectors);
+  CLEAR(severities);
+  CLEAR(tags);
+  CLEAR(contacts);
+  CLEAR(contactgroups);
+  CLEAR(hostdependencies);
+  CLEAR(hostescalations);
+  CLEAR(hostgroups);
+  CLEAR(hosts);
+  CLEAR(services);
+  CLEAR(anomalydetections);
+  CLEAR(servicegroups);
+  CLEAR(servicedependencies);
+  CLEAR(serviceescalations);
+#undef CLEAR
+}
+
+void indexed_diff_state::release_diff_state(DiffState& state) {
+  state.mutable_timeperiods()->clear_added();
+  for (auto& [k, v] : _added_timeperiods)
+    state.mutable_timeperiods()->mutable_added()->AddAllocated(v.release());
+  state.mutable_timeperiods()->clear_modified();
+  for (auto& [k, v] : _modified_timeperiods)
+    state.mutable_timeperiods()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_timeperiods()->clear_removed();
+  for (const std::string& k : _removed_timeperiods)
+    state.mutable_timeperiods()->add_removed(k);
+
+  state.mutable_commands()->clear_added();
+  for (auto& [k, v] : _added_commands)
+    state.mutable_commands()->mutable_added()->AddAllocated(v.release());
+  state.mutable_commands()->clear_modified();
+  for (auto& [k, v] : _modified_commands)
+    state.mutable_commands()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_commands()->clear_removed();
+  for (const std::string& k : _removed_commands)
+    state.mutable_commands()->add_removed(k);
+
+  state.mutable_connectors()->clear_added();
+  for (auto& [k, v] : _added_connectors)
+    state.mutable_connectors()->mutable_added()->AddAllocated(v.release());
+  state.mutable_connectors()->clear_modified();
+  for (auto& [k, v] : _modified_connectors)
+    state.mutable_connectors()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_connectors()->clear_removed();
+  for (const std::string& k : _removed_connectors)
+    state.mutable_connectors()->add_removed(k);
+
+  state.mutable_severities()->clear_added();
+  for (auto& [k, v] : _added_severities)
+    state.mutable_severities()->mutable_added()->AddAllocated(v.release());
+  state.mutable_severities()->clear_modified();
+  for (auto& [k, v] : _modified_severities)
+    state.mutable_severities()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_severities()->clear_removed();
+  for (const auto& k : _removed_severities) {
+    auto key = state.mutable_severities()->add_removed();
+    key->set_id(k.first);
+    key->set_type(k.second);
+  }
+
+  state.mutable_tags()->clear_added();
+  for (auto& [k, v] : _added_tags)
+    state.mutable_tags()->mutable_added()->AddAllocated(v.release());
+  state.mutable_tags()->clear_modified();
+  for (auto& [k, v] : _modified_tags)
+    state.mutable_tags()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_tags()->clear_removed();
+  for (const auto& k : _removed_tags) {
+    auto key = state.mutable_tags()->add_removed();
+    key->set_id(k.first);
+    key->set_type(k.second);
+  }
+
+  state.mutable_contacts()->clear_added();
+  for (auto& [k, v] : _added_contacts)
+    state.mutable_contacts()->mutable_added()->AddAllocated(v.release());
+  state.mutable_contacts()->clear_modified();
+  for (auto& [k, v] : _modified_contacts)
+    state.mutable_contacts()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_contacts()->clear_removed();
+  for (const std::string& k : _removed_contacts)
+    state.mutable_contacts()->add_removed(k);
+
+  state.mutable_contactgroups()->clear_added();
+  for (auto& [k, v] : _added_contactgroups)
+    state.mutable_contactgroups()->mutable_added()->AddAllocated(v.release());
+  state.mutable_contactgroups()->clear_modified();
+  for (auto& [k, v] : _modified_contactgroups)
+    state.mutable_contactgroups()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_contactgroups()->clear_removed();
+  for (const std::string& k : _removed_contactgroups)
+    state.mutable_contactgroups()->add_removed(k);
+
+  state.mutable_hostdependencies()->clear_added();
+  for (auto& [k, v] : _added_hostdependencies)
+    state.mutable_hostdependencies()->mutable_added()->AddAllocated(
+        v.release());
+  state.mutable_hostdependencies()->clear_modified();
+  for (auto& [k, v] : _modified_hostdependencies)
+    state.mutable_hostdependencies()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_hostdependencies()->clear_removed();
+  for (uint64_t k : _removed_hostdependencies)
+    state.mutable_hostdependencies()->add_removed(k);
+
+  state.mutable_hostescalations()->clear_added();
+  for (auto& [k, v] : _added_hostescalations)
+    state.mutable_hostescalations()->mutable_added()->AddAllocated(v.release());
+  state.mutable_hostescalations()->clear_modified();
+  for (auto& [k, v] : _modified_hostescalations)
+    state.mutable_hostescalations()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_hostescalations()->clear_removed();
+  for (uint64_t k : _removed_hostescalations)
+    state.mutable_hostescalations()->add_removed(k);
+
+  state.mutable_hostgroups()->clear_added();
+  for (auto& [k, v] : _added_hostgroups)
+    state.mutable_hostgroups()->mutable_added()->AddAllocated(v.release());
+  state.mutable_hostgroups()->clear_modified();
+  for (auto& [k, v] : _modified_hostgroups)
+    state.mutable_hostgroups()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_hostgroups()->clear_removed();
+  for (const std::string& k : _removed_hostgroups)
+    state.mutable_hostgroups()->add_removed(k);
+
+  state.mutable_hosts()->clear_added();
+  for (auto& [k, v] : _added_hosts)
+    state.mutable_hosts()->mutable_added()->AddAllocated(v.release());
+  state.mutable_hosts()->clear_modified();
+  for (auto& [k, v] : _modified_hosts)
+    state.mutable_hosts()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_hosts()->clear_removed();
+  for (uint64_t k : _removed_hosts)
+    state.mutable_hosts()->add_removed(k);
+
+  state.mutable_services()->clear_added();
+  for (auto& [k, v] : _added_services)
+    state.mutable_services()->mutable_added()->AddAllocated(v.release());
+  state.mutable_services()->clear_modified();
+  for (auto& [k, v] : _modified_services)
+    state.mutable_services()->mutable_modified()->AddAllocated(v.release());
+  state.mutable_services()->clear_removed();
+  for (const auto& k : _removed_services) {
+    auto key = state.mutable_services()->add_removed();
+    key->set_host_id(k.first);
+    key->set_service_id(k.second);
+  }
+
+  state.mutable_anomalydetections()->clear_added();
+  for (auto& [k, v] : _added_anomalydetections)
+    state.mutable_anomalydetections()->mutable_added()->AddAllocated(
+        v.release());
+  state.mutable_anomalydetections()->clear_modified();
+  for (auto& [k, v] : _modified_anomalydetections)
+    state.mutable_anomalydetections()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_anomalydetections()->clear_removed();
+  for (const auto& k : _removed_anomalydetections) {
+    auto key = state.mutable_anomalydetections()->add_removed();
+    key->set_host_id(k.first);
+    key->set_service_id(k.second);
+  }
+
+  state.mutable_servicegroups()->clear_added();
+  for (auto& [k, v] : _added_servicegroups)
+    state.mutable_servicegroups()->mutable_added()->AddAllocated(v.release());
+  state.mutable_servicegroups()->clear_modified();
+  for (auto& [k, v] : _modified_servicegroups)
+    state.mutable_servicegroups()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_servicegroups()->clear_removed();
+  for (const std::string& k : _removed_servicegroups)
+    state.mutable_servicegroups()->add_removed(k);
+
+  state.mutable_servicedependencies()->clear_added();
+  for (auto& [k, v] : _added_servicedependencies)
+    state.mutable_servicedependencies()->mutable_added()->AddAllocated(
+        v.release());
+  state.mutable_servicedependencies()->clear_modified();
+  for (auto& [k, v] : _modified_servicedependencies)
+    state.mutable_servicedependencies()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_servicedependencies()->clear_removed();
+  for (uint64_t k : _removed_servicedependencies)
+    state.mutable_servicedependencies()->add_removed(k);
+
+  state.mutable_serviceescalations()->clear_added();
+  for (auto& [k, v] : _added_serviceescalations)
+    state.mutable_serviceescalations()->mutable_added()->AddAllocated(
+        v.release());
+  state.mutable_serviceescalations()->clear_modified();
+  for (auto& [k, v] : _modified_serviceescalations)
+    state.mutable_serviceescalations()->mutable_modified()->AddAllocated(
+        v.release());
+  state.mutable_serviceescalations()->clear_removed();
+  for (uint64_t k : _removed_serviceescalations)
+    state.mutable_serviceescalations()->add_removed(k);
+  reset();
+}
 }  // namespace com::centreon::engine::configuration

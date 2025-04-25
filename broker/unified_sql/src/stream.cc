@@ -95,7 +95,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_service_check,
     &stream::_process_pb_log,
     &stream::_process_pb_instance_status,
-    nullptr,
+    &stream::_process_pb_global_diff_state,
     &stream::_process_pb_instance,
     &stream::_process_pb_acknowledgement,
     &stream::_process_pb_responsive_instance,
