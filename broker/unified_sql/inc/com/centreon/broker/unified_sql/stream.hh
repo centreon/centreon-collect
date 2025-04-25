@@ -435,6 +435,7 @@ class stream : public io::stream {
   void _process_pb_instance(const std::shared_ptr<io::data>& d);
   void _process_instance_status(const std::shared_ptr<io::data>& d);
   void _process_pb_instance_status(const std::shared_ptr<io::data>& d);
+  void _process_pb_global_diff_state(const std::shared_ptr<io::data>& d);
   void _process_log(const std::shared_ptr<io::data>& d);
   void _process_service_check(const std::shared_ptr<io::data>& d);
   void _process_pb_service_check(const std::shared_ptr<io::data>& d);

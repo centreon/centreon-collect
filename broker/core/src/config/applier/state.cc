@@ -22,6 +22,7 @@
 #include <absl/time/time.h>
 #include <cstring>
 #include <filesystem>
+#include <system_error>
 
 #include "bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
@@ -323,8 +324,9 @@ void state::add_peer(uint64_t poller_id,
     _connected_peers.erase(found);
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
-      peer{poller_id, poller_name,          broker_name, time(nullptr),
-           peer_type, extended_negotiation, engine_conf, engine_conf};
+      peer{poller_id,     poller_name, broker_name,
+           time(nullptr), peer_type,   extended_negotiation,
+           engine_conf,   engine_conf, true};
   if (extended_negotiation && _peer_type == common::BROKER) {
     if (!_watch_engine_conf_timer) {
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
@@ -536,6 +538,12 @@ std::vector<uint32_t> state::_watch_engine_conf() {
               "New Engine configuration available, change in '{}' detected "
               "for poller id '{}'",
               name, poller_id);
+          std::error_code ec;
+          std::filesystem::remove(_cache_config_dir / name, ec);
+          if (ec)
+            _logger->error("Cannot remove lock file '{}': {}", name,
+                           ec.message());
+          acknowledge_engine_peer(poller_id, false);
           retval.push_back(poller_id);
         } else
           _logger->warn("Change in '{}' detected but poller id not found",
@@ -547,7 +555,7 @@ std::vector<uint32_t> state::_watch_engine_conf() {
 }
 
 /**
- * @brief If occipied is true, set the occupied flag to true if possible (we
+ * @brief If occupied is true, set the occupied flag to true if possible (we
  * cannot set it to true if it is already enabled). If occupied is false,
  * set the occupied flag to false.
  *
@@ -560,14 +568,34 @@ std::vector<uint32_t> state::_watch_engine_conf() {
 bool state::set_engine_conf_watcher_occupied(bool occupied,
                                              const std::string_view& owner) {
   if (occupied) {
-    _logger->debug("watcher occupied by '{}'", owner);
     bool expected = false;
-    return _watch_occupied.compare_exchange_strong(expected, true);
+    if (_watch_occupied.compare_exchange_strong(expected, true)) {
+      _logger->trace("watcher taken by '{}'", owner);
+      return true;
+    } else
+      return false;
   } else {
     _watch_occupied = false;
-    _logger->debug("watcher released by '{}'", owner);
+    _logger->trace("watcher released by '{}'", owner);
     return true;
   }
+}
+
+/**
+ * @brief Check if all Engine peers acknowledged their configuration.
+ * If it is the case, Broker can prepare the database for them.
+ *
+ * @return True if all Engine peers acknowledged their configuration,
+ * false otherwise.
+ */
+bool state::all_engine_peers_acknowledged() const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  for (const auto& peer : _connected_peers) {
+    if (peer.second.peer_type == common::ENGINE &&
+        !peer.second.conf_acknowledged)
+      return false;
+  }
+  return true;
 }
 
 void state::_start_watch_engine_conf_timer() {
@@ -715,6 +743,14 @@ void state::_prepare_diff_for_poller(
   }
 }
 
+/**
+ * @brief Check if the poller engine peer needs an update. This function is
+ * called from Broker.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return A boolean indicating if the poller engine peer needs an update.
+ */
 bool state::engine_peer_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
@@ -727,13 +763,21 @@ bool state::engine_peer_needs_update(uint64_t poller_id) const {
   return false;
 }
 
-void state::set_engine_peer_updated(uint64_t poller_id) {
+/**
+ * @brief Acknowledge or not the poller engine peer configuration. When true,
+ * the poller is well up to date. When false, broker has a new configuration
+ * and the poller did not send any acknowledgement.
+ *
+ * @param poller_id
+ * @param ack
+ */
+void state::acknowledge_engine_peer(uint64_t poller_id, bool ack) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
     if (lower->second.peer_type == common::ENGINE) {
-      lower->second.engine_conf = lower->second.available_conf;
+      lower->second.conf_acknowledged = ack;
       break;
     }
   }
@@ -763,8 +807,6 @@ state::diff_state() {
 }
 
 void state::set_diff_state_applied(bool done) {
-  _logger->info("New configuration applied");
-  absl::MutexLock lck(&_diff_state_m);
   _diff_state_applied = done;
 }
 

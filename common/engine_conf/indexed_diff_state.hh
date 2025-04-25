@@ -270,6 +270,8 @@ class indexed_diff_state {
   auto& removed_serviceescalations() const {
     return _removed_serviceescalations;
   }
+  void release_diff_state(DiffState& state);
+  void reset();
 };
 }  // namespace com::centreon::engine::configuration
 

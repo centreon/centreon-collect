@@ -131,7 +131,7 @@ static void apply_diff(std::unique_ptr<configuration::DiffState> diff_conf,
   *reloading = false;
   process_logger->info(
       "Reload differential configuration finished. new engine version '{}'",
-      diff_conf->config_version());
+      pb_indexed_config.state().config_version());
 }
 
 /**

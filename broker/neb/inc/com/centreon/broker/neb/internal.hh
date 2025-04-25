@@ -23,7 +23,7 @@
 #include "bbdo/events.hh"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "neb.pb.h"
+#include "common/engine_conf/state.pb.h"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
@@ -119,6 +119,9 @@ using pb_otl_metrics = io::protobuf<
 using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
 
+using pb_global_diff_state =
+    io::protobuf<com::centreon::engine::configuration::DiffState,
+                 make_type(io::neb, neb::de_pb_global_diff_state)>;
 }  // namespace neb
 
 namespace storage {
