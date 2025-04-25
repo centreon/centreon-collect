@@ -1133,22 +1133,33 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         std::error_code ec;
         for (const auto& entry : std::filesystem::directory_iterator(
                  config::applier::state::instance().pollers_config_dir(), ec)) {
+          std::string poller_id_str(entry.path().filename().string());
           if (entry.is_regular_file() && entry.path().extension() == ".prot" &&
-              absl::StartsWith(entry.path().filename().string(), "diff-")) {
+              absl::StartsWith(poller_id_str, "diff-")) {
             _logger->debug("BBDO: Merging diff file '{}' into the global one",
                            entry.path().string());
-            std::filesystem::path diff_name(
-                config::applier::state::instance().pollers_config_dir() /
-                entry.path());
-            std::ifstream f(diff_name);
-            com::centreon::engine::configuration::DiffState diff;
-            if (f) {
-              diff.ParseFromIstream(&f);
-              f.close();
-              global_diff.add_diff_state(diff);
-              _logger->debug("BBDO: Removing diff file '{}'",
-                             diff_name.string());
-              std::filesystem::remove(diff_name);
+            std::string_view poller_id_view(poller_id_str);
+            poller_id_view.remove_prefix(5);
+            poller_id_view.remove_suffix(5);
+            uint64_t poller_id;
+            if (absl::SimpleAtoi(poller_id_view, &poller_id)) {
+              std::filesystem::path diff_name(
+                  config::applier::state::instance().pollers_config_dir() /
+                  entry.path());
+              std::ifstream f(diff_name);
+              com::centreon::engine::configuration::DiffState diff;
+              if (f) {
+                diff.ParseFromIstream(&f);
+                f.close();
+                global_diff.add_diff_state(diff);
+                _logger->debug("BBDO: Removing diff file '{}'",
+                               diff_name.string());
+                std::filesystem::remove(diff_name);
+              }
+            } else {
+              _logger->error(
+                  "BBDO: The file '{}' seems not to be a diff state file.",
+                  poller_id_str);
             }
           }
         }
