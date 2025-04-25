@@ -102,6 +102,7 @@ runs:
                     case 'exe':
                       distribSuffix = '-windows';
                       break;
+                  }
                 }
 
                 const downloadUrl = new URL('https://download.centreon.com/api/');
