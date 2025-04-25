@@ -194,6 +194,26 @@ class indexed_diff_state {
     }
   }
 
+  template <typename Type, typename Key>
+  void _add_message(
+      google::protobuf::RepeatedPtrField<Type>* container,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set,
+      std::function<Key(Type*)>&& key_builder) {
+    while (container->size() > 0) {
+      auto obj = std::unique_ptr<Type>(container->ReleaseLast());
+      auto found = removed_set.find(key_builder(obj.get()));
+      if (found != removed_set.end()) {
+        /* We have an added message that is also removed, so it is moved. */
+        removed_set.erase(found);
+        modified_map.emplace(key_builder(obj.get()), std::move(obj));
+      } else {
+        added_map.emplace(key_builder(obj.get()), std::move(obj));
+      }
+    }
+  }
+
  public:
   void add_diff_state(DiffState& state);
   auto& added_timeperiods() const { return _added_timeperiods; }
