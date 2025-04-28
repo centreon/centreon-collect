@@ -46,15 +46,22 @@ using namespace com::centreon::broker;
 #define s_pb(attrib) obj.set_##attrib(in.attrib);
 
 /**
- * @brief BOOST_PP_SEQ_FOR_EACH expands BOOST_PP_SEQ_FOR_EACH(traduct, ,
- * (name)(pid)); with: traduct(r, , BOOST_PP_SEQ_HEAD((name)(pid))) traduct(r, ,
- * BOOST_PP_SEQ_HEAD((pid)))
- * Then  BOOST_PP_SEQ_HEAD((name)(pid)) returns name
+ * @brief We use BOOST_PP_SEQ_FOR_EACH to repeat setter without having to write
+ * each of them Example:
+ * BOOST_PP_SEQ_FOR_EACH(translate, ,(host_id)(acknowledged))
+ * expands to obj.set_host_id(in.host_id);
+ * obj.set_acknowledged(in.acknowledged);
+ *
+ * Why two macros (s_pb and translate)?
+ * BOOST_PP_SEQ_FOR_EACH(translate, ,(name)(pid)) expands to:
+ * translate(r, , BOOST_PP_SEQ_HEAD((name)(pid)))
+ * translate(r, , BOOST_PP_SEQ_HEAD((pid)))
+ * Then as BOOST_PP_SEQ_HEAD((name)(pid)) returns name
  * and BOOST_PP_SEQ_HEAD((pid) returns pid
  *
- * It's so traduced in s_pb(name) s_pb(pid)
+ * It's so traduced in s_pb(name); s_pb(pid);
  */
-#define traduct(not_used_1, not_used2, seq_head) s_pb(seq_head)
+#define translate(not_used_1, not_used2, seq_head) s_pb(seq_head)
 
 static std::shared_ptr<io::data> _instance_to_pb(
     const std::shared_ptr<io::data>& d) {
@@ -63,7 +70,7 @@ static std::shared_ptr<io::data> _instance_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   Instance& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (engine)(name)(pid)(version));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (engine)(name)(pid)(version));
   obj.set_running(in.is_running);
   obj.set_instance_id(in.poller_id);
   obj.set_end_time(in.program_end.get_time_t());
@@ -80,7 +87,7 @@ static std::shared_ptr<io::data> _host_to_pb(
   pb->source_id = d->source_id;
   Host& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct, ,
+      translate, ,
       (
           host_id)(acknowledged)(enabled)(check_command)(check_interval)(check_period)(event_handler_enabled)(event_handler)(execution_time)(last_check)(last_hard_state_change)(last_notification)(notification_number)(last_state_change)(last_time_down)(last_time_unreachable)(last_time_up)(last_update)(latency)(max_check_attempts)(next_check)(no_more_notifications)(output)(percent_state_change)(retry_interval)(should_be_scheduled)(action_url)(address)(alias)(check_freshness)(default_event_handler_enabled)(display_name)(first_notification_delay)(flap_detection_on_down)(flap_detection_on_unreachable)(flap_detection_on_up)(freshness_threshold)(high_flap_threshold)(low_flap_threshold)(icon_image)(icon_image_alt)(notes)(notes_url)(notification_interval)(notification_period)(notify_on_down)(notify_on_downtime)(notify_on_flapping)(notify_on_recovery)(notify_on_unreachable)(stalk_on_down)(stalk_on_unreachable)(stalk_on_up)(statusmap_image)(retain_nonstatus_information)(retain_status_information)(timezone));
   obj.set_acknowledgement_type(static_cast<AckType>(in.acknowledgement_type));
@@ -116,7 +123,7 @@ static std::shared_ptr<io::data> _host_group_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   HostGroup& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (enabled)(name)(poller_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (enabled)(name)(poller_id));
   obj.set_hostgroup_id(in.id);
   return pb;
 }
@@ -128,7 +135,7 @@ static std::shared_ptr<io::data> _host_group_member_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   HostGroupMember& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (enabled)(host_id)(poller_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (enabled)(host_id)(poller_id));
   obj.set_hostgroup_id(in.group_id);
   obj.set_name(in.group_name);
   return pb;
@@ -142,7 +149,7 @@ static std::shared_ptr<io::data> _host_status_to_pb(
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct, ,
+      translate, ,
       (host_id)(last_state_change)(last_hard_state_change)(last_time_up)(last_time_down)(last_time_unreachable)(percent_state_change)(latency)(execution_time)(last_check)(next_check)(should_be_scheduled)(notification_number)(no_more_notifications)(last_notification));
   obj.set_checked(in.has_been_checked);
   obj.set_check_type(static_cast<::com::centreon::broker::HostStatus_CheckType>(
@@ -184,7 +191,7 @@ static std::shared_ptr<io::data> _service_to_pb(
   pb->source_id = d->source_id;
   Service& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct, ,
+      translate, ,
       (host_id)(service_id)(acknowledged)(enabled)(check_command)(check_interval)(check_period)(event_handler_enabled)(event_handler)(execution_time)(last_check)(last_hard_state_change)(last_notification)(notification_number)(last_state_change)(last_time_ok)(last_time_warning)(last_time_critical)(last_time_unknown)(last_update)(latency)(max_check_attempts)(next_check)(next_notification)(no_more_notifications)(percent_state_change)(retry_interval)(host_name)(should_be_scheduled)(action_url)(check_freshness)(default_event_handler_enabled)(display_name)(first_notification_delay)(flap_detection_on_critical)(flap_detection_on_ok)(flap_detection_on_unknown)(flap_detection_on_warning)(freshness_threshold)(high_flap_threshold)(low_flap_threshold)(icon_image)(icon_image_alt)(is_volatile)(notes)(notes_url)(notification_interval)(notification_period)(notify_on_critical)(notify_on_downtime)(notify_on_flapping)(notify_on_recovery)(notify_on_unknown)(notify_on_warning)(stalk_on_critical)(stalk_on_ok)(stalk_on_unknown)(stalk_on_warning)(retain_nonstatus_information)(retain_status_information));
   obj.set_acknowledgement_type(static_cast<AckType>(in.acknowledgement_type));
   obj.set_active_checks(in.active_checks_enabled);
@@ -245,7 +252,7 @@ static std::shared_ptr<io::data> _service_group_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   ServiceGroup& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (enabled)(name)(poller_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (enabled)(name)(poller_id));
   obj.set_servicegroup_id(in.id);
   return pb;
 }
@@ -258,7 +265,7 @@ static std::shared_ptr<io::data> _service_group_member_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   ServiceGroupMember& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (enabled)(host_id)(poller_id)(service_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (enabled)(host_id)(poller_id)(service_id));
   obj.set_servicegroup_id(in.group_id);
   obj.set_name(in.group_name);
   return pb;
@@ -272,8 +279,7 @@ static std::shared_ptr<io::data> _service_status_to_pb(
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct,
-      , (host_id)(service_id)(last_state_change)(last_hard_state_change)(last_time_ok)(last_time_warning)(last_time_critical)(last_time_unknown)(percent_state_change)(latency)(execution_time)(last_check)(next_check)(should_be_scheduled)(notification_number)(no_more_notifications)(last_notification)(next_notification));
+      translate, , (host_id)(service_id)(last_state_change)(last_hard_state_change)(last_time_ok)(last_time_warning)(last_time_critical)(last_time_unknown)(percent_state_change)(latency)(execution_time)(last_check)(next_check)(should_be_scheduled)(notification_number)(no_more_notifications)(last_notification)(next_notification));
   obj.set_checked(in.has_been_checked);
   obj.set_check_type(
       static_cast<::com::centreon::broker::ServiceStatus_CheckType>(
@@ -315,7 +321,7 @@ static std::shared_ptr<io::data> _custom_variable_to_pb(
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct, ,
+      translate, ,
       (host_id)(service_id)(modified)(name)(update_time)(value)(default_value)(enabled));
   obj.set_type(static_cast<CustomVariable_VarType>(in.var_type));
 
@@ -329,7 +335,7 @@ static std::shared_ptr<io::data> _index_mapping_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (index_id)(host_id)(service_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (index_id)(host_id)(service_id));
 
   return pb;
 }
@@ -341,7 +347,7 @@ static std::shared_ptr<io::data> _metric_mapping_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (index_id)(metric_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (index_id)(metric_id));
 
   return pb;
 }
@@ -354,7 +360,7 @@ static std::shared_ptr<io::data> _dimension_ba_event_to_pb(
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
   BOOST_PP_SEQ_FOR_EACH(
-      traduct, ,
+      translate, ,
       (ba_id)(ba_name)(ba_description)(sla_month_percent_crit)(sla_month_percent_warn)(sla_duration_crit)(sla_duration_warn));
 
   return pb;
@@ -368,7 +374,7 @@ static std::shared_ptr<io::data> _dimension_ba_bv_relation_event_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (ba_id)(bv_id));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (ba_id)(bv_id));
 
   return pb;
 }
@@ -380,7 +386,7 @@ static std::shared_ptr<io::data> _dimension_bv_event_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (bv_id)(bv_name)(bv_description));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (bv_id)(bv_name)(bv_description));
 
   return pb;
 }
@@ -393,7 +399,7 @@ static std::shared_ptr<io::data> _dimension_truncate_table_signal_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (update_started));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (update_started));
 
   return pb;
 }
@@ -405,7 +411,7 @@ static std::shared_ptr<io::data> _inherited_downtime_to_pb(
   pb->destination_id = d->destination_id;
   pb->source_id = d->source_id;
   auto& obj = pb->mut_obj();
-  BOOST_PP_SEQ_FOR_EACH(traduct, , (ba_id)(in_downtime));
+  BOOST_PP_SEQ_FOR_EACH(translate, , (ba_id)(in_downtime));
 
   return pb;
 }
