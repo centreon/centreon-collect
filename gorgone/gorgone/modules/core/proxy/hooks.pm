@@ -624,8 +624,8 @@ sub setlogs {
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
 
     if (defined($options{data}->{data}->{nb_total_msg})
-        and !defined($node_status->{total_msg})
-        or $node_status->{total_msg} == -1) {
+        and (!defined($node_status->{total_msg})
+        or $node_status->{total_msg} == -1)) {
         $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg};
         $options{logger}->writeLogInfo("[proxy] SETLOGS was split in $options{data}->{data}->{nb_total_msg} messages.");
     }
@@ -858,6 +858,7 @@ sub create_httpserver_child {
     my $child_pid = fork();
     if ($child_pid == 0) {
         $0 = 'gorgone-proxy-httpserver';
+
         my $module = gorgone::modules::core::proxy::httpserver->construct(
             logger => $options{logger},
             module_id => NAME,
