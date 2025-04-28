@@ -7,7 +7,7 @@ concurrency:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 0 * * *'
+    - cron: '0 0 * * 1-5'
 
 jobs:
   get-environment:
@@ -35,7 +35,6 @@ jobs:
       package_extension: deb
       runner: centreon-collect
       arch: amd64
-      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
