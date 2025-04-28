@@ -41,6 +41,7 @@ else()
     check_process_filter_test.cc
     check_process_test.cc
     check_windows_cpu_test.cc  
+    check_windows_counter.cc
     check_windows_memory_test.cc 
     check_uptime_test.cc 
     check_windows_service_test.cc)
