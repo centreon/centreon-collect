@@ -32,9 +32,10 @@ namespace com::centreon::broker::graphite {
  */
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
-  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _instances;
-  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
+  std::unordered_map<uint64_t, std::shared_ptr<neb::pb_instance>> _instances;
+  std::unordered_map<uint64_t, std::shared_ptr<neb::pb_host>> _hosts;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_service>>
       _services;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;

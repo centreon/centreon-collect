@@ -17,7 +17,12 @@
  */
 
 #include "com/centreon/broker/influxdb/macro_cache.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -35,7 +40,7 @@ macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
     std::shared_ptr<io::data> d;
     do {
       _cache->get(d);
-      write(neb::bbdo2_to_bbdo3(d));
+      write(d);
     } while (d);
   }
 }
@@ -96,8 +101,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
   auto const found = _hosts.find(host_id);
   if (found == _hosts.end())
     throw msg_fmt("influxdb: could not find information on host {} ", host_id);
-  auto const& h = std::static_pointer_cast<neb::pb_host>(found->second);
-  return h->obj().name();
+  return found->second->obj().name();
 }
 
 /**
@@ -115,8 +119,7 @@ std::string const& macro_cache::get_service_description(
   if (found == _services.end())
     throw msg_fmt("influxdb: could not find information on service ({}, {})",
                   host_id, service_id);
-  auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-  return s->obj().description();
+  return found->second->obj().description();
 }
 
 /**
@@ -131,9 +134,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   if (found == _instances.end())
     throw msg_fmt("influxdb: could not find information on instance {}",
                   instance_id);
-  return std::static_pointer_cast<neb::pb_instance>(found->second)
-      ->obj()
-      .name();
+  return found->second->obj().name();
 }
 
 /**
@@ -141,18 +142,25 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  *
  *  @param[in] data  The event to write.
  */
-void macro_cache::write(const std::shared_ptr<io::data>& d) {
-  if (!d)
+void macro_cache::write(const std::shared_ptr<io::data>& data) {
+  if (!data)
     return;
 
-  std::shared_ptr<io::data> data = neb::bbdo2_to_bbdo3(d);
-
   switch (data->type()) {
+    case neb::instance::static_type():
+      _process_pb_instance(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_instance::static_type():
       _process_pb_instance(data);
       break;
+    case neb::host::static_type():
+      _process_pb_host(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_host::static_type():
       _process_pb_host(data);
+      break;
+    case neb::service::static_type():
+      _process_pb_service(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
@@ -160,8 +168,14 @@ void macro_cache::write(const std::shared_ptr<io::data>& d) {
     case storage::pb_index_mapping::static_type():
       _process_index_mapping(data);
       break;
+    case storage::index_mapping::static_type():
+      _process_index_mapping(neb::bbdo2_to_bbdo3(data));
+      break;
     case storage::pb_metric_mapping::static_type():
       _process_metric_mapping(data);
+      break;
+    case storage::metric_mapping::static_type():
+      _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
       break;
     default:
       break;
@@ -185,7 +199,7 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   auto const& h = std::static_pointer_cast<neb::pb_host>(data);
-  _hosts[h->obj().host_id()] = data;
+  _hosts[h->obj().host_id()] = h;
 }
 
 /**
@@ -195,7 +209,7 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
-  _services[{s->obj().host_id(), s->obj().service_id()}] = data;
+  _services[{s->obj().host_id(), s->obj().service_id()}] = s;
 }
 
 /**

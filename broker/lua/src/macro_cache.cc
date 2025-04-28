@@ -19,7 +19,22 @@
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include <absl/strings/str_split.h>
 
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/neb/custom_variable.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/host_group.hh"
+#include "com/centreon/broker/neb/host_group_member.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/internal.hh"
+#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/service_group.hh"
+#include "com/centreon/broker/neb/service_group_member.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -36,7 +51,7 @@ macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
     std::shared_ptr<io::data> d;
     do {
       _cache->get(d);
-      write(neb::bbdo2_to_bbdo3(d));
+      write(d);
     } while (d);
   }
 }
@@ -288,7 +303,8 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
  *
  *  @return             A std::map
  */
-const absl::btree_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>&
+const absl::btree_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_host_group_member>>&
 macro_cache::get_host_group_members() const {
   return _host_group_members;
 }
@@ -338,7 +354,7 @@ std::string const& macro_cache::get_service_description(
  *  @return   A map indexed by host_id/service_id/group_id.
  */
 absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
-                std::shared_ptr<io::data>> const&
+                std::shared_ptr<neb::pb_service_group_member>> const&
 macro_cache::get_service_group_members() const {
   return _service_group_members;
 }
@@ -373,9 +389,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   if (found == _instances.end())
     throw msg_fmt("lua: could not find information on instance {}",
                   instance_id);
-  return std::static_pointer_cast<neb::pb_instance>(found->second)
-      ->obj()
-      .name();
+  return found->second->obj().name();
 }
 
 /**
@@ -428,18 +442,25 @@ macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
  *
  *  @param[in] data  The event to write.
  */
-void macro_cache::write(const std::shared_ptr<io::data>& d) {
-  if (!d)
+void macro_cache::write(std::shared_ptr<io::data> const& data) {
+  if (!data)
     return;
 
-  std::shared_ptr<io::data> data = neb::bbdo2_to_bbdo3(d);
-
   switch (data->type()) {
+    case neb::instance::static_type():
+      _process_pb_instance(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_instance::static_type():
       _process_pb_instance(data);
       break;
+    case neb::host::static_type():
+      _process_pb_host(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_host::static_type():
       _process_pb_host(data);
+      break;
+    case neb::host_status::static_type():
+      _process_pb_host_status(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_host_status::static_type():
       _process_pb_host_status(data);
@@ -450,14 +471,26 @@ void macro_cache::write(const std::shared_ptr<io::data>& d) {
     case neb::pb_adaptive_host_status::static_type():
       _process_pb_adaptive_host_status(data);
       break;
+    case neb::host_group::static_type():
+      _process_pb_host_group(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_host_group::static_type():
       _process_pb_host_group(data);
+      break;
+    case neb::host_group_member::static_type():
+      _process_pb_host_group_member(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_host_group_member::static_type():
       _process_pb_host_group_member(data);
       break;
+    case neb::service::static_type():
+      _process_pb_service(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
+      break;
+    case neb::service_status::static_type():
+      _process_pb_service_status(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_service_status::static_type():
       _process_pb_service_status(data);
@@ -468,11 +501,20 @@ void macro_cache::write(const std::shared_ptr<io::data>& d) {
     case neb::pb_adaptive_service::static_type():
       _process_pb_adaptive_service(data);
       break;
+    case neb::service_group::static_type():
+      _process_pb_service_group(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_service_group::static_type():
       _process_pb_service_group(data);
       break;
+    case neb::service_group_member::static_type():
+      _process_pb_service_group_member(neb::bbdo2_to_bbdo3(data));
+      break;
     case neb::pb_service_group_member::static_type():
       _process_pb_service_group_member(data);
+      break;
+    case neb::custom_variable::static_type():
+      _process_pb_custom_variable(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_custom_variable::static_type():
       _process_pb_custom_variable(data);
@@ -480,17 +522,35 @@ void macro_cache::write(const std::shared_ptr<io::data>& d) {
     case storage::pb_index_mapping::static_type():
       _process_index_mapping(data);
       break;
+    case storage::index_mapping::static_type():
+      _process_index_mapping(neb::bbdo2_to_bbdo3(data));
+      break;
     case storage::pb_metric_mapping::static_type():
       _process_metric_mapping(data);
+      break;
+    case storage::metric_mapping::static_type():
+      _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::dimension_ba_event::static_type():
+      _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
       break;
     case bam::pb_dimension_ba_event::static_type():
       _process_dimension_ba_event(data);
       break;
+    case bam::dimension_ba_bv_relation_event::static_type():
+      _process_dimension_ba_bv_relation_event(neb::bbdo2_to_bbdo3(data));
+      break;
     case bam::pb_dimension_ba_bv_relation_event::static_type():
       _process_dimension_ba_bv_relation_event(data);
       break;
+    case bam::dimension_bv_event::static_type():
+      _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
+      break;
     case bam::pb_dimension_bv_event::static_type():
       _process_dimension_bv_event(data);
+      break;
+    case bam::dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(neb::bbdo2_to_bbdo3(data));
       break;
     case bam::pb_dimension_truncate_table_signal::static_type():
       _process_pb_dimension_truncate_table_signal(data);
@@ -704,17 +764,18 @@ void macro_cache::_process_pb_host_group(
  */
 void macro_cache::_process_pb_host_group_member(
     std::shared_ptr<io::data> const& data) {
-  const HostGroupMember& hgm =
-      std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
+  auto hgm = std::static_pointer_cast<neb::pb_host_group_member>(data);
+  const HostGroupMember& hgm_obj = hgm->obj();
   SPDLOG_LOGGER_DEBUG(
       _cache->logger(),
       "lua: processing pb host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
-      hgm.name(), hgm.hostgroup_id(), hgm.host_id(), hgm.enabled());
-  if (hgm.enabled())
-    _host_group_members[{hgm.host_id(), hgm.hostgroup_id()}] = data;
+      hgm_obj.name(), hgm_obj.hostgroup_id(), hgm_obj.host_id(),
+      hgm_obj.enabled());
+  if (hgm_obj.enabled())
+    _host_group_members[{hgm_obj.host_id(), hgm_obj.hostgroup_id()}] = hgm;
   else
-    _host_group_members.erase({hgm.host_id(), hgm.hostgroup_id()});
+    _host_group_members.erase({hgm_obj.host_id(), hgm_obj.hostgroup_id()});
 }
 
 /**
@@ -917,20 +978,22 @@ void macro_cache::_process_pb_service_group(
  */
 void macro_cache::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
-  const ServiceGroupMember& sgm =
-      std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
+  auto sgm = std::static_pointer_cast<neb::pb_service_group_member>(data);
+  const ServiceGroupMember& sgm_obj = sgm->obj();
   SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group member (group_name: "
                       "{}, group_id: {}, "
                       "host_id: {}, service_id: {} enabled: {}",
-                      sgm.name(), sgm.servicegroup_id(), sgm.host_id(),
-                      sgm.service_id(), sgm.enabled());
-  if (sgm.enabled())
-    _service_group_members[std::make_tuple(sgm.host_id(), sgm.service_id(),
-                                           sgm.servicegroup_id())] = data;
+                      sgm_obj.name(), sgm_obj.servicegroup_id(),
+                      sgm_obj.host_id(), sgm_obj.service_id(),
+                      sgm_obj.enabled());
+  if (sgm_obj.enabled())
+    _service_group_members[std::make_tuple(
+        sgm_obj.host_id(), sgm_obj.service_id(), sgm_obj.servicegroup_id())] =
+        sgm;
   else
     _service_group_members.erase(std::make_tuple(
-        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id()));
+        sgm_obj.host_id(), sgm_obj.service_id(), sgm_obj.servicegroup_id()));
 }
 
 /**

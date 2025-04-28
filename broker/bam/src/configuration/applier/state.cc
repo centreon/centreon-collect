@@ -253,11 +253,15 @@ void applier::state::save_to_cache(persistent_cache& cache) {
 void applier::state::load_from_cache(persistent_cache& cache) {
   _logger->debug("BAM: Loading restoring inherited downtimes and BA states");
 
-  std::shared_ptr<io::data> data;
-  cache.get(data);
-  std::shared_ptr<io::data> d = neb::bbdo2_to_bbdo3(data);
+  std::shared_ptr<io::data> d;
+  cache.get(d);
   while (d) {
     switch (d->type()) {
+      case inherited_downtime::static_type():
+        _ba_applier.apply_inherited_downtime(
+            *std::static_pointer_cast<const pb_inherited_downtime>(
+                neb::bbdo2_to_bbdo3(d)));
+        break;
       case pb_inherited_downtime::static_type(): {
         const pb_inherited_downtime& dwn =
             *std::static_pointer_cast<const pb_inherited_downtime>(d);
