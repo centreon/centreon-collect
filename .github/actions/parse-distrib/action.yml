@@ -31,7 +31,7 @@ runs:
         elif [[ "${{ inputs.distrib }}" == "alma9" || "${{ inputs.distrib }}" == "el9" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_DISTRIB_NAME="el9"
-           ACKAGE_EXTENSION="rpm"
+          PACKAGE_EXTENSION="rpm"
         elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_DISTRIB_NAME="deb11u1"
