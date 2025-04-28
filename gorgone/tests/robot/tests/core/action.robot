@@ -58,7 +58,7 @@ action module with ${communication_mode} communcation mode
     # On my machine the sync_wait was at least 0.22 seconds to work sometime, it always worked with 0.5s.
     # In real world where poller is not on the same server the delay will be greater and more random,
     # so the async method should be privileged.
-    ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=500000
+    ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=1000000
     Test Sync Action Module    get_params=${get_params}
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/1/
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/2/
