@@ -148,21 +148,22 @@ check_counter::~check_counter() {}
     : query(nullptr), use_english(use_english) {
   // open the query
   if (PdhOpenQuery(nullptr, 0, &query) != ERROR_SUCCESS) {
-    throw std::runtime_error("Failed to open pdh query");
+    throw std::runtime_error("Failed to open pdh query for counter: " +
+                             counter_name);
   }
   // for english, we use the PdhAddEnglishCounterA function
   // for other language, we use the PdhAddCounterW function
   if (use_english) {
     if (PdhAddEnglishCounterA(query, counter_name.c_str(), 0,
                               &counter_metric) != ERROR_SUCCESS) {
-      throw std::runtime_error("Failed to add counter");
+      throw std::runtime_error("Failed to add counter: " + counter_name);
     }
   } else {
     // convert to widestring :: needed for language with é, è, ê,â etc.
     std::wstring wide_counter_name = string_to_wide_string(counter_name);
     if (PdhAddCounterW(query, wide_counter_name.c_str(), 0, &counter_metric) !=
         ERROR_SUCCESS) {
-      throw std::runtime_error("Failed to add counterW ");
+      throw std::runtime_error("Failed to add counterW: " + counter_name);
     }
   }
 }
