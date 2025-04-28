@@ -56,9 +56,9 @@ TEST(counter_check_windows, constructor) {
   ASSERT_FALSE(checker.need_two_samples());
 
   rapidjson::Document check_args1 =
-      R"({"counter": "\\Système\\processus",
+      R"({"counter": "\\System\\Processes",
     "verbose": true,
-    "use_english": false
+    "use_english": true
 })"_json;
   check_counter checker1(
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
@@ -71,14 +71,14 @@ TEST(counter_check_windows, constructor) {
       std::make_shared<checks_statistics>());
 
   ASSERT_FALSE(checker1.have_multi_return());
-  ASSERT_EQ(checker1.counter_name(), "\\Système\\processus"s);
-  ASSERT_FALSE(checker1.use_english());
+  ASSERT_EQ(checker1.counter_name(), "\\System\\Processes"s);
+  ASSERT_TRUE(checker1.use_english());
   ASSERT_FALSE(checker1.need_two_samples());
 
   rapidjson::Document check_args2 =
-      R"({"counter": "\\Thread(*)\\Changements de contexte/s",
+      R"({"counter": "\\Thread(*)\\Context Switches/sec",
         "verbose": true,
-        "use_english": false
+        "use_english": true
         })"_json;
   check_counter checker2(
       g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
@@ -91,8 +91,8 @@ TEST(counter_check_windows, constructor) {
       std::make_shared<checks_statistics>());
 
   ASSERT_TRUE(checker2.have_multi_return());
-  ASSERT_EQ(checker2.counter_name(), "\\Thread(*)\\Changements de contexte/s"s);
-  ASSERT_FALSE(checker2.use_english());
+  ASSERT_EQ(checker2.counter_name(), "\\Thread(*)\\Context Switches/sec"s);
+  ASSERT_TRUE(checker2.use_english());
   ASSERT_TRUE(checker2.need_two_samples());
 }
 
@@ -103,10 +103,10 @@ TEST(counter_check_windows, constructor) {
 TEST(counter_check_windows, single_return) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({"counter": "\\Système\\processus",
+      R"({"counter": "\\System\\Processes",
       "output-syntax": "${status}: ${label} : ${value}",
         "verbose": false,
-        "use_english": false
+        "use_english": true
     })"_json;
 
   check_counter checker(
@@ -128,9 +128,9 @@ TEST(counter_check_windows, single_return) {
   e_status status = checker.compute(&output, &perf);
 
   ASSERT_EQ(perf.size(), 1);
-  ASSERT_EQ(perf.front().name(), "\\Système\\processus");
+  ASSERT_EQ(perf.front().name(), "\\System\\Processes");
   ASSERT_NE(output.size(), 0);
-  ASSERT_EQ(output.find("OK: \\Système\\processus : "), 0);
+  ASSERT_EQ(output.find("OK: \\System\\Processes : "), 0);
 
   ASSERT_EQ(status, e_status::ok);
 }
@@ -183,10 +183,10 @@ TEST(counter_check_windows, multiple_return) {
 TEST(counter_check_windows, need_two_samples) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({"counter": "\\Thread(*)\\Changements de contexte/s",
+      R"({"counter": "\\Thread(*)\\Context Switches/sec",
         "critical-status": "any >= 50",
         "critical-count": "10",
-        "use_english": false
+        "use_english": true
     })"_json;
 
   check_counter checker(
@@ -226,10 +226,11 @@ TEST(counter_check_windows, need_two_samples) {
 TEST(counter_check_windows, complex_rules) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({"counter": "\\Processus v2(*)\\Nombre de threads",
+      R"({"counter": "\\Process V2(*)\\Thread Count",
         "pref-display-syntax":"any",
         "warning-status": "_total >= 10",
-        "warning-count": "0"
+        "warning-count": "0",
+        "use_english": true
     })"_json;
 
   check_counter checker(
