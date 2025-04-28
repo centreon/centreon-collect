@@ -67,8 +67,12 @@ class filter {
     filter_combinator
   };
 
+  using failure_map = absl::flat_hash_map<std::string, double>;
+
  private:
   filter_type _type;
+
+  failure_map _failures;
 
  protected:
   checker _checker;
@@ -83,6 +87,13 @@ class filter {
   filter& operator=(const filter&) = default;
 
   filter_type get_type() const { return _type; }
+
+  const failure_map& failures() const noexcept { return _failures; }
+  void clear_failures() { _failures.clear(); }
+
+  void record_failure(std::string label, double value) {
+    _failures.emplace(std::move(label), value);
+  }
 
   virtual void dump(std::ostream& s) const = 0;
 
@@ -210,30 +221,36 @@ class label_compare_to_value : public filter {
  */
 template <class value_getter>
 void label_compare_to_value::set_checker_from_getter(value_getter&& getter) {
+  auto create_checker = [this, gettr = std::move(getter)](auto comparator) {
+    _checker = [threshold = _value, gettr = std::move(gettr), comparator,
+                this](const testable& t) -> bool {
+      double actual_value = gettr(t);
+      bool condition = comparator(actual_value, threshold);
+      if (condition) {
+        record_failure(_label, actual_value);
+      }
+      return condition;
+    };
+  };
+
   switch (_comparison) {
     case comparison::equal:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val == gettr(t); };
+      create_checker(std::equal_to<>());
       break;
     case comparison::not_equal:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val != gettr(t); };
+      create_checker(std::not_equal_to<>());
       break;
     case comparison::greater_than:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val < gettr(t); };
+      create_checker(std::greater<>());
       break;
     case comparison::greater_than_or_equal:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val <= gettr(t); };
+      create_checker(std::greater_equal<>());
       break;
     case comparison::less_than:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val > gettr(t); };
+      create_checker(std::less<>());
       break;
     case comparison::less_than_or_equal:
-      _checker = [val = _value, gettr = std::move(getter)](
-                     const testable& t) -> bool { return val >= gettr(t); };
+      create_checker(std::less_equal<>());
       break;
   }
 }
@@ -450,7 +467,8 @@ void label_in<char_t>::set_checker_from_number_getter(number_getter&& getter) {
 
 /**
  * @brief the glue between filters
- * it will be used to combine filters with logical operators and, or, && ,|| and
+ * it will be used to combine filters with logical operators and, or, && ,||
+ * and
  * () Example: foo == 10 && (bar != 5.5kg || (baz < 3 && qux >  1)) || quux
  * in(truc, 'machin')
  *
@@ -529,12 +547,18 @@ class filter_combinator : public filter {
   bool get_enabled() const override { return true; }
 
   void dump(std::ostream& s) const override;
+
+  void clear_failures() const {
+    for (auto& f : _filters) {
+      f->clear_failures();
+    }
+  }
 };
 
 /**
  * @brief constructor called by boost::parse
- * @param sub_filters a tuple containing the first filter(variant) and a vector
- * of tuples (operator, variant)
+ * @param sub_filters a tuple containing the first filter(variant) and a
+ * vector of tuples (operator, variant)
  */
 template <typename T>
 filter_combinator::filter_combinator(T&& sub_filters)
