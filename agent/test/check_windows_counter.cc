@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <iostream>
 
 #include "check.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
@@ -183,8 +184,8 @@ TEST(counter_check_windows, multiple_return) {
 TEST(counter_check_windows, need_two_samples) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({"counter": "\\Thread(*)\\Context Switches/sec",
-        "critical-status": "any >= 50",
+      R"({"counter": "\\Process V2(*)\\Thread Count",
+        "critical-status": "any >= 0",
         "critical-count": "10",
         "use_english": true
     })"_json;
