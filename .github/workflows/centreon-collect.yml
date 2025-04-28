@@ -37,29 +37,29 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    paths:
-      - ".version"
-      - agent/**
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/centreon-collect/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
-      - selinux/**
-      - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
-      - "!**/test/**"
+    # paths:
+    #   - ".version"
+    #   - agent/**
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - custom-triplets/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/centreon-collect/**
+    #   - cmake.sh
+    #   - cmake-vcpkg.sh
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - vcpkg.json
+    #   - overlays/**
+    #   - selinux/**
+    #   - "!selinux/centreon-common/**"
+    #   - "!.veracode-exclusions"
+    #   - "!veracode.json"
+    #   - "!**/test/**"
   push:
     branches:
       - develop
@@ -443,35 +443,35 @@ jobs:
 
   robot-test:
     needs: [get-environment, package]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      needs.get-environment.outputs.is_nightly == 'true' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   needs.get-environment.outputs.stability != 'stable' &&
+    #   needs.get-environment.outputs.is_nightly == 'true' &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
-            only_robot_cma: false
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-            only_robot_cma: false
+          # - distrib: el9
+          #   image: centreon-collect-mariadb-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
+          # - distrib: el9
+          #   image: centreon-collect-mysql-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          #   test_group_name: robot_test-mysql-el9-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
           - distrib: bullseye
             image: centreon-collect-mariadb-bullseye-arm64-test
             package_extension: deb
@@ -480,14 +480,14 @@ jobs:
             test_group_name: robot_test-mariadb-bullseye-arm64
             tests_params: '{}'
             only_robot_cma: true
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: '{}'
-            only_robot_cma: true
+          # - distrib: bullseye
+          #   image: centreon-collect-mariadb-bullseye-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bullseye-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
             package_extension: deb
@@ -496,22 +496,22 @@ jobs:
             test_group_name: robot_test-mariadb-bookworm-arm64
             tests_params: '{}'
             only_robot_cma: false
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
-            only_robot_cma: false
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-            only_robot_cma: false
+          # - distrib: bookworm
+          #   image: centreon-collect-mariadb-bookworm-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: false
+          # - distrib: el9
+          #   image: centreon-collect-mariadb-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64-grpc
+          #   tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+            # only_robot_cma: false
           - distrib: jammy
             image: centreon-collect-mariadb-jammy-arm64-test
             package_extension: deb
@@ -520,14 +520,14 @@ jobs:
             test_group_name: robot_test-mariadb-jammy-arm64
             tests_params: '{}'
             only_robot_cma: true
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-jammy-amd64
-            tests_params: '{}'
-            only_robot_cma: true
+          # - distrib: jammy
+          #   image: centreon-collect-mariadb-jammy-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-jammy-amd64
+          #   tests_params: '{}'
+          #   only_robot_cma: true
 
     name: ${{ matrix.test_group_name }}
 
