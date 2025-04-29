@@ -58,7 +58,7 @@ action module with ${communication_mode} communcation mode
     # On my machine the sync_wait was at least 0.22 seconds to work sometime, it always worked with 0.5s.
     # In real world where poller is not on the same server the delay will be greater and more random,
     # so the async method should be privileged.
-    ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=1000000
+    ${get_params}=    Set Variable    ?log_wait=6000000&sync_wait=2000000
     Test Sync Action Module    get_params=${get_params}
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/1/
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/2/
@@ -91,7 +91,7 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=70
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
@@ -120,9 +120,11 @@ Post Action Endpoint
 Check Action Api Do Something
     [Arguments]    ${status}    ${logs}    ${node_path}    ${get_params}
 
-    Should Be True    ${status}    No log found in the gorgone api or the command failed.
-    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime), status code(code), and data (among other thing)
+    Should Be True    ${status}    No log found in the gorgone api or the command failed : ${logs}
+    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime),
+    # status code(code), and data (among other thing)
     # data is a stringified json that need to be evaluated separately.
+    Should Not Be Empty    ${logs}[data]    no data found in the log
     ${internal_json}=    Evaluate     json.loads("""${logs}[data]""")    json
 
     Should Be Equal As Numbers    0    ${internal_json}[result][exit_code]
