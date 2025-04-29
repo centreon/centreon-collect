@@ -18,6 +18,12 @@
 
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
+#include <array>
+#include <atomic>
+#include <condition_variable>
+#include <list>
+#include <mutex>
+#include <unordered_map>
 
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
@@ -476,7 +482,6 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
@@ -508,6 +513,7 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
+  void clean_tables(uint32_t instance_id);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
   static const multiplexing::muxer_filter& get_forbidden_filter();
@@ -525,6 +531,8 @@ class stream : public io::stream {
   void remove_poller(const std::shared_ptr<io::data>& d);
   void process_stop(const std::shared_ptr<io::data>& d);
   void update() override;
+  mysql& get_mysql();
+  bool supports_bulk_prepared_statements() const;
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker
