@@ -306,6 +306,11 @@ BEDWEND
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Broker unified sql stream should log a message when the global diff state is emitted.
 
+    # All the hosts of the poller 1 should be enabled
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT enabled FROM hosts WHERE instance_id = 1 AND host_id = 1    ==    ${1}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 

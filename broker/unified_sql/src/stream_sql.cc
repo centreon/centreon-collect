@@ -48,7 +48,7 @@ static const std::string _insert_or_update_tags =
  *
  *  @param[in] instance_id Instance ID to remove.
  */
-void stream::_clean_tables(uint32_t instance_id) {
+void stream::clean_tables(uint32_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
     absl::MutexLock l(&_timer_m);
@@ -2973,7 +2973,7 @@ void stream::_process_instance(const std::shared_ptr<io::data>& d) {
       i.poller_id, i.name, i.is_running ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(i.poller_id);
+  clean_tables(i.poller_id);
 
   // Processing.
   if (_is_valid_poller(i.poller_id)) {
@@ -3026,7 +3026,7 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       inst.instance_id(), inst.name(), inst.running() ? "yes" : "no");
 
   // Clean tables.
-  _clean_tables(inst.instance_id());
+  clean_tables(inst.instance_id());
 
   // Processing.
   if (_is_valid_poller(inst.instance_id())) {
@@ -3079,7 +3079,7 @@ void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
       *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
   const auto& obj = global_diff_state.obj();
   _logger_sql->info("unified_sql: processing global diff state event");
-  database_configurator cfg(obj, _mysql, _logger_sql);
+  database_configurator cfg(obj, this, _logger_sql);
   cfg.process();
 }
 

@@ -27,6 +27,7 @@ enum DateType {
   strict_iso8601 = 3;  // ISO8601 (YYYY-MM-DDTHH:MM:SS)
 }
 
+/* Ignore */
 message InterCheckDelay {
   enum IcdType {
     none = 0;   // no inter-check delay
@@ -625,6 +626,7 @@ message Host {
   optional uint64 severity_id = 49;  // Optional
   optional uint64 icon_id = 50;      // Optional
   repeated PairUint64_32 tags = 51;
+  uint64 poller_id = 52;
 }
 
 message DiffHostdependency {
