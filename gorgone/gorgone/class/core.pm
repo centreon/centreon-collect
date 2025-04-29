@@ -283,7 +283,17 @@ sub init {
 
     $self->load_modules();
 
+
     $self->set_signal_handlers();
+        my $fh;
+        open($fh, ">>", "/tmp/gorgone-process-core-$$");
+
+        use Devel::TraceCalls;
+        trace_calls {
+            Package => ["gorgone::modules::centreon::audit::hooks", "gorgone::modules::centreon::audit::class", "gorgone::modules::centreon::audit::sampling::system::cpu", "gorgone::modules::centreon::audit::sampling::system::diskio", "gorgone::modules::centreon::audit::metrics::system::cpu", "gorgone::modules::centreon::audit::metrics::system::disk", "gorgone::modules::centreon::audit::metrics::system::os", "gorgone::modules::centreon::audit::metrics::system::diskio", "gorgone::modules::centreon::audit::metrics::system::load", "gorgone::modules::centreon::audit::metrics::system::memory", "gorgone::modules::centreon::audit::metrics::centreon::realtime", "gorgone::modules::centreon::audit::metrics::centreon::packages", "gorgone::modules::centreon::audit::metrics::centreon::rrd", "gorgone::modules::centreon::audit::metrics::centreon::pluginpacks", "gorgone::modules::centreon::audit::metrics::centreon::database", "gorgone::modules::centreon::judge::hooks", "gorgone::modules::centreon::judge::class", "gorgone::modules::centreon::judge::type::spare", "gorgone::modules::centreon::judge::type::distribute", "gorgone::modules::centreon::nodes::class", "gorgone::modules::centreon::nodes::hooks", "gorgone::modules::centreon::statistics::hooks", "gorgone::modules::centreon::statistics::class", "gorgone::modules::centreon::anomalydetection::hooks", "gorgone::modules::centreon::anomalydetection::class", "gorgone::modules::centreon::inject::class", "gorgone::modules::centreon::inject::hooks", "gorgone::modules::centreon::autodiscovery::hooks", "gorgone::modules::centreon::autodiscovery::class", "gorgone::modules::centreon::autodiscovery::services::discovery", "gorgone::modules::centreon::autodiscovery::services::resources", "gorgone::modules::centreon::engine::class", "gorgone::modules::centreon::engine::hooks", "gorgone::modules::centreon::legacycmd::hooks", "gorgone::modules::centreon::legacycmd::class", "gorgone::modules::plugins::scom::hooks", "gorgone::modules::plugins::scom::class", "gorgone::modules::plugins::newtest::class", "gorgone::modules::plugins::newtest::hooks", "gorgone::modules::plugins::newtest::libs::stubs::errors", "gorgone::modules::plugins::newtest::libs::stubs::ManagementConsoleService", "gorgone::modules::core::pullwss::hooks", "gorgone::modules::core::pullwss::class", "gorgone::modules::core::httpserver::class", "gorgone::modules::core::httpserver::hooks", "gorgone::modules::core::pull::hooks", "gorgone::modules::core::pull::class", "gorgone::modules::core::httpserverng::class", "gorgone::modules::core::httpserverng::hooks", "gorgone::modules::core::action::class", "gorgone::modules::core::action::hooks", "gorgone::modules::core::pipeline::class", "gorgone::modules::core::pipeline::hooks", "gorgone::modules::core::cron::hooks", "gorgone::modules::core::cron::class", "gorgone::modules::core::proxy::httpserver", "gorgone::modules::core::proxy::sshclient", "gorgone::modules::core::proxy::hooks", "gorgone::modules::core::proxy::class", "gorgone::modules::core::register::class", "gorgone::modules::core::register::hooks", "gorgone::modules::core::dbcleaner::hooks", "gorgone::modules::core::dbcleaner::class", "gorgone::class::fingerprint::backend::sql", "gorgone::class::clientzmq", "gorgone::class::script", "gorgone::class::db", "gorgone::class::tpapi::centreonv2", "gorgone::class::tpapi::clapi", "gorgone::class::core", "gorgone::class::sqlquery", "gorgone::class::module", "gorgone::class gorgone::class::frame", "gorgone::class::http::http", "gorgone::class::http::backend::useragent", "gorgone::class::http::backend::curl", "gorgone::class::http::backend::curlconstants", "gorgone::class::http::backend::lwp", "gorgone::class::listener", "gorgone::standard::misc", "gorgone::standard::api", "gorgone::standard::constants", "gorgone::standard::library"],
+            LogTo => $fh,
+        };
+
 }
 
 sub init_external_informations {
@@ -438,6 +448,7 @@ sub load_module {
         $self->{logger}->writeLogError("[core] Module '" . $options{config_module}->{name} . "' cannot be loaded: " . $@);
         return 0;
     }
+
     $self->{modules_register}->{$package} = {};
 
     foreach my $method_name (('register', 'routing', 'kill', 'kill_internal', 'gently', 'check', 'init', 'broadcast')) {
@@ -1241,6 +1252,7 @@ sub run {
     $gorgone = shift;
 
     $gorgone->SUPER::run();
+
     $gorgone->{logger}->redirect_output();
 
     $gorgone->{logger}->writeLogInfo("[core] Gorgoned started");
@@ -1305,7 +1317,13 @@ sub run {
             api_endpoints => $gorgone->{api_endpoints}
         );
     }
-
+   # my $fh;
+   # open($fh, ">>", "/tmp/gorgone-process-core-run");
+   # use Devel::TraceCalls;
+   # trace_calls {
+   #     Package => ["gorgone::modules::centreon::audit::hooks", "gorgone::modules::centreon::audit::class", "gorgone::modules::centreon::audit::sampling::system::cpu", "gorgone::modules::centreon::audit::sampling::system::diskio", "gorgone::modules::centreon::audit::metrics::system::cpu", "gorgone::modules::centreon::audit::metrics::system::disk", "gorgone::modules::centreon::audit::metrics::system::os", "gorgone::modules::centreon::audit::metrics::system::diskio", "gorgone::modules::centreon::audit::metrics::system::load", "gorgone::modules::centreon::audit::metrics::system::memory", "gorgone::modules::centreon::audit::metrics::centreon::realtime", "gorgone::modules::centreon::audit::metrics::centreon::packages", "gorgone::modules::centreon::audit::metrics::centreon::rrd", "gorgone::modules::centreon::audit::metrics::centreon::pluginpacks", "gorgone::modules::centreon::audit::metrics::centreon::database", "gorgone::modules::centreon::judge::hooks", "gorgone::modules::centreon::judge::class", "gorgone::modules::centreon::judge::type::spare", "gorgone::modules::centreon::judge::type::distribute", "gorgone::modules::centreon::nodes::class", "gorgone::modules::centreon::nodes::hooks", "gorgone::modules::centreon::statistics::hooks", "gorgone::modules::centreon::statistics::class", "gorgone::modules::centreon::anomalydetection::hooks", "gorgone::modules::centreon::anomalydetection::class", "gorgone::modules::centreon::inject::class", "gorgone::modules::centreon::inject::hooks", "gorgone::modules::centreon::autodiscovery::hooks", "gorgone::modules::centreon::autodiscovery::class", "gorgone::modules::centreon::autodiscovery::services::discovery", "gorgone::modules::centreon::autodiscovery::services::resources", "gorgone::modules::centreon::engine::class", "gorgone::modules::centreon::engine::hooks", "gorgone::modules::centreon::legacycmd::hooks", "gorgone::modules::centreon::legacycmd::class", "gorgone::modules::plugins::scom::hooks", "gorgone::modules::plugins::scom::class", "gorgone::modules::plugins::newtest::class", "gorgone::modules::plugins::newtest::hooks", "gorgone::modules::plugins::newtest::libs::stubs::errors", "gorgone::modules::plugins::newtest::libs::stubs::ManagementConsoleService", "gorgone::modules::core::pullwss::hooks", "gorgone::modules::core::pullwss::class", "gorgone::modules::core::httpserver::class", "gorgone::modules::core::httpserver::hooks", "gorgone::modules::core::pull::hooks", "gorgone::modules::core::pull::class", "gorgone::modules::core::httpserverng::class", "gorgone::modules::core::httpserverng::hooks", "gorgone::modules::core::action::class", "gorgone::modules::core::action::hooks", "gorgone::modules::core::pipeline::class", "gorgone::modules::core::pipeline::hooks", "gorgone::modules::core::cron::hooks", "gorgone::modules::core::cron::class", "gorgone::modules::core::proxy::httpserver", "gorgone::modules::core::proxy::sshclient", "gorgone::modules::core::proxy::hooks", "gorgone::modules::core::proxy::class", "gorgone::modules::core::register::class", "gorgone::modules::core::register::hooks", "gorgone::modules::core::dbcleaner::hooks", "gorgone::modules::core::dbcleaner::class", "gorgone::class::fingerprint::backend::sql", "gorgone::class::clientzmq", "gorgone::class::script", "gorgone::class::db", "gorgone::class::tpapi::centreonv2", "gorgone::class::tpapi::clapi", "gorgone::class::core", "gorgone::class::sqlquery", "gorgone::class::module", "gorgone::class gorgone::class::frame", "gorgone::class::http::http", "gorgone::class::http::backend::useragent", "gorgone::class::http::backend::curl", "gorgone::class::http::backend::curlconstants", "gorgone::class::http::backend::lwp", "gorgone::class::listener", "gorgone::standard::misc", "gorgone::standard::api", "gorgone::standard::constants", "gorgone::standard::library"],
+   #     LogTo => $fh,
+   # };
     $gorgone->{listener} = gorgone::class::listener->new(
         gorgone => $gorgone,
         logger => $gorgone->{logger}

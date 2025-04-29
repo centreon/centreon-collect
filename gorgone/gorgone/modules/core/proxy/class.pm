@@ -545,7 +545,7 @@ sub run {
         }
     });
 
-    my $watcher_timer = $self->{loop}->timer(5, 5, \&periodic_exec);
+    my $watcher_timer = $self->{loop}->timer(1, 1, \&periodic_exec);
     my $watcher_io    = $self->{loop}->io(
         $self->{internal_socket}->get_fd(),
         EV::READ,

@@ -5,6 +5,8 @@ gorgone:
     - name: proxy
       package: "gorgone::modules::core::proxy::hooks"
       enable: true
+      synchistory_time: 5
+      synchistory_timeout: 3
       httpserver:
         enable: true
         ssl: false

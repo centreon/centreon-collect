@@ -77,18 +77,20 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
                 and a json object containing the incriminated log for failure or success.
         """
     limit_date = time.time() + timeout
+    api_json = []
     uri = host + "/api/" + node_path + "log/" + token
     while time.time() < limit_date:
         response = requests.get(uri)
-        (status, output) = parse_json_response(response)
-        logger.info(f"answer of parse_json_response: {output}")
+        logger.info(f"http response : {response.json()}")
 
+        (status, output) = parse_json_response(response)
         if not status:
+            logger.console(f"sleeping one more sec : {uri}")
             time.sleep(1)
             continue
         return status, output
 
-    return False, f"timeout reached while querying {uri}"
+    return False, None
 
 
 def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='http://127.0.0.1:8085', timeout=15, ):
@@ -129,13 +131,15 @@ def parse_json_response(response):
         return False, api_json
 
     if 'error' in api_json and api_json['error'] == "no_log":
-        return False, 'gorgone api didnt sent back any logs'
+        logger.console(f"no log found for this token.")
+        return False, False
     for log_detail in api_json["data"]:
         if log_detail["code"] == 1:
             return False, log_detail
         if log_detail["code"] == 100:
             return True, log_detail
-    return False, 'No log and no error found in gorgone api response.'
+    logger.console(f"dind't find any log with code 1 or 100 in the response")
+    return False, False
 
 
 # these function search log in the gorgone log file
