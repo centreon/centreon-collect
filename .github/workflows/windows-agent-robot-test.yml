@@ -1,4 +1,4 @@
-name: Centreon Monitoring Agent Windows robot test
+name: windows-agent-robot-test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
