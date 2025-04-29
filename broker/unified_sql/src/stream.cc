@@ -896,7 +896,7 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
                     stop.poller_id());
 
   // Clean tables.
-  _clean_tables(stop.poller_id());
+  clean_tables(stop.poller_id());
 
   // Processing.
   if (_is_valid_poller(stop.poller_id())) {
@@ -1461,4 +1461,12 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*_sscr_resources_update);
     }
   }
+}
+
+mysql& stream::get_mysql() {
+  return _mysql;
+}
+
+bool stream::supports_bulk_prepared_statements() const {
+  return _bulk_prepared_statement;
 }

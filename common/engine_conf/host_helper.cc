@@ -333,6 +333,7 @@ void host_helper::expand(
         hgs) {
   // Browse all hosts.
   for (auto& host_cfg : *s.mutable_hosts()) {
+    host_cfg.set_poller_id(s.poller_id());
     for (auto& grp : host_cfg.hostgroups().data()) {
       auto it = hgs.find(grp);
       if (it != hgs.end()) {
