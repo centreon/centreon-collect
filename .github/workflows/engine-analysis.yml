@@ -1,4 +1,4 @@
-name: gorgone-analysis
+name: engine-analysis
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -16,9 +16,7 @@ on:
       - ready_for_review
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
-      - "gorgone/**"
-      - "perl-libs/**"
+      - engine/**
   push:
     branches:
       - develop
@@ -27,18 +25,14 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
-      - "gorgone/**"
-      - "perl-libs/**"
-
-env:
-  base_directory: gorgone
+      - engine/**
 
 jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: .version.centreon-gorgone
+      version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   checkmarx-analysis:
     needs: [get-environment]
@@ -48,8 +42,8 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: gorgone
-      module_name: centreon-gorgone
+      module_directory: ""
+      module_name: centreon-engine
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}

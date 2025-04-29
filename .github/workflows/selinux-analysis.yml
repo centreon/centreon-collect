@@ -16,9 +16,22 @@ on:
       - ready_for_review
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
-      - "gorgone/**"
-      - "perl-libs/**"
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - custom-triplets/**
+      - engine/**
+      - grpc/**
+      - packaging/centreon-collect/**
+      - cmake.sh
+      - cmake-vcpkg.sh
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - vcpkg.json
+      - overlays/**
+      - selinux/**
   push:
     branches:
       - develop
@@ -27,18 +40,30 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version"
-      - ".version.centreon-gorgone"
-      - "gorgone/**"
-      - "perl-libs/**"
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - custom-triplets/**
+      - engine/**
+      - grpc/**
+      - packaging/centreon-collect/**
+      - cmake.sh
+      - cmake-vcpkg.sh
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - vcpkg.json
+      - overlays/**
+      - selinux/**
 
-env:
-  base_directory: gorgone
 
 jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: .version.centreon-gorgone
+      version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   checkmarx-analysis:
     needs: [get-environment]
@@ -48,7 +73,7 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: gorgone
+      module_directory: ""
       module_name: centreon-gorgone
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
