@@ -23,7 +23,7 @@ package gorgone::standard::api;
 use strict;
 use warnings;
 use gorgone::standard::library;
-use Time::HiRes;
+use Time::HiRes qw( usleep time );
 use JSON::XS;
 
 my $module;
@@ -108,8 +108,15 @@ sub call_action {
     });
 
     my $response = '{"token":"' . $action_token . '"}';
+    open(my $fh, '>>', '/tmp/gorgone.log') or die "Could not open file: $!";
+    my $old_fh = select($fh);
+    $| = 1;
+    select($old_fh);
+
     if (defined($options{log_wait}) && $options{log_wait} ne '') {
+        print($fh time() . " [api-evan-$$] [call_action] token: $action_token waiting $options{log_wait}...\n");
         Time::HiRes::usleep($options{log_wait});
+        print($fh time() . " [api-evan-$$] [call_action] finished waiting, retrieving log with getlog.\n");
         $response = get_log(
             target => $options{target},
             token => $action_token,
@@ -118,6 +125,7 @@ sub call_action {
             module => $options{module}
         );
     }
+    print($fh time() . " [api-evan-$$] [call_action] returning a response\n");
 
     return $response;
 }
@@ -186,7 +194,11 @@ sub call_internal {
 
 sub get_log {
     my (%options) = @_;
-
+    open(my $fh, '>>', '/tmp/gorgone.log') or die "Could not open file: $!";
+    my $old_fh = select($fh);
+    $| = 1;
+    select($old_fh);
+    print($fh time() . " [api-evan-$$] [get_log] token: $options{token} target: $options{target} log_wait: $options{log_wait} sync_wait: $options{sync_wait}\n");
     if (defined($options{target}) && $options{target} ne '') {
         $options{module}->send_internal_action({
             socket => $socket,
@@ -194,11 +206,12 @@ sub get_log {
             action => 'GETLOG',
             json_encode => 1
         });
-
+        print($fh time() . " [api-evan-$$] waiting for the external msg...\n");
         my $sync_wait = (defined($options{sync_wait}) && $options{sync_wait} ne '') ? $options{sync_wait} : 10000;
         Time::HiRes::usleep($sync_wait);
+        print($fh time() . " [api-evan-$$] finished to wait!\n");
     }
-
+    print($fh time() . " [api-evan-$$] asking for data in local\n");
     my $token_log = $options{token} . '-log';
     $options{module}->send_internal_action({
         socket => $socket,
@@ -219,8 +232,9 @@ sub get_log {
         my $watcher_timer = $options{module}->{loop}->timer(1, 0, \&stop_ev);
         $options{module}->{loop}->run();
         last if (time() > ($ctime + $timeout) || defined($options{module}->{tokens}->{$token_log}));
+        print($fh time() . " [api-evan-$$] still waiting for data on module->tokens...\n");
     }
-
+    print($fh time() . " [api-evan-$$] Got a message ! : $options{module}->{tokens}->{$token_log}->{data}\n");
     $options{module}->{break_token} = undef;
 
     # Return http code 200 even if no log found to avoid error in web application, an evol may be done to return 404 and process it in web application
@@ -247,7 +261,7 @@ sub get_log {
             }
         }
     }
-
+    print($fh time() . " [api-evan-$$] returning\n");
     return $response;
 }
 
