@@ -57,13 +57,38 @@ E_FD_LIMIT
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    
+
     ${pid}    Get Process Id    e0
     ${limits}    Ctn Get Process Limit    ${pid}    Max open files
-    
+
     Should Be Equal As Numbers    ${limits[0]}    1048576    Engine should have 1048576 file descriptors
 
     Ctn Stop Engine
+
+ESSCTO
+    [Documentation]    Scenario: Engine services timeout due to missing Perl connector
+    ...    Given the Engine is configured as usual without the Perl connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+    [Tags]    engine    start-stop    MON-167816
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Engine Command Remove Connector    ${0}    *
+    Ctn Config Broker    module
+    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
+
+#ESSCTOWC
+#    [Documentation]    Scenario: Engine services timeout due to missing Perl connector
+#    ...    Given the Engine is configured as usual with some command using the Perl connector
+#    ...    When the Engine executes its service commands
+#    ...    Then the commands take too long and reach the timeout
+#    ...    And the Engine starts and stops two times as a result
+#    [Tags]    engine    start-stop
+#    Ctn Config Engine    ${1}
+#    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+#    Ctn Config Broker    module
+#    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
 
 
 *** Keywords ***
