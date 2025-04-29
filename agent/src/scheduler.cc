@@ -185,20 +185,46 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       group_serv[check_interval].push_back(&serv);
     }
 
+    srand(time(nullptr));
     std::chrono::milliseconds first_inter_check_delay(
         (group_serv.begin()->first * 1000) / nb_check);
     // in order to avoid collision when we will use a time_step equal to
-    // first_inter_check_delay / 2 with a little alea
-    duration time_step = first_inter_check_delay / 4 +
+    // first_inter_check_delay / 2 with a little random
+    duration time_unit = (first_inter_check_delay * 4) / 10 +
                          std::chrono::milliseconds(
-                             rand() % (first_inter_check_delay.count() / 2));
+                             rand() % (first_inter_check_delay.count() / 5));
+
+    std::chrono::seconds accuracy(conf->config().max_check_interval_error());
+    if (accuracy.count() == 0) {
+      accuracy = std::chrono::seconds(5);
+    }
+    // we need to respect check_interval accuracy
+    while (1) {
+      bool need_to_continue = false;
+      for (const auto& [interval, _] : group_serv) {
+        if (std::chrono::seconds(interval) % time_unit > accuracy) {
+          time_unit -= time_unit / 10;
+          need_to_continue = true;
+          break;
+        }
+      }
+      if (!need_to_continue) {
+        break;
+      }
+    }
+
+    SPDLOG_LOGGER_DEBUG(_logger, "all checks will use a time step of {}",
+                        time_unit);
+
     auto group_iter = group_serv.begin();
 
     time_point next = std::chrono::system_clock::now();
 
+    _check_time_step = time_step(next, time_unit);
+
     auto last_inserted_iter = _waiting_check_queue.end();
-    while (!group_serv.empty()) {
-      const auto& serv = **group_iter->second.begin();
+    while (true) {
+      const auto& serv = **group_iter->second.rbegin();
 
       if (_logger->level() == spdlog::level::trace) {
         SPDLOG_LOGGER_TRACE(
@@ -211,7 +237,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       }
       try {
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, time_step,
+            _io_context, _logger, next, time_unit,
             std::chrono::seconds(serv.check_interval()),
             serv.service_description(), serv.command_name(),
             serv.command_line(), conf,
@@ -230,12 +256,25 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
             _logger, "service: {}  command:{} won't be scheduled cause: {}",
             serv.service_description(), serv.command_name(), e.what());
       }
+      group_iter->second.pop_back();
+      if (group_iter->second.empty()) {
+        group_iter = group_serv.erase(group_iter);
+      } else {
+        ++group_iter;
+      }
+      if (group_serv.empty()) {
+        break;
+      }
+      if (group_iter == group_serv.end()) {
+        group_iter = group_serv.begin();
+      }
     }
   }
 
   _conf = conf;
 
   _start_waiting_check();
+  _start_check_timer();
 }
 
 /**

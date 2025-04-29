@@ -349,7 +349,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
   ASSERT_EQ(res_attrib.at(0).key(), "host.name");
   ASSERT_EQ(res_attrib.at(0).value().string_value(), "my_host");
   ASSERT_EQ(res_attrib.at(1).key(), "service.name");
-  ASSERT_EQ(res_attrib.at(1).value().string_value(), "serv1");
+  ASSERT_EQ(res_attrib.at(1).value().string_value(), "serv2");
   ASSERT_EQ(res.scope_metrics_size(), 1);
   const ::opentelemetry::proto::metrics::v1::ScopeMetrics& scope_metrics =
       res.scope_metrics()[0];
@@ -370,7 +370,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
   ASSERT_EQ(res_attrib2.at(0).key(), "host.name");
   ASSERT_EQ(res_attrib2.at(0).value().string_value(), "my_host");
   ASSERT_EQ(res_attrib2.at(1).key(), "service.name");
-  ASSERT_EQ(res_attrib2.at(1).value().string_value(), "serv2");
+  ASSERT_EQ(res_attrib2.at(1).value().string_value(), "serv1");
   ASSERT_EQ(res2.scope_metrics_size(), 1);
 
   const ::opentelemetry::proto::metrics::v1::ScopeMetrics& scope_metrics2 =

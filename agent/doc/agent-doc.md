@@ -31,7 +31,7 @@ When a check completes, it is inserted into _waiting_check_queue, and its start 
 On reçoit n checks avec des intervalles de check differents. 
 On calcule le first_inter_check_delay = min_check_interval/nb_check
 On utilise une base de temps dont la résolution est 
-time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/2) - first_inter_check_delay/4  (on divise par deux pour limiter les retards dus au fait que plusieurs checks puissent avoir besoin du même timeslot afin de respecter leur propre check_interval )
+time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/5) - first_inter_check_delay/10  (on divise par deux pour limiter les retards dus au fait que plusieurs checks puissent avoir besoin du même timeslot afin de respecter leur propre check_interval )
 Pour respecter tous les check intervals à check_interval_accuracy (5s par défaut) prêt, on diminue time_step jusqu'à ce que check_interval_x % time_step <= check_interval_accuracy
 
 Pour ne pas répéter des groupes compacts des checks les plus fréquents, on intercalle les checks les moins fréquents.
