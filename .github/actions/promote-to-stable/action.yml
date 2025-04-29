@@ -109,9 +109,9 @@ runs:
           done
 
           # Cleanup before next round of candidates
-          rm -f *.rpm
+          mkdir -p /tmp/promoted-packages
+          mv *.rpm /tmp/promoted-packages/ >/dev/null 2>&1 || true
         done
-
       shell: bash
 
     - name: Promote DEB packages to stable
@@ -177,5 +177,6 @@ runs:
           jf rt upload "$ARTIFACT_DL" "$TARGET_PATH" --deb "${{ inputs.distrib }}/main/$ARCH" --flat $DRY_RUN_FLAG
         done
 
-        rm -f *.deb
+        mkdir -p /tmp/promoted-packages
+        mv *.deb /tmp/promoted-packages/ >/dev/null 2>&1 || true
       shell: bash
