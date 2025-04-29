@@ -47,6 +47,7 @@ struct test_check_process : public check_process {
       : check_process(io_context,
                       logger,
                       first_start_expected,
+                      time_step,
                       check_interval,
                       serv,
                       cmd_name,
@@ -81,7 +82,7 @@ TEST(check_process, output_no_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -241,7 +242,7 @@ TEST(check_process, output_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,

@@ -566,6 +566,7 @@ check_service::check_service(
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
+                        time_step,
                         check_interval,
                         serv,
                         cmd_name,
