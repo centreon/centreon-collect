@@ -46,7 +46,7 @@ TEST(check_health_test, no_threshold_no_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -93,7 +93,7 @@ TEST(check_health_test, no_threshold_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -140,7 +140,7 @@ TEST(check_health_test, threshold_1) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -193,7 +193,7 @@ TEST(check_health_test, threshold_2) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -246,7 +246,7 @@ TEST(check_health_test, threshold_3) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -299,7 +299,7 @@ TEST(check_health_test, threshold_4) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,

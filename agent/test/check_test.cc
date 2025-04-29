@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <chrono>
 
 #include "check.hh"
 
@@ -79,6 +80,7 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
+              std::chrono::milliseconds(10),
               std::chrono::seconds(1),
               serv,
               command_name,

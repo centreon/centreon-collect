@@ -370,6 +370,7 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
 check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
+                           duration time_step,
                            duration check_interval,
                            const std::string& serv,
                            const std::string& cmd_name,

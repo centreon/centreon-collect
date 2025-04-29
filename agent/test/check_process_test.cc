@@ -35,6 +35,7 @@ struct test_check_process : public check_process {
   test_check_process(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
+                     duration time_step,
                      duration check_interval,
                      const std::string& serv,
                      const std::string& cmd_name,

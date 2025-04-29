@@ -38,6 +38,7 @@ class tempo_check : public check {
   tempo_check(const std::shared_ptr<asio::io_context>& io_context,
               const std::shared_ptr<spdlog::logger>& logger,
               time_point exp,
+              duration time_step,
               duration check_interval,
               const std::string& serv,
               const std::string& cmd_name,
@@ -50,6 +51,7 @@ class tempo_check : public check {
       : check(io_context,
               logger,
               exp,
+              time_step,
               check_interval,
               serv,
               cmd_name,
@@ -124,7 +126,6 @@ scheduler_test::create_conf(unsigned nb_serv,
   std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
       std::make_shared<com::centreon::agent::MessageToAgent>();
   auto cnf = conf->mutable_config();
-  cnf->set_check_interval(second_check_period);
   cnf->set_export_period(export_period);
   cnf->set_max_concurrent_checks(max_concurent_check);
   cnf->set_check_timeout(check_timeout);
@@ -134,6 +135,7 @@ scheduler_test::create_conf(unsigned nb_serv,
     serv->set_service_description(fmt::format("serv{}", serv_index + 1));
     serv->set_command_name(fmt::format("command{}", serv_index + 1));
     serv->set_command_line("/usr/bin/ls");
+    serv->set_check_interval(second_check_period);
   }
   return conf;
 }
@@ -145,8 +147,9 @@ TEST_F(scheduler_test, no_config) {
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>&,
          const std::shared_ptr<spdlog::logger>&, time_point /* start expected*/,
-         duration /* check interval */, const std::string& /*service*/,
-         const std::string& /*cmd_name*/, const std::string& /*cmd_line*/,
+         duration /* time_step*/, duration /* check interval */,
+         const std::string& /*service*/, const std::string& /*cmd_name*/,
+         const std::string& /*cmd_line*/,
          const engine_to_agent_request_ptr& /*engine to agent request*/,
          check::completion_handler&&, const checks_statistics::pointer&) {
         return std::shared_ptr<check>();
@@ -189,15 +192,15 @@ TEST_F(scheduler_test, correct_schedule) {
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration check_interval,
+         time_point start_expected, duration time_step, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, check_interval, service,
-            cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, time_step, check_interval,
+            service, cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
@@ -264,15 +267,15 @@ TEST_F(scheduler_test, time_out) {
       },
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration check_interval,
+         time_point start_expected, duration time_step, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, check_interval, service,
-            cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, time_step, check_interval,
+            service, cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
   std::unique_lock l(m);
@@ -319,15 +322,15 @@ TEST_F(scheduler_test, correct_output_examplar) {
       },
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration check_interval,
+         time_point start_expected, duration time_step, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, check_interval, service,
-            cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, time_step, check_interval,
+            service, cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
   std::mutex m;
@@ -402,6 +405,7 @@ class concurent_check : public check {
   concurent_check(const std::shared_ptr<asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,
                   time_point exp,
+                  duration time_step,
                   duration check_interval,
                   const std::string& serv,
                   const std::string& cmd_name,
@@ -414,6 +418,7 @@ class concurent_check : public check {
       : check(io_context,
               logger,
               exp,
+              time_step,
               check_interval,
               serv,
               cmd_name,
@@ -472,15 +477,15 @@ TEST_F(scheduler_test, max_concurent) {
       [&]([[maybe_unused]] const std::shared_ptr<MessageFromAgent>& req) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration check_interval,
+         time_point start_expected, duration time_step, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<concurent_check>(
-            io_context, logger, start_expected, check_interval, service,
-            cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, time_step, check_interval,
+            service, cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(750 -
                                       10) /*the - 10 is for some delay in test
                                              execution from start expected*/

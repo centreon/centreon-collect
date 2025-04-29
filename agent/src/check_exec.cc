@@ -117,6 +117,7 @@ void detail::process::_on_completion() {
 check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
                        const std::shared_ptr<spdlog::logger>& logger,
                        time_point first_start_expected,
+                       duration time_step,
                        duration check_interval,
                        const std::string& serv,
                        const std::string& cmd_name,
@@ -127,6 +128,7 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
+            time_step,
             check_interval,
             serv,
             cmd_name,
@@ -155,6 +157,7 @@ std::shared_ptr<check_exec> check_exec::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
+    duration time_step,
     duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
@@ -163,8 +166,8 @@ std::shared_ptr<check_exec> check_exec::load(
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, cnf, std::move(handler), stat);
+      io_context, logger, first_start_expected, time_step, check_interval, serv,
+      cmd_name, cmd_line, cnf, std::move(handler), stat);
   ret->_init();
   return ret;
 }
@@ -294,6 +297,7 @@ void check_exec::on_completion(unsigned running_index) {
 check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
+                         duration time_step,
                          duration check_interval,
                          const std::string& serv,
                          const std::string& cmd_name,
@@ -305,6 +309,7 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
+            time_step,
             check_interval,
             serv,
             cmd_name,
@@ -334,6 +339,7 @@ std::shared_ptr<check_dummy> check_dummy::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
+    duration time_step,
     duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
@@ -343,8 +349,8 @@ std::shared_ptr<check_dummy> check_dummy::load(
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, output, cnf, std::move(handler), stat);
+      io_context, logger, first_start_expected, time_step, check_interval, serv,
+      cmd_name, cmd_line, output, cnf, std::move(handler), stat);
   return ret;
 }
 

@@ -37,6 +37,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
+      duration /*time step*/,
       duration /* check interval */,
       const std::string& /*service*/,
       const std::string& /*cmd_name*/,
@@ -84,9 +85,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // last received configuration
   engine_to_agent_request_ptr _conf;
 
-  // As protobuf message calculation can be expensive, we measure size of first protobuf message of ten metrics for example,
-  // then we devide it by the number of metrics and we store it in this variable
-  // For the next frames, we multiply metrics number by this variable to estimate message length
+  // As protobuf message calculation can be expensive, we measure size of first
+  // protobuf message of ten metrics for example, then we devide it by the
+  // number of metrics and we store it in this variable For the next frames, we
+  // multiply metrics number by this variable to estimate message length
   unsigned _average_metric_length;
 
   void _start();
@@ -166,6 +168,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
+      duration inter_check_delay,
       duration check_interval,
       const std::string& service,
       const std::string& cmd_name,

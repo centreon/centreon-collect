@@ -192,7 +192,6 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       std::make_shared<agent::MessageToAgent>();
   {
     agent::AgentConfiguration* cnf = new_conf->mutable_config();
-    cnf->set_check_interval(_conf->get_check_interval());
     cnf->set_check_timeout(_conf->get_check_timeout());
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
@@ -206,7 +205,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       bool at_least_one_command_found = get_otel_commands(
           _agent_info->init().host(),
           [cnf, &peer](const std::string& cmd_name, const std::string& cmd_line,
-                       const std::string& service,
+                       const std::string& service, uint32_t check_interval,
                        const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(cmd_name, cmd_line, service, cnf,
                                              logger, peer);

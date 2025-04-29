@@ -30,7 +30,7 @@ Unicode false
 
 #Match to windows file path C:\tutu yoyo1234 titi\fgdfgdg.rt
 !define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\.]+\s+)*[\w\.]+)+)+$$'
-
+modifier la regex pour autoriser les - et _
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
 !define NSCLIENT_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"

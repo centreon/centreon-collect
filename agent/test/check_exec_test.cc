@@ -47,7 +47,7 @@ TEST(check_exec_test, echo) {
   std::mutex mut;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
@@ -78,7 +78,7 @@ TEST(check_exec_test, timeout) {
   std::list<std::string> outputs;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
@@ -125,7 +125,7 @@ TEST(check_exec_test, bad_command) {
   std::condition_variable cond;
   std::mutex mut;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
@@ -164,7 +164,7 @@ TEST(check_exec_test, recurse_not_lock) {
   std::condition_variable cond;
   unsigned cpt = 0;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
+      g_io_context, spdlog::default_logger(), {}, {}, {}, serv, cmd_name,
       command_line, engine_to_agent_request_ptr(),
       [&](const std::shared_ptr<com::centreon::agent::check>& caller, int,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
