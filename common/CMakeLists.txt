@@ -85,11 +85,11 @@ target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(http)
   add_subdirectory(vault)
-  add_subdirectory(crypto)
 endif()
 
 add_subdirectory(grpc)
 add_subdirectory(process)
+add_subdirectory(crypto)
 
 if(WITH_TESTING)
   add_subdirectory(tests)

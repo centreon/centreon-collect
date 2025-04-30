@@ -64,6 +64,31 @@ agent_impl<bireactor_class>::agent_impl(
     : _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
+      _exp_time(std::chrono::system_clock::time_point::min()),
+      _conf(conf),
+      _metric_handler(handler),
+      _write_pending(false),
+      _logger(logger),
+      _alive(true),
+      _stats(stats) {
+  SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
+                      static_cast<const void*>(this));
+}
+
+template <class bireactor_class>
+agent_impl<bireactor_class>::agent_impl(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::string_view class_name,
+    const agent_config::pointer& conf,
+    const metric_handler& handler,
+    const std::shared_ptr<spdlog::logger>& logger,
+    bool reversed,
+    const agent_stat::pointer& stats,
+    const std::chrono::system_clock::time_point& exp_time)
+    : _io_context(io_context),
+      _class_name(class_name),
+      _reversed(reversed),
+      _exp_time(exp_time),
       _conf(conf),
       _metric_handler(handler),
       _write_pending(false),
@@ -294,6 +319,14 @@ void agent_impl<bireactor_class>::start_read() {
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
+    if (_exp_time != std::chrono::system_clock::time_point::min() &&
+        _exp_time <= std::chrono::system_clock::now()) {
+      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
+                          static_cast<void*>(this), _class_name);
+      on_error();
+      this->shutdown();
+      return;
+    }
     std::shared_ptr<agent::MessageFromAgent> readden;
     {
       absl::MutexLock l(&_protect);

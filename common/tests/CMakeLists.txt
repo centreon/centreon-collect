@@ -23,6 +23,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/base64.cc
     engine_conf/expand_conf.cc
     file_test.cc
+    jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc

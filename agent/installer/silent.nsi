@@ -70,6 +70,7 @@ Function show_help
         FileWrite $0 "--public_cert         Public certificate file path. Mandatory if encryption and poller-initiated connection are active.$\n"
         FileWrite $0 "--ca                  Trusted CA's certificate file path.$\n"
         FileWrite $0 "--ca_name             Expected TLS certificate common name (CN). Don't use it if unsure.$\n"
+        FileWrite $0 "--token               Authentication token for secure communication.$\n"
         SetErrorLevel 2
         Quit
     ${EndIf}
@@ -253,6 +254,17 @@ Function cmd_line_to_registry
         WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
     ${EndIf}
 
+    #token
+    ClearErrors
+    ${GetOptions} $cmdline_parameters "--token" $0
+    ${IfNot} ${Errors}
+        WriteRegStr HKLM ${CMA_REG_KEY} "token" "$0"
+        ${If} ${Errors}
+            StrCpy $1 "Failed to write registry key for token"
+            Call silent_fatal_error
+        ${EndIf}
+    ${EndIf}
+
 FunctionEnd
 
 /**
@@ -405,6 +417,16 @@ Function silent_update_conf
         ${EndIf}
     ${EndIf}
 
+    #token
+    ClearErrors
+    ${GetOptions} $cmdline_parameters "--token" $0
+    ${IfNot} ${Errors}
+        WriteRegStr HKLM ${CMA_REG_KEY} "token" "$0"
+        ${If} ${Errors}
+            StrCpy $1 "Failed to write registry key for token"
+            Call silent_fatal_error
+        ${EndIf}
+    ${EndIf}
 
 FunctionEnd
 

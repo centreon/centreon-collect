@@ -292,6 +292,8 @@ Function init_encryption_dlg
     ${NSD_SetText} $hCtl_encryption_ca_file_Txt $0
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "ca_name"
     ${NSD_SetText} $hCtl_encryption_ca_name $0
+    ReadRegStr $0 HKLM ${CMA_REG_KEY} "token"
+    ${NSD_SetText} $hCtl_encryption_token $0
 
     Pop $0
 FunctionEnd
@@ -361,11 +363,25 @@ Function encryption_dlg_onNext
             Abort
         ${EndIf}
 
+        Push $4
+        ${NSD_GetText} $hCtl_encryption_token $4
+        ${If} $4 == ""
+            MessageBox MB_OK|MB_ICONSTOP "Token cannot be empty if encryption is enabled."
+            Pop $4
+            Pop $3
+            Pop $2
+            Pop $1
+            Pop $0
+            Abort
+        ${EndIf}
+
         WriteRegStr HKLM ${CMA_REG_KEY} "public_cert" $1
         WriteRegStr HKLM ${CMA_REG_KEY} "private_key" $2
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_certificate" $3
         ${NSD_GetText} $hCtl_encryption_ca_name $1
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $1
+        WriteRegStr HKLM ${CMA_REG_KEY} "token" $4
+        Pop $4
         Pop $3
         Pop $2
     ${Else}
@@ -399,6 +415,9 @@ Function on_encryptioncheckbox_click
         ShowWindow $hCtl_encryption_ca_file_help ${SW_SHOW}
         ShowWindow $hCtl_encryption_certificate_file_help ${SW_SHOW}
         ShowWindow $hCtl_encryption_private_key_file_help ${SW_SHOW}
+        ShowWindow $hCtl_encryption_token ${SW_SHOW}
+        ShowWindow $hCtl_encryption_label_token ${SW_SHOW}
+        ShowWindow $hCtl_encryption_token_help ${SW_SHOW}
     ${Else}
         ShowWindow $hCtl_encryption_EncryptionGroupBox ${SW_HIDE}
         ShowWindow $hCtl_encryption_label_private_key_file ${SW_HIDE}
@@ -416,6 +435,9 @@ Function on_encryptioncheckbox_click
         ShowWindow $hCtl_encryption_ca_file_help ${SW_HIDE}
         ShowWindow $hCtl_encryption_certificate_file_help ${SW_HIDE}
         ShowWindow $hCtl_encryption_private_key_file_help ${SW_HIDE}
+        ShowWindow $hCtl_encryption_token ${SW_HIDE}
+        ShowWindow $hCtl_encryption_label_token ${SW_HIDE}
+        ShowWindow $hCtl_encryption_token_help ${SW_HIDE}
 	${EndIf}
     Pop $0
 FunctionEnd
@@ -447,4 +469,11 @@ FunctionEnd
 */
 Function ca_name_help_onClick
     MessageBox MB_ICONINFORMATION "Expected TLS certificate common name (CN) - leave blank if unsure."
+FunctionEnd
+
+/**
+  * @brief ca name I image onClick handler
+*/
+Function token_help_onClick
+    MessageBox MB_ICONINFORMATION "Expected JWT(Json Web Token)"
 FunctionEnd
