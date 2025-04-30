@@ -526,6 +526,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_indexed_config.mut_state().set_broker_module_cfg_file(
       new_cfg.broker_module_cfg_file());
   pb_indexed_config.mut_state().set_config_version(new_cfg.config_version());
+  pb_indexed_config.mut_state().set_broker_module_config_file(
+      new_cfg.broker_module_config_file());
   pb_indexed_config.mut_state().clear_user();
   for (auto& p : new_cfg.user())
     pb_indexed_config.mut_state().mutable_user()->at(p.first) = p.second;

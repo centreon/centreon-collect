@@ -296,6 +296,8 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
           }
 
@@ -364,7 +366,7 @@ int main(int argc, char* argv[]) {
 
           configuration::extended_conf::update_state(new_conf.get());
           if (broker_config.empty())
-            broker_config = new_cfg->broker_module_cfg_file();
+            broker_config = new_conf->broker_module_cfg_file();
           uint16_t port = new_conf->grpc_port();
 
           if (broker_config.empty()) {
@@ -449,9 +451,9 @@ int main(int argc, char* argv[]) {
            * database. Doing this, imply we also have to check if cbm is
            * defined in broker.cc.
            */
-          cbm =
-              std::make_unique<cbmod>(broker_config, proto_conf,
-                                      pb_indexed_config.state().config_version());
+          cbm = std::make_unique<cbmod>(
+              broker_config, proto_conf,
+              pb_indexed_config.state().config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 
