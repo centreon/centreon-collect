@@ -29,7 +29,7 @@ namespace com::centreon::engine {
 namespace commands {
 class connector;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -138,10 +138,11 @@ class connector : public command, public process_listener {
   void restart_connector();
 
   static connector_map connectors;
+  void stop_connector();
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::commands::connector const& obj);
