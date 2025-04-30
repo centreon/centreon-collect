@@ -548,3 +548,49 @@ BESSG
     Ctn Wait For Engine To Be Ready    ${start}    1
     Ctn Stop Engine
     Ctn Kindly Stop Broker    ${True}
+
+BESSCTO
+    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
+    ...    Given the Engine is configured as usual but without the Perl Connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+    [Tags]    engine    start-stop    MON-168055
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Engine Command Remove Connector    ${0}    *
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1
+    FOR    ${i}    IN RANGE    2
+      ${start}    Ctn Get Round Current Date
+      Ctn Start Broker    ${True}
+      Ctn Start Engine
+      Ctn Wait For Engine To Be Ready    ${start}    1
+      Sleep    60s
+      Ctn Stop Engine
+      Ctn Kindly Stop Broker    ${True}
+    END
+
+BESSCTOWC
+    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
+    ...    Given the Engine is configured as usual with some commands using the Perl Connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+
+    [Tags]    engine    start-stop    MON-168055
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1
+    FOR    ${i}    IN RANGE    2
+      ${start}    Ctn Get Round Current Date
+      Ctn Start Broker    ${True}
+      Ctn Start Engine
+      Ctn Wait For Engine To Be Ready    ${start}    1
+      Sleep    60s
+      Ctn Stop Engine
+      Ctn Kindly Stop Broker    ${True}
+    END

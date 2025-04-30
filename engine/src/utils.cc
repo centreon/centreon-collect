@@ -32,6 +32,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -419,6 +420,9 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling && !verify_config) {
     checks::checker::deinit();
+    for (auto& c : commands::connector::connectors)
+      c.second->stop_connector();
+
     neb_free_callback_list();
     neb_unload_all_modules(NEBMODULE_FORCE_UNLOAD, sigshutdown
                                                        ? NEBMODULE_NEB_SHUTDOWN

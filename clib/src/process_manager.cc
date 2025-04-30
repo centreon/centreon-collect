@@ -283,7 +283,7 @@ void process_manager::_run() {
   try {
     for (;;) {
       // Update the file descriptor list.
-      if (_update)
+      if (_update || _finished)
         _update_list();
       if (_finished)
         _stop_processes();
