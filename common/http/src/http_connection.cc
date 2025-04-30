@@ -169,7 +169,7 @@ http_connection::pointer http_connection::load(
       fmt::format("{:p} " error_string, static_cast<void*>(this), *_conf, \
                   state_to_str(expected));                                \
   SPDLOG_LOGGER_ERROR(_logger, detail);                                   \
-  _io_context->post([cb = std::move(callback), detail]() {                \
+  asio::post(*_io_context, [cb = std::move(callback), detail]() {         \
     cb(std::make_error_code(std::errc::invalid_argument), detail);        \
   });                                                                     \
   return;
@@ -249,8 +249,7 @@ void http_connection::_on_accept(connect_callback_type&& callback) {
 
   SPDLOG_LOGGER_DEBUG(_logger, "{:p} accepted from {}",
                       static_cast<void*>(this), _peer);
-
-  _io_context->post([cb = std::move(callback)]() { cb({}, ""); });
+  asio::post(*_io_context, [cb = std::move(callback)]() { cb({}, {}); });
 }
 
 void http_connection::init_keep_alive() {
@@ -282,7 +281,7 @@ void http_connection::init_keep_alive() {
       fmt::format("{:p}" error_string, static_cast<void*>(this), *_conf, \
                   state_to_str(expected));                               \
   SPDLOG_LOGGER_ERROR(_logger, detail);                                  \
-  _io_context->post([cb = std::move(callback), detail]() {               \
+  asio::post(*_io_context, [cb = std::move(callback), detail]() {        \
     cb(std::make_error_code(std::errc::invalid_argument), detail,        \
        response_ptr());                                                  \
   });                                                                    \
@@ -430,7 +429,7 @@ void http_connection::answer(const response_ptr& response,
         "answer to {}, bad state {}",
         static_cast<void*>(this), _peer, state_to_str(expected));
     SPDLOG_LOGGER_ERROR(_logger, detail);
-    _io_context->post([cb = std::move(callback), detail]() {
+    asio::post(*_io_context, [cb = std::move(callback), detail]() {
       cb(std::make_error_code(std::errc::invalid_argument), detail);
     });
     return;
@@ -476,7 +475,7 @@ void http_connection::receive_request(request_callback_type&& callback) {
         "receive_request from {}, bad state {}",
         static_cast<void*>(this), _peer, state_to_str(expected));
     SPDLOG_LOGGER_ERROR(_logger, detail);
-    _io_context->post([cb = std::move(callback), detail]() {
+    asio::post(*_io_context, [cb = std::move(callback), detail]() {
       cb(std::make_error_code(std::errc::invalid_argument), detail,
          std::shared_ptr<request_type>());
     });

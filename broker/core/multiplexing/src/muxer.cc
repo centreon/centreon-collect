@@ -315,30 +315,32 @@ void muxer::_execute_reader_if_needed() {
       _logger, "muxer '{}' execute reader if needed data_handler", _name);
   bool expected = false;
   if (_reader_running.compare_exchange_strong(expected, true)) {
-    com::centreon::common::pool::io_context_ptr()->post(
-        [me = shared_from_this(), this] {
-          std::shared_ptr<data_handler> to_call;
-          {
-            absl::MutexLock lck(&_events_m);
-            to_call = _data_handler;
-          }
-          if (to_call) {
-            std::vector<std::shared_ptr<io::data>> to_fill;
-            to_fill.reserve(_events_size);
-            bool still_events_to_read = read(to_fill, _events_size);
-            uint32_t written = to_call->on_events(to_fill);
-            if (written > 0)
-              ack_events(written);
-            if (written != to_fill.size()) {
-              SPDLOG_LOGGER_ERROR(
-                  _logger,
-                  "Unable to handle all the incoming events in muxer '{}'",
-                  _name);
-              clear_action_on_new_data();
-            }
-            _reader_running.store(false);
-          }
-        });
+    asio::post(*com::centreon::common::pool::io_context_ptr(),
+               [me = shared_from_this(), this] {
+                 std::shared_ptr<data_handler> to_call;
+                 {
+                   absl::MutexLock lck(&_events_m);
+                   to_call = _data_handler;
+                 }
+                 if (to_call) {
+                   std::vector<std::shared_ptr<io::data>> to_fill;
+                   to_fill.reserve(_events_size);
+                   bool still_events_to_read [[maybe_unused]] =
+                       read(to_fill, _events_size);
+                   uint32_t written = to_call->on_events(to_fill);
+                   if (written > 0)
+                     ack_events(written);
+                   if (written != to_fill.size()) {
+                     SPDLOG_LOGGER_ERROR(
+                         _logger,
+                         "Unable to handle all the incoming events in "
+                         "muxer '{}'",
+                         _name);
+                     clear_action_on_new_data();
+                   }
+                   _reader_running.store(false);
+                 }
+               });
   }
 }
 
