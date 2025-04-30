@@ -19,13 +19,8 @@
 #ifndef CCB_INFLUXDB_MACRO_CACHE_HH
 #define CCB_INFLUXDB_MACRO_CACHE_HH
 
-#include <absl/container/flat_hash_map.h>
-
 #include "com/centreon/broker/influxdb/internal.hh"
-#include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/neb/host.hh"
-#include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/service.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker::influxdb {
@@ -37,20 +32,18 @@ namespace com::centreon::broker::influxdb {
  */
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
-  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _instances;
-  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _hosts;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
+  std::unordered_map<uint64_t, std::shared_ptr<neb::pb_instance>> _instances;
+  std::unordered_map<uint64_t, std::shared_ptr<neb::pb_host>> _hosts;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_service>>
       _services;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
   absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
 
-  void _process_instance(std::shared_ptr<io::data> const& data);
   void _process_pb_instance(std::shared_ptr<io::data> const& data);
-  void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
-  void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_index_mapping(std::shared_ptr<io::data> const& data);
   void _process_metric_mapping(std::shared_ptr<io::data> const& data);
