@@ -117,7 +117,7 @@ find_program(GRPC_CPP_PLUGIN
 
 set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
 set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
-set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIR})
+set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIRS})
 include(GNUInstallDirs)
 
 #import opentelemetry-proto
