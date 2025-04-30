@@ -296,6 +296,8 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
           }
 
