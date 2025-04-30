@@ -203,19 +203,13 @@ int main(int argc, char* argv[]) {
       if (vm.count("config-file"))
         config_file = vm["config-file"].as<std::string>();
 
-      // Invalid argument count.
-      if (broker_config.empty()) {
-        std::cerr << "No broker configuration file specified." << std::endl;
-        error = true;
-      } else {
-        // Make sure the config file uses an absolute path.
-        if (config_file[0] != '/') {
-          // Get absolute path of current working directory.
-          std::string buffer{
-              fmt::format("{}/{}", std::string{std::filesystem::current_path()},
-                          config_file)};
-          config_file = std::move(buffer);
-        }
+      // Make sure the config file uses an absolute path.
+      if (config_file[0] != '/') {
+        // Get absolute path of current working directory.
+        std::string buffer{
+            fmt::format("{}/{}", std::string{std::filesystem::current_path()},
+                        config_file)};
+        config_file = std::move(buffer);
       }
 
       // Reset umask.
@@ -242,6 +236,8 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_config_file();
             state_hlp.expand(err);
           }
           configuration::applier::state::instance().apply(*pb_cfg, err);
@@ -300,6 +296,8 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, pb_cfg.get(), err);
+            if (broker_config.empty())
+              broker_config = pb_cfg->broker_module_config_file();
             state_hlp.expand(err);
           }
 
@@ -367,8 +365,16 @@ int main(int argc, char* argv[]) {
                                                  extended_conf_file.end());
 
           configuration::extended_conf::update_state(new_conf.get());
+          if (broker_config.empty())
+            broker_config = new_conf->broker_module_config_file();
           uint16_t port = new_conf->grpc_port();
 
+          if (broker_config.empty()) {
+            std::cerr << "No module configuration file provided in the Engine "
+                         "configuration file."
+                      << std::endl;
+            exit(EXIT_FAILURE);
+          }
           if (!port)
             port = generate_port();
 
@@ -445,9 +451,9 @@ int main(int argc, char* argv[]) {
            * database. Doing this, imply we also have to check if cbm is
            * defined in broker.cc.
            */
-          cbm =
-              std::make_unique<cbmod>(broker_config, proto_conf,
-                                      pb_indexed_config.state().config_version());
+          cbm = std::make_unique<cbmod>(
+              broker_config, proto_conf,
+              pb_indexed_config.state().config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 

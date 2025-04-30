@@ -17,8 +17,8 @@
  */
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/sql/bulk_query.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/utf8.hh"
 
 using namespace com::centreon::broker::database;
@@ -102,20 +102,30 @@ void database_configurator::_disable_hosts() {
 
 constexpr std::string_view add_hosts_query(
     "INSERT INTO hosts (host_id, name, instance_id, action_url, enabled, "
-    "active_checks, address, alias, check_freshness) VALUES");
+    "active_checks, address, alias, check_freshness, check_interval, "
+    "check_period, display_name, event_handler, event_handler_enabled, "
+    "first_notification_delay, flap_detection) VALUES");
 constexpr std::string_view add_hosts_query_suffix(
     "ON DUPLICATE KEY UPDATE "
     "name=VALUES(name), instance_id=VALUES(instance_id), action_url="
     "VALUES(action_url), active_checks=VALUES(active_checks), enabled="
     "VALUES(enabled), address=VALUES(address), alias=VALUES(alias), "
-    "check_freshness=VALUES(check_freshness)");
+    "check_freshness=VALUES(check_freshness), check_interval=VALUES("
+    "check_interval), check_period=VALUES(check_period), display_name="
+    "VALUES(display_name), event_handler=VALUES(event_handler), "
+    "event_handler_enabled=VALUES(event_handler_enabled), "
+    "first_notification_delay=VALUES(first_notification_delay), "
+    "flap_detection=VALUES(flap_detection)");
 void database_configurator::_add_hosts_mariadb() {
-  mysql& mysql = _stream->get_mysql();
-  std::string query(fmt::format("{} {} {}", add_hosts_query,
-                                "(?, ?, ?, ?, ?, ?, ?, ?)",
-                                add_hosts_query_suffix));
+  std::string query(
+      fmt::format("{} {} {}", add_hosts_query,
+                  "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  add_hosts_query_suffix));
   mysql_bulk_stmt stmt(query);
-  mysql.prepare_statement(stmt);
+  mysql& mysql = _stream->get_mysql();
+  if (!stmt.prepared())
+    mysql.prepare_statement(stmt);
+
   auto bind = stmt.create_bind();
 
   for (const auto& host : _diff.hosts().added()) {
@@ -140,6 +150,23 @@ void database_configurator::_add_hosts_mariadb() {
         common::truncate_utf8(host.alias(), get_centreon_storage_hosts_col_size(
                                                 centreon_storage_hosts_alias)));
     bind->set_value_as_bool(8, host.check_freshness());
+    bind->set_value_as_i32(9, host.check_interval());
+    bind->set_value_as_str(
+        10, common::truncate_utf8(host.check_period(),
+                                  get_centreon_storage_hosts_col_size(
+                                      centreon_storage_hosts_check_period)));
+    bind->set_value_as_str(
+        11, common::truncate_utf8(host.display_name(),
+                                  get_centreon_storage_hosts_col_size(
+                                      centreon_storage_hosts_display_name)));
+    bind->set_value_as_str(
+        12, common::truncate_utf8(host.event_handler(),
+                                  get_centreon_storage_hosts_col_size(
+                                      centreon_storage_hosts_event_handler)));
+    bind->set_value_as_bool(13, host.event_handler_enabled());
+    bind->set_value_as_f64(14, host.first_notification_delay());
+    bind->set_value_as_bool(15, host.flap_detection_enabled());
+
     bind->next_row();
   }
   stmt.set_bind(std::move(bind));

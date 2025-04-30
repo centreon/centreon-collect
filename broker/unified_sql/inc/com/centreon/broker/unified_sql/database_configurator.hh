@@ -19,8 +19,8 @@
 #ifndef CCB_UNIFIED_SQL_DATABASE_CONFIGURATOR_HH
 #define CCB_UNIFIED_SQL_DATABASE_CONFIGURATOR_HH
 #include "com/centreon/broker/sql/mysql.hh"
-#include "common/engine_conf/state.pb.h"
 #include "com/centreon/broker/unified_sql/stream.hh"
+#include "common/engine_conf/state.pb.h"
 
 using com::centreon::engine::configuration::DiffState;
 
@@ -41,6 +41,7 @@ class database_configurator {
                         stream* stream,
                         const std::shared_ptr<spdlog::logger>& logger)
       : _diff(diff), _stream(stream), _logger(logger) {}
+
   database_configurator(const database_configurator&) = delete;
 
   void process();
