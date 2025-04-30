@@ -336,11 +336,6 @@ jobs:
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
-          - image: packaging-centreon-collect-vcpkg-noble
-            distrib: noble
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -455,13 +450,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-jammy-amd64
             tests_params: '{}'
-          - distrib: noble
-            image: centreon-collect-mariadb-noble-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-noble-amd64
-            tests_params: '{}'
 
     name: ${{ matrix.test_group_name }}
 
@@ -553,8 +541,6 @@ jobs:
             arch: amd64
           - distrib: jammy
             arch: arm64
-          - distrib: noble
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
