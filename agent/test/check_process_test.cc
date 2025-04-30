@@ -35,7 +35,6 @@ struct test_check_process : public check_process {
   test_check_process(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
-                     duration time_step,
                      duration check_interval,
                      const std::string& serv,
                      const std::string& cmd_name,
@@ -47,7 +46,6 @@ struct test_check_process : public check_process {
       : check_process(io_context,
                       logger,
                       first_start_expected,
-                      time_step,
                       check_interval,
                       serv,
                       cmd_name,
@@ -82,7 +80,7 @@ TEST(check_process, output_no_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -242,7 +240,7 @@ TEST(check_process, output_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,

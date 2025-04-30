@@ -42,7 +42,6 @@ class test_check : public check_memory {
             spdlog::default_logger(),
             {},
             {},
-            {},
             "serv"s,
             "cmd_name"s,
             "cmd_line"s,

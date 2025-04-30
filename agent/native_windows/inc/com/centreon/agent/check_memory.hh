@@ -76,7 +76,6 @@ class check_memory : public native_check_base<
   check_memory(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                time_point first_start_expected,
-               duration inter_check_delay,
                duration check_interval,
                const std::string& serv,
                const std::string& cmd_name,

@@ -38,7 +38,6 @@ class tempo_check : public check {
   tempo_check(const std::shared_ptr<asio::io_context>& io_context,
               const std::shared_ptr<spdlog::logger>& logger,
               time_point exp,
-              duration time_step,
               duration check_interval,
               const std::string& serv,
               const std::string& cmd_name,
@@ -51,7 +50,6 @@ class tempo_check : public check {
       : check(io_context,
               logger,
               exp,
-              time_step,
               check_interval,
               serv,
               cmd_name,
@@ -147,9 +145,8 @@ TEST_F(scheduler_test, no_config) {
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>&,
          const std::shared_ptr<spdlog::logger>&, time_point /* start expected*/,
-         duration /* time_step*/, duration /* check interval */,
-         const std::string& /*service*/, const std::string& /*cmd_name*/,
-         const std::string& /*cmd_line*/,
+         duration /* check interval */, const std::string& /*service*/,
+         const std::string& /*cmd_name*/, const std::string& /*cmd_line*/,
          const engine_to_agent_request_ptr& /*engine to agent request*/,
          check::completion_handler&&, const checks_statistics::pointer&) {
         return std::shared_ptr<check>();
@@ -169,17 +166,36 @@ TEST_F(scheduler_test, no_config) {
 
 static bool tempo_check_assert_pred(const time_point& after,
                                     const time_point& before) {
-  if ((after - before) <= std::chrono::milliseconds(400)) {
+  if ((after - before) <= std::chrono::milliseconds(250)) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
-  if ((after - before) >= std::chrono::milliseconds(600)) {
+  if ((after - before) >= std::chrono::milliseconds(750)) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
   return true;
 }
 
+static bool tempo_check_interval(const time_point& after,
+                                 const time_point& before) {
+  if ((after - before) <= std::chrono::seconds(9)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  if ((after - before) >= std::chrono::seconds(11)) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief We plan 20 checks with a 10 s check period
+ * We expect that first between check interval is around 500ms
+ * Then we check that check interval is about 10s
+ *
+ */
 TEST_F(scheduler_test, correct_schedule) {
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -192,15 +208,15 @@ TEST_F(scheduler_test, correct_schedule) {
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration time_step, duration check_interval,
+         time_point start_expected, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
@@ -224,22 +240,20 @@ TEST_F(scheduler_test, correct_schedule) {
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-
+  std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+  // we have at least two checks for each service
   {
     std::lock_guard l(tempo_check::check_starts_m);
     ASSERT_GE(tempo_check::check_starts.size(), 40);
-    bool first = true;
-    std::pair<tempo_check*, time_point> previous;
-    for (const auto& check_time : tempo_check::check_starts) {
-      if (first) {
-        first = false;
+    std::map<tempo_check*, time_point> previous;
+    for (const auto& [check, tp] : tempo_check::check_starts) {
+      auto yet_one = previous.find(check);
+      if (yet_one == previous.end()) {
+        previous.emplace(check, tp);
       } else {
-        ASSERT_NE(previous.first, check_time.first);
-        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
-                     previous.second);
+        ASSERT_PRED2(tempo_check_interval, tp, yet_one->second);
+        yet_one->second = tp;
       }
-      previous = check_time;
     }
   }
 
@@ -267,15 +281,15 @@ TEST_F(scheduler_test, time_out) {
       },
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration time_step, duration check_interval,
+         time_point start_expected, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
   std::unique_lock l(m);
@@ -322,15 +336,15 @@ TEST_F(scheduler_test, correct_output_examplar) {
       },
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration time_step, duration check_interval,
+         time_point start_expected, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<tempo_check>(
-            io_context, logger, start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
   std::mutex m;
@@ -405,7 +419,6 @@ class concurent_check : public check {
   concurent_check(const std::shared_ptr<asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,
                   time_point exp,
-                  duration time_step,
                   duration check_interval,
                   const std::string& serv,
                   const std::string& cmd_name,
@@ -418,7 +431,6 @@ class concurent_check : public check {
       : check(io_context,
               logger,
               exp,
-              time_step,
               check_interval,
               serv,
               cmd_name,
@@ -477,15 +489,15 @@ TEST_F(scheduler_test, max_concurent) {
       [&]([[maybe_unused]] const std::shared_ptr<MessageFromAgent>& req) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         time_point start_expected, duration time_step, duration check_interval,
+         time_point start_expected, duration check_interval,
          const std::string& service, const std::string& cmd_name,
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
          const checks_statistics::pointer& stat) {
         return std::make_shared<concurent_check>(
-            io_context, logger, start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, engine_to_agent_request, 0,
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(750 -
                                       10) /*the - 10 is for some delay in test
                                              execution from start expected*/

@@ -37,7 +37,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
-      duration /*time step*/,
       duration /* check interval */,
       const std::string& /*service*/,
       const std::string& /*cmd_name*/,
@@ -47,8 +46,14 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const checks_statistics::pointer& /*stat*/)>;
 
  private:
-  using check_queue =
-      absl::btree_set<check::pointer, check::pointer_start_compare>;
+  /**
+   * @brief we split time in slots, length of a time slot is given by
+   * _check_time_step._step As we start at most one check per time slot, queue
+   * is indexed by step number from scheduling calculation (the time we receive
+   * configuration from engine)
+   *
+   */
+  using check_queue = std::map<uint64_t /*number of steps*/, check::pointer>;
 
   check_queue _waiting_check_queue;
   // running check counter that must not exceed max_concurrent_check
@@ -168,7 +173,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration inter_check_delay,
       duration check_interval,
       const std::string& service,
       const std::string& cmd_name,

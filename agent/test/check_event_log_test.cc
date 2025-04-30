@@ -40,7 +40,7 @@ TEST(check_event_log, empty) {
       R"({ "file" : "System", "empty-state": "${status}, ${count}, Empty or no match for this filter"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -76,7 +76,7 @@ TEST(check_event_log, warning) {
       R"({ "file" : "System", "warning-status": "level == 'warning' and written > -2s", "verbose": false})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -134,7 +134,7 @@ TEST(check_event_log, critical) {
       "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${computer} ${channel} ${keywords} ${level} ${record_id} ${written_str}'"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -208,7 +208,7 @@ TEST(check_event_log, critical_verbose) {
         "event-detail-syntax": "'${file} ${source} ${log} ${provider} ${id} ${message} ${status} ${written} ${written_str}'"})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -270,7 +270,7 @@ TEST(check_event_log, critical_to_warning) {
       R"({ "file" : "System", "critical-status": "level == 'error' and written > -2s", "verbose": false})"_json;
 
   check_event_log checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,

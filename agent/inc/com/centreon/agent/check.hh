@@ -155,7 +155,6 @@ class check : public std::enable_shared_from_this<check> {
   // it's updated on check_start and added of multiple of check_interval
   // (check_period / nb_check) on check completion
   time_step _start_expected;
-  duration _check_interval;
   const std::string& _service;
   const std::string& _command_name;
   const std::string& _command_line;
@@ -203,7 +202,6 @@ class check : public std::enable_shared_from_this<check> {
   check(const std::shared_ptr<asio::io_context>& io_context,
         const std::shared_ptr<spdlog::logger>& logger,
         time_point first_start_expected,
-        duration inter_check_delay,
         duration check_interval,
         const std::string& serv,
         const std::string& command_name,
@@ -229,7 +227,7 @@ class check : public std::enable_shared_from_this<check> {
 
   time_point get_start_expected() const { return _start_expected.value(); }
 
-  duration get_check_interval() const { return _check_interval; }
+  duration get_check_interval() const { return _start_expected.get_step(); }
 
   const time_step& get_raw_start_expected() const { return _start_expected; }
 

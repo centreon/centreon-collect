@@ -33,7 +33,7 @@ TEST(native_check_uptime, ok) {
       R"({ "warning-uptime" : "345600", "critical-uptime" : "172800"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -64,7 +64,7 @@ TEST(native_check_uptime, ok_m) {
       R"({ "warning-uptime" : "5760", "critical-uptime" : "2880", "unit": "m"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -95,7 +95,7 @@ TEST(native_check_uptime, ok_h) {
       R"({ "warning-uptime" : "96", "critical-uptime" : "48", "unit": "h"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -126,7 +126,7 @@ TEST(native_check_uptime, ok_d) {
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -157,7 +157,7 @@ TEST(native_check_uptime, ok_w) {
       R"({ "warning-uptime" : "2", "critical-uptime" : "1", "unit": "w"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -188,7 +188,7 @@ TEST(native_check_uptime, warning) {
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -219,7 +219,7 @@ TEST(native_check_uptime, warning_bis) {
       R"({ "warning-uptime" : "4", "critical-uptime" : "", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -250,7 +250,7 @@ TEST(native_check_uptime, critical) {
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
@@ -280,7 +280,7 @@ TEST(native_check_uptime, critical_bis) {
       R"({ "warning-uptime" : "", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, {}, "serv"s, "cmd_name"s,
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
       "cmd_line"s, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,

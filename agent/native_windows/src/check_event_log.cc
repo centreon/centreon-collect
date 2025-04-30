@@ -54,7 +54,6 @@ check_event_log::check_event_log(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration time_step,
     duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
@@ -66,7 +65,6 @@ check_event_log::check_event_log(
     : check(io_context,
             logger,
             first_start_expected,
-            time_step,
             check_interval,
             serv,
             cmd_name,
@@ -151,7 +149,6 @@ std::shared_ptr<check_event_log> check_event_log::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration time_step,
     duration check_interval,
     const std::string& serv,
     const std::string& cmd_name,
@@ -161,8 +158,8 @@ std::shared_ptr<check_event_log> check_event_log::load(
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_event_log> ret = std::make_shared<check_event_log>(
-      io_context, logger, first_start_expected, time_step, check_interval, serv,
-      cmd_name, cmd_line, args, cnf, std::move(handler), stat);
+      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
+      cmd_line, args, cnf, std::move(handler), stat);
 
   ret->_data->start();
 

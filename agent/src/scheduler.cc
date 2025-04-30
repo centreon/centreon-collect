@@ -17,8 +17,6 @@
  */
 
 #include "scheduler.hh"
-#include <chrono>
-#include <cstdint>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -111,14 +109,8 @@ scheduler::default_config() {
  *
  */
 void scheduler::_start_check_timer() {
-  if (_waiting_check_queue.empty() ||
-      _active_check >= _conf->config().max_concurrent_checks()) {
-    _check_time_step.increment_to_after_now();
-    _check_timer.expires_at(_check_time_step.value());
-  } else {
-    _check_timer.expires_at(
-        (*_waiting_check_queue.begin())->get_start_expected());
-  }
+  _check_time_step.increment_to_after_now();
+  _check_timer.expires_at(_check_time_step.value());
   _check_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
         me->_check_timer_handler(err);
@@ -149,9 +141,9 @@ void scheduler::_start_waiting_check() {
     for (check_queue::iterator to_check = _waiting_check_queue.begin();
          !_waiting_check_queue.empty() &&
          to_check != _waiting_check_queue.end() &&
-         (*to_check)->get_start_expected() <= now &&
+         to_check->second->get_start_expected() <= now &&
          _active_check < _conf->config().max_concurrent_checks();) {
-      _start_check(*to_check);
+      _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
     }
   }
@@ -190,9 +182,9 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
         (group_serv.begin()->first * 1000) / nb_check);
     // in order to avoid collision when we will use a time_step equal to
     // first_inter_check_delay / 2 with a little random
-    duration time_unit = (first_inter_check_delay * 4) / 10 +
+    duration time_unit = first_inter_check_delay / 2 +
                          std::chrono::milliseconds(
-                             rand() % (first_inter_check_delay.count() / 5));
+                             rand() % (first_inter_check_delay.count() / 10));
 
     std::chrono::seconds accuracy(conf->config().max_check_interval_error());
     if (accuracy.count() == 0) {
@@ -223,6 +215,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     _check_time_step = time_step(next, time_unit);
 
     auto last_inserted_iter = _waiting_check_queue.end();
+    unsigned step_index = 0;
     while (true) {
       const auto& serv = **group_iter->second.rbegin();
 
@@ -237,7 +230,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       }
       try {
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, time_unit,
+            _io_context, _logger, next,
             std::chrono::seconds(serv.check_interval()),
             serv.service_description(), serv.command_name(),
             serv.command_line(), conf,
@@ -249,8 +242,9 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
             },
             statistics);
         last_inserted_iter = _waiting_check_queue.emplace_hint(
-            last_inserted_iter, check_to_schedule);
+            last_inserted_iter, step_index, check_to_schedule);
         next += first_inter_check_delay;
+        ++step_index;
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(
             _logger, "service: {}  command:{} won't be scheduled cause: {}",
@@ -325,17 +319,17 @@ void scheduler::_check_handler(
   --_active_check;
 
   if (_alive) {
-    time_point min_next_start =
-        check->get_start_expected() + check->get_check_interval();
     time_point now = std::chrono::system_clock::now();
-    if (min_next_start < now)
-      min_next_start = now;
 
     // repush for next check and search a free start slot in queue
-    check->increment_start_expected_to_after_min_timepoint(min_next_start);
-    while (!_waiting_check_queue.insert(check).second) {
+    check->increment_start_expected_to_after_min_timepoint(now);
+
+    time_step slot_search(_check_time_step);
+    slot_search.increment_to_after_min(check->get_start_expected());
+    uint64_t steps = slot_search.get_step_index();
+    while (!_waiting_check_queue.emplace(steps, check).second) {
       // slot yet reserved => try next
-      check->add_check_interval_to_start_expected();
+      ++steps;
     }
   }
 }
@@ -615,7 +609,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration time_step,
     duration check_interval,
     const std::string& service,
     const std::string& cmd_name,
@@ -641,37 +634,37 @@ std::shared_ptr<check> scheduler::default_check_builder(
 
       if (check_type == "cpu_percentage"sv) {
         return std::make_shared<check_cpu>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "health"sv) {
         return std::make_shared<check_health>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
         return std::make_shared<check_uptime>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "storage"sv) {
         return std::make_shared<check_drive_size>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "memory"sv) {
         return std::make_shared<check_memory>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "service"sv) {
         return std::make_shared<check_service>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
         return check_event_log::load(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
       } else if (check_type == "process_nscp"sv) {
         return std::make_shared<check_process>(
-            io_context, logger, first_start_expected, time_step, check_interval,
-            service, cmd_name, cmd_line, *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, check_interval, service,
+            cmd_name, cmd_line, *args, conf, std::move(handler), stat);
 #endif
       } else {
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
@@ -680,12 +673,12 @@ std::shared_ptr<check> scheduler::default_check_builder(
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
-                               time_step, check_interval, service, cmd_name,
-                               cmd_line, std::string(e.what()), conf,
-                               std::move(handler), stat);
+                               check_interval, service, cmd_name, cmd_line,
+                               std::string(e.what()), conf, std::move(handler),
+                               stat);
     }
   } catch (const std::exception&) {
-    return check_exec::load(io_context, logger, first_start_expected, time_step,
+    return check_exec::load(io_context, logger, first_start_expected,
                             check_interval, service, cmd_name, cmd_line, conf,
                             std::move(handler), stat);
   }
