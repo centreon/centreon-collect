@@ -564,24 +564,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-            only_cma: true
-          - distrib: bullseye
-            arch: arm64
-            only_cma: true
           - distrib: bookworm
             arch: amd64
-            only_cma: false
           - distrib: bookworm
             arch: arm64
-            only_cma: true
-          - distrib: jammy
-            arch: amd64
-            only_cma: true
-          - distrib: jammy
-            arch: arm64
-            only_cma: true
 
     name: deliver ${{ matrix.distrib }}
 
