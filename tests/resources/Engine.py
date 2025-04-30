@@ -201,7 +201,9 @@ class EngineInstance:
                 "check_for_orphaned_services=0\n"
                 "check_for_orphaned_hosts=0\n"
                 "check_service_freshness=1\n"
-                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
+                "enable_flap_detection=0\n"
+                "broker_module_config_file={4}/centreon-broker/central-module{0}.json\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
+
 
     def _create_host(self):
         self.last_host_id += 1
