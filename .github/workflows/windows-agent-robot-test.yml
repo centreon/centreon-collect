@@ -32,6 +32,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'ON'
+      build_debug_packages: false
       packages_in_artifact: false
       image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
