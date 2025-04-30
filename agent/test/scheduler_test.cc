@@ -159,7 +159,7 @@ TEST_F(scheduler_test, no_config) {
   ASSERT_TRUE(weak_shed.lock());
 
   weak_shed.lock()->stop();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   ASSERT_FALSE(weak_shed.lock());
 }
@@ -177,13 +177,16 @@ static bool tempo_check_assert_pred(const time_point& after,
   return true;
 }
 
-static bool tempo_check_interval(const time_point& after,
+static bool tempo_check_interval(const check* chk,
+                                 const time_point& after,
                                  const time_point& before) {
-  if ((after - before) <= std::chrono::seconds(9)) {
+  if ((after - before) <=
+      (chk->get_check_interval() - std::chrono::seconds(1))) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
-  if ((after - before) >= std::chrono::seconds(11)) {
+  if ((after - before) >=
+      (chk->get_check_interval() + std::chrono::seconds(1))) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
@@ -251,7 +254,93 @@ TEST_F(scheduler_test, correct_schedule) {
       if (yet_one == previous.end()) {
         previous.emplace(check, tp);
       } else {
-        ASSERT_PRED2(tempo_check_interval, tp, yet_one->second);
+        ASSERT_PRED3(tempo_check_interval, check, tp, yet_one->second);
+        yet_one->second = tp;
+      }
+    }
+  }
+
+  asio::post(*g_io_context, [sched]() { sched->stop(); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+/**
+ * @brief We plan 20 checks with a 5 to 10 s check period
+ * We expect that first between check interval is around 500ms
+ * Then we check that check intervals are respected
+ *
+ */
+TEST_F(scheduler_test, correct_schedule_diff_intervals) {
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    tempo_check::check_starts.clear();
+  }
+
+  std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
+      std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(10);
+  cnf->set_max_concurrent_checks(50);
+  cnf->set_check_timeout(10);
+  cnf->set_use_exemplar(true);
+  for (unsigned serv_index = 0; serv_index < 20; ++serv_index) {
+    auto serv = cnf->add_services();
+    serv->set_service_description(fmt::format("serv{}", serv_index + 1));
+    serv->set_command_name(fmt::format("command{}", serv_index + 1));
+    serv->set_command_line("/usr/bin/ls");
+    serv->set_check_interval(5 + (rand() % 5));
+  }
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host",
+      create_conf(20, 10, 1, 50, 1),
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, duration check_interval,
+         const std::string& service, const std::string& cmd_name,
+         const std::string& cmd_line,
+         const engine_to_agent_request_ptr& engine_to_agent_request,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat) {
+        return std::make_shared<tempo_check>(
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
+            std::chrono::milliseconds(50), std::move(handler), stat);
+      });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10100));
+
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    ASSERT_GE(tempo_check::check_starts.size(), 20);
+    bool first = true;
+    std::pair<tempo_check*, time_point> previous;
+    for (const auto& check_time : tempo_check::check_starts) {
+      if (first) {
+        first = false;
+      } else {
+        ASSERT_NE(previous.first, check_time.first);
+        // check if we have a delay of 500ms between two checks
+        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
+                     previous.second);
+      }
+      previous = check_time;
+    }
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+  // we have at least two checks for each service
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    ASSERT_GE(tempo_check::check_starts.size(), 40);
+    std::map<tempo_check*, time_point> previous;
+    for (const auto& [check, tp] : tempo_check::check_starts) {
+      auto yet_one = previous.find(check);
+      if (yet_one == previous.end()) {
+        previous.emplace(check, tp);
+      } else {
+        ASSERT_PRED3(tempo_check_interval, check, tp, yet_one->second);
         yet_one->second = tp;
       }
     }
