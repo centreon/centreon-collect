@@ -59,7 +59,7 @@ jobs:
             image: packaging-centreon-collect-bookworm-arm64
             distrib: bookworm
             lua_version: 5.3
-            runner: centreon-collect-arm64
+            runner: ubuntu-24.04-arm
             arch: arm64
           - package_extension: deb
             image: packaging-centreon-collect-jammy
