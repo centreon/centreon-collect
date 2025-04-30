@@ -36,6 +36,7 @@ jobs:
         run: |
           ${{ steps.get_actionlint.outputs.executable }} \
             -ignore 'label "centreon-(ubuntu-22.04|common|collect|collect-arm64)" is unknown' \
+            -ignore 'label "ubuntu-24.04-arm" is unknown' \
             -ignore '"github.head_ref" is potentially untrusted' \
             -pyflakes= \
             -color

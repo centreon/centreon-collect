@@ -89,7 +89,7 @@ jobs:
       matrix:
         image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bullseye-arm64, unit-tests-bookworm]
         include:
-          - runner_name: ubuntu-22.04
+          - runner_name: ubuntu-24.04
           - package_extension: rpm
             image: unit-tests-alma8
             distrib: el8
@@ -99,7 +99,7 @@ jobs:
           - package_extension: deb
             image: unit-tests-bullseye-arm64
             distrib: bullseye-arm64
-            runner_name: centreon-collect-arm64
+            runner_name: ubuntu-24.04-arm
           - package_extension: deb
             image: unit-tests-bookworm
             distrib: bookworm
