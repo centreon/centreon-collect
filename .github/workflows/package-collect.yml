@@ -243,8 +243,6 @@ jobs:
           done
         shell: bash
 
-<<<<<<< HEAD
-=======
       - if: ${{ inputs.build_debug_packages == false }}
         run: rm -f packaging/centreon-{collect,monitoring-agent}/*debuginfo*.yaml
         shell: bash
@@ -268,7 +266,6 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
 
->>>>>>> 27c8491c8 (fix(ci): refactor monitoring agent workflow (#2208))
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
