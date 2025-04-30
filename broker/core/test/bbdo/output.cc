@@ -21,25 +21,12 @@
 #include <gtest/gtest.h>
 
 #include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
-#include "com/centreon/broker/neb/custom_variable.hh"
-#include "com/centreon/broker/neb/host.hh"
-#include "com/centreon/broker/neb/host_group.hh"
-#include "com/centreon/broker/neb/host_group_member.hh"
-#include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
-#include "com/centreon/broker/neb/service_group.hh"
-#include "com/centreon/broker/neb/service_group_member.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {
