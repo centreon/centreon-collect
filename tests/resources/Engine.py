@@ -3625,6 +3625,7 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         json.dump(data, f, indent=4)
 
 
+
 def ctn_randomword(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
@@ -4196,3 +4197,65 @@ def ctn_get_host_info_grpc(id: int):
                 except Exception as e:
                     logger.console(f"gRPC server not ready {e}")
     return {}
+
+
+def ctn_engine_command_add_arg(idx: int, command_name: str, arg):
+    """
+    Add an argument to a command in the commands.cfg file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        command_name (str): Name of the command to modify or * for all the commands.
+        arg (str): Argument to add to the command.
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    # All the commands are updated
+    if command_name == '*':
+        for i in range(len(lines)):
+            if lines[i].find("check.pl") != -1:
+                lines[i] = lines[i].rstrip() + f" {arg}\n"
+    else:
+        found = False
+        r = re.compile(rf"^\s*command_name\s+{command_name}\s*$")
+        for i in range(len(lines)):
+            if not found:
+                if r.match(lines[i]):
+                    found = True
+                    continue
+            else:
+                if lines[i].find("check.pl") != -1:
+                    lines[i] = lines[i].rstrip() + f" {arg}\n"
+
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_command_remove_connector(idx: int, command_name: str):
+    """
+    Remove the connector from a command in the commands.cfg file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        command_name (str): Name of the command to modify or * for all the commands.
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    # All the commands are updated
+    if command_name == '*':
+        lines = [line for line in lines if "  connector  " not in line]
+    else:
+        found = False
+        r = re.compile(rf"^\s*command_name\s+{command_name}\s*$")
+        for i in range(len(lines)):
+            if not found:
+                if r.match(lines[i]):
+                    found = True
+                    continue
+            else:
+                if lines[i].find("  connector  ") != -1:
+                    del lines[i]
+                    break
+
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
+        f.writelines(lines)
