@@ -578,3 +578,74 @@ Start_Stop_Broker_Engine_${id}
     ...    1    False
     ...    2    True
     Ctn Stop Engine
+
+BESSG
+    [Documentation]    Scenario: Broker handles connection and disconnection with Engine
+    ...    Given Broker is configured with only one output that is Graphite
+    ...    When the Engine starts and connects to the Broker
+    ...    Then the Broker must be able to handle the connection
+    ...    When the Engine stops
+    ...    Then the Broker must be able to handle the disconnection
+
+    [Tags]    broker    engine    start-stop    MON-161611
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Remove Output    central    central-broker-unified-sql
+    Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
+    Ctn Broker Config Add Output    central    { "name": "graphite-output", "db_host": "localhost", "db_port": "2003", "type": "graphite", "db_password": "", "queries_per_transaction": "1000", "metric_naming": "nagios.host.$HOST$.service.$SERVICE$.perfdata.$METRIC$", "status_naming": "nagios.host.$HOST$.service.$SERVICE$.metadata.state" }
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    ${True}
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    1
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker    ${True}
+
+BESSCTO
+    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
+    ...    Given the Engine is configured as usual but without the Perl Connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+    [Tags]    engine    start-stop    MON-167816
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Engine Command Remove Connector    ${0}    *
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1
+    FOR    ${i}    IN RANGE    2
+      ${start}    Ctn Get Round Current Date
+      Ctn Start Broker    ${True}
+      Ctn Start Engine
+      Ctn Wait For Engine To Be Ready    ${start}    1
+      Sleep    60s
+      Ctn Stop Engine
+      Ctn Kindly Stop Broker    ${True}
+    END
+
+BESSCTOWC
+    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
+    ...    Given the Engine is configured as usual with some commands using the Perl Connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+
+    [Tags]    engine    start-stop    MON-167816
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    3.0.1
+    FOR    ${i}    IN RANGE    2
+      ${start}    Ctn Get Round Current Date
+      Ctn Start Broker    ${True}
+      Ctn Start Engine
+      Ctn Wait For Engine To Be Ready    ${start}    1
+      Sleep    60s
+      Ctn Stop Engine
+      Ctn Kindly Stop Broker    ${True}
+    END
