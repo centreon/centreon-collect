@@ -30,6 +30,9 @@ on:
       legacy_engine:
         required: true
         type: string
+      build_debug_packages:
+        required: true
+        type: boolean
       packages_in_artifact:
         required: true
         type: boolean

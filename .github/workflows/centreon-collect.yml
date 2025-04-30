@@ -271,6 +271,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine != 'false' && 'ON' || 'OFF' }}
+      build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
