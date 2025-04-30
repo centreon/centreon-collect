@@ -18,13 +18,6 @@
 
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
