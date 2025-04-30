@@ -1188,6 +1188,30 @@ def ctn_broker_config_output_set(name, output, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_broker_config_add_output(name, content):
+    """
+    Add an output to the broker configuration.
+
+    Args:
+        name (str): The broker instance among central, rrd, module%d.
+        content (str): The output to add.
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = f"central-{name}.json"
+    else:
+        filename = "central-rrd.json"
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+
+    cont = json.loads(content)
+    conf["centreonBroker"]["output"].append(cont)
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_output_set_json(name, output, key, value):
     """
     Set an attribute value in a broker output. The value is given as a json string.
