@@ -33,8 +33,12 @@ class database_configurator {
 
   void _disable_pollers_with_full_conf();
   void _disable_hosts();
-  void _add_hosts_mariadb();
-  void _add_hosts_mysql();
+  void _add_hosts_mariadb(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+          lst);
+  void _add_hosts_mysql(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+          lst);
 
  public:
   database_configurator(const DiffState& diff,
