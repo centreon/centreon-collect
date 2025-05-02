@@ -397,6 +397,13 @@ void scheduler::_store_result_in_metrics_and_exemplars(
     unsigned status,
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
+  // we don't want to erase existing previous metrics, so we send right now
+  auto exist = _serv_to_scope_metrics.find(check->get_service());
+  if (exist != _serv_to_scope_metrics.end()) {
+    _metric_sender(_current_request);
+    _init_export_request();
+  }
+
   auto& scope_metrics = _get_scope_metrics(check->get_service());
   uint64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
                      std::chrono::system_clock::now().time_since_epoch())
@@ -438,16 +445,12 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 /**
  * @brief metrics are grouped by host service
  * (one resource_metrics by host serv pair)
- *
+ * no resource_metrics for this service must exist before calling this function
  * @param service
- * @return scheduler::scope_metric_request&
+ * @return a new scheduler::scope_metric_request&
  */
 scheduler::scope_metric_request& scheduler::_get_scope_metrics(
     const std::string& service) {
-  auto exist = _serv_to_scope_metrics.find(service);
-  if (exist != _serv_to_scope_metrics.end()) {
-    return exist->second;
-  }
   ::opentelemetry::proto::metrics::v1::ResourceMetrics* new_res =
       _current_request->mutable_otel_request()->add_resource_metrics();
 
