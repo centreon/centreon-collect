@@ -1,0 +1,170 @@
+/**
+ * Copyright 2025 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+#include "com/centreon/broker/unified_sql/database_configurator.hh"
+#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/common/utf8.hh"
+#include "common/engine_conf/state.pb.h"
+
+using namespace com::centreon::broker::database;
+using namespace com::centreon::broker::misc;
+
+using com::centreon::engine::configuration::ActionHostOn;
+
+namespace com::centreon::broker::unified_sql {
+
+void database_configurator::process() {
+  /* We start by disabling pollers with full conf. */
+  _disable_pollers_with_full_conf();
+
+  /* Then we process the diff. */
+
+  /* Disabling removed hosts */
+  _disable_hosts();
+
+  /* Adding new hosts */
+  if (_stream->supports_bulk_prepared_statements())
+    _add_hosts_mariadb(_diff.hosts().added());
+  else
+    _add_hosts_mysql(_diff.hosts().added());
+}
+
+/**
+ * @brief Disable hosts, services in the hosts, services and resources tables
+ * for the pollers whose configuration is fully received. This is needed because
+ * we don't know which hosts and services have been removed.
+ */
+void database_configurator::_disable_pollers_with_full_conf() {
+  for (uint64_t instance_id : _diff.full_conf_poller_id())
+    _stream->clean_tables(instance_id);
+
+  // Removed hosts are disabled in the hosts table.
+  std::string query(
+      fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
+                  fmt::join(_diff.hosts().removed(), ",")));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+
+  // Services of removed hosts are disabled in the services table.
+  query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
+                      fmt::join(_diff.hosts().removed(), ","));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+
+  // Same thing with resources table.
+  query = fmt::format(
+      "UPDATE resources SET enabled=0 WHERE parent_id IN ({0}) OR (parent_id = "
+      "0 AND id IN ({0}))",
+      fmt::join(_diff.hosts().removed(), ","));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+}
+
+/**
+ * @brief Disable hosts, services in the hosts, services and resources tables
+ * corresponding to the removed hosts in the diff state.
+ */
+void database_configurator::_disable_hosts() {
+  // Removed hosts are disabled in the hosts table.
+  std::string query(
+      fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
+                  fmt::join(_diff.hosts().removed(), ",")));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+
+  // Services of removed hosts are disabled in the services table.
+  query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
+                      fmt::join(_diff.hosts().removed(), ","));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+
+  // Same thing with resources table.
+  query = fmt::format(
+      "UPDATE resources SET enabled=0 WHERE parent_id IN ({0}) OR (parent_id = "
+      "0 AND id IN ({0}))",
+      fmt::join(_diff.hosts().removed(), ","));
+  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                 0);
+}
+
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_hosts
+ * Protobuf message: engine::configuration::Host
+ * Description: Add hosts in the database.
+ * Table: hosts
+ * Data:
+ *   FIELD                                                                  & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *   ----------------------------------------------------------------------------------------------------------------------------------
+ *   host_id                                                                & uint64 & host_id                       & int32  & U
+ *   host_name                                                              & string & name                          & string &
+ *   poller_id                                                              & uint64 & instance_id                   & int32  &
+ *   action_url                                                             & string & action_url                    & string &
+ *   checks_active                                                          & bool   & active_checks                 & bool   &
+ *   address                                                                & string & address                       & string &
+ *   alias                                                                  & string & alias                         & string &
+ *   check_command                                                          & string & check_command                 & string &
+ *   check_freshness                                                        & bool   & check_freshness               & bool   &
+ *   check_interval                                                         & uint32 & check_interval                & double &
+ *   check_period                                                           & string & check_period                  & string &
+ *   checks_active                                                          & bool   & default_active_checks         & bool   &
+ *   event_handler_enabled                                                  & bool   & default_event_handler_enabled & bool   &
+ *   flap_detection_enabled                                                 & bool   & default_flap_detection        & bool   &
+ *   notifications_enabled                                                  & bool   & default_notify                & bool   &
+ *   checks_passive                                                         & bool   & default_passive_checks        & bool   &
+ *   process_perf_data                                                      & bool   & default_process_perfdata      & bool   &
+ *   display_name                                                           & string & display_name                  & string &
+ *   ${true}                                                                & bool   & enabled                       & bool   &
+ *   event_handler                                                          & string & event_handler                 & string &
+ *   event_handler_enabled                                                  & bool   & event_handler_enabled         & bool   &
+ *   first_notification_delay                                               & uint32 & first_notification_delay      & double &
+ *   flap_detection_enabled                                                 & bool   & flap_detection                & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_down}        & bool   & flap_detection_on_down        & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_unreachable} & bool   & flap_detection_on_unreachable & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_up}          & bool   & flap_detection_on_up          & bool   &
+ *   freshness_threshold                                                    & uint32 & freshness_threshold           & double &
+ *   high_flap_threshold                                                    & uint32 & high_flap_threshold           & double &
+ *   icon_image                                                             & string & icon_image                    & string &
+ *   icon_image_alt                                                         & string & icon_image_alt                & string &
+ *   low_flap_threshold                                                     & uint32 & low_flap_threshold            & double &
+ *   max_check_attempts                                                     & uint32 & max_check_attempts            & int32  &
+ *   notes                                                                  & string & notes                         & string &
+ *   notes_url                                                              & string & notes_url                     & string &
+ *   notification_interval                                                  & uint32 & notification_interval         & double &
+ *   notification period                                                    & string & notification_period           & string &
+ *   notifications_enabled                                                  & bool   & notify                        & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_down}          & bool   & notify_on_down                & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_downtime}      & bool   & notify_on_downtime            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_flapping}      & bool   & notify_on_flapping            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_up}            & bool   & notify_on_recovery            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_unreachable}   & bool   & notify_on_unreachable         & bool   &
+ *   obsess_over_host                                                       & bool   & obsess_over_host              & bool   &
+ *   checks_passive                                                         & bool   & passive_checks                & bool   &
+ *   process_perf_data                                                      & bool   & process_perfdata              & bool   &
+ *   retain_nonstatus_information                                           & bool   & retain_nonstatus_information  & bool   &
+ *   retain_status_information                                              & bool   & retain_status_information     & bool   &
+ *   retry_interval                                                         & uint32 & retry_interval                & double &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_down}              & bool   & stalk_on_down                 & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_unreachable}       & bool   & stalk_on_unreachable          & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_up}                & bool   & stalk_on_up                   & bool   &
+ *   statusmap_image                                                        & string & statusmap_image               & string &
+ *   timezone                                                               & string & timezone                      & string & O
+ */
+
+
+}  // namespace com::centreon::broker::unified_sql
