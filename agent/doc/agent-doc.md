@@ -27,15 +27,14 @@ This means that the second check may start later than the scheduled time point (
 
 When a check completes, it is inserted into _waiting_check_queue, and its start will be scheduled as soon as a slot in the queue is available (the queue is a set indexed by expected_start) minus old_start plus check_period.
 
+One receives n checks with different check intervals. 
+first_inter_check_delay = min_check_interval/nb_check is calculated
+We use a time base whose resolution is 
+time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/5) - first_inter_check_delay/10  (is divided by two to limit delays due to the fact that several checks may need the same timeslot in order to meet their own check_interval )
+To meet all check intervals at check_interval_accuracy (default 5s) ready, one decreases time_step until check_interval_x % time_step <= check_interval_accuracy
 
-On reçoit n checks avec des intervalles de check differents. 
-On calcule le first_inter_check_delay = min_check_interval/nb_check
-On utilise une base de temps dont la résolution est 
-time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/5) - first_inter_check_delay/10  (on divise par deux pour limiter les retards dus au fait que plusieurs checks puissent avoir besoin du même timeslot afin de respecter leur propre check_interval )
-Pour respecter tous les check intervals à check_interval_accuracy (5s par défaut) prêt, on diminue time_step jusqu'à ce que check_interval_x % time_step <= check_interval_accuracy
-
-Pour ne pas répéter des groupes compacts des checks les plus fréquents, on intercalle les checks les moins fréquents.
-Par exemple, si on a n1 checks à exécuter toutes les 60s, n2 toutes les 120s, n3 toutes les 180s et n4 toutes les 24h, on aura
+In order not to repeat compact groups of the most frequent checks, we interlace the least frequent checks.
+For example, if we have n1 checks to run every 60s, n2 every 120s, n3 every 180s and n4 every 24h, we will have
 | check   | period | time                      |
 | ------- | ------ | ------------------------- |
 | check11 | p1     | 0                         |
@@ -44,12 +43,12 @@ Par exemple, si on a n1 checks à exécuter toutes les 60s, n2 toutes les 120s, 
 | check41 | p4     | 3*first_inter_check_delay |
 | check12 | p1     | 4*first_inter_check_delay |
 
-Supposons qu'on ait 3 checks (ch1, ch2, ch3 ) avec une période de une minute et un check avec une période de 24 heures (ch4) et un autre avec une période de 3 minutes (ch5) et deux autres avec une période de 2 minutes (ch6 et ch7)
+Suppose we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and one check with a period of 24 hours (ch4) and another with a period of 3 minutes (ch5) and two others with a period of 2 minutes (ch6 and ch7)
 
-On obtient un first_inter_check_delay = 60000/7=8571ms. 
+We get a first_inter_check_delay = 60000/7=8571ms. 
 time_step = 4285
 
-Donc on a comme prévision:
+So we schedule as this:
 
 | check | time   |
 | ----- | ------ |
@@ -73,24 +72,24 @@ Donc on a comme prévision:
 | ch2   | 214.2s |
 | ...   | ...    |
 
-Supposons qu'on ait 3 checks (ch1, ch2, ch3 ) avec une période de une minute et ch4 avec un intervalle de 70s
+Another case, we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and ch4 with 70s period
 
 first_inter_check_delay = 60/4 = 15s
 time_step = 7500ms
 
-| check | time   |                             |
-| ----- | ------ | --------------------------- |
+| check | time   |                           |
+| ----- | ------ | ------------------------- |
 | ch1   | 0      |
 | ch4   | 15s    |
 | ch2   | 30s    |
 | ch3   | 45s    |
 | ch1   | 60s    |
-| ch4   | 82.5s  | 15+70=85 => we choice 82.5s |
-| ch2   | 90s    |
+| ch4   | 82.5s  | 15+70=85 => we choice 90s |
+| ch2   | 97.5s  |
 | ch3   | 105s   |
 | ch1   | 120s   |
 | ch2   | 150s   |
-| ch4   | 157.5s | 15+140=155 => 157.5s        |
+| ch4   | 157.5s | 15+140=155 => 157.5s      |
 
 
 ## Native checks
