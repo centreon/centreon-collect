@@ -229,9 +229,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                             next, serv.service_description());
       }
       try {
+        std::chrono::seconds check_interval(serv.check_interval());
+        if (!check_interval.count()) {
+          check_interval = std::chrono::seconds(60);
+        }
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next,
-            std::chrono::seconds(serv.check_interval()),
+            _io_context, _logger, next, check_interval,
             serv.service_description(), serv.command_name(),
             serv.command_line(), conf,
             [me = shared_from_this()](
