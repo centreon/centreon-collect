@@ -38,10 +38,13 @@ void database_configurator::process() {
   _disable_hosts();
 
   /* Adding new hosts */
-  if (_stream->supports_bulk_prepared_statements())
+  if (_stream->supports_bulk_prepared_statements()) {
+    _add_severities_mariadb(_diff.severities().added());
     _add_hosts_mariadb(_diff.hosts().added());
-  else
+  } else {
+    _add_severities_mysql(_diff.severities().added());
     _add_hosts_mysql(_diff.hosts().added());
+  }
 }
 
 /**
@@ -101,6 +104,24 @@ void database_configurator::_disable_hosts() {
   _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
                                  0);
 }
+
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_severities
+ * Protobuf message: engine::configuration::Severity
+ * Description: Add severities in the database.
+ * Table: severities
+ * Data:
+ *  FIELD                 & TYPE   & COL NAME               & C_TYPE & OPTIONS
+ *  --------------------------------------------------------------------------
+ *  ${0} & uint64 & severity_id & uint64 & AU
+ *  key::id & uint64 & id & uint64 & U
+ *  key::type & uint32 & type & uint32 & U
+ *  severity_name & string & name & string &
+ *  level & uint32 & level & uint32 &
+ *  icon_id & uint64 & icon_id & uint64 &
+ *
+ */
 
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
@@ -166,5 +187,35 @@ void database_configurator::_disable_hosts() {
  *   timezone                                                               & string & timezone                      & string & O
  */
 
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_host_resources
+ * Protobuf message: engine::configuration::Host
+ * Description: Add hosts in the resources database.
+ * Table: resources
+ * Data:
+ *   FIELD                 & TYPE   & COL NAME               & C_TYPE & OPTIONS
+ *   --------------------------------------------------------------------------
+ *   ${0}                  & uint64 & resource_id            & uint64 & AU
+ *   host_id               & uint64 & id                     & uint64 & U
+ *   ${0}                  & uint64 & parent_id              & uint64 &
+ *   ${NULL}               & uint64 & internal_id            & uint64 &
+ *   ${1}                  & uint32 & type                   & uint32 &
+ *   max_check_attempts    & uint32 & max_check_attempts     & uint32 &
+ *   poller_id             & uint64 & poller_id              & uint64 &
+ *   severity_id           & uint64 & severity_id            & uint64 & O
+ *   host_name             & string & name                   & string &
+ *   alias                 & string & alias                  & string &
+ *   address               & string & address                & string &
+ *   ${NULL}               & string & parent_name            & string & O
+ *   icon_id               & uint64 & icon_id                & uint64 & O
+ *   notes_url             & string & notes_url              & string &
+ *   notes                 & string & notes                  & string &
+ *   action_url            & string & action_url             & string &
+ *   notifications_enabled & bool   & notifications_enabled  & bool   &
+ *   checks_passive        & bool   & passive_checks_enabled & bool   &
+ *   checks_active         & bool   & active_checks_enabled  & bool   &
+ *   ${true}               & bool   & enabled                & bool   &
+ */
 
 }  // namespace com::centreon::broker::unified_sql
