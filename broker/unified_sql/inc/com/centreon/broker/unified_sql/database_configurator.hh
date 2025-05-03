@@ -39,6 +39,12 @@ class database_configurator {
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  void _add_host_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+          lst);
+  void _add_host_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+          lst);
 
  public:
   database_configurator(const DiffState& diff,
