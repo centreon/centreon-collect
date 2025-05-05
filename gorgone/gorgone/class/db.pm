@@ -311,14 +311,18 @@ sub do {
 }
 
 sub error {
-    my ($self, $error, $query) = @_;
+    my ($self, $error, $query, %options) = @_;
     my ($package, $filename, $line) = caller 1;
+
+    %options = () if (ref(\%options) ne 'HASH');
 
     chomp($query);
     $self->{lastError} = "SQL error: $error (caller: $package:$filename:$line)
 Query: $query
 ";
-    $self->{logger}->writeLogError($error);
+    unless ($options{no_error_log}) {
+        $self->{logger}->writeLogError($error);
+    }
     if ($self->{transaction_begin} == 1) {
         $self->rollback();
     }
@@ -336,6 +340,9 @@ sub query {
     my ($self) = shift;
     my ($status, $count) = (0, -1);
     my $statement_handle;
+    my %error_options = ();
+
+    $error_options{no_error_log} = 1 if ($_[0]->{no_error_log});
 
     while (1) {
         if (!defined($self->{instance})) {
@@ -348,7 +355,7 @@ sub query {
         $count++;
         $statement_handle = $self->{instance}->prepare($_[0]->{query});
         if (!defined($statement_handle)) {
-            $self->error($self->{instance}->errstr, $_[0]->{query});
+            $self->error($self->{instance}->errstr, $_[0]->{query}, %error_options);
             $status = -1;
             last if ($self->{force} == 0 || ($self->{force} == 2 && $count == 1));
             sleep(1);
@@ -367,7 +374,7 @@ sub query {
             $rv = $statement_handle->execute();
         }
         if (!$rv) {
-            $self->error($statement_handle->errstr, $_[0]->{query});
+            $self->error($statement_handle->errstr, $_[0]->{query}, %error_options);
             $status = -1;
             last if ($self->{force} == 0 || ($self->{force} == 2 && $count == 1));
             sleep(1);
