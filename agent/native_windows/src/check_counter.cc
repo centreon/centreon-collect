@@ -89,13 +89,12 @@ check_counter::check_counter(
   try {
     if (args.IsObject()) {
       _counter_name = arg.get_string("counter", "");
+      // the items to check
+      _calc_counter_filter(arg.get_string("counter-filter", ""));
+      _output_syntax = arg.get_string("output-syntax", "{status}: {list}");
+      _detail_syntax = arg.get_string("detail_syntax", "{label} : {value}");
       // format the output
-      _calc_output_format(
-          arg.get_string("output-syntax", "{status}: {label} : {value}"));
-
-      // format the output for the perfdata
-      _calc_pref_display(arg.get_string("pref-display-syntax", ""));
-
+      _calc_output_format();
       _warning_status = arg.get_string("warning-status", "");
       _critical_status = arg.get_string("critical-status", "");
       _warning_threshold_count = arg.get_int("warning-count", 1);
@@ -224,10 +223,11 @@ bool ::pdh_counter::need_two_samples(PDH_HCOUNTER hCounter) {
  * @brief Collects data from the PDH counter.
  *
  * @param first_measure Indicates if this is the first measurement.
+ * @return true if the data was collected successfully, false otherwise.
  *
  * @throws std::runtime_error if the collection fails.
  */
-void check_counter::pdh_snapshot(bool first_measure) {
+bool check_counter::pdh_snapshot(bool first_measure) {
   // collect the data from the query.
   PDH_STATUS status;
   status = PdhCollectQueryData(_pdh_counter->query);
@@ -239,10 +239,9 @@ void check_counter::pdh_snapshot(bool first_measure) {
     throw std::runtime_error("Failed to collect query data");
   }
 
-  _is_first_measure = !first_measure;
   // if we need two samples , we need to wait for the second one
   if (_need_two_samples && first_measure)
-    return;
+    return false;
 
   // if the counter have multiple return value
   if (_have_multi_return) {
@@ -271,18 +270,20 @@ void check_counter::pdh_snapshot(bool first_measure) {
           // transform the instance name to lower case
           std::string key = pItems[i].szName;
           std::ranges::transform(key, key.begin(), ::tolower);
-          _data.values.emplace(std::move(key), pItems[i].FmtValue.doubleValue);
+          _data[key] = pItems[i].FmtValue.doubleValue;
         }
       } else {
         // if we have an error, we need to free the buffer and throw an error
         free(pItems);
-        throw std::runtime_error(
-            "Failed to get formatted counter array: 0x" +
-            fmt::format("{:08X}", static_cast<uint64_t>(status)));
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "Failed to get formatted counter array: "
+                            "PdhGetFormattedCounterArray "
+                            "failed: 0x{:08X}",
+                            status);
+        return false;
       }
     } else {
       // if we have an error, we need to free the buffer and throw an error
-      free(pItems);
       throw std::runtime_error("Failed to allocate memory for counter array");
     }
     // free the buffer after use
@@ -297,8 +298,9 @@ void check_counter::pdh_snapshot(bool first_measure) {
           "Failed to get formatted counter value: 0x" +
           fmt::format("{:08X}", static_cast<uint64_t>(status)));
     }
-    _data.values[_counter_name] = counterValue.doubleValue;
+    _data[_counter_name] = counterValue.doubleValue;
   }
+  return true;
 }
 
 /**
@@ -310,171 +312,93 @@ void check_counter::pdh_snapshot(bool first_measure) {
  */
 e_status check_counter::compute(
     std::string* output,
-    std::list<com::centreon::common::perfdata>* perf) {
+    std::list<com::centreon::common::perfdata>* perfs) {
   e_status ret = e_status::ok;
 
-  if (_data.values.empty()) {
+  if (_data.empty()) {
     SPDLOG_LOGGER_ERROR(_logger, "No data collected from the counter");
     throw std::runtime_error("No data collected from the counter");
   }
 
-  unsigned int count = 0;
-  unsigned int warning_count = 0;
-  unsigned int critical_count = 0;
-
-  std::string prefix = "";
-  std::string output_filter = "";
-
-  std::string ok_output = "";
-  std::string warning_output = "";
-  std::string critical_output = "";
-
-  // format the output string
-  std::string verbose_output = "";
-
-  std::string unit = _pdh_counter->unit;
-
   bool is_warning = false;
   bool is_critical = false;
 
-  // check if we have a warning or critical status
-  if (!_warning_status.empty()) {
-    _warning_rules_filter->clear_failures();
-    is_warning = _warning_rules_filter->check(_data);
-  }
-
-  if (!_critical_status.empty()) {
-    _critical_rules_filter->clear_failures();
-    is_critical = _critical_rules_filter->check(_data);
-  }
-  // if we have a warning or critical status, we need to visit the filter and
-  // get the output
-  visitor v = [this, &output_filter, &prefix, &unit, &count](const filter* f) {
-    for (const auto& [label, value] : f->failures()) {
-      // we don t have to add output if we are in verbose mode
-
-      output_filter += std::vformat(
-          _output_syntax, std::make_format_args(prefix, label, value, unit));
-      output_filter += "\n";
-
-      count++;
+  // this lambda add the label to the correct list(ok,warning,critical)
+  auto process_label = [this, &is_critical, &is_warning, &perfs](
+                           const std::string& label, double value) {
+    if (!_critical_status.empty() &&
+        _critical_rules_filter->check(counter_data{label, value})) {
+      _critical_list.insert(label);
+      is_critical = true;
+    } else if (!_warning_status.empty() &&
+               _warning_rules_filter->check(counter_data{label, value})) {
+      _warning_list.insert(label);
+      is_warning = true;
+    } else {
+      _ok_list.insert(label);
     }
+    common::perfdata perfdata;
+    perfdata.name(label);
+    perfdata.value(value);
+    perfdata.unit(std::string(_pdh_counter->unit));
+    perfs->emplace_back(std::move(perfdata));
   };
 
-  if (is_warning && !is_critical) {
-    prefix = "WARNING";
-    // visit the filter and get the output
-    _warning_rules_filter->visit(v);
-    warning_count = count;
-    warning_output = output_filter;
-  }
-
-  if (is_critical) {
-    // clear the output filter and count to clear the previous values
-    output_filter.clear();
-    count = 0;
-    prefix = "CRITICAL";
-    // visit the filter and get the output
-    _critical_rules_filter->visit(v);
-    critical_count = count;
-    critical_output = output_filter;
-  }
-
-  if (!_have_multi_return) {
-    // for single-instance counter, we need to add the value of the counter
-    if (!is_warning && !is_critical && !_verbose) {
-      ok_output = std::vformat(
-          _output_syntax,
-          std::make_format_args("OK", _data.values.begin()->first,
-                                _data.values.begin()->second, unit));
+  // check in the filter list if we have a warning or critical status
+  if (_perf_filter_list.empty() ||
+      _perf_filter_list.find("any") != _perf_filter_list.end()) {
+    for (const auto& [label, value] : _data) {
+      process_label(label, value);
     }
-    // if we have only one instance, we need to add the value of the counter to
-    // the perfdata
-    common::perfdata perfdata;
-    perfdata.name(_counter_name);
-    perfdata.value(_data.values.begin()->second);
-    perfdata.unit(std::string(unit));
-    perf->emplace_back(std::move(perfdata));
   } else {
-    // for multi-instance counter
-    if (_pref_filter_list.empty() &&
-        (!is_warning && !is_critical && !_verbose)) {
-      ok_output = fmt::format("OK: {} \n", _counter_name);
-    } else {
-      // if we have a filter, we need to add the value of the counter to the
-      // perfdata
-      if (_pref_filter_list.size() == 1 &&
-          _pref_filter_list.find("any") != _pref_filter_list.end()) {
-        for (const auto& [label, value] : _data.values) {
-          if (!_verbose) {
-            ok_output +=
-                std::vformat(_output_syntax,
-                             std::make_format_args("OK", label, value, unit));
-            ok_output += "\n";
-          }
-          // add the value of the counter to the perfdata
-          common::perfdata pref;
-          pref.name(label);
-          pref.value(value);
-          pref.unit(std::string(unit));
-          perf->emplace_back(std::move(pref));
-        }
-      } else {
-        for (const auto& label : _pref_filter_list) {
-          auto it = _data.values.find(label);
-          if (it != _data.values.end()) {
-            if (!is_warning && !is_critical && !_verbose) {
-              ok_output += std::vformat(
-                  _output_syntax,
-                  std::make_format_args("OK", label, it->second, unit));
-              ok_output += "\n";
-            }
-            // add the value of the counter to the perfdata
-            common::perfdata pref;
-            pref.name(label);
-            pref.value(it->second);
-            pref.unit(std::string(unit));
-            perf->emplace_back(std::move(pref));
-          }
-        }
+    for (const auto& label : _perf_filter_list) {
+      auto it = _data.find(label);
+      if (it != _data.end()) {
+        process_label(label, it->second);
       }
     }
-
-    common::perfdata warning;
-    warning.name("warning-count");
-    warning.value(warning_count);
-    perf->emplace_back(std::move(warning));
-
-    common::perfdata critical;
-    critical.name("critical-count");
-    critical.value(critical_count);
-    perf->emplace_back(std::move(critical));
   }
 
-  // check the status
-  if (is_critical && critical_count >= _critical_threshold_count) {
-    ret = e_status::critical;
-    *output = critical_output;
-  } else if (is_warning && warning_count >= _warning_threshold_count) {
-    ret = e_status::warning;
-    *output = warning_output;
+  if (_have_multi_return) {
+    common::perfdata c_warn_pref;
+    c_warn_pref.name("warning-count");
+    c_warn_pref.value(_warning_list.size());
+    perfs->emplace_back(std::move(c_warn_pref));
+    common::perfdata c_crit_pref;
+    c_crit_pref.name("critical-count");
+    c_crit_pref.value(_critical_list.size());
+    perfs->emplace_back(std::move(c_crit_pref));
+  }
+
+  // if all list are empty, that means that we have no data to check
+  if (_ok_list.empty() && _warning_list.empty() && _critical_list.empty()) {
+    ret = e_status::unknown;
+    *output = "No data to check in this counter-filter : " + _counter_filter;
   } else {
-    ret = e_status::ok;
-    *output = ok_output;
-  }
-
-  // if verbose is enabled
-  if (_verbose) {
-    for (const auto& [label, value] : _data.values) {
-      verbose_output += std::vformat(
-          _output_syntax, std::make_format_args("", label, value, unit));
-      verbose_output += "\n";
+    // check the status
+    if (is_critical && _critical_list.size() >= _critical_threshold_count) {
+      ret = e_status::critical;
+    } else if (is_warning && _warning_list.size() >= _warning_threshold_count) {
+      ret = e_status::warning;
+    } else {
+      ret = e_status::ok;
     }
-    *output = verbose_output;
-  }
+    _print_counter(output, ret);
 
+    // if verbose is enable
+    if (_verbose) {
+      *output += "\n Versobe output: \n";
+      for (const auto& [label, value] : _data)
+        *output +=
+            std::vformat(_detail_syntax, std::make_format_args(label, value));
+    }
+  }
   // clear the data to free the memory
-  _data.values.clear();
+  _ok_list.clear();
+  _warning_list.clear();
+  _critical_list.clear();
+  _data.clear();
+
   return ret;
 }
 
@@ -493,8 +417,8 @@ void check_counter::start_check(const duration& timeout) {
   std::list<common::perfdata> perf;
   try {
     // take the first snapshot of the counter
-    pdh_snapshot(true);
-    if (!_need_two_samples) {
+    bool info_stored = pdh_snapshot(true);
+    if (!_need_two_samples && info_stored) {
       // if we don't need two samples, we can compute the result
       e_status status = compute(&output, &perf);
       asio::post(*_io_context, [me = shared_from_this(), this,
@@ -538,12 +462,17 @@ void check_counter::_measure_timer_handler(const boost::system::error_code& err,
   if (err) {
     return;
   }
-  pdh_snapshot(false);
-  std::string output;
-  std::list<com::centreon::common::perfdata> perfs;
+  try {
+    pdh_snapshot(false);
+    std::string output;
+    std::list<com::centreon::common::perfdata> perfs;
 
-  e_status status = compute(&output, &perfs);
-  on_completion(start_check_index, status, perfs, {output});
+    e_status status = compute(&output, &perfs);
+    on_completion(start_check_index, status, perfs, {output});
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to take snapshot: {}", e.what());
+    on_completion(start_check_index, e_status::unknown, {}, {e.what()});
+  }
 }
 
 /**
@@ -553,49 +482,66 @@ void check_counter::_measure_timer_handler(const boost::system::error_code& err,
  * @return void
  */
 void check_counter::help(std::ostream& help_stream) {
-  help_stream << "check_counter: execute a Performance Data Helper (PDH) check "
-                 "on a Windows counter"
-              << std::endl;
-  help_stream << std::endl;
-  help_stream << "Input (JSON):" << std::endl;
-  help_stream << "  {" << std::endl;
-  help_stream
-      << "    \"counter\": string,              // PDH counter name (required)"
-      << std::endl;
-  help_stream << "    \"output-syntax\": string,        // Output format "
-                 "(optional, default '{status} {label}: {value}')"
-              << std::endl;
-  help_stream << "    \"pref-display-syntax\": string,  // Instance labels for "
-                 "perfdata, comma-separated (optional)"
-              << std::endl;
-  help_stream << "    \"warning-status\": string,       // Filter expression "
-                 "for WARNING (optional)"
-              << std::endl;
-  help_stream << "    \"critical-status\": string,      // Filter expression "
-                 "for CRITICAL (optional)"
-              << std::endl;
-  help_stream << "    \"warning-count\": integer,       // Min instances to "
-                 "trigger WARNING (optional, default 1)"
-              << std::endl;
-  help_stream << "    \"critical-count\": integer,      // Min instances to "
-                 "trigger CRITICAL (optional, default 1)"
-              << std::endl;
-  help_stream << "    \"verbose\": bool,                // Always output all "
-                 "values if true (optional, default false)"
-              << std::endl;
-  help_stream << "    \"use_english\": bool              // Use English "
-                 "counter names if true (optional, default false)"
-              << std::endl;
-  help_stream << "  }" << std::endl;
-  help_stream << std::endl;
-  help_stream << "Example JSON:" << std::endl;
-  help_stream << "  {" << std::endl;
-  help_stream << "    \"counter\": \"\\Processor(*)\\% Processor Time\","
-              << std::endl;
-  help_stream << "    \"pref-display-syntax\": _total," << std::endl;
-  help_stream << "    \"warning-status\": \"value>75\"," << std::endl;
-  help_stream << "    \"critical-status\": \"value>90\"" << std::endl;
-  help_stream << "  }" << std::endl;
+  help_stream << R"(
+Check_counter - Windows PDH check for Centreon
+--------------------------------------------------------
+JSON arguments
+==============
+  {
+    "counter"            : string,                 # countre name :(ex: "\\System\\System Up Time")
+    "counter-filter"     : string,                 # Comma-separated list of
+                                                     instance names to include
+                                                     ("any" to keep every one).
+    "output-syntax"      : string,                 # format the output.
+                                                     Place-holders: {status},
+                                                     {count}, {total},
+                                                     {list}, {warn_count},
+                                                     {crit_count}, …
+    "detail_syntax"      : string,                 # Format for each element
+                                                     inside {list}.
+                                                     Place-holders: {label},
+                                                     ${value}.
+    "warning-status"     : string,                 # Filter expression that
+                                                     marks an item WARNING.
+                                                     Ex: "value > 80".
+    "critical-status"    : string,                 # Filter expression that
+                                                     marks an item CRITICAL.
+                                                     Ex: "value > 90".
+    "warning-count"      : integer (default 1),    # Minimum WARNING items
+                                                     before overall status is
+                                                     WARNING.
+    "critical-count"     : integer (default 1),    # Minimum CRITICAL items
+                                                     before overall status is
+                                                     CRITICAL.
+    "verbose"            : bool (default false),   # add verbose output in the end.
+    "use_english"        : bool (default false)    # Force English counter
+                                                     names.
+  }
+Place-holder reference
+----------------------
+
+output-syntax supports  
+{status} {count} {total} {list}  
+{warn_count} {warn_list} {crit_count} {crit_list}  
+{problem_count} {problem_list} {ok_count} {ok_list}
+
+Detail-syntax supports  
+{label} (alias) and {value}
+
+Example
+-------
+
+```json
+{
+  "counter"         : "\\Processor(*)\\% Processor Time",
+  "counter-filter"  : "_total",
+  "output-syntax"   : "{status}: {warn-count}/{total} {list}",
+  "detail_syntax"   : "{label}={value}",
+  "warning-status"  : "value > 75",
+  "critical-status" : "value > 90",
+  "warning-count"   : 10,
+  "verbose"         : false
+}")";
 }
 
 /**
@@ -614,57 +560,15 @@ void check_counter::build_checker() {
         double threshold = filt->get_value();
         const std::string& label = filt->get_label();
         auto comp = filt->get_comparison();
-
-        if (label == "any" || label == "value") {
-          filt->set_checker([threshold, comp, filt](const testable& t) -> bool {
-            const auto& data = static_cast<const counter_data&>(t);
-            for (auto const& [key, value] : data.values) {
-              bool ok = false;
-              switch (comp) {
-                case filters::label_compare_to_value::comparison::greater_than:
-                  ok = (value > threshold);
-                  break;
-                case filters::label_compare_to_value::comparison::
-                    greater_than_or_equal:
-                  ok = (value >= threshold);
-                  break;
-                case filters::label_compare_to_value::comparison::less_than:
-                  ok = (value < threshold);
-                  break;
-                case filters::label_compare_to_value::comparison::
-                    less_than_or_equal:
-                  ok = (value <= threshold);
-                  break;
-                case filters::label_compare_to_value::comparison::equal:
-                  ok = (value == threshold);
-                  break;
-
-                default:
-                  // case we don't know what operation to do, we don't record
-                  // the failure
-                  ok = false;
-                  break;
-              }
-              // record the failure if the condition is met
-              if (ok) {
-                filt->record_failure(key, value);
-              }
-            }
-            // if we don't have any failure, we return false
-            return !filt->failures().empty();
-          });
-
-        } else {
-          // for specific label, we use the getter
-          filt->set_checker_from_getter(
-              [label, threshold](const testable& t) -> double {
-                auto const& tt = static_cast<const counter_data&>(t);
-                auto it = tt.values.find(label);
-                if (it == tt.values.end())
+        // for specific label, we use the getter
+        filt->set_checker_from_getter(
+            [label, threshold](const testable& t) -> double {
+              auto const& data = static_cast<const counter_data&>(t);
+              if (label != "any" && label != "value")
+                if (data._value.first != label)
                   return 0.0;
-                return it->second;
-              });
-        }
+              return data._value.second;
+            });
         break;
       }
       default:
@@ -693,17 +597,42 @@ void check_counter::build_checker() {
 
     _critical_rules_filter->apply_checker(_checker_builder);
   }
+  SPDLOG_LOGGER_INFO(_logger,
+                     "check_counter {}, filter for warning: {}, critical: {}",
+                     _counter_name, _warning_status, _critical_status);
 }
 
 constexpr std::array<std::pair<std::string_view, std::string_view>, 8>
-    _label_to_event_index{{{"${status}", "{0}"},
-                           {"{status}", "{0}"},
-                           {"${label}", "{1}"},
-                           {"{label}", "{1}"},
-                           {"${alias}", "{1}"},
-                           {"{alias}", "{1}"},
-                           {"{value}", "{2:.2f} {3}"},
-                           {"${value}", "{2:.2f} {3}"}}};
+    _label_to_counter_detail{{{"${label}", "{0}"},
+                              {"{label}", "{0}"},
+                              {"${alias}", "{0}"},
+                              {"{alias}", "{0}"},
+                              {"{value}", "{1:.2f} {2}"},
+                              {"${value}", "{1:.2f} {2}"}}};
+
+constexpr std::array<std::pair<std::string_view, std::string_view>, 40>
+    _label_to_output_index{{
+        {"${status}", "{0}"},        {"${count}", "{1}"},
+        {"${total}", "{2}"},         {"${list}", "{3}"},
+        {"${warn_count}", "{4}"},    {"${warn-count}", "{4}"},
+        {"${warn_list}", "{5}"},     {"${warn-list}", "{5}"},
+        {"${crit_count}", "{6}"},    {"${crit-count}", "{6}"},
+        {"${crit_list}", "{7}"},     {"${crit-list}", "{7}"},
+        {"${problem_count}", "{8}"}, {"${problem-count}", "{8}"},
+        {"${problem_list}", "{9}"},  {"${problem-list}", "{9}"},
+        {"${ok_count}", "{10}"},     {"${ok-count}", "{10}"},
+        {"${ok_list}", "{11}"},      {"${ok-list}", "{11}"},
+        {"{status}", "{0}"},         {"{count}", "{1}"},
+        {"{total}", "{2}"},          {"{list}", "{3}"},
+        {"{warn_count}", "{4}"},     {"{warn-count}", "{4}"},
+        {"{warn_list}", "{5}"},      {"{warn-list}", "{5}"},
+        {"{crit_count}", "{6}"},     {"{crit-count}", "{6}"},
+        {"{crit_list}", "{7}"},      {"{crit-list}", "{7}"},
+        {"{problem_count}", "{8}"},  {"{problem-count}", "{8}"},
+        {"{problem_list}", "{9}"},   {"{problem-list}", "{9}"},
+        {"{ok_count}", "{10}"},      {"{ok-count}", "{10}"},
+        {"{ok_list}", "{11}"},       {"{ok-list}", "{11}"},
+    }};
 
 /**
  * @brief Calculate the output format for the check counter.
@@ -711,10 +640,12 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 8>
  * @param param The output format string.
  * @return void
  */
-void check_counter::_calc_output_format(const std::string_view& param) {
-  _output_syntax = param;
-  for (const auto& translate : _label_to_event_index) {
+void check_counter::_calc_output_format() {
+  for (const auto& translate : _label_to_output_index) {
     boost::replace_all(_output_syntax, translate.first, translate.second);
+  }
+  for (const auto& translate : _label_to_counter_detail) {
+    boost::replace_all(_detail_syntax, translate.first, translate.second);
   }
 }
 
@@ -724,7 +655,8 @@ void check_counter::_calc_output_format(const std::string_view& param) {
  * @param param The preferred display format string.
  * @return void
  */
-void check_counter::_calc_pref_display(const std::string_view& param) {
+void check_counter::_calc_counter_filter(const std::string_view& param) {
+  _counter_filter = param;
   if (param.empty()) {
     return;
   }
@@ -732,6 +664,67 @@ void check_counter::_calc_pref_display(const std::string_view& param) {
     // make sure to transform the label to lower case
     std::string lower_label(label);
     std::ranges::transform(lower_label, lower_label.begin(), ::tolower);
-    _pref_filter_list.insert(std::move(lower_label));
+    _perf_filter_list.insert(std::move(lower_label));
   }
+}
+
+void check_counter::_print_counter(std::string* output, e_status status) {
+  int total = static_cast<int>(_data.size());
+  int ok_count = static_cast<int>(_ok_list.size());
+  int warn_count = static_cast<int>(_warning_list.size());
+  int crit_count = static_cast<int>(_critical_list.size());
+  int problem_count = warn_count + crit_count;
+  int count = ok_count + problem_count;
+  // format the detail output for a label,value
+  auto format_detail = [this](std::string label, double value) {
+    return std::vformat(_detail_syntax, std::make_format_args(
+                                            label, value, _pdh_counter->unit));
+  };
+
+  // format a map
+  auto format_list =
+      [this, &format_detail](const absl::flat_hash_set<std::string>& data_map) {
+        std::string result = "";
+        for (const auto& label : data_map) {
+          result += format_detail(label, _data[label]) + ",";
+        }
+        // remove the last comma
+        if (!result.empty()) {
+          result.pop_back();
+        }
+        return result;
+      };
+
+  std::string _ok_list_str = format_list(_ok_list);
+  std::string _warning_list_str = format_list(_warning_list);
+  std::string _critical_list_str = format_list(_critical_list);
+  std::string _problem_list_str = _critical_list_str;
+  if (!_problem_list_str.empty() && !_warning_list_str.empty()) {
+    _problem_list_str += ",";
+  }
+  _problem_list_str += _warning_list_str;
+
+  std::string list_str = _ok_list_str;
+  if (!list_str.empty() && !_problem_list_str.empty()) {
+    list_str += ",";
+  }
+  list_str += _problem_list_str;
+
+  std::string status_label;
+  if (status == e_status::ok) {
+    status_label = "OK";
+  } else if (status == e_status::warning) {
+    status_label = "WARNING";
+  } else if (status == e_status::critical) {
+    status_label = "CRITICAL";
+  } else {
+    status_label = "UNKNOWN";
+  }
+  // format the output string
+  *output = std::vformat(
+      _output_syntax,
+      std::make_format_args(status_label, count, total, list_str, warn_count,
+                            _warning_list_str, crit_count, _critical_list_str,
+                            problem_count, _problem_list_str, ok_count,
+                            _ok_list_str));
 }

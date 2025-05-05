@@ -35,14 +35,14 @@ struct pdh_counter {
   PDH_STATUS status;
   bool use_english = false;
   std::string unit;
-  bool is_double = true;
   pdh_counter(std::string counter_name, bool use_english = false);
   bool need_two_samples(PDH_HCOUNTER hCounter);
   ~pdh_counter();
 };
 
 struct counter_data : public testable {
-  absl::flat_hash_map<std::string, double> values;
+  std::pair<std::string, double> _value;
+  counter_data(std::string key, double value) : _value(key, value) {}
 };
 
 /**
@@ -52,8 +52,16 @@ struct counter_data : public testable {
 class check_counter : public check {
   std::string _counter_name;
   std::string _output_syntax;
+  std::string _detail_syntax;
+  std::string _counter_filter;
 
-  absl::flat_hash_set<std::string> _pref_filter_list;
+  absl::flat_hash_map<std::string, double> _data;
+
+  absl::flat_hash_set<std::string> _ok_list;
+  absl::flat_hash_set<std::string> _warning_list;
+  absl::flat_hash_set<std::string> _critical_list;
+
+  absl::flat_hash_set<std::string> _perf_filter_list;
 
   std::string _ok_status;
   std::string _warning_status;
@@ -67,9 +75,6 @@ class check_counter : public check {
   bool _have_multi_return = false;
   bool _need_two_samples = false;
 
-  bool _is_first_measure = false;
-
-  counter_data _data;
   std::unique_ptr<pdh_counter> _pdh_counter;
 
   std::unique_ptr<filters::filter_combinator> _warning_rules_filter;
@@ -99,7 +104,7 @@ class check_counter : public check {
   e_status compute(std::string* output,
                    std::list<com::centreon::common::perfdata>* perf);
 
-  void pdh_snapshot(bool first_measure);
+  bool pdh_snapshot(bool first_measure);
 
   void _measure_timer_handler(const boost::system::error_code& err,
                               unsigned start_check_index);
@@ -108,12 +113,13 @@ class check_counter : public check {
     return std::static_pointer_cast<check_counter>(check::shared_from_this());
   }
 
-  size_t get_size_data() const { return _data.values.size(); }
+  size_t get_size_data() const { return _data.size(); }
 
   void build_checker();
 
-  void _calc_output_format(const std::string_view& param);
-  void _calc_pref_display(const std::string_view& param);
+  void _calc_output_format();
+  void _calc_counter_filter(const std::string_view& param);
+  void _print_counter(std::string* to_append, e_status status);
 
   bool have_multi_return() const { return _have_multi_return; }
   bool use_english() const { return _use_english; }
