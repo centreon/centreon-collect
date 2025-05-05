@@ -33,36 +33,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-alma8
             image: centreon-collect-alma8
             tag: ${{ needs.get-environment.outputs.img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-alma9
             image: centreon-collect-alma9
             tag: ${{ needs.get-environment.outputs.img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-alma9-test
             image: centreon-collect-alma9-test
             tag: ${{ needs.get-environment.outputs.test_img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-mysql-alma9
             image: centreon-collect-mysql-alma9
             tag: ${{ needs.get-environment.outputs.img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
             tag: ${{ needs.get-environment.outputs.test_img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye
             tag: ${{ needs.get-environment.outputs.img_version }}
-          - runner: collect
+          - runner: centreon-collect
             dockerfile: centreon-collect-debian-bullseye-test
             image: centreon-collect-debian-bullseye-test
             tag: ${{ needs.get-environment.outputs.test_img_version }}
 
-    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+    runs-on: ${{ matrix.runner }}
 
     name: build container ${{ matrix.image }}
 

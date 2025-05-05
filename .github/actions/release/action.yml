@@ -61,11 +61,7 @@ runs:
         # Get previous and new version tags for components
         for component in ${COMPONENTS_COLLECT[@]}; do
           MAJOR_VERSION=$(grep -E "MAJOR" .version | cut -d '=' -f2)
-          if [[ "$component" == "centreon-collect" ]]; then
-            MINOR_VERSION=$(grep -E "MINOR" .version | cut -d '=' -f2)
-          else
-            MINOR_VERSION=$(grep -E "MINOR" .version.$component | cut -d '=' -f2)
-          fi
+          MINOR_VERSION=$(grep -E "MINOR" .version.$component | cut -d '=' -f2)
           # Previous stable tags array
           if [[ $RELEASE_CLOUD -eq 1 ]]; then
             PREVIOUS_STABLE_TAGS+=($(git tag -l --sort=-version:refname "$component-$CURRENT_STABLE_BRANCH_MAJOR_VERSION.*-*" | head -n 1))
