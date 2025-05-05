@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <chrono>
 #include "check.hh"
 
 #include "scheduler.hh"
@@ -177,6 +178,24 @@ static bool tempo_check_assert_pred(const time_point& after,
   return true;
 }
 
+static bool tempo_check_assert_pred3(const time_point& after,
+                                     const time_point& before,
+                                     const unsigned min_second_check_interval) {
+  std::chrono::milliseconds expected_interval(min_second_check_interval * 1000 /
+                                              20);
+  if ((after - before) <= expected_interval - std::chrono::milliseconds(250)) {
+    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
+                 before, min_second_check_interval);
+    return false;
+  }
+  if ((after - before) >= expected_interval + std::chrono::milliseconds(250)) {
+    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
+                 before, min_second_check_interval);
+    return false;
+  }
+  return true;
+}
+
 static bool tempo_check_interval(const check* chk,
                                  const time_point& after,
                                  const time_point& before) {
@@ -283,17 +302,20 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
   cnf->set_max_concurrent_checks(50);
   cnf->set_check_timeout(10);
   cnf->set_use_exemplar(true);
+  unsigned min_interval = 10;
   for (unsigned serv_index = 0; serv_index < 20; ++serv_index) {
     auto serv = cnf->add_services();
     serv->set_service_description(fmt::format("serv{}", serv_index + 1));
     serv->set_command_name(fmt::format("command{}", serv_index + 1));
     serv->set_command_line("/usr/bin/ls");
     serv->set_check_interval(5 + (rand() % 5));
+    if (serv->check_interval() < min_interval) {
+      min_interval = serv->check_interval();
+    }
   }
 
   std::shared_ptr<scheduler> sched = scheduler::load(
-      g_io_context, spdlog::default_logger(), "my_host",
-      create_conf(20, 10, 1, 50, 1),
+      g_io_context, spdlog::default_logger(), "my_host", conf,
       [](const std::shared_ptr<MessageFromAgent>&) {},
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
@@ -309,7 +331,7 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(5100));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -321,9 +343,9 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        // check if we have a delay of 500ms between two checks
-        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
-                     previous.second);
+        // check if we have a delay of 250ms between two checks
+        ASSERT_PRED3(tempo_check_assert_pred3, check_time.second,
+                     previous.second, min_interval);
       }
       previous = check_time;
     }

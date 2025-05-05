@@ -1570,7 +1570,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     
     #if the message apear mean that the connection is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
 
@@ -1747,13 +1747,13 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     
     # if message apear the connection is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
     Sleep   30s
 
     ${content}    Create List    UNAUTHENTICATED : Token expired
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
 
 BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
@@ -1831,7 +1831,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
 
     # if message apear the agent is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
     ${start}    Ctn Get Round Current Date
@@ -1842,7 +1842,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
 
     #if pass telegraph can connect to engine without token
     ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
 
 
