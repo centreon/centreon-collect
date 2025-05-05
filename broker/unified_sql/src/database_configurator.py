@@ -165,7 +165,7 @@ def generate_query_mysql(query, method, return_value, pb_msg, table, fields):
         query_prefix = f"INSERT INTO {table} VALUES"
         query_suffix = "ON DUPLICATE KEY UPDATE "
         query_suffix += ",".join(
-            f"{field.col_name} = VALUES({field.col_name})"
+            f"{field.col_name}=VALUES({field.col_name})"
             for field in fields if 'U' not in field.options
         )
     else:
@@ -190,13 +190,15 @@ def generate_query_mysql(query, method, return_value, pb_msg, table, fields):
                 elif b == "false":
                     insertor.append("0")
                 else:
-                    insertor.append(f"{m_value.group(1)} ? 1 : 0")
+                    values.append(f"{m_value.group(1)} ? 1 : 0")
+                    insertor.append("{}")
             elif field.field_type == "string":
                 values.append(
                     f"misc::string::escape({m_value.group(1)}, get_centreon_storage_{table}_col_size(centreon_storage_{table}_{field.col_name}))")
                 insertor.append("'{}'")
             else:
-                insertor.append(f"{m_value.group(1)}")
+                values.append(m_value.group(1))
+                insertor.append("{}")
         else:
             if "::" in field.field:
                 arr = field.field.split("::")
@@ -209,8 +211,7 @@ def generate_query_mysql(query, method, return_value, pb_msg, table, fields):
                 if 'O' in field.options:
                     values.append(
                         f"msg.{has_field} ? misc::string::escape(msg.{my_field}, get_centreon_storage_{table}_col_size(centreon_storage_{table}_{field.col_name})) : NULL")
-                    insertor.append(
-                        f"msg.{has_field} ? \"'{{}}'\" : \"{{}}\"")
+                    insertor.append("'{}'")
                 else:
                     values.append(
                         f"misc::string::escape(msg.{my_field}, get_centreon_storage_{table}_col_size(centreon_storage_{table}_{field.col_name}))")
@@ -232,8 +233,10 @@ def generate_query_mysql(query, method, return_value, pb_msg, table, fields):
     _logger->error("Error while executing <<{{}}>>: {{}}", query, e.what());
   }}
 """
+        retval_decl = f"{return_value} retval;"
     else:
         query = "mysql.run_query(query);"
+        retval_decl = ""
 
     return f"""
 
@@ -244,7 +247,7 @@ def generate_query_mysql(query, method, return_value, pb_msg, table, fields):
  */
 {return_value} database_configurator::{method}_mysql(const ::google::protobuf::RepeatedPtrField<{pb_msg}>& lst) {{
   mysql& mysql = _stream->get_mysql();
-  {return_value} retval;
+  {retval_decl}
 
   std::vector<std::string> values;
   for (const auto& msg : lst) {{
