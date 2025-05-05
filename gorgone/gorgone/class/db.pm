@@ -200,6 +200,7 @@ sub commit {
     }
 
     if (!defined($self->{instance})) {
+        $self->{logger}->writeLogWarning("Database connection is not defined, please check configuration and database health.");
         $self->transaction_cleanup();
         return -1;
     }
