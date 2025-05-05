@@ -19,11 +19,11 @@
 #include <google/protobuf/util/message_differencer.h>
 
 #include "centreon_agent/agent_impl.hh"
-#include "com/centreon/engine/globals.hh"
 
 #include "otl_fmt.hh"
 
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 
@@ -177,7 +177,8 @@ static bool add_command_to_agent_conf(
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
   serv->set_command_line(plugins_cmdline);
-  serv->set_check_interval(check_interval * pb_config.interval_length());
+  serv->set_check_interval(check_interval *
+                           pb_indexed_config.state().interval_length());
 
   return true;
 }
