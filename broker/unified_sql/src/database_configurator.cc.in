@@ -108,6 +108,7 @@ void database_configurator::_disable_hosts() {
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_severities
+ * Return: absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
  * Protobuf message: engine::configuration::Severity
  * Description: Add severities in the database.
  * Table: severities
@@ -115,8 +116,8 @@ void database_configurator::_disable_hosts() {
  *  FIELD                 & TYPE   & COL NAME               & C_TYPE & OPTIONS
  *  --------------------------------------------------------------------------
  *  ${0} & uint64 & severity_id & uint64 & AU
- *  key::id & uint64 & id & uint64 & U
- *  key::type & uint32 & type & uint32 & U
+ *  key::id & uint64 & id & uint64 &
+ *  key::type & uint32 & type & uint32 &
  *  severity_name & string & name & string &
  *  level & uint32 & level & uint32 &
  *  icon_id & uint64 & icon_id & uint64 &
@@ -190,6 +191,7 @@ void database_configurator::_disable_hosts() {
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_host_resources
+ * Return: absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>
  * Protobuf message: engine::configuration::Host
  * Description: Add hosts in the resources database.
  * Table: resources
