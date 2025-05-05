@@ -18,7 +18,8 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
   push:
     branches:
       - develop
@@ -30,7 +31,8 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
+      - "!gorgone/veracode.json"
+      - "!gorgone/.veracode-exclusions"
 
 env:
   base_directory: gorgone
