@@ -20,18 +20,21 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Cases ***
 
 BEOTEL_CENTREON_AGENT_CHECK_HOST
-    [Documentation]    agent check host and we expect to get it in check result
+    [Documentation]    Given an agent host checked by centagent, we set a first output to check command, 
+    ...    modify it, reload engine and expect the new output in resource table
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"check_interval":10, "export_period":10}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
 
@@ -86,13 +89,15 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
 
@@ -138,7 +143,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
@@ -146,6 +151,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -201,7 +208,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port":4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port":4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
@@ -209,6 +216,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive    0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
     Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
@@ -257,7 +266,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -265,6 +274,8 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -314,6 +325,8 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
     Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -349,13 +362,15 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "cpu_percentage"}    OTEL connector
 
@@ -417,13 +432,15 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "storage", "args": { "free": true, "unit": "%"}}    OTEL connector
 
@@ -485,13 +502,15 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "uptime"}    OTEL connector
 
@@ -551,13 +570,15 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "memory"}    OTEL connector
 
@@ -618,13 +639,15 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "service"}    OTEL connector
 
@@ -682,7 +705,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -690,7 +713,9 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
-
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
 
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
@@ -746,6 +771,58 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
 
+BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
+    [Documentation]    Given and agent who has to execute checks with different intervals, we expect to find these intervals in data_bin
+    [Tags]    broker    engine    opentelemetry    MON-164494
+    Ctn Config Engine    ${1}    ${2}    ${3}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{ "export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    3
+    Ctn Set Services Passive       0    service_[1-3]
+
+
+    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}    Ctn Check Service Check Interval   host_1    service_1    80    10    5
+    Should Be True    ${result}    check_interval is not respected for service_1
+    ${result}    Ctn Check Service Check Interval   host_1    service_2    80    20    5
+    Should Be True    ${result}    check_interval is not respected for service_2
+    ${result}    Ctn Check Service Check Interval   host_1    service_3    80    30    5
+    Should Be True    ${result}    check_interval is not respected for service_3
+
+
+
 BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
     [Tags]    broker    engine    opentelemetry    MON-155395
@@ -756,13 +833,15 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
 
     Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
@@ -821,7 +900,7 @@ BEOTEL_CENTREON_AGENT_CEIP
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -829,6 +908,8 @@ BEOTEL_CENTREON_AGENT_CEIP
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
 
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
@@ -876,13 +957,15 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"check_interval":10, "export_period":10}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   turlututu    OTEL connector
 
@@ -985,7 +1068,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"check_interval":10, "export_period":10}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1044,7 +1127,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
@@ -1103,7 +1186,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -1235,7 +1318,7 @@ NON_TLS_CONNECTION_WARNING_FULL
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"check_interval":10, "export_period":10}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1298,7 +1381,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     Ctn Config Add Otl Connector
     ...    0
@@ -1366,7 +1449,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1375,6 +1458,9 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
     Ctn Clear Db    resources
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
 
     # wrong check command for service_1
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
@@ -1423,13 +1509,15 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_check
     Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
 
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
@@ -1538,7 +1626,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     
     #if the message apear mean that the connection is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
 
@@ -1715,13 +1803,13 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     
     # if message apear the connection is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
     Sleep   30s
 
     ${content}    Create List    UNAUTHENTICATED : Token expired
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
 
 BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
@@ -1799,7 +1887,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
 
     # if message apear the agent is accepted
     ${content}    Create List    Token is valid
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
     ${start}    Ctn Get Round Current Date
@@ -1810,7 +1898,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
 
     #if pass telegraph can connect to engine without token
     ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
 
 
