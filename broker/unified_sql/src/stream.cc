@@ -209,7 +209,7 @@ stream::stream(const database_config& dbcfg,
         nb_dedicated_connection);
     database_config dedicated_cfg(dbcfg);
     dedicated_cfg.set_category(
-        database_config::DATA_BIN_LOGS);  // no shared with bam connection
+        database_config::DATA_BIN_LOGS);  // not shared with bam connection
     dedicated_cfg.set_queries_per_transaction(1);
     dedicated_cfg.set_connections_count(nb_dedicated_connection);
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
