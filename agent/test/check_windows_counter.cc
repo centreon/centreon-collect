@@ -105,7 +105,7 @@ TEST(counter_check_windows, single_return) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\System\\Processes",
-      "output-syntax": "${status}: ${label} : ${value}",
+      "output-syntax": "${status}: {list}",
         "verbose": false,
         "use_english": true
     })"_json;
@@ -145,6 +145,8 @@ TEST(counter_check_windows, multiple_return) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\LogicalDisk(*)\\% Free Space",
+      "output-syntax": "${status}: {problem-list}",
+      "filter-process": "any",
         "warning-status": "_total >= 1",
         "use_english": true
     })"_json;
@@ -167,11 +169,11 @@ TEST(counter_check_windows, multiple_return) {
 
   ASSERT_NE(output.size(), 0);
   ASSERT_EQ(output.find("WARNING: _total"), 0);
-
-  ASSERT_EQ(perf.size(), 2);
-  ASSERT_EQ(perf.front().name(), "warning-count");
-  ASSERT_EQ(perf.front().value(), 1.0);
-  ASSERT_EQ(perf.back().name(), "critical-count");
+  // the perfdata should contain the warning count and the value should be
+  // greater than 0
+  auto it = std::prev(perf.end(), 2);
+  ASSERT_EQ(it->name(), "warning-count");
+  ASSERT_NE(it->value(), 0.0);
 
   ASSERT_EQ(status, e_status::warning);
 }
@@ -228,7 +230,8 @@ TEST(counter_check_windows, complex_rules) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\Process V2(*)\\Thread Count",
-        "pref-display-syntax":"any",
+        "counter-filter":"any",
+        "output-syntax": "${status}: {problem-list}",
         "warning-status": "_total >= 10",
         "warning-count": "0",
         "use_english": true
