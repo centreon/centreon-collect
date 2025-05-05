@@ -422,6 +422,7 @@ void applier::state::_apply(const configuration::State& new_cfg,
       new_cfg.send_recovery_notifications_anyways());
   pb_config.set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
+  pb_config.set_broker_module_cfg_file(new_cfg.broker_module_cfg_file());
   pb_config.clear_user();
   for (auto& p : new_cfg.user())
     pb_config.mutable_user()->at(p.first) = p.second;
