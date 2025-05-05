@@ -22,6 +22,49 @@ import time
 from dateutil import parser
 from datetime import datetime, timedelta
 import requests
+import subprocess
+import os
+
+
+def ctn_check_plugin_is_installed_and_remove_it(plugin: str) -> bool:
+    """! Check if a plugin is installed
+        @param plugin: name of the plugin to check
+        @return: True if the plugin is correctly installed or if no param given, False otherwise
+    """
+    if plugin == '':
+        return True
+    try:
+        cmd = ""
+        if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+            cmd = "dpkg -l | grep -i " + plugin.lower() + " | wc -l "
+
+        elif os.path.isfile("/usr/bin/rpm") and os.access("/usr/bin/rpm", os.X_OK):
+            cmd = "rpm -qa | grep " + plugin + " | wc -l "
+        logger.info("checking plugin with cmd: '{}'".format(cmd))
+        output = subprocess.check_output(cmd, shell=True)
+        if int(output) != 1:
+            logger.info("The plugin '{}' is not installed".format(plugin))
+            return False
+
+
+    except IOError:
+        logger.info("The plugin '{}' does not exist".format(plugin))
+        return False
+
+    # let's remove the plugin.
+    cmd = ""
+    if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+        cmd = "apt remove -y " + plugin.lower()
+    elif os.path.isfile("/usr/bin/rpm") and os.access("/usr/bin/rpm", os.X_OK):
+        cmd = "dnf remove -y " + plugin
+    logger.info("removing with cmd: '{}'".format(cmd))
+    sub = subprocess.run(cmd, shell=True, capture_output=True, check=False)
+
+    if int(sub.returncode) != 0:
+        logger.info("The plugin '{}' can't be de removed: {}".format(plugin, sub.stdout))
+        return False
+
+    return True
 
 
 def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.1:8085', timeout=15):
