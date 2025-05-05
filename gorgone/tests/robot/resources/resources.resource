@@ -48,7 +48,21 @@ Stop Gorgone And Remove Gorgone Config
         ${result}    Terminate Process    ${process}
         BuiltIn.Run Keyword And Continue On Failure    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Gorgone ${process} badly stopped, code returned is ${result.rc}.
     END
+    # this sudo is added by our robot test to emulate the sudo command when we are root in a container.
+    ${output}=    Run    id -u
+    IF    ${output} == 0
+        Run    rm -f /usr/local/bin/sudo
+    END
 
+Setup Sudo
+    [Documentation]    This keyword setup a simple sudo command for when we are root in a container which don't have sudo installed.
+    ${output}=    Run    id -u
+    Log To Console    ${CURDIR}${/}sudo
+    IF    ${output} == 0
+        Run    cp ${CURDIR}${/}sudo /usr/local/bin/sudo
+        Run    chmod +x /usr/local/bin/sudo
+        Run    chown root:root /usr/local/bin/sudo
+    END
 Gorgone Execute Sql
     [Arguments]    ${sql_file}
     ${length}    Get Length    ${sql_file}
