@@ -137,7 +137,7 @@ sub transaction_query {
 sub begin_transaction {
     my ($self) = @_;
 
-    return $self->{db_centreon}->begin_transaction();
+    return $self->{db_centreon}->start_transaction();
 };
 
 sub commit {

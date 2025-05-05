@@ -1,14 +1,5 @@
 #!/usr/bin/perl
-# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
-# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
-BEGIN {
-    package centreon::common::logger;
-    sub severity {};
-    sub new {return bless({}, 'centreon::common::logger');}
-    sub writeLogError {};
-    sub writeLogInfo {};
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
-}
+
 package main;
 use strict;
 use warnings;
@@ -19,27 +10,29 @@ use FindBin;
 use lib "$FindBin::Bin/../../../";
 use gorgone::standard::library;
 use gorgone::class::db;
+use tests::unit::lib::mockLogger;
 
 sub init_database_no_file {
-    unlink('test.sdb');
+    my $db_file = 'test-library.sdb';
+    unlink($db_file) if -e $db_file;
 
     my $mock_logger = mock 'centreon::common::logger'; # this is from Test2::Tools::Mock, included by Test2::V0
     # the test is about not making an error log when the db don't exist because it's created silently, so fail if the log error sub is called.
     $mock_logger->override('writeLogError' => sub {fail()});
-    my $logger = centreon::common::logger->new();
 
+    my $logger = centreon::common::logger->new();
     my %options = (
-        type    => 'SQLite',
-        version => '1.0',
-        db => 'dbname=./test1.sdb',
-        logger  => $logger,
+        type              => 'SQLite',
+        version           => '1.0',
+        db                => 'dbname=./' . $db_file,
+        logger            => $logger,
         autocreate_schema => 1,
     );
     gorgone::standard::library::init_database(%options);
 
-    is(-r 'test1.sdb', 1, 'database file created without any error.');
-
-    my $db = DBI->connect("DBI:SQLite:dbname=./test1.sdb", undef, undef,
+    is(-r $db_file, 1, 'database file created without any error.');
+    # let's check with a real dbi object the database is correct
+    my $db = DBI->connect("DBI:SQLite:dbname=./$db_file", undef, undef,
         { RaiseError => 0, PrintError => 0, AutoCommit => 1, sqlite_unicode => 1 });
     is($db, D(), 'database connection should not be undef.');
     my $prepare_stm = $db->prepare("SELECT `value` FROM gorgone_information WHERE `key` = 'version'");
@@ -101,7 +94,8 @@ sub init_database_no_file {
     $row = $db->selectrow_arrayref( qq{ SELECT count(*) FROM pragma_table_info('gorgone_identity') } );
     is($row->[0], 9, 'table gorgone_identity should contains 9 columns after init_database.' );
 
-    unlink('test1.sdb');
+    unlink($db_file);
+
 }
 
 sub main {
