@@ -38,6 +38,7 @@ dnf install --best -y \
     zstd
 
 dnf clean all
+dnf update -y
 
 echo "install robot and dependencies"
 
