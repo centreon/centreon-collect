@@ -19,3 +19,6 @@ gorgone/docs/                  @centreon/owners-doc
 gorgone/tests/robot/tests      @centreon/owners-robot-e2e
 
 *.ps1                          @centreon/owners-cpp
+
+.gitleaks.toml                 @centreon/owners-security
+.gitleaksignore                @centreon/owners-security
