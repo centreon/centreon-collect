@@ -538,6 +538,8 @@ class filter_combinator : public filter {
 
   bool check(const testable& t) const override;
 
+  bool check_all(const testable& t) const;
+
   void visit(const visitor& visitr) const override;
 
   void set_logger(const std::shared_ptr<spdlog::logger>& logger) override;

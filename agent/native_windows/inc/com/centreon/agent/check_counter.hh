@@ -41,8 +41,7 @@ struct pdh_counter {
 };
 
 struct counter_data : public testable {
-  std::pair<std::string, double> _value;
-  counter_data(std::string key, double value) : _value(key, value) {}
+  absl::flat_hash_map<std::string, double> _map;
 };
 
 /**
@@ -50,16 +49,20 @@ struct counter_data : public testable {
  *
  */
 class check_counter : public check {
+ public:
+  enum class status { check_ok = 0, check_war = 1, check_crit = 2 };
+
+ private:
   std::string _counter_name;
   std::string _output_syntax;
   std::string _detail_syntax;
   std::string _counter_filter;
 
-  absl::flat_hash_map<std::string, double> _data;
+  counter_data _data_counter;
 
-  absl::flat_hash_set<std::string> _ok_list;
-  absl::flat_hash_set<std::string> _warning_list;
-  absl::flat_hash_set<std::string> _critical_list;
+  absl::btree_set<std::string> _ok_list;
+  absl::btree_set<std::string> _warning_list;
+  absl::btree_set<std::string> _critical_list;
 
   absl::flat_hash_set<std::string> _perf_filter_list;
 
@@ -74,6 +77,7 @@ class check_counter : public check {
   bool _use_english;
   bool _have_multi_return = false;
   bool _need_two_samples = false;
+  bool _use_all_data = false;
 
   std::unique_ptr<pdh_counter> _pdh_counter;
 
@@ -113,7 +117,7 @@ class check_counter : public check {
     return std::static_pointer_cast<check_counter>(check::shared_from_this());
   }
 
-  size_t get_size_data() const { return _data.size(); }
+  size_t get_size_data() const { return _data_counter._map.size(); }
 
   void build_checker();
 
@@ -125,6 +129,11 @@ class check_counter : public check {
   bool use_english() const { return _use_english; }
   const std::string& counter_name() const { return _counter_name; }
   bool need_two_samples() const { return _need_two_samples; }
+
+  // only for test
+  void set_counter_data(absl::flat_hash_map<std::string, double>& data) {
+    _data_counter._map = data;
+  }
 };
 
 }  // namespace com::centreon::agent
