@@ -456,8 +456,6 @@ target_link_libraries(
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  pb_neb_lib
-  pb_header_lib
   pthread
   spdlog::spdlog
   sql

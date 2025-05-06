@@ -118,7 +118,6 @@ BEPBRI1
     Remove File    /tmp/pbresponsiveinstance.log
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    trace
@@ -153,8 +152,6 @@ BEPBCVS
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
@@ -185,8 +182,6 @@ BEPBHostParent
     Ctn Add Parent To Host    0    host_1    host_2
     Ctn Add Parent To Host    0    host_3    host_2
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config Broker Sql Output    central    unified_sql
@@ -229,8 +224,6 @@ BEPBINST_CONF
     [Tags]    broker    engine    protobuf    bbdo    MON-38007
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
     Ctn Config BBDO3    ${1}
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Log    central    core    trace
@@ -252,36 +245,12 @@ BEPBINST_CONF
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
 
-BEPBINST_BROADCAST
-    [Documentation]    bbdo_version 3 communication of instance broadcast.
-    ...    at startup, broker central sends pb_instance_broadcast and we expect it in broker logs
-    [Tags]    broker    engine    protobuf    bbdo    MON-157904
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
-    Ctn Config BBDO3    ${1}
-    Ctn Config Broker Sql Output    central    unified_sql
-    Ctn Broker Config Log    central    core    trace
-    Ctn Clear Retention
-    ${start}    Get Current Date
-    Ctn Start Broker    True
-    Ctn Start Engine
-
-    ${content}    Create List    muxer centreon-broker-master-rrd event of type 1003a pushed
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    log about pb_instance_broadcast not found
-
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    True
-
 GRPC_CLOUD_FAILURE
     [Documentation]    simulate a broker failure in cloud environment, we provide a muted grpc server and there must remain only one grpc connection. Then we start broker and connection must be ok
     [Tags]    broker    engine    bbdo_server    bbdo_client    grpc    cloud    mon-38483
 
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
-    Ctn Config Broker    module
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
     Ctn Config Broker Bbdo Output    module0    bbdo_client    5669    grpc    localhost
     Ctn Config Broker Sql Output    central    unified_sql

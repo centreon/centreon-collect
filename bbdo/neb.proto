@@ -859,15 +859,3 @@ message AgentStats {
   int64 poller_id = 1;
   repeated AgentInfo stats = 2;
 }
-
-/**
-  * @brief Message sent at broker startup
-  */
-/* io::neb, neb::de_pb_instance_broadcast, 58 */
-message InstanceBroadcast {
-  uint32 broker_id = 1;
-  string broker_name = 2;
-  bool enabled = 3;
-  uint32 poller_id = 4;
-  string poller_name = 5;
-}
