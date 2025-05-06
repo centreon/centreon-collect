@@ -198,12 +198,15 @@ sub connection_informations {
             return 0;
         }
 
+        my $scheme = $self->{proxy_url} =~ /^(https?:\/\/)/i ? lc $1 : 'http://';
+        $self->{proxy_url} =~ s/$scheme//;
+
         $self->{proxy_url} = $self->{proxy_user} . ':' . $self->{proxy_password} . '@' . $self->{proxy_url}
             if (defined($self->{proxy_user}) && $self->{proxy_user} ne '' &&
                 defined($self->{proxy_password}) && $self->{proxy_password} ne '');
         $self->{proxy_url} = $self->{proxy_url} . ':' . $self->{proxy_port}
             if (defined($self->{proxy_port}) && $self->{proxy_port} =~ /(\d+)/);
-        $self->{proxy_url} = 'http://' . $self->{proxy_url};
+        $self->{proxy_url} = $scheme . $self->{proxy_url};
     }
 
     return 0;
