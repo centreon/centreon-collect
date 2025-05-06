@@ -143,7 +143,7 @@ void database_configurator::_disable_hosts() {
  * Data:
  *  FIELD                 & TYPE   & COL NAME    & C_TYPE & OPTIONS
  *  ---------------------------------------------------------------
- *  ${0}                  & uint64 & severity_id & uint64 & AU
+ *  ${0}                  & uint64 & tag_id      & uint64 & AU
  *  key::id               & uint64 & id          & uint64 &
  *  key::type             & uint32 & type        & uint32 &
  *  tag_name              & string & name        & string &
@@ -309,4 +309,36 @@ void database_configurator::_disable_hosts() {
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool & stalk_on_unknown  & bool &
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
  */
+
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_service_resources
+ * Return: absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>
+ * Key: {host_id, service_id}
+ * Protobuf message: engine::configuration::Service
+ * Description: Add services into the resources database.
+ * Table: resources
+ * Data:
+ *  FIELD                 & TYPE   & COL NAME               & C_TYPE & OPTIONS
+ *  --------------------------------------------------------------------------
+ * ${0} & uint64 & resource_id & uint64_t & AU
+ * service_id & uint64 & id & uint64 & U
+ * host_id & uint64 & parent_id & uint64 & U
+ * ${NULL} & uint64 & internal_id & uint64 &
+ * ${0 /* Maybe others values if meta-service, ba, ... */} & uint32 & type & uint32 &
+ * max_check_attempts & uint32 & max_check_attempts & uint32 &
+ * ${poller_id} & uint64 & poller_id & uint64 &
+ * severity_id & uint64 & severity_id & uint64 & O
+ * service_description & string & name & string &
+ * ${NULL} & string & alias & string &
+ * host_name & string & parent_name & string &
+ * notes_url & string & notes_url & string &
+ * notes & string & notes & string &
+ * action_url & string & action_url & string &
+ * notifications_enabled & bool & notifications_enabled & bool &
+ * checks_passive & bool & passive_checks_enabled & bool &
+ * checks_active & bool & active_checks_enabled & bool &
+ * ${true} & bool & enabled & bool &
+ */
+
 }  // namespace com::centreon::broker::unified_sql
