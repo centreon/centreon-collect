@@ -36,6 +36,27 @@ configuration:
         password: centreon
 ```
 
+To use an SSL connection to Centreon databases, the following options can be added to the DSN:
+
+| Options         | Description                                  |
+| :-------------- | :------------------------------------------- |
+| mysql_ssl       | Must be set to 1 to enable SSL               |
+| mysql_ssl_ca    | Path to the Certificate Authority (CA) file  |
+| mysql_ssl_cert  | Path to the client certificate               |
+| mysql_ssl_key   | Path to the client's private key             |
+
+#### Example
+
+```yaml
+configuration:
+  centreon:
+    database:
+      db_configuration:
+        dsn: "mysql:host=localhost;dbname=centreon;mysql_ssl=1;mysql_ssl_ca=ca.pem;mysql_ssl_cert=client-cert.pem;mysql_ssl_key=client-key.pem"
+        username: centreon
+        password: centreon
+```
+
 ## *gorgonecore*
 
 | Directive             | Description                                                             | Default value                                  |
