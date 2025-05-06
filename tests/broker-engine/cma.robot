@@ -1543,7 +1543,7 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
 
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
-    ...    {"check":"counter", "args":{ "counter": "\Processus(centagent*)\% temps processeur", ""} }
+    ...    {"check":"counter", "args":{ "counter": "\Processus(centagent*)\% temps processeur"} }
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_process_warning
