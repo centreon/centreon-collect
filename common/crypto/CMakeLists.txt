@@ -25,7 +25,7 @@ include_directories(
 add_library(
   ctncrypto STATIC
   # Sources.
-  aes256.cc base64.cc jwt.cc)
+  base64.cc jwt.cc)
 
 target_precompile_headers(ctncrypto REUSE_FROM centreon_common)
 
