@@ -40,6 +40,8 @@ dnf install --best -y \
     sudo \
     zstd
 
+dnf clean all
+
 echo "install robot and dependencies"
 
 pip3 install -U robotframework robotframework-databaselibrary==2.0.4 robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
