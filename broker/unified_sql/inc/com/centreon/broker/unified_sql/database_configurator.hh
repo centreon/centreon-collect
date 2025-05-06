@@ -61,6 +61,14 @@ class database_configurator {
   _add_host_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>
+  _add_service_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
+          lst);
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>
+  _add_service_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
+          lst);
   void _add_services_mariadb(const ::google::protobuf::RepeatedPtrField<
                              engine::configuration::Service>& lst);
   void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<
