@@ -32,10 +32,12 @@ package main;
 use FindBin;
 use lib "$FindBin::Bin/../../../";
 
+use Test2::V0;
+use Test2::Plugin::NoWarnings echo => 1;
+use Test2::Tools::Compare qw{is like match};
+
 use gorgone::modules::centreon::anomalydetection::hooks;
 use gorgone::modules::centreon::anomalydetection::class;
-
-use Test2::V0;
 
 sub create_data_set {
     my $set = {};
