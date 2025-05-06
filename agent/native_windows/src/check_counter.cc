@@ -319,7 +319,8 @@ e_status check_counter::compute(
   e_status ret = e_status::ok;
 
   if (_data_counter._map.empty()) {
-    SPDLOG_LOGGER_ERROR(_logger, "No data collected from the counter");
+    SPDLOG_LOGGER_ERROR(_logger, "No data collected from the counter {}",
+                        _counter_name);
     *output = "No data collected from the counter";
     return e_status::unknown;
   }
@@ -371,6 +372,13 @@ e_status check_counter::compute(
         _ok_list.insert(label);
         break;
     }
+  }
+  // after the check filter , we need to clear the failures list
+  if (!_warning_status.empty()) {
+    _warning_rules_filter->clear_failures();
+  }
+  if (!_critical_status.empty()) {
+    _critical_rules_filter->clear_failures();
   }
 
   // add the data to the perfdata list
