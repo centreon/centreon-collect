@@ -1521,8 +1521,6 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     ${nb_lines}    Get Line Count    ${result[1]}
     Should Be True    ${nb_lines} == 1    no verbose output must not be multiline
 
-
-
 BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     [Documentation]    Given an agent with counter check, we expect to get the correct status for the centagent process running on windows host
     [Tags]    broker    engine    opentelemetry    MON-155836
@@ -1543,15 +1541,15 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
 
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
-    ...    {"check":"counter", "args":{ "counter": "\Processus(centagent*)\% temps processeur"} }
+    ...    {"check":"counter", "args":{ "counter": "\\Process(centagent*)\\% Processor Time","use_english":true} }
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_process_warning
-    ...    {"check":"counter", "args":{ "counter": "\Processus(centagent*)\% temps processeur", "warning-status":"value >=0"} }
+    ...    {"check":"counter", "args":{ "counter": "\\Process(centagent*)\\% Processor Time", "warning-status":"value >=0","use_english":true} }
     ...    OTEL connector
 
     Ctn Engine Config Add Command    ${0}    agent_process_critical
-    ...    {"check":"counter", "args":{ "counter": "\Processus(centagent*)\% temps processeur", "critical-status":"value >=0"} }
+    ...    {"check":"counter", "args":{ "counter": "\\Process(centagent*)\\% Processor Time", "critical-status":"value >=0","use_english":true} }
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
