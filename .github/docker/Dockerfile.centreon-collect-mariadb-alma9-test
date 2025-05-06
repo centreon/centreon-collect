@@ -24,6 +24,13 @@ dnf install --best -y \
     python3 \
     python3-devel \
     python3-pip \
+    python3-audit \
+    python3-distro \
+    python3-libselinux \
+    python3-libsemanage \
+    python3-policycoreutils \
+    python3-setools \
+    python3-setuptools
     perl-interpreter \
     procps-ng \
     psmisc \
