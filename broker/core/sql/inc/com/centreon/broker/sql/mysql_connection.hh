@@ -179,7 +179,7 @@ class mysql_connection {
       size_t length);
 
   template <typename T>
-  void run_statement_and_get_int(database::mysql_stmt& stmt,
+  void run_statement_and_get_int(database::mysql_stmt_base& stmt,
                                  std::promise<T>&& promise,
                                  database::mysql_task::int_type type) {
     _push(std::make_unique<database::mysql_task_statement_int<T>>(

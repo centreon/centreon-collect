@@ -40,7 +40,13 @@ class database_configurator {
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
   _add_severities_mysql(const ::google::protobuf::RepeatedPtrField<
                         engine::configuration::Severity>& lst);
-
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
+  _add_tags_mariadb(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+          lst);
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _add_tags_mysql(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+          lst);
   void _add_hosts_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
@@ -55,6 +61,10 @@ class database_configurator {
   _add_host_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  void _add_services_mariadb(const ::google::protobuf::RepeatedPtrField<
+                             engine::configuration::Service>& lst);
+  void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<
+                           engine::configuration::Service>& lst);
 
  public:
   database_configurator(const DiffState& diff,
