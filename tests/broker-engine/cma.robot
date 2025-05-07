@@ -6,12 +6,11 @@ Library             DatabaseLibrary
 Library             DateTime
 Library             String
 
-Resource            ../resources/resources.resource
+
+Resource            ../resources/import.resource
 
 Library             ../resources/Agent.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
-Library             ../resources/Engine.py
+
 
 Suite Setup         Ctn Create Cert And Init
 Suite Teardown      Ctn Clean After Suite
@@ -321,7 +320,9 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
+    ${token}    Ctn Create Jwt Token    ${60}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -334,8 +335,8 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    encrypted server listening on 0.0.0.0:4318
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
 
@@ -1186,7 +1187,9 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
+    ${token}    Ctn Create Jwt Token    ${3600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1228,6 +1231,7 @@ NON_TLS_CONNECTION_WARNING_FULL
     ...    After 1 hour, we expect to get a warning message about the connection time expired
     ...    and the connection killed.
     [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
+    # this test should not be running in CI
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
@@ -1290,6 +1294,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     ...    After 1 hour, we expect to get a warning message about the connection time expired
     ...    and the connection killed.
     [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
+    # this test should not be running in CI
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
@@ -1485,6 +1490,328 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     Should Be True    ${nb_lines} == 1    no verbose output must not be multiline
 
 
+
+
+
+BEOTEL_CENTREON_AGENT_TOKEN
+    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
+    ...    When the Centreon Agent attempts to connect using an valid JWT token
+    ...    Then the connection should be accepted
+    ...    And the log should confirm that the token is valid
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${token1}    Ctn Create Jwt Token    ${60}
+
+    Ctn Add Token Otl Server Module    0    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token1}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+    
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    #if the message apear mean that the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Token is valid" should appear.
+
+
+BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
+    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
+...   And the server uses a public certificate and private key for secure communication
+...   When the Centreon Agent attempts to connect using an invalid JWT token
+...   Then the connection should be refused
+...   And the log should contain the message "Token is not trusted"
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${token1}    Ctn Create Jwt Token    ${60}
+    ${token2}    Ctn Create Jwt Token    ${3600}
+
+    Ctn Add Token Otl Server Module    0    ${token2}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token1}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    #if the message apear mean that the connection is refused
+    ${content}    Create List    Token is not trusted
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Token is not trusted" should appear.
+
+
+BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
+    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
+...   And the server uses a public certificate and private key for secure communication
+...   When the Centreon Agent attempts to connect using an expired JWT token
+...   Then the connection should be refused
+...   And the log should contain the message "Token is expired"
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${token1}    Ctn Create Jwt Token    ${10}
+
+    Ctn Add Token Otl Server Module    0    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token1}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Sleep    10s
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    ${content}    Create List    UNAUTHENTICATED : Token expired
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
+BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
+    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
+...   And the server uses a public certificate and private key for secure communication
+...   When the Centreon Agent attempts to connect using an JWT token valid
+...   Then the connection should be accepted
+...   When the token expires
+...   Then the connection should be refused
+...   And the log should contain the message "Token is expired"
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_functions    warning
+    
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+
+    ${token}    Ctn Create Jwt Token    ${20}
+
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Token is valid" should appear.
+
+    Sleep   30s
+
+    ${content}    Create List    UNAUTHENTICATED : Token expired
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
+BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
+    [Documentation]    Given an OpenTelemetry server is configured with token-based connection
+...    And the Centreon Agent is configured with a valid token
+...    When the agent attempts to connect to the server
+...    Then the connection should be successful
+...    And the log should confirm that the token is valid
+...    And Telegraf should connect and send data to the engine
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10},"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    CMA connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    TEL connector
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
+
+    
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    cma_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    cma_check_icmp    ${echo_command}    CMA connector
+    Ctn Set Hosts Passive    ${0}    host_1
+
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp2
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    TEL connector
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp2
+    Ctn Set Hosts Passive  ${0}  host_2
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_functions    warning
+    
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+
+    ${token}    Ctn Create Jwt Token    ${60}
+
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+
+    # if message apear the agent is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Token is valid" should appear.
+
+    ${start}    Ctn Get Round Current Date
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_2
+
+    ${host_name}  Ctn Get Hostname
+    Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
+
+    #if pass telegraph can connect to engine without token
+    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
 
 
 *** Keywords ***

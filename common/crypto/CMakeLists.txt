@@ -16,24 +16,18 @@
 # For more information : contact@centreon.com
 #
 
-# Global options.
-
-set(INC_DIR "${PROJECT_SOURCE_DIR}/grpc/inc")
-set(SRC_DIR "src")
-
-# Sources.
-set(SOURCES
-  ${SRC_DIR}/grpc_client.cc
-  ${SRC_DIR}/grpc_server.cc
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/common/inc
 )
 
 
-add_library(centreon_grpc STATIC ${SOURCES} )
-target_include_directories(centreon_grpc PRIVATE ${INC_DIR} ${CMAKE_SOURCE_DIR}/common/inc)
+add_library(
+  ctncrypto STATIC
+  # Sources.
+  base64.cc jwt.cc)
 
-target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
+target_precompile_headers(ctncrypto REUSE_FROM centreon_common)
 
-set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# Link the ctncrypto library with centreon_grpc.
-target_link_libraries(centreon_grpc PRIVATE ctncrypto)
+set_property(TARGET ctncrypto PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(ctncrypto PRIVATE OpenSSL::Crypto OpenSSL::SSL)
