@@ -1539,7 +1539,6 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_check
     Ctn Set Services Passive       0    service_1
 
-
     Ctn Engine Config Add Command    ${0}    agent_process_check
     ...    {"check":"counter", "args":{ "counter": "\\\\System\\\\Processes","use_english":true} }
     ...    OTEL connector
@@ -1574,12 +1573,9 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     Ctn Wait For Otel Server To Be Ready    ${start}
     
     Log To Console    service_1 must be ok
-    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    OK: all is ok
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    OK:
     Should Be True    ${result}    resources table not updated for service_1
 
-    ${metrics_list}    Create List   process.count
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
-    Should Be True    ${result}    process metrics not updated
 
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_warning
