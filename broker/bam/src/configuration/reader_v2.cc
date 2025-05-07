@@ -251,6 +251,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
           uint32_t ba_id(res.value_as_u32(0));
           bas[ba_id] = ba(ba_id,                // ID.
                           res.value_as_str(1),  // Name.
+                          "", // host name
                           static_cast<configuration::ba::state_source>(
                               res.value_as_u32(2)),  // State source.
                           res.value_as_f32(3),       // Warning level.
@@ -301,6 +302,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
     while (_mysql.fetch_row(res)) {
       uint32_t host_id = res.value_as_u32(2);
       uint32_t service_id = res.value_as_u32(3);
+      std::string hostname = res.value_as_str(0);
       std::string service_description = res.value_as_str(1);
       service_description.erase(0, strlen("ba_"));
 
@@ -325,6 +327,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
         }
         found->second.set_host_id(host_id);
         found->second.set_service_id(service_id);
+        found->second.set_host_name(hostname);
         mapping.set(ba_id, res.value_as_str(0), res.value_as_str(1));
       }
     }

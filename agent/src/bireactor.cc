@@ -160,9 +160,9 @@ void bireactor<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
-                         bireactor<bireactor_class>>::shared_from_this(),
-                     &peer = _peer, logger = _logger]() {
+  asio::post(*_io_context, [me = std::enable_shared_from_this<
+                                bireactor<bireactor_class>>::shared_from_this(),
+                            &peer = _peer, logger = _logger]() {
     std::lock_guard l(_instances_m);
     SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone() to {}",
                         static_cast<void*>(me.get()), peer);
@@ -177,9 +177,9 @@ void bireactor<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * pthread_join of the current thread witch go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
-                         bireactor<bireactor_class>>::shared_from_this(),
-                     status, &peer = _peer, logger = _logger]() {
+  asio::post(*_io_context, [me = std::enable_shared_from_this<
+                                bireactor<bireactor_class>>::shared_from_this(),
+                            status, &peer = _peer, logger = _logger]() {
     std::lock_guard l(_instances_m);
     if (status.ok()) {
       SPDLOG_LOGGER_DEBUG(logger, "{:p} peer: {} client::OnDone({}) {}",

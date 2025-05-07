@@ -108,6 +108,9 @@ void ba_worst::_apply_impact(kpi* kpi_ptr [[maybe_unused]],
     return order[new_state] > order[current_state];
   };
 
+  // Adjust values.
+  _acknowledgement_count += impact.hard_impact.get_acknowledgement();
+
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
     return;
 
@@ -163,6 +166,9 @@ void ba_worst::_unapply_impact(kpi* kpi_ptr,
                                ba::impact_info& impact [[maybe_unused]]) {
   // Prevent derive of values.
   _computed_soft_state = _computed_hard_state = state_ok;
+
+  // Adjust values.
+  _acknowledgement_count -= impact.hard_impact.get_acknowledgement();
 
   // We recompute all impacts, except the one to unapply...
   for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it)
@@ -233,6 +239,7 @@ std::shared_ptr<pb_ba_status> ba_worst::_generate_ba_status(
     status.set_last_state_change(_event->obj().start_time());
   else
     status.set_last_state_change(get_last_kpi_update());
+  status.set_level_acknowledgement(_acknowledgement_count);
   status.set_state(com::centreon::broker::State(get_state_hard()));
   status.set_state_changed(state_changed);
   std::string perfdata = get_perfdata();

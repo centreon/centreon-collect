@@ -55,7 +55,7 @@ static void signal_handler(const boost::system::error_code& error,
         if (_streaming_server) {
           _streaming_server->shutdown();
         }
-        g_io_context->post([]() { g_io_context->stop(); });
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
         return;
       case SIGUSR2:
         SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
@@ -136,12 +136,11 @@ int main(int argc, char* argv[]) {
   if (conf.get_log_type() == config::to_file) {
     try {
       if (!conf.get_log_file().empty()) {
-        if (conf.get_log_files_max_size() > 0 &&
-            conf.get_log_files_max_number() > 0) {
+        if (conf.get_log_max_file_size() > 0 && conf.get_log_max_files() > 0) {
           g_logger = spdlog::rotating_logger_mt(
               logger_name, conf.get_log_file(),
-              conf.get_log_files_max_size() * 0x100000,
-              conf.get_log_files_max_number());
+              conf.get_log_max_file_size() * 0x100000,
+              conf.get_log_max_files());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "
@@ -205,6 +204,30 @@ int main(int argc, char* argv[]) {
                                                grpc_conf, conf.get_host());
   }
 
+  if (!conf.use_encryption()) {
+    SPDLOG_LOGGER_WARN(
+        g_logger,
+        "NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION");
+
+    auto timer = std::make_shared<asio::steady_timer>(*g_io_context,
+                                                      std::chrono::hours(1));
+    timer->async_wait([timer](const boost::system::error_code& ec) {
+      if (!ec) {
+        SPDLOG_LOGGER_WARN(g_logger,
+                           "NON TLS CONNECTION TIME EXPIRED // THIS IS NOT "
+                           "ALLOWED IN PRODUCTION");
+        SPDLOG_LOGGER_WARN(g_logger,
+                           "CONNECTION KILLED, AGENT NEED TO BE RESTART");
+        if (_streaming_client) {
+          _streaming_client->shutdown();
+        }
+        if (_streaming_server) {
+          _streaming_server->shutdown();
+        }
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
+      }
+    });
+  }
   try {
     g_io_context->run();
   } catch (const std::exception& e) {

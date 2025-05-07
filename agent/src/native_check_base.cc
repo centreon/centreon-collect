@@ -122,9 +122,9 @@ void native_check_base<nb_metric>::start_check(const duration& timeout) {
     std::shared_ptr<native_check_detail::snapshot<nb_metric>> mem_metrics =
         measure();
 
-    _io_context->post([me = shared_from_this(),
-                       start_check_index = _get_running_check_index(),
-                       metrics = mem_metrics]() mutable {
+    asio::post(*_io_context, [me = shared_from_this(),
+                              start_check_index = _get_running_check_index(),
+                              metrics = mem_metrics]() mutable {
       std::string output;
       output.reserve(1024);
       std::list<com::centreon::common::perfdata> perfs;
@@ -134,9 +134,9 @@ void native_check_base<nb_metric>::start_check(const duration& timeout) {
 
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to get memory info: {}", e.what());
-    _io_context->post([me = shared_from_this(),
-                       start_check_index = _get_running_check_index(),
-                       err = e.what()] {
+    asio::post(*_io_context, [me = shared_from_this(),
+                              start_check_index = _get_running_check_index(),
+                              err = e.what()] {
       me->on_completion(start_check_index, e_status::unknown, {}, {err});
     });
   }
@@ -155,7 +155,7 @@ template <unsigned nb_metric>
 e_status native_check_base<nb_metric>::compute(
     const native_check_detail::snapshot<nb_metric>& data,
     std::string* output,
-    std::list<common::perfdata>* perfs) const {
+    std::list<com::centreon::common::perfdata>* perfs) const {
   e_status status = e_status::ok;
 
   for (const auto& mem_status : _measure_to_status) {
@@ -163,6 +163,7 @@ e_status native_check_base<nb_metric>::compute(
   }
 
   *output = status_label[status];
+  output->append(": ");
   data.dump_to_output(output);
 
   const auto& metric_definitions = get_metric_definitions();

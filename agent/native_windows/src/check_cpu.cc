@@ -451,7 +451,7 @@ e_status check_cpu::compute(
     const check_cpu_detail::cpu_time_snapshot<
         check_cpu_detail::e_proc_stat_index::nb_field>& second_measure,
     std::string* output,
-    std::list<common::perfdata>* perfs) {
+    std::list<com::centreon::common::perfdata>* perfs) {
   output->reserve(256 * _nb_core);
 
   return _compute(first_measure, second_measure, _sz_summary_labels.data(),

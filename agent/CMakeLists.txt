@@ -140,11 +140,21 @@ set( SRC_COMMON
 
 set( SRC_WINDOWS
   ${SRC_DIR}/config_win.cc
-  ${NATIVE_SRC}/check_uptime.cc
+  ${SRC_DIR}/filter.cc
   ${NATIVE_SRC}/check_drive_size.cc
+  ${NATIVE_SRC}/check_event_log.cc
+  ${NATIVE_SRC}/check_process.cc
+  ${NATIVE_SRC}/check_uptime.cc
+  ${NATIVE_SRC}/event_log/container.cc
+  ${NATIVE_SRC}/event_log/data.cc
+  ${NATIVE_SRC}/event_log/uniq.cc
   ${NATIVE_SRC}/check_memory.cc
   ${NATIVE_SRC}/check_service.cc
+  ${NATIVE_SRC}/windows_util.cc
   ${NATIVE_SRC}/ntdll.cc
+  ${NATIVE_SRC}/process/process_container.cc
+  ${NATIVE_SRC}/process/process_data.cc
+  ${NATIVE_SRC}/process/process_filter.cc
 )
 
 set( SRC_LINUX
@@ -161,7 +171,9 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} ${SRC_LINUX})
 else()
+  add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+  set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 
@@ -213,9 +225,26 @@ else()
     fmt::fmt
     pdh)
 
-    if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
-      add_subdirectory(installer)
-    endif()
+  if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    # The linker needs to know to retain debug symbols.
+    target_link_options (
+      ${CENTREON_AGENT}
+      PRIVATE $<$<CONFIG:RELEASE>:/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF>
+    )
+
+    # Make sure that we're giving the pdb the right name and putting it in
+    # the right place.
+    set_target_properties (
+        ${CENTREON_AGENT}
+        PROPERTIES
+            COMPILE_PDB_NAME       "${CENTREON_AGENT}"
+            COMPILE_PDB_OUTPUT_DIR "$<TARGET_FILE_DIR:${CENTREON_AGENT}>"
+    )
+  endif()
+
+  if(WITH_BUILD_AGENT_INSTALLER  OR WITH_BUILD_AGENT_MODIFIER)
+    add_subdirectory(installer)
+  endif()
 
 endif()
 

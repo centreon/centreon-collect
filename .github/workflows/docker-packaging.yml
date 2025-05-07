@@ -51,6 +51,8 @@ jobs:
             distrib: jammy
           - runner: centreon-collect-arm64
             distrib: jammy
+          - runner: centreon-collect
+            distrib: noble
 
     runs-on: ${{ matrix.runner }}
 
