@@ -40,17 +40,19 @@ void database_configurator::process() {
 
   /* Adding new hosts */
   if (_stream->supports_bulk_prepared_statements()) {
-    auto cache_severities = _add_severities_mariadb(_diff.severities().added());
-    auto cache_tags = _add_tags_mariadb(_diff.tags().added());
+    _add_severities_mariadb(_diff.severities().added(),
+	                    _stream->severities_cache());
+    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mariadb(_diff.hosts().added());
-    auto cache_host_resources =
-        _add_host_resources_mariadb(_diff.hosts().added());
+    _add_host_resources_mariadb(_diff.hosts().added(),
+                                _stream->resources_cache());
   } else {
-    auto cache_severities = _add_severities_mysql(_diff.severities().added());
-    auto cache_tags = _add_tags_mysql(_diff.tags().added());
+    _add_severities_mysql(_diff.severities().added(),
+			  _stream->severities_cache());
+    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mysql(_diff.hosts().added());
-    auto cache_host_resources =
-        _add_host_resources_mysql(_diff.hosts().added());
+    _add_host_resources_mysql(_diff.hosts().added(),
+			      _stream->resources_cache());
   }
 }
 
@@ -310,6 +312,17 @@ void database_configurator::_disable_hosts() {
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
  */
 
+static uint32_t get_service_type(const engine::configuration::Service& msg) {
+  if (absl::StartsWith(msg.host_name(), "_Module_Meta") &&
+      absl::StartsWith(msg.service_description(), "meta_"))
+    return 2;  // com::centreon::engine::service_type::METASERVICE
+  else if (absl::StartsWith(msg.host_name(), "_Module_BAM") &&
+           absl::StartsWith(msg.service_description(), "ba_"))
+    return 3;  // com::centreon::engine::service_type::BA
+  else
+    return 0;  // com::centreon::engine::service_type::SERVICE
+}
+
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_service_resources
@@ -325,9 +338,9 @@ void database_configurator::_disable_hosts() {
  * service_id & uint64 & id & uint64 & U
  * host_id & uint64 & parent_id & uint64 & U
  * ${NULL} & uint64 & internal_id & uint64 &
- * ${0 /* Maybe others values if meta-service, ba, ... */} & uint32 & type & uint32 &
+ * ${get_service_type(msg)} & uint32 & type & uint32 &
  * max_check_attempts & uint32 & max_check_attempts & uint32 &
- * ${poller_id} & uint64 & poller_id & uint64 &
+ * ${_stream->hosts_instances_cache(msg.host_id())} & uint64 & poller_id & uint64 &
  * severity_id & uint64 & severity_id & uint64 & O
  * service_description & string & name & string &
  * ${NULL} & string & alias & string &

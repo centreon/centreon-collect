@@ -191,11 +191,12 @@ def generate_query_mariadb(query, method, return_value, key_value, pb_msg, table
     offset_code = ""
 
     if id_to_get:
-        retval_decl = f"""{return_value} retval;
-  uint32_t offset = 0;"""
+        r_key_type = re.compile(r".*flat_hash_map<(.*),[^,]+>\s*")
+        m_key_type = r_key_type.match(return_value)
+        cache_decl = f", {return_value}& cache"
+        cache_decl_ext = f"""std::list<{m_key_type.group(1)}> keys;"""
         offset_code = f"""    auto key = {key_generator(table, key_value)};
-    retval.emplace(key, offset);
-    offset++;
+    keys.push_back(key);
 """
 
         query = """
@@ -204,25 +205,23 @@ def generate_query_mariadb(query, method, return_value, key_value, pb_msg, table
     std::future<uint64_t> future = promise.get_future();
     mysql.run_statement_and_get_int<uint64_t>(stmt, std::move(promise), mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& [k, v] : retval)
-      v += first_id;
+    for (auto& k : keys)
+      cache[k] = first_id++;
   } catch (const std::exception& e) {
       _logger->error("Error while executing <<{{}}>>: {{}}", query, e.what());
-  }
-  return retval;"""
-        retval_decl = f"""{return_value} retval;
-  uint64_t offset = 0;"""
+  }"""
     else:
         query = "mysql.run_statement(stmt);"
-        retval_decl = ""
+        cache_decl = ""
+        cache_decl_ext = ""
 
     return f"""/**
  * @brief {description} (code for MariaDB).
  *
  * @param lst The list of messages to add/update.
  */
-{return_value} database_configurator::{method}_mariadb(const ::google::protobuf::RepeatedPtrField<{pb_msg}>& lst) {{
-  {retval_decl}
+void database_configurator::{method}_mariadb(const ::google::protobuf::RepeatedPtrField<{pb_msg}>& lst{cache_decl}) {{
+  {cache_decl_ext}
   std::string query("{query_prefix} ({params}) {query_suffix}");
   mysql_bulk_stmt stmt(query);
   mysql& mysql = _stream->get_mysql();
@@ -237,7 +236,7 @@ def generate_query_mariadb(query, method, return_value, key_value, pb_msg, table
     bind->next_row();
   }}
   stmt.set_bind(std::move(bind));
-  {query}
+{query}
 }}
 """
 
@@ -308,12 +307,13 @@ def generate_query_mysql(query, method, return_value, key_value, pb_msg, table, 
     generate_key_offset = ""
 
     if id_to_get:
-        retval_decl = f"""{return_value} retval;
-  uint32_t offset = 0;"""
+        r_key_type = re.compile(r".*flat_hash_map<(.*),[^,]+>\s*")
+        m_key_type = r_key_type.match(return_value)
+        cache_decl = f", {return_value}& cache"
+        cache_decl_ext = f"""std::list<{m_key_type.group(1)}> keys;"""
         key = key_generator(table, key_value)
         generate_key_offset = f"""auto key = {key};
-    retval.emplace(key, offset);
-    offset++;
+    keys.push_back(key);
 """
         query = """
   try {
@@ -321,16 +321,16 @@ def generate_query_mysql(query, method, return_value, key_value, pb_msg, table, 
     std::future<int> future = promise.get_future();
     mysql.run_query_and_get_int(query, std::move(promise), mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& [k, v] : retval)
-      v += first_id;
+    for (auto& k : keys)
+      cache[k] = first_id++;
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<{{}}>>: {{}}", query, e.what());
   }
-  return retval;
 """
     else:
         query = "mysql.run_query(query);"
-        retval_decl = ""
+        cache_decl = ""
+        cache_decl_ext = ""
 
     return f"""
 
@@ -339,9 +339,9 @@ def generate_query_mysql(query, method, return_value, key_value, pb_msg, table, 
  *
  * @param lst The list of messages to add/update.
  */
-{return_value} database_configurator::{method}_mysql(const ::google::protobuf::RepeatedPtrField<{pb_msg}>& lst) {{
+void database_configurator::{method}_mysql(const ::google::protobuf::RepeatedPtrField<{pb_msg}>& lst{cache_decl}) {{
   mysql& mysql = _stream->get_mysql();
-  {retval_decl}
+  {cache_decl_ext}
 
   std::vector<std::string> values;
   for (const auto& msg : lst) {{
@@ -351,7 +351,7 @@ def generate_query_mysql(query, method, return_value, key_value, pb_msg, table, 
     values.emplace_back(value);
   }}
   std::string query(fmt::format("{query_prefix} {{}} {query_suffix}", fmt::join(values, ",")));
-  {query}
+{query}
 }}
 """
 
