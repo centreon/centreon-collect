@@ -36,7 +36,7 @@ BENCH_${nb_checks}STATUS
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date
@@ -109,7 +109,7 @@ BENCH_${nb_checks}STATUS_TRACES
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date
@@ -182,7 +182,7 @@ BENCH_1000STATUS_100${suffixe}
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${connected}    Ctn Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker
     ${result}    Ctn Wait For Listen On Range    50001    50100    centengine    60
@@ -284,7 +284,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     Ctn Broker Config Remove Output    central    storage
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date
@@ -361,7 +361,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     Ctn Broker Config Remove Output    central    storage
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date
@@ -442,7 +442,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     Ctn Broker Config Remove Output    central    storage
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date
@@ -525,7 +525,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     Ctn Broker Config Remove Output    central    storage
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${start}    Get Current Date

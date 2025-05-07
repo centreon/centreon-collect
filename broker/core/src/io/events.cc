@@ -19,7 +19,6 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "broker/core/bbdo/factory.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/io/protocols.hh"
 
 using namespace com::centreon::exceptions;
