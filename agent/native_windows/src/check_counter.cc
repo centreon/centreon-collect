@@ -416,7 +416,7 @@ e_status check_counter::compute(
 
   // if verbose is enable
   if (_verbose) {
-    *output += "\n Versobe output: \n";
+    *output += "\n Verbose output: \n";
     for (const auto& [label, value] : _data_counter._map) {
       *output +=
           std::vformat(_detail_syntax, std::make_format_args(label, value)) +
