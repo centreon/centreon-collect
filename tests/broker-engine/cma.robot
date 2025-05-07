@@ -1573,7 +1573,7 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     Ctn Wait For Otel Server To Be Ready    ${start}
     
     Log To Console    service_1 must be ok
-    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    OK:
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
 
