@@ -20,6 +20,7 @@
 #include "log.hh"
 
 #include "agent_info.hh"
+#include "check_counter.hh"
 #include "check_cpu.hh"
 #include "check_event_log.hh"
 #include "check_health.hh"
@@ -133,6 +134,7 @@ void show_help() {
   check_service::help(std::cout);
   check_health::help(std::cout);
   check_event_log::help(std::cout);
+  check_counter::help(std::cout);
   check_process::help(std::cout);
 }
 
