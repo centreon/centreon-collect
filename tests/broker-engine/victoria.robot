@@ -26,7 +26,7 @@ VICT_ONE_CHECK_METRIC
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -67,7 +67,7 @@ VICT_ONE_CHECK_METRIC
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
@@ -85,7 +85,7 @@ VICT_ONE_CHECK_STATUS
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
@@ -190,7 +190,7 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
@@ -208,7 +208,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Ctn Config Broker Victoria Output
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -253,4 +253,4 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server

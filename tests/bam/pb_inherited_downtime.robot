@@ -181,7 +181,7 @@ BEBAMIDTU2
 
     Log To Console    Broker is stopped (end of BEBAMIDTU2)
     Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    no_rrd_test=True
 
 BEBAMIGNDTU1
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured.
