@@ -481,11 +481,7 @@ EBMSSMPART
     Ctn Wait For Engine To Be Ready    ${start}    1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${i}    IN RANGE    ${500}
-        ${output}    Query    SELECT COUNT(*) FROM services WHERE enabled=1
-        IF    ${output[0][0]} >= 1000    BREAK
-        Sleep    1s
-    END
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled=1    >=    ${1000}    retry_timeout=500s    retry_pause=1s
     Disconnect From Database
 
     ${start}    Ctn Get Round Current Date
@@ -520,9 +516,12 @@ EBMSSMPART
     Ctn Add P2 To Data Bin
 
     ${start}    Ctn Get Round Current Date
-    Ctn Process Service Check Result With Metrics    host_1    service_1    0    Last Output OK    100
+    Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
+    END
 
-    Log To Console    Let's wait for the last service check to be in the database...
+    Log To Console    Let's wait for new rows in data_bin.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10    >=    ${100}    retry_timeout=120s    retry_pause=5s
     Disconnect From Database
