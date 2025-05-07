@@ -1046,6 +1046,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
+
 def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
     """
     Set a value in the dependencies.cfg for the config idx
@@ -1055,7 +1056,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
         desc (str): dependency name
         key (str): the parameter whose value must change.
         value (str): the new value to set.
-    """    
+    """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
@@ -1065,6 +1066,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
             lines.insert(i + 1, f"    {key}                     {value}\n")
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
+
 
 def ctn_engine_config_remove_service_host(idx: int, host: str):
     """
@@ -1375,7 +1377,7 @@ def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inher
     return dbconf.ctn_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit", activate:int = 1):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit", activate: int = 1):
     """
     Create a BA.
 
@@ -1393,7 +1395,8 @@ def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int
     global dbconf
     return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy, activate)
 
-def ctn_add_relations_ba_timeperiods(id_ba:int, id_time_period:int):
+
+def ctn_add_relations_ba_timeperiods(id_ba: int, id_time_period: int):
     """
     add a line in mod_bam_relations_ba_timeperiods table
 
@@ -1403,7 +1406,7 @@ def ctn_add_relations_ba_timeperiods(id_ba:int, id_time_period:int):
     """
 
     global dbconf
-    return dbconf.ctn_add_relations_ba_timeperiods(id_ba,id_time_period)
+    return dbconf.ctn_add_relations_ba_timeperiods(id_ba, id_time_period)
 
 
 def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
@@ -1445,7 +1448,7 @@ def ctn_add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warnin
         unknown_impact (int): _Impact weight in the event of an Unknown condition, in real-time monitoring. Ignored if indicator is a boolean rule
     """
     dbconf.ctn_add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
-                      warning_impact, unknown_impact)
+                          warning_impact, unknown_impact)
 
 
 def ctn_add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
@@ -2282,6 +2285,7 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
     """
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
+
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     """
     Create an dependencies.cfg file for a given poller.
@@ -2292,8 +2296,10 @@ def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dep
         host (str): name of the host master
         dependentservice (str): name of the dependent service that we are gonna test
         service (str): name of the service master
-    """    
-    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+    """
+    engine.create_dependencies_file(
+        poller, dependenthost, host, dependentservice, service)
+
 
 def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
     """
@@ -2303,8 +2309,10 @@ def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, ser
         poller (int): Index of the poller.
         dependentservicegroup (str): Dependent service group names list defines the group(s) of dependent services
         servicegroup (str): Service group names list defines the group(s) of master services
-    """    
-    engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
+    """
+    engine.create_dependenciesgrp_file(
+        poller, dependentservicegroup, servicegroup)
+
 
 def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
     """
@@ -2314,8 +2322,9 @@ def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
         poller (int): Index of the poller.
         dependenthost (str): Dependent Host Name
         host (str): master host name
-    """    
+    """
     engine.create_dependencieshst_file(poller, dependenthost, host)
+
 
 def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
     """
@@ -2325,8 +2334,9 @@ def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostg
         poller (int): Index of the poller.
         dependenthostgrp (str): Dependent host group name list defines the dependent host group(s)
         hostgrp (str): Host groups name list defines the master host group(s)
-    """    
+    """
     engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
+
 
 def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
     """
@@ -2465,6 +2475,7 @@ def ctn_set_services_passive(poller: int, srv_regex):
 
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w") as ff:
         ff.writelines(lines)
+
 
 def ctn_set_hosts_passive(poller: int, host_regex):
     """
@@ -3146,7 +3157,7 @@ def ctn_grep_retention(poller: int, pattern: str):
     return Common.ctn_grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
 
 
-def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line:str):
+def ctn_config_add_otl_connector(poller: int, connector_name: str, command_line: str):
     """
     ctn_config_add_otl_connector
 
@@ -3389,7 +3400,7 @@ def ctn_get_service_command(host_id: int, service_id: int):
         logger.console(
             f"Unable to find the command id of service ({host_id};{service_id})")
         return None
-    
+
 
 def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
     """
@@ -3418,7 +3429,6 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-
 def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, minute_duration: int):
     """
     Create a single day time period with a single time range from date to date + minute_duration
@@ -3434,7 +3444,7 @@ def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, min
         my_date = datetime.fromtimestamp(date)
 
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
-    
+
     begin = my_date.time()
     end = my_date + datetime.timedelta(minutes=minute_duration)
 
@@ -3457,14 +3467,16 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
     otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx}/otl_server.json"
     with open(filename, "a+") as f:
-        f.write(f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
-    
+        f.write(
+            f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
+
     with open(otl_server_config_path, "w") as f:
         f.write(otl_server_config_json_content)
 
+
 def ctn_randomword(length):
-   letters = string.ascii_lowercase
-   return ''.join(random.choice(letters) for i in range(length))
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
 
 
 # Example of open telemetry request
@@ -3540,9 +3552,9 @@ def ctn_randomword(length):
 # }
 
 
-def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
+def ctn_add_data_point_to_metric(metric, attrib: dict, metric_value=None):
     """
-    
+
     ctn_add_data_point_to_metric
 
     add a data point to metric
@@ -3564,7 +3576,7 @@ def ctn_add_data_point_to_metric(metric, attrib:dict, metric_value = None):
         attr.value.string_value = value
 
 
-def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value = None):
+def ctn_create_otl_metric(name: str, nb_datapoints: int, attrib: dict, metric_value=None):
     """
 
     create_otl_metric
@@ -3582,7 +3594,7 @@ def ctn_create_otl_metric(name:str, nb_datapoints:int, attrib:dict, metric_value
     for i in range(nb_datapoints):
         ctn_add_data_point_to_metric(metric, attrib, metric_value)
     return metric
-    
+
 
 def ctn_create_otl_scope_metrics(scope_attr: dict, metrics: list):
     """
@@ -3603,6 +3615,7 @@ def ctn_create_otl_scope_metrics(scope_attr: dict, metrics: list):
         to_fill = scope_metrics.metrics.add()
         to_fill.CopyFrom(metric)
     return scope_metrics
+
 
 def ctn_create_otl_resource_metrics(resource_attr: dict, scope_metrics: list):
     """
@@ -3637,7 +3650,8 @@ def ctn_send_otl_to_engine(port: int, resource_metrics: list):
     """
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         # same for engine and broker
-        stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(channel)
+        stub = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2_grpc.MetricsServiceStub(
+            channel)
         try:
             request = opentelemetry.proto.collector.metrics.v1.metrics_service_pb2.ExportMetricsServiceRequest()
             for res_metric in resource_metrics:
@@ -3660,7 +3674,7 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         file (str): The file to delete the key from.
     """
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
-    
+
     with open(filename, "r") as f:
         content = f.read()
 
@@ -3677,9 +3691,11 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         with open(filename, "w") as f:
             f.write(new_content)
     else:
-        logger.console(f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
+        logger.console(
+            f'\n\033[91mFailed : Cannot delete the block  with the type : {type} and the key : {key} in {file}\033[0m')
 
-def ctn_get_host_info_grpc(id:int):
+
+def ctn_get_host_info_grpc(id: int):
     """
     Retrieve host information via a gRPC call.
 
@@ -3698,11 +3714,13 @@ def ctn_get_host_info_grpc(id:int):
                 request = engine_pb2.HostIdentifier(id=id)
                 try:
                     host = stub.GetHost(request)
-                    host_dict = MessageToDict(host, always_print_fields_with_no_presence=True)
+                    host_dict = MessageToDict(
+                        host, always_print_fields_with_no_presence=True)
                     return host_dict
                 except Exception as e:
                     logger.console(f"gRPC server not ready {e}")
     return {}
+
 
 def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file: str = 'hosts.cfg'):
     """
@@ -3747,4 +3765,66 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
                         break
                 break
     with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_command_add_arg(idx: int, command_name: str, arg):
+    """
+    Add an argument to a command in the commands.cfg file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        command_name (str): Name of the command to modify or * for all the commands.
+        arg (str): Argument to add to the command.
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    # All the commands are updated
+    if command_name == '*':
+        for i in range(len(lines)):
+            if lines[i].find("check.pl") != -1:
+                lines[i] = lines[i].rstrip() + f" {arg}\n"
+    else:
+        found = False
+        r = re.compile(rf"^\s*command_name\s+{command_name}\s*$")
+        for i in range(len(lines)):
+            if not found:
+                if r.match(lines[i]):
+                    found = True
+                    continue
+            else:
+                if lines[i].find("check.pl") != -1:
+                    lines[i] = lines[i].rstrip() + f" {arg}\n"
+
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_command_remove_connector(idx: int, command_name: str):
+    """
+    Remove the connector from a command in the commands.cfg file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        command_name (str): Name of the command to modify or * for all the commands.
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    # All the commands are updated
+    if command_name == '*':
+        lines = [line for line in lines if "  connector  " not in line]
+    else:
+        found = False
+        r = re.compile(rf"^\s*command_name\s+{command_name}\s*$")
+        for i in range(len(lines)):
+            if not found:
+                if r.match(lines[i]):
+                    found = True
+                    continue
+            else:
+                if lines[i].find("  connector  ") != -1:
+                    del lines[i]
+                    break
+
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
         f.writelines(lines)
