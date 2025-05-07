@@ -523,16 +523,9 @@ EBMSSMPART
     Ctn Process Service Check Result With Metrics    host_1    service_1    0    Last Output OK    100
 
     Log To Console    Let's wait for the last service check to be in the database...
-    FOR    ${i}    IN RANGE    ${120}
-	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-        ${output}    Query    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10
-	Log To Console    ${output}
-        IF    ${output[0][0]} >= 100    BREAK
-        Sleep    1s
-	Disconnect From Database
-    END
-    Log To Console    ${output}
-    Should Be True    ${output[0][0]} >= 100
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10    >=    ${100}    retry_timeout=120s    retry_pause=5s
+    Disconnect From Database
 
     Ctn Init Data Bin Without Partition
 
