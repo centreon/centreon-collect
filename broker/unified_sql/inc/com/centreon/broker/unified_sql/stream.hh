@@ -272,10 +272,11 @@ class stream : public io::stream {
       _metric_cache;
   misc::shared_mutex _metric_cache_m;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
+      _severities_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resources_cache;
 
   mutable absl::Mutex _timer_m;
   /* This is a barrier for timers. It must be locked in shared mode in the
@@ -530,6 +531,21 @@ class stream : public io::stream {
   void update() override;
   mysql& get_mysql();
   bool supports_bulk_prepared_statements() const;
+
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>&
+  severities_cache() {
+    return _severities_cache;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
+    return _tags_cache;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
+  resources_cache() {
+    return _resources_cache;
+  }
+  uint32_t hosts_instances_cache(uint64_t host_id) {
+    return _cache_host_instance[host_id];
+  }
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

@@ -2283,7 +2283,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
 }
 
 uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
-  auto found = _resource_cache.find({h.host_id(), 0});
+  auto found = _resources_cache.find({h.host_id(), 0});
 
   uint64_t res_id = 0;
   if (h.enabled()) {
@@ -2311,7 +2311,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
                             centreon_storage_resources_action_url))};
 
     // INSERT
-    if (found == _resource_cache.end()) {
+    if (found == _resources_cache.end()) {
       _resources_host_insert.bind_value_as_u64(0, h.host_id());
       _resources_host_insert.bind_value_as_u32(1, h.state());
       _resources_host_insert.bind_value_as_u32(2,
@@ -2329,7 +2329,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_insert.bind_value_as_u64(
           9, _cache_host_instance[h.host_id()]);
       if (h.severity_id()) {
-        sid = _severity_cache[{h.severity_id(), 1}];
+        sid = _severities_cache[{h.severity_id(), 1}];
         SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "host {} with severity_id {} => uid = {}",
                             h.host_id(), h.severity_id(), sid);
@@ -2363,7 +2363,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _add_action(conn, actions::resources);
       try {
         res_id = future.get();
-        _resource_cache.insert({{h.host_id(), 0}, res_id});
+        _resources_cache.insert({{h.host_id(), 0}, res_id});
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_CRITICAL(_logger_sql,
                                "SQL: unable to insert new host resource {}: {}",
@@ -2380,8 +2380,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         try {
           mysql_result res{future_resource.get()};
           if (_mysql.fetch_row(res)) {
-            auto r =
-                _resource_cache.insert({{h.host_id(), 0}, res.value_as_u64(0)});
+            auto r = _resources_cache.insert(
+                {{h.host_id(), 0}, res.value_as_u64(0)});
             found = r.first;
             SPDLOG_LOGGER_DEBUG(
                 _logger_sql,
@@ -2426,7 +2426,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _resources_host_update.bind_value_as_u64(
           8, _cache_host_instance[h.host_id()]);
       if (h.severity_id()) {
-        sid = _severity_cache[{h.severity_id(), 1}];
+        sid = _severities_cache[{h.severity_id(), 1}];
         SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "host {} with severity_id {} => uid = {}",
                             h.host_id(), h.severity_id(), sid);
@@ -2522,12 +2522,12 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       }
     }
   } else {
-    if (found != _resource_cache.end()) {
+    if (found != _resources_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
 
       _mysql.run_statement(_resources_disable,
                            database::mysql_error::clean_resources, conn);
-      _resource_cache.erase(found);
+      _resources_cache.erase(found);
       _add_action(conn, actions::resources);
     } else {
       SPDLOG_LOGGER_INFO(
@@ -4122,7 +4122,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                                                   int32_t conn) {
   uint64_t res_id = 0;
 
-  auto found = _resource_cache.find({s.service_id(), s.host_id()});
+  auto found = _resources_cache.find({s.service_id(), s.host_id()});
 
   if (s.enabled()) {
     uint64_t sid = 0;
@@ -4143,7 +4143,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                             centreon_storage_resources_action_url))};
 
     // INSERT
-    if (found == _resource_cache.end()) {
+    if (found == _resources_cache.end()) {
       _resources_service_insert.bind_value_as_u64(0, s.service_id());
       _resources_service_insert.bind_value_as_u64(1, s.host_id());
       _resources_service_insert.bind_value_as_u32(2, s.type());
@@ -4170,7 +4170,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_insert.bind_value_as_u64(
           12, _cache_host_instance[s.host_id()]);
       if (s.severity_id() > 0) {
-        sid = _severity_cache[{s.severity_id(), 0}];
+        sid = _severities_cache[{s.severity_id(), 0}];
         SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "service ({}, {}) with severity_id {} => uid = {}",
                             s.host_id(), s.service_id(), s.severity_id(), sid);
@@ -4199,7 +4199,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _add_action(conn, actions::resources);
       try {
         res_id = future.get();
-        _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
+        _resources_cache.insert({{s.service_id(), s.host_id()}, res_id});
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_CRITICAL(
             _logger_sql,
@@ -4217,7 +4217,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
         try {
           mysql_result res{future_resource.get()};
           if (_mysql.fetch_row(res)) {
-            auto r = _resource_cache.insert(
+            auto r = _resources_cache.insert(
                 {{s.service_id(), s.host_id()}, res.value_as_u64(0)});
             found = r.first;
             SPDLOG_LOGGER_DEBUG(
@@ -4268,7 +4268,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _resources_service_update.bind_value_as_u64(
           10, _cache_host_instance[s.host_id()]);
       if (s.severity_id() > 0) {
-        sid = _severity_cache[{s.severity_id(), 0}];
+        sid = _severities_cache[{s.severity_id(), 0}];
         SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "service ({}, {}) with severity_id {} => uid = {}",
                             s.host_id(), s.service_id(), s.severity_id(), sid);
@@ -4357,12 +4357,12 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       }
     }
   } else {
-    if (found != _resource_cache.end()) {
+    if (found != _resources_cache.end()) {
       _resources_disable.bind_value_as_u64(0, found->second);
 
       _mysql.run_statement(_resources_disable,
                            database::mysql_error::clean_resources, conn);
-      _resource_cache.erase(found);
+      _resources_cache.erase(found);
       _add_action(conn, actions::resources);
     } else {
       SPDLOG_LOGGER_INFO(
@@ -5070,7 +5070,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       "unified_sql: severity event with id={}, type={}, name={}, "
       "level={}, icon_id={}",
       sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
-  uint64_t severity_id = _severity_cache[{sv.id(), sv.type()}];
+  uint64_t severity_id = _severities_cache[{sv.id(), sv.type()}];
   int32_t conn = special_conn::severity % _mysql.connections_count();
   switch (sv.action()) {
     case Severity_Action_ADD:
@@ -5102,7 +5102,7 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
             database::mysql_task::LAST_INSERT_ID, conn);
         try {
           severity_id = future.get();
-          _severity_cache[{sv.id(), sv.type()}] = severity_id;
+          _severities_cache[{sv.id(), sv.type()}] = severity_id;
         } catch (const std::exception& e) {
           SPDLOG_LOGGER_ERROR(
               _logger_sql,
