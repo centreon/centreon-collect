@@ -236,7 +236,7 @@ int main(int argc, char* argv[]) {
             configuration::parser p;
             p.parse(config_file, &pb_config, err);
             if (broker_config.empty())
-              broker_config = pb_config.broker_module_config_file();
+              broker_config = pb_config.broker_module_cfg_file();
           }
           configuration::applier::state::instance().apply(pb_config, err);
           std::cout << "\n Checked " << commands::command::commands.size()
@@ -349,7 +349,7 @@ int main(int argc, char* argv[]) {
 
           configuration::extended_conf::update_state(&new_config);
           if (broker_config.empty())
-            broker_config = new_config.broker_module_config_file();
+            broker_config = new_config.broker_module_cfg_file();
           uint16_t port = new_config.grpc_port();
 
           if (broker_config.empty()) {

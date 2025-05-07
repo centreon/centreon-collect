@@ -205,7 +205,7 @@ message State {
   map<string, string> user = 143;
   uint32 max_file_descriptors = 144;
   string config_version = 145;   // Will be used very soon.
-  string broker_module_config_file = 146;
+  string broker_module_cfg_file = 146;
 }
 
 message Value {
