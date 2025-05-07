@@ -229,8 +229,7 @@ Ctn Start Engine With Extend Conf
         END
         Start Process
         ...    /usr/sbin/centengine
-        ...    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json
-        ...    --config-file\=/tmp/centengine_extend.json
+        ...    --extended-config\=/tmp/centengine_extend.json
         ...    ${conf}
         ...    alias=${alias}
     END
