@@ -28,10 +28,12 @@ my $dd = localtime();
 
 my $id;
 my $state;
+my $duration;
 
 GetOptions(
   'id=s'    =>	\$id,
   'state=s' =>	\$state,
+  'duration=s' => \$duration,
 );
 
 unless (defined $id) {
@@ -45,6 +47,9 @@ unless (defined $id) {
 
 my $status = -1;
 
+if (defined $duration) {
+  sleep $duration;
+}
 if ($id eq 0) {
   printf("Host check $dd");
   if (defined $state) {
