@@ -17,7 +17,7 @@ EPC1
     Ctn Engine Config Set Value    ${0}    log_level_commands    trace
     ${start}    Get Current Date
 
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    connector::run: connector='Perl Connector'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Missing a message talking about 'Perl Connector'
@@ -26,4 +26,4 @@ EPC1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    Missing a message telling data is available from the Perl connector
 
-    Ctn Stop engine
+    Ctn Stop Engine

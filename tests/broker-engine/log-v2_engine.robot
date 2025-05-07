@@ -31,7 +31,7 @@ LOGV2EB1
     Sleep    1s
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -53,7 +53,7 @@ LOGV2EB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EBU1
@@ -78,7 +78,7 @@ LOGV2EBU1
     Sleep    1s
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -100,7 +100,7 @@ LOGV2EBU1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DB1
@@ -122,7 +122,7 @@ LOGV2DB1
     Sleep    1s
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -147,7 +147,7 @@ LOGV2DB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DB2
@@ -167,7 +167,7 @@ LOGV2DB2
     ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -192,7 +192,7 @@ LOGV2DB2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EB2
@@ -213,7 +213,7 @@ LOGV2EB2
     Sleep    1s
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -239,7 +239,7 @@ LOGV2EB2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EBU2
@@ -262,7 +262,7 @@ LOGV2EBU2
     Sleep    1s
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -288,7 +288,7 @@ LOGV2EBU2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EF1
@@ -305,7 +305,7 @@ LOGV2EF1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -313,7 +313,7 @@ LOGV2EF1
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DF1
@@ -330,7 +330,7 @@ LOGV2DF1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -341,7 +341,7 @@ LOGV2DF1
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DF2
@@ -358,7 +358,7 @@ LOGV2DF2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -369,7 +369,7 @@ LOGV2DF2
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EF2
@@ -386,7 +386,7 @@ LOGV2EF2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -397,7 +397,7 @@ LOGV2EF2
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2FE2
@@ -416,7 +416,7 @@ LOGV2FE2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -427,5 +427,5 @@ LOGV2FE2
 
     ${res}    Ctn Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    one or other log are not duplicate in logsfile
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

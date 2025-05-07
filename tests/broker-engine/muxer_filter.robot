@@ -24,7 +24,7 @@ NO_FILTER_NO_ERROR
 
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List
     ...    are too restrictive  contain forbidden filters
@@ -47,7 +47,7 @@ STUPID_FILTER
 
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     ${content}    Create List
     ...    The configured write filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed
@@ -70,7 +70,7 @@ STORAGE_ON_LUA
     Ctn Broker Config Output Set Json    central    test-filter    filters    {"category": [ "storage"]}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -107,7 +107,7 @@ FILTER_ON_LUA_EVENT
     Ctn Clear Broker Logs
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30
@@ -152,7 +152,7 @@ BAM_STREAM_FILTER
 
     Ctn Start Broker    True
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${1}
 
     # KPI set to critical
@@ -230,7 +230,7 @@ UNIFIED_SQL_FILTER
 
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -267,7 +267,7 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${1}
 
@@ -365,7 +365,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    First configuration: all events are sent to rrd.
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${1}
 
@@ -477,7 +477,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     ...    {"category": [ "neb:ServiceStatus"]}
 
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
 
     Wait Until Created    /tmp/all_lua_event.log
     FOR    ${index}    IN RANGE    30

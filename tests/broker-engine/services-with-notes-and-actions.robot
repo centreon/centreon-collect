@@ -25,7 +25,7 @@ EBSNU1
     Ctn Engine Config Set Value In Services    0    service_1    notes_url    ${nu}
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -40,7 +40,7 @@ EBSNU1
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSAU2
@@ -58,7 +58,7 @@ EBSAU2
     Ctn Engine Config Set Value In Services    0    service_2    action_url    ${au}
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -73,7 +73,7 @@ EBSAU2
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EBSN3
@@ -91,7 +91,7 @@ EBSN3
     Ctn Engine Config Set Value In Services    0    service_3    notes    ${n}
     Ctn Clear Retention
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -106,5 +106,5 @@ EBSN3
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

@@ -23,7 +23,7 @@ BEPBBEE1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
@@ -45,12 +45,12 @@ BEPBBEE2
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -67,7 +67,7 @@ BEPBBEE3
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -87,7 +87,7 @@ BEPBBEE4
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -107,7 +107,7 @@ BEPBBEE5
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
@@ -131,12 +131,12 @@ BEPBRI1
     Execute SQL String    DELETE FROM instances
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Wait Until Created    /tmp/pbresponsiveinstance.log    30s
     ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
     ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":true
     Should Not Be Empty    ${grep_res}    "responsive":true not found
-    Ctn Stop engine
+    Ctn Stop Engine
     FOR    ${index}    IN RANGE    60
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
@@ -159,7 +159,7 @@ BEPBCVS
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -189,7 +189,7 @@ BEPBHostParent
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True
-    Ctn Start engine
+    Ctn Start Engine
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30
@@ -277,7 +277,7 @@ GRPC_CLOUD_FAILURE
     Ctn Config BBDO3    ${1}
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}
 
     ${grpc_bbdo_server}    Ctn Create Bbdo Grpc Server    5669
@@ -307,7 +307,7 @@ GRPC_RECONNECT
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker    True
     Ctn Wait For Engine To Be Ready    ${start}
     Ctn Restart Broker    True

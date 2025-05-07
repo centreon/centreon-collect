@@ -184,7 +184,7 @@ BEDB2
     ${start}    Get Current Date
     Ctn Stop Mysql
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    error while starting connection
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -192,7 +192,7 @@ BEDB2
     ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEDB3
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -204,7 +204,7 @@ BEDB3
     ${start}    Get Current Date
     Ctn Start Mysql
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check Sql Connections Count With Grpc    51001    ${3}
         IF    ${result}    BREAK
@@ -224,7 +224,7 @@ BEDB3
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BEDB4
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -236,7 +236,7 @@ BEDB4
     ${start}    Get Current Date
     Ctn Stop Mysql
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     FOR    ${t}    IN RANGE    60
         ${result}    Ctn Check All Sql Connections Down With Grpc    51001
         IF    ${result}    BREAK
@@ -250,7 +250,7 @@ BEDB4
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine
 
 BDBM1
     [Documentation]    start broker/engine and then start MariaDB => connection is established
@@ -266,7 +266,7 @@ BDBM1
         ${start}    Ctn Get Round Current Date
         Ctn Stop Mysql
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    error while starting connection
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
@@ -276,7 +276,7 @@ BDBM1
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at least ${c} + 1 connections to the database.
         Ctn Kindly Stop Broker
-        Ctn Stop engine
+        Ctn Stop Engine
     END
 
 BDBU1
@@ -378,7 +378,7 @@ BDBMU1
         ${start}    Get Current Date
         Ctn Stop Mysql
         Ctn Start Broker
-        Ctn Start engine
+        Ctn Start Engine
         ${content}    Create List    mysql_connection: error while starting connection
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Broker does not see any issue with the db while it is switched off
