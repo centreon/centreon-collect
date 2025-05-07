@@ -45,6 +45,7 @@ Requires:   perl(Sys::Syslog)
 Requires:   perl(DateTime)
 Requires:   perl(Try::Tiny)
 Requires:   perl(lib)
+Requires:   perl(Tie::File)
 Requires:   tar
 AutoReqProv: no
 
