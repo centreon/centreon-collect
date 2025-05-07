@@ -301,7 +301,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, noble]
+        distrib: [bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources
@@ -332,7 +332,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources
