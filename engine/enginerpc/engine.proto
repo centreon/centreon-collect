@@ -356,6 +356,9 @@ message EngineHost {
     UNREACHABLE = 2;
   }
   State current_state = 6;
+  string display_name = 7;
+  repeated string parent_hosts = 8;
+  repeated string child_hosts = 9;
 }
 
 message ContactIdentifier {
