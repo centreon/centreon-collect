@@ -1541,15 +1541,15 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
 
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
-    ...    {"check":"counter", "args":{ "counter": "\\System\\Processes","use_english":true} }
+    ...    {"check":"counter", "args":{ "counter": "\\\\System\\\\Processes","use_english":true} }
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_process_warning
-    ...    {"check":"counter", "args":{ "counter": "\\System\\Processes", "warning-status":"value >=0","use_english":true} }
+    ...    {"check":"counter", "args":{ "counter": "\\\\System\\\\Processes", "warning-status":"value >=0","use_english":true} }
     ...    OTEL connector
 
     Ctn Engine Config Add Command    ${0}    agent_process_critical
-    ...    {"check":"counter", "args":{ "counter": "\\System\\Processes", "critical-status":"value >=0","use_english":true} }
+    ...    {"check":"counter", "args":{ "counter": "\\\\System\\\\Processes", "critical-status":"value >=0","use_english":true} }
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
