@@ -19,8 +19,6 @@
 #ifndef CCB_MISC_STRING_HH
 #define CCB_MISC_STRING_HH
 
-#include <fmt/format.h>
-
 #include <cerrno>
 
 namespace com::centreon::broker::misc::string {

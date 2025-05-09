@@ -38,6 +38,8 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/optional.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
