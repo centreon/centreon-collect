@@ -18,7 +18,10 @@
 
 #include "common/log_v2/log_v2.hh"
 
+#include <absl/base/log_severity.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/log/log_sink.h>
+#include <absl/log/log_sink_registry.h>
 #include <grpc/impl/codegen/log.h>
 #include <spdlog/common.h>
 #include <spdlog/sinks/null_sink.h>
@@ -31,6 +34,7 @@
 #include <atomic>
 #include <initializer_list>
 #include <memory>
+#include <string_view>
 
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
@@ -75,50 +79,51 @@ constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> logger_name{
  *
  * @param args grpc logging params
  */
-static void grpc_logger(gpr_log_func_args* args) {
-  auto default_logger = log_v2::instance().get(log_v2::GRPC);
-  auto otl_logger = log_v2::instance().get(log_v2::OTL);
-  auto min_level = spdlog::level::level_enum::off;  // default
-  if (default_logger) {
-    min_level = default_logger->level();
-  }
-  if (otl_logger) {
-    min_level = std::min(min_level, otl_logger->level());
-    if (!default_logger) {
-      default_logger = otl_logger;
+
+class GrpcLogSink : public absl::LogSink {
+  absl::LogSeverity lvl;
+
+ public:
+  void set_grpc_log_lvl(absl::LogSeverity level) { lvl = level; }
+  void Send(const absl::LogEntry& e) override {
+    auto lvl = e.log_severity();
+    auto default_logger = log_v2::instance().get(log_v2::GRPC);
+    auto otl_logger = log_v2::instance().get(log_v2::OTL);
+    auto min_level = spdlog::level::level_enum::off;  // default
+    if (default_logger) {
+      min_level = default_logger->level();
     }
-  }
-  if (min_level != spdlog::level::off) {
-    const char* start;
+    if (otl_logger) {
+      min_level = std::min(min_level, otl_logger->level());
+      if (!default_logger) {
+        default_logger = otl_logger;
+      }
+    }
+
+    std::string_view msg = e.text_message();
+
     if (min_level > spdlog::level::debug) {
-      start = strstr(args->message, "}: ");
-      if (!start)
-        return;
-      start += 3;
-    } else
-      start = args->message;
-    switch (args->severity) {
-      case GPR_LOG_SEVERITY_DEBUG:
-        if (min_level == spdlog::level::trace ||
-            min_level == spdlog::level::debug) {
-          SPDLOG_LOGGER_DEBUG(default_logger, "{} ({}:{})", start, args->file,
-                              args->line);
-        }
-        break;
-      case GPR_LOG_SEVERITY_INFO:
-        if (min_level == spdlog::level::trace ||
-            min_level == spdlog::level::debug ||
-            min_level == spdlog::level::info) {
-          if (start)
-            SPDLOG_LOGGER_INFO(default_logger, "{}", start);
-        }
-        break;
-      case GPR_LOG_SEVERITY_ERROR:
-        SPDLOG_LOGGER_ERROR(default_logger, "{}", start);
-        break;
-    }
+      auto p = msg.find("}: ");
+      if (p != std::string_view::npos)
+        msg.remove_prefix(p + 3);
+      switch (lvl) {
+        case absl::LogSeverity::kInfo:
+          if (min_level <= spdlog::level::info)
+            SPDLOG_LOGGER_INFO(default_logger, "{}", msg);
+          break;
+        case absl::LogSeverity::kWarning:
+        case absl::LogSeverity::kError:
+          if (min_level <= spdlog::level::err)
+            SPDLOG_LOGGER_ERROR(default_logger, "{}", msg);
+          break;
+        case absl::LogSeverity::kFatal:
+          SPDLOG_LOGGER_CRITICAL(default_logger, "{}", msg);
+          break;
+      }
+    };
   }
-}
+};
+static GrpcLogSink grpc_sink;
 
 /**
  * @brief Initialization of the log_v2 instance.
@@ -144,8 +149,8 @@ void log_v2::unload() {
 }
 
 /**
- * @brief Constructor of the log_v2 class. This constructor is not public since
- * it is called through the load() function.
+ * @brief Constructor of the log_v2 class. This constructor is not public
+ * since it is called through the load() function.
  *
  * @param name Name of the logger.
  * @param ilist List of loggers to initialize.
@@ -159,7 +164,7 @@ log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
  */
 log_v2::~log_v2() noexcept {
   /* When log_v2 is stopped, grpc mustn't log anymore. */
-  gpr_set_log_function(nullptr);
+  absl::RemoveLogSink(&grpc_sink);
 }
 
 /**
@@ -198,13 +203,14 @@ void log_v2::set_flush_interval(uint32_t second_flush_interval) {
 }
 
 /**
- * @brief Accessor to the logger id by its name. If the name does not match any
- * logger, LOGGER_SIZE is returned. This method is used essentially during the
- * configuration because the final user is not aware of internal enums.
+ * @brief Accessor to the logger id by its name. If the name does not match
+ * any logger, LOGGER_SIZE is returned. This method is used essentially
+ * during the configuration because the final user is not aware of internal
+ * enums.
  * @param name The logger name.
  *
- * @return A log_v2::logger_id corresponding to the wanted logger or LOGGER_SIZE
- * if not found.
+ * @return A log_v2::logger_id corresponding to the wanted logger or
+ * LOGGER_SIZE if not found.
  */
 log_v2::logger_id log_v2::get_id(const std::string& name) const noexcept {
   uint32_t retval;
@@ -270,7 +276,7 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
 
     /* Hook for gRPC, not beautiful, but no idea how to do better. */
     if (id == GRPC || id == OTL)
-      gpr_set_log_function(grpc_logger);
+      absl::AddLogSink(&grpc_sink);
   }
   _not_threadsafe_configuration = false;
 }
@@ -351,14 +357,11 @@ void log_v2::apply(const config& log_conf) {
         switch (lvl) {
           case level::level_enum::trace:
           case level::level_enum::debug:
-            gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
-            break;
           case level::level_enum::info:
-          case level::level_enum::warn:
-            gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
+            grpc_sink.set_grpc_log_lvl(absl::LogSeverity::kInfo);
             break;
           default:
-            gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
+            grpc_sink.set_grpc_log_lvl(absl::LogSeverity::kError);
             break;
         }
       }
@@ -369,7 +372,8 @@ void log_v2::apply(const config& log_conf) {
   _flush_interval = std::chrono::seconds(
       log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
   spdlog::flush_every(_flush_interval);
-  /* This is for all loggers, a slave will overwrite the master configuration
+  /* This is for all loggers, a slave will overwrite the master
+   * configuration
    */
   for (int32_t id = 0; id < LOGGER_SIZE; id++) {
     auto& name = logger_name[id];
