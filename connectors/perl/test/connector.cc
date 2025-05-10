@@ -124,9 +124,11 @@ static constexpr const char scripts[] =
   "123456789\0" BUILD_PATH "/../connectors/perl/test/timeout_term.pl\0\0\0\0"
 
 using shared_io_context = std::shared_ptr<asio::io_context>;
+using work_guard =
+    boost::asio::executor_work_guard<asio::io_context::executor_type>;
 
 static shared_io_context _io_context(std::make_shared<asio::io_context>());
-static std::unique_ptr<asio::io_context::work> _work;
+static std::unique_ptr<work_guard> _work_guard;
 
 class process : public std::enable_shared_from_this<process> {
   shared_io_context _io_context;
@@ -344,14 +346,14 @@ int process::get_exit_code() {
 
 class TestConnector : public testing::Test {
  public:
-  void SetUp() override{};
-  void TearDown() override{};
+  void SetUp() override {};
+  void TearDown() override {};
   static void SetUpTestSuite() {
-    _work = std::make_unique<asio::io_context::work>(*_io_context);
+    _work_guard = std::make_unique<work_guard>(_io_context->get_executor());
     std::thread t([]() { _io_context->run(); });
     t.detach();
   }
-  static void TearDownTestSuite() { _work.reset(); }
+  static void TearDownTestSuite() { _work_guard.reset(); }
 
   int wait_for_termination(process& p) { return p.get_exit_code(); }
 
