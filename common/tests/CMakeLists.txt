@@ -71,8 +71,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     PRIVATE centreon_common
     centreon_http
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     re2::re2
     log_v2
     crypto 

@@ -205,8 +205,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)

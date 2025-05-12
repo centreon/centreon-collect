@@ -27,8 +27,8 @@ add_library(
 
 target_precompile_headers(centreon_process REUSE_FROM centreon_common)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  target_link_libraries(centreon_process INTERFACE Boost::process)
-endif()
+
+target_link_libraries(centreon_process INTERFACE Boost::process)
+
 
 set_property(TARGET centreon_process PROPERTY POSITION_INDEPENDENT_CODE ON)
