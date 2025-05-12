@@ -81,22 +81,24 @@ constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> logger_name{
  */
 
 class GrpcLogSink : public absl::LogSink {
-  absl::LogSeverity lvl;
+  // std::shared_ptr<spdlog::logger> _logger_grpc =
+  //     log_v2::instance().get(log_v2::GRPC);
+  // std::shared_ptr<spdlog::logger> _logger_otl =
+  //     log_v2::instance().get(log_v2::OTL);
 
  public:
-  void set_grpc_log_lvl(absl::LogSeverity level) { lvl = level; }
   void Send(const absl::LogEntry& e) override {
+    auto _logger_grpc = log_v2::instance().get(log_v2::GRPC);
+    auto _logger_otl = log_v2::instance().get(log_v2::OTL);
     auto lvl = e.log_severity();
-    auto default_logger = log_v2::instance().get(log_v2::GRPC);
-    auto otl_logger = log_v2::instance().get(log_v2::OTL);
     auto min_level = spdlog::level::level_enum::off;  // default
-    if (default_logger) {
-      min_level = default_logger->level();
+    if (_logger_grpc) {
+      min_level = _logger_grpc->level();
     }
-    if (otl_logger) {
-      min_level = std::min(min_level, otl_logger->level());
-      if (!default_logger) {
-        default_logger = otl_logger;
+    if (_logger_otl) {
+      min_level = std::min(min_level, _logger_otl->level());
+      if (!_logger_grpc) {
+        _logger_grpc = _logger_otl;
       }
     }
 
@@ -106,24 +108,24 @@ class GrpcLogSink : public absl::LogSink {
       auto p = msg.find("}: ");
       if (p != std::string_view::npos)
         msg.remove_prefix(p + 3);
-      switch (lvl) {
-        case absl::LogSeverity::kInfo:
-          if (min_level <= spdlog::level::info)
-            SPDLOG_LOGGER_INFO(default_logger, "{}", msg);
-          break;
-        case absl::LogSeverity::kWarning:
-        case absl::LogSeverity::kError:
-          if (min_level <= spdlog::level::err)
-            SPDLOG_LOGGER_ERROR(default_logger, "{}", msg);
-          break;
-        case absl::LogSeverity::kFatal:
-          SPDLOG_LOGGER_CRITICAL(default_logger, "{}", msg);
-          break;
-      }
-    };
+    }
+    switch (lvl) {
+      case absl::LogSeverity::kInfo:
+        if (min_level <= spdlog::level::info)
+          SPDLOG_LOGGER_INFO(_logger_grpc, "{}", msg);
+        break;
+      case absl::LogSeverity::kWarning:
+      case absl::LogSeverity::kError:
+        if (min_level <= spdlog::level::err)
+          SPDLOG_LOGGER_ERROR(_logger_grpc, "{}", msg);
+        break;
+      case absl::LogSeverity::kFatal:
+        SPDLOG_LOGGER_CRITICAL(_logger_grpc, "{}", msg);
+        break;
+    }
   }
 };
-static GrpcLogSink grpc_sink;
+static GrpcLogSink _common_grpc_sink;
 
 /**
  * @brief Initialization of the log_v2 instance.
@@ -164,7 +166,7 @@ log_v2::log_v2(std::string name) : _log_name{std::move(name)} {
  */
 log_v2::~log_v2() noexcept {
   /* When log_v2 is stopped, grpc mustn't log anymore. */
-  absl::RemoveLogSink(&grpc_sink);
+  absl::RemoveLogSink(&_common_grpc_sink);
 }
 
 /**
@@ -275,9 +277,14 @@ void log_v2::create_loggers(config::logger_type typ, size_t length) {
     _loggers[id] = std::move(logger);
 
     /* Hook for gRPC, not beautiful, but no idea how to do better. */
-    if (id == GRPC || id == OTL)
-      absl::AddLogSink(&grpc_sink);
+    if (id == GRPC || id == OTL) {
+      if (!_absl_sink) {
+        absl::AddLogSink(&_common_grpc_sink);
+        _absl_sink = true;
+      }
+    }
   }
+
   _not_threadsafe_configuration = false;
 }
 
@@ -350,20 +357,6 @@ void log_v2::apply(const config& log_conf) {
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
         else
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
-      }
-
-      if (name == "grpc" && log_conf.loggers().contains(name)) {
-        level::level_enum lvl = level::from_str(log_conf.loggers().at(name));
-        switch (lvl) {
-          case level::level_enum::trace:
-          case level::level_enum::debug:
-          case level::level_enum::info:
-            grpc_sink.set_grpc_log_lvl(absl::LogSeverity::kInfo);
-            break;
-          default:
-            grpc_sink.set_grpc_log_lvl(absl::LogSeverity::kError);
-            break;
-        }
       }
     }
     _not_threadsafe_configuration = false;
