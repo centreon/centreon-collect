@@ -200,9 +200,8 @@ endif()
               centreon_grpc
               centreon_http
               centreon_process
-              -L${Boost_LIBRARY_DIR_RELEASE}
               boost_url
-              boost_program_options
+              Boost::program_options
               pthread
               ${GCOV}
               GTest::gtest
@@ -346,9 +345,8 @@ endif()
               centreon_grpc
               centreon_http
               centreon_process
-              -L${Boost_LIBRARY_DIR_RELEASE}
               boost_url
-              boost_program_options
+              Boost::program_options
               pthread
               ${GCOV}
               GTest::gtest

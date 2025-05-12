@@ -70,8 +70,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         GTest::gtest_main 
         GTest::gmock 
         GTest::gmock_main
-        -L${Boost_LIBRARY_DIR_RELEASE}
-        boost_program_options
+        Boost::program_options
         stdc++fs
         -L${PROTOBUF_LIB_DIR}
         gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
