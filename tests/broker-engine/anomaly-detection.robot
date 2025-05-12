@@ -23,7 +23,9 @@ ANO_NOFILE
     Ctn Clear Retention
     Ctn Clear Db    services
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
@@ -63,7 +65,9 @@ ANO_TOO_OLD_FILE
     Ctn Clear Retention
     Ctn Clear Db    services
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Stop Broker    True
@@ -83,7 +87,9 @@ ANO_OUT_LOWER_THAN_LIMIT
     Ctn Clear Retention
     Ctn Clear Db    services
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
@@ -103,7 +109,9 @@ ANO_OUT_UPPER_THAN_LIMIT
     Ctn Clear Retention
     Ctn Clear Db    services
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Ctn Stop Broker    True
@@ -189,12 +197,9 @@ AOUTLU1
     Ctn Clear Retention
     Ctn Clear Db    services
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
@@ -223,12 +228,9 @@ ANO_DT1
     Ctn Clear Db    services
     Ctn Clear Db    downtimes
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
@@ -258,12 +260,9 @@ ANO_DT2
     Ctn Clear Db    services
     Ctn Clear Db    downtimes
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
@@ -297,12 +296,9 @@ ANO_DT3
     Ctn Clear Db    services
     Ctn Clear Db    downtimes
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
@@ -321,7 +317,12 @@ ANO_DT3
     Ctn Kindly Stop Broker
 
 ANO_DT4
-    [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
+    [Documentation]    Scenario: Removing downtime from service keeps it on anomaly detection
+    ...    Given an anomaly detection is attached to a service
+    ...    And a downtime is set on both the service and the anomaly detection
+    ...    When the downtime is removed from the service
+    ...    Then the downtime should still be present on the anomaly detection
+
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -337,25 +338,22 @@ ANO_DT4
     Ctn Clear Db    services
     Ctn Clear Db    downtimes
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the check of external commands
-    ${content}    Create List    check_for_external_commands
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    No check for external commands executed for 1mn.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # create dependent service downtime
     Ctn Schedule Service Fixed Downtime    host_1    service_1    3600
     Ctn Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
-    Should Be True    ${result}    anomaly service must be in double downtime
+    Should Be True    ${result}    Both anomaly detection and service must be in downtime
 
     Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
-    Should Be True    ${result}    dependent service mustn t be in downtime
+    Should Be True    ${result}    The downtime should be removed from the service.
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
-    Should Be True    ${result}    anomaly service must be in simple downtime
+    Should Be True    ${result}    The anomaly detection should still be in downtime.
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
