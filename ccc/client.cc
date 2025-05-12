@@ -180,7 +180,7 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   absl::Status status =
       google::protobuf::util::JsonStringToMessage(args, input_message, options);
 
-  if (status.ok())
+  if (!status.ok())
     throw com::centreon::exceptions::msg_fmt(
         "Error during the execution of '{}' method: {}", cmd_str,
         status.ToString());
