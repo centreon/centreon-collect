@@ -32,7 +32,7 @@ class database_configurator {
   database::mysql_stmt _enable_hosts;
 
   void _disable_pollers_with_full_conf();
-  void _disable_hosts();
+  void _disable_hosts_and_services();
 
   void _add_severities_mariadb(
       const ::google::protobuf::RepeatedPtrField<
@@ -56,6 +56,8 @@ class database_configurator {
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  void _disable_hosts(
+      const ::google::protobuf::RepeatedField<uint64_t>& lst);
   void _add_host_resources_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst,
@@ -76,6 +78,20 @@ class database_configurator {
                              engine::configuration::Service>& lst);
   void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<
                            engine::configuration::Service>& lst);
+  void _add_anomalydetections_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
+  void _add_anomalydetections_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
+  void _add_anomalydetection_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst,
+      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+  void _add_anomalydetection_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst,
+      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
 
  public:
   database_configurator(const DiffState& diff,
