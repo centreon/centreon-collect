@@ -8,6 +8,8 @@
   createolddir 755 @USER@ @GROUP@
   rotate 365
   postrotate
-    systemctl reload centengine
+    if systemctl is-active --quiet centengine; then
+        systemctl reload centengine
+    fi
   endscript
 }
