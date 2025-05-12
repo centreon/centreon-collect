@@ -39,9 +39,8 @@ BRGC1
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Ctn Find In Log With Timeout    ${log}    ${start}    ${content}    40
     Should Be True    ${result}    Connection to map has failed.
-    File Should Not Exist
+    Wait Until Removed
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
-    ...    There should not exist que map files.
 
 BRCTS1
     [Documentation]    Broker reverse connection too slow
