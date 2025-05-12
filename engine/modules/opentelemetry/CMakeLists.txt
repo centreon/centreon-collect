@@ -91,10 +91,8 @@ target_link_libraries(opentelemetry
   spdlog::spdlog
   -L${PROTOBUF_LIB_DIR}
   protobuf
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options
+  Boost::program_options
   ctncrypto)
-
 
 add_dependencies(opentelemetry
   pb_open_telemetry_lib
