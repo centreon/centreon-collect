@@ -259,8 +259,10 @@ std::shared_ptr<pb_ba_status> ba_impact::_generate_ba_status(
   status.set_level_acknowledgement(_acknowledgement_count);
   status.set_level_downtime(_normalize(_downtime_hard));
   status.set_level_nominal(_normalize(_level_hard));
-  status.set_state(com::centreon::broker::State(get_state_hard()));
-  status.set_state_changed(state_changed);
+  if (status.state() != com::centreon::broker::State(get_state_hard())) {
+    status.set_state(com::centreon::broker::State(get_state_hard()));
+    status.set_state_changed(state_changed);
+  }
   std::string perfdata = get_perfdata();
   if (perfdata.empty())
     status.set_output(get_output());

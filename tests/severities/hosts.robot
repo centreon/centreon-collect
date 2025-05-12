@@ -26,7 +26,7 @@ BEUHSEV1
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    2s
 
@@ -43,7 +43,7 @@ BEUHSEV1
     ${result}    Ctn Check Host Severity With Timeout    1    None    60
     Should Be True    ${result}    Host 1 should have no severity
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUHSEV2
@@ -70,7 +70,7 @@ BEUHSEV2
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -114,7 +114,7 @@ BEUHSEV2
     ${result}    Ctn Check Host Severity With Timeout    5    None    60
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BETUHSEV1
@@ -146,7 +146,7 @@ BETUHSEV1
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -165,5 +165,5 @@ BETUHSEV1
     ${result}    Ctn Check Host Severity With Timeout    33    10    60
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

@@ -378,30 +378,6 @@ void servicedependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   }
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Find a service dependency from its key.
- *
- *  @param[in] k The service dependency configuration.
- *
- *  @return Iterator to the element if found,
- *          servicedependencies().end() otherwise.
- */
-servicedependency_mmap::iterator servicedependency::servicedependencies_find(
-    configuration::servicedependency const& k) {
-  size_t key = configuration::servicedependency_key(k);
-  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
-      p = servicedependencies.equal_range(
-          std::make_pair(k.dependent_hosts().front(),
-                         k.dependent_service_description().front()));
-  while (p.first != p.second) {
-    if (p.first->second->internal_key() == key)
-      break;
-    ++p.first;
-  }
-  return p.first == p.second ? servicedependencies.end() : p.first;
-}
-#else
 /**
  * @brief Find a service dependency from the given key.
  *
@@ -423,4 +399,3 @@ servicedependency_mmap::iterator servicedependency::servicedependencies_find(
   }
   return p.first == p.second ? servicedependencies.end() : p.first;
 }
-#endif

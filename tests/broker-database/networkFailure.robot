@@ -48,7 +48,7 @@ NetworkDBFail6
     Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -59,7 +59,7 @@ NetworkDBFail6
     Ctn Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFailU6
@@ -76,7 +76,7 @@ NetworkDBFailU6
     Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -89,7 +89,7 @@ NetworkDBFailU6
     Ctn Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFail7
@@ -107,7 +107,7 @@ NetworkDBFail7
     Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -122,7 +122,7 @@ NetworkDBFail7
     ${content}    Create List    0 events acknowledged
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFailU7
@@ -139,7 +139,7 @@ NetworkDBFailU7
     Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -154,7 +154,7 @@ NetworkDBFailU7
     ${content}    Create List    0 events acknowledged
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    There are still events in the queue.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 NetworkDBFailU8
@@ -171,7 +171,7 @@ NetworkDBFailU8
     Ctn Config Broker    module
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Broker and Engine are not connected
     ${content}    Create List    run query: SELECT
@@ -190,7 +190,7 @@ NetworkDBFailU8
     Ctn Reset Eth Connection
     ${content}    Create List    unified_sql:_check_queues
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 
@@ -217,7 +217,7 @@ Ctn Network Failure
     Ctn Broker Config Source Log    central    true
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    SQL: performing mysql_ping
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    We should have a call to mysql_ping every 30s on inactive connections.
@@ -229,4 +229,4 @@ Ctn Network Failure
     ...    ${result[0]}
     ...    timeout after network to be restablished (network failure duration : ${interval})
     Ctn Kindly Stop Broker
-    Ctn Stop engine
+    Ctn Stop Engine

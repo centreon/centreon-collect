@@ -40,7 +40,7 @@ BSCSS2
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
 
 BSCSS3
-    [Documentation]    Start-Stop one instance of broker and no coredump
+    [Documentation]    Start-Stop one instance of broker with tcp connection and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Ctn Config Broker    central
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    tcp
@@ -75,7 +75,7 @@ BSCSSG2
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
 
 BSCSSG3
-    [Documentation]    Start-Stop one instance of broker and no coredump
+    [Documentation]    Start-Stop one instance of broker with grpc connection and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc
     Ctn Config Broker    central
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    gRPC

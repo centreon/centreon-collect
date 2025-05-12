@@ -183,7 +183,14 @@ std::chrono::seconds bulk_or_multi::get_oldest_waiting_event_delay() const {
  * @return true
  * @return false
  */
-bool bulk_or_multi::ready() {
+bool bulk_or_multi::ready() const {
   return get_oldest_waiting_event_delay() >= _execute_delay_ready ||
          _row_count >= _row_count_ready;
+}
+
+/**
+ * @brief force the bulk_or_multi to be ready
+ */
+void bulk_or_multi::force_ready() {
+  _first_row_add_time = std::chrono::system_clock::time_point::max();
 }

@@ -26,6 +26,7 @@ import pymysql.cursors
 import time
 import re
 import shutil
+import Common
 import psutil
 from subprocess import getoutput
 import subprocess as subp
@@ -432,6 +433,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
         name (str): name of the conf broker wanted
         poller_inst (int, optional): Defaults to 1.
     """
+    Common.ctn_set_bbdo2(True)
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
@@ -1059,37 +1061,6 @@ def ctn_broker_config_add_item(name, key, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_broker_config_remove_output(name, output):
-    """
-    Remove an output from the broker configuration
-
-    Args:
-        name: The broker instance name among central, rrd and module%d
-        output: The output to remove.
-
-    *Example:*
-
-    | Ctn Broker Config Remove Output | central | unified_sql |
-    """
-    if name == 'central':
-        filename = "central-broker.json"
-    elif name == 'rrd':
-        filename = "central-rrd.json"
-    elif name.startswith('module'):
-        filename = "central-{}.json".format(name)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
-        buf = f.read()
-    conf = json.loads(buf)
-    output_dict = conf["centreonBroker"]["output"]
-    for i, v in enumerate(output_dict):
-        if v["type"] == output:
-            output_dict.pop(i)
-
-    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
-
-
 def ctn_broker_config_remove_item(name, key):
     """
     Remove an item from the broker configuration
@@ -1239,6 +1210,30 @@ def ctn_broker_config_output_set_json(name, output, key, value):
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     j = json.loads(value)
     output_dict[key] = j
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_broker_config_remove_output(name: str, output: str):
+    """
+    Remove a broker output by its name.
+
+    Args:
+        name (str): The broker instance name among central, rrd and module%d.
+        output (str): The output to remove.
+    """
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = f"central-{name}.json"
+    else:
+        filename = "central-rrd.json"
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = [elem for i, elem in enumerate(
+        conf["centreonBroker"]["output"]) if elem["name"] != output]
+    conf["centreonBroker"]["output"] = output_dict
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -2111,18 +2106,46 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                 status_value = index_id % 3
                 cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                     r['metric_id'], start))
+                connection.commit()
                 # We set the value to a constant on 180 days
                 now = int(now.timestamp())
                 logger.console(
                     f">>>>>>>>>> end = {datetime.datetime.fromtimestamp(now)}")
+                values = ""
+                size = 0
                 for i in range(start, now, 60 * 5):
                     if i == start:
                         logger.console(
                             "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
                                 r['metric_id'], i, value, status_value))
-                    cursor.execute(
-                        "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
-                            r['metric_id'], i, value, status_value))
+                    values += f"({r['metric_id']},{i},{value},'{status_value}'),"
+                    size += 1
+                    if size >= 500:
+                        for j in range(3):
+                            try:
+                                cursor.execute(
+                                    "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES {}".format(values[:-1]))
+                                values = ""
+                                size = 0
+                                break
+                            except Exception as e:
+                                if e.args[0] == 1213:
+                                    logger.console(f"Error inserting data: {e}")
+                                    time.sleep(1)
+                                else:
+                                    raise e
+                if size > 0:
+                    for i in range(3):
+                        try:
+                            cursor.execute(
+                                "INSERT INTO data_bin (id_metric, ctime, value, status) VALUES {}".format(values[:-1]))
+                            break
+                        except Exception as e:
+                            if e.args[0] == 1213:
+                                logger.console(f"Error inserting data: {e}")
+                                time.sleep(1)
+                            else:
+                                raise e
                 connection.commit()
                 retval.add(index_id)
 
@@ -2662,7 +2685,7 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                    f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True

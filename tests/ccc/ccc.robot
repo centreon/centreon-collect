@@ -20,7 +20,7 @@ BECCC1
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -30,7 +30,7 @@ BECCC1
         Sleep    1s
     END
     Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -50,7 +50,7 @@ BECCC2
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -63,7 +63,7 @@ BECCC2
     ${version}    Common.Ctn Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -83,7 +83,7 @@ BECCC3
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 50001    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -95,7 +95,7 @@ BECCC3
     ${version}    Common.Ctn Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -115,7 +115,7 @@ BECCC4
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    -l    stdout=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -126,7 +126,7 @@ BECCC4
     END
     ${contains}    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
     Should Be True    ${contains}    The list of methods should contain GetVersion(Empty)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -146,7 +146,7 @@ BECCC5
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    -l    GetVersion    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -157,7 +157,7 @@ BECCC5
     END
     ${contains}    Evaluate    "The list argument expects no command" in """${content}"""
     Should Be True    ${contains}    When -l option is applied, we can't call a command.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -177,7 +177,7 @@ BECCC6
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{}    stdout=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -202,7 +202,7 @@ BECCC6
         ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
         ...    A version as json string should be returned
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -222,7 +222,7 @@ BECCC7
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process    /usr/bin/ccc    -p 51001    GetVersion{"idx":1}    stderr=/tmp/output.txt
     FOR    ${i}    IN RANGE    10
@@ -235,7 +235,7 @@ BECCC7
     ...    ${content}
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
     ...    GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt
 
@@ -255,7 +255,7 @@ BECCC8
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    3s
     Start Process
     ...    /usr/bin/ccc
@@ -269,6 +269,6 @@ BECCC8
         Sleep    1s
     END
     Should Contain    ${content}    {}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
     Remove File    /tmp/output.txt

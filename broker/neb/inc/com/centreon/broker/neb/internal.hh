@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2015, 2021-2024 Centreon
+ * Copyright 2009-2015, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,21 +24,10 @@
 #include "bbdo/neb.pb.h"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/callback.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
-
 namespace neb {
-// Forward declaration.
-class acknowledgement;
-
-// Sender object.
-extern multiplexing::publisher gl_publisher;
-
-// Registered callbacks.
-extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
 using pb_downtime =
     io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;

@@ -1,22 +1,22 @@
 /**
-* Copyright 2000-2006 Ethan Galstad
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2000-2006 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/statusdata.hh"
 
@@ -37,15 +37,7 @@ int initialize_status_data() {
 int update_all_status_data() {
   int result = OK;
 
-  /* send data to event broker */
-  broker_aggregated_status_data(NEBTYPE_AGGREGATEDSTATUS_STARTDUMP,
-                                NEBFLAG_NONE, NEBATTR_NONE, NULL);
-
   result = xsddefault_save_status_data();
-
-  /* send data to event broker */
-  broker_aggregated_status_data(NEBTYPE_AGGREGATEDSTATUS_ENDDUMP, NEBFLAG_NONE,
-                                NEBATTR_NONE, NULL);
 
   if (result != OK)
     return ERROR;

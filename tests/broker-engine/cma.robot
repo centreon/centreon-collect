@@ -895,12 +895,16 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
 
 
 BEOTEL_CENTREON_AGENT_CEIP
-    [Documentation]    we connect an agent to engine and we expect a row in agent_information table
+    [Documentation]    Scenario: Agent and "centreon_storage.agent_information" Statistics
+    ...    Given Engine connected to Broker
+    ...    When an agent connects to Engine
+    ...	  Then a message is sent to Broker that results in a new row in the "centreon_storage.agent_information" table.
+
     [Tags]    broker    engine    opentelemetry    MON-145030
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -908,9 +912,6 @@ BEOTEL_CENTREON_AGENT_CEIP
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-
 
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector

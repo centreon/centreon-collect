@@ -53,7 +53,8 @@ state::state(common::PeerType peer_type,
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
-      _modules{logger} {}
+      _modules{logger},
+      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
 
 /**
  *  Apply a configuration state.
@@ -530,4 +531,13 @@ std::string state::engine_configuration(uint64_t poller_id) const {
     return found->second;
   else
     return "";
+}
+
+/**
+ * @brief Get the stats center.
+ *
+ * @return The stats center.
+ */
+std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
+  return _center;
 }

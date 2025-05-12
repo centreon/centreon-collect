@@ -670,6 +670,7 @@ not12
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
@@ -691,7 +692,7 @@ not12
     Ctn Engine Config Set Value In Escalations    0    esc2    last_notification    0
     Ctn Engine Config Set Value In Escalations    0    esc2    notification_interval    1
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
@@ -721,7 +722,6 @@ not12
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of contact group 1 is not sent
 
-    ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
 
@@ -1448,7 +1448,7 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}
