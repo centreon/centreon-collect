@@ -213,19 +213,13 @@ void factory::create_conf(const config::endpoint& cfg,
   }
 
   asio::ip::tcp::resolver resolver{*_io_context};
-  asio::ip::tcp::resolver::query query{addr, std::to_string(port)};
-
-  asio::ip::tcp::resolver::iterator res_it;
-  try {
-    res_it = resolver.resolve(query);
-    asio::ip::tcp::resolver::iterator res_end;
-    if (res_it == res_end) {
-      throw msg_fmt("can't resolve {}:{} for {}", addr, port, cfg.name);
-    }
-  } catch (const boost::exception& e) {
+  boost::system::error_code err;
+  auto endpoints = resolver.resolve(addr, std::to_string(port), err);
+  if (err || endpoints.empty()) {
     throw msg_fmt("can't resolve {}:{} for {} : {}", addr, port, cfg.name,
-                  boost::diagnostic_information(e));
+                  err.message());
   }
+  auto res_ep = endpoints.begin()->endpoint();
 
   asio::ssl::context_base::method ssl_method =
       asio::ssl::context_base::tlsv13_client;
@@ -246,9 +240,9 @@ void factory::create_conf(const config::endpoint& cfg,
   }
 
   common::http::http_config http_cfg(
-      res_it->endpoint(), addr, encryption, connect_timeout, send_timeout,
-      receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),
-      0, default_http_keepalive_duration, max_connections, ssl_method,
+      res_ep, addr, encryption, connect_timeout, send_timeout, receive_timeout,
+      second_tcp_keep_alive_interval, std::chrono::seconds(1), 0,
+      default_http_keepalive_duration, max_connections, ssl_method,
       certificate_path);
 
   conf =

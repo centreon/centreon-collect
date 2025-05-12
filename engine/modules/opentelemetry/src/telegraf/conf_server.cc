@@ -106,19 +106,18 @@ conf_server_config::conf_server_config(const rapidjson::Value& json_config_v,
         http_json_config.get_string("listen_address", "0.0.0.0");
     _crypted = http_json_config.get_bool("encryption", false);
     unsigned port = http_json_config.get_unsigned("port", _crypted ? 443 : 80);
-    asio::ip::tcp::resolver::query query(listen_address, std::to_string(port));
     asio::ip::tcp::resolver resolver(io_context);
     boost::system::error_code ec;
-    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
+    auto endpoints = resolver.resolve(listen_address, std::to_string(port), ec);
     if (ec) {
       throw exceptions::msg_fmt("unable to resolve {}:{}", listen_address,
                                 port);
     }
-    if (it == end) {
+    if (endpoints.empty()) {
       throw exceptions::msg_fmt("no ip found for {}:{}", listen_address, port);
     }
 
-    _listen_endpoint = it->endpoint();
+    _listen_endpoint = endpoints.begin()->endpoint();
 
     _second_keep_alive_interval =
         http_json_config.get_unsigned("keepalive_interval", 30);

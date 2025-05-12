@@ -215,40 +215,30 @@ class cached : public backend {
    */
   void connect_remote(std::string const& address, unsigned short port) {
     asio::ip::tcp::resolver resolver{_io_context};
-    asio::ip::tcp::resolver::query query{address, std::to_string(port)};
-
-    try {
-      asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
-      asio::ip::tcp::resolver::iterator end;
-
-      boost::system::error_code err{
-          make_error_code(asio::error::host_unreachable)};
-
-      // it can resolve to multiple addresses like ipv4 and ipv6
-      // we need to try all to find the first available socket
-      while (err && it != end) {
-        _socket.connect(*it, err);
-
-        if (err)
-          _socket.close();
-
-        ++it;
-      }
-
-      if (err) {
-        throw msg_fmt(
-            "RRD: could not connect to remote server '{}"
-            ":{} : {}",
-            address, port, err.message());
-      }
-
-      asio::socket_base::keep_alive option{true};
-      _socket.set_option(option);
-    } catch (boost::system::system_error const& se) {
+    boost::system::error_code ec;
+    asio::ip::tcp::resolver::results_type endpoints =
+        resolver.resolve(address, std::to_string(port), ec);
+    if (ec) {
       throw msg_fmt(
           "RRD: could not resolve remove server '{}"
           ":{} : {}",
-          address, port, se.what());
+          address, port, ec.message());
+    }
+
+    asio::connect(_socket, endpoints, ec);
+    if (ec) {
+      throw msg_fmt(
+          "RRD: could not connect to remote server '{}"
+          ":{} : {}",
+          address, port, ec.message());
+    }
+    asio::socket_base::keep_alive option{true};
+    _socket.set_option(option, ec);
+    if (ec) {
+      throw msg_fmt(
+          "RRD: could not set keep alive option on socket '{}"
+          ":{} : {}",
+          address, port, ec.message());
     }
   }
 

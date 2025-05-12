@@ -173,31 +173,17 @@ void test_server::wait_for_init() {
 bool test_server::add_client(asio::ip::tcp::socket& sock,
                              asio::io_context& io) {
   asio::ip::tcp::resolver resolver{io};
-  asio::ip::tcp::resolver::query query{"localhost", std::to_string(4242)};
-
-  try {
-    asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
-    asio::ip::tcp::resolver::iterator end;
-    boost::system::error_code err{
-        make_error_code(asio::error::host_unreachable)};
-
-    // it can resolve to multiple addresses like ipv4 and ipv6
-    // we need to try all to find the first available socket
-    while (err && it != end) {
-      sock.connect(*it, err);
-
-      if (err)
-        sock.close();
-
-      ++it;
-    }
-
-    if (err)
-      return false;
-  } catch (boost::system::system_error const& se) {
+  boost::system::error_code err;
+  auto endpoints = resolver.resolve("localhost", std::to_string(4242), err);
+  if (err) {
+    std::cout << "resolve error: " << err.message() << std::endl;
     return false;
   }
-
+  asio::connect(sock, endpoints, err);
+  if (err) {
+    std::cout << "connect error: " << err.message() << std::endl;
+    return false;
+  }
   return true;
 }
 
