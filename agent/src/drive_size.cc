@@ -280,11 +280,11 @@ void drive_size_thread::run() {
           os_fs_stats(*to_execute->request_filter, _logger);
       // main code of this program is not thread safe, so we use io_context
       // launched from main thread to call callback
-      _io_context->post(
-          [result = std::move(stats),
-           completion_handler = std::move(to_execute->handler)]() {
-            completion_handler(result);
-          });
+      asio::post(*_io_context,
+                 [result = std::move(stats),
+                  completion_handler = std::move(to_execute->handler)]() {
+                   completion_handler(result);
+                 });
       _queue.erase(to_execute);
     }
   }

@@ -17,8 +17,65 @@
  */
 
 #include "check.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::agent;
+
+/**
+ * @brief calc a duration from a string like 3w or 2d1h5m30s
+ * allowed units are s, m, h , d, w no case sensitive
+ * @param duration_str  string to parse
+ * @param default_unit  when a number is given without unit we use default_unit
+ * @param erase_sign if true, number signs are not taken into account
+ */
+duration com::centreon::agent::duration_from_string(
+    const std::string_view& duration_str,
+    char default_unit,
+    bool erase_sign) {
+  static re2::RE2 duration_regex("(-?\\d+[sSmMhHdDwW]?)");
+
+  duration ret{0};
+  std::string_view captured;
+  std::string_view copy_str = duration_str;
+  while (RE2::Consume(&copy_str, duration_regex, &captured)) {
+    char unit = default_unit;
+    if (*captured.rbegin() > '9') {
+      unit = *captured.rbegin();
+      captured = captured.substr(0, captured.size() - 1);
+    }
+
+    int value = 0;
+    if (!absl::SimpleAtoi(captured, &value)) {
+      throw exceptions::msg_fmt("fail to parse this duration:{}", duration_str);
+    }
+    if (erase_sign && value < 0) {
+      value = -value;
+    }
+    switch (unit) {
+      case 's':
+      case 'S':
+        ret += std::chrono::seconds(value);
+        break;
+      case 'm':
+      case 'M':
+        ret += std::chrono::minutes(value);
+        break;
+      case 'h':
+      case 'H':
+        ret += std::chrono::hours(value);
+        break;
+      case 'd':
+      case 'D':
+        ret += std::chrono::hours(value * 24);
+        break;
+      case 'w':
+      case 'W':
+        ret += std::chrono::hours(value * 24 * 7);
+        break;
+    }
+  }
+  return ret;
+}
 
 /**
  * @brief update check interval of a check
@@ -57,7 +114,7 @@ void checks_statistics::add_duration_stat(const std::string& cmd_name,
 }
 
 const std::array<std::string_view, 4> check::status_label = {
-    "OK: ", "WARNING: ", "CRITICAL: ", "UNKNOWN: "};
+    "OK", "WARNING", "CRITICAL", "UNKNOWN"};
 
 /**
  * @brief Construct a new check::check object
@@ -113,11 +170,12 @@ bool check::_start_check(const duration& timeout) {
   if (_running_check) {
     SPDLOG_LOGGER_ERROR(_logger, "check for service {} is already running",
                         _service);
-    _io_context->post(
-        [me = shared_from_this(), to_call = _completion_handler]() {
-          to_call(me, 3, std::list<com::centreon::common::perfdata>(),
-                  {"a check is already running"});
-        });
+    asio::post(*_io_context,
+               [me = shared_from_this(), to_call = _completion_handler]() {
+                 to_call(me, e_status::unknown,
+                         std::list<com::centreon::common::perfdata>(),
+                         {"a check is already running"});
+               });
     return false;
   }
   _running_check = true;
@@ -141,7 +199,7 @@ bool check::_start_check(const duration& timeout) {
  * @param timeout
  */
 void check::_start_timeout_timer(const duration& timeout) {
-  _time_out_timer.expires_from_now(timeout);
+  _time_out_timer.expires_after(timeout);
   _time_out_timer.async_wait(
       [me = shared_from_this(), start_check_index = _running_check_index](
           const boost::system::error_code& err) {

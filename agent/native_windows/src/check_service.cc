@@ -20,6 +20,7 @@
 
 #include "check_service.hh"
 #include "native_check_base.cc"
+#include "windows_util.hh"
 
 using namespace com::centreon::agent;
 using namespace com::centreon::agent::native_check_detail;
@@ -78,19 +79,35 @@ bool service_enumerator::_enumerate_services(serv_array& services,
  */
 bool service_enumerator::_query_service_config(
     LPCSTR service_name,
-    QUERY_SERVICE_CONFIGA& serv_conf,
+    std::unique_ptr<unsigned char[]>& buffer,
+    size_t* buffer_size,
     const std::shared_ptr<spdlog::logger>& logger) {
   SC_HANDLE serv_handle =
       OpenService(_sc_manager_handler, service_name, GENERIC_READ);
   if (!serv_handle) {
-    SPDLOG_LOGGER_ERROR(logger, " fail to open service {}", service_name);
+    SPDLOG_LOGGER_ERROR(logger, " fail to open service {}: {}", service_name,
+                        get_last_error_as_string());
     return false;
   }
   DWORD bytes_needed = 0;
-  if (!QueryServiceConfigA(serv_handle, &serv_conf, sizeof(serv_conf),
-                           &bytes_needed)) {
-    SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}",
-                        service_name);
+  if (!QueryServiceConfigA(
+          serv_handle, reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+          *buffer_size, &bytes_needed)) {
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      buffer = std::make_unique<unsigned char[]>(bytes_needed);
+      *buffer_size = bytes_needed;
+
+      if (!QueryServiceConfigA(
+              serv_handle,
+              reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+              *buffer_size, &bytes_needed)) {
+        SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
+                            service_name, GetLastError());
+      }
+    } else {
+      SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
+                          service_name, GetLastError());
+    }
     CloseServiceHandle(serv_handle);
     return false;
   }
@@ -121,15 +138,24 @@ void service_enumerator::_enumerate_services(
     BOOL success = _enumerate_services(services, &services_count);
     if (success || GetLastError() == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
-      for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
-        if constexpr (start_auto) {
-          QUERY_SERVICE_CONFIGA serv_conf;
-          if (!_query_service_config(serv->lpServiceName, serv_conf, logger)) {
+
+      if constexpr (start_auto) {
+        std::unique_ptr<unsigned char[]> query_serv_conf_buff =
+            std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
+        size_t query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
+        for (LPENUM_SERVICE_STATUS serv = services; serv < services_end;
+             ++serv) {
+          if (!_query_service_config(serv->lpServiceName, query_serv_conf_buff,
+                                     &query_serv_conf_buff_size, logger)) {
             continue;
           }
 
+          const QUERY_SERVICE_CONFIGA* serv_conf =
+              reinterpret_cast<const QUERY_SERVICE_CONFIGA*>(
+                  query_serv_conf_buff.get());
+
           bool this_serv_auto_start =
-              (serv_conf.dwStartType &
+              (serv_conf->dwStartType &
                (SERVICE_AUTO_START | SERVICE_BOOT_START |
                 SERVICE_SYSTEM_START)) != 0;
           if (!filter.is_allowed(this_serv_auto_start, serv->lpServiceName,
@@ -137,7 +163,10 @@ void service_enumerator::_enumerate_services(
             continue;
           }
           callback(*serv);
-        } else {
+        }
+      } else {
+        for (LPENUM_SERVICE_STATUS serv = services; serv < services_end;
+             ++serv) {
           if (!filter.is_allowed(false, serv->lpServiceName,
                                  serv->lpDisplayName)) {
             continue;

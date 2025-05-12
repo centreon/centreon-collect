@@ -19,6 +19,8 @@
 #ifndef CCB_WATCHDOG_INSTANCE_CONFIGURATION_HH
 #define CCB_WATCHDOG_INSTANCE_CONFIGURATION_HH
 
+#include <cstdint>
+
 namespace com::centreon::broker::watchdog {
 /**
  *  @class instance_configuration instance_configuration.hh

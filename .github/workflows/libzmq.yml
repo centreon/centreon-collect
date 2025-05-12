@@ -93,7 +93,10 @@ jobs:
             distrib: jammy
             runner: ubuntu-24.04
             arch: amd64
-
+          - image: packaging-centreon-collect-noble
+            distrib: noble
+            runner: ubuntu-24.04
+            arch: amd64
     runs-on: ${{ matrix.runner }}
 
     container:
