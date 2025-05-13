@@ -2144,10 +2144,9 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                             f"metric: {res['metric_name']}, value: {res['value']}")
                         metric = res['metric_name']
                         value = float(res['value'])
+                        # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                         if metric not in expected:
-                            logger.console(
-                                f"ERROR unexpected metric: {metric}")
-                            return False
+                            continue
                         if expected[metric] is not None and abs(value - expected[metric]) > precision:
                             logger.console(
                                 f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")

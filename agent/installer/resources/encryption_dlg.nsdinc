@@ -102,7 +102,7 @@ Function fnc_encryption_Create
   Pop $hCtl_encryption_ca_name
   
   ; === label_ca_name (type: Label) ===
-  ${NSD_CreateLabel} 12u 86u 92u 10u "Certificate Common Name"
+  ${NSD_CreateLabel} 12u 86u 92u 10u "CA Common Name (CN)"
   Pop $hCtl_encryption_label_ca_name
   
   ; === ca_file_Txt (type: Text) ===
@@ -124,7 +124,7 @@ Function fnc_encryption_Create
   ${NSD_OnClick} $hCtl_encryption_certificate_file_Btn fnc_hCtl_encryption_certificate_file_Click
   
   ; === label_ca_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 67u 99u 10u "Trusted CA's certificate file:"
+  ${NSD_CreateLabel} 12u 67u 99u 10u "CA:"
   Pop $hCtl_encryption_label_ca_file
   
   ; === private_key_file_Txt (type: Text) ===
@@ -137,11 +137,11 @@ Function fnc_encryption_Create
   ${NSD_OnClick} $hCtl_encryption_private_key_file_Btn fnc_hCtl_encryption_private_key_file_Click
   
   ; === label_certificate_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 49u 66u 10u "Certificate file:"
+  ${NSD_CreateLabel} 12u 49u 66u 10u "Public certificate:"
   Pop $hCtl_encryption_label_certificate_file
   
   ; === label_private_key_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 30u 66u 10u "Private key file:"
+  ${NSD_CreateLabel} 12u 30u 66u 10u "Private key:"
   Pop $hCtl_encryption_label_private_key_file
   
   ; CreateFunctionCustomScript
