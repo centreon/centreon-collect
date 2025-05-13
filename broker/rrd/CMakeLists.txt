@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2013 Centreon
+# Copyright 2011-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -104,12 +104,13 @@ if(LIBRRD_CFLAGS)
 endif()
 
 target_link_libraries(
-  "${RRD}"
+  "${RRD}" PRIVATE
   ${LIBRRD_LDFLAGS}
   bbdo_storage
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
+  protobuf::libprotobuf
   spdlog::spdlog)
 
 # Testing.

@@ -142,8 +142,8 @@ add_library(
   "${INC_DIR}/service_book.hh"
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh")
-target_link_libraries("${BAM}" bbdo_storage bbdo_bam pb_bam_lib
-                      spdlog::spdlog)
+target_link_libraries("${BAM}" PRIVATE bbdo_storage bbdo_bam pb_bam_lib
+                      spdlog::spdlog protobuf::libprotobuf)
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${BAM}" PROPERTIES PREFIX "")
 add_dependencies("${BAM}" pb_open_telemetry_lib)

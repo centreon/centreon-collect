@@ -35,7 +35,7 @@ using duration = system_clock::duration;
 
 static std::string perl_connector = BUILD_PATH
     "/connectors/perl/"
-    "centreon_connector_perl --debug --log-file=/data/dev/connector.log";
+    "centreon_connector_perl --debug --log-file=/tmp/connector.log";
 
 static constexpr const char cmd1[] =
     "2\x00"
