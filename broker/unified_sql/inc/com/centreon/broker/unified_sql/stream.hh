@@ -382,10 +382,8 @@ class stream : public io::stream {
   database::mysql_stmt _tag_insert_update_nothing;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
-  database::mysql_stmt _resources_host_insert;
-  database::mysql_stmt _resources_host_update;
-  database::mysql_stmt _resources_service_insert;
-  database::mysql_stmt _resources_service_update;
+  database::mysql_stmt _resources_host_insert_or_update;
+  database::mysql_stmt _resources_service_insert_or_update;
 
   database::mysql_stmt _resources_disable;
   database::mysql_stmt _resources_tags_remove;
