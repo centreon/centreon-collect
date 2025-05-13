@@ -20,13 +20,6 @@ BEGIN {
     $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
 }
 
-# we override the gorgone::class::sqlquery class to mock the custom_execute method.
-BEGIN {
-    package gorgone::class::sqlquery;
-    sub custom_execute { return (-1, ()) };
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
-}
-
 package main;
 
 use FindBin;
