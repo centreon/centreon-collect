@@ -42,6 +42,10 @@ static const std::string _insert_or_update_tags =
     "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
     "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id),  name=VALUES(name)";
 
+static const std::string _insert_or_update_nothing_tags =
+    "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
+    "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id)";
+
 /**
  *  @brief Clean tables with data associated to the instance.
  *
@@ -2472,51 +2476,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
                           "add tag ({}, {}) for resource {} for host{}",
                           tag.id(), tag.type(), res_id, h.host_id());
 
-      auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
-
-      if (it_tags_cache == _tags_cache.end()) {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find in cache the tag ({}, {}) for host "
-            "'{}': "
-            "trying to add it.",
-            tag.id(), tag.type(), h.host_id());
-        if (!_tag_insert_update.prepared())
-          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
-        _tag_insert_update.bind_value_as_u64(0, tag.id());
-        _tag_insert_update.bind_value_as_u32(1, tag.type());
-        _tag_insert_update.bind_value_as_str(2, "(unknown)");
-        std::promise<uint64_t> p;
-        std::future<uint64_t> future = p.get_future();
-
-        _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert_update, std::move(p),
-            database::mysql_task::LAST_INSERT_ID, conn);
-        try {
-          uint64_t tag_id = future.get();
-          it_tags_cache =
-              _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(_logger_sql,
-                              "SQL: unable to insert new tag ({},{}): {}",
-                              tag.id(), tag.type(), e.what());
-        }
-      }
-
-      if (it_tags_cache != _tags_cache.end()) {
-        _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-        _resources_tags_insert.bind_value_as_u64(1, res_id);
-        SPDLOG_LOGGER_DEBUG(
-            _logger_sql,
-            "SQL: new relation between host (resource_id: {}, host_id: "
-            "{}) "
-            "and tag ({},{},{})",
-            res_id, h.host_id(), it_tags_cache->second, tag.id(), tag.type());
-        _mysql.run_statement(_resources_tags_insert,
-                             database::mysql_error::store_tags_resources_tags,
-                             conn);
-        _add_action(conn, actions::resources_tags);
-      }
+      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
     if (found != _resource_cache.end()) {
@@ -4288,53 +4248,11 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     _mysql.run_statement(_resources_tags_remove,
                          database::mysql_error::delete_resources_tags, conn);
     for (auto& tag : s.tags()) {
-      auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
+      SPDLOG_LOGGER_DEBUG(
+          _logger_sql, "add tag ({}, {}) for resource {} for service ({}, {})",
+          tag.id(), tag.type(), res_id, s.host_id(), s.service_id());
 
-      if (it_tags_cache == _tags_cache.end()) {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find in cache the tag ({}, {}) for service "
-            "({},{}): trying to add it.",
-            tag.id(), tag.type(), s.host_id(), s.service_id());
-        if (!_tag_insert_update.prepared())
-          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
-        _tag_insert_update.bind_value_as_u64(0, tag.id());
-        _tag_insert_update.bind_value_as_u32(1, tag.type());
-        _tag_insert_update.bind_value_as_str(2, "(unknown)");
-        std::promise<uint64_t> p;
-        std::future<uint64_t> future = p.get_future();
-        _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert_update, std::move(p),
-            database::mysql_task::LAST_INSERT_ID, conn);
-        try {
-          uint64_t tag_id = future.get();
-          it_tags_cache =
-              _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(_logger_sql,
-                              "SQL: unable to insert new tag ({},{}): {}",
-                              tag.id(), tag.type(), e.what());
-        }
-      }
-
-      if (it_tags_cache != _tags_cache.end()) {
-        _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-        _resources_tags_insert.bind_value_as_u64(1, res_id);
-        SPDLOG_LOGGER_DEBUG(
-            _logger_sql,
-            "SQL: new relation between service (resource_id: {},  ({}, "
-            "{})) and tag ({},{})",
-            res_id, s.host_id(), s.service_id(), tag.id(), tag.type());
-        _mysql.run_statement(_resources_tags_insert,
-                             database::mysql_error::store_tags_resources_tags,
-                             conn);
-        _add_action(conn, actions::resources_tags);
-      } else {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find the tag ({}, {}) in cache for host '{}'",
-            tag.id(), tag.type(), s.service_id());
-      }
+      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
     if (found != _resource_cache.end()) {
@@ -5176,27 +5094,70 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       _add_action(conn, actions::tags);
       break;
     }
-    case Tag_Action_DELETE: {
-      if (cache_ptr) {
-        cache_ptr->remove_tag(tg.id());
-      }
-      auto it = _tags_cache.find({tg.id(), tg.type()});
-      if (it != _tags_cache.end()) {
-        uint64_t id = it->second;
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: delete tag {}", id);
-        _tag_delete.bind_value_as_u64(0, tg.id());
-        _mysql.run_statement(
-            _tag_delete, database::mysql_error::delete_resources_tags, conn);
-        _tags_cache.erase(it);
-      } else
-        SPDLOG_LOGGER_WARN(_logger_sql,
-                           "unified_sql: unable to delete tag ({}, {}): it "
-                           "does not exist in cache",
-                           tg.id(), tg.type());
-    } break;
+    case Tag_Action_DELETE:
+      // as a tag may be used by several pollers, no poller can delete it by
+      // itself
+      SPDLOG_LOGGER_TRACE(
+          _logger_sql, "unified_sql: remove tag {}: not implemented", tg.id());
+      break;
     default:
       SPDLOG_LOGGER_ERROR(_logger_sql, "Bad action in tag object");
       break;
+  }
+}
+
+void stream::_process_tag_from_resources(uint64_t resource_id,
+                                         uint64_t tag_id,
+                                         int32_t tag_type,
+                                         int32_t conn) {
+  SPDLOG_LOGGER_DEBUG(_logger_sql, "add tag ({}, {}) for resource {}", tag_id,
+                      tag_type, resource_id);
+
+  auto it_tags_cache = _tags_cache.find({tag_id, tag_type});
+
+  if (it_tags_cache == _tags_cache.end()) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "SQL: could not find in cache the tag ({}, {}): "
+                        "trying to add it.",
+                        tag_id, tag_type);
+    if (!_tag_insert_update_nothing.prepared())
+      _tag_insert_update_nothing =
+          _mysql.prepare_query(_insert_or_update_nothing_tags);
+    _tag_insert_update_nothing.bind_value_as_u64(0, tag_id);
+    _tag_insert_update_nothing.bind_value_as_u32(1, tag_type);
+    _tag_insert_update_nothing.bind_value_as_str(2, "(unknown)");
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _tag_insert_update_nothing, std::move(p),
+        database::mysql_task::LAST_INSERT_ID, conn);
+    try {
+      uint64_t tag_index = future.get();
+      it_tags_cache = _tags_cache.insert({{tag_id, tag_type}, tag_index}).first;
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger_sql,
+                          "SQL: unable to insert new tag ({},{}): {}", tag_id,
+                          tag_type, e.what());
+    }
+  }
+
+  if (it_tags_cache != _tags_cache.end()) {
+    _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+    _resources_tags_insert.bind_value_as_u64(1, resource_id);
+    SPDLOG_LOGGER_DEBUG(_logger_sql,
+                        "SQL: new relation between host (resource_id: {}) "
+                        "and tag ({},{},{})",
+                        resource_id, it_tags_cache->second, tag_id, tag_type);
+    _mysql.run_statement(_resources_tags_insert,
+                         database::mysql_error::store_tags_resources_tags,
+                         conn);
+    _add_action(conn, actions::resources_tags);
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        _logger_sql,
+        "SQL: could not find the tag ({}, {}) in cache for resource '{}'",
+        tag_id, tag_type, resource_id);
   }
 }
 

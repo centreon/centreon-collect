@@ -379,6 +379,7 @@ class stream : public io::stream {
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert_update;
+  database::mysql_stmt _tag_insert_update_nothing;
   database::mysql_stmt _tag_delete;
   database::mysql_stmt _resources_tags_insert;
   database::mysql_stmt _resources_host_insert;
@@ -460,6 +461,10 @@ class stream : public io::stream {
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);
   void _process_tag(const std::shared_ptr<io::data>& d);
+  void _process_tag_from_resources(uint64_t resource_id,
+                                   uint64_t tag_id,
+                                   int32_t tag_type,
+                                   int32_t conn);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
   void _process_agent_stats(const std::shared_ptr<io::data>& d);
