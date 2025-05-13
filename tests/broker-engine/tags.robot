@@ -578,7 +578,7 @@ BEUTAG11
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
-    Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
+    Should Be True    ${result}    Second step: Service (1, 4) should have servicegroup tags 2 and 4
 
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [5]    60    False
     Should Be True    ${result}    Second step: Service (1, 3) should not have servicecategory tags 5
@@ -586,7 +586,7 @@ BEUTAG11
     ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 504) should not have servicegroup tags 3 and 5
 
-    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
 BEUTAG12
