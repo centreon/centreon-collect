@@ -56,7 +56,6 @@ endif()
 add_executable(ccc ${ccc_files})
 target_link_libraries(
   ccc PRIVATE
-  -L${PROTOBUF_LIB_DIR}
   gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
   cerpc
   berpc

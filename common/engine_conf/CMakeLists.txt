@@ -89,5 +89,4 @@ target_link_libraries(
   absl::log
   absl::base
   absl::bits
-  -L${PROTOBUF_LIB_DIR}
-  protobuf)
+  protobuf::libprotobuf)

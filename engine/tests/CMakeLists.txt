@@ -37,7 +37,6 @@ if(WITH_TESTING)
 
   target_link_libraries(
     rpc_client_engine
-    -L${PROTOBUF_LIB_DIR}
     cerpc
     centreon_common
     spdlog::spdlog
@@ -187,7 +186,7 @@ endif()
 
     target_link_libraries(
       ut_engine
-      PRIVATE -L${PROTOBUF_LIB_DIR}
+      PRIVATE
               enginerpc_legacy
               ut_engine_utils_legacy
               "-Wl,-whole-archive"
@@ -200,7 +199,7 @@ endif()
               centreon_grpc
               centreon_http
               centreon_process
-              boost_url
+              Boost::url
               Boost::program_options
               pthread
               ${GCOV}
@@ -332,7 +331,7 @@ endif()
 
     target_link_libraries(
       ut_engine
-      PRIVATE -L${PROTOBUF_LIB_DIR}
+      PRIVATE
               enginerpc
               ut_engine_utils
               "-Wl,-whole-archive"
@@ -345,7 +344,7 @@ endif()
               centreon_grpc
               centreon_http
               centreon_process
-              boost_url
+              Boost::url
               Boost::program_options
               pthread
               ${GCOV}
