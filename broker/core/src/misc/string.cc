@@ -46,29 +46,6 @@ std::string& string::trim(std::string& str) noexcept {
   return str;
 }
 
-std::string string::base64_encode(const std::string& str) {
-  static const std::string b =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  std::string retval;
-  retval.reserve((str.size() / 3 + (str.size() % 3 > 0)) * 4);
-
-  int val = 0, valb = -6;
-  for (unsigned char c : str) {
-    val = (val << 8) + c;
-    valb += 8;
-    while (valb >= 0) {
-      retval.push_back(b[(val >> valb) & 0x3F]);
-      valb -= 6;
-    }
-  }
-  if (valb > -6)
-    retval.push_back(b[((val << 8) >> (valb + 8)) & 0x3F]);
-  while (retval.size() % 4)
-    retval.push_back('=');
-
-  return retval;
-}
-
 bool string::is_number(const std::string& s) {
   return !s.empty() && std::find_if(s.begin(), s.end(), [](char c) {
                          return !std::isdigit(c);

@@ -18,8 +18,11 @@
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_executable(ut_common
+  add_executable(
+    ut_common
     absl_flyweight_factory_test.cc
+    crypto/base64.cc
+    jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -69,6 +72,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
+    ctncrypto
     centreon_http
     centreon_process
     -L${Boost_LIBRARY_DIR_RELEASE}
