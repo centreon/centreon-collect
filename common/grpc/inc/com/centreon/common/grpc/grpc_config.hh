@@ -125,7 +125,8 @@ class grpc_config {
               int second_keepalive_interval,
               unsigned second_max_reconnect_backoff,
               unsigned max_message_length,
-              const std::string& token)
+              const std::string& token,
+              const absl::flat_hash_set<std::string>& trusted_tokens)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -136,7 +137,9 @@ class grpc_config {
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
-        _token{token} {}
+        _token{token},
+        _trusted_tokens(std::make_shared<absl::flat_hash_set<std::string>>(
+            trusted_tokens)) {}
 
   grpc_config(
       const std::string& hostp,
@@ -149,6 +152,7 @@ class grpc_config {
       int second_keepalive_interval,
       unsigned second_max_reconnect_backoff,
       unsigned max_message_length,
+      const std::string& token,
       const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
       : _hostport(hostp),
         _crypted(crypted),
@@ -160,6 +164,7 @@ class grpc_config {
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
+        _token(token),
         _trusted_tokens{trusted_tokens} {}
 
   const std::string& get_hostport() const { return _hostport; }
