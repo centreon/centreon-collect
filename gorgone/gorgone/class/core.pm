@@ -436,7 +436,7 @@ sub load_module {
         require $file;
     };
     if ($@) {
-        $self->{logger}->writeLogInfo("[core] Module '" . $options{config_module}->{name} . "' cannot be loaded: " . $@);
+        $self->{logger}->writeLogError("[core] Module '" . $options{config_module}->{name} . "' cannot be loaded: " . $@);
         return 0;
     }
     $self->{modules_register}->{$package} = {};
