@@ -2235,7 +2235,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller: int, timeout: in
                         logger.console(f"infos: {res['infos']}")
                         agent_infos = json.loads(res['infos'])
                         for by_agent_info in agent_infos:
-                            if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
+                            if by_agent_info['agent_major'] != cma_major or by_agent_info['agent_minor'] != cma_minor or by_agent_info['agent_patch'] != cma_patch:
                                 logger.console(
                                     f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
                                 return False
@@ -2355,7 +2355,8 @@ def ctn_get_process_limit(pid: int, limit: str):
         return -1, -1
     return -1, -1
 
-def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
+
+def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
     """
     ctn_create_jwt_token
 

@@ -285,7 +285,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
   std::vector<const opentelemetry::proto::metrics::v1::ResourceMetrics*>
       resource_metrics;
 
-  auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 1, 5);
+  auto agent_conf = std::make_shared<centreon_agent::agent_config>(10, 1, 5);
 
   start_server(listen_endpoint, agent_conf,
                [&](const metric_request_ptr& metric) {
