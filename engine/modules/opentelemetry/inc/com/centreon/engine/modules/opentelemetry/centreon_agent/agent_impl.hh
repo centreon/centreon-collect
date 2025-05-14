@@ -41,6 +41,7 @@ class agent_impl
   std::shared_ptr<boost::asio::io_context> _io_context;
   const std::string_view _class_name;
   const bool _reversed;
+  const std::chrono::system_clock::time_point _exp_time;
 
   whitelist_cache _whitelist_cache;
 
@@ -85,6 +86,15 @@ class agent_impl
              const std::shared_ptr<spdlog::logger>& logger,
              bool reversed,
              const agent_stat::pointer& stats);
+
+  agent_impl(const std::shared_ptr<boost::asio::io_context>& io_context,
+             const std::string_view class_name,
+             const agent_config::pointer& conf,
+             const metric_handler& handler,
+             const std::shared_ptr<spdlog::logger>& logger,
+             bool reversed,
+             const agent_stat::pointer& stats,
+             const std::chrono::system_clock::time_point& exp_time);
 
   virtual ~agent_impl();
 
