@@ -25,13 +25,11 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   checkmarx-analysis:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.is_targeting_feature_branch != 'true' &&
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
