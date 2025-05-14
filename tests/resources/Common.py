@@ -1522,6 +1522,10 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
         tag_ids: expected tags ids
         timeout: timeout in seconds
         enabled: if True, check if the tags are enabled, otherwise check if they are different
+        Returns: 
+           - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
+           - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
+
     """
     if typ == 'servicegroup':
         t = 0
@@ -1552,16 +1556,16 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
                     if len(result) == 0:
                         return True
                     else:
-                        equals = True
+                        found_in_tags_ids = False
                         for r in result:
                             if r['id'] in tag_ids:
                                 logger.console(
                                     "id {} is in tag ids".format(r['id']))
-                                equals = False
+                                found_in_tags_ids = True
                                 break
-                        if not equals:
+                        if not found_in_tags_ids:
                             return True
-                elif enabled and len(result) > 0:
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
                         equals = True
                         for r in result:

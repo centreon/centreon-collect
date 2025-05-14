@@ -706,7 +706,11 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
 
 MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
-    [Documentation]    Given two pollers with two hosts on each of them that belong to the same hostgroup, when I move two hosts from one poller to another, then the hostgroup tag is not erased.
+    [Documentation]    Scenario: Moving hosts between pollers without losing hostgroup tag
+    ...    Given two pollers each with two hosts
+    ...    And all hosts belong to the same hostgroup
+    ...    When I move two hosts from one poller to the other
+    ...    Then the hostgroup tag of the moved hosts is not erased
     [Tags]    broker    engine    tags    MON-146720
     Ctn Clear Db    tags
     Ctn Clear Db    resources
@@ -756,15 +760,13 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Ctn Reload Engine    poller_index=${1}
     Ctn Reload Broker
 
-    Sleep    5s
-
     ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [1]    60    True
     Should Be True    ${result}    Host 1 should have hostgroup tags 1
     ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [1]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 1
 
     ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    ${60}    False
-    Should Be True    ${result}    host_5 not deleted from db
+    Should Be True    ${result}    tag 1 yet attached to host_5
 
     ${content}    Create List    processing tag
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
