@@ -211,7 +211,17 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 
     auto group_iter = group_serv.begin();
 
-    time_point next = std::chrono::system_clock::now();
+    /**
+     * When we receive conf, old checks are yet running, so without the delay of
+     * 1 second above, we could have this scenario:
+     * at 12:00:00.100 an old check executes
+     * at 12:00:00.200 we receive a new configuration
+     * at 12:00:00.200 we executes the first check
+     * so if checks are fast, engine can receives two checks for the same
+     * service with the same time (rounded to 1 second)
+     */
+    time_point next =
+        std::chrono::system_clock::now() + std::chrono::seconds(1);
 
     _check_time_step = time_step(next, time_unit);
 
