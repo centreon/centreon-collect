@@ -1,4 +1,4 @@
-name: connectors-analysis
+name: agent-analysis
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -10,7 +10,8 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
-      - connectors/**
+      - ".version.centreon-monitoring-agent"
+      - agent/**
   push:
     branches:
       - develop
@@ -18,14 +19,14 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - connectors/**
+      - ".version.centreon-monitoring-agent"
+      - agent/**
 
 jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+      version_file: .version.centreon-monitoring-agent
 
   checkmarx-analysis:
     needs: [get-environment]
@@ -34,8 +35,8 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: connectors
-      module_name: centreon-collect-connectors
+      module_directory: agent
+      module_name: centreon-collect-agent
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}

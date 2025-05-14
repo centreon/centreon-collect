@@ -1,4 +1,4 @@
-name: gorgone-analysis
+name: selinux-analysis
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -9,28 +9,7 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
     paths:
-      - ".version"
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/centreon-collect/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
       - selinux/**
   push:
     branches:
@@ -39,24 +18,7 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - ".version"
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/centreon-collect/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
       - selinux/**
-
 
 jobs:
   get-environment:
@@ -73,15 +35,15 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: ""
-      module_name: centreon-gorgone
+      module_directory: selinux
+      module_name: centreon-collect-selinux
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
       cx_client_id: ${{ secrets.AST_RND_SCANS_CLIENT_ID }}
       cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
 
-#  set-skip-label:
-#    needs: [get-environment, checkmarx-analysis]
-#    if: needs.get-environment.outputs.skip_workflow == 'false'
-#    uses: ./.github/workflows/set-pull-request-skip-label.yml
+  set-skip-label:
+    needs: [get-environment, checkmarx-analysis]
+    if: needs.get-environment.outputs.skip_workflow == 'false'
+    uses: ./.github/workflows/set-pull-request-skip-label.yml

@@ -9,13 +9,7 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
     paths:
-      - ".version"
       - engine/**
   push:
     branches:
@@ -24,7 +18,6 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - ".version"
       - engine/**
 
 jobs:
@@ -38,11 +31,10 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.is_targeting_feature_branch != 'true' &&
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: ""
+      module_directory: engine
       module_name: centreon-engine
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
@@ -50,7 +42,7 @@ jobs:
       cx_client_id: ${{ secrets.AST_RND_SCANS_CLIENT_ID }}
       cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
 
-#  set-skip-label:
-#    needs: [get-environment, checkmarx-analysis]
-#    if: needs.get-environment.outputs.skip_workflow == 'false'
-#    uses: ./.github/workflows/set-pull-request-skip-label.yml
+  set-skip-label:
+    needs: [get-environment, checkmarx-analysis]
+    if: needs.get-environment.outputs.skip_workflow == 'false'
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
