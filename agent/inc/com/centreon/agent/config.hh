@@ -47,6 +47,7 @@ class config {
   unsigned _max_message_length;
   std::string _token;
 
+  absl::flat_hash_set<std::string> _trusted_tokens;
   static std::unique_ptr<config> _global_conf;
 
  public:
@@ -99,6 +100,9 @@ class config {
   unsigned get_max_message_length() const { return _max_message_length; }
 
   const std::string& get_token() const { return _token; }
+  const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
+    return _trusted_tokens;
+  }
 };
 };  // namespace com::centreon::agent
 

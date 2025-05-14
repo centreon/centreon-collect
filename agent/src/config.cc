@@ -100,7 +100,12 @@ const std::string_view config::config_schema(R"(
         },"token":{
             "description": "key for token",
             "type": "string"
-        }
+        },"trusted_tokens":{
+            "description": "list of trusted token that the agent will accept",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }}
     },
     "required": [
         "endpoint"
@@ -165,5 +170,11 @@ config::config(const std::string& path) {
 
   if (json_config.has_member("token")) {
     _token = json_config.get_string("token");
+  }
+  if (json_config.has_member("trusted_tokens")) {
+    const auto& tokens_v = json_config.get_member("trusted_tokens");
+    for (const auto& v : tokens_v.GetArray()) {
+      _trusted_tokens.insert(v.GetString());
+    }
   }
 }
