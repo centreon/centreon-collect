@@ -1,4 +1,4 @@
-name: agent-analysis
+name: clib-analysis
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -10,7 +10,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
-      - agent/**
+      - clib/**
   push:
     branches:
       - develop
@@ -18,13 +18,13 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - agent/**
+      - clib/**
 
 jobs:
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: .version.centreon-monitoring-agent
+      version_file: CMakeLists.txt
 
   checkmarx-analysis:
     needs: [get-environment]
@@ -33,8 +33,8 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
-      module_directory: agent
-      module_name: centreon-collect-agent
+      module_directory: clib
+      module_name: centreon-collect-client
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
