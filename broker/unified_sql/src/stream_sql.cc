@@ -20,6 +20,7 @@
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <boost/preprocessor/seq/for_each.hpp>
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -41,6 +42,26 @@ using namespace com::centreon::broker::unified_sql;
 static const std::string _insert_or_update_tags =
     "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
     "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id),  name=VALUES(name)";
+
+static const std::string _insert_or_update_nothing_tags =
+    "INSERT INTO tags (id,type,name) VALUES(?,?,?) ON DUPLICATE "
+    "KEY UPDATE tag_id=LAST_INSERT_ID(tag_id)";
+
+/**
+ * @brief The goal of these two macros is to fill insert or update request
+ * second part toto=VALUES(toto)
+ * To be used by BOOST_PP_SEQ_FOR_EACH
+ * Example:
+ * BOOST_PP_SEQ_FOR_EACH(for_each_to_duplicate_values, ,
+ * (status)(status_ordered))
+ * is expanded to
+ * ", status=VALUES(status)" ", status_ordered=VALUES(status_ordered)"
+ *
+ */
+#define duplicate_update_value(field) ", " #field "=VALUES(" #field ")"
+
+#define for_each_to_duplicate_values(not_used_1, not_used2, seq_head) \
+  duplicate_update_value(seq_head)
 
 /**
  *  @brief Clean tables with data associated to the instance.
@@ -2208,7 +2229,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                      centreon_storage_hosts_timezone)},
             });
         if (_store_in_resources) {
-          _resources_host_insert = _mysql.prepare_query(
+          _resources_host_insert_or_update = _mysql.prepare_query(
               "INSERT INTO resources "
               "(id,parent_id,type,status,status_ordered,last_"
               "status_change,"
@@ -2221,20 +2242,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
               "notifications_enabled,passive_checks_enabled,"
               "active_checks_enabled,enabled,icon_id,"
               "flapping,percent_state_change)"
-              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?"
-              ")");
-          _resources_host_update = _mysql.prepare_query(
-              "UPDATE resources SET "
-              "type=1,status=?,status_ordered=?,last_status_change=?,"
-              "in_downtime=?,acknowledged=?,"
-              "status_confirmed=?,check_attempts=?,max_check_attempts=?"
-              ","
-              "poller_id=?,severity_id=?,name=?,address=?,alias=?,"
-              "parent_name=?,notes_url=?,notes=?,action_url=?,"
-              "notifications_enabled=?,passive_checks_enabled=?,"
-              "active_checks_enabled=?,icon_id=?,enabled=1, flapping=?,"
-              "percent_state_change=? WHERE "
-              "resource_id=?");
+              "VALUES(?,0,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
+              ") ON DUPLICATE KEY UPDATE "
+              "resource_id=LAST_INSERT_ID(resource_id),"
+              " type=1" BOOST_PP_SEQ_FOR_EACH(
+                  for_each_to_duplicate_values, ,
+                  (
+                      status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(address)(alias)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
           if (!_resources_tags_remove.prepared())
             _resources_tags_remove = _mysql.prepare_query(
                 "DELETE FROM resources_tags WHERE resource_id=?");
@@ -2307,152 +2321,66 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         h.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
-    // INSERT
-    if (found == _resource_cache.end()) {
-      _resources_host_insert.bind_value_as_u64(0, h.host_id());
-      _resources_host_insert.bind_value_as_u32(1, h.state());
-      _resources_host_insert.bind_value_as_u32(2,
-                                               hst_ordered_status[h.state()]);
-      _resources_host_insert.bind_value_as_u64_ext(
-          3u, h.last_state_change(), mapping::entry::invalid_on_zero);
-      _resources_host_insert.bind_value_as_bool(
-          4, h.scheduled_downtime_depth() > 0);
-      _resources_host_insert.bind_value_as_bool(
-          5, h.acknowledgement_type() != AckType::NONE);
-      _resources_host_insert.bind_value_as_bool(
-          6, h.state_type() == Host_StateType_HARD);
-      _resources_host_insert.bind_value_as_u32(7, h.check_attempt());
-      _resources_host_insert.bind_value_as_u32(8, h.max_check_attempts());
-      _resources_host_insert.bind_value_as_u64(
-          9, _cache_host_instance[h.host_id()]);
-      if (h.severity_id()) {
-        sid = _severity_cache[{h.severity_id(), 1}];
-        SPDLOG_LOGGER_DEBUG(_logger_sql,
-                            "host {} with severity_id {} => uid = {}",
-                            h.host_id(), h.severity_id(), sid);
-      } else
-        SPDLOG_LOGGER_INFO(_logger_sql,
-                           "no host severity found in cache for host {}",
-                           h.host_id());
-      if (sid)
-        _resources_host_insert.bind_value_as_u64(10, sid);
-      else
-        _resources_host_insert.bind_null_u64(10);
-      _resources_host_insert.bind_value_as_str(11, name);
-      _resources_host_insert.bind_value_as_str(12, address);
-      _resources_host_insert.bind_value_as_str(13, alias);
-      _resources_host_insert.bind_value_as_str(14, parent_name);
-      _resources_host_insert.bind_value_as_str(15, notes_url);
-      _resources_host_insert.bind_value_as_str(16, notes);
-      _resources_host_insert.bind_value_as_str(17, action_url);
-      _resources_host_insert.bind_value_as_bool(18, h.notify());
-      _resources_host_insert.bind_value_as_bool(19, h.passive_checks());
-      _resources_host_insert.bind_value_as_bool(20, h.active_checks());
-      _resources_host_insert.bind_value_as_u64(21, h.icon_id());
-      _resources_host_insert.bind_value_as_bool(22, h.flapping());
-      _resources_host_insert.bind_value_as_f64(23, h.percent_state_change());
+    _resources_host_insert_or_update.bind_value_as_u64(0, h.host_id());
+    _resources_host_insert_or_update.bind_value_as_u32(1, h.state());
+    _resources_host_insert_or_update.bind_value_as_u32(
+        2, hst_ordered_status[h.state()]);
+    _resources_host_insert_or_update.bind_value_as_u64_ext(
+        3u, h.last_state_change(), mapping::entry::invalid_on_zero);
+    _resources_host_insert_or_update.bind_value_as_bool(
+        4, h.scheduled_downtime_depth() > 0);
+    _resources_host_insert_or_update.bind_value_as_bool(
+        5, h.acknowledgement_type() != AckType::NONE);
+    _resources_host_insert_or_update.bind_value_as_bool(
+        6, h.state_type() == Host_StateType_HARD);
+    _resources_host_insert_or_update.bind_value_as_u32(7, h.check_attempt());
+    _resources_host_insert_or_update.bind_value_as_u32(8,
+                                                       h.max_check_attempts());
+    _resources_host_insert_or_update.bind_value_as_u64(
+        9, _cache_host_instance[h.host_id()]);
+    if (h.severity_id()) {
+      sid = _severity_cache[{h.severity_id(), 1}];
+      SPDLOG_LOGGER_DEBUG(_logger_sql,
+                          "host {} with severity_id {} => uid = {}",
+                          h.host_id(), h.severity_id(), sid);
+    } else
+      SPDLOG_LOGGER_INFO(_logger_sql,
+                         "no host severity found in cache for host {}",
+                         h.host_id());
+    if (sid)
+      _resources_host_insert_or_update.bind_value_as_u64(10, sid);
+    else
+      _resources_host_insert_or_update.bind_null_u64(10);
+    _resources_host_insert_or_update.bind_value_as_str(11, name);
+    _resources_host_insert_or_update.bind_value_as_str(12, address);
+    _resources_host_insert_or_update.bind_value_as_str(13, alias);
+    _resources_host_insert_or_update.bind_value_as_str(14, parent_name);
+    _resources_host_insert_or_update.bind_value_as_str(15, notes_url);
+    _resources_host_insert_or_update.bind_value_as_str(16, notes);
+    _resources_host_insert_or_update.bind_value_as_str(17, action_url);
+    _resources_host_insert_or_update.bind_value_as_bool(18, h.notify());
+    _resources_host_insert_or_update.bind_value_as_bool(19, h.passive_checks());
+    _resources_host_insert_or_update.bind_value_as_bool(20, h.active_checks());
+    _resources_host_insert_or_update.bind_value_as_bool(21, h.enabled());
+    _resources_host_insert_or_update.bind_value_as_u64(22, h.icon_id());
+    _resources_host_insert_or_update.bind_value_as_bool(23, h.flapping());
+    _resources_host_insert_or_update.bind_value_as_f64(
+        24, h.percent_state_change());
 
-      std::promise<uint64_t> p;
-      std::future<uint64_t> future = p.get_future();
-      _mysql.run_statement_and_get_int<uint64_t>(
-          _resources_host_insert, std::move(p),
-          database::mysql_task::LAST_INSERT_ID, conn);
-      _add_action(conn, actions::resources);
-      try {
-        res_id = future.get();
-        _resource_cache.insert({{h.host_id(), 0}, res_id});
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_CRITICAL(_logger_sql,
-                               "SQL: unable to insert new host resource {}: {}",
-                               h.host_id(), e.what());
-
-        std::promise<mysql_result> promise_resource;
-        std::future<mysql_result> future_resource =
-            promise_resource.get_future();
-        _mysql.run_query_and_get_result(
-            fmt::format("SELECT resource_id FROM resources WHERE "
-                        "parent_id=0 AND id={}",
-                        h.host_id()),
-            std::move(promise_resource));
-        try {
-          mysql_result res{future_resource.get()};
-          if (_mysql.fetch_row(res)) {
-            auto r =
-                _resource_cache.insert({{h.host_id(), 0}, res.value_as_u64(0)});
-            found = r.first;
-            SPDLOG_LOGGER_DEBUG(
-                _logger_sql,
-                "Host resource (host {}) found in database with id {}",
-                h.host_id(), found->second);
-          } else {
-            SPDLOG_LOGGER_CRITICAL(
-                _logger_sql,
-                "Could not insert host resource in database and no host "
-                "resource in database with id {}: {}",
-                h.host_id(), e.what());
-            return 0;
-          }
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_CRITICAL(_logger_sql,
-                                 "No host resource in database with id {}: {}",
-                                 h.host_id(), e.what());
-          return 0;
-        }
-      }
-      SPDLOG_LOGGER_DEBUG(_logger_sql, "insert resource {} for host{}", res_id,
-                          h.host_id());
-    }
-    if (res_id == 0) {
-      res_id = found->second;
-      SPDLOG_LOGGER_DEBUG(_logger_sql, "update resource {} for host{}", res_id,
-                          h.host_id());
-      // UPDATE
-      _resources_host_update.bind_value_as_u32(0, h.state());
-      _resources_host_update.bind_value_as_u32(1,
-                                               hst_ordered_status[h.state()]);
-      _resources_host_update.bind_value_as_u64_ext(
-          2, h.last_state_change(), mapping::entry::invalid_on_zero);
-      _resources_host_update.bind_value_as_bool(
-          3, h.scheduled_downtime_depth() > 0);
-      _resources_host_update.bind_value_as_bool(
-          4, h.acknowledgement_type() != AckType::NONE);
-      _resources_host_update.bind_value_as_bool(
-          5, h.state_type() == Host_StateType_HARD);
-      _resources_host_update.bind_value_as_u32(6, h.check_attempt());
-      _resources_host_update.bind_value_as_u32(7, h.max_check_attempts());
-      _resources_host_update.bind_value_as_u64(
-          8, _cache_host_instance[h.host_id()]);
-      if (h.severity_id()) {
-        sid = _severity_cache[{h.severity_id(), 1}];
-        SPDLOG_LOGGER_DEBUG(_logger_sql,
-                            "host {} with severity_id {} => uid = {}",
-                            h.host_id(), h.severity_id(), sid);
-      } else
-        SPDLOG_LOGGER_INFO(_logger_sql,
-                           "no host severity found in cache for host {}",
-                           h.host_id());
-      if (sid)
-        _resources_host_update.bind_value_as_u64(9, sid);
-      else
-        _resources_host_update.bind_null_u64(9);
-      _resources_host_update.bind_value_as_str(10, name);
-      _resources_host_update.bind_value_as_str(11, address);
-      _resources_host_update.bind_value_as_str(12, alias);
-      _resources_host_update.bind_value_as_str(13, parent_name);
-      _resources_host_update.bind_value_as_str(14, notes_url);
-      _resources_host_update.bind_value_as_str(15, notes);
-      _resources_host_update.bind_value_as_str(16, action_url);
-      _resources_host_update.bind_value_as_bool(17, h.notify());
-      _resources_host_update.bind_value_as_bool(18, h.passive_checks());
-      _resources_host_update.bind_value_as_bool(19, h.active_checks());
-      _resources_host_update.bind_value_as_u64(20, h.icon_id());
-      _resources_host_update.bind_value_as_bool(21, h.flapping());
-      _resources_host_update.bind_value_as_f64(22, h.percent_state_change());
-      _resources_host_update.bind_value_as_u64(23, res_id);
-
-      _mysql.run_statement(_resources_host_update,
-                           database::mysql_error::store_host_resources, conn);
-      _add_action(conn, actions::resources);
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _resources_host_insert_or_update, std::move(p),
+        database::mysql_task::LAST_INSERT_ID, conn);
+    _add_action(conn, actions::resources);
+    try {
+      res_id = future.get();
+      _resource_cache.insert({{h.host_id(), 0}, res_id});
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_CRITICAL(_logger_sql,
+                             "SQL: unable to insert new host resource {}: {}",
+                             h.host_id(), e.what());
+      return 0;
     }
 
     if (!_resources_tags_insert.prepared()) {
@@ -2472,51 +2400,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
                           "add tag ({}, {}) for resource {} for host{}",
                           tag.id(), tag.type(), res_id, h.host_id());
 
-      auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
-
-      if (it_tags_cache == _tags_cache.end()) {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find in cache the tag ({}, {}) for host "
-            "'{}': "
-            "trying to add it.",
-            tag.id(), tag.type(), h.host_id());
-        if (!_tag_insert_update.prepared())
-          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
-        _tag_insert_update.bind_value_as_u64(0, tag.id());
-        _tag_insert_update.bind_value_as_u32(1, tag.type());
-        _tag_insert_update.bind_value_as_str(2, "(unknown)");
-        std::promise<uint64_t> p;
-        std::future<uint64_t> future = p.get_future();
-
-        _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert_update, std::move(p),
-            database::mysql_task::LAST_INSERT_ID, conn);
-        try {
-          uint64_t tag_id = future.get();
-          it_tags_cache =
-              _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(_logger_sql,
-                              "SQL: unable to insert new tag ({},{}): {}",
-                              tag.id(), tag.type(), e.what());
-        }
-      }
-
-      if (it_tags_cache != _tags_cache.end()) {
-        _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-        _resources_tags_insert.bind_value_as_u64(1, res_id);
-        SPDLOG_LOGGER_DEBUG(
-            _logger_sql,
-            "SQL: new relation between host (resource_id: {}, host_id: "
-            "{}) "
-            "and tag ({},{},{})",
-            res_id, h.host_id(), it_tags_cache->second, tag.id(), tag.type());
-        _mysql.run_statement(_resources_tags_insert,
-                             database::mysql_error::store_tags_resources_tags,
-                             conn);
-        _add_action(conn, actions::resources_tags);
-      }
+      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
     if (found != _resource_cache.end()) {
@@ -4035,7 +3919,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
               {82, "retain_status_information", 0, 0},
           });
       if (_store_in_resources) {
-        _resources_service_insert = _mysql.prepare_query(
+        _resources_service_insert_or_update = _mysql.prepare_query(
             "INSERT INTO resources "
             "(id,parent_id,type,internal_id,status,status_"
             "ordered,last_"
@@ -4046,20 +3930,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
             "notifications_enabled,passive_checks_enabled,active_"
             "checks_"
             "enabled,enabled,icon_id, flapping, percent_state_change) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)");
-        _resources_service_update = _mysql.prepare_query(
-            "UPDATE resources SET "
-            "type=?,internal_id=?,status=?,status_ordered=?,last_"
-            "status_"
-            "change=?,"
-            "in_downtime=?,acknowledged=?,"
-            "status_confirmed=?,check_attempts=?,max_check_attempts=?,"
-            "poller_id=?,severity_id=?,name=?,parent_name=?,notes_url=?"
-            ","
-            "notes=?,action_url=?,notifications_enabled=?,"
-            "passive_checks_enabled=?,active_checks_enabled=?,icon_id=?"
-            ", flapping=?, percent_state_change=?,"
-            "enabled=1 WHERE resource_id=?");
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+            "ON DUPLICATE KEY UPDATE "
+            "resource_id=LAST_INSERT_ID(resource_id),"
+            " type=1, status = VALUES(status)" BOOST_PP_SEQ_FOR_EACH(for_each_to_duplicate_values,
+                                                                     ,
+                                                                     (type)(internal_id)(status)(status_ordered)(last_status_change)(in_downtime)(acknowledged)(status_confirmed)(check_attempts)(max_check_attempts)(poller_id)(severity_id)(name)(parent_name)(notes_url)(notes)(action_url)(notifications_enabled)(passive_checks_enabled)(active_checks_enabled)(enabled)(icon_id)(flapping)(percent_state_change)));
         if (!_resources_disable.prepared()) {
           _resources_disable = _mysql.prepare_query(
               "UPDATE resources SET enabled=0 WHERE resource_id=?");
@@ -4122,157 +3998,74 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
         s.action_url(), get_centreon_storage_resources_col_size(
                             centreon_storage_resources_action_url))};
 
-    // INSERT
-    if (found == _resource_cache.end()) {
-      _resources_service_insert.bind_value_as_u64(0, s.service_id());
-      _resources_service_insert.bind_value_as_u64(1, s.host_id());
-      _resources_service_insert.bind_value_as_u32(2, s.type());
-      if (s.internal_id())
-        _resources_service_insert.bind_value_as_u64(3, s.internal_id());
-      else
-        _resources_service_insert.bind_null_u64(3);
-      _resources_service_insert.bind_value_as_u32(4, s.state());
-      _resources_service_insert.bind_value_as_u32(
-          5, svc_ordered_status[s.state()]);
-      _resources_service_insert.bind_value_as_u64_ext(
-          6, s.last_state_change(), mapping::entry::invalid_on_zero);
-      _logger_sql->debug("service1 ({}, {}) scheduled_downtime_depth: {}",
-                         s.host_id(), s.service_id(),
-                         s.scheduled_downtime_depth());
-      _resources_service_insert.bind_value_as_bool(
-          7, s.scheduled_downtime_depth() > 0);
-      _resources_service_insert.bind_value_as_bool(
-          8, s.acknowledgement_type() != AckType::NONE);
-      _resources_service_insert.bind_value_as_bool(
-          9, s.state_type() == Service_StateType_HARD);
-      _resources_service_insert.bind_value_as_u32(10, s.check_attempt());
-      _resources_service_insert.bind_value_as_u32(11, s.max_check_attempts());
-      _resources_service_insert.bind_value_as_u64(
-          12, _cache_host_instance[s.host_id()]);
-      if (s.severity_id() > 0) {
-        sid = _severity_cache[{s.severity_id(), 0}];
-        SPDLOG_LOGGER_DEBUG(_logger_sql,
-                            "service ({}, {}) with severity_id {} => uid = {}",
-                            s.host_id(), s.service_id(), s.severity_id(), sid);
-      }
-      if (sid)
-        _resources_service_insert.bind_value_as_u64(13, sid);
-      else
-        _resources_service_insert.bind_null_u64(13);
-      _resources_service_insert.bind_value_as_str(14, name);
-      _resources_service_insert.bind_value_as_str(15, parent_name);
-      _resources_service_insert.bind_value_as_str(16, notes_url);
-      _resources_service_insert.bind_value_as_str(17, notes);
-      _resources_service_insert.bind_value_as_str(18, action_url);
-      _resources_service_insert.bind_value_as_bool(19, s.notify());
-      _resources_service_insert.bind_value_as_bool(20, s.passive_checks());
-      _resources_service_insert.bind_value_as_bool(21, s.active_checks());
-      _resources_service_insert.bind_value_as_u64(22, s.icon_id());
-      _resources_service_insert.bind_value_as_bool(23, s.flapping());
-      _resources_service_insert.bind_value_as_f64(24, s.percent_state_change());
-
-      std::promise<uint64_t> p;
-      std::future<uint64_t> future = p.get_future();
-      _mysql.run_statement_and_get_int<uint64_t>(
-          _resources_service_insert, std::move(p),
-          database::mysql_task::LAST_INSERT_ID, conn);
-      _add_action(conn, actions::resources);
-      try {
-        res_id = future.get();
-        _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_CRITICAL(
-            _logger_sql,
-            "SQL: unable to insert new service resource ({}, {}): {}",
-            s.host_id(), s.service_id(), e.what());
-
-        std::promise<mysql_result> promise_resource;
-        std::future<mysql_result> future_resource =
-            promise_resource.get_future();
-        _mysql.run_query_and_get_result(
-            fmt::format("SELECT resource_id FROM resources WHERE "
-                        "parent_id={} AND id={}",
-                        s.host_id(), s.service_id()),
-            std::move(promise_resource));
-        try {
-          mysql_result res{future_resource.get()};
-          if (_mysql.fetch_row(res)) {
-            auto r = _resource_cache.insert(
-                {{s.service_id(), s.host_id()}, res.value_as_u64(0)});
-            found = r.first;
-            SPDLOG_LOGGER_DEBUG(
-                _logger_sql,
-                "Service resource ({}, {}) found in database with id {}",
-                s.host_id(), s.service_id(), found->second);
-          } else {
-            SPDLOG_LOGGER_CRITICAL(
-                _logger_sql,
-                "Could not insert service resource in database and no "
-                "service resource in database with id ({},{}): {}",
-                s.host_id(), s.service_id(), e.what());
-            return 0;
-          }
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_CRITICAL(
-              _logger_sql,
-              "No service resource in database with id ({}, {}): {}",
-              s.host_id(), s.service_id(), e.what());
-          return 0;
-        }
-      }
+    _resources_service_insert_or_update.bind_value_as_u64(0, s.service_id());
+    _resources_service_insert_or_update.bind_value_as_u64(1, s.host_id());
+    _resources_service_insert_or_update.bind_value_as_u32(2, s.type());
+    if (s.internal_id())
+      _resources_service_insert_or_update.bind_value_as_u64(3, s.internal_id());
+    else
+      _resources_service_insert_or_update.bind_null_u64(3);
+    _resources_service_insert_or_update.bind_value_as_u32(4, s.state());
+    _resources_service_insert_or_update.bind_value_as_u32(
+        5, svc_ordered_status[s.state()]);
+    _resources_service_insert_or_update.bind_value_as_u64_ext(
+        6, s.last_state_change(), mapping::entry::invalid_on_zero);
+    _logger_sql->debug("service1 ({}, {}) scheduled_downtime_depth: {}",
+                       s.host_id(), s.service_id(),
+                       s.scheduled_downtime_depth());
+    _resources_service_insert_or_update.bind_value_as_bool(
+        7, s.scheduled_downtime_depth() > 0);
+    _resources_service_insert_or_update.bind_value_as_bool(
+        8, s.acknowledgement_type() != AckType::NONE);
+    _resources_service_insert_or_update.bind_value_as_bool(
+        9, s.state_type() == Service_StateType_HARD);
+    _resources_service_insert_or_update.bind_value_as_u32(10,
+                                                          s.check_attempt());
+    _resources_service_insert_or_update.bind_value_as_u32(
+        11, s.max_check_attempts());
+    _resources_service_insert_or_update.bind_value_as_u64(
+        12, _cache_host_instance[s.host_id()]);
+    if (s.severity_id() > 0) {
+      sid = _severity_cache[{s.severity_id(), 0}];
+      SPDLOG_LOGGER_DEBUG(_logger_sql,
+                          "service ({}, {}) with severity_id {} => uid = {}",
+                          s.host_id(), s.service_id(), s.severity_id(), sid);
     }
-    if (res_id == 0) {
-      res_id = found->second;
-      // UPDATE
-      _resources_service_update.bind_value_as_u32(0, s.type());
-      if (s.internal_id())
-        _resources_service_update.bind_value_as_u64(1, s.internal_id());
-      else
-        _resources_service_update.bind_null_u64(1);
-      _resources_service_update.bind_value_as_u32(2, s.state());
-      _resources_service_update.bind_value_as_u32(
-          3, svc_ordered_status[s.state()]);
-      _resources_service_update.bind_value_as_u64_ext(
-          4, s.last_state_change(), mapping::entry::invalid_on_zero);
-      _logger_sql->debug("service2 ({}, {}) scheduled_downtime_depth: {}",
-                         s.host_id(), s.service_id(),
-                         s.scheduled_downtime_depth());
-      _resources_service_update.bind_value_as_bool(
-          5, s.scheduled_downtime_depth() > 0);
-      _resources_service_update.bind_value_as_bool(
-          6, s.acknowledgement_type() != AckType::NONE);
-      _resources_service_update.bind_value_as_bool(
-          7, s.state_type() == Service_StateType_HARD);
-      _resources_service_update.bind_value_as_u32(8, s.check_attempt());
-      _resources_service_update.bind_value_as_u32(9, s.max_check_attempts());
-      _resources_service_update.bind_value_as_u64(
-          10, _cache_host_instance[s.host_id()]);
-      if (s.severity_id() > 0) {
-        sid = _severity_cache[{s.severity_id(), 0}];
-        SPDLOG_LOGGER_DEBUG(_logger_sql,
-                            "service ({}, {}) with severity_id {} => uid = {}",
-                            s.host_id(), s.service_id(), s.severity_id(), sid);
-      }
-      if (sid)
-        _resources_service_update.bind_value_as_u64(11, sid);
-      else
-        _resources_service_update.bind_null_u64(11);
-      _resources_service_update.bind_value_as_str(12, name);
-      _resources_service_update.bind_value_as_str(13, parent_name);
-      _resources_service_update.bind_value_as_str(14, notes_url);
-      _resources_service_update.bind_value_as_str(15, notes);
-      _resources_service_update.bind_value_as_str(16, action_url);
-      _resources_service_update.bind_value_as_bool(17, s.notify());
-      _resources_service_update.bind_value_as_bool(18, s.passive_checks());
-      _resources_service_update.bind_value_as_bool(19, s.active_checks());
-      _resources_service_update.bind_value_as_u64(20, s.icon_id());
-      _resources_service_update.bind_value_as_bool(21, s.flapping());
-      _resources_service_update.bind_value_as_f64(22, s.percent_state_change());
-      _resources_service_update.bind_value_as_u64(23, res_id);
+    if (sid)
+      _resources_service_insert_or_update.bind_value_as_u64(13, sid);
+    else
+      _resources_service_insert_or_update.bind_null_u64(13);
+    _resources_service_insert_or_update.bind_value_as_str(14, name);
+    _resources_service_insert_or_update.bind_value_as_str(15, parent_name);
+    _resources_service_insert_or_update.bind_value_as_str(16, notes_url);
+    _resources_service_insert_or_update.bind_value_as_str(17, notes);
+    _resources_service_insert_or_update.bind_value_as_str(18, action_url);
+    _resources_service_insert_or_update.bind_value_as_bool(19, s.notify());
+    _resources_service_insert_or_update.bind_value_as_bool(20,
+                                                           s.passive_checks());
+    _resources_service_insert_or_update.bind_value_as_bool(21,
+                                                           s.active_checks());
+    _resources_service_insert_or_update.bind_value_as_bool(22, s.enabled());
+    _resources_service_insert_or_update.bind_value_as_u64(23, s.icon_id());
+    _resources_service_insert_or_update.bind_value_as_bool(24, s.flapping());
+    _resources_service_insert_or_update.bind_value_as_f64(
+        25, s.percent_state_change());
 
-      _mysql.run_statement(_resources_service_update,
-                           database::mysql_error::store_service, conn);
-      _add_action(conn, actions::resources);
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _resources_service_insert_or_update, std::move(p),
+        database::mysql_task::LAST_INSERT_ID, conn);
+    _add_action(conn, actions::resources);
+    try {
+      res_id = future.get();
+      _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_CRITICAL(
+          _logger_sql,
+          "SQL: unable to insert new service resource ({}, {}): {}",
+          s.host_id(), s.service_id(), e.what());
+      return 0;
     }
 
     if (!_resources_tags_insert.prepared()) {
@@ -4288,53 +4081,11 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
     _mysql.run_statement(_resources_tags_remove,
                          database::mysql_error::delete_resources_tags, conn);
     for (auto& tag : s.tags()) {
-      auto it_tags_cache = _tags_cache.find({tag.id(), tag.type()});
+      SPDLOG_LOGGER_DEBUG(
+          _logger_sql, "add tag ({}, {}) for resource {} for service ({}, {})",
+          tag.id(), tag.type(), res_id, s.host_id(), s.service_id());
 
-      if (it_tags_cache == _tags_cache.end()) {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find in cache the tag ({}, {}) for service "
-            "({},{}): trying to add it.",
-            tag.id(), tag.type(), s.host_id(), s.service_id());
-        if (!_tag_insert_update.prepared())
-          _tag_insert_update = _mysql.prepare_query(_insert_or_update_tags);
-        _tag_insert_update.bind_value_as_u64(0, tag.id());
-        _tag_insert_update.bind_value_as_u32(1, tag.type());
-        _tag_insert_update.bind_value_as_str(2, "(unknown)");
-        std::promise<uint64_t> p;
-        std::future<uint64_t> future = p.get_future();
-        _mysql.run_statement_and_get_int<uint64_t>(
-            _tag_insert_update, std::move(p),
-            database::mysql_task::LAST_INSERT_ID, conn);
-        try {
-          uint64_t tag_id = future.get();
-          it_tags_cache =
-              _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(_logger_sql,
-                              "SQL: unable to insert new tag ({},{}): {}",
-                              tag.id(), tag.type(), e.what());
-        }
-      }
-
-      if (it_tags_cache != _tags_cache.end()) {
-        _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
-        _resources_tags_insert.bind_value_as_u64(1, res_id);
-        SPDLOG_LOGGER_DEBUG(
-            _logger_sql,
-            "SQL: new relation between service (resource_id: {},  ({}, "
-            "{})) and tag ({},{})",
-            res_id, s.host_id(), s.service_id(), tag.id(), tag.type());
-        _mysql.run_statement(_resources_tags_insert,
-                             database::mysql_error::store_tags_resources_tags,
-                             conn);
-        _add_action(conn, actions::resources_tags);
-      } else {
-        SPDLOG_LOGGER_ERROR(
-            _logger_sql,
-            "SQL: could not find the tag ({}, {}) in cache for host '{}'",
-            tag.id(), tag.type(), s.service_id());
-      }
+      _process_tag_from_resources(res_id, tag.id(), tag.type(), conn);
     }
   } else {
     if (found != _resource_cache.end()) {
@@ -5176,27 +4927,70 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       _add_action(conn, actions::tags);
       break;
     }
-    case Tag_Action_DELETE: {
-      if (cache_ptr) {
-        cache_ptr->remove_tag(tg.id());
-      }
-      auto it = _tags_cache.find({tg.id(), tg.type()});
-      if (it != _tags_cache.end()) {
-        uint64_t id = it->second;
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: delete tag {}", id);
-        _tag_delete.bind_value_as_u64(0, tg.id());
-        _mysql.run_statement(
-            _tag_delete, database::mysql_error::delete_resources_tags, conn);
-        _tags_cache.erase(it);
-      } else
-        SPDLOG_LOGGER_WARN(_logger_sql,
-                           "unified_sql: unable to delete tag ({}, {}): it "
-                           "does not exist in cache",
-                           tg.id(), tg.type());
-    } break;
+    case Tag_Action_DELETE:
+      // as a tag may be used by several pollers, no poller can delete it by
+      // itself
+      SPDLOG_LOGGER_TRACE(
+          _logger_sql, "unified_sql: remove tag {}: not implemented", tg.id());
+      break;
     default:
       SPDLOG_LOGGER_ERROR(_logger_sql, "Bad action in tag object");
       break;
+  }
+}
+
+void stream::_process_tag_from_resources(uint64_t resource_id,
+                                         uint64_t tag_id,
+                                         int32_t tag_type,
+                                         int32_t conn) {
+  SPDLOG_LOGGER_DEBUG(_logger_sql, "add tag ({}, {}) for resource {}", tag_id,
+                      tag_type, resource_id);
+
+  auto it_tags_cache = _tags_cache.find({tag_id, tag_type});
+
+  if (it_tags_cache == _tags_cache.end()) {
+    SPDLOG_LOGGER_ERROR(_logger_sql,
+                        "SQL: could not find in cache the tag ({}, {}): "
+                        "trying to add it.",
+                        tag_id, tag_type);
+    if (!_tag_insert_update_nothing.prepared())
+      _tag_insert_update_nothing =
+          _mysql.prepare_query(_insert_or_update_nothing_tags);
+    _tag_insert_update_nothing.bind_value_as_u64(0, tag_id);
+    _tag_insert_update_nothing.bind_value_as_u32(1, tag_type);
+    _tag_insert_update_nothing.bind_value_as_str(2, "(unknown)");
+    std::promise<uint64_t> p;
+    std::future<uint64_t> future = p.get_future();
+
+    _mysql.run_statement_and_get_int<uint64_t>(
+        _tag_insert_update_nothing, std::move(p),
+        database::mysql_task::LAST_INSERT_ID, conn);
+    try {
+      uint64_t tag_index = future.get();
+      it_tags_cache = _tags_cache.insert({{tag_id, tag_type}, tag_index}).first;
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger_sql,
+                          "SQL: unable to insert new tag ({},{}): {}", tag_id,
+                          tag_type, e.what());
+    }
+  }
+
+  if (it_tags_cache != _tags_cache.end()) {
+    _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
+    _resources_tags_insert.bind_value_as_u64(1, resource_id);
+    SPDLOG_LOGGER_DEBUG(_logger_sql,
+                        "SQL: new relation between host (resource_id: {}) "
+                        "and tag ({},{},{})",
+                        resource_id, it_tags_cache->second, tag_id, tag_type);
+    _mysql.run_statement(_resources_tags_insert,
+                         database::mysql_error::store_tags_resources_tags,
+                         conn);
+    _add_action(conn, actions::resources_tags);
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        _logger_sql,
+        "SQL: could not find the tag ({}, {}) in cache for resource '{}'",
+        tag_id, tag_type, resource_id);
   }
 }
 

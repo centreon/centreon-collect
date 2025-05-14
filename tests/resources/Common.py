@@ -1513,6 +1513,20 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
 
 
 def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+    """
+    check if the tags of a resource are the same as the expected ones
+    Args:
+        parent_id: id of the parent of the resource 0 for hosts
+        mid: id of the resource
+        typ: type of the resource (servicegroup, hostgroup or servicecategory)
+        tag_ids: expected tags ids
+        timeout: timeout in seconds
+        enabled: if True, check if the tags are enabled, otherwise check if they are different
+        Returns: 
+           - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
+           - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
+
+    """
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1533,29 +1547,35 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 cursor.execute(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
                     if len(result) == 0:
                         return True
                     else:
+                        found_in_tags_ids = False
                         for r in result:
                             if r['id'] in tag_ids:
                                 logger.console(
                                     "id {} is in tag ids".format(r['id']))
+                                found_in_tags_ids = True
                                 break
-                        return True
-                elif enabled and len(result) > 0:
+                        if not found_in_tags_ids:
+                            return True
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
+                        equals = True
                         for r in result:
                             if r['id'] not in tag_ids:
                                 logger.console(
                                     "id {} is not in tag ids".format(r['id']))
+                                equals = False
                                 break
-                        return True
+                        if equals:
+                            return True
                     else:
                         logger.console(
                             f"Result and tag_ids should have the same size, moreover 'id' in result should be values of tag_ids, result size = {len(result)} and tag_ids size = {len(tag_ids)} - their content are result: {result} and tag_ids: {tag_ids}")
@@ -2333,7 +2353,8 @@ def ctn_get_process_limit(pid: int, limit: str):
         return -1, -1
     return -1, -1
 
-def ctn_create_jwt_token(exp_s: int,secret: str = "centreon"):
+
+def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
     """
     ctn_create_jwt_token
 
