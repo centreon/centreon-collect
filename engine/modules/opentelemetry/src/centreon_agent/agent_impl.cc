@@ -177,7 +177,11 @@ static bool add_command_to_agent_conf(
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
   serv->set_command_line(plugins_cmdline);
+#ifdef LEGACY_CONF
+  serv->set_check_interval(check_interval * config->interval_length());
+#else
   serv->set_check_interval(check_interval * pb_config.interval_length());
+#endif
 
   return true;
 }
