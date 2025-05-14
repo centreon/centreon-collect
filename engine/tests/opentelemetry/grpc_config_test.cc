@@ -118,6 +118,7 @@ TEST(otl_grpc_config, tokens) {
     "encryption":true,
     "compression": true,
     "ca_name":"toto",
+    "token":"token1",
     "trusted_tokens":["toto","titi"]
 })"_json);
   ASSERT_EQ(c.get_hostport(), "127.0.0.1:2500");
@@ -128,6 +129,7 @@ TEST(otl_grpc_config, tokens) {
   ASSERT_EQ(c.get_ca_name(), "toto");
   ASSERT_TRUE(c.get_ca().empty());
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
+  ASSERT_EQ(c.get_token(), "token1");
   ASSERT_EQ(c.get_trusted_tokens()->size(), 2);
   ASSERT_TRUE(c.get_trusted_tokens()->contains("toto"));
   ASSERT_TRUE(c.get_trusted_tokens()->contains("titi"));
