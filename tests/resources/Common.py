@@ -884,7 +884,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
     return False
 
 
-def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -913,7 +913,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -926,7 +926,6 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
                         return True
         time.sleep(1)
     return False
-
 
 
 def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
@@ -952,6 +951,7 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
                         return True
         time.sleep(1)
     return False
+
 
 def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
     """
@@ -990,7 +990,7 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
     return False
 
 
-def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -1018,7 +1018,7 @@ def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: i
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1121,11 +1121,11 @@ def ctn_clear_db_conf(table: str):
         table: The table to clear.
     """
     connection = pymysql.connect(host=DB_HOST,
-                             user=DB_USER,
-                             password=DB_PASS,
-                             database=DB_NAME_CONF,
-                             charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_CONF,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
 
     with connection:
         with connection.cursor() as cursor:
@@ -1185,6 +1185,20 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
 
 
 def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+    """
+    check if the tags of a resource are the same as the expected ones
+    Args:
+        parent_id: id of the parent of the resource 0 for hosts
+        mid: id of the resource
+        typ: type of the resource (servicegroup, hostgroup or servicecategory)
+        tag_ids: expected tags ids
+        timeout: timeout in seconds
+        enabled: if True, check if the tags are enabled, otherwise check if they are different
+        Returns:
+           - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
+           - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
+
+    """
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1204,30 +1218,36 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
 
         with connection:
             with connection.cursor() as cursor:
-                logger.console("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
+                logger.console(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
+                cursor.execute(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
                     if len(result) == 0:
                         return True
                     else:
+                        found_in_tags_ids = False
                         for r in result:
                             if r['id'] in tag_ids:
                                 logger.console(
                                     "id {} is in tag ids".format(r['id']))
+                                found_in_tags_ids = True
                                 break
-                        return True
-                elif enabled and len(result) > 0:
+                        if not found_in_tags_ids:
+                            return True
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
+                        equals = True
                         for r in result:
                             if r['id'] not in tag_ids:
                                 logger.console(
                                     "id {} is not in tag ids".format(r['id']))
+                                equals = False
                                 break
-                        return True
+                        if equals:
+                            return True
                     else:
                         logger.console("different sizes: result:{} and tag_ids:{}".format(
                             len(result), len(tag_ids)))
@@ -1543,6 +1563,22 @@ def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     return False
 
 
+def ctn_set_user_id_from_name(user_name: str):
+    """! modify user id
+    @param user_name  user name as centreon-engine
+    """
+    user_id = getpwnam(user_name).pw_uid
+    os.setuid(user_id)
+
+
+def ctn_get_uid():
+    return os.getuid()
+
+
+def ctn_set_uid(user_id: int):
+    os.setuid(user_id)
+
+
 def ctn_has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter
@@ -1559,15 +1595,15 @@ def ctn_has_file_permissions(path: str, permission: int):
 
 
 def ctn_compare_dot_files(file1: str, file2: str):
-    """                                                                         
-    Compare two dot files file1 and file2 after removing the pointer addresses  
-    that clearly are not the same.                                              
+    """
+    Compare two dot files file1 and file2 after removing the pointer addresses
+    that clearly are not the same.
 
-    Args:                                                                       
-        file1: The first file to compare.                                       
-        file2: The second file to compare.                                      
+    Args:
+        file1: The first file to compare.
+        file2: The second file to compare.
 
-    Returns: True if they have the same content, False otherwise.               
+    Returns: True if they have the same content, False otherwise.
     """
 
     with open(file1, "r") as f1:
