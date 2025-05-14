@@ -75,7 +75,7 @@ There are currently two open-source connectors :
 
 ## Centreon Monitoring Agent (CMA)
 
-The **Centreon Monitoring Agent** is a lightweight, asynchronous service designed to monitor system health and metrics on Windows and Linux hosts degined to work with [Centreon Engine](https://github.com/centreon/centreon-collect).
+The **Centreon Monitoring Agent** is a lightweight, asynchronous service designed to monitor system health and metrics on Windows and Linux hosts, meant to operate with [Centreon Engine](https://github.com/centreon/centreon-collect).
 
 More information [CMA](https://github.com/centreon/centreon-collect/blob/develop/agent/doc/agent-doc.md)
 
