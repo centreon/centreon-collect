@@ -69,7 +69,7 @@ Function show_help
         FileWrite $0 "--private_key         Private key file path. Mandatory if encryption and poller-initiated connection are active.$\n"
         FileWrite $0 "--public_cert         Public certificate file path. Mandatory if encryption and poller-initiated connection are active.$\n"
         FileWrite $0 "--ca                  Trusted CA's certificate file path.$\n"
-        FileWrite $0 "--ca_name             Expected TLS CA common name (CN). Don't use it if unsure.$\n"
+        FileWrite $0 "--ca_common_name             Expected TLS CA common name (CN). Don't use it if unsure.$\n"
         FileWrite $0 "--token               Authentication token for secure communication.$\n"
         SetErrorLevel 2
         Quit
@@ -247,7 +247,7 @@ Function cmd_line_to_registry
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_certificate" $0
 
         StrCpy $0 ""
-        ${GetOptions} $cmdline_parameters "--ca_name" $0
+        ${GetOptions} $cmdline_parameters "--ca_common_name" $0
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $0
         WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 1
     ${Else}
@@ -383,7 +383,7 @@ Function silent_update_conf
             WriteRegStr HKLM ${CMA_REG_KEY} "ca_certificate" $0
         ${EndIf}
 
-        ${GetOptions} $cmdline_parameters "--ca_name" $0
+        ${GetOptions} $cmdline_parameters "--ca_common_name" $0
         ${IfNot} ${Errors}
             WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $0
         ${EndIf}
