@@ -1674,7 +1674,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
 
@@ -1855,6 +1854,8 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
     Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    10
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
     Ctn Engine Config Set Value    0    log_level_functions    warning
@@ -1980,6 +1981,111 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     ${resources_list}    Ctn Create Otl Request    ${0}    host_2
 
     ${host_name}  Ctn Get Hostname
+    Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
+
+    #if pass telegraph can connect to engine without token
+    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
+
+BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
+    [Documentation]    Given an OpenTelemetry server is configured with token-based connection
+...    And the Centreon Agent is configured with a valid token that will expire 
+...    When the agent attempts to connect to the server
+...    Then the connection should be successful
+...    And the log should confirm that the token is valid
+...    And Telegraf should connect and send data to the engine
+    [Tags]    broker    engine    opentelemetry    MON-160084
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    CMA connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    TEL connector
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
+
+    
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    cma_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    cma_check_icmp    ${echo_command}    CMA connector
+    Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    10
+
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp2
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    TEL connector
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp2
+    Ctn Set Hosts Passive  ${0}  host_2
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_functions    warning
+    
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+
+    ${token}    Ctn Create Jwt Token    ${15}
+
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+
+    # if message apear the agent is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "Token is valid" should appear.
+
+    ${start}    Ctn Get Round Current Date
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_2
+
+    ${host_name}  Ctn Get Hostname
+    Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
+
+    #if pass telegraph can connect to engine without token
+    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
+    
+    sleep  10s
+    ${start}    Get Current Date
+
+    ${content}    Create List    UNAUTHENTICATED : Token expired
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
