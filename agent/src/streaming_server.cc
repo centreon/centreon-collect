@@ -165,9 +165,9 @@ void streaming_server::_start() {
                return me->Import(context);
              }));
 
-  _init([this](::grpc::ServerBuilder& builder) {
-    builder.RegisterService(this);
-  });
+  _init(
+      [this](::grpc::ServerBuilder& builder) { builder.RegisterService(this); },
+      true);
 }
 
 /**

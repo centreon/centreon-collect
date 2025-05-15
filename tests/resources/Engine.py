@@ -3947,6 +3947,35 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         json.dump(data, f, indent=4)
 
 
+def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
+    """
+    Add a token in the otl_server.json configuration file.to the fields token
+    Args:
+        idx (int): The index of the configuration directory (e.g., config1, config2, etc.).
+        token (str): The token to be added to the "trusted_tokens" list.
+    Returns:
+        bool: True if the token was successfully inserted, False otherwise.
+    """
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx_config}/otl_server.json"
+    token_inserted = False
+
+    if not exists(otl_server_config_path):
+        return
+
+    with open(otl_server_config_path, "r") as f:
+        data = json.load(f)
+
+    # Check if "trusted_tokens" already exists
+    if "centreon_agent" in data:
+        if "reverse_connections" in data["centreon_agent"]:
+            data["centreon_agent"]["reverse_connections"][idx_agent]["token"] = token
+
+    with open(otl_server_config_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+    return token_inserted
+
+
 def ctn_randomword(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
