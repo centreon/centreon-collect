@@ -307,6 +307,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
+
 BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
