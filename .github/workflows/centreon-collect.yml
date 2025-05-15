@@ -56,8 +56,6 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
   push:
     branches:
@@ -84,8 +82,6 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
 
 jobs:
