@@ -37,10 +37,21 @@
 using namespace com::centreon::agent;
 
 /**
+ * @brief destructor
+ *
+ */
+scheduler::~scheduler() {
+  SPDLOG_LOGGER_DEBUG(_logger, "scheduler delete {:p}",
+                      static_cast<const void*>(this));
+}
+
+/**
  * @brief to call after creation
  * it create a default configuration with no check and start send timer
  */
 void scheduler::_start() {
+  SPDLOG_LOGGER_DEBUG(_logger, "scheduler start {:p}",
+                      static_cast<const void*>(this));
   _init_export_request();
   _next_send_time_point = std::chrono::system_clock::now();
   _check_time_step =
@@ -354,6 +365,8 @@ void scheduler::_check_handler(
  */
 void scheduler::stop() {
   if (_alive) {
+    SPDLOG_LOGGER_DEBUG(_logger, "scheduler stop {:p}",
+                        static_cast<const void*>(this));
     _alive = false;
     _send_timer.cancel();
     _check_timer.cancel();

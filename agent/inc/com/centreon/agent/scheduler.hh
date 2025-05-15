@@ -155,6 +155,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   scheduler(const scheduler&) = delete;
   scheduler operator=(const scheduler&) = delete;
 
+  ~scheduler();
+
   void update(const engine_to_agent_request_ptr& conf);
 
   static std::shared_ptr<com::centreon::agent::MessageToAgent> default_config();
