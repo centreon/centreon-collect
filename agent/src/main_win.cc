@@ -17,6 +17,8 @@
  */
 #include <windows.h>
 
+#include "log.hh"
+
 #include "agent_info.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -50,7 +52,6 @@ using namespace com::centreon::agent;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
-std::shared_ptr<spdlog::logger> g_logger;
 static std::shared_ptr<streaming_client> _streaming_client;
 
 static std::shared_ptr<streaming_server> _streaming_server;
@@ -204,6 +205,8 @@ int _main(bool service_start) {
 
   spdlog::flush_every(std::chrono::seconds(1));
 
+  set_grpc_logger();
+
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent start");
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
 
@@ -215,7 +218,7 @@ int _main(bool service_start) {
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff());
+        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -232,6 +235,25 @@ int _main(bool service_start) {
     } else {
       _streaming_client = streaming_client::load(g_io_context, g_logger,
                                                  grpc_conf, conf.get_host());
+    }
+
+    if (!conf.use_encryption()) {
+      SPDLOG_LOGGER_WARN(
+          g_logger,
+          "NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION");
+
+      auto timer = std::make_shared<asio::steady_timer>(*g_io_context,
+                                                        std::chrono::hours(1));
+      timer->async_wait([timer](const boost::system::error_code& ec) {
+        if (!ec) {
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "NON TLS CONNECTION TIME EXPIRED // THIS IS NOT "
+                             "ALLOWED IN PRODUCTION");
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "CONNECTION KILLED, AGENT NEED TO BE RESTART");
+          stop_process();
+        }
+      });
     }
 
     g_io_context->run();

@@ -2,7 +2,7 @@ name: "centreon-monitoring-agent"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
-version: "${VERSION}"
+version: "${CMA_VERSION}"
 release: "${RELEASE}${DIST}"
 section: "default"
 priority: "optional"
@@ -66,7 +66,6 @@ scripts:
   postinstall: ./scripts/centreon-monitoring-agent-postinstall.sh
   preremove: ./scripts/centreon-monitoring-agent-preremove.sh
   postremove: ./scripts/centreon-monitoring-agent-postremove.sh
-
 
 rpm:
   summary: Centreon Collect Agent. It can be used to execute plugins remotely

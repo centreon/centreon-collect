@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-!define VERSIONMAJOR ${COLLECT_MAJOR}
-!define VERSIONMINOR ${COLLECT_MINOR}
-!define VERSIONBUILD ${COLLECT_PATCH}
+!define VERSIONMAJOR ${AGENT_MAJOR}
+!define VERSIONMINOR ${AGENT_MINOR}
+!define VERSIONBUILD ${AGENT_PATCH}
 !define CENTAGENT_PATH "${CENTAGENT_PATH}"

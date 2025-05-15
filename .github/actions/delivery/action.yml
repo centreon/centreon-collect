@@ -25,6 +25,10 @@ inputs:
   is_cloud:
     description: "Release context (cloud or not cloud)"
     required: true
+  package_filter:
+    description: "The package filter if not done or empty *.rpm or *.deb will be used"
+    default: ""
+    required: false
 
 runs:
   using: "composite"
@@ -42,12 +46,12 @@ runs:
         echo "extfile=deb" >> $GITHUB_ENV
 
     - name: Use cache files
-      uses: actions/cache/restore@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+      uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       with:
         path: ./*.${{ env.extfile }}
         key: ${{ inputs.cache_key }}
 
-    - uses: jfrog/setup-jfrog-cli@901bb9632db90821c2d3f076012bdeaf66598555 # v3.4.1
+    - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6
       env:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
@@ -57,7 +61,11 @@ runs:
       run: |
         set -eux
 
-        FILES="*.${{ env.extfile }}"
+        if [ -z "${{ inputs.package_filter }}" ]; then
+          FILES="*.${{ env.extfile }}"
+        else
+          FILES="${{ inputs.package_filter }}"
+        fi
 
         # DEBUG
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
@@ -130,12 +138,32 @@ runs:
             fi
           done
         done
+
+        # In case of CMA, we also copy it in /installers
+        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
+          echo "[DEBUG] - CMA File: $FILE"
+
+          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
+          MODULE_NAME="monitoring-agent-$VERSION"
+          STABILITY="${{ inputs.stability }}"
+
+          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+
+          echo "[DEBUG] - CMA Major version: $VERSION"
+
+          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+        done
+
       shell: bash
 
     - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
       run: |
-        FILES="*.${{ env.extfile }}"
+        if [ -z "${{ inputs.package_filter }}" ]; then
+          FILES="*.${{ env.extfile }}"
+        else
+          FILES="${{ inputs.package_filter }}"
+        fi
 
         # DEBUG
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
@@ -170,4 +198,20 @@ runs:
 
           jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
+
+        # In case of CMA, we also copy it in /installers
+        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
+          echo "[DEBUG] - CMA File: $FILE"
+
+          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
+          MODULE_NAME="monitoring-agent-$VERSION"
+          STABILITY="${{ inputs.stability }}"
+
+          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+
+          echo "[DEBUG] - CMA Major version: $VERSION"
+
+          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+        done
+
       shell: bash

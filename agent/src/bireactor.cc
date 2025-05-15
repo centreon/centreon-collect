@@ -136,6 +136,9 @@ void bireactor<bireactor_class>::OnWriteDone(bool ok) {
     {
       std::lock_guard l(_protect);
       _write_pending = false;
+      SPDLOG_LOGGER_DEBUG(_logger, "{:p} {} {} bytes sent",
+                          static_cast<const void*>(this), _class_name,
+                          (*_write_queue.begin())->ByteSizeLong());
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,
                           (*_write_queue.begin())->ShortDebugString());
