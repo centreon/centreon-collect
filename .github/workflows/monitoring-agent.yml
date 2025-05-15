@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       nightly_manual_trigger:
-        description: 'Set to true for nightly run'
+        description: 'Set to true for linux nightly run'
         required: true
         default: false
         type: boolean
