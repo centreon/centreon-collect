@@ -1538,7 +1538,7 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":15}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
