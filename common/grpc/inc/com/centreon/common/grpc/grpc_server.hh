@@ -101,9 +101,13 @@ class Authprocess final : public ::grpc::AuthMetadataProcessor {
                               "Token not trusted");
       }
       exp_time = jwt.get_exp();
+      context->AddProperty(
+          "jwt-exp",
+          absl::StrCat(std::chrono::duration_cast<std::chrono::milliseconds>(
+                           exp_time.time_since_epoch())
+                           .count()));
       SPDLOG_LOGGER_INFO(_logger, "Token is valid");
       return ::grpc::Status::OK;
-
     } catch (const com::centreon::exceptions::msg_fmt& ex) {
       SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
       return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED, ex.what());
