@@ -30,11 +30,6 @@ static constexpr std::string_view _config_schema(R"(
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "centreon agent config",
     "properties": {
-        "check_interval": {
-            "description": "interval in seconds between two checks",
-            "type": "integer",
-            "minimum": 10
-        },
         "max_concurrent_checks": {
             "description": "maximum of running checks at the same time",
             "type": "integer",
@@ -62,7 +57,6 @@ static constexpr std::string_view _config_schema(R"(
 }
 )");
 
-constexpr unsigned default_check_interval = 60;
 constexpr unsigned default_max_concurrent_checks = 100;
 constexpr unsigned default_export_period = 60;
 constexpr unsigned default_check_timeout = 30;
@@ -79,8 +73,6 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
 
   file_content.validate(validator);
 
-  _check_interval =
-      file_content.get_unsigned("check_interval", default_check_interval);
   _max_concurrent_checks = file_content.get_unsigned(
       "max_concurrent_checks", default_max_concurrent_checks);
   _export_period =
@@ -103,45 +95,38 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
  *
  */
 agent_config::agent_config()
-    : _check_interval(default_check_interval),
-      _max_concurrent_checks(default_max_concurrent_checks),
+    : _max_concurrent_checks(default_max_concurrent_checks),
       _export_period(default_export_period),
       _check_timeout(default_check_timeout) {}
 
 /**
  * @brief Constructor used by tests
  *
- * @param check_interval
  * @param max_concurrent_checks
  * @param export_period
  * @param check_timeout
  */
-agent_config::agent_config(uint32_t check_interval,
-                           uint32_t max_concurrent_checks,
+agent_config::agent_config(uint32_t max_concurrent_checks,
                            uint32_t export_period,
                            uint32_t check_timeout)
-    : _check_interval(check_interval),
-      _max_concurrent_checks(max_concurrent_checks),
+    : _max_concurrent_checks(max_concurrent_checks),
       _export_period(export_period),
       _check_timeout(check_timeout) {}
 
 /**
  * @brief Constructor used by tests
  *
- * @param check_interval
  * @param max_concurrent_checks
  * @param export_period
  * @param check_timeout
  * @param endpoints
  */
 agent_config::agent_config(
-    uint32_t check_interval,
     uint32_t max_concurrent_checks,
     uint32_t export_period,
     uint32_t check_timeout,
     const std::initializer_list<grpc_config::pointer>& endpoints)
     : _agent_grpc_reverse_conf(endpoints),
-      _check_interval(check_interval),
       _max_concurrent_checks(max_concurrent_checks),
       _export_period(export_period),
       _check_timeout(check_timeout) {}
@@ -154,8 +139,7 @@ agent_config::agent_config(
  * @return false
  */
 bool agent_config::operator==(const agent_config& right) const {
-  if (_check_interval != right._check_interval ||
-      _max_concurrent_checks != right._max_concurrent_checks ||
+  if (_max_concurrent_checks != right._max_concurrent_checks ||
       _export_period != right._export_period ||
       _check_timeout != right._check_timeout ||
       _agent_grpc_reverse_conf.size() != right._agent_grpc_reverse_conf.size())

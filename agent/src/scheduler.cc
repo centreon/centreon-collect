@@ -96,7 +96,6 @@ std::shared_ptr<com::centreon::agent::MessageToAgent>
 scheduler::default_config() {
   std::shared_ptr<com::centreon::agent::MessageToAgent> ret =
       std::make_shared<com::centreon::agent::MessageToAgent>();
-  ret->mutable_config()->set_check_interval(1);
   ret->mutable_config()->set_export_period(1);
   ret->mutable_config()->set_max_concurrent_checks(10);
   return ret;
@@ -110,14 +109,8 @@ scheduler::default_config() {
  *
  */
 void scheduler::_start_check_timer() {
-  if (_waiting_check_queue.empty() ||
-      _active_check >= _conf->config().max_concurrent_checks()) {
-    _check_time_step.increment_to_after_now();
-    _check_timer.expires_at(_check_time_step.value());
-  } else {
-    _check_timer.expires_at(
-        (*_waiting_check_queue.begin())->get_start_expected());
-  }
+  _check_time_step.increment_to_after_now();
+  _check_timer.expires_at(_check_time_step.value());
   _check_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
         me->_check_timer_handler(err);
@@ -148,9 +141,9 @@ void scheduler::_start_waiting_check() {
     for (check_queue::iterator to_check = _waiting_check_queue.begin();
          !_waiting_check_queue.empty() &&
          to_check != _waiting_check_queue.end() &&
-         (*to_check)->get_start_expected() <= now &&
+         to_check->second->get_start_expected() <= now &&
          _active_check < _conf->config().max_concurrent_checks();) {
-      _start_check(*to_check);
+      _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
     }
   }
@@ -169,27 +162,63 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   _active_check = 0;
   size_t nb_check = conf->config().services().size();
 
-  if (conf->config().check_interval() <= 0) {
-    SPDLOG_LOGGER_ERROR(
-        _logger, "check_interval cannot be null => no configuration update");
-    return;
-  }
-
-  SPDLOG_LOGGER_INFO(_logger, "schedule {} checks to execute in {}s", nb_check,
-                     conf->config().check_interval());
-
   if (nb_check > 0) {
     // raz stats in order to not keep statistics of deleted checks
-    checks_statistics::pointer stat = std::make_shared<checks_statistics>();
+    checks_statistics::pointer statistics =
+        std::make_shared<checks_statistics>();
 
-    duration time_between_check =
-        std::chrono::microseconds(conf->config().check_interval() * 1000000) /
-        nb_check;
+    // first we group checks by check_interval
+    std::map<uint32_t, std::vector<const Service*>> group_serv;
+    for (const auto& serv : conf->config().services()) {
+      uint32_t check_interval = serv.check_interval();
+      if (check_interval == 0) {
+        check_interval = 60;  // one minute by default
+      }
+      group_serv[check_interval].push_back(&serv);
+    }
+
+    srand(time(nullptr));
+    std::chrono::milliseconds first_inter_check_delay(
+        (group_serv.begin()->first * 1000) / nb_check);
+    // in order to avoid collision when we will use a time_step equal to
+    // first_inter_check_delay / 2 with a little random
+    duration time_unit = first_inter_check_delay / 2 +
+                         std::chrono::milliseconds(
+                             rand() % (first_inter_check_delay.count() / 10));
+
+    std::chrono::seconds accuracy(conf->config().max_check_interval_error());
+    if (accuracy.count() == 0) {
+      accuracy = std::chrono::seconds(5);
+    }
+    // we need to respect check_interval accuracy
+    while (1) {
+      bool need_to_continue = false;
+      for (const auto& [interval, _] : group_serv) {
+        if (std::chrono::seconds(interval) % time_unit > accuracy) {
+          time_unit -= time_unit / 10;
+          need_to_continue = true;
+          break;
+        }
+      }
+      if (!need_to_continue) {
+        break;
+      }
+    }
+
+    SPDLOG_LOGGER_DEBUG(_logger, "all checks will use a time step of {}",
+                        time_unit);
+
+    auto group_iter = group_serv.begin();
 
     time_point next = std::chrono::system_clock::now();
-    _check_time_step = time_step(next, time_between_check);
+
+    _check_time_step = time_step(next, time_unit);
+
     auto last_inserted_iter = _waiting_check_queue.end();
-    for (const auto& serv : conf->config().services()) {
+    unsigned step_index = 0;
+    while (true) {
+      const auto& serv = **group_iter->second.rbegin();
+
       if (_logger->level() == spdlog::level::trace) {
         SPDLOG_LOGGER_TRACE(
             _logger, "check expected to start at {} for service {} command {}",
@@ -200,8 +229,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                             next, serv.service_description());
       }
       try {
+        std::chrono::seconds check_interval(serv.check_interval());
+        if (!check_interval.count()) {
+          check_interval = std::chrono::seconds(60);
+        }
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, time_between_check,
+            _io_context, _logger, next, check_interval,
             serv.service_description(), serv.command_name(),
             serv.command_line(), conf,
             [me = shared_from_this()](
@@ -210,14 +243,27 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
-            stat);
+            statistics);
         last_inserted_iter = _waiting_check_queue.emplace_hint(
-            last_inserted_iter, check_to_schedule);
-        next += time_between_check;
+            last_inserted_iter, step_index, check_to_schedule);
+        next += first_inter_check_delay;
+        ++step_index;
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(
             _logger, "service: {}  command:{} won't be scheduled cause: {}",
             serv.service_description(), serv.command_name(), e.what());
+      }
+      group_iter->second.pop_back();
+      if (group_iter->second.empty()) {
+        group_iter = group_serv.erase(group_iter);
+      } else {
+        ++group_iter;
+      }
+      if (group_serv.empty()) {
+        break;
+      }
+      if (group_iter == group_serv.end()) {
+        group_iter = group_serv.begin();
       }
     }
   }
@@ -225,6 +271,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   _conf = conf;
 
   _start_waiting_check();
+  _start_check_timer();
 }
 
 /**
@@ -275,18 +322,17 @@ void scheduler::_check_handler(
   --_active_check;
 
   if (_alive) {
-    time_point min_next_start =
-        check->get_start_expected() +
-        std::chrono::seconds(_conf->config().check_interval());
     time_point now = std::chrono::system_clock::now();
-    if (min_next_start < now)
-      min_next_start = now;
 
     // repush for next check and search a free start slot in queue
-    check->increment_start_expected_to_after_min_timepoint(min_next_start);
-    while (!_waiting_check_queue.insert(check).second) {
+    check->increment_start_expected_to_after_min_timepoint(now);
+
+    time_step slot_search(_check_time_step);
+    slot_search.increment_to_after_min(check->get_start_expected());
+    uint64_t steps = slot_search.get_step_index();
+    while (!_waiting_check_queue.emplace(steps, check).second) {
       // slot yet reserved => try next
-      check->add_check_interval_to_start_expected();
+      ++steps;
     }
   }
 }
@@ -351,6 +397,13 @@ void scheduler::_store_result_in_metrics_and_exemplars(
     unsigned status,
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
+  // we don't want to erase existing previous metrics, so we send right now
+  auto exist = _serv_to_scope_metrics.find(check->get_service());
+  if (exist != _serv_to_scope_metrics.end()) {
+    _metric_sender(_current_request);
+    _init_export_request();
+  }
+
   auto& scope_metrics = _get_scope_metrics(check->get_service());
   uint64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
                      std::chrono::system_clock::now().time_since_epoch())
@@ -392,16 +445,12 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 /**
  * @brief metrics are grouped by host service
  * (one resource_metrics by host serv pair)
- *
+ * no resource_metrics for this service must exist before calling this function
  * @param service
- * @return scheduler::scope_metric_request&
+ * @return a new scheduler::scope_metric_request&
  */
 scheduler::scope_metric_request& scheduler::_get_scope_metrics(
     const std::string& service) {
-  auto exist = _serv_to_scope_metrics.find(service);
-  if (exist != _serv_to_scope_metrics.end()) {
-    return exist->second;
-  }
   ::opentelemetry::proto::metrics::v1::ResourceMetrics* new_res =
       _current_request->mutable_otel_request()->add_resource_metrics();
 

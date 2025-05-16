@@ -120,7 +120,7 @@ agent_service::agent_service(
       _stats(stats),
       _trusted_tokens(trusted_tokens) {
   if (!_conf) {
-    _conf = std::make_shared<agent_config>(60, 100, 10, 30);
+    _conf = std::make_shared<agent_config>(100, 10, 30);
     SPDLOG_LOGGER_INFO(logger,
                        "no centreon_agent configuration given => we use a "
                        "default configuration ");
