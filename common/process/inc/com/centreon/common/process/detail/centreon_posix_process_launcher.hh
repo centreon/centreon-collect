@@ -3,6 +3,7 @@
 
 #include <boost/process/v2/posix/default_launcher.hpp>
 #include <boost/process/v2/stdio.hpp>
+#include <sys/wait.h>
 
 namespace boost::process::v2::posix {
 
