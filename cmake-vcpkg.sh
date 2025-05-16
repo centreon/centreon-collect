@@ -262,16 +262,17 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if [ ! -d vcpkg ] ; then
-  echo "No vcpkg directory. Cloning the repo"
-  git clone --depth 1 https://github.com/Microsoft/vcpkg.git
-  ./vcpkg/bootstrap-vcpkg.sh
-fi
-
 if [ "$force" = "1" ] ; then
   echo "Build forced, removing the 'build' directory before recreating it"
   rm -rf build
+  rm -rf vcpkg
   mkdir build
+fi
+
+if [ ! -d vcpkg ] ; then
+  echo "No vcpkg directory. Cloning the repo"
+  git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+  ./vcpkg/bootstrap-vcpkg.sh
 fi
 
 case "$COMPILER" in
