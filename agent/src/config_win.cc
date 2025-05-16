@@ -100,7 +100,7 @@ config::config(const std::string& registry_key) {
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
   _token = get_sz_reg_or_default("token", "");
-  _trusted_tokens.insert(get_sz_reg_or_default("trusted_tokens", "").c_str());
+  _trusted_tokens.insert(get_sz_reg_or_default("trusted_tokens", ""));
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();

@@ -103,9 +103,9 @@ class Authprocess final : public ::grpc::AuthMetadataProcessor {
       exp_time = jwt.get_exp();
       context->AddProperty(
           "jwt-exp",
-          absl::StrCat(std::chrono::duration_cast<std::chrono::milliseconds>(
-                           exp_time.time_since_epoch())
-                           .count()));
+          std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                             exp_time.time_since_epoch())
+                             .count()));
       SPDLOG_LOGGER_INFO(_logger, "Token is valid");
       return ::grpc::Status::OK;
     } catch (const com::centreon::exceptions::msg_fmt& ex) {
