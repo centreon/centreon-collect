@@ -19,7 +19,7 @@
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <gtest/gtest.h>
-#include "../../core/test/test_server.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
