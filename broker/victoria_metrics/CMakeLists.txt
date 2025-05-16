@@ -51,7 +51,8 @@ add_library("${VICTORIA_METRICS}" SHARED
   ${SOURCES}
   ${HEADERS}
 )
-set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX "")
+set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries("${VICTORIA_METRICS}"
   http_tsdb
   centreon_http

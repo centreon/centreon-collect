@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/broker/victoria_metrics/70-victoria_metrics.so.debug"
+  - src: "../../build/broker/lib/70-victoria_metrics.so.debug"
     dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
 
 overrides:

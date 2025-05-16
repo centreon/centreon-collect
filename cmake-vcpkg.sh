@@ -20,11 +20,11 @@ EOF
 
 BUILD_TYPE="Debug"
 
-export VCPKG_ROOT=$PWD/vcpkg
-export PATH=$VCPKG_ROOT:$PATH
-echo "Please, before the build, execute the following commands:"
-echo "export VCPKG_ROOT=\$PWD/vcpkg"
-echo "export PATH=\$VCPKG_ROOT:\$PATH"
+#export VCPKG_ROOT=$PWD/vcpkg
+#export PATH=$VCPKG_ROOT:$PATH
+#echo "Please, before the build, execute the following commands:"
+#echo "export VCPKG_ROOT=\$PWD/vcpkg"
+#echo "export PATH=\$VCPKG_ROOT:\$PATH"
 
 COMPILER=gcc
 CC=gcc

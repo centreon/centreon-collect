@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/broker/{neb,stats,bam,storage,unified_sql,tcp,grpc,tls,rrd,lua,sql}/*.so.debug"
+  - src: "../../build/broker/lib/*-{neb,stats,bam,storage,unified_sql,tcp,grpc,tls,rrd,lua,sql}.so.debug"
     dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
     file_info:
       mode: 0644

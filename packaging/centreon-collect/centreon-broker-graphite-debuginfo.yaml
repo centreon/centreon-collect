@@ -15,7 +15,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/broker/graphite/70-graphite.so.debug"
+  - src: "../../build/broker/lib/70-graphite.so.debug"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:
