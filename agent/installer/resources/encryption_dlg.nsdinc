@@ -11,9 +11,9 @@ Var hCtl_encryption_EncryptionCheckBox
 Var hCtl_encryption_EncryptionGroupBox
 Var hCtl_encryption_token_help
 Var hCtl_encryption_token_help_hImage
+Var hCtl_encryption_token
 Var hCtl_encryption_ca_name_help
 Var hCtl_encryption_ca_name_help_hImage
-Var hCtl_encryption_token
 Var hCtl_encryption_label_token
 Var hCtl_encryption_ca_file_help
 Var hCtl_encryption_ca_file_help_hImage
@@ -51,7 +51,7 @@ Function fnc_encryption_Create
   ${NSD_OnClick} $hCtl_encryption_EncryptionCheckBox on_encryptioncheckbox_click
   
   ; === EncryptionGroupBox (type: GroupBox) ===
-  ${NSD_CreateGroupBox} 8u 20u 255u 99u "Certificates"
+  ${NSD_CreateGroupBox} 8u 20u 255u 98u "Certificates"
   Pop $hCtl_encryption_EncryptionGroupBox
   
   ; === token_help (type: Bitmap) ===
@@ -61,16 +61,16 @@ Function fnc_encryption_Create
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_token_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_token_help_hImage
   
+  ; === token (type: Text) ===
+  ${NSD_CreateText} 115u 102u 127u 12u ""
+  Pop $hCtl_encryption_token
+  
   ; === ca_name_help (type: Bitmap) ===
   ${NSD_CreateBitmap} 246u 85u 12u 11u ""
   Pop $hCtl_encryption_ca_name_help
   ${NSD_OnClick} $hCtl_encryption_ca_name_help ca_name_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_ca_name_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_ca_name_help_hImage
-  
-  ; === token (type: Text) ===
-  ${NSD_CreateText} 115u 102u 127u 12u ""
-  Pop $hCtl_encryption_token
   
   ; === label_token (type: Label) ===
   ${NSD_CreateLabel} 12u 104u 92u 10u "Token:"
@@ -84,14 +84,14 @@ Function fnc_encryption_Create
   ${NSD_SetImage} $hCtl_encryption_ca_file_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_ca_file_help_hImage
   
   ; === certificate_file_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 29u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 47u 12u 11u ""
   Pop $hCtl_encryption_certificate_file_help
   ${NSD_OnClick} $hCtl_encryption_certificate_file_help certificate_file_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_certificate_file_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_certificate_file_help_hImage
   
   ; === private_key_file_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 47u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 29u 12u 11u ""
   Pop $hCtl_encryption_private_key_file_help
   ${NSD_OnClick} $hCtl_encryption_private_key_file_help private_key_file_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
@@ -102,7 +102,7 @@ Function fnc_encryption_Create
   Pop $hCtl_encryption_ca_name
   
   ; === label_ca_name (type: Label) ===
-  ${NSD_CreateLabel} 12u 86u 92u 10u "CA Common Name (CN):"
+  ${NSD_CreateLabel} 12u 86u 95u 10u "CA Common Name (CN):"
   Pop $hCtl_encryption_label_ca_name
   
   ; === ca_file_Txt (type: Text) ===
@@ -115,11 +115,11 @@ Function fnc_encryption_Create
   ${NSD_OnClick} $hCtl_encryption_ca_file_Btn fnc_hCtl_encryption_ca_file_Click
   
   ; === certificate_file_Txt (type: Text) ===
-  ${NSD_CreateText} 115u 28u 106u 12u ""
+  ${NSD_CreateText} 115u 46u 106u 12u ""
   Pop $hCtl_encryption_certificate_file_Txt
   
   ; === certificate_file_Btn (type: Button) ===
-  ${NSD_CreateButton} 222u 28u 20u 12u "..."
+  ${NSD_CreateButton} 222u 46u 20u 12u "..."
   Pop $hCtl_encryption_certificate_file_Btn
   ${NSD_OnClick} $hCtl_encryption_certificate_file_Btn fnc_hCtl_encryption_certificate_file_Click
   
@@ -128,20 +128,20 @@ Function fnc_encryption_Create
   Pop $hCtl_encryption_label_ca_file
   
   ; === private_key_file_Txt (type: Text) ===
-  ${NSD_CreateText} 115u 46u 106u 12u ""
+  ${NSD_CreateText} 115u 28u 106u 12u ""
   Pop $hCtl_encryption_private_key_file_Txt
   
   ; === private_key_file_Btn (type: Button) ===
-  ${NSD_CreateButton} 222u 46u 20u 12u "..."
+  ${NSD_CreateButton} 222u 28u 20u 12u "..."
   Pop $hCtl_encryption_private_key_file_Btn
   ${NSD_OnClick} $hCtl_encryption_private_key_file_Btn fnc_hCtl_encryption_private_key_file_Click
   
   ; === label_certificate_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 30u 66u 10u "Public certificate:"
+  ${NSD_CreateLabel} 12u 49u 66u 10u "Public certificate:"
   Pop $hCtl_encryption_label_certificate_file
   
   ; === label_private_key_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 49u 66u 10u "Private key:"
+  ${NSD_CreateLabel} 12u 30u 66u 10u "Private key:"
   Pop $hCtl_encryption_label_private_key_file
   
   ; CreateFunctionCustomScript
