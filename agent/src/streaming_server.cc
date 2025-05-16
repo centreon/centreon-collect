@@ -29,6 +29,7 @@ class server_reactor
           ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>> {
   std::shared_ptr<scheduler> _sched;
   std::string _supervised_host;
+  boost::asio::steady_timer _jwt_timer;
 
   void _start();
 
@@ -53,6 +54,8 @@ class server_reactor
   void on_incomming_request(
       const std::shared_ptr<MessageToAgent>& request) override;
 
+  void set_expiration(const std::chrono::system_clock::time_point& exp_time);
+
   void on_error() override;
 
   void shutdown() override;
@@ -68,7 +71,8 @@ server_reactor::server_reactor(
           logger,
           "server",
           peer),
-      _supervised_host(supervised_host) {}
+      _supervised_host(supervised_host),
+      _jwt_timer(*io_context) {}
 
 void server_reactor::_start() {
   std::weak_ptr<server_reactor> weak_this(shared_from_this());
@@ -90,6 +94,33 @@ void server_reactor::_start() {
   fill_agent_info(_supervised_host, who_i_am->mutable_init());
 
   write(who_i_am);
+}
+
+void server_reactor::set_expiration(
+    const std::chrono::system_clock::time_point& tp) {
+  if (tp == std::chrono::system_clock::time_point::max()) {
+    _jwt_timer.cancel();
+    SPDLOG_LOGGER_TRACE(_logger, "No JWT expiry for peer {}, timer cancelled",
+                        get_peer());
+    return;
+  }
+  auto now = std::chrono::system_clock::now();
+  auto delay = (tp > now) ? tp - now : std::chrono::seconds(0);
+  _jwt_timer.expires_after(delay);
+  _jwt_timer.async_wait(
+      [self = shared_from_this()](const boost::system::error_code& ec) {
+        if (ec == boost::asio::error::operation_aborted)
+          return;
+        if (!ec) {
+          if (!self->_alive)  // already shutdown
+            return;
+
+          SPDLOG_LOGGER_WARN(self->_logger,
+                             "JWT expired for peer {}, closing stream",
+                             self->get_peer());
+          self->shutdown();
+        }
+      });
 }
 
 std::shared_ptr<server_reactor> server_reactor::load(
@@ -225,5 +256,21 @@ streaming_server::Import(::grpc::CallbackServerContext* context) {
                                    context->peer());
   server_reactor::register_stream(_incoming);
   _incoming->start_read();
+
+  std::chrono::system_clock::time_point exp_tp =
+      std::chrono::system_clock::time_point::max();  // no expiration
+
+  auto authctx = context->auth_context();
+  if (authctx) {
+    auto exp_prop = authctx->FindPropertyValues("jwt-exp");
+    if (!exp_prop.empty()) {
+      int64_t ms = std::stoll(
+          std::string(exp_prop.front().data(), exp_prop.front().length()));
+      exp_tp =
+          std::chrono::system_clock::time_point{std::chrono::milliseconds{ms}};
+      _incoming->set_expiration(exp_tp);
+    }
+  }
+
   return _incoming.get();
 }
