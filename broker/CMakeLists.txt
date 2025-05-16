@@ -620,6 +620,39 @@ option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
 if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   add_subdirectory(test)
+  set(TESTS_SOURCES
+  ${TEST_DIR}/bbdo/category.cc
+  ${TEST_DIR}/bbdo/output.cc
+  ${TEST_DIR}/bbdo/read.cc
+  ${TEST_DIR}/cache/global_cache_test.cc
+  ${TEST_DIR}/compression/stream/memory_stream.hh
+  ${TEST_DIR}/compression/stream/read.cc
+  ${TEST_DIR}/compression/stream/write.cc
+  ${TEST_DIR}/compression/zlib/zlib.cc
+  ${TEST_DIR}/config/init.cc
+  ${TEST_DIR}/config/parser.cc
+  ${TEST_DIR}/file/disk_accessor.cc
+  ${TEST_DIR}/file/splitter/concurrent.cc
+  ${TEST_DIR}/file/splitter/default.cc
+  ${TEST_DIR}/file/splitter/more_than_max_size.cc
+  ${TEST_DIR}/file/splitter/permission_denied.cc
+  ${TEST_DIR}/file/splitter/resume.cc
+  ${TEST_DIR}/file/splitter/split.cc
+  ${TEST_DIR}/file/splitter/split_limited.cc
+  ${TEST_DIR}/misc/buffer.cc
+  ${TEST_DIR}/misc/exec.cc
+  ${TEST_DIR}/misc/filesystem.cc
+  ${TEST_DIR}/misc/math.cc
+  ${TEST_DIR}/misc/misc.cc
+  ${TEST_DIR}/misc/string.cc
+  ${TEST_DIR}/modules/module.cc
+  ${TEST_DIR}/processing/acceptor.cc
+  ${TEST_DIR}/processing/feeder.cc
+  ${TEST_DIR}/time/timerange.cc
+  ${TEST_DIR}/rpc/brokerrpc.cc
+  ${TEST_DIR}/exceptions.cc
+  ${TEST_DIR}/io.cc
+      PARENT_SCOPE)
 endif()
 
 #

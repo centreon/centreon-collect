@@ -21,7 +21,7 @@
 
 #include <absl/strings/str_split.h>
 
-#include "../../core/test/test_server.hh"
+#include "broker/test/test_server.hh"
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
