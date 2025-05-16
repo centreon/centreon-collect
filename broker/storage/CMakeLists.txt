@@ -69,7 +69,8 @@ add_library(
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh")
-set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
+set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${STORAGE}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib table_max_size)
 target_link_libraries(${STORAGE}

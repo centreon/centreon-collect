@@ -93,11 +93,8 @@ add_dependencies(
   pb_header_lib
   pb_bam_lib)
 
-target_link_libraries(nebbase
-  protobuf::libprotobuf
-  pb_neb_lib
-  pb_header_lib
-  pb_open_telemetry_lib)
+target_link_libraries(nebbase protobuf::libprotobuf pb_neb_lib pb_header_lib
+                      pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
 
@@ -120,7 +117,11 @@ add_library(
 target_link_libraries(${NEB} "-Wl,--whole-archive" nebbase
                       "-Wl,--no-whole-archive" spdlog::spdlog)
 
-set_target_properties("${NEB}" PROPERTIES PREFIX "")
+set_target_properties(
+  ${NEB} PROPERTIES
+  PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/broker/lib)
+
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
@@ -150,17 +151,14 @@ set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # Flags needed to include all symbols in shared library.
-  target_link_libraries(
-    "${CBMOD}"
-    "-Wl,--whole-archive"
-    rokerbase
-    multiplexing
-    "-Wl,--no-whole-archive")
+  target_link_libraries("${CBMOD}" "-Wl,--whole-archive" rokerbase multiplexing
+                        "-Wl,--no-whole-archive")
 else()
   target_link_libraries("${CBMOD}" "rokerbase")
 endif()
 
-set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
+set_target_properties("${CBMOD}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/broker/lib)
 target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
 
 target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)

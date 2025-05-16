@@ -41,7 +41,8 @@ add_library(
   ${INC_DIR}/parser.hh
   ${INC_DIR}/worker.hh
   ${INC_DIR}/worker_pool.hh)
-set_target_properties("${STATS}" PROPERTIES PREFIX "")
+set_target_properties("${STATS}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries("${STATS}" spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 

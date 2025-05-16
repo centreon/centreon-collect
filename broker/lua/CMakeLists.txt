@@ -69,7 +69,8 @@ target_link_libraries(
   spdlog::spdlog
   pb_storage_lib)
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
-set_target_properties("${LUA}" PROPERTIES PREFIX "")
+set_target_properties("${LUA}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 
 # Testing.
 if(WITH_TESTING)

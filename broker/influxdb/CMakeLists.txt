@@ -54,7 +54,8 @@ target_link_libraries(
   "${INFLUXDB}" PRIVATE bbdo_storage pb_storage_lib spdlog::spdlog)
 
 target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hpp)
-set_target_properties("${INFLUXDB}" PROPERTIES PREFIX "")
+set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${INFLUXDB}" nebbase)
 
 # Testing.
