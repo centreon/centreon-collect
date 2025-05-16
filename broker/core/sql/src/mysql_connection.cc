@@ -633,7 +633,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             res.set(prepare_meta_result);
             bind->set_empty();
           }
-          res.set_bind(move(bind));
+          res.set_bind(std::move(bind));
           task->promise.set_value(std::move(res));
         }
         break;
