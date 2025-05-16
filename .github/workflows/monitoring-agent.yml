@@ -5,8 +5,15 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  schedule:
+    - cron: "30 0 * * 1-5"
   workflow_dispatch:
     inputs:
+      nightly_manual_trigger:
+        description: 'Set to true for linux nightly run'
+        required: true
+        default: false
+        type: boolean
       packages_in_artifact:
         description: 'Save packages in artifacts'
         required: true
@@ -51,6 +58,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   build-and-test-agent-windows:
     needs: [get-environment]

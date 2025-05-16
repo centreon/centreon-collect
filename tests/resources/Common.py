@@ -2166,6 +2166,7 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                             f"metric: {res['metric_name']}, value: {res['value']}")
                         metric = res['metric_name']
                         value = float(res['value'])
+                        # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                         if metric not in expected:
                             # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                             continue

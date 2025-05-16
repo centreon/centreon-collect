@@ -53,7 +53,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
    * configuration from engine)
    *
    */
-  using check_queue = std::map<uint64_t /*number of steps*/, check::pointer>;
+  using check_queue =
+      absl::btree_map<uint64_t /*number of steps*/, check::pointer>;
 
   check_queue _waiting_check_queue;
   // running check counter that must not exceed max_concurrent_check
@@ -153,6 +154,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   scheduler(const scheduler&) = delete;
   scheduler operator=(const scheduler&) = delete;
+
+  ~scheduler();
 
   void update(const engine_to_agent_request_ptr& conf);
 
