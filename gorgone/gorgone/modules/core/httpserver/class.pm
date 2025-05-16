@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::misc;
 use gorgone::standard::api;
+use Encode;
 use HTTP::Daemon;
 use HTTP::Status;
 use MIME::Base64;
@@ -314,6 +315,15 @@ sub authentication {
 
     ($header =~ /Basic\s(.*)$/);
     my ($user, $password) = split(/:/, MIME::Base64::decode($1), 2);
+    # This is tricky, and for more context, see
+    # https://www.perlmonks.org/?node_id=1180100
+    # Short summary: what we get from MIME::Base64::decode is not UTF-8 yet,
+    # while the credentials from config files are in UTF-8 and in the modern
+    # world, a client will use UTF-8 for the string that is encoded in base64
+    # in the authentication header (see # https://stackoverflow.com/a/7243567).
+    # So let's move to UTF-8.
+    $user = Encode::decode_utf8($user);
+    $password = Encode::decode_utf8($password);
     return 1 if (defined($self->{config}->{auth}->{user}) && $user eq $self->{config}->{auth}->{user} && 
         defined($self->{config}->{auth}->{password}) && $password eq $self->{config}->{auth}->{password});
 

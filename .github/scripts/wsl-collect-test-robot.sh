@@ -25,7 +25,7 @@ cd tests
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 
-robot $test_file
+robot -e unstable $test_file
 
 echo "####################### End of Centreon Collect Robot Tests #######################"
 

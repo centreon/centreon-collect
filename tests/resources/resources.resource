@@ -23,6 +23,8 @@ ${engineLog2}       ${ENGINE_LOG}/config2/centengine.log
 ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 ${engineLog4}       ${ENGINE_LOG}/config4/centengine.log
 
+${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
+
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
@@ -419,6 +421,16 @@ Ctn Process Service Result Hard
         Sleep    1s
     END
 
+Ctn Process Host Result Hard
+    [Arguments]    ${host}    ${state}    ${output}
+    FOR    ${idx}    IN RANGE    3
+        Ctn Process Host Check Result
+        ...    ${host}
+        ...    ${state}
+        ...    ${output}
+        Sleep    1s
+    END
+
 
 Ctn Wait For Engine To Be Ready
     [Arguments]    ${start}    ${nbEngine}=1
@@ -442,6 +454,15 @@ Ctn Start Agent
         Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
     END
 
+Ctn Workspace Win
+    ${run_env}    Ctn Run Env
+    IF    "${run_env}" == "WSL"
+        ${workspace}    Ctn Get Workspace Win
+        RETURN    ${workspace}
+    END
+    
+    RETURN    None
+    
 Ctn Kindly Stop Agent
     ${run_env}    Ctn Run Env
 

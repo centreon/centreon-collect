@@ -2504,7 +2504,7 @@ def ctn_delete_service_downtime_full(poller: int, hst: str, svc: str):
         f.write(cmd)
 
 
-def ctn_schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
+def ctn_schedule_forced_service_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     """
     Schedule a forced check on a service.
 

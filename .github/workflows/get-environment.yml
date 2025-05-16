@@ -30,6 +30,12 @@ on:
       release:
         description: "release"
         value: ${{ jobs.get-environment.outputs.release }}
+      cma_major_version:
+        description: "cma major version"
+        value: ${{ jobs.get-environment.outputs.cma_major_version }}
+      cma_minor_version:
+        description: "minor version"
+        value: ${{ jobs.get-environment.outputs.cma_minor_version }}
       stability:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-environment.outputs.stability }}
@@ -45,9 +51,9 @@ on:
       is_nightly:
         description: "if the current workflow run is considered a nightly"
         value: ${{ jobs.get-environment.outputs.is_nightly }}
-      img_version:
-        description: "docker image version (vcpkg checksum)"
-        value: ${{ jobs.get-environment.outputs.img_version }}
+      packaging_img_version:
+        description: "docker image version for packaging (vcpkg checksum)"
+        value: ${{ jobs.get-environment.outputs.packaging_img_version }}
       test_img_version:
         description: "test docker image version (checksum of database sql, script and dockerfiles)"
         value: ${{ jobs.get-environment.outputs.test_img_version }}
@@ -69,12 +75,14 @@ jobs:
       major_version: ${{ steps.get_version.outputs.major_version }}
       minor_version: ${{ steps.get_version.outputs.minor_version }}
       release: ${{ steps.get_release.outputs.release }}
+      cma_major_version: ${{ steps.get_version.outputs.cma_major_version }}
+      cma_minor_version: ${{ steps.get_version.outputs.cma_minor_version }}
       stability: ${{ steps.get_stability.outputs.stability }}
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
-      img_version: ${{ steps.get_docker_images_version.outputs.img_version }}
+      packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
       labels: ${{ steps.has_skip_label.outputs.labels }}
@@ -111,13 +119,13 @@ jobs:
             return hasSkipLabel;
 
       - name: Checkout sources (current branch)
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: ${{ steps.has_skip_label.outputs.result == 'true' && 100 || 1 }}
 
       # get latest major version to detect cloud / on-prem versions
       - name: Checkout sources (develop branch)
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: develop
           path: centreon-develop
@@ -178,7 +186,7 @@ jobs:
       - if: ${{ steps.has_skip_label.outputs.result == 'true' }}
         name: Get push changes
         id: get_push_changes
-        uses: tj-actions/changed-files@bab30c2299617f6615ec02a68b9a40d10bd21366 # v45.0.5
+        uses: tj-actions/changed-files@2f7c5bfce28377bc069a65ba478de0a74aa0ca32 # v46.0.1
         with:
           since_last_remote_commit: true
           json: true
@@ -311,6 +319,9 @@ jobs:
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             VERSION="$MAJOR.$MINOR"
+            CMA_MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+            CMA_MINOR=$(awk '$1 ~ "AGENT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+            CMA_VERSION="$CMA_MAJOR.$CMA_MINOR"
           else
             echo "Unable to parse version file ${{ inputs.version_file }}"
             exit 1
@@ -325,6 +336,22 @@ jobs:
           else
             echo "Cannot parse version number from ${{ inputs.version_file }}"
             exit 1
+          fi
+
+          if [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+            if grep -E '^[2-9][0-9]\.[0-9][0-9]\.[0-9]+' <<<"$CMA_VERSION" >/dev/null 2>&1 ; then
+              n=${CMA_VERSION//[!0-9]/ }
+              a=(${n//\./ })
+              echo "cma_major_version=${a[0]}.${a[1]}" >> $GITHUB_OUTPUT
+              MAJOR=${a[0]}.${a[1]}
+              echo "cma_minor_version=${a[2]}" >> $GITHUB_OUTPUT
+            else
+              echo "Cannot parse version number from ${{ inputs.version_file }}"
+              exit 1
+            fi
+          else
+            echo "cma_major_version=0.0" >> $GITHUB_OUTPUT
+            echo "cma_minor_version=0" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
@@ -375,6 +402,11 @@ jobs:
               return true;
             }
 
+            // If month number is not 04 or 10, it is a cloud version
+            if (! currentMajorVersion.match(/\.(04|10)$/)) {
+              return true;
+            }
+
             return false;
 
       - name: Detect linked dev and stable branches
@@ -413,8 +445,8 @@ jobs:
       - name: Get docker images version
         id: get_docker_images_version
         run: |
-          IMG_VERSION=$( cat `ls .github/docker/Dockerfile.centreon-collect-* | grep -v test` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
-          echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
+          PACKAGING_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.packaging-*` vcpkg.json | md5sum | awk '{print substr($1, 0, 8)}')
+          echo "packaging_img_version=$PACKAGING_IMG_VERSION" >> $GITHUB_OUTPUT
 
           TEST_IMG_VERSION=$(cat .github/docker/Dockerfile.centreon-collect-*-test .github/scripts/collect-prepare-test-robot.sh resources/*.sql | md5sum | cut -c1-8)
           echo "test_img_version=$TEST_IMG_VERSION" >> $GITHUB_OUTPUT
@@ -432,11 +464,13 @@ jobs:
               ['major_version', '${{ steps.get_version.outputs.major_version }}'],
               ['minor_version', '${{ steps.get_version.outputs.minor_version }}'],
               ['release', '${{ steps.get_release.outputs.release }}'],
+              ['cma_major_version', '${{ steps.get_version.outputs.cma_major_version }}'],
+              ['cma_minor_version', '${{ steps.get_version.outputs.cma_minor_version }}'],
               ['stability', '${{ steps.get_stability.outputs.stability }}'],
               ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
               ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
               ['is_nightly', '${{ steps.get_nightly_status.outputs.is_nightly }}'],
-              ['img_version', '${{ steps.get_docker_images_version.outputs.img_version }}'],
+              ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
               ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
               ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],
               ['labels', '${{ steps.has_skip_label.outputs.labels }}'],
