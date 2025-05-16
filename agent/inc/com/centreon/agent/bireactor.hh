@@ -86,6 +86,8 @@ class bireactor
   void OnDone(const ::grpc::Status& /*s*/);
 
   virtual void shutdown();
+
+  const std::string& get_peer() const { return _peer; }
 };
 
 }  // namespace com::centreon::agent
