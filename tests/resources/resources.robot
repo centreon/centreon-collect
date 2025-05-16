@@ -215,11 +215,17 @@ Ctn Get Engine Pid
 	RETURN  ${pid}
 	
 Ctn Reload Engine
-	${count}=	Ctn Get Engines Count
-	FOR	${idx}	IN RANGE	0	${count}
-	 ${alias}=	Catenate	SEPARATOR=	e	${idx}
-	 Send Signal To Process	SIGHUP	${alias}
-	END
+    [Arguments]    ${poller_index}=-1
+    IF    ${poller_index} == -1
+        ${count}    Ctn Get Engines Count
+        FOR    ${idx}    IN RANGE    0    ${count}
+            ${alias}    Catenate    SEPARATOR=    e    ${idx}
+            Send Signal To Process    SIGHUP    ${alias}
+        END
+    ELSE
+        ${alias}    Catenate    SEPARATOR=    e    ${poller_index}
+        Send Signal To Process    SIGHUP    ${alias}
+    END
 
 Ctn Check Connections
 	${count}=	Ctn Get Engines Count
