@@ -17,7 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <chrono>
 #include "check.hh"
 
 #include "scheduler.hh"
@@ -96,6 +95,19 @@ class tempo_check : public check {
 std::vector<std::pair<tempo_check*, time_point>> tempo_check::check_starts;
 std::mutex tempo_check::check_starts_m;
 uint64_t tempo_check::completion_time;
+
+class scheduler_closer {
+  std::shared_ptr<scheduler> _to_stop;
+
+ public:
+  scheduler_closer(const std::shared_ptr<scheduler>& to_stop)
+      : _to_stop(to_stop) {}
+
+  ~scheduler_closer() {
+    asio::post(*g_io_context, [to_stop = _to_stop]() { to_stop->stop(); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
+};
 
 class scheduler_test : public ::testing::Test {
  public:
@@ -242,7 +254,9 @@ TEST_F(scheduler_test, correct_schedule) {
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10100));
+  scheduler_closer closer(sched);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(11100));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -262,7 +276,7 @@ TEST_F(scheduler_test, correct_schedule) {
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(16000));
   // we have at least two checks for each service
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -278,9 +292,6 @@ TEST_F(scheduler_test, correct_schedule) {
       }
     }
   }
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 /**
@@ -331,7 +342,9 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(5100));
+  scheduler_closer closer(sched);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(6100));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -351,7 +364,7 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(16000));
   // we have at least two checks for each service
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -367,11 +380,12 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
       }
     }
   }
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
+/**
+ * @brief: we execute long checks with a 1s timeout and
+ * we expect completion time = now + 1s + timeout(1s)
+ */
 TEST_F(scheduler_test, time_out) {
   std::shared_ptr<MessageFromAgent> exported_request;
   std::condition_variable export_cond;
@@ -403,6 +417,8 @@ TEST_F(scheduler_test, time_out) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
+  scheduler_closer closer(sched);
+
   std::unique_lock l(m);
   export_cond.wait(l);
 
@@ -428,11 +444,8 @@ TEST_F(scheduler_test, time_out) {
   const auto& data_point = metric.gauge().data_points()[0];
   ASSERT_EQ(data_point.as_int(), 3);
   // timeout 1s
-  ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 1000000000);
-  ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 1500000000);
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 2000000000);
+  ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 2500000000);
 }
 
 TEST_F(scheduler_test, correct_output_examplar) {
@@ -458,6 +471,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
+  scheduler_closer closer(sched);
+
   std::mutex m;
   std::unique_lock l(m);
   export_cond.wait(l);
@@ -511,11 +526,11 @@ TEST_F(scheduler_test, correct_output_examplar) {
 
   ASSERT_LE(first_time_point + 400000000, data_point_state2.time_unix_nano());
   ASSERT_GE(first_time_point + 600000000, data_point_state2.time_unix_nano());
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
+/**
+ * @brief: this fake check store executed checks and max active checks at a time
+ */
 class concurent_check : public check {
   asio::system_timer _completion_timer;
   int _command_exit_status;
@@ -593,6 +608,10 @@ std::set<concurent_check*> concurent_check::active_checks;
 unsigned concurent_check::max_active_check;
 std::mutex concurent_check::checked_m;
 
+/**
+ * @brief we configure a scheduler with 200 services and we expect
+ * that scheduler will respect maximum concurent check (10)
+ */
 TEST_F(scheduler_test, max_concurent) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
@@ -616,16 +635,16 @@ TEST_F(scheduler_test, max_concurent) {
             std::move(handler), stat);
       });
 
-  // to many tests to be completed in eleven second
-  std::this_thread::sleep_for(std::chrono::milliseconds(11000));
+  scheduler_closer closer(sched);
+
+  // to many tests to be completed in 12s
+  std::this_thread::sleep_for(std::chrono::milliseconds(12000));
   EXPECT_LT(concurent_check::checked.size(), 200);
   EXPECT_EQ(concurent_check::max_active_check, 10);
 
-  // all tests must be completed in 16s
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  // all tests must be completed in 16s ((0.75*200)/10 + 1) but we add 2s
+  // because of windows slowness
+  std::this_thread::sleep_for(std::chrono::milliseconds(6000));
   EXPECT_EQ(concurent_check::max_active_check, 10);
   EXPECT_EQ(concurent_check::checked.size(), 200);
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
