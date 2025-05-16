@@ -15,7 +15,6 @@ import grpc_stream_pb2_grpc
 import grpc_stream_pb2
 
 
-
 TIMEOUT = 30
 
 BuiltIn().import_resource('db_variables.robot')
@@ -955,7 +954,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
     return False
 
 
-def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -984,7 +983,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -997,7 +996,6 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
                         return True
         time.sleep(1)
     return False
-
 
 
 def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line: str):
@@ -1023,6 +1021,7 @@ def ctn_check_host_check_with_timeout(hostname: str, timeout: int, command_line:
                         return True
         time.sleep(1)
     return False
+
 
 def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
     """
@@ -1061,7 +1060,7 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
     return False
 
 
-def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -1089,7 +1088,7 @@ def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: i
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1251,6 +1250,20 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
 
 
 def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+    """
+    check if the tags of a resource are the same as the expected ones
+    Args:
+        parent_id: id of the parent of the resource 0 for hosts
+        mid: id of the resource
+        typ: type of the resource (servicegroup, hostgroup or servicecategory)
+        tag_ids: expected tags ids
+        timeout: timeout in seconds
+        enabled: if True, check if the tags are enabled, otherwise check if they are different
+        Returns: 
+           - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
+           - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
+
+    """
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1271,29 +1284,35 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 cursor.execute(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
                     if len(result) == 0:
                         return True
                     else:
+                        found_in_tags_ids = False
                         for r in result:
                             if r['id'] in tag_ids:
                                 logger.console(
                                     "id {} is in tag ids".format(r['id']))
+                                found_in_tags_ids = True
                                 break
-                        return True
-                elif enabled and len(result) > 0:
+                        if not found_in_tags_ids:
+                            return True
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
+                        equals = True
                         for r in result:
                             if r['id'] not in tag_ids:
                                 logger.console(
                                     "id {} is not in tag ids".format(r['id']))
+                                equals = False
                                 break
-                        return True
+                        if equals:
+                            return True
                     else:
                         logger.console(
                             f"Result and tag_ids should have the same size, moreover 'id' in result should be values of tag_ids, result size = {len(result)} and tag_ids size = {len(tag_ids)} - their content are result: {result} and tag_ids: {tag_ids}")
@@ -1624,7 +1643,7 @@ def ctn_get_uid():
 def ctn_set_uid(user_id: int):
     os.setuid(user_id)
 
-    
+
 def ctn_has_file_permissions(path: str, permission: int):
     """! test if file has permission passed in parameter
     it does a AND with permission parameter
@@ -1632,12 +1651,13 @@ def ctn_has_file_permissions(path: str, permission: int):
     @permission mask to test file permission
     @return True if the file has the requested permissions
     """
-    stat_res= os.stat(path)
+    stat_res = os.stat(path)
     if stat_res is None:
         logger.console(f"fail to get permission of {path}")
         return False
     masked = stat_res.st_mode & permission
     return masked == permission
+
 
 def ctn_compare_dot_files(file1: str, file2: str):
     """
@@ -1676,7 +1696,8 @@ def ctn_compare_dot_files(file1: str, file2: str):
             return False
     return True
 
-def ctn_create_bbdo_grpc_server(port : int, ):
+
+def ctn_create_bbdo_grpc_server(port: int, ):
     """
     start a bbdo streamming grpc server.
     It answers nothing and simulates proxy behavior when cbd is down
@@ -1689,6 +1710,7 @@ def ctn_create_bbdo_grpc_server(port : int, ):
         """
         bbdo grpc service that does nothing
         """
+
         def exchange(self, request_iterator, context):
             time.sleep(0.01)
             for request in request_iterator:
@@ -1699,12 +1721,12 @@ def ctn_create_bbdo_grpc_server(port : int, ):
     certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
     ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
 
-
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
-    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(
+        service_implementation(), server)
     creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
-            root_certificates=ca_cert)
-    
+                                        root_certificates=ca_cert)
+
     server.add_secure_port("0.0.0.0:5669", creds)
     server.start()
     return server
