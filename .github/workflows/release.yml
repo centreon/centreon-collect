@@ -20,7 +20,8 @@ on:
 
 jobs:
   release:
-    if: ${{ github.event.pull_request.merged == true && github.repository == 'centreon/centreon-collect' }}
+    # if: ${{ github.event.pull_request.merged == true && github.repository == 'centreon/centreon-collect' }}
+    if: ${{ github.repository == 'centreon/centreon-collect' }}
     runs-on: ubuntu-24.04
     steps:
       # - name: Check base_ref
