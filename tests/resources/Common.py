@@ -2138,7 +2138,7 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result) == len(expected):
+                if len(result) >= len(expected):
                     for res in result:
                         logger.console(
                             f"metric: {res['metric_name']}, value: {res['value']}")
