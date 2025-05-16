@@ -708,7 +708,7 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     ...    And all hosts belong to the same hostgroup
     ...    When I move two hosts from one poller to the other
     ...    Then the hostgroup tag of the moved hosts is not erased
-    [Tags]    broker    engine    tags    MON-146720
+    [Tags]    broker    engine    tags    MON-169515
     Ctn Clear Db    tags
     Ctn Clear Db    resources
     Ctn Clear Db    resources_tags

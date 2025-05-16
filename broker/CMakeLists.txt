@@ -477,6 +477,7 @@ target_link_libraries(
   "-Wl,--whole-archive"
   log_v2
   sql
+  ctncrypto
   rokerbase
   roker
   multiplexing
