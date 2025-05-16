@@ -293,6 +293,10 @@ e_status check_process::compute(process::container& cont,
     output_format = &_ok_syntax;
   }
 
+  size_t process_count = cont.get_ok_processes().size() +
+                         cont.get_critical_processes().size() +
+                         cont.get_warning_processes().size();
+
   try {
     // need problem_list?
     if (output_format->find("{2}") != std::string::npos) {
@@ -308,11 +312,9 @@ e_status check_process::compute(process::container& cont,
       }
     }
 
-    size_t problem_count = cont.get_critical_processes().size() +
-                           cont.get_warning_processes().size();
     *output = std::vformat(
         *output_format,
-        std::make_format_args(status_label[ret], problem_count, problem_list));
+        std::make_format_args(status_label[ret], process_count, problem_list));
 
     if (_verbose) {
       for (const process::process_data& to_dump :
@@ -334,9 +336,7 @@ e_status check_process::compute(process::container& cont,
   }
 
   perfs->name("process.count");
-  perfs->value(cont.get_ok_processes().size() +
-               cont.get_warning_processes().size() +
-               cont.get_critical_processes().size());
+  perfs->value(process_count);
 
   return ret;
 }
