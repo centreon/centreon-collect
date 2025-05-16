@@ -282,10 +282,16 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
+    ${token1}    Ctn Create Jwt Token    ${3600}
+    Ctn Add Token Agent Otl Server   0    0    ${token1}
+
+    # create list of trusted tokens
+    ${trusted_tokens}    Create List    ${token1}
+
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt
+    Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${trusted_tokens}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1143,10 +1149,17 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
+
+    ${token1}    Ctn Create Jwt Token    ${3600}
+    Ctn Add Token Agent Otl Server   0    0    ${token1}
+
+    # create list of trusted tokens
+    ${trusted_tokens}    Create List    ${token1}
+
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt
+     Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${trusted_tokens}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -2099,7 +2112,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     ...    When the Centreon engine attempts to connect using an valid JWT token
     ...    Then the connection should be accepted
     ...    And the log should confirm that the token is valid
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Tags]    broker    engine    opentelemetry    MON-160435
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2151,7 +2164,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     ...    When the Centreon engine attempts to connect using an invalid JWT token
     ...    Then the connection should be refused
     ...    And the log should confirm that the token is not trusted
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Tags]    broker    engine    opentelemetry    MON-160435
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2204,7 +2217,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     ...    When the Centreon engine attempts to connect using an valid JWT token but expired
     ...    Then the connection should be refused
     ...    And the log should confirm that the token is expired
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Tags]    broker    engine    opentelemetry    MON-160435
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2253,6 +2266,72 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
 
+
+BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
+    [Documentation]    Given the Centreon Engine is configured as client with token and the agent as server with encryption enables
+...   When the Centreon engine attempts to connect using an valid JWT token 
+...   Then the connection should be accepted
+...   When the token expires
+...   Then the connection should be refused
+...   And the log should contain the message "Token is expired"
+    [Tags]    broker    engine    opentelemetry    MON-160435
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${host_host_name}      Ctn Host Hostname
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    Ctn Add Otl ServerModule   0    ${config_content}
+    
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+ 
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Engine Config Set Value    0    interval_length    2
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
+
+    ${token1}    Ctn Create Jwt Token    ${30}
+
+    Ctn Add Token Agent Otl Server   0    0    ${token1}
+
+    # create list of trusted tokens
+    ${trusted_tokens}    Create List    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    trusted_tokens=${trusted_tokens}
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+    
+    ${content}    Create List    init from ${host_host_name}:4321
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
+
+    ${content}    Create List    client::OnDone(Token expired)
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "this message client::OnDone(Token expired) should apper in log"
 
 *** Keywords ***
 Ctn Create Cert And Init
