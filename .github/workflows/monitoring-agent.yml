@@ -5,6 +5,8 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  schedule:
+    - cron: "30 0 * * 1-5"
   workflow_dispatch:
     inputs:
       nightly_manual_trigger:
