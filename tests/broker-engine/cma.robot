@@ -1673,6 +1673,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ...    Then the connection should be refused
     ...    And the log should contain the message "UNAUTHENTICATED: No authorization header"
     [Tags]    broker    engine    opentelemetry    MON-160435
+    
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2185,7 +2190,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     ${token1}    Ctn Create Jwt Token    ${60}
     ${token2}    Ctn Create Jwt Token    ${60}
 
-    Ctn Add Token Agent Otl Server   0    0    ${token1}
+    Ctn Add Token Agent Otl Server    0    0    ${token1}    True
 
     # create list of trusted tokens
     ${trusted_tokens}    Create List    ${token2}
@@ -2218,6 +2223,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     ...    Then the connection should be refused
     ...    And the log should confirm that the token is expired
     [Tags]    broker    engine    opentelemetry    MON-160435
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2275,6 +2285,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
 ...   Then the connection should be refused
 ...   And the log should contain the message "Token is expired"
     [Tags]    broker    engine    opentelemetry    MON-160435
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 

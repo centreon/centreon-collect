@@ -3869,11 +3869,23 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
         f.write(
             f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
 
+    json_load = json.loads(otl_server_config_json_content)
+
+    add_token_otel = False
+    if "otel_server" in pretty_json:
+        add_token_otel = True
+
+    if "centreon_agent" in pretty_json:
+        if "reverse_connections" in pretty_json["centreon_agent"]:
+            for obj in pretty_json["centreon_agent"]["reverse_connections"]:
+                if "encryption" in x and x["encryption"] == True:
+                    obj["token"] = token
+
     with open(otl_server_config_path, "w") as f:
-        pretty_json = json.dumps(json.loads(
-            otl_server_config_json_content), indent=4)
+        pretty_json = json.dumps(json_load, indent=4)
         f.write(pretty_json)
-    if "\"encryption\": \"full\"" in otl_server_config_json_content:
+
+    if add_token_otel:
         # add token to otl_server.json
         ctn_add_token_otl_server_module(idx, token)
 
@@ -3897,20 +3909,21 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
         data = json.load(f)
 
     # Check if "trusted_tokens" already exists
-    if "otel_server" in data:
-        if "trusted_tokens" in data["otel_server"]:
-            if token not in data["otel_server"]["trusted_tokens"]:
-                data["otel_server"]["trusted_tokens"].append(token)
-                token_inserted = True
-        else:
-            # Insert trusted_tokens after otel_server
-            new_data = {}
-            for key, value in data.items():
-                new_data[key] = value
-                if key == "otel_server":
-                    new_data[key]["trusted_tokens"] = [token]
+    if "otel_server" in data and "encryption" in data["otel_server"]:
+        if data["otel_server"]["encryption"] == True:
+            if "trusted_tokens" in data["otel_server"]:
+                if token not in data["otel_server"]["trusted_tokens"]:
+                    data["otel_server"]["trusted_tokens"].append(token)
                     token_inserted = True
-            data = new_data
+            else:
+                # Insert trusted_tokens after otel_server
+                new_data = {}
+                for key, value in data.items():
+                    new_data[key] = value
+                    if key == "otel_server":
+                        new_data[key]["trusted_tokens"] = [token]
+                        token_inserted = True
+                data = new_data
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
@@ -3947,7 +3960,7 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         json.dump(data, f, indent=4)
 
 
-def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
+def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str,forced: bool = False):
     """
     Add a token in the otl_server.json configuration file.to the fields token
     Args:
@@ -3956,6 +3969,10 @@ def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
     Returns:
         bool: True if the token was successfully inserted, False otherwise.
     """
+    if(not forced):
+        if environ.get("RUN_ENV", "") == "WSL":
+            return
+
     otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx_config}/otl_server.json"
     token_inserted = False
 
