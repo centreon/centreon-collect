@@ -3872,13 +3872,13 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
     json_load = json.loads(otl_server_config_json_content)
 
     add_token_otel = False
-    if "otel_server" in pretty_json:
+    if "otel_server" in json_load:
         add_token_otel = True
 
-    if "centreon_agent" in pretty_json:
-        if "reverse_connections" in pretty_json["centreon_agent"]:
-            for obj in pretty_json["centreon_agent"]["reverse_connections"]:
-                if "encryption" in x and x["encryption"] == True:
+    if "centreon_agent" in json_load:
+        if "reverse_connections" in json_load["centreon_agent"]:
+            for obj in json_load["centreon_agent"]["reverse_connections"]:
+                if "encryption" in obj and obj["encryption"] == True:
                     obj["token"] = token
 
     with open(otl_server_config_path, "w") as f:
