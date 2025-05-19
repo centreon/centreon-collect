@@ -283,7 +283,11 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     ${token1}    Ctn Create Jwt Token    ${3600}
-    Ctn Add Token Agent Otl Server   0    0    ${token1}
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        Ctn Add Token Agent Otl Server   0    0    ${token1}
+    END
 
     # create list of trusted tokens
     ${trusted_tokens}    Create List    ${token1}
@@ -1151,7 +1155,12 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
 
     ${token1}    Ctn Create Jwt Token    ${3600}
-    Ctn Add Token Agent Otl Server   0    0    ${token1}
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        Ctn Add Token Agent Otl Server   0    0    ${token1}
+    END
+    
 
     # create list of trusted tokens
     ${trusted_tokens}    Create List    ${token1}
@@ -2137,7 +2146,10 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
 
     ${token1}    Ctn Create Jwt Token    ${60}
 
-    Ctn Add Token Agent Otl Server   0    0    ${token1}
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        Ctn Add Token Agent Otl Server   0    0    ${token1}
+    END
 
     # create list of trusted tokens
     ${trusted_tokens}    Create List    ${token1}
@@ -2190,7 +2202,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     ${token1}    Ctn Create Jwt Token    ${60}
     ${token2}    Ctn Create Jwt Token    ${60}
 
-    Ctn Add Token Agent Otl Server    0    0    ${token1}    True
+    Ctn Add Token Agent Otl Server    0    0    ${token1}
 
     # create list of trusted tokens
     ${trusted_tokens}    Create List    ${token2}

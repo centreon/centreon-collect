@@ -3960,7 +3960,7 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         json.dump(data, f, indent=4)
 
 
-def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str,forced: bool = False):
+def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
     """
     Add a token in the otl_server.json configuration file.to the fields token
     Args:
@@ -3969,9 +3969,6 @@ def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str,f
     Returns:
         bool: True if the token was successfully inserted, False otherwise.
     """
-    if(not forced):
-        if environ.get("RUN_ENV", "") == "WSL":
-            return
 
     otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx_config}/otl_server.json"
     token_inserted = False
