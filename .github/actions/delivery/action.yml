@@ -25,10 +25,6 @@ inputs:
   is_cloud:
     description: "Release context (cloud or not cloud)"
     required: true
-  package_filter:
-    description: "The package filter if not done or empty *.rpm or *.deb will be used"
-    default: ""
-    required: false
 
 runs:
   using: "composite"
@@ -50,6 +46,7 @@ runs:
       with:
         path: ./*.${{ env.extfile }}
         key: ${{ inputs.cache_key }}
+        fail-on-cache-miss: true
 
     - uses: jfrog/setup-jfrog-cli@901bb9632db90821c2d3f076012bdeaf66598555 # v3.4.1
       env:
@@ -61,11 +58,7 @@ runs:
       run: |
         set -eux
 
-        if [ -z "${{ inputs.package_filter }}" ]; then
-          FILES="*.${{ env.extfile }}"
-        else
-          FILES="${{ inputs.package_filter }}"
-        fi
+        FILES="*.${{ env.extfile }}"
 
         # DEBUG
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
@@ -159,11 +152,7 @@ runs:
     - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
       run: |
-        if [ -z "${{ inputs.package_filter }}" ]; then
-          FILES="*.${{ env.extfile }}"
-        else
-          FILES="${{ inputs.package_filter }}"
-        fi
+        FILES="*.${{ env.extfile }}"
 
         # DEBUG
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"

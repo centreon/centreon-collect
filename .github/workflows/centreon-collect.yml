@@ -39,7 +39,6 @@ on:
   pull_request:
     paths:
       - ".version.centreon-collect"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
@@ -68,7 +67,6 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version.centreon-collect"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
@@ -106,20 +104,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - distrib: alma8
-            only_cma: "OFF"
-          - distrib: alma9
-            only_cma: "OFF"
-          - distrib: bullseye
-            only_cma: "ON"
-          - distrib: bookworm
-            only_cma: "OFF"
-          - distrib: jammy
-            only_cma: "ON"
-          - distrib: noble
-            only_cma: "ON"
-
+        distrib: [alma8, alma9, bookworm]
     runs-on: centreon-collect
 
     env:
@@ -191,7 +176,7 @@ jobs:
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DLEGACY_ENGINE=${LEGACY_ENGINE} \
-                  -DONLY_ROBOT_CMA=${{ matrix.only_cma }} \
+                  -DONLY_ROBOT_CMA=OFF \
                   -S .
 
           ninja -Cbuild
@@ -207,19 +192,12 @@ jobs:
         shell: bash
 
       - name: Run unit tests
-        if: ${{ matrix.only_cma == 'OFF' }}
         run: |
+          tests/ut_common --gtest_output=xml:ut_common.xml
           tests/ut_broker --gtest_output=xml:ut_broker.xml
           tests/ut_engine --gtest_output=xml:ut_engine.xml
           tests/ut_clib --gtest_output=xml:ut_clib.xml
           tests/ut_connector --gtest_output=xml:ut_connector.xml
-        working-directory: build
-        shell: bash
-
-      - name: Run agent common unit tests
-        run: |
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
         working-directory: build
         shell: bash
 
@@ -259,55 +237,26 @@ jobs:
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-jammy-arm64
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-noble
             distrib: noble
             package_extension: deb
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -322,6 +271,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine != 'false' && 'ON' || 'OFF' }}
+      build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
@@ -329,7 +279,7 @@ jobs:
       runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      only_robot_cma: ${{ matrix.only_robot_cma }}
+      only_robot_cma: false
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -364,7 +314,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: el9
             image: centreon-collect-mysql-alma9-test
             package_extension: rpm
@@ -372,23 +321,6 @@ jobs:
             database_type: mysql
             test_group_name: robot_test-mysql-el9-amd64
             tests_params: '{}'
-            only_robot_cma: false
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: '{}'
-            only_robot_cma: true
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
             package_extension: deb
@@ -396,7 +328,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-arm64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-test
             package_extension: deb
@@ -404,7 +335,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-amd64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
@@ -412,31 +342,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-            only_robot_cma: false
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-jammy-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-jammy-amd64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: noble
-            image: centreon-collect-mariadb-noble-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-noble-amd64
-            tests_params: '{}'
-            only_robot_cma: true
 
     name: ${{ matrix.test_group_name }}
 
@@ -452,7 +357,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      only_robot_cma: ${{ matrix.only_robot_cma }}
+      features_pattern: '^((?!cma).)*$'
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -555,27 +460,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-            only_cma: true
-          - distrib: bullseye
-            arch: arm64
-            only_cma: true
           - distrib: bookworm
             arch: amd64
-            only_cma: false
-          - distrib: bookworm
-            arch: arm64
-            only_cma: true
-          - distrib: jammy
-            arch: amd64
-            only_cma: true
-          - distrib: jammy
-            arch: arm64
-            only_cma: true
-          - distrib: noble
-            arch: amd64
-            only_cma: true
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -594,7 +480,6 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          package_filter: ${{ matrix.only_cma == 'true' && 'centreon-monitoring-agent*' || '' }}
 
       - name: Create Jira ticket on nightly build failure
         if: |
@@ -625,7 +510,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
