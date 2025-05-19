@@ -2,6 +2,7 @@
 Documentation       Engine/Broker tests on tags.
 
 Resource            ../resources/resources.robot
+Library             DatabaseLibrary
 Library             Process
 Library             DateTime
 Library             OperatingSystem
@@ -800,6 +801,7 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    ${2}
     Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
 
@@ -837,9 +839,9 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    ${60}    False
     Should Be True    ${result}    tag 1 yet attached to host_5
 
-    ${content}    Create List    processing tag
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling processing tag should be available.
+    ${content}    Create List    pb host event .* host_6
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling pb host event host_6 should be available.
 
     
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
