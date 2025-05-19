@@ -1063,7 +1063,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
