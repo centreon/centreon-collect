@@ -38,9 +38,8 @@ using namespace com::centreon::broker;
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    stats::center::load();
-    mysql_manager::load();
     config::applier::state::load(com::centreon::common::BROKER);
+    mysql_manager::load();
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
@@ -57,7 +56,6 @@ class StatsTest : public ::testing::Test {
     io::protocols::unload();
     mysql_manager::unload();
     file::disk_accessor::unload();
-    stats::center::unload();
   }
 };
 

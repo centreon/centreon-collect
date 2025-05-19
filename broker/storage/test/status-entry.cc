@@ -21,16 +21,13 @@
 #include <gtest/gtest.h>
 
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/bbdo/stream.hh"
+#include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/modules/handle.hh"
-#include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/storage/factory.hh"
 #include "common/log_v2/log_v2.hh"
 

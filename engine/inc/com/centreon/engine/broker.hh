@@ -22,7 +22,6 @@
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
 
-#include "bbdo/neb.pb.h"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
@@ -315,73 +314,25 @@
 #define NEBATTR_DOWNTIME_STOP_NORMAL 1
 #define NEBATTR_DOWNTIME_STOP_CANCELLED 2
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
+template <typename R>
+void broker_acknowledgement_data(R* data,
+                                 const char* ack_author,
+                                 const char* ack_data,
+                                 int subtype,
+                                 bool notify_contacts,
+                                 bool persistent_comment);
 
-void broker_acknowledgement_data(
-    int type,
-    acknowledgement_resource_type acknowledgement_type,
-    void* data,
-    const char* ack_author,
-    const char* ack_data,
-    int subtype,
-    int notify_contacts,
-    int persistent_comment);
-void broker_adaptive_contact_data(int type,
-                                  int flags,
-                                  int attr,
-                                  com::centreon::engine::contact* cntct,
-                                  int command_type,
-                                  unsigned long modattr,
-                                  unsigned long modattrs,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp);
-void broker_adaptive_severity_data(int type, void* data);
-void broker_adaptive_tag_data(int type, void* data);
-void broker_adaptive_dependency_data(int type, void* data);
-void broker_adaptive_escalation_data(int type,
-                                     int flags,
-                                     int attr,
-                                     void* data,
-                                     struct timeval const* timestamp);
+void broker_adaptive_severity_data(int type,
+                                   com::centreon::engine::severity* es);
+void broker_adaptive_tag_data(int type, com::centreon::engine::tag* data);
 void broker_adaptive_host_data(int type,
                                int flags,
-                               int attr,
                                com::centreon::engine::host* hst,
-                               unsigned long modattr);
-void broker_adaptive_program_data(int type,
-                                  int flags,
-                                  int attr,
-                                  int command_type,
-                                  unsigned long modhattr,
-                                  unsigned long modhattrs,
-                                  unsigned long modsattr,
-                                  unsigned long modsattrs,
-                                  struct timeval const* timestamp);
+                               uint64_t modattr);
 void broker_adaptive_service_data(int type,
                                   int flags,
-                                  int attr,
                                   com::centreon::engine::service* svc,
                                   unsigned long modattr);
-void broker_adaptive_timeperiod_data(int type,
-                                     int flags,
-                                     int attr,
-                                     com::centreon::engine::timeperiod* tp,
-                                     int command_type,
-                                     struct timeval const* timestamp);
-void broker_aggregated_status_data(int type,
-                                   int flags,
-                                   int attr,
-                                   struct timeval const* timestamp);
-void broker_command_data(int type,
-                         int flags,
-                         int attr,
-                         com::centreon::engine::commands::command* cmd,
-                         struct timeval const* timestamp);
 void broker_comment_data(int type,
                          com::centreon::engine::comment::type comment_type,
                          com::centreon::engine::comment::e_type entry_type,
@@ -395,39 +346,12 @@ void broker_comment_data(int type,
                          int expires,
                          time_t expire_time,
                          unsigned long comment_id);
-int broker_contact_notification_data(int type,
-                                     int flags,
-                                     int attr,
-                                     unsigned int notification_type,
-                                     int reason_type,
-                                     struct timeval start_time,
-                                     struct timeval end_time,
-                                     void* data,
-                                     com::centreon::engine::contact* cntct,
-                                     char const* ack_author,
-                                     char const* ack_data,
-                                     int escalated,
-                                     struct timeval const* timestamp);
-int broker_contact_notification_method_data(
-    int type,
-    int flags,
-    int attr,
-    unsigned int notification_type,
-    int reason_type,
-    struct timeval start_time,
-    struct timeval end_time,
-    void* data,
-    com::centreon::engine::contact* cntct,
-    char const* ack_author,
-    char const* ack_data,
-    int escalated,
-    struct timeval const* timestamp);
-void broker_contact_status(int type, com::centreon::engine::contact* cntct);
+template <typename R>
 void broker_custom_variable(int type,
-                            void* data,
-                            std::string_view&& varname,
-                            std::string_view&& varvalue,
-                            struct timeval const* timestamp);
+                            R* resource,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
+                            const struct timeval* timestamp);
 void broker_downtime_data(int type,
                           int attr,
                           int downtime_type,
@@ -441,81 +365,37 @@ void broker_downtime_data(int type,
                           bool fixed,
                           unsigned long triggered_by,
                           unsigned long duration,
-                          unsigned long downtime_id,
-                          struct timeval const* timestamp);
+                          unsigned long downtime_id);
 void broker_external_command(int type,
                              int command_type,
-                             char* command_args,
-                             struct timeval const* timestamp);
-void broker_group(int type, void* data);
-void broker_group_member(int type, void* object, void* group);
+                             char* command_args);
+template <typename G>
+void broker_group(int type, const G* group);
+
+template <typename G, typename R>
+void broker_group_member(int type, const R* object, const G* group);
+
 int broker_host_check(int type,
-                      com::centreon::engine::host* hst,
+                      const com::centreon::engine::host* hst,
                       int check_type,
-                      const char* cmdline,
-                      char* output);
-void broker_host_status(int type,
-                        com::centreon::engine::host* hst,
+                      const char* cmdline);
+void broker_host_status(const com::centreon::engine::host* hst,
                         uint32_t attributes);
-void broker_log_data(char* data, time_t entry_time);
-int broker_notification_data(int type,
-                             int flags,
-                             int attr,
-                             unsigned int notification_type,
-                             int reason_type,
-                             struct timeval start_time,
-                             struct timeval end_time,
-                             void* data,
-                             char const* ack_author,
-                             char const* ack_data,
-                             int escalated,
-                             int contacts_notified,
-                             struct timeval const* timestamp);
+void broker_log_data_legacy(const char* data, time_t entry_time);
+void broker_log_data(const char* data, time_t entry_time);
 void broker_program_state(int type, int flags);
 void broker_program_status();
 void broker_relation_data(int type,
-                          com::centreon::engine::host* hst,
-                          com::centreon::engine::service* svc,
-                          com::centreon::engine::host* dep_hst,
-                          com::centreon::engine::service* dep_svc);
-void broker_retention_data(int type,
-                           int flags,
-                           int attr,
-                           struct timeval const* timestamp);
+                          const com::centreon::engine::host* hst,
+                          const com::centreon::engine::service* svc,
+                          const com::centreon::engine::host* dep_hst,
+                          const com::centreon::engine::service* dep_svc);
 int broker_service_check(int type,
-                         com::centreon::engine::service* svc,
+                         const com::centreon::engine::service* svc,
                          int check_type,
                          const char* cmdline);
-void broker_service_status(int type,
-                           com::centreon::engine::service* svc,
+void broker_service_status(const com::centreon::engine::service* svc,
                            uint32_t attributes);
-void broker_statechange_data(int type,
-                             int flags,
-                             int attr,
-                             int statechange_type,
-                             void* data,
-                             int state,
-                             int state_type,
-                             int current_attempt,
-                             int max_attempts,
-                             struct timeval const* timestamp);
-void broker_system_command(int type,
-                           int flags,
-                           int attr,
-                           struct timeval start_time,
-                           struct timeval end_time,
-                           double exectime,
-                           int timeout,
-                           int early_timeout,
-                           int retcode,
-                           const char* cmd,
-                           const char* output,
-                           struct timeval const* timestamp);
-void broker_timed_event(int type,
-                        int flags,
-                        int attr,
-                        com::centreon::engine::timed_event* event,
-                        struct timeval const* timestamp);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
 void broker_bench(unsigned id,
@@ -524,9 +404,5 @@ void broker_bench(unsigned id,
 struct nebstruct_agent_stats_data;
 
 void broker_agent_stats(nebstruct_agent_stats_data& stats);
-
-#ifdef __cplusplus
-}
-#endif /* C++ */
 
 #endif /* !CCE_BROKER_HH */

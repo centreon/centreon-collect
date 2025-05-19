@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#                                                                               
+#
 # Copyright 2023-2024 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,11 @@ if (defined $duration) {
   sleep $duration;
 }
 if ($id eq 0) {
-  printf("Host check $dd");
+  if (defined $output) {
+    printf("Host check $dd: $output\n");
+  } else {
+    printf("Host check $dd\n");
+  }
   if (defined $state) {
     $status = $state;
   } else {

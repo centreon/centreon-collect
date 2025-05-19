@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -24,6 +23,7 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
@@ -165,8 +165,7 @@ void stream::_clean_tables(uint32_t instance_id) {
       instance_id);
   query = fmt::format(
       "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 "
-      "AND instance_id={}",
+      "cancelled=0 AND instance_id={}",
       instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, conn);
@@ -975,16 +974,16 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
   auto& dt_obj = dd.obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(_logger_sql,
-                     "unified_sql: processing pb downtime event (poller: {}"
-                     ", host: {}, service: {}, start time: {}, end_time: {}, "
-                     "actual start time: {}, actual end time: {}, duration: "
-                     "{}, entry time: {}, deletion time: {})",
-                     dt_obj.instance_id(), dt_obj.host_id(),
-                     dt_obj.service_id(), dt_obj.start_time(),
-                     dt_obj.end_time(), dt_obj.actual_start_time(),
-                     dt_obj.actual_end_time(), dt_obj.duration(),
-                     dt_obj.entry_time(), dt_obj.deletion_time());
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: processing pb downtime event (poller: {}"
+      ", host: {}, service: {}, start time: {}, end_time: {}, "
+      "actual start time: {}, actual end time: {}, duration: "
+      "{}, entry time: {}, deletion time: {}, started: {}, cancelled: {})",
+      dt_obj.instance_id(), dt_obj.host_id(), dt_obj.service_id(),
+      dt_obj.start_time(), dt_obj.end_time(), dt_obj.actual_start_time(),
+      dt_obj.actual_end_time(), dt_obj.duration(), dt_obj.entry_time(),
+      dt_obj.deletion_time(), dt_obj.started(), dt_obj.cancelled());
 
   // Check if poller is valid.
   if (_is_valid_poller(dt_obj.instance_id())) {
@@ -2439,96 +2438,95 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                        ah.host_id());
     return;
   }
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
+  if (_store_in_hosts_services) {
+    constexpr std::string_view buf("UPDATE hosts SET");
+    std::string query{buf.data(), buf.size()};
+    if (ah.has_notify())
+      query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
+    if (ah.has_active_checks())
+      query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
+    if (ah.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           ah.should_be_scheduled() ? 1 : 0);
+    if (ah.has_passive_checks())
+      query +=
+          fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
+    if (ah.has_event_handler_enabled())
+      query += fmt::format(" event_handler_enabled='{}',",
+                           ah.event_handler_enabled() ? 1 : 0);
+    if (ah.has_flap_detection())
+      query +=
+          fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
+    if (ah.has_obsess_over_host())
+      query +=
+          fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
+    if (ah.has_event_handler())
+      query += fmt::format(
+          " event_handler='{}',",
+          misc::string::escape(ah.event_handler(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_event_handler)));
+    if (ah.has_check_command())
+      query += fmt::format(
+          " check_command='{}',",
+          misc::string::escape(ah.check_command(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_check_command)));
+    if (ah.has_check_interval())
+      query += fmt::format(" check_interval={},", ah.check_interval());
+    if (ah.has_retry_interval())
+      query += fmt::format(" retry_interval={},", ah.retry_interval());
+    if (ah.has_max_check_attempts())
+      query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
+    if (ah.has_check_freshness())
+      query +=
+          fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
+    if (ah.has_check_period())
+      query += fmt::format(
+          " check_period='{}',",
+          misc::string::escape(ah.check_period(),
+                               get_centreon_storage_hosts_col_size(
+                                   centreon_storage_hosts_check_period)));
+    if (ah.has_notification_period())
+      query +=
+          fmt::format(" notification_period='{}',",
+                      misc::string::escape(
+                          ah.notification_period(),
+                          get_centreon_storage_services_col_size(
+                              centreon_storage_services_notification_period)));
 
-  constexpr std::string_view buf("UPDATE hosts SET");
-  std::string query{buf.data(), buf.size()};
-  if (ah.has_notify())
-    query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
-  if (ah.has_active_checks())
-    query += fmt::format(" active_checks='{}',", ah.active_checks() ? 1 : 0);
-  if (ah.has_should_be_scheduled())
-    query += fmt::format(" should_be_scheduled='{}',",
-                         ah.should_be_scheduled() ? 1 : 0);
-  if (ah.has_passive_checks())
-    query += fmt::format(" passive_checks='{}',", ah.passive_checks() ? 1 : 0);
-  if (ah.has_event_handler_enabled())
-    query += fmt::format(" event_handler_enabled='{}',",
-                         ah.event_handler_enabled() ? 1 : 0);
-  if (ah.has_flap_detection())
-    query += fmt::format(" flap_detection='{}',", ah.flap_detection() ? 1 : 0);
-  if (ah.has_obsess_over_host())
-    query +=
-        fmt::format(" obsess_over_host='{}',", ah.obsess_over_host() ? 1 : 0);
-  if (ah.has_event_handler())
-    query += fmt::format(
-        " event_handler='{}',",
-        misc::string::escape(ah.event_handler(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_event_handler)));
-  if (ah.has_check_command())
-    query += fmt::format(
-        " check_command='{}',",
-        misc::string::escape(ah.check_command(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_check_command)));
-  if (ah.has_check_interval())
-    query += fmt::format(" check_interval={},", ah.check_interval());
-  if (ah.has_retry_interval())
-    query += fmt::format(" retry_interval={},", ah.retry_interval());
-  if (ah.has_max_check_attempts())
-    query += fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-  if (ah.has_check_freshness())
-    query +=
-        fmt::format(" check_freshness='{}',", ah.check_freshness() ? 1 : 0);
-  if (ah.has_check_period())
-    query += fmt::format(
-        " check_period='{}',",
-        misc::string::escape(ah.check_period(),
-                             get_centreon_storage_hosts_col_size(
-                                 centreon_storage_hosts_check_period)));
-  if (ah.has_notification_period())
-    query +=
-        fmt::format(" notification_period='{}',",
-                    misc::string::escape(
-                        ah.notification_period(),
-                        get_centreon_storage_services_col_size(
-                            centreon_storage_services_notification_period)));
+    // If nothing was added to query, we can exit immediately.
+    if (query.size() > buf.size()) {
+      query.resize(query.size() - 1);
+      query += fmt::format(" WHERE host_id={}", ah.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
+      _mysql.run_query(query, database::mysql_error::store_host, 0);
+      _add_action(0, actions::hosts);
+    }
+  }
 
-  // If nothing was added to query, we can exit immediately.
-  if (query.size() > buf.size()) {
-    query.resize(query.size() - 1);
-    query += fmt::format(" WHERE host_id={}", ah.host_id());
-    SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-    _mysql.run_query(query, database::mysql_error::store_host, conn);
-    _add_action(conn, actions::hosts);
+  if (_store_in_resources) {
+    constexpr std::string_view res_buf("UPDATE resources SET");
+    std::string res_query{res_buf.data(), res_buf.size()};
+    if (ah.has_notify())
+      res_query +=
+          fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
+    if (ah.has_active_checks())
+      res_query += fmt::format(" active_checks_enabled='{}',",
+                               ah.active_checks() ? 1 : 0);
+    if (ah.has_passive_checks())
+      res_query += fmt::format(" passive_checks_enabled='{}',",
+                               ah.passive_checks() ? 1 : 0);
+    if (ah.has_max_check_attempts())
+      res_query +=
+          fmt::format(" max_check_attempts={},", ah.max_check_attempts());
 
-    if (_store_in_resources) {
-      constexpr std::string_view res_buf("UPDATE resources SET");
-      std::string res_query{res_buf.data(), res_buf.size()};
-      if (ah.has_notify())
-        res_query +=
-            fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
-      if (ah.has_active_checks())
-        res_query += fmt::format(" active_checks_enabled='{}',",
-                                 ah.active_checks() ? 1 : 0);
-      if (ah.has_passive_checks())
-        res_query += fmt::format(" passive_checks_enabled='{}',",
-                                 ah.passive_checks() ? 1 : 0);
-      if (ah.has_max_check_attempts())
-        res_query +=
-            fmt::format(" max_check_attempts={},", ah.max_check_attempts());
-
-      if (res_query.size() > res_buf.size()) {
-        res_query.resize(res_query.size() - 1);
-        res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
-                            res_query);
-        _mysql.run_query(res_query, database::mysql_error::update_resources,
-                         conn);
-        _add_action(conn, actions::resources);
-      }
+    if (res_query.size() > res_buf.size()) {
+      res_query.resize(res_query.size() - 1);
+      res_query += fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
+      _mysql.run_query(res_query, database::mysql_error::update_resources, 0);
+      _add_action(0, actions::resources);
     }
   }
 }
@@ -2814,9 +2812,9 @@ void stream::_process_pb_adaptive_host_status(
       res_query +=
           fmt::format("acknowledged='{}',",
                       hscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    if (hscr.has_notification_number())
-      res_query +=
-          fmt::format("notification_number={},", hscr.notification_number());
+    // if (hscr.has_notification_number())
+    //   res_query +=
+    //       fmt::format("notification_number={},", hscr.notification_number());
     if (hscr.has_scheduled_downtime_depth())
       res_query +=
           fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
@@ -4754,9 +4752,9 @@ void stream::_process_pb_adaptive_service_status(
       buf_res_query +=
           fmt::format("acknowledged='{}',",
                       sscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    if (sscr.has_notification_number())
-      buf_res_query +=
-          fmt::format("notification_number={},", sscr.notification_number());
+    // if (sscr.has_notification_number())
+    //   buf_res_query +=
+    //       fmt::format("notification_number={},", sscr.notification_number());
     _logger_sql->debug("service8 ({}, {}) scheduled_downtime_depth: {}",
                        sscr.host_id(), sscr.service_id(),
                        sscr.scheduled_downtime_depth());
@@ -4895,6 +4893,8 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
   auto& tg = s->obj();
+  SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: processing tag {}",
+                      tg.DebugString());
   int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:

@@ -29,7 +29,7 @@ EBBM1
     ${start}    Get Current Date
     ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${1}
 
     FOR    ${i}    IN RANGE    ${10}

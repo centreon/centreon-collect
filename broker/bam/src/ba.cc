@@ -18,12 +18,6 @@
 
 #include "com/centreon/broker/bam/ba.hh"
 
-#include <fmt/format.h>
-
-#include <cassert>
-
-#include "bbdo/neb.pb.h"
-#include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -345,19 +339,20 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
   assert(downtime.host_id() == _host_id &&
          downtime.service_id() == _service_id);
 
-  // Log message.
-  SPDLOG_LOGGER_DEBUG(
-      _logger,
-      "BAM: BA {} '{}' is getting notified of a downtime (pb) on its service "
-      "({}, {})",
-      _id, _name, _host_id, _service_id);
-
   // Check if there was a change.
   bool in_downtime(downtime.started() &&
                    time_is_undefined(downtime.actual_end_time()));
+
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(
+      _logger,
+      "BAM: BA {} '{}' is getting notified of a pb downtime {} on its service "
+      "({}, {}) in downtime {}",
+      _id, _name, downtime.id(), _host_id, _service_id, in_downtime);
+
   if (_in_downtime != in_downtime) {
-    SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: {}",
-                        _in_downtime);
+    SPDLOG_LOGGER_TRACE(_logger, "ba: service_update downtime: from {} to {}",
+                        _in_downtime, in_downtime);
     _in_downtime = in_downtime;
 
     // Generate status event.
@@ -372,11 +367,8 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
  *
  *  @param[in] cache  The cache.
  */
-void ba::save_inherited_downtime(persistent_cache& cache) const {
-  if (_inherited_downtime)
-    cache.add(
-        std::make_shared<pb_inherited_downtime>(_inherited_downtime->obj()));
-}
+void ba::save_inherited_downtime(persistent_cache& cache
+                                 [[maybe_unused]]) const {}
 
 /**
  *  Set the inherited downtime of this ba.

@@ -1,7 +1,7 @@
 /**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
- * Copyright 2011-2024 Centreon
+ * Copyright 2011-2025 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -19,17 +19,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#endif  // HAVE_GETOPT_H
 #include <unistd.h>
-#include <forward_list>
 #include <random>
 #include <string>
 
 #include <boost/asio.hpp>
+#include <boost/optional.hpp>
+#include <boost/program_options.hpp>
 
 namespace asio = boost::asio;
+namespace po = boost::program_options;
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
@@ -38,7 +37,6 @@ namespace asio = boost::asio;
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
 
 #include <rapidjson/document.h>
 
@@ -68,16 +66,12 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/logging/engine.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/parser.hh"
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
-#endif
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context(
@@ -105,119 +99,63 @@ int main(int argc, char* argv[]) {
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
-#ifdef HAVE_GETOPT_H
-  int option_index = 0;
-  static struct option const long_options[] = {
-      {"diagnose", no_argument, nullptr, 'D'},
-      {"dont-verify-paths", no_argument, nullptr, 'x'},
-      {"help", no_argument, nullptr, 'h'},
-      {"license", no_argument, nullptr, 'V'},
-      {"test-scheduling", no_argument, nullptr, 's'},
-      {"verify-config", no_argument, nullptr, 'v'},
-      {"version", no_argument, nullptr, 'V'},
-      {"config-file", optional_argument, nullptr, 'c'},
-      {NULL, no_argument, nullptr, '\0'}};
-#endif  // HAVE_GETOPT_H
-
   // Load singletons and global variable.
   log_v2::load("centengine");
 
   /* It's time to set the logger. Later, we will have access from multiple
    * threads and we'll only be able to change loggers atomic values. */
-#ifdef LEGACY_CONF
-  config = new configuration::state;
-#else
   // init pb_config to default values
   configuration::state_helper state_hlp(&pb_config);
-#endif
 
   init_loggers();
   configuration::applier::logging::instance();
   com::centreon::common::pool::load(g_io_context, runtime_logger);
 
-#ifdef LEGACY_CONF
-  config_logger->info("Configuration mechanism used: legacy");
-#else
-  config_logger->info("Configuration mechanism used: protobuf");
-#endif
-
   logging::broker backend_broker_log;
 
-  int retval(EXIT_FAILURE);
+  int retval = EXIT_FAILURE;
   try {
     // Options.
-    bool display_help(false);
-    bool display_license(false);
-    bool error(false);
-    bool diagnose(false);
+    bool error = false;
+    bool diagnose = false;
+    std::string broker_config;
     std::vector<std::string> extended_conf_file;
 
     // Process all command line arguments.
-    int c;
-#ifdef HAVE_GETOPT_H
-    while ((c = getopt_long(argc, argv, "+hVvsxDc", long_options,
-                            &option_index)) != -1) {
-#else
-    while ((c = getopt(argc, argv, "+hVvsxD")) != -1) {
-#endif  // HAVE_GETOPT_H
+    po::options_description desc("Allowed options");
+    // clang-format off
+    desc.add_options()
+      ("help,h", "Print help message")
+      ("version,V", "Print software version and license")
+      ("verify-config,v", "Verify all configuration data")
+      ("test-scheduling,s", "Show projected/recommended check scheduling and other diagnostic info"
+       " based on the current configuration files")
+      ("dont-verify-paths,x",
+       "Don't check for circular object paths - USE WITH CAUTION!")
+      ("diagnose,D", "Generate a diagnostic file")
+      ("broker-config,b", po::value<std::string>()->value_name("module_file"),
+       "Broker configuration file")
+      ("extended-config,c",
+       po::value<std::vector<std::string>>()->value_name("config-file"),
+       "Extended configuration file")
+      ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
+        "Main configuration file");
 
-      // Process flag.
-      switch (c) {
-        case '?':  // Usage.
-        case 'h':
-          display_help = true;
-          break;
-        case 'V':  // Version.
-          display_license = true;
-          break;
-        case 'v':  // Verify config.
-          verify_config = true;
-          break;
-        case 's':  // Scheduling check.
-          test_scheduling = true;
-          break;
-        case 'x':  // Don't verify circular paths.
-          verify_circular_paths = false;
-          break;
-        case 'D':  // Diagnostic.
-          diagnose = true;
-          break;
-        case 'c':
-          if (optarg)
-            extended_conf_file.emplace_back(optarg);
-          break;
-        default:
-          error = true;
-      }
-    }
+    // clang-format on
+    po::positional_options_description p;
+    p.add("config-file", -1);
 
-    // Invalid argument count.
-    if (argc < 2
-        // Main configuration file not on command line.
-        || optind >= argc)
-      error = true;
-    else {
-      // Config file is last argument specified.
-      config_file = argv[optind];
+    po::variables_map vm;
+    po::store(
+        po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+        vm);
+    po::notify(vm);
 
-      // Make sure the config file uses an absolute path.
-      if (config_file[0] != '/') {
-        // Get absolute path of current working directory.
-        std::string buffer{
-            fmt::format("{}/{}", std::string{std::filesystem::current_path()},
-                        config_file)};
-        config_file = std::move(buffer);
-      }
-    }
-
-    // Reset umask.
-    umask(S_IWGRP | S_IWOTH);
-
-    // Checker init
-    checks::checker::init();
-
-    // Just display the license.
-    if (display_license) {
+    if (vm.count("help")) {
+      std::cout << "Usage: " << argv[0] << " [options] cfg_file" << std::endl;
+      std::cout << desc << std::endl;
+      retval = EXIT_SUCCESS;
+    } else if (vm.count("version")) {
       std::cout
           << "Centreon Engine " CENTREON_ENGINE_VERSION_STRING
              "\n"
@@ -247,380 +185,308 @@ int main(int argc, char* argv[]) {
              "<http://www.gnu.org/licenses/>.\n";
 
       retval = EXIT_SUCCESS;
-    }
-    // If requested or if an error occured, print usage.
-    else if (error || display_help) {
-      std::cout
-          << "Usage: " << argv[0]
-          << " [options] <main_config_file>\n"
-             "\n"
-             "Basics:\n"
-             "  -h, --help                  Print help.\n"
-             "  -V, --license, --version    Print software version and "
-             "license.\n"
-             "\n"
-             "Configuration:\n"
-             "  -v, --verify-config         Verify all configuration data.\n"
-             "  -s, --test-scheduling       Shows projected/recommended "
-             "check\n"
-             "                              scheduling and other diagnostic "
-             "info\n"
-             "                              based on the current "
-             "configuration\n"
-             "                              files.\n"
-             "  -x, --dont-verify-paths     Don't check for circular object "
-             "paths -\n"
-             "                              USE WITH CAUTION !\n"
-             "  -D, --diagnose              Generate a diagnostic file.\n"
-             "\n"
-             "Online:\n"
-             "  Website                     https://www.centreon.com\n"
-             "  Reference documentation     "
-             "https://documentation.centreon.com/docs/centreon-engine/en/"
-             "latest/\n"
-             "  Sources                     "
-             "https://github.com/centreon/centreon-engine\n";
+    } else {
+      if (vm.count("verify-config"))
+        verify_config = true;
+      if (vm.count("test-scheduling"))
+        test_scheduling = true;
+      if (vm.count("dont-verify-paths"))
+        verify_circular_paths = false;
+      if (vm.count("diagnose"))
+        diagnose = true;
+      if (vm.count("broker-config"))
+        broker_config = vm["broker-config"].as<std::string>();
+      if (vm.count("extended-config"))
+        extended_conf_file =
+            vm["extended-config"].as<std::vector<std::string>>();
+      // Config file is last argument specified.
+      if (vm.count("config-file"))
+        config_file = vm["config-file"].as<std::string>();
 
-      retval = (display_help ? EXIT_SUCCESS : EXIT_FAILURE);
-    }
-    // We're just verifying the configuration.
-    else if (verify_config) {
-      try {
-#ifdef LEGACY_CONF
-        // Read in the configuration files (main config file,
-        // resource and object config files).
-        configuration::error_cnt err;
-        configuration::state config;
-        {
-          configuration::parser p;
-          p.parse(config_file, config, err);
-        }
-
-        configuration::applier::state::instance().apply(config, err);
-#else
-        // Read in the configuration files (main config file,
-        // resource and object config files).
-        configuration::error_cnt err;
-        configuration::State pb_config;
-        {
-          configuration::parser p;
-          p.parse(config_file, &pb_config, err);
-        }
-        configuration::applier::state::instance().apply(pb_config, err);
-#endif
-        std::cout << "\n Checked " << commands::command::commands.size()
-                  << " commands.\n Checked "
-                  << commands::connector::connectors.size()
-                  << " connectors.\n Checked " << contact::contacts.size()
-                  << " contacts.\n Checked "
-                  << hostdependency::hostdependencies.size()
-                  << " host dependencies.\n Checked "
-                  << hostescalation::hostescalations.size()
-                  << " host escalations.\n Checked "
-                  << hostgroup::hostgroups.size() << " host groups.\n Checked "
-                  << host::hosts.size() << " hosts.\n Checked "
-                  << servicedependency::servicedependencies.size()
-                  << " service dependencies.\n Checked "
-                  << serviceescalation::serviceescalations.size()
-                  << " service escalations.\n Checked "
-                  << servicegroup::servicegroups.size()
-                  << " service groups.\n Checked " << service::services.size()
-                  << " services.\n Checked " << timeperiod::timeperiods.size()
-                  << " time periods.\n\n Total Warnings: "
-                  << err.config_warnings
-                  << "\n Total Errors:   " << err.config_errors << std::endl;
-        retval = err.config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
-      } catch (const std::exception& e) {
-        std::cout << "Error while processing a config file: " << e.what()
-                  << std::endl;
-
-        std::cout
-            << "One or more problems occurred while processing the config "
-               "files.\n "
-               "Check your configuration file(s) to ensure that they contain "
-               "valid directives and data definitions.\nIf you are upgrading "
-               "from "
-               "a previous version of Centreon Engine, you should be aware "
-               "that "
-               "some variables/definitions may have been removed or modified "
-               "in "
-               "this version.\n Make sure to read the documentation regarding "
-               "the "
-               "config files, as well as the version changelog to find out "
-               "what "
-               "has changed.\n";
+      // Make sure the config file uses an absolute path.
+      if (config_file[0] != '/') {
+        // Get absolute path of current working directory.
+        std::string buffer{
+            fmt::format("{}/{}", std::string{std::filesystem::current_path()},
+                        config_file)};
+        config_file = std::move(buffer);
       }
-    }
-    // We're just testing scheduling.
-    else if (test_scheduling) {
-      try {
-#ifdef LEGACY_CONF
-        // Parse configuration.
-        configuration::state config;
-        configuration::error_cnt err;
-        {
-          configuration::parser p;
-          p.parse(config_file, config, err);
-        }
 
-        // Parse retention.
-        retention::state state;
-        if (!config.state_retention_file().empty()) {
-          retention::parser p;
-          try {
-            p.parse(config.state_retention_file(), state);
-          } catch (std::exception const& e) {
-            std::cout << "Error while parsing the retention: {}" << e.what()
-                      << std::endl;
-          }
-        }
+      // Reset umask.
+      umask(S_IWGRP | S_IWOTH);
 
-        // Apply configuration.
-        configuration::applier::state::instance().apply(config, err, &state);
-#else
-        // Parse configuration.
-        configuration::State pb_config;
-        configuration::error_cnt err;
-        {
-          configuration::parser p;
-          p.parse(config_file, &pb_config, err);
-        }
+      // Checker init
+      checks::checker::init();
 
-        // Parse retention.
-        retention::state state;
-        if (!pb_config.state_retention_file().empty()) {
-          retention::parser p;
-          try {
-            p.parse(pb_config.state_retention_file(), state);
-          } catch (std::exception const& e) {
-            std::cout << "Error while parsing the retention: {}" << e.what()
-                      << std::endl;
-          }
-        }
-
-        // Apply configuration.
-        configuration::applier::state::instance().apply(pb_config, err, &state);
-#endif
-
-        display_scheduling_info();
-        retval = EXIT_SUCCESS;
-      } catch (std::exception const& e) {
-        std::cout << e.what() << std::endl;
+      // If an error occured, print usage.
+      if (error) {
+        std::cout << "Usage: " << argv[0] << " [options] cfg_file" << std::endl;
+        std::cout << desc << std::endl;
+        retval = EXIT_FAILURE;
       }
-    }
-    // Diagnostic.
-    else if (diagnose) {
-      diagnostic diag;
-      diag.generate(config_file);
-    }
-    // Else start to monitor things.
-    else {
-      auto generate_port = [] {
-        std::random_device rd;  // Will be used to obtain a seed for the
-                                // random number engine
-        std::mt19937 gen(
-            rd());  // Standard mersenne_twister_engine seeded with rd()
-        std::uniform_int_distribution<uint16_t> dis(50000, 50999);
-
-        uint16_t port = dis(gen);
-        return port;
-      };
-
-      try {
-#ifdef LEGACY_CONF
-        // Parse configuration.
-        configuration::error_cnt err;
-        configuration::state config;
-        {
-          configuration::parser p;
-          p.parse(config_file, config, err);
-        }
-
-        configuration::extended_conf::load_all(extended_conf_file.begin(),
-                                               extended_conf_file.end());
-
-        configuration::extended_conf::update_state(config);
-        uint16_t port = config.rpc_port();
-
-        if (!port)
-          port = generate_port();
-
-        const std::string& listen_address = config.rpc_listen_address();
-
-        std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
-            new enginerpc(listen_address, port), [](enginerpc* rpc) {
-              rpc->shutdown();
-              delete rpc;
-            });
-
-        // Parse retention.
-        retention::state state;
-        {
-          retention::parser p;
-          try {
-            p.parse(config.state_retention_file(), state);
-          } catch (const std::exception& e) {
-            config_logger->error("{}", e.what());
-            engine_logger(logging::log_config_error, logging::basic)
-                << e.what();
+      // We're just verifying the configuration.
+      else if (verify_config) {
+        try {
+          // Read in the configuration files (main config file,
+          // resource and object config files).
+          configuration::error_cnt err;
+          cbm = std::make_unique<cbmod>();
+          configuration::State pb_config;
+          {
+            configuration::parser p;
+            p.parse(config_file, &pb_config, err);
+            if (broker_config.empty())
+              broker_config = pb_config.broker_module_cfg_file();
           }
+          configuration::applier::state::instance().apply(pb_config, err);
+          std::cout << "\n Checked " << commands::command::commands.size()
+                    << " commands.\n Checked "
+                    << commands::connector::connectors.size()
+                    << " connectors.\n Checked " << contact::contacts.size()
+                    << " contacts.\n Checked "
+                    << hostdependency::hostdependencies.size()
+                    << " host dependencies.\n Checked "
+                    << hostescalation::hostescalations.size()
+                    << " host escalations.\n Checked "
+                    << hostgroup::hostgroups.size()
+                    << " host groups.\n Checked " << host::hosts.size()
+                    << " hosts.\n Checked "
+                    << servicedependency::servicedependencies.size()
+                    << " service dependencies.\n Checked "
+                    << serviceescalation::serviceescalations.size()
+                    << " service escalations.\n Checked "
+                    << servicegroup::servicegroups.size()
+                    << " service groups.\n Checked " << service::services.size()
+                    << " services.\n Checked " << timeperiod::timeperiods.size()
+                    << " time periods.\n\n Total Warnings: "
+                    << err.config_warnings
+                    << "\n Total Errors:   " << err.config_errors << std::endl;
+          retval = err.config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
+        } catch (const std::exception& e) {
+          std::cout << "Error while processing a config file: " << e.what()
+                    << std::endl;
+
+          std::cout
+              << "One or more problems occurred while processing the config "
+                 "files.\n "
+                 "Check your configuration file(s) to ensure that they contain "
+                 "valid directives and data definitions.\nIf you are upgrading "
+                 "from "
+                 "a previous version of Centreon Engine, you should be aware "
+                 "that "
+                 "some variables/definitions may have been removed or modified "
+                 "in "
+                 "this version.\n Make sure to read the documentation "
+                 "regarding "
+                 "the "
+                 "config files, as well as the version changelog to find out "
+                 "what "
+                 "has changed.\n";
         }
-
-        // Get program (re)start time and save as macro. Needs to be
-        // done after we read config files, as user may have overridden
-        // timezone offset.
-        program_start = std::time(nullptr);
-        mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
-
-        // Load broker modules.
-        for (auto& m : config.broker_module()) {
-          std::string filename;
-          std::string args;
-          if (!string::split(m, filename, args, ' '))
-            filename = m;
-          broker::loader::instance().add_module(filename, args);
-        }
-        neb_init_callback_list();
-
-        // Add broker backend.
-        com::centreon::logging::engine::instance().add(
-            &backend_broker_log, logging::log_all, logging::basic);
-
-        // Apply configuration.
-        configuration::applier::state::instance().apply(config, err, &state);
-#else
-        // Parse configuration.
-        configuration::error_cnt err;
-        configuration::State pb_config;
-        {
-          configuration::parser p;
-          p.parse(config_file, &pb_config, err);
-        }
-
-        configuration::extended_conf::load_all(extended_conf_file.begin(),
-                                               extended_conf_file.end());
-
-        configuration::extended_conf::update_state(&pb_config);
-        uint16_t port = pb_config.grpc_port();
-
-        if (!port)
-          port = generate_port();
-
-        const std::string& listen_address = pb_config.rpc_listen_address();
-
-        std::unique_ptr<enginerpc, std::function<void(enginerpc*)> > rpc(
-            new enginerpc(listen_address, port), [](enginerpc* rpc) {
-              rpc->shutdown();
-              delete rpc;
-            });
-
-        // Parse retention.
-        retention::state state;
-        {
-          retention::parser p;
-          try {
-            p.parse(pb_config.state_retention_file(), state);
-          } catch (const std::exception& e) {
-            config_logger->error("{}", e.what());
-            engine_logger(logging::log_config_error, logging::basic)
-                << e.what();
+      }
+      // We're just testing scheduling.
+      else if (test_scheduling) {
+        try {
+          // Parse configuration.
+          configuration::State pb_config;
+          configuration::error_cnt err;
+          {
+            configuration::parser p;
+            p.parse(config_file, &pb_config, err);
           }
+
+          // Parse retention.
+          retention::state state;
+          if (!pb_config.state_retention_file().empty()) {
+            retention::parser p;
+            try {
+              p.parse(pb_config.state_retention_file(), state);
+            } catch (std::exception const& e) {
+              std::cout << "Error while parsing the retention: {}" << e.what()
+                        << std::endl;
+            }
+          }
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(pb_config, err,
+                                                          &state);
+
+          display_scheduling_info();
+          retval = EXIT_SUCCESS;
+        } catch (std::exception const& e) {
+          std::cout << e.what() << std::endl;
         }
+      }
+      // Diagnostic.
+      else if (diagnose) {
+        diagnostic diag;
+        diag.generate(config_file);
+      }
+      // Else start to monitor things.
+      else {
+        auto generate_port = [] {
+          std::random_device rd;  // Will be used to obtain a seed for the
+                                  // random number engine
+          std::mt19937 gen(
+              rd());  // Standard mersenne_twister_engine seeded with rd()
+          std::uniform_int_distribution<uint16_t> dis(50000, 50999);
 
-        // Get program (re)start time and save as macro. Needs to be
-        // done after we read config files, as user may have overridden
-        // timezone offset.
-        program_start = std::time(nullptr);
-        mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
+          uint16_t port = dis(gen);
+          return port;
+        };
 
-        // Load broker modules.
-        for (auto& m : pb_config.broker_module()) {
-          std::pair<std::string, std::string> p =
-              absl::StrSplit(m, absl::MaxSplits(' ', 1));
-          broker::loader::instance().add_module(p.first, p.second);
-        }
-        neb_init_callback_list();
+        try {
+          // Parse configuration.
+          configuration::error_cnt err;
+          configuration::State new_config;
+          {
+            configuration::parser p;
+            p.parse(config_file, &new_config, err);
+          }
 
-        // Add broker backend.
-        com::centreon::logging::engine::instance().add(
-            &backend_broker_log, logging::log_all, logging::basic);
+          configuration::extended_conf::load_all(extended_conf_file.begin(),
+                                                 extended_conf_file.end());
 
-        // Apply configuration.
-        configuration::applier::state::instance().apply(pb_config, err, &state);
-#endif
+          configuration::extended_conf::update_state(&new_config);
+          if (broker_config.empty())
+            broker_config = new_config.broker_module_cfg_file();
+          uint16_t port = new_config.grpc_port();
 
-        // Handle signals (interrupts).
-        setup_sighandler();
+          if (broker_config.empty()) {
+            std::cerr << "No module configuration file provided in the Engine "
+                         "configuration file."
+                      << std::endl;
+            exit(EXIT_FAILURE);
+          }
+          if (!port)
+            port = generate_port();
 
-        // Initialize status data.
-        initialize_status_data();
+          const std::string& listen_address = new_config.rpc_listen_address();
 
-        // Initialize scheduled downtime data.
-        downtimes::downtime_manager::instance().initialize_downtime_data();
+          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
+              new enginerpc(listen_address, port), [](enginerpc* rpc) {
+                rpc->shutdown();
+                delete rpc;
+              });
 
-        // Initialize check statistics.
-        init_check_stats();
+          // Parse retention.
+          retention::state state;
+          {
+            retention::parser p;
+            try {
+              p.parse(new_config.state_retention_file(), state);
+            } catch (const std::exception& e) {
+              config_logger->error("{}", e.what());
+              engine_logger(logging::log_config_error, logging::basic)
+                  << e.what();
+            }
+          }
 
-        // Update all status data (with retained information).
-        update_all_status_data();
+          // Get program (re)start time and save as macro. Needs to be
+          // done after we read config files, as user may have overridden
+          // timezone offset.
+          program_start = std::time(nullptr);
+          mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
 
-        // Send program data to broker.
-        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
+          // Handle signals (interrupts).
+          setup_sighandler();
 
-        // if neb has not started g_io_context we do it here
-        com::centreon::common::pool::set_pool_size(1);
+          // Load broker modules.
+          configuration::applier::state::instance().apply_log_config(
+              new_config);
 
-        // Get event start time and save as macro.
-        event_start = time(NULL);
-        mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
+          neb_init_callback_list();
 
-        engine_logger(logging::log_info_message, logging::basic)
-            << "Event loop start at " << string::ctime(event_start);
-        config_logger->info("Event loop start at {}",
-                            string::ctime(event_start));
-        // Start monitoring all services (doesn't return until a
-        // restart or shutdown signal is encountered).
-        com::centreon::engine::events::loop::instance().run();
+          for (auto& m : new_config.broker_module()) {
+            std::pair<std::string, std::string> p =
+                absl::StrSplit(m, absl::MaxSplits(' ', 1));
+            broker::loader::instance().add_module(p.first, p.second);
+          }
 
-        if (sigshutdown) {
-          engine_logger(logging::log_process_info, logging::basic)
-              << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
-          SPDLOG_LOGGER_INFO(process_logger, "Caught SIG {}, shutting down ...",
-                             sigs[sig_id]);
-        }
-        // Send program data to broker.
-        broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE);
-        if (sigshutdown)
-          broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
-                               NEBFLAG_USER_INITIATED);
+          // Add broker backend.
+          com::centreon::logging::engine::instance().add(
+              &backend_broker_log, logging::log_all, logging::basic);
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(new_config, err,
+                                                          &state);
+
+          // Initialize status data.
+          initialize_status_data();
+
+          // Initialize scheduled downtime data.
+          downtimes::downtime_manager::instance().initialize_downtime_data();
+
+          // Initialize check statistics.
+          init_check_stats();
+
+          // Update all status data (with retained information).
+          update_all_status_data();
+
+          /* We don't start cbm earlier because when we apply the configuration,
+           * we also send the configuration to Broker, but the initial instance
+           * will be send by broker_program_state with the
+           * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd send
+           * the configuration twice to Broker. But the first time without the
+           * initial instance, which can lead to issues in the database. Doing
+           * this, imply we also have to check if cbm is defined in broker.cc.
+           */
+          cbm = std::make_unique<cbmod>(broker_config);
+          // Send program data to broker.
+          broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
+
+          // if neb has not started g_io_context we do it here
+          com::centreon::common::pool::set_pool_size(1);
+
+          // Get event start time and save as macro.
+          event_start = time(NULL);
+          mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
+
+          engine_logger(logging::log_info_message, logging::basic)
+              << "Event loop start at " << string::ctime(event_start);
+          config_logger->info("Event loop start at {}",
+                              string::ctime(event_start));
+          // Start monitoring all services (doesn't return until a
+          // restart or shutdown signal is encountered).
+          com::centreon::engine::events::loop::instance().run();
+
+          if (sigshutdown) {
+            engine_logger(logging::log_process_info, logging::basic)
+                << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
+            SPDLOG_LOGGER_INFO(process_logger,
+                               "Caught SIG {}, shutting down ...",
+                               sigs[sig_id]);
+          }
+          // Send program data to broker.
+          broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE);
+          if (sigshutdown)
+            broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
+                                 NEBFLAG_USER_INITIATED);
 
           // Save service and host state information.
-#ifdef LEGACY_CONF
-        retention::dump::save(::config->state_retention_file());
-#else
-        retention::dump::save(::pb_config.state_retention_file());
-#endif
+          retention::dump::save(::pb_config.state_retention_file());
 
-        // Clean up the status data.
-        cleanup_status_data(true);
+          // Clean up the status data.
+          cleanup_status_data(true);
 
-        // Shutdown stuff.
-        if (sigshutdown) {
-          engine_logger(logging::log_process_info, logging::basic)
-              << "Successfully shutdown ... (PID=" << getpid() << ")";
-          SPDLOG_LOGGER_INFO(process_logger,
-                             "Successfully shutdown ... (PID={})", getpid());
+          // Shutdown stuff.
+          if (sigshutdown) {
+            engine_logger(logging::log_process_info, logging::basic)
+                << "Successfully shutdown ... (PID=" << getpid() << ")";
+            SPDLOG_LOGGER_INFO(process_logger,
+                               "Successfully shutdown ... (PID={})", getpid());
+          }
+
+          retval = EXIT_SUCCESS;
+        } catch (std::exception const& e) {
+          // Log.
+          engine_logger(logging::log_runtime_error, logging::basic)
+              << "Error: " << e.what();
+          SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
+          // Send program data to broker.
+          broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
+                               NEBFLAG_PROCESS_INITIATED);
         }
-
-        retval = EXIT_SUCCESS;
-      } catch (std::exception const& e) {
-        // Log.
-        engine_logger(logging::log_runtime_error, logging::basic)
-            << "Error: " << e.what();
-        SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
-        // Send program data to broker.
-        broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
-                             NEBFLAG_PROCESS_INITIATED);
       }
     }
 
@@ -634,11 +500,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Unload singletons and global objects.
-#ifdef LEGACY_CONF
-  delete config;
-  config = nullptr;
-#endif
 
+  cbm.reset();
   g_io_context->stop();
   com::centreon::common::pool::unload();
 

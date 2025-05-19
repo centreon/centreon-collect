@@ -36,14 +36,16 @@ set(SOURCES
     "${SRC_DIR}/stream.cc"
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
     "${SRC_DIR}/grpc_stream.pb.cc"
-    "${SRC_DIR}/grpc_bridge.cc")
+    "${SRC_DIR}/grpc_bridge.cc"
+    "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc"
+)
 
 # GRPC module.
 set(GRPC "50-grpc")
 set(GRPC
     ${GRPC}
     PARENT_SCOPE)
-add_library(${GRPC} SHARED ${SOURCES} )
+add_library(${GRPC} SHARED ${SOURCES})
 set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(
   ${GRPC}

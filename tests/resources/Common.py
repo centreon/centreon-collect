@@ -31,6 +31,7 @@ import time
 import json
 import psutil
 import random
+import shutil
 import string
 from dateutil import parser
 from datetime import datetime, timedelta
@@ -485,8 +486,10 @@ def ctn_clear_cache():
 
 
 def ctn_clear_logs():
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
+    os.makedirs(f"{VAR_ROOT}/log/centreon-engine")
+    os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):
@@ -823,11 +826,10 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\" AND s.enabled=1 AND h.enabled=1")
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    logger.console(
-                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
@@ -991,7 +993,17 @@ def ctn_check_tags_count(value: int, timeout: int):
     return False
 
 
-def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int = TIMEOUT):
+    """ check in the database if the BA has the expected status.
+
+    Args:
+        ba_name: The name of the BA
+        status: The expected status
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the status is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1002,9 +1014,9 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
+                logger.console(f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
-                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
+                    f"SELECT current_status FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
                 logger.console(f"ba: {result[0]}")
                 if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
@@ -1040,6 +1052,12 @@ def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout
 
 
 def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
+    """ check if the expected number of downtimes is present in the database.
+
+    Args:
+        nb: Expected number of downtimes
+        timeout: timeout in seconds
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1054,6 +1072,7 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute(
                     "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
+                logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['count(*)'] is not None:
                     if result[0]['count(*)'] == int(nb):
                         return True
@@ -1110,11 +1129,12 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
 
         with connection:
             with connection.cursor() as cursor:
+                first = True
                 if enabled != '0':
-                    logger.console(
-                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
-                    cursor.execute(
-                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    if first:
+                        logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        first = False
+                    cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
                         logger.console(
@@ -1246,7 +1266,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
 
 def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
     """
-    ctl_check_host_check_with_timeout
+    ctn_check_host_check_with_timeout
 
     Checks that the last_check is after the start timestamp.
 
@@ -1385,6 +1405,7 @@ def ctn_show_downtimes():
 
 def ctn_delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
+    did = 0
     while time.time() < now + TIMEOUT:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1403,15 +1424,24 @@ def ctn_delete_service_downtime(hst: str, svc: str):
                     break
         time.sleep(1)
 
-    logger.console(f"delete downtime internal_id={did}")
-    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    if did != 0:
+        logger.console(f"delete downtime internal_id={did}")
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(f"[{now}] DEL_SVC_DOWNTIME;{did}\n")
 
 
 def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+    """
+    Check if the number of downtimes is the expected one.
+    Args:
+        nb: The expected number of downtimes
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the number of downtimes is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
+    retval = False
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1423,13 +1453,32 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth='1'")
+                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
                 if int(result[0]['count(*)']) == int(nb):
-                    return True
+                    retval = True
+                    break
         time.sleep(1)
-    return False
+
+    connection = pymysql.connect(host=DB_HOST,
+                             user=DB_USER,
+                             password=DB_PASS,
+                             database=DB_NAME_STORAGE,
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
+            result = cursor.fetchall()
+            if retval:
+                logger.console("We get the expected number of downtimes")
+            else:
+                logger.console("Not the expected number of downtimes")
+            logger.console(json.dumps(result, indent=4, sort_keys=True))
+    return retval
 
 
 def ctn_clear_db(table: str):
@@ -1749,21 +1798,19 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
                 confirmed = ''
                 if in_resources:
                     cursor.execute(
-                        "SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                        f"SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{host}'")
                     key = 'status'
                     confirmed = 'status_confirmed'
                 else:
                     cursor.execute(
-                        "SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                        f"SELECT state, state_type FROM hosts WHERE name='{host}'")
                     key = 'state'
                     confirmed = 'state_type'
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0:
                     if int(result[0][key]) == value and int(result[0][confirmed]) == t:
                         return True
-                    else:
-                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
-                            host, result[0][key], result[0][confirmed]))
         time.sleep(1)
     return False
 

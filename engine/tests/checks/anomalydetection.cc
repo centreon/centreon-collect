@@ -36,10 +36,6 @@
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;

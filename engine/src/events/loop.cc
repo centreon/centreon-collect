@@ -29,11 +29,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/parser.hh"
-#else
 #include "common/engine_conf/parser.hh"
-#endif
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
@@ -53,7 +49,7 @@ void loop::clear() {
   _event_list_low.clear();
   _event_list_high.clear();
 
-  _need_reload = 0;
+  _need_reload = false;
   _reload_running = false;
 }
 
@@ -90,34 +86,15 @@ void loop::run() {
 /**
  *  Default constructor.
  */
-loop::loop() : _need_reload(0), _reload_running(false) {}
+loop::loop() : _need_reload(false), _reload_running(false) {}
 
-#ifdef LEGACY_CONF
-static void apply_conf(std::atomic<bool>* reloading) {
-  configuration::error_cnt err;
-  engine_logger(log_info_message, more) << "Starting to reload configuration.";
-  process_logger->info("Starting to reload configuration.");
-  try {
-    configuration::state config;
-    {
-      configuration::parser p;
-      std::string path(::config->cfg_main());
-      p.parse(path, config, err);
-    }
-    configuration::extended_conf::update_state(config);
-    configuration::applier::state::instance().apply(config, err);
-    engine_logger(log_info_message, basic)
-        << "Configuration reloaded, main loop continuing.";
-    process_logger->info("Configuration reloaded, main loop continuing.");
-  } catch (std::exception const& e) {
-    engine_logger(log_config_error, most) << "Error: " << e.what();
-    config_logger->error("Error: {}", e.what());
-  }
-  *reloading = false;
-  engine_logger(log_info_message, more) << "Reload configuration finished.";
-  process_logger->info("Reload configuration finished.");
-}
-#else
+/**
+ * @brief Reload the configuration and apply its difference with the current
+ * one.
+ *
+ * @param reloading A boolean to know if the configuration is currently
+ * reloading.
+ */
 static void apply_conf(std::atomic<bool>* reloading) {
   configuration::error_cnt err;
   process_logger->info("Starting to reload configuration.");
@@ -138,7 +115,6 @@ static void apply_conf(std::atomic<bool>* reloading) {
   *reloading = false;
   process_logger->info("Reload configuration finished.");
 }
-#endif
 
 /**
  *  Slot to dispatch Centreon Engine events.
@@ -162,7 +138,7 @@ void loop::_dispatching() {
 
     if (sighup) {
       com::centreon::logging::engine::instance().reopen();
-      ++_need_reload;
+      _need_reload = true;
       sighup = false;
     }
 
@@ -180,7 +156,7 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
       }
-      _need_reload = 0;
+      _need_reload = false;
     }
 
     // Get the current time.
@@ -189,16 +165,6 @@ void loop::_dispatching() {
 
     configuration::applier::state::instance().lock();
 
-#ifdef LEGACY_CONF
-    time_t time_change_threshold = config->time_change_threshold();
-    uint32_t max_parallel_service_checks =
-        config->max_parallel_service_checks();
-    bool execute_service_checks = config->execute_service_checks();
-    bool execute_host_checks = config->execute_host_checks();
-    uint32_t interval_length = config->interval_length();
-    double sleep_time = config->sleep_time();
-    int32_t command_check_interval = config->command_check_interval();
-#else
     time_t time_change_threshold = pb_config.time_change_threshold();
     uint32_t max_parallel_service_checks =
         pb_config.max_parallel_service_checks();
@@ -207,7 +173,6 @@ void loop::_dispatching() {
     uint32_t interval_length = pb_config.interval_length();
     double sleep_time = pb_config.sleep_time();
     int32_t command_check_interval = pb_config.command_check_interval();
-#endif
 
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)
@@ -216,7 +181,7 @@ void loop::_dispatching() {
           static_cast<unsigned long>(current_time));
     // Else if the time advanced over the specified threshold,
     // try and compensate...
-    else if ((current_time - _last_time) >=
+    else if (current_time - _last_time >=
              static_cast<time_t>(time_change_threshold))
       compensate_for_system_time_change(
           static_cast<unsigned long>(_last_time),
@@ -469,7 +434,7 @@ void loop::_dispatching() {
       if (command_check_interval == -1) {
         // Send data to event broker.
         broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
-                                nullptr, nullptr);
+                                nullptr);
       }
 
       auto t1 = std::chrono::system_clock::now();
@@ -486,10 +451,6 @@ void loop::_dispatching() {
       // Populate fake "sleep" event.
       _sleep_event.run_time = current_time;
       _sleep_event.event_data = (void*)&stime;
-
-      // Send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_SLEEP, NEBFLAG_NONE, NEBATTR_NONE,
-                         &_sleep_event, nullptr);
 
       auto t2 = std::chrono::system_clock::now();
       auto laps = t2 - t1;
@@ -725,9 +686,6 @@ void loop::remove_downtime(uint64_t downtime_id) {
     if ((*it)->event_type != timed_event::EVENT_SCHEDULED_DOWNTIME)
       continue;
     if (((uint64_t)(*it)->event_data) == downtime_id) {
-      // send event data to broker.
-      broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                         it->get(), nullptr);
       _event_list_high.erase(it);
       break;
     }
@@ -820,7 +778,6 @@ timed_event_list::iterator loop::find_event(loop::priority priority,
  */
 void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
                             loop::priority priority) {
-  engine_logger(dbg_functions, basic) << "reschedule_event()";
   functions_logger->trace("reschedule_event()");
 
   // reschedule recurring events...
@@ -837,9 +794,8 @@ void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
 
     // normal recurring events.
     else {
-      time_t current_time(0L);
       event->run_time = event->run_time + event->event_interval;
-      time(&current_time);
+      time_t current_time = time(nullptr);
       if (event->run_time < current_time)
         event->run_time = current_time;
     }
@@ -873,11 +829,6 @@ void loop::resort_event_list(loop::priority priority) {
                const std::unique_ptr<timed_event>& second) {
               return first->run_time < second->run_time;
             });
-
-  // send event data to broker.
-  for (auto& evt : *list)
-    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                       evt.get(), nullptr);
 }
 
 /**

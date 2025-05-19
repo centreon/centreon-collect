@@ -20,17 +20,9 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
 
-#ifndef LEGACY_CONF
 #include "common/engine_conf/service_helper.hh"
-#endif
 
 namespace com::centreon::engine::configuration {
-
-#ifdef LEGACY_CONF
-// Forward declarations.
-class service;
-class state;
-#endif
 
 namespace applier {
 class service {
@@ -39,33 +31,18 @@ class service {
   service(service const&) = delete;
   ~service() noexcept = default;
   service& operator=(service const&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(configuration::service const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::service const& obj);
-  void remove_object(configuration::service const& obj);
-  void resolve_object(configuration::service const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Service& obj);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
   void remove_object(ssize_t idx);
   void resolve_object(const configuration::Service& obj, error_cnt& err);
-#endif
 
  private:
-#ifdef LEGACY_CONF
-  void _expand_service_memberships(configuration::service& obj,
-                                   configuration::state& s);
-  void _inherits_special_vars(configuration::service& obj,
-                              configuration::state const& s);
-#else
   void _expand_service_memberships(configuration::Service& obj,
                                    configuration::State& s);
   void _inherits_special_vars(configuration::Service& obj,
                               const configuration::State& s);
-#endif
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

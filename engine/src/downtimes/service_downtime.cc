@@ -72,7 +72,7 @@ service_downtime::~service_downtime() {
       NEBTYPE_DOWNTIME_DELETE, NEBATTR_NONE, downtime::service_downtime,
       host_id(), service_id(), _entry_time, get_author().c_str(),
       get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-      get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+      get_triggered_by(), get_duration(), get_downtime_id());
 }
 
 /**
@@ -110,6 +110,14 @@ bool service_downtime::is_stale() const {
  */
 void service_downtime::retention(std::ostream& os) const {
   auto p = engine::get_host_and_service_names(host_id(), service_id());
+  // If p.first starts with "_Module_BAM_" and p.second starts with 'ba_', we
+  // skip this downtime.
+  // The idea here is to avoid downtimes coming from BA, because broker already
+  // sends them.
+  if (p.first.compare(0, 12, "_Module_BAM_") == 0 &&
+      p.second.compare(0, 3, "ba_") == 0)
+    return;
+
   os << "servicedowntime {"
         "\nhost_name="
      << p.first << "\nservice_description=" << p.second
@@ -125,6 +133,14 @@ void service_downtime::retention(std::ostream& os) const {
 
 void service_downtime::print(std::ostream& os) const {
   auto p = engine::get_host_and_service_names(host_id(), service_id());
+  // If p.first starts with "_Module_BAM_" and p.second starts with 'ba_', we
+  // skip this downtime.
+  // The idea here is to avoid downtimes coming from BA, because broker already
+  // sends them.
+  if (p.first.compare(0, 12, "_Module_BAM_") == 0 &&
+      p.second.compare(0, 3, "ba_") == 0)
+    return;
+
   os << "servicedowntime {\n"
         "\thost_name="
      << p.first
@@ -183,7 +199,7 @@ int service_downtime::unschedule() {
         NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
         host_id(), service_id(), _entry_time, get_author().c_str(),
         get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-        get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+        get_triggered_by(), get_duration(), get_downtime_id());
 
     found->second->dec_scheduled_downtime_depth();
     found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
@@ -374,7 +390,7 @@ int service_downtime::handle() {
                          service_id(), _entry_time, get_author().c_str(),
                          get_comment().c_str(), get_start_time(),
                          get_end_time(), is_fixed(), get_triggered_by(),
-                         get_duration(), get_downtime_id(), nullptr);
+                         get_duration(), get_downtime_id());
 
     /* decrement the downtime depth variable */
     found->second->dec_scheduled_downtime_depth();
@@ -459,7 +475,7 @@ int service_downtime::handle() {
         NEBTYPE_DOWNTIME_START, NEBATTR_NONE, get_type(), host_id(),
         service_id(), _entry_time, get_author().c_str(), get_comment().c_str(),
         get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
-        get_duration(), get_downtime_id(), nullptr);
+        get_duration(), get_downtime_id());
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
@@ -546,5 +562,5 @@ void service_downtime::schedule() {
                        downtime::service_downtime, host_id(), service_id(),
                        _entry_time, _author.c_str(), _comment.c_str(),
                        _start_time, _end_time, _fixed, _triggered_by, _duration,
-                       _downtime_id, nullptr);
+                       _downtime_id);
 }

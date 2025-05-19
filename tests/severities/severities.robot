@@ -25,12 +25,12 @@ BESEV1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Ctn Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BESEV2
@@ -47,14 +47,14 @@ BESEV2
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    1s
     Ctn Start Broker
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Ctn Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV1
@@ -74,12 +74,12 @@ BEUSEV1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Ctn Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV2
@@ -98,14 +98,14 @@ BEUSEV2
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Sleep    1s
     Ctn Start Broker
     ${result}    Ctn Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
     ${result}    Ctn Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV3
@@ -125,7 +125,7 @@ BEUSEV3
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    2s
 
@@ -142,7 +142,7 @@ BEUSEV3
     ${result}    Ctn Check Service Severity With Timeout    1    1    None    60
     Should Be True    ${result}    Service (1, 1) should have no severity
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEUSEV4
@@ -168,7 +168,7 @@ BEUSEV4
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -212,7 +212,7 @@ BEUSEV4
     ${result}    Ctn Check Service Severity With Timeout    1    5    None    60
     Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BETUSEV1
@@ -243,7 +243,7 @@ BETUSEV1
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
     ${start}    Get Current Date
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
@@ -262,5 +262,5 @@ BETUSEV1
     ${result}    Ctn Check Service Severity With Timeout    26    503    5    60
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

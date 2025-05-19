@@ -26,22 +26,14 @@ namespace com::centreon::engine {
 
 // Forward declaration.
 namespace configuration {
-#ifdef LEGACY_CONF
-class state;
-#else
 class State;
-#endif
 }
 
 namespace retention {
 namespace applier {
 class program {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state& config, retention::program const& obj);
-#else
   void apply(configuration::State& config, retention::program const& obj);
-#endif
 
  private:
   bool _find_command(std::string const& command_line);
@@ -49,6 +41,6 @@ class program {
 }  // namespace applier
 }  // namespace retention
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_PROGRAM_HH
