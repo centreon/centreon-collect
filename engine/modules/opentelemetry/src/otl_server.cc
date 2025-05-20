@@ -299,6 +299,7 @@ otl_server::otl_server(
                                               handler,
                                               logger,
                                               agent_stats,
+                                              conf->is_crypted(),
                                               conf->get_trusted_tokens())) {}
 
 /**

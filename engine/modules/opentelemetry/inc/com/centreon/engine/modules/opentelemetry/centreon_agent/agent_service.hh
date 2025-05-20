@@ -41,6 +41,7 @@ class agent_service : public agent::AgentService::Service,
 
   agent_stat::pointer _stats;
 
+  bool _is_crypted;
   std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
 
  public:
@@ -50,6 +51,7 @@ class agent_service : public agent::AgentService::Service,
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats,
+      const bool& is_crypted,
       const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
 
   void init();
@@ -60,6 +62,7 @@ class agent_service : public agent::AgentService::Service,
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats,
+      const bool& is_crypted,
       const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
 
   // disable synchronous version of this method
