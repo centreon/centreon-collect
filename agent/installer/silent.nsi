@@ -71,7 +71,6 @@ Function show_help
         FileWrite $0 "--ca                  Trusted CA's certificate file path.$\n"
         FileWrite $0 "--ca_common_name             Expected TLS CA common name (CN). Don't use it if unsure.$\n"
         FileWrite $0 "--token               Authentication token for secure communication.$\n"
-        FileWrite $0 "--trusted_token               In Reverse add the trusted token for secure communication.$\n"
         SetErrorLevel 2
         Quit
     ${EndIf}
@@ -265,17 +264,6 @@ Function cmd_line_to_registry
             Call silent_fatal_error
         ${EndIf}
     ${EndIf}
-    
-    #trusted_token
-    ClearErrors
-    ${GetOptions} $cmdline_parameters "--trusted_token" $0
-    ${IfNot} ${Errors}
-        WriteRegStr HKLM ${CMA_REG_KEY} "trusted_tokens" "$0"
-        ${If} ${Errors}
-            StrCpy $1 "Failed to write registry key for trusted_token"
-            Call silent_fatal_error
-        ${EndIf}
-    ${EndIf}
 
 FunctionEnd
 
@@ -440,16 +428,6 @@ Function silent_update_conf
         ${EndIf}
     ${EndIf}
 
-    #trusted_token
-     ClearErrors
-    ${GetOptions} $cmdline_parameters "--trusted_token" $0
-    ${IfNot} ${Errors}
-        WriteRegStr HKLM ${CMA_REG_KEY} "trusted_tokens" "$0"
-        ${If} ${Errors}
-            StrCpy $1 "Failed to write registry key for trusted_token"
-            Call silent_fatal_error
-        ${EndIf}
-    ${EndIf}
 
 FunctionEnd
 

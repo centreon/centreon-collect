@@ -289,13 +289,11 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
         Ctn Add Token Agent Otl Server   0    0    ${token1}
     END
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token1}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${trusted_tokens}
+    Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${token1}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1162,13 +1160,11 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     END
     
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token1}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-     Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${trusted_tokens}
+     Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${token1}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -2151,13 +2147,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
         Ctn Add Token Agent Otl Server   0    0    ${token1}
     END
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token1}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    trusted_tokens=${trusted_tokens}
+    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
@@ -2204,13 +2198,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
 
     Ctn Add Token Agent Otl Server    0    0    ${token1}
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token2}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    trusted_tokens=${trusted_tokens}
+    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token2}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
@@ -2263,14 +2255,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token1}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    trusted_tokens=${trusted_tokens}
-
+    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
     Ctn Broker Config Log    module0    neb    warning
@@ -2326,13 +2315,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
-    # create list of trusted tokens
-    ${trusted_tokens}    Create List    ${token1}
 
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    trusted_tokens=${trusted_tokens}
+    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning

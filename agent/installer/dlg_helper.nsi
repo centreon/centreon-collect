@@ -295,13 +295,6 @@ Function init_encryption_dlg
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "token"
     ${NSD_SetText} $hCtl_encryption_token $0
 
-    ReadRegDWORD $1 HKLM ${CMA_REG_KEY} "reversed_grpc_streaming"
-    ${If} $1 > 0
-      ${NSD_SetText} $hCtl_encryption_label_token "Trusted token:"
-    ${Else}
-      ${NSD_SetText} $hCtl_encryption_label_token "Token:"
-    ${EndIf}
-
 
     Pop $0
 FunctionEnd
@@ -388,11 +381,7 @@ Function encryption_dlg_onNext
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_certificate" $3
         ${NSD_GetText} $hCtl_encryption_ca_name $1
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $1
-        ${If} $reverse_connection > 0
-            WriteRegStr HKLM ${CMA_REG_KEY} "trusted_tokens" $4
-        ${Else}
-            WriteRegStr HKLM ${CMA_REG_KEY} "token" $4
-        ${EndIf}
+        WriteRegStr HKLM ${CMA_REG_KEY} "token" $4
         Pop $4
         Pop $3
         Pop $2
