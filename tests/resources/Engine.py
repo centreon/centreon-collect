@@ -145,7 +145,6 @@ class EngineInstance:
                 "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
                 "enable_macros_filter=0\n"
                 "rpc_port={5}\n"
-                "postpone_notification_to_timeperiod=0\n"
                 "instance_heartbeat_interval=30\n"
                 "enable_notifications=1\n"
                 "execute_service_checks=1\n"
@@ -888,6 +887,7 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
     rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
+            i -= 1
             while i < len(lines) and lines[i] != "}":
                 if rkey.match(lines[i]):
                     lines[i] = f"    {key}                 {value}\n"
@@ -1130,6 +1130,68 @@ def ctn_engine_config_remove_host(idx: int, host: str):
                         if host_end.match(lines[end_serv_line]):
                             del lines[host_begin_idx:end_serv_line + 1]
                             break
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx = host_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: str):
+    """
+    Rename a host from the hosts.cfg configuration file.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        old_host_name (str): name of the host wanted to be renamed
+        new_host_name (str): new name of the host
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+
+    for i in range(len(lines)):
+        if host_name.match(lines[i]):
+            lines[i] = f"    host_name\t{new_host_name}\n"
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
+    """
+    set a value of a host in the hosts.cfg configuration file.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        host (str): name of the host
+        key (str): the parameter whose value must change.
+        value (str): the new value to set.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    key_name = re.compile(r"^\s*" + key)
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_end = re.compile(r"^}$")
+    host_begin_idx = 0
+    replaced = False
+    while not replaced:
+        if (host_begin_idx >= len(lines)):
+            break
+        if (host_name.match(lines[host_begin_idx])):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if (key_name.match(lines[host_line_idx])):
+                    lines[host_line_idx] = f"    {key}              {value}\n"
+                    replaced = True
                     break
                 elif host_end.match(lines[host_line_idx]):
                     host_begin_idx = host_line_idx
