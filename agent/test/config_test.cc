@@ -77,7 +77,7 @@ TEST(config, token) {
     "encryption":true,
     "compression": true,
     "ca_name":"toto",
-    "token":"token1",
+    "token":"token1"
 })";
   f.close();
 
@@ -97,10 +97,10 @@ TEST(config, reversed_grpc_streaming_token) {
     "compression": true,
     "reversed_grpc_streaming":true,
     "ca_name":"toto",
-    "token":"token1",
+    "token":"token1"
 })";
   f.close();
 
   config conf(_json_config_path);  // Declare and initialize conf
-  ASSERT_TRUE(conf.get_trusted_tokens().contain("token1"));
+  ASSERT_TRUE(conf.get_trusted_tokens().contains("token1"));
 }

@@ -129,6 +129,24 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
 
         ff.write("\n}\n")
 
+def ctn_config_set_value(key: str, value: str):
+    """ctn_config_set_value
+    Set a value in the centreon agent config file
+    Args:
+        key: key to set
+        value: value to set
+    """
+    makedirs(CONF_DIR, mode=0o777, exist_ok=True)
+    
+    with open(f"{CONF_DIR}/centagent.json", "r+") as ff:
+        content = json.load(ff)
+        print(content)
+        content[key] = value
+        ff.seek(0)
+        ff.truncate()
+        json.dump(content, ff, indent=4)
+        
+
 
 def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None):
     """ctn_config_centreon_agent

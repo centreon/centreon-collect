@@ -1417,15 +1417,17 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Set Services Passive       0    service_[3-4]
     Ctn Clear Db    resources
     Ctn Engine Config Set Value    0    interval_length    10
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
     Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
 
-    # wrong check command for service_1
+    # wrong check command for service_3
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
-    # wrong args value for service_2
+    # wrong args value for service_4
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} }    OTEL connector
     
     Ctn Engine Config Set Value    0    log_level_checks    trace
