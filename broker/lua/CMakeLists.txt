@@ -79,7 +79,7 @@ if(WITH_TESTING)
   set(
     TESTS_SOURCES
     ${TESTS_SOURCES}
-    "${TEST_DIR}/lua.cc"
+    ${TEST_DIR}/lua.cc
     PARENT_SCOPE
   )
   set(
