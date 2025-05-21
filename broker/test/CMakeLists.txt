@@ -107,26 +107,28 @@ add_executable(
 target_link_libraries(
   ut_broker
   PRIVATE "-rdynamic"
-	  test_util
-          roker
-          rokerbase
-          multiplexing
-          ${TESTS_LIBRARIES}
-          conflictmgr
-	  centreon_common
-          centreon_grpc
-          stdc++fs
-          nlohmann_json::nlohmann_json
-          fmt::fmt
-          log_v2
           GTest::gtest
           GTest::gtest_main
           GTest::gmock
           GTest::gmock_main
-          mariadb
-          crypto
-          ssl
-          gRPC::grpc++)
+          log_v2
+	  test_util
+	  "-Wl,--whole-archive"
+          roker
+          rokerbase
+	  centreon_common
+          multiplexing
+	  "-Wl,--no-whole-archive"
+          ${TESTS_LIBRARIES}
+	  #conflictmgr
+          centreon_grpc
+	  #stdc++fs
+	  #nlohmann_json::nlohmann_json
+	  #fmt::fmt
+	  #mariadb
+	  #crypto
+	  #ssl
+	  gRPC::grpc++)
 
 add_dependencies(
   ut_broker
@@ -149,9 +151,9 @@ file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys
 
 add_test(NAME tests COMMAND ut_broker)
 
-if(WITH_COVERAGE)
-  set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*'
-                        '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
-  setup_target_for_coverage(NAME broker-test-coverage EXECUTABLE ut_broker
-                            DEPENDENCIES ut_broker)
-endif()
+#if(WITH_COVERAGE)
+#  set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*'
+#                        '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
+#  setup_target_for_coverage(NAME broker-test-coverage EXECUTABLE ut_broker
+#                            DEPENDENCIES ut_broker)
+#endif()

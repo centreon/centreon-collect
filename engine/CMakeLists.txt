@@ -490,6 +490,7 @@ add_dependencies(centenginestats centreon_clib)
 target_link_libraries(
   centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base
                           absl::log_internal_check_op)
+
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 # Library engine target.
