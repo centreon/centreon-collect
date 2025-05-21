@@ -1415,17 +1415,17 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    health_check
+    Ctn Set Services Passive       0    service_[3-4]
     Ctn Clear Db    resources
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
 
-    # wrong check command for service_1
+    # wrong check command for service_3
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
-    # wrong args value for service_2
+    # wrong args value for service_4
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} }    OTEL connector
     
     Ctn Engine Config Set Value    0    log_level_checks    trace
@@ -1436,7 +1436,16 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
-    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Set Value    host    host_2
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
@@ -1449,13 +1458,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_1
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_2    service_3    2    120    ANY
+    Should Be True    ${result}    resources table not updated for service_3
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
     ...    "Error the output for invalid check command is not correct"
  
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
-    Should Be True    ${result}    resources table not updated for service_2
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_2    service_4    2    60    ANY
+    Should Be True    ${result}    resources table not updated for service_4
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
     ...    "Error the output for invalid check args is not correct"
 

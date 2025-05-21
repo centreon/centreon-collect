@@ -174,7 +174,7 @@ BSCSSTG1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Source Log    rrd    1
     
-        Ctn Create Key And Certificate
+    Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
     ...    ${EtcRoot}/centreon-broker/server.crt
