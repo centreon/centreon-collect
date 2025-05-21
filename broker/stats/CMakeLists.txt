@@ -19,9 +19,9 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/stats/inc/com/centreon/broker/stats")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/stats/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/stats/test")
-include_directories("${PROJECT_SOURCE_DIR}/stats/inc")
-include_directories("${PROJECT_SOURCE_DIR}/dumper/inc")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
+include_directories(
+  "${PROJECT_SOURCE_DIR}/stats/inc"
+  "${PROJECT_SOURCE_DIR}/dumper/inc" "${PROJECT_SOURCE_DIR}/neb/inc")
 
 # Stats module.
 set(STATS "15-stats")
@@ -43,7 +43,7 @@ add_library(
   ${INC_DIR}/worker_pool.hh)
 set_target_properties("${STATS}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-target_link_libraries("${STATS}" spdlog::spdlog)
+target_link_libraries("${STATS}" PRIVATE spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.

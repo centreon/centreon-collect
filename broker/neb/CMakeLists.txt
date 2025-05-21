@@ -24,8 +24,6 @@ include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
 
 # NEB sources.
 set(NEB_SOURCES
-    # Sources.
-    # Headers.
     ${SRC_DIR}/acknowledgement.cc
     ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
@@ -91,15 +89,14 @@ add_dependencies(
   table_max_size
   pb_neb_lib
   pb_header_lib
+  opentelemetry
   pb_bam_lib)
 
-target_link_libraries(nebbase protobuf::libprotobuf pb_neb_lib pb_header_lib
+target_link_libraries(nebbase PRIVATE protobuf::libprotobuf pb_neb_lib pb_header_lib
                       pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
-
-set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
-set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
+set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
 
 # Centreon Broker module.
@@ -110,8 +107,7 @@ set(NEB
 add_library(
   "${NEB}" SHARED
   # Main source.
-  "${SRC_DIR}/broker.cc" # Inc
-)
+  ${SRC_DIR}/broker.cc)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} "-Wl,--whole-archive" nebbase
@@ -122,6 +118,7 @@ set_target_properties(
   PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/broker/lib)
 
+target_precompile_headers(${NEB} PRIVATE precomp_inc/precomp.hpp)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
@@ -154,7 +151,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_link_libraries("${CBMOD}" "-Wl,--whole-archive" rokerbase multiplexing
                         "-Wl,--no-whole-archive")
 else()
-  target_link_libraries("${CBMOD}" "rokerbase")
+  target_link_libraries("${CBMOD}" rokerbase)
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX ""

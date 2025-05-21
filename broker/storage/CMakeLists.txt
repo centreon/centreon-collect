@@ -47,7 +47,7 @@ add_dependencies(conflictmgr
 	)
 
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(conflictmgr spdlog::spdlog)
+target_link_libraries(conflictmgr PRIVATE spdlog::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.
@@ -73,7 +73,7 @@ set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${STORAGE}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib table_max_size)
-target_link_libraries(${STORAGE}
+target_link_libraries(${STORAGE} PRIVATE
   conflictmgr rokerbase bbdo_storage
   pb_rebuild_message_lib pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)

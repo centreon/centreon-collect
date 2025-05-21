@@ -110,13 +110,14 @@ message(STATUS "###################################")
 
 target_link_libraries(
   ut_broker
-  PRIVATE test_util
+  PRIVATE "-rdynamic"
+	  test_util
           roker
           rokerbase
           multiplexing
           ${TESTS_LIBRARIES}
           conflictmgr
-          centreon_common
+	  centreon_common
           centreon_grpc
           stdc++fs
           nlohmann_json::nlohmann_json
@@ -129,10 +130,7 @@ target_link_libraries(
           mariadb
           crypto
           ssl
-          gRPC::gpr
-          gRPC::grpc
-          gRPC::grpc++
-          gRPC::grpc++_alts)
+          gRPC::grpc++)
 
 add_dependencies(
   ut_broker
@@ -149,11 +147,7 @@ target_precompile_headers(ut_broker REUSE_FROM rokerbase)
 
 set_target_properties(
   ut_broker rpc_client
-  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 
 # keys used by ut_broker grpc
 file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys
