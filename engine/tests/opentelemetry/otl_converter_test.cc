@@ -542,9 +542,10 @@ TEST_F(otl_converter_test, nagios_telegraf) {
   metric_request_ptr request =
       std::make_shared< ::opentelemetry::proto::collector::metrics::v1::
                             ExportMetricsServiceRequest>();
-  ::google::protobuf::util::JsonStringToMessage(telegraf_example,
-                                                request.get());
+  auto status = ::google::protobuf::util::JsonStringToMessage(telegraf_example,
+                                                              request.get());
 
+  ASSERT_TRUE(status.ok()) << status.ToString();
   metric_to_datapoints received;
   otl_data_point::extract_data_points(
       request, [&](const otl_data_point& data_pt) {

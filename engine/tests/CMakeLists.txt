@@ -37,28 +37,28 @@ if(WITH_TESTING)
 
   target_link_libraries(
     rpc_client_engine
-    cerpc
-    centreon_common
-    spdlog::spdlog
-    gRPC::gpr
-    gRPC::grpc
-    gRPC::grpc++
-    gRPC::grpc++_alts
-    crypto
-    ssl
-    z
-    dl
-    pthread)
+    PRIVATE cerpc
+            centreon_common
+            spdlog::spdlog
+            gRPC::gpr
+            gRPC::grpc
+            gRPC::grpc++
+            gRPC::grpc++_alts
+            crypto
+            ssl
+            z
+            dl
+            pthread)
 
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
-               if (LEGACY_ENGINE)
-  target_link_libraries(bin_connector_test_run cce_core pthread)
-  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-else()
-  target_link_libraries(bin_connector_test_run cce_core pthread)
-  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-endif()
+  if(LEGACY_ENGINE)
+    target_link_libraries(bin_connector_test_run PRIVATE cce_core pthread)
+    target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
+  else()
+    target_link_libraries(bin_connector_test_run PRIVATE cce_core pthread)
+    target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
+  endif()
 
   # Unit test executable.
   include_directories(${TESTS_DIR} ${CMAKE_BINARY_DIR})
@@ -186,20 +186,18 @@ endif()
 
     target_link_libraries(
       ut_engine
-      PRIVATE
-              enginerpc_legacy
+      PRIVATE enginerpc_legacy
               ut_engine_utils_legacy
               "-Wl,-whole-archive"
               cce_core
               log_v2
               opentelemetry
               centagent_lib
-              "-Wl,-no-whole-archive"
               pb_open_telemetry_lib
               centreon_grpc
+              "-Wl,-no-whole-archive"
               centreon_http
               centreon_process
-              Boost::url
               Boost::program_options
               pthread
               ${GCOV}
@@ -223,8 +221,8 @@ endif()
       set(COVERAGE_EXCLUDES
           '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
           '/usr/include/*' '*/.conan/*')
-      setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE
-                                ut_engine DEPENDENCIES ut_engine)
+      setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE ut_engine
+                                DEPENDENCIES ut_engine)
       set(GCOV gcov)
     endif()
   else()
@@ -304,10 +302,7 @@ endif()
         ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc
         ${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc
         ${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc
-        ${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc
-        # Headers.
-        "${TESTS_DIR}/test_engine.hh"
-        "${TESTS_DIR}/timeperiod/utils.hh")
+        ${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc)
     add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
 
     add_executable(ut_engine ${ut_sources})
@@ -331,37 +326,27 @@ endif()
 
     target_link_libraries(
       ut_engine
-      PRIVATE
-              enginerpc
+      PRIVATE enginerpc
               ut_engine_utils
               "-Wl,-whole-archive"
               cce_core
               log_v2
-              opentelemetry
-              centagent_lib
-              "-Wl,-no-whole-archive"
+              re2::re2
               pb_open_telemetry_lib
+              opentelemetry_base
+              "-Wl,--no-whole-archive"
+              protobuf::libprotobuf
               centreon_grpc
               centreon_http
-              centreon_process
-              Boost::url
-              Boost::program_options
-              pthread
               ${GCOV}
               GTest::gtest
               GTest::gtest_main
               GTest::gmock
               GTest::gmock_main
-              gRPC::gpr
-              gRPC::grpc
               gRPC::grpc++
-              gRPC::grpc++_alts
               crypto
               ssl
-              z
-              fmt::fmt
               ryml::ryml
-              stdc++fs
               dl)
 
     if(WITH_COVERAGE)

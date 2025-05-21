@@ -34,8 +34,9 @@ endif()
 string(TIMESTAMP CENTREON_CURRENT_YEAR "%Y")
 add_definitions(-DCENTREON_CURRENT_YEAR="${CENTREON_CURRENT_YEAR}")
 
-#when we build from cache(CI), we don't use vcpkg because it recompiles often everything
-if (NOT BUILD_FROM_CACHE)
+# when we build from cache(CI), we don't use vcpkg because it recompiles often
+# everything
+if(NOT BUILD_FROM_CACHE)
   if(DEFINED ENV{VCPKG_ROOT})
     set(VCPKG_ROOT "$ENV{VCPKG_ROOT}")
     message(
@@ -128,7 +129,6 @@ set(AGENT_MAJOR ${COLLECT_MAJOR})
 set(AGENT_MINOR ${COLLECT_MINOR})
 set(AGENT_PATCH 5)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
-
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   include(CMakeListsLinux.txt)
