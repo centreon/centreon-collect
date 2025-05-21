@@ -45,4 +45,4 @@ get_property(SIMUMOD_MODULE
 set(SIMUMOD_MODULE "${SIMUMOD_MODULE}" PARENT_SCOPE)
 add_dependencies("${SIMUMOD}" centreon_clib)
 
-target_link_libraries("${SIMUMOD}" centreon_clib)
+target_link_libraries("${SIMUMOD}" PRIVATE centreon_clib)
