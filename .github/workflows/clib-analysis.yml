@@ -30,7 +30,8 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      github.event.pull_request.draft != 'true'
+      github.event.pull_request.draft != 'true' &&
+      github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
       module_directory: clib

@@ -35,7 +35,8 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      github.repository == 'centreon/centreon-collect'
 
     strategy:
       fail-fast: false
