@@ -24,9 +24,9 @@
 #include <google/protobuf/util/json_util.h>
 #include <grpcpp/generic/generic_stub.h>
 #include <nlohmann/json.hpp>
-#include "broker/core/src/broker.grpc.pb.h"
+#include "broker.grpc.pb.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "engine.grpc.pb.h"
+#include "engine/enginerpc/engine.grpc.pb.h"
 
 using namespace com::centreon::ccc;
 

@@ -41,6 +41,7 @@ if(WITH_LIBCXX)
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}/common
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src)
 set(ccc_files main.cc client.cc)
@@ -56,7 +57,8 @@ endif()
 add_executable(ccc ${ccc_files})
 target_link_libraries(
   ccc PRIVATE
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+  #gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+  gRPC::grpc++
   cerpc
   berpc
   centreon_common
