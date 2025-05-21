@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include "agent_info.hh"
 #include "streaming_client.hh"
+#include "agent_info.hh"
 #include "com/centreon/common/defer.hh"
 
 using namespace com::centreon::agent;
@@ -188,7 +188,8 @@ void streaming_client::on_incomming_request(
     const std::shared_ptr<client_reactor>& caller [[maybe_unused]],
     const std::shared_ptr<MessageToAgent>& request) {
   // incoming request is used in main thread
-  _io_context->post([request, sched = _sched]() { sched->update(request); });
+  asio::post(*_io_context,
+             [request, sched = _sched]() { sched->update(request); });
 }
 
 /**

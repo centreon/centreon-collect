@@ -56,17 +56,23 @@ jobs:
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
+            image: packaging-centreon-collect-bookworm-arm64
+            distrib: bookworm
+            lua_version: 5.3
+            runner: centreon-collect-arm64
+            arch: arm64
+          - package_extension: deb
             image: packaging-centreon-collect-jammy
             distrib: jammy
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
-            image: packaging-centreon-collect-bookworm-arm64
-            distrib: bookworm
+            image: packaging-centreon-collect-noble
+            distrib: noble
             lua_version: 5.3
-            runner: centreon-collect-arm64
-            arch: arm64
+            runner: ubuntu-24.04
+            arch: amd64
 
     runs-on: ${{ matrix.runner }}
 
@@ -117,6 +123,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "lua-curl/packaging/lua-curl.yaml"
+          module_name: "lua-curl"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ env.major_version }}
@@ -178,6 +185,8 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: noble
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -209,7 +218,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, noble]
 
     steps:
       - name: Checkout sources

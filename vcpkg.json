@@ -13,6 +13,7 @@
     "boost-multi-index",
     "boost-process",
     "boost-program-options",
+    "boost-flyweight",
     "rapidjson",
     "gtest",
     {
@@ -46,6 +47,10 @@
     {
       "name": "boost-exception",
       "platform": "linux"
+    },
+    {
+      "name": "boost-parser",
+      "platform": "windows"
     },
     {
       "name": "boost-serialization",

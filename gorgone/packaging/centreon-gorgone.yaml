@@ -113,6 +113,8 @@ contents:
   - src: "../config/logrotate/gorgoned"
     dst: "/etc/logrotate.d/gorgoned"
     type: config|noreplace
+    file_info:
+      mode: 0644
 
   - src: "../gorgoned"
     dst: "/usr/bin/gorgoned"
