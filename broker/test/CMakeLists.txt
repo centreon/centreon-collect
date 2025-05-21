@@ -102,11 +102,6 @@ add_executable(
   # Module sources.
   ${TESTS_SOURCES})
 
-message(STATUS "###################################")
-message(STATUS "###################################")
-message(STATUS ${TESTS_SOURCES})
-message(STATUS "###################################")
-message(STATUS "###################################")
 
 target_link_libraries(
   ut_broker
@@ -141,9 +136,7 @@ add_dependencies(
   conflictmgr
   centreon_common)
 
-set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
-
-target_precompile_headers(ut_broker REUSE_FROM rokerbase)
+target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hh)
 
 set_target_properties(
   ut_broker rpc_client

@@ -36,7 +36,7 @@ target_include_directories(centreon_http PRIVATE ${INC_DIR})
 
 target_precompile_headers(centreon_http REUSE_FROM centreon_common)
 
-set_target_properties(centreon_http PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(centreon_http PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
 if(WITH_TESTING)

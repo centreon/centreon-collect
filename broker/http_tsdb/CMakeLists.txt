@@ -50,7 +50,7 @@ target_include_directories(http_tsdb PRIVATE ${INC_DIR})
 
 target_precompile_headers(http_tsdb PRIVATE precomp_inc/precomp.hh)
 
-set_target_properties(http_tsdb PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(http_tsdb PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
 if(WITH_TESTING)
