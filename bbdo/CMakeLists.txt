@@ -17,36 +17,36 @@
 #
 
 add_library(pb_header_lib header.proto)
-protobuf_generate(TARGET pb_header_lib)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_header_lib)
 
 add_library(pb_neb_lib neb.proto)
-protobuf_generate(TARGET pb_neb_lib)
 set_target_properties(pb_neb_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_neb_lib)
 
 add_library(pb_rebuild_message_lib rebuild_message.proto)
-protobuf_generate(TARGET pb_rebuild_message_lib)
 set_target_properties(pb_rebuild_message_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_rebuild_message_lib)
 
 add_library(pb_remove_graph_message_lib remove_graph_message.proto)
-protobuf_generate(TARGET pb_remove_graph_message_lib)
 set_target_properties(pb_remove_graph_message_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_remove_graph_message_lib)
 
 add_library(pb_bbdo_lib bbdo.proto)
-protobuf_generate(TARGET pb_bbdo_lib)
 set_target_properties(pb_bbdo_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_bbdo_lib)
 
 add_library(pb_storage_lib storage.proto)
-protobuf_generate(TARGET pb_storage_lib)
 set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_storage_lib)
 
 add_library(pb_bam_lib bam.proto bam_state.proto)
-protobuf_generate(TARGET pb_bam_lib)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_bam_lib)
 
 add_library(pb_extcmd_lib extcmd.proto)
-protobuf_generate(TARGET pb_extcmd_lib)
 set_target_properties(pb_extcmd_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_extcmd_lib)
 
 set(otl_protobuf_files
     opentelemetry/proto/collector/metrics/v1/metrics_service
