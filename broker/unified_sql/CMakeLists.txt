@@ -53,8 +53,8 @@ add_library(
   ${INC_DIR}/rebuilder.hh
   ${INC_DIR}/stored_timestamp.hh
   ${INC_DIR}/stream.hh)
-set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
-                                                            "-fPIC"
+set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX ""
+  POSITION_INDEPENDENT_CODE TRUE
 							    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib

@@ -30,7 +30,7 @@ set(SOURCES ${SRC_DIR}/engine.cc ${SRC_DIR}/muxer.cc ${SRC_DIR}/publisher.cc)
 add_library(multiplexing STATIC ${SOURCES})
 add_dependencies(multiplexing pb_bbdo_lib pb_extcmd_lib)
 
-set_target_properties(multiplexing PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(multiplexing PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(multiplexing PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(multiplexing PRIVATE spdlog::spdlog)
 
