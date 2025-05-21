@@ -29,15 +29,15 @@ find_file(
   "gnutls.h"
   PATHS "/usr/gnutls2/include/gnutls"
   NO_DEFAULT_PATH)
-if (GNUTLS_FOUND)
+if(GNUTLS_FOUND)
   set(GNUTLS_INCLUDE_DIR "/usr/gnutls2/include")
   set(GNUTLS_LIBRARIES "/usr/gnutls2/lib/libgnutls.so")
-else ()
+else()
   include(FindGnuTLS)
-  if (NOT GNUTLS_FOUND)
+  if(NOT GNUTLS_FOUND)
     message(FATAL_ERROR "Could not find GNU TLS.")
-  endif ()
-endif ()
+  endif()
+endif()
 
 include_directories("${GNUTLS_INCLUDE_DIR}")
 
@@ -59,10 +59,9 @@ add_library("${TLS}" SHARED
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/internal.hh"
   "${INC_DIR}/params.hh"
-  "${INC_DIR}/stream.hh"
-)
+  "${INC_DIR}/stream.hh")
 
-target_link_libraries("${TLS}" ${GNUTLS_LIBRARIES} spdlog::spdlog)
+target_link_libraries("${TLS}" PRIVATE ${GNUTLS_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX ""
@@ -85,6 +84,4 @@ if (WITH_TESTING)
   )
 endif()
 # Install rule.
-install(TARGETS "${TLS}"
-  LIBRARY DESTINATION "${PREFIX_MODULES}"
-)
+install(TARGETS "${TLS}" LIBRARY DESTINATION "${PREFIX_MODULES}")

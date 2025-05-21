@@ -42,7 +42,7 @@ add_library("${TLS2}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS2}" crypto ssl spdlog::spdlog)
+target_link_libraries("${TLS2}" PRIVATE crypto ssl spdlog::spdlog)
 
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
 
@@ -63,10 +63,10 @@ if (WITH_TESTING)
 
   add_executable(anon-test
       "${TEST_DIR}/anon-test.cc")
-  target_link_libraries(anon-test crypto ssl -pthread -ldl)
+    target_link_libraries(anon-test PRIVATE crypto ssl -pthread -ldl)
   add_executable(crypt-test
       "${TEST_DIR}/crypt-test.cc")
-  target_link_libraries(crypt-test crypto ssl -pthread -ldl fmt::fmt)
+    target_link_libraries(crypt-test PRIVATE crypto ssl -pthread -ldl fmt::fmt)
 endif()
 # Install rule.
 install(TARGETS "${TLS2}"

@@ -120,7 +120,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
 target_link_libraries(berpc protobuf::libprotobuf)
-set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(berpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Version.
 if(CENTREON_BROKER_PRERELEASE)
@@ -439,11 +439,11 @@ set(LIBROKER_SOURCES
 
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
-set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc pb_bbdo_lib pb_extcmd_lib pb_neb_lib)
 target_link_libraries(
-  rokerbase
+  rokerbase PRIVATE
   sql
   bbdo_bbdo
   pb_bbdo_lib
@@ -472,7 +472,7 @@ add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
-  cbd
+  cbd PRIVATE
   "-rdynamic"
   "-Wl,--whole-archive"
   log_v2

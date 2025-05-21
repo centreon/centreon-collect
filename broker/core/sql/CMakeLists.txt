@@ -81,9 +81,11 @@ set(SOURCES
 add_library(sql STATIC ${SOURCES})
 set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
-target_link_libraries(sql spdlog::spdlog mariadb)
+target_link_libraries(sql PRIVATE spdlog::spdlog mariadb)
 
-# if(WITH_TESTING) set( TESTS_SOURCES ${TESTS_SOURCES}
-# ${TESTS_DIR}/engine/start_stop.cc ${TESTS_DIR}/muxer/read.cc
-# ${TESTS_DIR}/publisher/read.cc ${TESTS_DIR}/publisher/write.cc )
-# endif(WITH_TESTING)
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TESTS_DIR}/engine/start_stop.cc
+      ${TESTS_DIR}/muxer/read.cc ${TESTS_DIR}/publisher/read.cc
+      ${TESTS_DIR}/publisher/write.cc)
+endif(WITH_TESTING)
