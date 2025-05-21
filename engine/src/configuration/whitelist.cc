@@ -172,11 +172,13 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
     } else {
       for (auto wildcard : wildcards) {
         auto value = wildcard.val();
-        std::string_view str_value(value.data(), value.size());
-        SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
-                           str_value);
-        _wildcards.emplace_back(str_value);
-        ret = true;
+        if (value.size() > 0) {
+          std::string_view str_value(value.data(), value.size());
+          SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
+                             str_value);
+          _wildcards.emplace_back(str_value);
+          ret = true;
+        }
       }
     }
   }
@@ -186,19 +188,21 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
     } else {
       for (auto re : regexps) {
         auto value = re.val();
-        std::string_view str_value(value.data(), value.size());
-        std::unique_ptr<re2::RE2> to_push_back =
-            std::make_unique<re2::RE2>(str_value);
-        if (to_push_back->error_code() ==
-            re2::RE2::ErrorCode::NoError) {  // success compile regex
-          SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
-                             str_value);
-          _regex.push_back(std::move(to_push_back));
-          ret = true;
-        } else {  // bad regex
-          SPDLOG_LOGGER_ERROR(
-              _logger, "fail to parse regex {}: error: {} at {} ", str_value,
-              to_push_back->error(), to_push_back->error_arg());
+        if (value.size() > 0) {
+          std::string_view str_value(value.data(), value.size());
+          std::unique_ptr<re2::RE2> to_push_back =
+              std::make_unique<re2::RE2>(str_value);
+          if (to_push_back->error_code() ==
+              re2::RE2::ErrorCode::NoError) {  // success compile regex
+            SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
+                               str_value);
+            _regex.push_back(std::move(to_push_back));
+            ret = true;
+          } else {  // bad regex
+            SPDLOG_LOGGER_ERROR(
+                _logger, "fail to parse regex {}: error: {} at {} ", str_value,
+                to_push_back->error(), to_push_back->error_arg());
+          }
         }
       }
     }
