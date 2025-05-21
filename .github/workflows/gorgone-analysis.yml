@@ -22,6 +22,7 @@ on:
 
 jobs:
   get-environment:
+    if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: .version.centreon-gorgone
@@ -30,8 +31,7 @@ jobs:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      github.event.pull_request.draft != 'true' &&
-      github.repository == 'centreon/centreon-collect'
+      github.event.pull_request.draft != 'true'
     uses: ./.github/workflows/checkmarx-analysis.yml
     with:
       module_directory: gorgone
