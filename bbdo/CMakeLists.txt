@@ -21,6 +21,7 @@ set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 protobuf_generate(TARGET pb_header_lib)
 
 add_library(pb_neb_lib neb.proto)
+add_dependencies(pb_neb_lib pb_header_lib)
 set_target_properties(pb_neb_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 protobuf_generate(TARGET pb_neb_lib)
 
@@ -41,6 +42,7 @@ set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 protobuf_generate(TARGET pb_storage_lib)
 
 add_library(pb_bam_lib bam.proto bam_state.proto)
+add_dependencies(pb_bam_lib pb_header_lib)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 protobuf_generate(TARGET pb_bam_lib)
 
