@@ -32,7 +32,7 @@ sub main {
                "logfile=s"   => \$args->{logfile},    # string
                "verbose"  => \$args->{verbose}) # flag
     or die("Error in command line arguments\n");
-    make_path(basename($args->{pipename}));
+    make_path(dirname($args->{pipename}));
 
     verb("pipe to create is : " . $args->{pipename});
     unlink($args->{pipename});
