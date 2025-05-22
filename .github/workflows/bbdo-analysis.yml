@@ -22,6 +22,8 @@ on:
 
 jobs:
   get-environment:
+    if: github.repository == 'centreon/centreon-collect'
+
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
