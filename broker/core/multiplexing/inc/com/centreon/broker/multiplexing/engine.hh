@@ -88,6 +88,11 @@ class engine {
 
   std::shared_ptr<spdlog::logger> _logger;
 
+  /* The map of running muxers with the mutex to protect it. */
+  absl::Mutex _running_muxers_m;
+  absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers
+      ABSL_GUARDED_BY(_running_muxers_m);
+
   engine(const std::shared_ptr<spdlog::logger>& logger);
   std::string _cache_file_path() const;
   bool _send_to_subscribers(send_to_mux_callback_type&& callback);
@@ -112,6 +117,10 @@ class engine {
   void subscribe(const std::shared_ptr<muxer>& subscriber)
       ABSL_LOCKS_EXCLUDED(_kiew_m);
   void unsubscribe_muxer(const muxer* subscriber) ABSL_LOCKS_EXCLUDED(_kiew_m);
+  std::shared_ptr<muxer> get_muxer(const std::string& name)
+      ABSL_LOCKS_EXCLUDED(_running_muxers_m);
+  void set_muxer(const std::string& name, const std::shared_ptr<muxer>& muxer)
+      ABSL_LOCKS_EXCLUDED(_running_muxers_m);
 };
 }  // namespace com::centreon::broker::multiplexing
 

@@ -59,9 +59,6 @@ static void add_bench_point(bbdo::pb_bench& event,
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 
-absl::Mutex muxer::_running_muxers_m;
-absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
-
 /**
  * @brief Constructor.
  *
@@ -168,12 +165,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                                      bool persistent) {
   std::shared_ptr<muxer> retval;
   {
-    absl::MutexLock lck(&_running_muxers_m);
-    absl::erase_if(_running_muxers,
-                   [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
-                     return p.second.expired();
-                   });
-    retval = _running_muxers[name].lock();
+    retval = parent->get_muxer(name);
     if (retval) {
       log_v2::instance()
           .get(log_v2::CONFIG)
@@ -192,7 +184,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
           ->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
           new muxer(name, parent, r_filter, w_filter, persistent));
-      _running_muxers[name] = retval;
+      parent->set_muxer(name, retval);
     }
   }
 
