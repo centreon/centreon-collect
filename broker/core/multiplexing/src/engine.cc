@@ -307,6 +307,7 @@ engine::engine(const std::shared_ptr<spdlog::logger>& logger)
 
 engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
+  assert(_state == stopped);
   assert(_muxers.empty());
   SPDLOG_LOGGER_DEBUG(_logger, "core: cbd engine destroyed.");
   DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
@@ -445,4 +446,28 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 void engine::clear() {
   absl::MutexLock lck(&_kiew_m);
   _kiew.clear();
+}
+
+/**
+ * @brief Get a muxer by name. This function returns a shared_ptr to the
+ * muxer if it is running. If the muxer is not running or it doesn't exist, it
+ * returns a nullptr.
+ *
+ * @param name Name of the muxer to get.
+ *
+ * @return A shared_ptr to the muxer if it is running, nullptr otherwise.
+ */
+std::shared_ptr<muxer> engine::get_muxer(const std::string& name) {
+  absl::MutexLock lck(&_running_muxers_m);
+  absl::erase_if(_running_muxers,
+                 [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
+                   return p.second.expired();
+                 });
+  return _running_muxers[name].lock();
+}
+
+void engine::set_muxer(const std::string& name,
+                       const std::shared_ptr<muxer>& muxer) {
+  absl::MutexLock lck(&_running_muxers_m);
+  _running_muxers[name] = muxer;
 }
