@@ -163,7 +163,13 @@ config::config(const std::string& path) {
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
-  if (json_config.has_member("token")) {
-    _token = json_config.get_string("token");
+  if (_reverse_connection) {
+    if (json_config.has_member("token")) {
+      _trusted_tokens.insert(json_config.get_string("token"));
+    }
+  } else {
+    if (json_config.has_member("token")) {
+      _token = json_config.get_string("token");
+    }
   }
 }

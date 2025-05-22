@@ -99,7 +99,6 @@ config::config(const std::string& registry_key) {
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
-  _token = get_sz_reg_or_default("token", "");
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
@@ -108,6 +107,11 @@ config::config(const std::string& registry_key) {
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
+
+  if (_reverse_connection)
+    _trusted_tokens.insert(get_sz_reg_or_default("token", ""));
+  else
+    _token = get_sz_reg_or_default("token", "");
 
   RegCloseKey(h_key);
 }

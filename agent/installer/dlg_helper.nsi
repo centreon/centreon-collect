@@ -295,6 +295,7 @@ Function init_encryption_dlg
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "token"
     ${NSD_SetText} $hCtl_encryption_token $0
 
+
     Pop $0
 FunctionEnd
 
