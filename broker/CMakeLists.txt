@@ -470,10 +470,11 @@ target_link_libraries(
 add_executable(cbd ${SRC_DIR}/main.cc)
 add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
+set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
+
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd PRIVATE
-  "-rdynamic"
   "-Wl,--whole-archive"
   log_v2
   sql
