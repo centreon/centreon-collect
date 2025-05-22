@@ -482,13 +482,11 @@ target_link_libraries(
   roker
   multiplexing
   centreon_common
-  "-Wl,--no-whole-archive"
-  nlohmann_json::nlohmann_json
-  fmt::fmt
-  "-Wl,--whole-archive"
   gRPC::grpc++
   protobuf::libprotobuf
   "-Wl,--no-whole-archive"
+  nlohmann_json::nlohmann_json
+  fmt::fmt
   stdc++fs
   # spdlog::spdlog
   gRPC::gpr

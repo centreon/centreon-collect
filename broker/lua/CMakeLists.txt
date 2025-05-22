@@ -61,33 +61,33 @@ add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib
 
 target_link_libraries(
   "${LUA}"
-  PRIVATE
-  ${LUA_LIBRARIES}
-  crypto
-  ssl
-  bbdo_storage
-  bbdo_bam
-  protobuf::libprotobuf
-  spdlog::spdlog
-  pb_storage_lib)
+  PRIVATE ${LUA_LIBRARIES}
+          # crypto ssl bbdo_storage
+          bbdo_bam
+          pb_header_lib
+          pb_neb_lib
+          pb_bam_lib
+          "-Wl,--whole-archive"
+          pb_remove_graph_message_lib
+          "-Wl,--no-whole-archive"
+          pb_rebuild_message_lib
+          pb_storage_lib
+          protobuf::libprotobuf
+          spdlog::spdlog)
+
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
-set_target_properties("${LUA}" PROPERTIES PREFIX ""
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+set_target_properties(
+  "${LUA}" PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
+                                "${CMAKE_BINARY_DIR}/broker/lib")
 
 # Testing.
 if(WITH_TESTING)
-  set(
-    TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TEST_DIR}/lua.cc
-    PARENT_SCOPE
-  )
-  set(
-    TESTS_LIBRARIES
-    ${TESTS_LIBRARIES}
-    "${LUA}"
-    PARENT_SCOPE
-  )
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/lua.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} "${LUA}"
+      PARENT_SCOPE)
 endif()
 
 # Install rule.
