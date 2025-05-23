@@ -266,7 +266,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -315,7 +315,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1131,7 +1131,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -1199,7 +1199,7 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1604,7 +1604,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1659,7 +1659,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1715,7 +1715,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1771,7 +1771,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10}}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1841,7 +1841,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10},"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"centreon_agent": {"check_interval": 10},"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    CMA connector
