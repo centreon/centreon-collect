@@ -95,7 +95,7 @@ TEST(otl_grpc_config, good_host_port2) {
 {   
     "host":"127.0.0.1",
     "port":2500,
-    "encryption":true,
+    "encryption":"full",
     "compression": true,
     "ca_name":"toto"
 })"_json);
@@ -115,7 +115,7 @@ TEST(otl_grpc_config, tokens) {
 {   
     "host":"127.0.0.1",
     "port":2500,
-    "encryption":true,
+    "encryption":"full",
     "compression": true,
     "ca_name":"toto",
     "trusted_tokens":["toto","titi"]
@@ -139,7 +139,7 @@ TEST(otl_grpc_config, tokencompare) {
 {   
     "host":"127.0.0.1",
     "port":2500,
-    "encryption":true,
+    "encryption":"full",
     "compression": true,
     "ca_name":"toto"
 })"_json);
@@ -147,7 +147,7 @@ TEST(otl_grpc_config, tokencompare) {
   {   
       "host":"127.0.0.1",
       "port":2500,
-      "encryption":true,
+      "encryption":"full",
       "compression": true,
       "ca_name":"toto"
   })"_json);
@@ -155,7 +155,7 @@ TEST(otl_grpc_config, tokencompare) {
   {   
       "host":"127.0.0.1",
       "port":2500,
-      "encryption":true,
+      "encryption":"full",
       "compression": true,
       "ca_name":"toto",
       "trusted_tokens":["toto","titi"]
@@ -164,7 +164,7 @@ TEST(otl_grpc_config, tokencompare) {
   {   
       "host":"127.0.0.1",
       "port":2500,
-      "encryption":true,
+      "encryption":"full",
       "compression": true,
       "ca_name":"toto",
       "trusted_tokens":["toto","titi"]
@@ -173,7 +173,7 @@ TEST(otl_grpc_config, tokencompare) {
     {   
         "host":"127.0.0.1",
         "port":2500,
-        "encryption":true,
+        "encryption":"full",
         "compression": true,
         "ca_name":"toto",
         "trusted_tokens":["toto"]
@@ -182,7 +182,7 @@ TEST(otl_grpc_config, tokencompare) {
       {   
           "host":"127.0.0.1",
           "port":2500,
-          "encryption":true,
+          "encryption":"full",
           "compression": true,
           "ca_name":"toto",
           "trusted_tokens":["toto","titi","tata"]
