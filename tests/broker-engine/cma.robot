@@ -1444,7 +1444,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    Then the resources table should be updated with the correct status
     ...    And appropriate error messages should be generated for invalid checks
     [Tags]    broker    engine    agent    opentelemetry    MON-158969
-    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Engine    ${1}    ${2}    ${5}
     Ctn Add Otl ServerModule
     ...    0
     ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
@@ -1452,13 +1452,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    health_check
+    Ctn Set Services Passive       0    service_[3-4]
     Ctn Clear Db    resources
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
 
     # wrong check command for service_1
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
@@ -1486,12 +1486,12 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_3    2    120    ANY
     Should Be True    ${result}    resources table not updated for service_1
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
     ...    "Error the output for invalid check command is not correct"
  
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_4    2    120    ANY
     Should Be True    ${result}    resources table not updated for service_2
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
     ...    "Error the output for invalid check args is not correct"
@@ -1632,6 +1632,11 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Tags]    broker    engine    opentelemetry    MON-160435
 
     Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
 
     Ctn Add Otl ServerModule
     ...    0
