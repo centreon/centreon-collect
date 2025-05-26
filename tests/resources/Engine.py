@@ -771,7 +771,8 @@ define contact {
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
                       stat.S_IRGRP | stat.S_IXGRP)
-            shutil.copyfile(dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
+            shutil.copyfile(
+                dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
@@ -2857,7 +2858,8 @@ def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
                 break
             m = r_end.match(line)
             if m:
-                lines.insert(i, f"    command_line                    {check_cmd}\n")
+                lines.insert(
+                    i, f"    command_line                    {check_cmd}\n")
                 break
 
     with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
@@ -3871,7 +3873,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str):
         pretty_json = json.dumps(json.loads(
             otl_server_config_json_content), indent=4)
         f.write(pretty_json)
-    if "\"encryption\": true" in otl_server_config_json_content:
+    if "\"encryption\": \"full\"" in otl_server_config_json_content:
         # add token to otl_server.json
         ctn_add_token_otl_server_module(idx, token)
 
@@ -3943,7 +3945,6 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
-
 
 
 def ctn_randomword(length):

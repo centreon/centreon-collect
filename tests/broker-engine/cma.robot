@@ -1399,13 +1399,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
     Ctn Clear Db    resources
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
 
     # wrong check command for service_1
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
@@ -1628,7 +1628,14 @@ BEOTEL_CENTREON_AGENT_TOKEN
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token1}
-    Ctn Broker Config Log    central    sql    trace
+    
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
