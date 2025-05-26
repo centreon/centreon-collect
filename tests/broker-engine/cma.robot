@@ -1391,7 +1391,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    Then the resources table should be updated with the correct status
     ...    And appropriate error messages should be generated for invalid checks
     [Tags]    broker    engine    agent    opentelemetry    MON-158969
-    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Engine    ${1}    ${2}    ${5}
     Ctn Add Otl ServerModule
     ...    0
     ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
@@ -1420,7 +1420,15 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
-    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
@@ -1433,13 +1441,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_1
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_3    2    120    ANY
+    Should Be True    ${result}    resources table not updated for service_3
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
     ...    "Error the output for invalid check command is not correct"
  
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
-    Should Be True    ${result}    resources table not updated for service_2
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_4    2    60    ANY
+    Should Be True    ${result}    resources table not updated for service_4
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
     ...    "Error the output for invalid check args is not correct"
 
