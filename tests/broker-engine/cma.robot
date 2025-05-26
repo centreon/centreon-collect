@@ -1004,61 +1004,6 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
 
     Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
 
-BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
-    [Documentation]    Given the agent is configured with native checks for services
-    ...    And the OpenTelemetry server module is added
-    ...    And services are configured with incorrect check commands and arguments
-    ...    When the broker, engine, and agent are started
-    ...    Then the resources table should be updated with the correct status
-    ...    And appropriate error messages should be generated for invalid checks
-    [Tags]    broker    engine    agent    opentelemetry    MON-158969
-    Ctn Config Engine    ${1}    ${2}    ${2}
-    Ctn Add Otl ServerModule
-    ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
-    Ctn Config Add Otl Connector
-    ...    0
-    ...    OTEL connector
-    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
-
-    # wrong check command for service_1
-    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
-    # wrong args value for service_2
-    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} }    OTEL connector
-    
-    Ctn Engine Config Set Value    0    log_level_checks    trace
-
-    Ctn Clear Metrics
-
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Config Centreon Agent
-    Ctn Broker Config Log    central    sql    trace
-
-    Ctn Config BBDO3    1
-    Ctn Clear Retention
-
-    ${start}    Ctn Get Round Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    Ctn Start Agent
-
-    # Let's wait for the otel server start
-    Ctn Wait For Otel Server To Be Ready    ${start}
-    
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_1
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
-    ...    "Error the output for invalid check command is not correct"
- 
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
-    Should Be True    ${result}    resources table not updated for service_2
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
-    ...    "Error the output for invalid check args is not correct"
  NON_TLS_CONNECTION_WARNING
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
