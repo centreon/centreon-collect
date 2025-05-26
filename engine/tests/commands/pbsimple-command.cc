@@ -44,6 +44,7 @@ class PbSimpleCommand : public ::testing::Test {
  public:
   void SetUp() override {
     logger = log_v2::instance().get(log_v2::COMMANDS);
+    logger->set_level(spdlog::level::trace);
     set_time(-1);
     init_config_state();
     pb_config.set_interval_length(1);

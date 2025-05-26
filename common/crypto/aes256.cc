@@ -25,8 +25,30 @@
 #include "aes256.hh"
 #include "base64.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "rapidjson/document.h"
+#include "rapidjson_helper.hh"
 
 namespace com::centreon::common::crypto {
+
+/**
+ * @brief Construct a new aes256 object from a json file formatted as that:
+ * @code {.json}
+ * {
+ *   "app_secret": <value>,
+ *   "salt": <value>
+ * }
+ * @endcode
+ *
+ *
+ * @param file_path path of the file that contains key and
+ * @throw exceptions::msg_fmt
+ */
+aes256::aes256(const std::string_view& json_file_path) {
+  rapidjson::Document file_content =
+      rapidjson_helper::read_from_file(json_file_path);
+  _first_key = rapidjson_helper(file_content).get_string("app_secret");
+  _second_key = rapidjson_helper(file_content).get_string("salt");
+}
 
 /**
  * @brief The aes256 constructor. This class is used to encrypt and decrypt
