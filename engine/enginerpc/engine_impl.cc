@@ -21,6 +21,7 @@
 #include <future>
 
 #include <boost/asio.hpp>
+namespace asio = boost::asio;
 
 #include <absl/strings/str_join.h>
 

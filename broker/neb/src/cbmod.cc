@@ -283,14 +283,15 @@ void cbmod::add_downtime(uint64_t downtime_id,
   obj.set_fixed(fixed);
   obj.set_started(false);
   if (_downtimes.find(downtime_id) != _downtimes.end()) {
-    _neb_logger->error(
+    SPDLOG_LOGGER_DEBUG(
+        _neb_logger,
         "cbmod: add_downtime: Downtime with ID {} already exists: {} - "
         "replaced by {}",
         downtime_id, _downtimes[downtime_id]->obj().DebugString(),
-        obj.DebugString());
+        obj.ShortDebugString());
   } else {
-    _neb_logger->error("cbmod: add_downtime: Downtime added: {}",
-                       obj.DebugString());
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: add_downtime: Downtime added: {}",
+                        obj.ShortDebugString());
   }
   _downtimes[downtime_id] = pb_dt;
   if (_use_protobuf)
@@ -314,7 +315,8 @@ void cbmod::start_downtime(uint64_t downtime_id) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->error("cbmod: downtime started: {}", obj.DebugString());
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime started: {}",
+                      obj.ShortDebugString());
 }
 
 /**
@@ -324,7 +326,8 @@ void cbmod::start_downtime(uint64_t downtime_id) {
  * @param cancelled True if the downtime was cancelled.
  */
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
-  _neb_logger->error("cbmod: stopping downtime ID {}", downtime_id);
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: stopping downtime ID {}",
+                      downtime_id);
   auto pb_dt = _downtimes[downtime_id];
   assert(pb_dt);
   auto& obj = pb_dt->mut_obj();
@@ -334,8 +337,8 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
     write(pb_dt);
   else
     write(translate_to_legacy_downtime(pb_dt));
-  _neb_logger->error("cbmod: downtime ID {} stopped: {}", downtime_id,
-                     obj.DebugString());
+  SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} stopped: {}",
+                      downtime_id, obj.ShortDebugString());
 }
 
 /**
@@ -358,12 +361,13 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
       write(pb_dt);
     else
       write(translate_to_legacy_downtime(pb_dt));
-    _neb_logger->error("cbmod: downtime ID {} removed: {}", downtime_id,
-                       obj.DebugString());
+    SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: downtime ID {} removed: {}",
+                        downtime_id, obj.ShortDebugString());
     _downtimes.erase(found);
   } else {
-    _neb_logger->error("cbmod: remove_downtime: Downtime with ID {} not found",
-                       downtime_id);
+    SPDLOG_LOGGER_ERROR(_neb_logger,
+                        "cbmod: remove_downtime: Downtime with ID {} not found",
+                        downtime_id);
   }
 }
 

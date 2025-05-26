@@ -20,10 +20,19 @@ include_directories(${PROJECT_SOURCE_DIR}/process/inc)
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS})
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  set(SOURCES
+    src/spawnp_launcher.cc
+    src/process.cc)
+else()
+  set(SOURCES
+    src/process.cc)
+endif()
+
+
 add_library(
   centreon_process STATIC
-  # Sources.
-  src/process.cc)
+  ${SOURCES})
 
 target_precompile_headers(centreon_process REUSE_FROM centreon_common)
 target_link_libraries(centreon_process INTERFACE Boost::process)

@@ -60,62 +60,23 @@ The goal of this class is to provide an base class to execute asynchronously pro
 It relies on boost v2 process library.
 All is asynchronous, child process end of life is notified to on_process_end method. It's the same for stdin write and stdout/err read.
 
-You have 4 constructors that allow user to pass executable arguments in four different ways. On of them accept a string command line with exe and arguments
+You have 3 constructors that allow user to pass executable arguments in four different ways. On of them accept a string command line with exe and arguments
 
-To be able to use all the possibilities of the process class, you have to inherit from it.
-
-Here is an example of an inheritence:
+When you have to start several times the same process, the better way is to create a shared_ptr< std::string > (exe path) and a shared_ptr of string vector for arguments with parse_cmd_line static method. Then, you can pass it to this constructor:
 ```c++
-class process_wait : public process {
-  std::condition_variable _cond;
-  std::string _stdout;
-  std::string _stderr;
+  process(const std::shared_ptr<boost::asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          const shared_str& exe_path,
+          bool use_setpgid,
+          bool use_stdin,
+          const shared_args& args,
+          const shared_env& env);
 
- public:
-  void on_stdout_read(const boost::system::error_code& err,
-                      size_t nb_read) override {
-    if (!err) {
-      _stdout += std::string_view(_stdout_read_buffer, nb_read);
-    }
-    process::on_stdout_read(err, nb_read);
-  }
-
-  void on_stderr_read(const boost::system::error_code& err,
-                      size_t nb_read) override {
-    if (!err) {
-      _stderr += std::string_view(_stderr_read_buffer, nb_read);
-    }
-    process::on_stderr_read(err, nb_read);
-  }
-
-  void on_process_end(const boost::system::error_code& err,
-                      int raw_exit_status) override {
-    process::on_process_end(err, raw_exit_status);
-    _cond.notify_one();
-  }
-
-  template <typename string_type>
-  process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const std::string_view& exe_path,
-               const std::initializer_list<string_type>& args)
-      : process(io_context, logger, exe_path, args) {}
-
-  process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const std::string_view& cmd_line)
-      : process(io_context, logger, cmd_line) {}
-
-  const std::string& get_stdout() const { return _stdout; }
-  const std::string& get_stderr() const { return _stderr; }
-
-  void wait() {
-    std::mutex dummy;
-    std::unique_lock l(dummy);
-    _cond.wait(l);
-  }
-};
 ```
+
+
+
+This class can be used only one time. 
 
 The `process` class can be used alone to execute a program directly in an asynchron way.
 

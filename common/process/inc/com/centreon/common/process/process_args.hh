@@ -1,0 +1,102 @@
+/**
+ * Copyright 2024 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
+#ifndef CENTREON_COMMON_PROCESS_ARGS_HH
+#define CENTREON_COMMON_PROCESS_ARGS_HH
+
+namespace com::centreon::common {
+
+/**
+ * @brief The goal of this class is two store arguments in two formats
+ * a vector<string> for windows boost process launcher
+ * a vector<const char*> for spawnp
+ *
+ */
+class process_args {
+  std::string _exe_path;
+  std::vector<std::string> _args;
+  std::vector<const char*> _c_args;
+
+ public:
+  using pointer = std::shared_ptr<process_args>;
+
+  process_args(const std::string_view& exe_path,
+               std::vector<std::string>&& args)
+      : _exe_path(exe_path), _args(args) {
+    _c_args.reserve(_args.size() + 2);
+    _c_args.push_back(_exe_path.c_str());
+    for (const std::string& arg : _args) {
+      _c_args.push_back(arg.c_str());
+    }
+    _c_args.push_back(nullptr);
+  }
+
+  template <typename string_type>
+  process_args(const std::string_view& exe_path,
+               const std::initializer_list<string_type>& args)
+      : _exe_path(exe_path) {
+    _args.reserve(args.size());
+    for (const auto& str : args) {
+      _args.push_back(str);
+    }
+    _c_args.reserve(args.size() + 2);
+    _c_args.push_back(_exe_path.c_str());
+    for (const std::string& arg : _args) {
+      _c_args.push_back(arg.c_str());
+    }
+    _c_args.push_back(nullptr);
+  }
+
+  process_args(const std::string_view& exe_path) : _exe_path(exe_path) {
+    _c_args.reserve(2);
+    _c_args.push_back(_exe_path.c_str());
+    _c_args.push_back(nullptr);
+  }
+
+  void dump(std::string* output) const {
+    output->reserve(1024);
+    *output = _exe_path;
+    for (const std::string& arg : _args) {
+      output->append(" \"");
+      output->append(arg);
+      output->push_back('"');
+    }
+  }
+
+  const std::string& get_exe_path() const { return _exe_path; }
+  const std::vector<std::string>& get_args() const { return _args; }
+  const std::vector<const char*>& get_c_args() const { return _c_args; }
+};
+
+}  // namespace com::centreon::common
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::common::process_args> : formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const com::centreon::common::process_args& args,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    std::string output;
+    args.dump(&output);
+    return formatter<std::string>::format(output, ctx);
+  }
+};
+
+}  // namespace fmt
+
+#endif

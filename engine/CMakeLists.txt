@@ -57,6 +57,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc
   ${CMAKE_SOURCE_DIR}/broker/neb/inc
   ${CMAKE_SOURCE_DIR}/broker/core/inc
   ${CMAKE_SOURCE_DIR}/bbdo)
@@ -538,6 +539,7 @@ target_link_libraries(
   -Wl,--no-whole-archive
   centreon_http
   centreon_common
+  centreon_process
   Boost::url
   cce_core
   Boost::program_options
