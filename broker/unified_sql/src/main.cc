@@ -108,7 +108,7 @@ void broker_module_init(void const* arg) {
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */
       e.register_event(make_type(io::storage, storage::de_rebuild_message),
-                       "rebuild_message",
+                       "RebuildMessage",
                        &storage::pb_rebuild_message::operations);
 
       /* Let's register the pb_remove_graphs bbdo event. This is needed to send
