@@ -515,7 +515,7 @@ if(LEGACY_ENGINE)
 
   # centengine target.
   add_executable(centengine "${SRC_DIR}/main.cc")
-  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
   add_dependencies(centengine centreon_clib)
 
   # Link centengine with required libraries.
@@ -524,7 +524,7 @@ if(LEGACY_ENGINE)
     PRIVATE "-rdynamic"
             centreon_clib
             log_v2
-            "-Wl,-whole-archive"
+            -Wl,-whole-archive
             enginerpc_legacy
             centreon_grpc
             centreon_http
@@ -533,7 +533,8 @@ if(LEGACY_ENGINE)
             cce_core
             gRPC::grpc++
             Boost::program_options
-            "-Wl,--no-whole-archive"
+            -Wl,--no-whole-archive
+            gRPC::grpc++
             gRPC::gpr
             gRPC::grpc
             gRPC::grpc++_alts
@@ -573,15 +574,13 @@ else()
   # centengine target.
 
   add_executable(centengine "${SRC_DIR}/main.cc")
-  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
   add_dependencies(centengine centreon_clib)
 
   # Link centengine with required libraries.
-  set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
   target_link_libraries(
     centengine
-    PRIVATE
-            centreon_clib
+    PRIVATE centreon_clib
             log_v2
             "-Wl,-whole-archive"
             enginerpc
