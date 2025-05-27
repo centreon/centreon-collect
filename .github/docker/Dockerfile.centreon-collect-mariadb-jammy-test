@@ -39,8 +39,15 @@ apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
-pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3 robotframework-requests PyJWT
+# Install requirements for python virtual envs
+echo "install python virtual env"
+apt-get install -y python3-venv
+python3 -m venv /.venv
+source /.venv/bin/activate
+
+echo "install robot and dependencies"
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
+/.venv/bin/pip3 install grpcio grpcio_tools py-cpuinfo cython gitpython boto3 robotframework-requests PyJWT
 
 cd /tmp/collect
 
