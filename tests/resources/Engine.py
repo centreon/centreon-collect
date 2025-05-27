@@ -207,7 +207,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids: int):
+    def _create_service(self, host_id: int, cmd_ids: tuple[int, int]):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -861,7 +861,7 @@ def ctn_engine_config_set_value_in_services(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
@@ -883,8 +883,8 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             i -= 1
@@ -913,8 +913,8 @@ def ctn_engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -947,8 +947,8 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -992,9 +992,9 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
-    rbis = re.compile(r"^\s*name\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
     found = False
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -1050,7 +1050,7 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
         f.writelines(new_lines)
 
 
-def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
+def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = ""):
     """
     Add a new command in the commands.cfg for the Engine config idx.
 
@@ -1061,7 +1061,7 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         connector (str, optional): Defaults to None.
     """
     with open(f"{CONF_DIR}/config{idx}/commands.cfg", "a") as f:
-        if connector is None:
+        if connector == "":
             f.write(f"""define command {{
         command_name                   {command_name}
         command_line                   {new_command}
@@ -1090,7 +1090,7 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, f"    {key}              {value}\n")
@@ -1112,7 +1112,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1133,7 +1133,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    r = re.compile(rf"^\s*;;dependency_name\s+{desc}\s*$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m is not None:
@@ -1153,7 +1153,7 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     serv_begin = re.compile(r"^define service {$")
     serv_end = re.compile(r"^}$")
     serv_begin_idx = 0
@@ -1190,7 +1190,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     host_begin = re.compile(r"^define host {$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
@@ -1431,8 +1431,9 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     Example:
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
+    global engine
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
-        svc = engine._create_service(host_id, [1, cmd_id])
+        svc = engine._create_service(host_id, (1, cmd_id))
         lst = svc.split('\n')
         good = [line for line in lst if "_SERVICE_ID" in line][0]
         m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
