@@ -103,10 +103,11 @@ add_executable(
   # Module sources.
   ${TESTS_SOURCES})
 
+set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 
 target_link_libraries(
   ut_broker
-  PRIVATE "-rdynamic"
+  PRIVATE
           GTest::gtest
           GTest::gtest_main
           GTest::gmock
