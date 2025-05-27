@@ -339,7 +339,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    ${token}    Ctn Create Jwt Token    ${60}
+    ${token}    Ctn Create Jwt Token    ${600}
     Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
     Ctn Add Token Otl Server Module    0    ${token}   
     Ctn Broker Config Log    central    sql    trace
@@ -2129,7 +2129,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
