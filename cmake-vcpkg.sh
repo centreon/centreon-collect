@@ -20,11 +20,11 @@ EOF
 
 BUILD_TYPE="Debug"
 
-export VCPKG_ROOT=$PWD/vcpkg
+export VCPKG_ROOT=../vcpkg
 export PATH=$VCPKG_ROOT:$PATH
-echo "Please, before the build, execute the following commands:"
-echo "export VCPKG_ROOT=\$PWD/vcpkg"
-echo "export PATH=\$VCPKG_ROOT:\$PATH"
+#echo "Please, before the build, execute the following commands:"
+#echo "export VCPKG_ROOT=\$PWD/vcpkg"
+#echo "export PATH=\$VCPKG_ROOT:\$PATH"
 
 COMPILER=gcc
 CC=gcc
@@ -272,6 +272,16 @@ if [ "$force" = "1" ] ; then
   echo "Build forced, removing the 'build' directory before recreating it"
   rm -rf build
   mkdir build
+fi
+
+if [ ! -d ../vcpkg ] ; then
+  echo "No vcpkg directory. Cloning the repo"
+  pushd ..
+  echo "Current dir: $PWD"
+  git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+  ./vcpkg/bootstrap-vcpkg.sh
+  popd
+  echo "Current dir: $PWD"
 fi
 
 case "$COMPILER" in
