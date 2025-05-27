@@ -76,7 +76,6 @@ target_link_libraries(
   berpc
   centreon_common
   spdlog::spdlog
-  -L${PROTOBUF_LIB_DIR}
   gRPC::gpr
   gRPC::grpc
   gRPC::grpc++

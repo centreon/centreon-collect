@@ -55,9 +55,9 @@ add_library(
   ${INC_DIR}/stream.hh)
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
                                                             "-fPIC")
-add_dependencies("${UNIFIED_SQL}" target_rebuild_message
-                 target_remove_graph_message 
-                 target_neb
+add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
+                 pb_remove_graph_message_lib
+                 pb_neb_lib
                  pb_open_telemetry_lib)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(

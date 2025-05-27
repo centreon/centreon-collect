@@ -70,10 +70,9 @@ add_library(
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh")
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
-add_dependencies("${STORAGE}" target_rebuild_message
-                 target_remove_graph_message table_max_size)
+add_dependencies("${STORAGE}" pb_rebuild_message_lib
+                 pb_remove_graph_message_lib table_max_size)
 target_link_libraries(${STORAGE}
-  -L${PROTOBUF_LIB_DIR}
   conflictmgr rokerbase bbdo_storage
   pb_rebuild_message_lib pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)

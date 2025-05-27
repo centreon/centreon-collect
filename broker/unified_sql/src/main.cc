@@ -122,11 +122,6 @@ void broker_module_init(void const* arg) {
                        "RemoveGraphMessage",
                        &storage::pb_remove_graph_message::operations);
 
-      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
-       * the remove graphs message from the gRPC interface. */
-      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
-                       "remove_graphs", &bbdo::pb_remove_poller::operations);
-
       /* Let's register the remove_poller event. */
       e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
                        "remove_poller", &bbdo::pb_remove_poller::operations);

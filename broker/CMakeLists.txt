@@ -119,7 +119,7 @@ include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc protobuf)
+target_link_libraries(berpc protobuf::libprotobuf)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
@@ -441,7 +441,7 @@ set(LIBROKER_SOURCES
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
+add_dependencies(rokerbase berpc pb_bbdo_lib pb_extcmd_lib pb_neb_lib)
 target_link_libraries(
   rokerbase
   sql
@@ -485,10 +485,9 @@ target_link_libraries(
   "-Wl,--no-whole-archive"
   nlohmann_json::nlohmann_json
   fmt::fmt
-  -L${PROTOBUF_LIB_DIR}
   "-Wl,--whole-archive"
   gRPC::grpc++
-  protobuf
+  protobuf::libprotobuf
   "-Wl,--no-whole-archive"
   stdc++fs
   # spdlog::spdlog
