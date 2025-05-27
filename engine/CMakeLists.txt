@@ -519,7 +519,6 @@ if(LEGACY_ENGINE)
   # Link centengine with required libraries.
   target_link_libraries(
     centengine
-    -L${PROTOBUF_LIB_DIR}
     "-rdynamic"
     centreon_clib
     log_v2
@@ -528,7 +527,7 @@ if(LEGACY_ENGINE)
     centreon_grpc
     centreon_http
     centreon_common
-    boost_url
+    Boost::url
     cce_core
     gRPC::grpc++
     Boost::program_options
@@ -578,7 +577,6 @@ else()
   # Link centengine with required libraries.
   target_link_libraries(
     centengine
-    -L${PROTOBUF_LIB_DIR}
     "-rdynamic"
     centreon_clib
     log_v2
@@ -587,11 +585,11 @@ else()
     centreon_grpc
     centreon_http
     centreon_common
-    boost_url
+    Boost::url
     cce_core
     gRPC::grpc++
     Boost::program_options
-    protobuf
+    protobuf::libprotobuf
     "-Wl,--no-whole-archive"
     gRPC::gpr
     gRPC::grpc
