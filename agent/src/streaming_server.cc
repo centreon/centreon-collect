@@ -29,7 +29,7 @@ class server_reactor
           ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>> {
   std::shared_ptr<scheduler> _sched;
   std::string _supervised_host;
-  boost::asio::steady_timer _jwt_timer;
+  boost::asio::system_timer _jwt_timer;
 
   void _start();
 
@@ -104,9 +104,7 @@ void server_reactor::set_expiration(
                         get_peer());
     return;
   }
-  auto now = std::chrono::system_clock::now();
-  auto delay = (tp > now) ? tp - now : std::chrono::seconds(0);
-  _jwt_timer.expires_after(delay);
+  _jwt_timer.expires_at(tp);
   _jwt_timer.async_wait(
       [self = shared_from_this()](const boost::system::error_code& ec) {
         if (ec == boost::asio::error::operation_aborted)

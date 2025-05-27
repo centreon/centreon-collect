@@ -14,15 +14,15 @@ Call on_encryptioncheckbox_click</CreateFunctionCustomScript>
     <Bitmap Name="ca_name_help" Location="361, 105" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="2" onClick="ca_name_help_onClick" />
     <Label Name="label_token" Location="6, 136" Size="140, 17" Text="Token:" TabIndex="3" />
     <Bitmap Name="ca_file_help" Location="361, 74" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="4" onClick="ca_file_help_onClick" />
-    <Bitmap Name="certificate_file_help" Location="361, 44" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="5" onClick="certificate_file_help_onClick" />
-    <Bitmap Name="private_key_file_help" Location="361, 14" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="6" onClick="private_key_file_help_onClick" />
+    <Bitmap Name="certificate_file_help" Location="361, 14" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="5" onClick="certificate_file_help_onClick" />
+    <Bitmap Name="private_key_file_help" Location="361, 44" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="6" onClick="private_key_file_help_onClick" />
     <TextBox Name="ca_name" Location="162, 103" Size="193, 20" TabIndex="7" />
     <Label Name="label_ca_name" Location="6, 106" Size="145, 17" Text="CA Common Name (CN):" TabIndex="8" />
     <FileRequest Name="ca_file" Location="162, 72" Size="193, 20" TabIndex="9" Filter="*.crt files|*.crt" />
-    <FileRequest Name="certificate_file" Location="162, 42" Size="193, 20" TabIndex="10" Filter="*.crt files|*.crt" />
+    <FileRequest Name="certificate_file" Location="162, 12" Size="193, 20" TabIndex="10" Filter="*.crt files|*.crt" />
     <Label Name="label_ca_file" Location="6, 76" Size="150, 16" Text="CA:" TabIndex="11" />
-    <FileRequest Name="private_key_file" Location="162, 12" Size="193, 20" TabIndex="12" Filter="*.key files|*.key" />
-    <Label Name="label_certificate_file" Location="6, 46" Size="100, 16" Text="Public certificate:" TabIndex="13" />
-    <Label Name="label_private_key_file" Location="6, 16" Size="100, 16" Text="Private key:" TabIndex="14" />
+    <FileRequest Name="private_key_file" Location="162, 42" Size="193, 20" TabIndex="12" Filter="*.key files|*.key" />
+    <Label Name="label_certificate_file" Location="6, 16" Size="100, 16" Text="Public certificate:" TabIndex="13" />
+    <Label Name="label_private_key_file" Location="6, 46" Size="100, 16" Text="Private key:" TabIndex="14" />
   </GroupBox>
 </Dialog>

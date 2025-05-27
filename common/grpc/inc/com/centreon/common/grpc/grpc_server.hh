@@ -57,6 +57,12 @@ class grpc_server_base {
   bool initialized() const { return _server.get(); }
 };
 
+/**
+ * @brief Auth process for grpc server
+ *
+ * This class is used to authenticate incoming requests using JWT tokens.
+ * It checks if the token is present, valid, and trusted.
+ */
 class Authprocess final : public ::grpc::AuthMetadataProcessor {
   const std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
   const std::shared_ptr<spdlog::logger> _logger;
