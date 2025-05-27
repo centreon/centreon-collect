@@ -58,7 +58,7 @@ sub init_database_no_file {
     is($prepare_stm->err, U(), 'no error when preparing query to gorgone_history.');
 
     $row = $prepare_stm->fetchrow_hashref();
-    is($row, U(), 'no error when selecting from gorgone_history');
+    is($row, U(), 'no error when selecting from gorgone_history.');
 
     # We test the creation of missing tables
     $db->do("DROP TABLE gorgone_history");
@@ -80,7 +80,7 @@ sub init_database_no_file {
 
     gorgone::standard::library::init_database(%options);
     $row = $db->selectrow_arrayref("SELECT count(*) FROM sqlite_master where type='index' and name in ('idx_gorgone_history_instant', 'idx_gorgone_synchistory_id')");
-    is($row->[0], 2, 'indexes idx_gorgone_history_instant and idx_gorgone_synchistory_id should exist after init_databse.' );
+    is($row->[0], 2, 'indexes idx_gorgone_history_instant and idx_gorgone_synchistory_id should exist after init_database.' );
 
     # Here we test the update of the gorgone_identity table
     $db->do("DROP TABLE gorgone_identity");
