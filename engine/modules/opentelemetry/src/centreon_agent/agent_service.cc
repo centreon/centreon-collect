@@ -180,7 +180,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
   std::chrono::system_clock::time_point exp_time =
       std::chrono::system_clock::time_point::min();
 
-  if (_is_crypted) {
+  if (_is_crypted && !_trusted_tokens->empty()) {
     if (auth_ctx) {
       // Grab *all* "authorization" metadata values (often just one).
       auto metadata = context->client_metadata();
