@@ -920,8 +920,8 @@ sub create_schema {
             CREATE INDEX IF NOT EXISTS idx_gorgone_centreon_judge_spare_cluster_name ON gorgone_centreon_judge_spare (cluster_name);
         }
     ];
-    foreach (@$schema) {
-        my ($status, $sth) = $dbh->query({ query => $_ });
+    foreach my $sql (@$schema) {
+        my ($status, $sth) = $dbh->query({ query => $sql });
         if ($status == -1) {
             $options{logger}->writeLogError("[core] create schema issue");
             exit(1);
@@ -935,9 +935,9 @@ sub create_schema {
                    { name => 'oldiv', type => 'varchar(1024)', },
                    { name => 'iv', type => 'varchar(1024)', },
                );
-    foreach (@columns) {
+    foreach my $col (@columns) {
         my ($status, $sth) = $dbh->query({ query =>
-            qq{ SELECT count(*) FROM pragma_table_info('gorgone_identity') where name='$_->{name}' },
+            qq{ SELECT count(*) FROM pragma_table_info('gorgone_identity') where name='$col->{name}' },
         });
 
         if ($status == -1) {
@@ -951,7 +951,7 @@ sub create_schema {
         next if $col_exist;
 
         ($status, $sth) = $dbh->query({ query =>
-           qq{ ALTER TABLE `gorgone_identity` ADD COLUMN `$_->{name}` $_->{type} DEFAULT NULL },
+           qq{ ALTER TABLE `gorgone_identity` ADD COLUMN `$col->{name}` $col->{type} DEFAULT NULL },
         });
 
         if ($status == -1) {
