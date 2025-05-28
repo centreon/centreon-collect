@@ -174,6 +174,23 @@ BSCSSTG1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
+
+    Ctn Create Key And Certificate
+    ...    localhost
+    ...    ${EtcRoot}/centreon-broker/server.key
+    ...    ${EtcRoot}/centreon-broker/server.crt
+
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    private_key
+    ...    ${EtcRoot}/centreon-broker/server.key
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    certificate
+    ...    ${EtcRoot}/centreon-broker/server.crt
+
     Ctn Start Broker
     ${content}    Create List    Handshake failed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
