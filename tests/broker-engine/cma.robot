@@ -1690,7 +1690,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -2030,7 +2030,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0,"telegraf_conf_server": {"http_server":{"port": 1443, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "check_interval":60, "engine_otel_endpoint": "127.0.0.1:4317"}}
     Ctn Config Add Otl Connector
     ...    0
     ...    CMA connector
@@ -2182,7 +2182,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2238,7 +2238,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2297,7 +2297,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
