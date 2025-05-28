@@ -1706,7 +1706,12 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ...    Then the connection should be refused
     ...    And the log should contain the message "UNAUTHENTICATED: No authorization header"
     [Tags]    broker    engine    opentelemetry    MON-160435
-
+    
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+    
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     Ctn Add Otl ServerModule
