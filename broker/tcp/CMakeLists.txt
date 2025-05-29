@@ -22,10 +22,13 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/tcp/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tcp/test")
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc
                     ${PROJECT_SOURCE_DIR}/neb/inc
+		    ${CMAKE_BINARY_DIR}/common/process_stat
 )
 
-# Sources.
-set(SOURCES
+# TCP module.
+set(TCP "50-tcp")
+set(TCP "${TCP}" PARENT_SCOPE)
+add_library("${TCP}" SHARED
   "${SRC_DIR}/acceptor.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
@@ -34,25 +37,11 @@ set(SOURCES
   "${SRC_DIR}/tcp_async.cc"
   "${SRC_DIR}/tcp_connection.cc"
 )
-# Headers.
-set(HEADERS
-  "${INC_DIR}/acceptor.hh"
-  "${INC_DIR}/connector.hh"
-  "${INC_DIR}/factory.hh"
-  "${INC_DIR}/stream.hh"
-  "${INC_DIR}/tcp_async.hh"
-)
-
-# TCP module.
-set(TCP "50-tcp")
-set(TCP "${TCP}" PARENT_SCOPE)
-add_library("${TCP}" SHARED
-  ${SOURCES}
-  ${HEADERS}
-)
 set_target_properties("${TCP}" PROPERTIES PREFIX ""
+  POSITION_INDEPENDENT_CODE ON
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib"
 )
+add_dependencies("${TCP}" process_stat)
 target_link_libraries("${TCP}" spdlog::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
 
