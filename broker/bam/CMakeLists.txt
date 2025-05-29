@@ -145,7 +145,6 @@ add_library(
 target_link_libraries("${BAM}" PRIVATE bbdo_storage bbdo_bam pb_bam_lib
                       spdlog::spdlog)
 target_precompile_headers("${BAM}" REUSE_FROM multiplexing)
-#target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${BAM}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${BAM}" pb_open_telemetry_lib pb_bam_lib)
