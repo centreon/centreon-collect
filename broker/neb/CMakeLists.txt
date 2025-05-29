@@ -146,14 +146,12 @@ get_property(
 list(APPEND CBMOD_DEFINES CBMOD)
 
 target_link_libraries("${CBMOD}" PRIVATE
-  rokerbase
   multiplexing
   -Wl,--whole-archive
+  rokerbase
   protobuf::libprotobuf
   -Wl,--no-whole-archive
   rokerbase
-  pb_header_lib
-  pb_neb_lib
 )
 
 set_target_properties(

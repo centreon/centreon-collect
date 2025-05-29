@@ -75,7 +75,8 @@ add_dependencies(rpc_client centreon_common)
 
 target_link_libraries(
   rpc_client
-  berpc
+  pb_broker_lib
+  process_stat
   centreon_common
   spdlog::spdlog
   gRPC::gpr
@@ -96,6 +97,7 @@ if(WITH_ASAN)
       "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
+message(STATUS "sources in tests: ${TESTS_SOURCES}")
 add_executable(
   ut_broker
   main.cc
@@ -108,17 +110,20 @@ set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(
   ut_broker
   PRIVATE
+          roker
+	  -Wl,--whole-archive
+          rokerbase
+	  -Wl,--no-whole-archive
+          multiplexing
+	  ${TESTS_LIBRARIES}
           GTest::gtest
           GTest::gtest_main
           GTest::gmock
           GTest::gmock_main
-	            log_v2
+          log_v2
 	  #	  test_util
 	  #	  "-Wl,--whole-archive"
-	            roker
-	            rokerbase
 	  	  centreon_common
-		  #         multiplexing
 	  #	  protobuf::libprotobuf
 	  #	  "-Wl,--no-whole-archive"
 	  #          ${TESTS_LIBRARIES}
