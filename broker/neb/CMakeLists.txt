@@ -20,7 +20,8 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc)
+include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_BINARY_DIR}/common/process_stat)
 
 # NEB sources.
 set(NEB_SOURCES
@@ -86,13 +87,14 @@ set(NEB_SOURCES
 add_library(nebbase STATIC ${NEB_SOURCES})
 add_dependencies(
   nebbase
+  process_stat
   table_max_size
   pb_neb_lib
   pb_header_lib
   opentelemetry
   pb_bam_lib)
 
-target_link_libraries(nebbase PRIVATE protobuf::libprotobuf pb_neb_lib
+target_link_libraries(nebbase PRIVATE pb_neb_lib
                                       pb_header_lib pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
@@ -109,16 +111,18 @@ add_library(
   # Main source.
   ${SRC_DIR}/broker.cc)
 
+add_dependencies(${NEB} nebbase)
+
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} "-Wl,--whole-archive" nebbase
-                      "-Wl,--no-whole-archive" spdlog::spdlog)
+target_link_libraries(${NEB} PRIVATE nebbase
+                      spdlog::spdlog)
 
 set_target_properties(
   ${NEB} PROPERTIES
   PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/broker/lib)
 
-target_precompile_headers(${NEB} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
@@ -144,9 +148,13 @@ list(APPEND CBMOD_DEFINES CBMOD)
 target_link_libraries("${CBMOD}" PRIVATE
   rokerbase
   multiplexing
+  -Wl,--whole-archive
   protobuf::libprotobuf
+  -Wl,--no-whole-archive
+  rokerbase
   pb_header_lib
-  pb_neb_lib)
+  pb_neb_lib
+)
 
 set_target_properties(
   "${CBMOD}"
