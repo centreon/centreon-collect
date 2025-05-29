@@ -31,10 +31,12 @@ BAWORST_ACK
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    Log To Console    Check Ba status
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
+    Log To Console    Check Ba output
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
     ...    Status is OK - All KPIs are in an OK state

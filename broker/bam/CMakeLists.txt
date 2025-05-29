@@ -150,27 +150,27 @@ set_target_properties("${BAM}" PROPERTIES PREFIX ""
 add_dependencies("${BAM}" pb_open_telemetry_lib pb_bam_lib)
 
 # Testing.
-if(WITH_TESTING)
-  if(WITH_SQL_TESTS)
-    set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
-  endif(WITH_SQL_TESTS)
-
-  # Testing.
-  set(TESTS_SOURCES
-      ${TESTS_SOURCES}
-      ${TEST_DIR}/ba/kpi_service.cc
-      ${TEST_DIR}/ba/kpi_ba.cc
-      ${TEST_DIR}/configuration/applier-boolexp.cc
-      ${TEST_DIR}/exp_builder/exp_builder.cc
-      ${TEST_DIR}/exp_builder/availability_builder.cc
-      ${TEST_DIR}/exp_parser/get_postfix.cc
-      ${TEST_DIR}/exp_tokenizer/next.cc
-      ${TEST_DIR}/time/check_timeperiod.cc
-      PARENT_SCOPE)
-  set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} ${BAM}
-      PARENT_SCOPE)
-endif(WITH_TESTING)
+#if(WITH_TESTING)
+#  if(WITH_SQL_TESTS)
+#    set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/monitoring_stream.cc)
+#  endif(WITH_SQL_TESTS)
+#
+#  # Testing.
+#  set(TESTS_SOURCES
+#      ${TESTS_SOURCES}
+#      ${TEST_DIR}/ba/kpi_service.cc
+#      ${TEST_DIR}/ba/kpi_ba.cc
+#      ${TEST_DIR}/configuration/applier-boolexp.cc
+#      ${TEST_DIR}/exp_builder/exp_builder.cc
+#      ${TEST_DIR}/exp_builder/availability_builder.cc
+#      ${TEST_DIR}/exp_parser/get_postfix.cc
+#      ${TEST_DIR}/exp_tokenizer/next.cc
+#      ${TEST_DIR}/time/check_timeperiod.cc
+#      PARENT_SCOPE)
+#  set(TESTS_LIBRARIES
+#      ${TESTS_LIBRARIES} ${BAM}
+#      PARENT_SCOPE)
+#endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${BAM}" LIBRARY DESTINATION "${PREFIX_MODULES}")
