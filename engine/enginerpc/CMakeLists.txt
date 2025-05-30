@@ -21,7 +21,8 @@ set(INC_DIR "../inc/com/centreon/engine/")
 
 # Include directories.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc)
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_BINARY_DIR}/common/process_stat)
 
 add_custom_command(
   DEPENDS engine.proto
@@ -55,7 +56,7 @@ add_library(
   ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.h
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
 target_link_libraries(cerpc PRIVATE protobuf::libprotobuf)
-add_dependencies(cerpc engine_rpc)
+add_dependencies(cerpc engine_rpc process_stat)
 
 if(LEGACY_ENGINE)
   # mod_enginerpc target.
