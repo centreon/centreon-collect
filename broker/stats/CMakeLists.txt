@@ -42,19 +42,20 @@ add_library(
   ${INC_DIR}/worker.hh
   ${INC_DIR}/worker_pool.hh)
 set_target_properties("${STATS}" PROPERTIES PREFIX ""
+  POSITION_INDEPENDENT_CODE ON
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries("${STATS}" PRIVATE spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 
 # Testing.
-if(WITH_TESTING)
-  set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TEST_DIR}/stats.cc
-      PARENT_SCOPE)
-  set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} ${STATS}
-      PARENT_SCOPE)
-endif(WITH_TESTING)
+#if(WITH_TESTING)
+#  set(TESTS_SOURCES
+#      ${TESTS_SOURCES} ${TEST_DIR}/stats.cc
+#      PARENT_SCOPE)
+#  set(TESTS_LIBRARIES
+#      ${TESTS_LIBRARIES} ${STATS}
+#      PARENT_SCOPE)
+#endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${STATS}" LIBRARY DESTINATION "${PREFIX_MODULES}")

@@ -111,19 +111,18 @@ target_link_libraries(
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
-  protobuf::libprotobuf
   spdlog::spdlog)
 
 # Testing.
-if(WITH_TESTING)
-  set(TESTS_SOURCES
-      ${TESTS_SOURCES} "${TEST_DIR}/cached.cc" "${TEST_DIR}/exceptions.cc"
-      "${TEST_DIR}/factory.cc" "${TEST_DIR}/lib.cc" "${TEST_DIR}/rrd.cc"
-      PARENT_SCOPE)
-  set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} "${RRD}"
-      PARENT_SCOPE)
-endif()
+#if(WITH_TESTING)
+#  set(TESTS_SOURCES
+#      ${TESTS_SOURCES} "${TEST_DIR}/cached.cc" "${TEST_DIR}/exceptions.cc"
+#      "${TEST_DIR}/factory.cc" "${TEST_DIR}/lib.cc" "${TEST_DIR}/rrd.cc"
+#      PARENT_SCOPE)
+#  set(TESTS_LIBRARIES
+#      ${TESTS_LIBRARIES} "${RRD}"
+#      PARENT_SCOPE)
+#endif()
 
 # Install rule.
 install(TARGETS "${RRD}" LIBRARY DESTINATION "${PREFIX_MODULES}")

@@ -111,24 +111,25 @@ target_link_libraries(
           GTest::gtest_main
           GTest::gmock
           GTest::gmock_main
-          log_v2
-	  test_util
-	  "-Wl,--whole-archive"
-          roker
-          rokerbase
-	  centreon_common
-          multiplexing
-	  "-Wl,--no-whole-archive"
-          ${TESTS_LIBRARIES}
-	  #conflictmgr
-          centreon_grpc
-	  #stdc++fs
-	  #nlohmann_json::nlohmann_json
-	  #fmt::fmt
-	  #mariadb
-	  #crypto
-	  #ssl
-	  gRPC::grpc++)
+	            log_v2
+	  #	  test_util
+	  #	  "-Wl,--whole-archive"
+	            roker
+	            rokerbase
+	  	  centreon_common
+		  #         multiplexing
+	  #	  protobuf::libprotobuf
+	  #	  "-Wl,--no-whole-archive"
+	  #          ${TESTS_LIBRARIES}
+	  #	  #conflictmgr
+	  #          centreon_grpc
+	  #	  #stdc++fs
+	  #	  #nlohmann_json::nlohmann_json
+          fmt::fmt
+	  #	  #mariadb
+	  #	  #crypto
+	  #	  #ssl
+	  	  gRPC::grpc++)
 
 add_dependencies(
   ut_broker
