@@ -87,7 +87,7 @@ add_library(
 set_target_properties("${RRD}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib)
+add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib process_stat)
 
 # Compile with librrd flags.
 if(LIBRRD_CFLAGS)
