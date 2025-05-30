@@ -4,6 +4,9 @@ FROM ${REGISTRY_URL}/ubuntu:jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN sed -i 's|http://archive.|https://archive.|g' /etc/apt/sources.list && \
+    find /etc/apt/sources.list.d -name '*.list' -exec sed -i 's|http://archive.|https://archive.|g' {} +
+
 RUN --mount=type=bind,src=.,dst=/tmp/collect bash -e <<EOF
 
 apt-get update
