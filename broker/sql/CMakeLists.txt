@@ -21,9 +21,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/sql/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/sql/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/sql/test")
-include_directories("${INC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${PROJECT_SOURCE_DIR}/storage/inc")
+include_directories("${INC_DIR}"
+  ${CMAKE_BINARY_DIR}/common/process_stat
+"${PROJECT_SOURCE_DIR}/neb/inc"
+"${PROJECT_SOURCE_DIR}/storage/inc")
 
 # SQL module.
 set(SQL "80-sql")
@@ -42,6 +43,7 @@ add_library("${SQL}" SHARED
 add_dependencies(${SQL}
 	pb_neb_lib
 	pb_header_lib
+	process_stat
 	pb_open_telemetry_lib
 	)
 
