@@ -23,6 +23,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/simu/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/simu/test")
 include_directories(
   "${INC_DIR}" "${PROJECT_SOURCE_DIR}/lua/inc" "${PROJECT_SOURCE_DIR}/neb/inc"
+  ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/bam/inc")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/simu")
 
@@ -45,6 +46,7 @@ add_library(
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh")
 add_dependencies(${SIMU} pb_neb_lib pb_header_lib pb_storage_lib pb_bam_lib
+  process_stat
                  pb_open_telemetry_lib)
 
 target_link_libraries("${SIMU}" PRIVATE ${LUA_LIBRARIES} spdlog::spdlog)
