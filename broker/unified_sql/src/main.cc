@@ -73,16 +73,15 @@ bool broker_module_deinit() {
  *
  *  @param[in] arg Configuration object.
  */
-void broker_module_init(void const* arg) {
-  (void)arg;
-
-  auto logger = log_v2::instance().get(log_v2::SQL);
+void broker_module_init(void const* arg [[maybe_unused]]) {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
 
   // Increment instance number.
   if (!instances++) {
     // Storage module.
     logger->info("unified_sql: module for Centreon Broker {}",
                  CENTREON_BROKER_VERSION);
+    logger->info("unified_sql: generated pool: {}", static_cast<const void*>(google::protobuf::DescriptorPool::generated_pool()));
 
     io::events& e(io::events::instance());
 
