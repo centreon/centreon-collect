@@ -20,9 +20,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/unified_sql/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${INC_DIR}" "${SRC_DIR}"
+  ${CMAKE_BINARY_DIR}/common/process_stat
+"${PROJECT_SOURCE_DIR}/neb/inc"
+"${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 # Storage module.
@@ -58,6 +59,7 @@ set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX ""
 							    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib
+		 process_stat
                  pb_neb_lib
                  pb_open_telemetry_lib)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
