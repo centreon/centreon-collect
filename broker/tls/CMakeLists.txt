@@ -20,7 +20,7 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tls/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/tls/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tls/test")
-include_directories(${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc/)
+include_directories(${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc/ ${CMAKE_BINARY_DIR}/common/process_stat)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/tls")
 
 # Find GNU TLS.
@@ -63,6 +63,7 @@ add_library("${TLS}" SHARED
 
 target_link_libraries("${TLS}" PRIVATE ${GNUTLS_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
+add_dependencies("${TLS}" process_stat)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX ""
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib"
