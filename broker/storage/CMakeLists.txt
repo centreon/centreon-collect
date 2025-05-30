@@ -20,9 +20,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/storage/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/storage/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/storage/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${INC_DIR}" "${SRC_DIR}"
+"${PROJECT_SOURCE_DIR}/neb/inc"
+${CMAKE_BINARY_DIR}/common/process_stat
+"${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
 # conflict_manager library.
@@ -44,6 +45,10 @@ add_dependencies(conflictmgr
 	pb_header_lib
 	pb_storage_lib
 	pb_open_telemetry_lib
+	pb_bbdo_lib
+	pb_rebuild_message_lib
+	pb_remove_graph_message_lib
+	process_stat
 	)
 
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
