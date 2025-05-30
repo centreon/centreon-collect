@@ -51,7 +51,7 @@ target_link_libraries(
   ${GRPC}
   PRIVATE
   centreon_grpc
-  "-Wl,--whole-archive"
+  -Wl,--whole-archive
   pb_neb_lib
   pb_storage_lib
   pb_bbdo_lib
@@ -61,7 +61,7 @@ target_link_libraries(
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
-  "-Wl,--no-whole-archive"
+  -Wl,--no-whole-archive
   protobuf::libprotobuf
   spdlog::spdlog)
 

@@ -533,11 +533,11 @@ if(LEGACY_ENGINE)
             Boost::url
             cce_core
             Boost::program_options
-            -Wl,--no-whole-archive
             gRPC::grpc++
-            gRPC::gpr
-            gRPC::grpc
-            gRPC::grpc++_alts
+            -Wl,--no-whole-archive
+	    #gRPC::gpr
+            #gRPC::grpc
+            #gRPC::grpc++_alts
             absl::any
             absl::log
             absl::base
