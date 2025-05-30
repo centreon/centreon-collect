@@ -77,7 +77,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     Boost::program_options
     re2::re2
     log_v2
-    crypto 
+    crypto
     ssl
     GTest::gtest
     GTest::gtest_main
