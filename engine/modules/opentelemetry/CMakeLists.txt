@@ -129,6 +129,7 @@ target_include_directories(
           ${CMAKE_SOURCE_DIR}/common/inc
           ${CMAKE_SOURCE_DIR}/common/http/inc
           ${CMAKE_SOURCE_DIR}/common/grpc/inc
+	  ${CMAKE_BINARY_DIR}/common/process_stat
           src
           ${PROJECT_SOURCE_DIR}/enginerpc
           ${CMAKE_SOURCE_DIR}/common/src)
