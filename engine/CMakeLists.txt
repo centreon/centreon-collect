@@ -522,8 +522,7 @@ if(LEGACY_ENGINE)
   # Link centengine with required libraries.
   target_link_libraries(
     centengine
-    PRIVATE "-rdynamic"
-            centreon_clib
+    PRIVATE centreon_clib
             log_v2
             -Wl,-whole-archive
             enginerpc_legacy
@@ -532,7 +531,6 @@ if(LEGACY_ENGINE)
             centreon_common
             Boost::url
             cce_core
-            gRPC::grpc++
             Boost::program_options
             -Wl,--no-whole-archive
             gRPC::grpc++

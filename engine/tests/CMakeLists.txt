@@ -39,6 +39,7 @@ if(WITH_TESTING)
     rpc_client_engine
     PRIVATE cerpc
             centreon_common
+	    process_stat
             spdlog::spdlog
             gRPC::gpr
             gRPC::grpc
@@ -52,13 +53,8 @@ if(WITH_TESTING)
 
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
-  if(LEGACY_ENGINE)
-    target_link_libraries(bin_connector_test_run PRIVATE cce_core pthread)
-    target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-  else()
-    target_link_libraries(bin_connector_test_run PRIVATE cce_core pthread)
-    target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
-  endif()
+  target_link_libraries(bin_connector_test_run PRIVATE cce_core pthread)
+  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 
   # Unit test executable.
   include_directories(${TESTS_DIR} ${CMAKE_BINARY_DIR})
@@ -192,10 +188,10 @@ if(WITH_TESTING)
               cce_core
               log_v2
               opentelemetry
-              centagent_lib
               pb_open_telemetry_lib
               centreon_grpc
               "-Wl,-no-whole-archive"
+	      centagent_lib
               centreon_http
               centreon_process
               Boost::program_options

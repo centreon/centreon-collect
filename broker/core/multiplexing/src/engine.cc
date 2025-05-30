@@ -307,7 +307,6 @@ engine::engine(const std::shared_ptr<spdlog::logger>& logger)
 
 engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
-  assert(_state == stopped);
   assert(_muxers.empty());
   SPDLOG_LOGGER_DEBUG(_logger, "core: cbd engine destroyed.");
   DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
