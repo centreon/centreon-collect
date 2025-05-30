@@ -22,6 +22,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/influxdb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/influxdb/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
+  ${CMAKE_BINARY_DIR}/common/process_stat
   ${PROJECT_SOURCE_DIR}/storage/inc)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/influxdb")
 
@@ -56,7 +57,7 @@ target_link_libraries(
 target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${INFLUXDB}" nebbase)
+add_dependencies("${INFLUXDB}" nebbase process_stat)
 
 # Testing.
 #if(WITH_TESTING)
