@@ -22,6 +22,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/graphite/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/graphite/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
+  ${CMAKE_BINARY_DIR}/common/process_stat
   ${PROJECT_SOURCE_DIR}/storage/inc)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/graphite")
 
@@ -51,7 +52,7 @@ target_link_libraries(
 target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-add_dependencies("${GRAPHITE}" nebbase)
+add_dependencies("${GRAPHITE}" nebbase process_stat)
 
 # Testing.
 #if(WITH_TESTING)
