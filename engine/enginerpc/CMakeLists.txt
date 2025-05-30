@@ -29,17 +29,17 @@ add_custom_command(
   OUTPUT engine.grpc.pb.cc engine.grpc.pb.h
   COMMAND
     protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    --grpc_out="${CMAKE_CURRENT_BINARY_DIR}" engine.proto
+    --proto_path=${CMAKE_SOURCE_DIR}/engine/enginerpc
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
+    --grpc_out="${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto
   DEPENDS engine.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT engine.pb.cc engine.pb.h
   COMMAND
     protobuf::protoc ARGS --cpp_out="${CMAKE_CURRENT_BINARY_DIR}"
-    --proto_path=${CMAKE_CURRENT_SOURCE_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/common/src engine.proto
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    --proto_path=${CMAKE_SOURCE_DIR}/engine/enginerpc
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/engine/enginerpc)
 
 add_custom_target(
   engine_rpc
@@ -66,7 +66,7 @@ if(LEGACY_ENGINE)
     # Headers.
     "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-  add_dependencies(enginerpc_legacy centreon_common cerpc)
+  add_dependencies(enginerpc_legacy centreon_common process_stat cerpc)
   target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
 
   # Prettier name.
@@ -76,6 +76,7 @@ if(LEGACY_ENGINE)
     PROPERTY POSITION_INDEPENDENT_CODE ON)
   # Link target with libraries.
   target_link_libraries(enginerpc_legacy PRIVATE cerpc centreon_common
+    process_stat
                                                  spdlog::spdlog)
 else()
   # mod_enginerpc target.

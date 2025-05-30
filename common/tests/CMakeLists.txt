@@ -71,8 +71,7 @@ add_test(NAME tests COMMAND ut_common)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
-    PRIVATE centreon_common
-    ctncrypto
+    PRIVATE centreon_common process_stat ctncrypto
     centreon_http
     centreon_process
     Boost::program_options
@@ -90,12 +89,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl::bits
     fmt::fmt pthread)
 
-    add_dependencies(ut_common centreon_common centreon_http)
+    add_dependencies(ut_common centreon_common process_stat ctncrypto centreon_http)
 
 else()
   target_link_libraries(
     ut_common
-    PRIVATE centreon_common
+    PRIVATE centreon_common process_stat
     centreon_process
     Boost::program_options
     re2::re2
@@ -109,7 +108,7 @@ else()
     absl::bits
     fmt::fmt)
 
-    add_dependencies(ut_common centreon_common)
+    add_dependencies(ut_common centreon_common process_stat)
 
 endif()
 

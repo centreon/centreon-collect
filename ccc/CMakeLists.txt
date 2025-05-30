@@ -62,6 +62,7 @@ target_link_libraries(
   cerpc
   berpc
   centreon_common
+  process_stat
   fmt::fmt)
 set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
 
