@@ -65,6 +65,7 @@ target_link_libraries(
           # crypto ssl bbdo_storage
           bbdo_bam
 	  bbdo_storage
+	  pb_storage_lib
           spdlog::spdlog)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
