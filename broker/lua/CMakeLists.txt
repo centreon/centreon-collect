@@ -64,15 +64,7 @@ target_link_libraries(
   PRIVATE ${LUA_LIBRARIES}
           # crypto ssl bbdo_storage
           bbdo_bam
-          pb_header_lib
-          pb_neb_lib
-          pb_bam_lib
-          "-Wl,--whole-archive"
-          pb_remove_graph_message_lib
-          "-Wl,--no-whole-archive"
-          pb_rebuild_message_lib
-          pb_storage_lib
-          protobuf::libprotobuf
+	  bbdo_storage
           spdlog::spdlog)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
