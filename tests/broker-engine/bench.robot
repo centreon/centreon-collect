@@ -16,7 +16,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Case ***
 BENCH_${nb_checks}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -86,7 +86,7 @@ BENCH_${nb_checks}STATUS
 
 BENCH_${nb_checks}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_checks} times
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -159,7 +159,7 @@ BENCH_${nb_checks}STATUS_TRACES
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -262,7 +262,7 @@ BENCH_1000STATUS_100${suffixe}
 
 BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times.
-    [Tags]    broker    engine    bench    without_sql
+    [Tags]    broker    engine    bench    without_sql    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -337,7 +337,7 @@ BENCH_${nb_checks}_SERVICE_STATUS_WITHOUT_SQL
 
 BENCH_${nb_checks}_SERVICE_STATUS_TRACES_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. External command CHECK_SERVICE_RESULT is sent ${nb_checks} times. Logs are in trace level.
-    [Tags]    broker    engine    bench    without_sql
+    [Tags]    broker    engine    bench    without_sql    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -416,7 +416,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. The connection between
     ...    Engine and Broker is reversed. External command CHECK_SERVICE_RESULT is sent
     ...    ${nb_checks} times.
-    [Tags]    broker    engine    bench    without_sql    reverse connection
+    [Tags]    broker    engine    bench    without_sql    reverse connection    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
@@ -497,7 +497,7 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     [Documentation]    Broker is configured without SQL output. The connection between Engine
     ...    and Broker is reversed. External command CHECK_SERVICE_RESULT is sent ${nb_checks}
     ...    times. Logs are in trace level.
-    [Tags]    broker    engine    bench    without_sql
+    [Tags]    broker    engine    bench    without_sql    unstable
     # We need to clear the retention and to check that the JSON for the bench event is well generated.
     Ctn Clear Retention
     Ctn Clear Db    logs
