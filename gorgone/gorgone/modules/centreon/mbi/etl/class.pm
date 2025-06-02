@@ -126,7 +126,7 @@ sub db_parse_xml {
     my ($self, %options) = @_;
 
     my ($rv, $message, $content) = gorgone::standard::misc::slurp(file => $options{file});
-    return (0, $message) if (!$rv);
+    die $message if (!$rv);
     eval {
         $SIG{__WARN__} = sub {};
         $content = XMLin($content, ForceArray => [], KeyAttr => []);
