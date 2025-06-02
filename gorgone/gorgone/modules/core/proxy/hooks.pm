@@ -616,7 +616,7 @@ sub setlogs {
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
-    $status = $options{dbh}->begin_transaction();
+    $status = $options{dbh}->start_transaction();
     return -1 if ($status == -1);
 
     foreach (@{$options{data}->{data}->{result}}) {
