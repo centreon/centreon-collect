@@ -45,21 +45,21 @@ add_executable("${WATCHDOG}"
 target_link_libraries(${WATCHDOG} PRIVATE pthread fmt::fmt spdlog::spdlog nlohmann_json::nlohmann_json)
 target_precompile_headers(${WATCHDOG} PRIVATE precomp_inc/precomp.hpp)
 
-#if (WITH_TESTING)
-#  # Testing.
-#  set(
-#    TESTS_SOURCES
-#    ${TESTS_SOURCES}
-#    "${TEST_DIR}/watchdog.cc"
-#    PARENT_SCOPE
-#  )
-#  set(
-#    TESTS_LIBRARIES
-#    ${TESTS_LIBRARIES}
-#    "${STORAGE}"
-#    PARENT_SCOPE
-#  )
-#endif (WITH_TESTING)
+if (WITH_TESTING)
+  # Testing.
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    "${TEST_DIR}/watchdog.cc"
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    "${STORAGE}"
+    PARENT_SCOPE
+  )
+endif (WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${WATCHDOG}"
