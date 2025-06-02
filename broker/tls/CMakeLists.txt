@@ -70,20 +70,20 @@ set_target_properties("${TLS}" PROPERTIES PREFIX ""
 )
 
 # Testing.
-#if (WITH_TESTING)
-#  set(
-#    TESTS_SOURCES
-#    ${TESTS_SOURCES}
-#    "${TEST_DIR}/acceptor.cc"
-#    PARENT_SCOPE
-#  )
-#  set(
-#    TESTS_LIBRARIES
-#    ${TESTS_LIBRARIES}
-#    "${TLS}"
-#    PARENT_SCOPE
-#  )
-#endif()
+if (WITH_TESTING)
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    "${TEST_DIR}/acceptor.cc"
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    "${TLS}"
+    PARENT_SCOPE
+  )
+endif()
 
 # Install rule.
 install(TARGETS "${TLS}" LIBRARY DESTINATION "${PREFIX_MODULES}")
