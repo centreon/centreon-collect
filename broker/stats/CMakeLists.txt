@@ -49,14 +49,14 @@ target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
 add_dependencies(${STATS} process_stat)
 
 # Testing.
-#if(WITH_TESTING)
-#  set(TESTS_SOURCES
-#      ${TESTS_SOURCES} ${TEST_DIR}/stats.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} ${STATS}
-#      PARENT_SCOPE)
-#endif(WITH_TESTING)
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/stats.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${STATS}
+      PARENT_SCOPE)
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${STATS}" LIBRARY DESTINATION "${PREFIX_MODULES}")
