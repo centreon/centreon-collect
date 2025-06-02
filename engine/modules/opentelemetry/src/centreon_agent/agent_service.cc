@@ -178,7 +178,7 @@ void agent_service::init() {
 agent_service::Export(::grpc::CallbackServerContext* context) {
   std::chrono::system_clock::time_point exp_time =
       std::chrono::system_clock::time_point::min();
-  if (_is_crypted) {
+  if (_is_crypted && !_trusted_tokens->empty()) {
     auto auth_ctx = context->auth_context();
     if (auth_ctx) {
       // Grab *all* "authorization" metadata values (often just one).
