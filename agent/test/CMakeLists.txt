@@ -72,7 +72,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         GTest::gmock_main
         Boost::program_options
         stdc++fs
-        gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+        gRPC::grpc++
         fmt::fmt pthread
         crypto ssl
         )
@@ -86,7 +86,7 @@ else()
     GTest::gmock
     GTest::gmock_main
     Boost::program_options
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    gRPC::grpc++
     fmt::fmt
     pdh)
 endif()

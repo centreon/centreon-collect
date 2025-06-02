@@ -402,13 +402,11 @@ target_link_libraries(
   dl)
 
 # Standalone binary.
-add_executable(cbd ${SRC_DIR}/main.cc
-)
+add_executable(cbd ${SRC_DIR}/main.cc)
 
 add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
 
-set_property(TARGET cbd PROPERTY ENABLE_EXPORTS ON)
-#set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
