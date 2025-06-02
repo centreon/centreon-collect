@@ -121,9 +121,9 @@ target_link_libraries(
           GTest::gmock
           GTest::gmock_main
           log_v2
-	  #	  test_util
+          test_util
 	  #	  "-Wl,--whole-archive"
-	  	  centreon_common
+          centreon_common
 	  #	  protobuf::libprotobuf
 	  #	  "-Wl,--no-whole-archive"
 	  #          ${TESTS_LIBRARIES}

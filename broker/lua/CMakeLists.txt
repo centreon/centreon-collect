@@ -74,14 +74,14 @@ set_target_properties(
                                 "${CMAKE_BINARY_DIR}/broker/lib")
 
 # Testing.
-#if(WITH_TESTING)
-#  set(TESTS_SOURCES
-#      ${TESTS_SOURCES} ${TEST_DIR}/lua.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} "${LUA}"
-#      PARENT_SCOPE)
-#endif()
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/lua.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} "${LUA}"
+      PARENT_SCOPE)
+endif()
 
 # Install rule.
 install(TARGETS "${LUA}" LIBRARY DESTINATION "${PREFIX_MODULES}")

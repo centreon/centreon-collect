@@ -21,11 +21,11 @@
 
 #include <absl/strings/str_split.h>
 
-#include "broker/test/test_server.hh"
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
@@ -5055,4 +5055,32 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
             std::string::npos);
   RemoveFile(filename);
   //  RemoveFile("/tmp/log");
+}
+
+// When broker.base64_encode() is applied on a string, the string is correctly
+// base 64 encoded. And when broker.base64_decode() is applied on a string, the
+// string is correctly base 64 decoded.
+TEST_F(LuaTest, Base64) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/base64_encode.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local str = 'Hello World from Broker!'\n"
+               "  local encoded = broker.base64_encode(str)\n"
+               "  broker_log:info(0, 'Encoded: ' .. tostring(encoded))\n"
+               "  local decoded = broker.base64_decode(encoded)\n"
+               "  broker_log:info(0, 'Decoded: ' .. tostring(decoded))\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string result(ReadFile("/tmp/log"));
+
+  ASSERT_NE(result.find("INFO: Encoded: SGVsbG8gV29ybGQgZnJvbSBCcm9rZXIh"),
+            std::string::npos);
+  ASSERT_NE(result.find("INFO: Decoded: Hello World from Broker!"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
 }
