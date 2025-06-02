@@ -22,7 +22,6 @@
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
-#include <google/protobuf/descriptor.h>
 
 #include <boost/asio.hpp>
 
