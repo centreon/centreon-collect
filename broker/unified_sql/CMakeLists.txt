@@ -66,36 +66,32 @@ target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
   ${UNIFIED_SQL} PRIVATE
   bbdo_storage
-  #-Wl,--whole-archive
-  #pb_header_lib
-  #pb_neb_lib
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
-  #-Wl,--no-whole-archive
   spdlog::spdlog
   absl::any absl::log absl::base absl::bits)
 
 # Testing.
-#if(WITH_TESTING)
-#  if(WITH_SQL_TESTS)
-#    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
-#  endif(WITH_SQL_TESTS)
-#
-#  # Testing.
-#  set(TESTS_SOURCES
-#      ${TESTS_SOURCES}
-#      ${TEST_DIR}/connector.cc
-#      ${TEST_DIR}/metric.cc
-#      #${TEST_DIR}/rebuild_message.cc
-#      ${TEST_DIR}/remove_graph.cc
-#      ${TEST_DIR}/status.cc
-#      ${TEST_DIR}/status-entry.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} ${UNIFIED_SQL}
-#      PARENT_SCOPE)
-#endif()
+if(WITH_TESTING)
+  if(WITH_SQL_TESTS)
+    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
+  endif(WITH_SQL_TESTS)
+
+  # Testing.
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/connector.cc
+      ${TEST_DIR}/metric.cc
+      ${TEST_DIR}/rebuild_message.cc
+      ${TEST_DIR}/remove_graph.cc
+      ${TEST_DIR}/status.cc
+      ${TEST_DIR}/status-entry.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${UNIFIED_SQL}
+      PARENT_SCOPE)
+endif()
 
 # Install rule.
 install(TARGETS "${UNIFIED_SQL}" LIBRARY DESTINATION "${PREFIX_MODULES}")
