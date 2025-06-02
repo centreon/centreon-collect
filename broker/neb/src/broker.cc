@@ -71,7 +71,6 @@ void broker_module_init(void const* arg [[maybe_unused]]) {
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (!neb_instances++) {
     logger->info("NEB: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
-    logger->info("NEB: generated pool: {}", static_cast<const void*>(google::protobuf::DescriptorPool::generated_pool()));
     io::events& e(io::events::instance());
 
     // Register events.
