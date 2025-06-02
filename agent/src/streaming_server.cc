@@ -107,8 +107,6 @@ void server_reactor::set_expiration(
   _jwt_timer.expires_at(tp);
   _jwt_timer.async_wait(
       [self = shared_from_this()](const boost::system::error_code& ec) {
-        if (ec == boost::asio::error::operation_aborted)
-          return;
         if (!ec) {
           if (!self->_alive)  // already shutdown
             return;
