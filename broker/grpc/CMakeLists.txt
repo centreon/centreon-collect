@@ -106,15 +106,15 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Testing.
-#if(WITH_TESTING)
-#  set(TESTS_SOURCES
+if(WITH_TESTING)
+  set(TESTS_SOURCES
 #      ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc
 #      ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} ${GRPC}
-#      PARENT_SCOPE)
-#endif(WITH_TESTING)
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${GRPC}
+      PARENT_SCOPE)
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${GRPC}" LIBRARY DESTINATION "${PREFIX_MODULES}")
