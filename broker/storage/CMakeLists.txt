@@ -84,21 +84,21 @@ target_link_libraries(${STORAGE} PRIVATE
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
 # Testing.
-#if(WITH_TESTING)
-#  if(WITH_SQL_TESTS)
-#    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
-#  endif(WITH_SQL_TESTS)
-#
-#  # Testing.
-#  set(TESTS_SOURCES
-#      ${TESTS_SOURCES} ${TEST_DIR}/connector.cc ${TEST_DIR}/metric.cc
-#      ${TEST_DIR}/remove_graph.cc ${TEST_DIR}/status.cc
-#      ${TEST_DIR}/status-entry.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} ${STORAGE}
-#      PARENT_SCOPE)
-#endif()
+if(WITH_TESTING)
+  if(WITH_SQL_TESTS)
+    set(TEST_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/conflict_manager.cc)
+  endif(WITH_SQL_TESTS)
+
+  # Testing.
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/connector.cc ${TEST_DIR}/metric.cc
+      ${TEST_DIR}/remove_graph.cc ${TEST_DIR}/status.cc
+      ${TEST_DIR}/status-entry.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${STORAGE}
+      PARENT_SCOPE)
+endif()
 
 # Install rule.
 install(TARGETS "${STORAGE}" LIBRARY DESTINATION "${PREFIX_MODULES}")
