@@ -535,9 +535,6 @@ if(LEGACY_ENGINE)
             Boost::program_options
             gRPC::grpc++
             -Wl,--no-whole-archive
-	    #gRPC::gpr
-            #gRPC::grpc
-            #gRPC::grpc++_alts
             absl::any
             absl::log
             absl::base

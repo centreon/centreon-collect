@@ -191,10 +191,19 @@ void https_connection::connect(connect_callback_type&& callback) {
                       *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   beast::get_lowest_layer(*_stream).expires_after(_conf->get_connect_timeout());
-  beast::get_lowest_layer(*_stream).async_connect(
-      _conf->get_endpoint(),
-      [me = shared_from_this(), cb = std::move(callback)](
-          const beast::error_code& err) mutable { me->on_connect(err, cb); });
+  if (_conf->get_endpoints().empty()) {
+    beast::get_lowest_layer(*_stream).async_connect(
+        _conf->get_endpoint(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const beast::error_code& err) mutable { me->on_connect(err, cb); });
+  } else {
+    beast::get_lowest_layer(*_stream).async_connect(
+        _conf->get_endpoints(),
+        [me = shared_from_this(), cb = std::move(callback)](
+            const beast::error_code& err,
+            const typename asio::ip::tcp::endpoint& endpoint
+            [[maybe_unused]]) mutable { me->on_connect(err, cb); });
+  }
 }
 
 /**
