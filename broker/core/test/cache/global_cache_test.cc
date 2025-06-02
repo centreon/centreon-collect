@@ -363,43 +363,43 @@ TEST_F(global_cache_test, Tag) {
   }
 }
 
-//TEST_F(global_cache_test, Huge) {
-//  global_cache::unload();
-//  ::remove("/tmp/cache_test");
-//  global_cache::pointer obj = global_cache::load("/tmp/cache_test");
-//
-//  unsigned ii;
-//
-//  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-//                     "begin construct cache");
-//  // 10000 hosts with 30 services with 20 metrics
-//  unsigned serv_id = 1;
-//  unsigned resource_id = 1;
-//  unsigned index_id = 1;
-//  unsigned metric_id = 1;
-//  for (unsigned host_id = 1; host_id < 10000; ++host_id) {
-//    obj->store_host(host_id, fmt::format("host_{}", host_id), ++resource_id, 1);
-//    for (unsigned cpt_service = 0; cpt_service < 30;
-//         ++cpt_service, ++serv_id, ++index_id) {
-//      obj->store_service(host_id, serv_id, fmt::format("service_{}", serv_id),
-//                         ++resource_id, 2);
-//      obj->set_index_mapping(index_id, host_id, serv_id);
-//      for (unsigned cpt_metric = 0; cpt_metric < 20;
-//           ++cpt_metric, ++metric_id) {
-//        obj->set_metric_info(
-//            metric_id, index_id,
-//            fmt::format("metric_index_{}_id_{}", index_id, metric_id), "%", 0,
-//            100);
-//      }
-//    }
-//  }
-//  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-//                     "end construct cache");
-//  // we search 10000 metrics infos
-//  unsigned metric_info_increment = metric_id / 10000;
-//  unsigned id_search = 0;
-//  for (ii = 0; ii < 10000; ++ii, id_search += metric_info_increment)
-//    obj->get_metric_info(id_search);
-//  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-//                     "end of 10000 metric search");
-//}
+TEST_F(global_cache_test, Huge) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test");
+  global_cache::pointer obj = global_cache::load("/tmp/cache_test");
+
+  unsigned ii;
+
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                     "begin construct cache");
+  // 10000 hosts with 30 services with 20 metrics
+  unsigned serv_id = 1;
+  unsigned resource_id = 1;
+  unsigned index_id = 1;
+  unsigned metric_id = 1;
+  for (unsigned host_id = 1; host_id < 10000; ++host_id) {
+    obj->store_host(host_id, fmt::format("host_{}", host_id), ++resource_id, 1);
+    for (unsigned cpt_service = 0; cpt_service < 30;
+         ++cpt_service, ++serv_id, ++index_id) {
+      obj->store_service(host_id, serv_id, fmt::format("service_{}", serv_id),
+                         ++resource_id, 2);
+      obj->set_index_mapping(index_id, host_id, serv_id);
+      for (unsigned cpt_metric = 0; cpt_metric < 20;
+           ++cpt_metric, ++metric_id) {
+        obj->set_metric_info(
+            metric_id, index_id,
+            fmt::format("metric_index_{}_id_{}", index_id, metric_id), "%", 0,
+            100);
+      }
+    }
+  }
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                     "end construct cache");
+  // we search 10000 metrics infos
+  unsigned metric_info_increment = metric_id / 10000;
+  unsigned id_search = 0;
+  for (ii = 0; ii < 10000; ++ii, id_search += metric_info_increment)
+    obj->get_metric_info(id_search);
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                     "end of 10000 metric search");
+}
