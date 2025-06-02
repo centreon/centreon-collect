@@ -219,7 +219,15 @@ void factory::create_conf(const config::endpoint& cfg,
     throw msg_fmt("can't resolve {}:{} for {} : {}", addr, port, cfg.name,
                   err.message());
   }
-  auto res_ep = endpoints.begin()->endpoint();
+  //  auto res_it = endpoints.begin();
+  //  while (res_it != endpoints.end() &&
+  //         res_it->endpoint().protocol() != asio::ip::tcp::v4()) {
+  //    ++res_it;
+  //  }
+  //  if (res_it == endpoints.end()) {
+  //    throw msg_fmt("no IPv4 endpoint found for {}:{}", addr, port);
+  //  }
+  //  auto res_ep = res_it->endpoint();
 
   asio::ssl::context_base::method ssl_method =
       asio::ssl::context_base::tlsv13_client;
@@ -240,9 +248,9 @@ void factory::create_conf(const config::endpoint& cfg,
   }
 
   common::http::http_config http_cfg(
-      res_ep, addr, encryption, connect_timeout, send_timeout, receive_timeout,
-      second_tcp_keep_alive_interval, std::chrono::seconds(1), 0,
-      default_http_keepalive_duration, max_connections, ssl_method,
+      endpoints, addr, encryption, connect_timeout, send_timeout,
+      receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),
+      0, default_http_keepalive_duration, max_connections, ssl_method,
       certificate_path);
 
   conf =

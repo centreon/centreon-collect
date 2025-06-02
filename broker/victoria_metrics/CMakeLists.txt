@@ -55,28 +55,28 @@ set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries("${VICTORIA_METRICS}" PRIVATE
   http_tsdb
-  protobuf::libprotobuf
   centreon_http
+  ctncrypto
   bbdo_storage pb_storage_lib spdlog::spdlog)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.
-#if(WITH_TESTING)
-#  set(
-#    TESTS_SOURCES
-#    ${TESTS_SOURCES}
-#    ${TEST_DIR}/factory_test.cc
-#    ${TEST_DIR}/stream_test.cc
-#    ${TEST_DIR}/request_test.cc
-#    PARENT_SCOPE
-#  )
-#  set(
-#    TESTS_LIBRARIES
-#    ${TESTS_LIBRARIES}
-#    ${VICTORIA_METRICS}
-#    PARENT_SCOPE
-#  )
-#endif(WITH_TESTING)
+if(WITH_TESTING)
+  set(
+    TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${TEST_DIR}/factory_test.cc
+    ${TEST_DIR}/stream_test.cc
+    ${TEST_DIR}/request_test.cc
+    PARENT_SCOPE
+  )
+  set(
+    TESTS_LIBRARIES
+    ${TESTS_LIBRARIES}
+    ${VICTORIA_METRICS}
+    PARENT_SCOPE
+  )
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${VICTORIA_METRICS}"

@@ -54,10 +54,10 @@ target_precompile_headers(http_tsdb PRIVATE precomp_inc/precomp.hh)
 set_target_properties(http_tsdb PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
-#if(WITH_TESTING)
-#    set(TESTS_SOURCES
-#        ${TESTS_SOURCES}
-#        ${TEST_DIR}/factory_test.cc
-#        ${TEST_DIR}/stream_test.cc
-#        PARENT_SCOPE)
-#endif(WITH_TESTING)
+if(WITH_TESTING)
+    set(TESTS_SOURCES
+        ${TESTS_SOURCES}
+        ${TEST_DIR}/factory_test.cc
+        ${TEST_DIR}/stream_test.cc
+        PARENT_SCOPE)
+endif(WITH_TESTING)
