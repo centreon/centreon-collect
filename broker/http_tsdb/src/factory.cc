@@ -219,15 +219,6 @@ void factory::create_conf(const config::endpoint& cfg,
     throw msg_fmt("can't resolve {}:{} for {} : {}", addr, port, cfg.name,
                   err.message());
   }
-  //  auto res_it = endpoints.begin();
-  //  while (res_it != endpoints.end() &&
-  //         res_it->endpoint().protocol() != asio::ip::tcp::v4()) {
-  //    ++res_it;
-  //  }
-  //  if (res_it == endpoints.end()) {
-  //    throw msg_fmt("no IPv4 endpoint found for {}:{}", addr, port);
-  //  }
-  //  auto res_ep = res_it->endpoint();
 
   asio::ssl::context_base::method ssl_method =
       asio::ssl::context_base::tlsv13_client;

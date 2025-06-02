@@ -60,16 +60,16 @@ set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
 add_dependencies("${INFLUXDB}" nebbase process_stat)
 
 # Testing.
-#if(WITH_TESTING)
-#  set(TESTS_SOURCES
-#      ${TESTS_SOURCES} ${TEST_DIR}/column.cc ${TEST_DIR}/factory.cc
-#      ${TEST_DIR}/influxdb.cc ${TEST_DIR}/line_protocol_query.cc
-#      ${TEST_DIR}/stream.cc
-#      PARENT_SCOPE)
-#  set(TESTS_LIBRARIES
-#      ${TESTS_LIBRARIES} ${INFLUXDB}
-#      PARENT_SCOPE)
-#endif(WITH_TESTING)
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/column.cc ${TEST_DIR}/factory.cc
+      ${TEST_DIR}/influxdb.cc ${TEST_DIR}/line_protocol_query.cc
+      ${TEST_DIR}/stream.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${INFLUXDB}
+      PARENT_SCOPE)
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "${INFLUXDB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
