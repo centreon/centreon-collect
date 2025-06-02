@@ -18,7 +18,6 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
   push:
     branches:
       - develop
@@ -30,7 +29,6 @@ on:
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
-      - "!gorgone/tests/**"
 
 env:
   base_directory: gorgone
