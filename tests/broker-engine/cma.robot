@@ -258,6 +258,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
     Should Be True    ${result}    resources table not updated
 
+
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted reversed connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
@@ -306,6 +307,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
+
 BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
@@ -353,6 +355,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     [Documentation]    agent check service with native check cpu and we expect to get it in check result
@@ -489,7 +492,6 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     Should Be True    ${result}    resources table not updated
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     [Documentation]    agent check service with native check uptime and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-147919
@@ -557,6 +559,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     [Documentation]    agent check service with native check memory and we expect to get it in check result
@@ -626,6 +629,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     [Documentation]    agent check service with native check service and we expect to get it in check result
@@ -820,7 +824,6 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     Should Be True    ${result}    check_interval is not respected for service_3
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
     [Tags]    broker    engine    opentelemetry    MON-155395
@@ -1004,6 +1007,7 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
 
     Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
 
+
  NON_TLS_CONNECTION_WARNING
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
@@ -1122,6 +1126,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
         Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
 
+
 NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     [Documentation]    Given agent with encrypted reversed connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308    
@@ -1190,6 +1195,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
     END
 
+
 NON_TLS_CONNECTION_WARNING_ENCRYPTED
     [Documentation]    Given agent with encrypted connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308 
@@ -1250,6 +1256,7 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
+
 
 NON_TLS_CONNECTION_WARNING_FULL
     [Documentation]    Given an agent starts a non-TLS connection,
@@ -1380,6 +1387,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     ${content}    Create List    CONNECTION KILLED, AGENT NEED TO BE RESTART
     ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
+
 
 BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     [Documentation]    Given the agent is configured with native checks for services
@@ -1569,6 +1577,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
+
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
     ...    When the Centreon Agent attempts to connect without a JWT token
@@ -1635,6 +1644,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ${content}    Create List    UNAUTHENTICATED: No authorization header
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
     [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
@@ -1746,6 +1756,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
 
+
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
 ...   And the server uses a public certificate and private key for secure communication
@@ -1819,6 +1830,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     ${content}    Create List    UNAUTHENTICATED : Token expired
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     [Documentation]    Given an OpenTelemetry server is configured with token-based connection
