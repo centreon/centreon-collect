@@ -63,7 +63,7 @@ foreach(name IN LISTS service_files)
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto 
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${proto_file}
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

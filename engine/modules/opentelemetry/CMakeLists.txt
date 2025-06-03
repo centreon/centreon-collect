@@ -30,7 +30,7 @@ foreach(name IN LISTS service_files)
     COMMENT "Generating grpc files of the otl service file ${proto_file}"
     DEPENDS opentelemetry-proto-files
     COMMAND
-      protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
       --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto --grpc_out=${SRC_DIR}
       ${proto_file}
     VERBATIM

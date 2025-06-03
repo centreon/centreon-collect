@@ -97,6 +97,9 @@ find_package(Boost REQUIRED COMPONENTS url program_options process)
 find_package(ryml CONFIG REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
 
+# Find the location of the gRPC plugin
+get_target_property(GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
+
 add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
 add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
 add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
@@ -104,16 +107,6 @@ add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
 include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
 pkg_check_modules(LIBSSH2 REQUIRED libssh2)
-
-# There is a bug with grpc. It is not put in the triplet directory. So we have
-# to search for its plugin.
-file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
-  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin)
-find_program(GRPC_CPP_PLUGIN
-  NAMES ${GRPC_CPP_PLUGIN_EXE}
-  PATHS ${CMAKE_BINARY_DIR}
-  REQUIRED
-  NO_DEFAULT_PATH)
 
 set(OTLP_LIB_DIR ${opentelemetry-cpp_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${Protobuf_INCLUDE_DIRS})

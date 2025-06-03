@@ -29,7 +29,7 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT engine.grpc.pb.cc engine.grpc.pb.h
   COMMAND
-    protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+  protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${CMAKE_SOURCE_DIR}/engine/enginerpc
     --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
     --grpc_out="${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto

@@ -98,7 +98,7 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    protobuf::protoc ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
     --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/broker.proto
