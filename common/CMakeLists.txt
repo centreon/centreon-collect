@@ -64,6 +64,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(process_stat)
 endif()
 
+add_subdirectory(process_stat)
 add_subdirectory(grpc)
 add_subdirectory(process)
 add_subdirectory(crypto)
