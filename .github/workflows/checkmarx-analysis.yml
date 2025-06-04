@@ -24,7 +24,7 @@ jobs:
   build:
     name: Binary preparation
     if: github.repository == 'centreon/centreon-collect'
-    runs-on: centreon-ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       enable_analysis: ${{ steps.routing.outputs.enable_analysis }}
 
@@ -50,7 +50,7 @@ jobs:
   pipeline-scan:
     needs: [build]
     name: Run a pipeline scan
-    runs-on: centreon-ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: needs.build.outputs.enable_analysis == 'true'
 
     steps:
