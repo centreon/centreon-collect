@@ -53,6 +53,7 @@ include_directories(
   ${INC_DIR}
   ${INC_DIR}/compatibility
   ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/engine/enginerpc
   ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/common/inc
