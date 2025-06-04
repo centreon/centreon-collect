@@ -36,6 +36,7 @@ add_library(
   ${SRC_DIR}/parser.cc
   ${SRC_DIR}/worker.cc
   ${SRC_DIR}/worker_pool.cc
+  ${PROJECT_SOURCE_DIR}/core/src/stats/helper.cc
   # Headers.
   ${INC_DIR}/builder.hh
   ${INC_DIR}/parser.hh
