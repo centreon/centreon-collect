@@ -63,33 +63,31 @@ set_target_properties(
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    target_link_libraries(ut_agent PRIVATE 
-        centagent_lib 
+    target_link_libraries(ut_agent PRIVATE
+        centagent_lib
         centreon_common
         centreon_process
-        GTest::gtest 
-        GTest::gtest_main 
-        GTest::gmock 
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
         GTest::gmock_main
-        -L${Boost_LIBRARY_DIR_RELEASE}
-        boost_program_options
+	Boost::program_options
         stdc++fs
-        -L${PROTOBUF_LIB_DIR}
-        gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+        gRPC::grpc++
         fmt::fmt pthread
         crypto ssl
         )
 else()
-    target_link_libraries(ut_agent PRIVATE 
-    centagent_lib 
+    target_link_libraries(ut_agent PRIVATE
+    centagent_lib
     centreon_common
     centreon_process
-    GTest::gtest 
-    GTest::gtest_main 
-    GTest::gmock 
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
     GTest::gmock_main
     Boost::program_options
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    gRPC::grpc++
     fmt::fmt
     pdh)
 endif()

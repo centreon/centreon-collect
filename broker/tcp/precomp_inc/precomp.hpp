@@ -35,6 +35,7 @@
 namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #endif

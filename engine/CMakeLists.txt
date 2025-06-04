@@ -52,6 +52,8 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 include_directories(
   ${INC_DIR}
   ${INC_DIR}/compatibility
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/broker/neb/inc
@@ -501,7 +503,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 # Library engine target.
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib pb_common_lib)
+add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
@@ -520,31 +522,24 @@ target_link_libraries(
 # centengine target.
 
 add_executable(centengine "${SRC_DIR}/main.cc")
-set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
 target_link_libraries(
   centengine
-  -L${PROTOBUF_LIB_DIR}
-  "-rdynamic"
-  centreon_clib
+  PRIVATE centreon_clib
   log_v2
-  "-Wl,-whole-archive"
+  -Wl,-whole-archive
   enginerpc
   centreon_grpc
   centreon_http
   centreon_common
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_url
+  Boost::url
   cce_core
+  Boost::program_options
   gRPC::grpc++
-  boost_program_options
-  protobuf
-  "-Wl,--no-whole-archive"
-  gRPC::gpr
-  gRPC::grpc
-  gRPC::grpc++_alts
+  -Wl,--no-whole-archive
   absl::any
   absl::log
   absl::base
@@ -555,8 +550,7 @@ target_link_libraries(
   z
   ryml::ryml
   stdc++fs
-  dl
-  -lfmt)
+  dl)
 
 install(
   TARGETS centengine centenginestats

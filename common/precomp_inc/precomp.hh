@@ -35,6 +35,7 @@
 #include <string>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include <absl/container/flat_hash_set.h>

@@ -174,38 +174,22 @@ void influxdb::_connect_socket() {
     _socket.shutdown(ip::tcp::socket::shutdown_both);
     _socket.close();
   }
+  boost::system::error_code err;
   ip::tcp::resolver resolver{_io_context};
-  ip::tcp::resolver::query query{_host, std::to_string(_port)};
-
-  try {
-    ip::tcp::resolver::iterator it{resolver.resolve(query)};
-    ip::tcp::resolver::iterator end;
-
-    boost::system::error_code err{
-        make_error_code(asio::error::host_unreachable)};
-
-    // it can resolve to multiple addresses like ipv4 and ipv6
-    // we need to try all to find the first available socket
-    while (err && it != end) {
-      _socket.connect(*it, err);
-
-      if (err)
-        _socket.close();
-
-      ++it;
-    }
-
-    if (err) {
-      throw msg_fmt(
-          "influxdb: couldn't connect to InfluxDB with address '{}'"
-          " and port '{}': {}",
-          _host, _port, err.message());
-    }
-  } catch (boost::system::system_error const& se) {
+  auto endpoints = resolver.resolve(_host, std::to_string(_port), err);
+  if (err) {
     throw msg_fmt(
-        "influxdb: couldn't connect to InfluxDB with address '{}'"
-        " and port '{}': {}",
-        _host, _port, se.what());
+        "influxdb: couldn't resolve InfluxDB with address '{}"
+        "' and port '{}': {}",
+        _host, _port, err.message());
+  }
+  // Try to connect to the server.
+  asio::connect(_socket, endpoints, err);
+  if (err) {
+    throw msg_fmt(
+        "influxdb: couldn't connect to InfluxDB with address '{}"
+        "' and port '{}': {}",
+        _host, _port, err.message());
   }
 }
 

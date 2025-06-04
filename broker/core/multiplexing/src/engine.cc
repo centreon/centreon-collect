@@ -412,19 +412,19 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       } else {
         std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
         if (mux_to_publish_in_asio) {
-          com::centreon::common::pool::io_context().post(
-              [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
-                try {
-                  mux_to_publish_in_asio->publish(*kiew);
-                }  // pool threads protection
-                catch (const std::exception& ex) {
-                  SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
-                                      ex.what());
-                } catch (...) {
-                  SPDLOG_LOGGER_ERROR(logger,
-                                      "publish caught unknown exception");
-                }
-              });
+          asio::post(com::centreon::common::pool::io_context(),
+                     [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
+                       try {
+                         mux_to_publish_in_asio->publish(*kiew);
+                       }  // pool threads protection
+                       catch (const std::exception& ex) {
+                         SPDLOG_LOGGER_ERROR(
+                             logger, "publish caught exception: {}", ex.what());
+                       } catch (...) {
+                         SPDLOG_LOGGER_ERROR(
+                             logger, "publish caught unknown exception");
+                       }
+                     });
         }
       }
     }
