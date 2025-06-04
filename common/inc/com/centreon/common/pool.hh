@@ -18,7 +18,10 @@
 #ifndef CENTREON_COMMON_POOL_HH
 #define CENTREON_COMMON_POOL_HH
 
+#include <spdlog/spdlog.h>
+#include <boost/asio/io_context.hpp>
 #include <forward_list>
+
 namespace com::centreon::common {
 
 /**
@@ -49,9 +52,10 @@ namespace com::centreon::common {
 class pool {
   static std::unique_ptr<pool> _instance;
 
-  const std::shared_ptr<asio::io_context> _io_context;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
-  asio::executor_work_guard<asio::io_context::executor_type> _worker;
+  boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+      _worker;
   size_t _pool_size;
   std::forward_list<std::thread>* _pool ABSL_GUARDED_BY(_pool_m);
   pid_t _original_pid;
@@ -61,18 +65,18 @@ class pool {
   void _set_pool_size(size_t pool_size) ABSL_LOCKS_EXCLUDED(_pool_m);
 
  public:
-  pool(const std::shared_ptr<asio::io_context>& io_context,
+  pool(const std::shared_ptr<boost::asio::io_context>& io_context,
        const std::shared_ptr<spdlog::logger>& logger);
   pool(const pool&) = delete;
   pool& operator=(const pool&) = delete;
   ~pool();
 
-  static void load(const std::shared_ptr<asio::io_context>& io_context,
+  static void load(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger);
   static void unload();
   static pool& instance();
-  static asio::io_context& io_context();
-  static std::shared_ptr<asio::io_context> io_context_ptr();
+  static boost::asio::io_context& io_context();
+  static std::shared_ptr<boost::asio::io_context> io_context_ptr();
   static void set_pool_size(size_t pool_size);
 
   /**

@@ -16,4 +16,5 @@ python3 -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_p
 python3 -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/metrics/v1/metrics.proto
 python3 -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/common/v1/common.proto
 python3 -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/resource/v1/resource.proto
+python3 -m grpc_tools.protoc -I../../common/engine_conf -I../../common/engine_conf --python_out=. state.proto
 cd ..

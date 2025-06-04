@@ -26,7 +26,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 from pwd import getpwnam
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToDict, MessageToJson
 import time
 import json
 import psutil
@@ -40,6 +40,7 @@ from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
+import state_pb2
 
 
 def import_robot_resources():
@@ -2421,3 +2422,67 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
     }
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_check_state_configurations_are_equal(file1, file2):
+    """
+    ctn_check_state_configurations_are_equal
+
+    Compare two dump protobuf state configurations files
+    Args:
+        file1: first file to compare
+        file2: second file to compare
+
+    Returns: True if they are equal
+    """
+
+    def compare_dicts(d1, d2):
+        """
+        Compare two dictionaries recursively, considering lists equal if
+        they contain the same elements in any order.
+
+        Returns:
+            True if the dictionaries are equal, False otherwise.
+        """
+
+        if isinstance(d1, dict) and isinstance(d2, dict):
+            if d1.keys() != d2.keys():
+                return False
+            return all(compare_dicts(d1[k], d2[k]) for k in d1)
+
+        elif isinstance(d1, list) and isinstance(d2, list):
+            if len(d1) != len(d2):
+                return False
+            try:
+                from collections import Counter
+                return Counter(d1) == Counter(d2)
+            except TypeError:
+                d2_copy = d2[:]
+                for item in d1:
+                    for i, candidate in enumerate(d2_copy):
+                        if compare_dicts(item, candidate):
+                            del d2_copy[i]
+                            break
+                    else:
+                        return False
+                return not d2_copy
+
+        else:
+            return d1 == d2
+
+    with open(file1, "rb") as f1:
+        content1 = f1.read()
+    with open(file2, "rb") as f2:
+        content2 = f2.read()
+
+    pb1 = state_pb2.State()
+    pb2 = state_pb2.State()
+
+    pb1.ParseFromString(content1)
+    pb2.ParseFromString(content2)
+
+    dico1 = MessageToDict(pb1)
+    dico2 = MessageToDict(pb2)
+
+    return compare_dicts(dico1, dico2)
+>>>>>>> 5761c9c7f6 (fix(tests): errors raised by ruff fixed and tests improved)

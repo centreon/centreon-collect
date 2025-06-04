@@ -19,11 +19,11 @@
 #include <google/protobuf/util/message_differencer.h>
 
 #include "centreon_agent/agent_impl.hh"
-#include "com/centreon/engine/globals.hh"
 
 #include "otl_fmt.hh"
 
 #include "com/centreon/engine/command_manager.hh"
+#include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 

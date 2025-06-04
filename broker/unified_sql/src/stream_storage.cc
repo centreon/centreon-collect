@@ -19,12 +19,10 @@
 #include <absl/synchronization/mutex.h>
 
 #include <cfloat>
-#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/misc/misc.hh"

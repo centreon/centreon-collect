@@ -11,13 +11,13 @@ Test Teardown       Run Keywords    Ctn Stop Engine    AND    Ctn Save Logs If F
 
 *** Test Cases ***
 EXT_CONF1
-    [Documentation]    Engine configuration is overided by json conf
+    [Documentation]    Engine configuration is overidden by json conf
     [Tags]    engine    mon-34326
     Ctn Config Engine    ${1}
     Ctn Config Broker    module    ${1}
     Create File    /tmp/centengine_extend.json    {"log_level_checks": "trace", "log_level_comments": "debug"}
     ${start}    Get Current Date
-    Ctn Start Engine With Extend Conf
+    Ctn Start Engine With Extended Conf
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     ${level}    Ctn Get Engine Log Level    50001    checks
     Should Be Equal    ${level}    trace    log_level_checks must come from the extended conf, trace
@@ -25,13 +25,13 @@ EXT_CONF1
     Should Be Equal    ${level}    debug    log_level_comments must come from the extended conf, debug
 
 EXT_CONF2
-    [Documentation]    Engine configuration is overided by json conf after reload
+    [Documentation]    Engine configuration is overidden by json conf after reload
     [Tags]    engine    mon-34326
     Ctn Config Engine    ${1}
     Ctn Config Broker    module    ${1}
     Create File    /tmp/centengine_extend.json    {}
     ${start}    Get Current Date
-    Ctn Start Engine With Extend Conf
+    Ctn Start Engine With Extended Conf
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Create File    /tmp/centengine_extend.json    {"log_level_checks": "trace", "log_level_comments": "debug"}
 
@@ -51,7 +51,7 @@ EXT_CONF2
     Should Be Equal    ${level}    debug    log_level_comments must be the extended conf value
 
 VERIFIY_CONF
-    [Documentation]    Verify deprecated engine configuration options are logged as warnings
+    [Documentation]    Scenario Verify deprecated engine configuration options are logged as warnings
     ...    Given the engine and broker are configured with module 1
     ...    And the engine configuration is set with deprecated options
     ...    When the engine is started

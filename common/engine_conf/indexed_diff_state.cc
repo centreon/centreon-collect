@@ -121,6 +121,8 @@ void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
         _added_serviceescalations, _modified_serviceescalations,
         _removed_serviceescalations,
         [](Serviceescalation* obj) { return serviceescalation_key(*obj); });
+
+    _full_conf_poller_id.push_back(diff_state.state().poller_id());
   } else {
     _add_diff_message<DiffTimeperiod, Timeperiod, std::string>(
         diff_state.mutable_timeperiods(), _added_timeperiods,
@@ -431,6 +433,8 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
   state.mutable_serviceescalations()->clear_removed();
   for (uint64_t k : _removed_serviceescalations)
     state.mutable_serviceescalations()->add_removed(k);
+  for (uint64_t poller_id : _full_conf_poller_id)
+    state.add_full_conf_poller_id(poller_id);
   reset();
 }
 }  // namespace com::centreon::engine::configuration

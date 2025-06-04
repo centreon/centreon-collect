@@ -45,7 +45,14 @@ static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
+/**
+ * @brief Constructor of the cbmod class.
+ *
+ * @param config_file The json configuration file.
+ * @param proto_conf The protobuf configuration directory.
+ */
 cbmod::cbmod(const std::string& config_file,
+             const std::filesystem::path& proto_conf,
              const std::string& engine_conf_version)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
@@ -65,6 +72,8 @@ cbmod::cbmod(const std::string& config_file,
   }
 
   com::centreon::broker::config::applier::state::instance().apply(s);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(
+      proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf =
@@ -73,11 +82,11 @@ cbmod::cbmod(const std::string& config_file,
 
 /**
  * @brief Constructor of the cbmod class. Useful in unit tests.
+ *
+ * @param proto_conf The protobuf configuration directory.
  */
-cbmod::cbmod()
-    : _neb_logger{log_v2::instance().get(log_v2::NEB)},
-      _impl{new cbmodimpl},
-      _proto_conf{""} {
+cbmod::cbmod(const std::filesystem::path& proto_conf)
+    : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   com::centreon::broker::config::state s;
   s.poller_id(1);
   s.poller_name("test");
@@ -87,6 +96,8 @@ cbmod::cbmod()
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 
   com::centreon::broker::config::applier::state::instance().apply(s, false);
+  com::centreon::broker::config::applier::state::instance().set_proto_conf(
+      proto_conf);
 }
 
 cbmod::~cbmod() noexcept {
@@ -386,5 +397,20 @@ void cbmod::reload() {
     ic->poller_id = config::applier::state::instance().poller_id();
     write(ic);
   }
+}
+
+/**
+ * @brief Get the diff state. We consider Engine has it.
+ *
+ * @return The diff state.
+ */
+std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
+  auto retval = config::applier::state::instance().diff_state();
+  return retval;
+}
+
+void cbmod::set_diff_state_applied(const std::string& config_version) {
+  config::applier::state::instance().set_engine_conf(config_version);
+  config::applier::state::instance().set_diff_state_applied(true);
 }
 }  // namespace com::centreon::broker::neb

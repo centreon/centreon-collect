@@ -111,7 +111,7 @@ pip3 install -U robotframework \\
         robotframework-examples pymysql \\
         robotframework-requests psutil \\
         robotframework-httpctrl boto3 \\
-        GitPython unqlite py-cpuinfo
+        GitPython unqlite py-cpuinfo jwt
 
 
 pip3 install grpcio grpcio_tools
