@@ -22,6 +22,7 @@ set(INC_DIR "../inc/com/centreon/engine/")
 # Include directories.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/src
   ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_BINARY_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_BINARY_DIR}/common/process_stat)
 
 add_custom_command(
