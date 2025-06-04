@@ -27,6 +27,7 @@ use POSIX ":sys_wait_h";
 use File::Path;
 use File::Basename;
 use Try::Tiny;
+use Text::ParseWords;
 
 sub reload_db_config {
     my ($logger, $config_file, $cdb, $csdb) = @_;
@@ -142,7 +143,26 @@ sub check_debug {
     }
     return 0;
 }
-
+# (return_code, output, exit_code) backtick(%options)
+# This function executes a command and can returns its output, waiting for a timeout if specified.
+# It can also run the command without shell interpretation, which is useful to avoid shell injection.
+# It can also run the command without waiting for its end.
+# The option hash can contain:
+# - command: the command to execute (required)
+# - arguments: array reference of arguments to pass to the command (optional)
+# - logger: a logger object to log errors (required)
+# - timeout: timeout in seconds for the command execution (default: 30)
+# - wait_exit: if set to 1, the function will wait for the command to finish and return the exit code (default: 0)
+# - redirect_stderr: if set to 1, the stderr will be redirected to stdout (default: 0)
+# - no_shell_interpretation: if set to 1, the command will not be interpreted by a shell (default: 0)
+# output :
+# - return_code: internal return code:
+#       0 if everything is ok,
+#       -1001 if no command specified,
+#       -1002 if command is incorrect (for example wrong quotes usage)
+#       -1000 in other error case.
+# - output: the output of the command as a \n separated string, or an error message if the command failed
+# - exit_code: the exit code of the command if wait_exit is set to 1, otherwise it will be undef.
 sub backtick {
     my %arg = (
         command => undef,
@@ -150,12 +170,18 @@ sub backtick {
         timeout => 30,
         wait_exit => 0,
         redirect_stderr => 0,
+        no_shell_interpretation => 0,
         @_,
     );
     my @output;
     my $pid;
     my $return_code;
-    
+    my @command_list; # used only if no_shell_interpretation is set for now.
+
+    if (!$arg{command} and (@{$arg{arguments}}) <= 0) {
+        # no command to execute, let's return an error
+        return(-1001, "Error executing the command, no command specified", -1);
+    }
     my $sig_do;
     if ($arg{wait_exit} == 0) {
         $sig_do = 'IGNORE';
@@ -163,10 +189,24 @@ sub backtick {
     } else {
         $sig_do = 'DEFAULT';
     }
+
     local $SIG{CHLD} = $sig_do;
     $SIG{TTOU} = 'IGNORE';
     $| = 1;
-
+    if ($arg{no_shell_interpretation}){
+        # if we should not interpret the command, we need to split it, Text::ParseWords is useful to honor
+        # quotes and spaces in the command without interpreting other shell character like & ; |.
+        @command_list = quotewords('\s+', 0, $arg{command});
+        # quotewords can add an undef element at the end of the array if the string finish by a space, so let's remove it.
+        if (!defined($command_list[-1])){
+            pop(@command_list);
+        }
+        if (scalar(@command_list) <= 0 or !defined($command_list[0]) || $command_list[0] eq '') {
+            my $binary = (split(/ /, $arg{command}))[0] // ''; # let's show only the first part of the command, to avoid showing the password
+            return(-1002, "Error executing the command $binary, does the command require a shell, or is there too much quote ?", -1);
+        }
+    }
+    # open use fork under the hood to create a child when specifying '-|', and redirect the output of the child to the parent.
     if (!defined($pid = open( KID, "-|" ))) {
         $arg{logger}->writeLogError("[core] Cant fork: $!");
         return (-1000, "cant fork: $!");
@@ -174,12 +214,12 @@ sub backtick {
     
     if ($pid) {
         try {
-           local $SIG{ALRM} = sub { die "Timeout by signal ALARM\n"; };
-           alarm( $arg{timeout} );
-           while (<KID>) {
-               chomp;
-               push @output, $_;
-           }
+            local $SIG{ALRM} = sub { die "Timeout by signal ALARM\n"; };
+            alarm( $arg{timeout} );
+            while (<KID>) {
+                chomp;
+                push @output, $_;
+            }
 
            alarm(0);
         } catch {
@@ -200,11 +240,18 @@ sub backtick {
         # child
         # set the child process to be a group leader, so that
         # kill -9 will kill it and all its descendents
-        # We have ignore SIGTTOU to let write background processes
+        # We have ignored SIGTTOU to let write background processes
         setpgrp(0, 0);
 
         if ($arg{redirect_stderr} == 1) {
             open STDERR, ">&STDOUT";
+        }
+        if ($arg{no_shell_interpretation}) {
+            # No shell interpretation, using indirect object syntax to force exec to not use shell.
+
+            # This Does not work as it keep the quotes around the arguments
+            #my @lcommand_list = (split(/ /, $arg{command}));
+            exec {$command_list[0]} @command_list, @{$arg{arguments}};
         }
         if (scalar(@{$arg{arguments}}) <= 0) {
             exec($arg{command});
@@ -214,7 +261,6 @@ sub backtick {
         # Exec is in error. No such command maybe.
         exit(127);
     }
-
     return (0, join("\n", @output), $return_code);
 }
 
