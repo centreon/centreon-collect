@@ -157,7 +157,7 @@ TEST_F(BamExpBuilder, Valid8) {
 
 TEST_F(BamExpBuilder, UnknownService1) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -169,7 +169,7 @@ TEST_F(BamExpBuilder, UnknownService1) {
 
 TEST_F(BamExpBuilder, UnknownService2) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -181,7 +181,7 @@ TEST_F(BamExpBuilder, UnknownService2) {
 
 TEST_F(BamExpBuilder, OkService2) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -206,7 +206,7 @@ TEST_F(BamExpBuilder, OkService2) {
 
 TEST_F(BamExpBuilder, CritService2) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -231,7 +231,7 @@ TEST_F(BamExpBuilder, CritService2) {
 
 TEST_F(BamExpBuilder, CritOkService1) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -272,7 +272,7 @@ TEST_F(BamExpBuilder, CritOkService1) {
 
 TEST_F(BamExpBuilder, CritOkService2) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -320,7 +320,7 @@ TEST_F(BamExpBuilder, CritOkService2) {
 
 TEST_F(BamExpBuilder, CritOkService3) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -368,7 +368,7 @@ TEST_F(BamExpBuilder, CritOkService3) {
 
 TEST_F(BamExpBuilder, CritAndOkService1) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -417,7 +417,7 @@ TEST_F(BamExpBuilder, CritAndOkService1) {
 
 TEST_F(BamExpBuilder, CritAndOkService2) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -465,7 +465,7 @@ TEST_F(BamExpBuilder, CritAndOkService2) {
 
 TEST_F(BamExpBuilder, CritAndOkService3) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
   bam::hst_svc_mapping mapping(_logger);
@@ -513,7 +513,7 @@ TEST_F(BamExpBuilder, CritAndOkService3) {
 
 TEST_F(BamExpBuilder, NotCritService3) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -549,7 +549,7 @@ TEST_F(BamExpBuilder, NotCritService3) {
 
 TEST_F(BamExpBuilder, ExpressionWithService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -588,7 +588,7 @@ TEST_F(BamExpBuilder, ExpressionWithService) {
 
 TEST_F(BamExpBuilder, ReverseExpressionWithService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -627,7 +627,7 @@ TEST_F(BamExpBuilder, ReverseExpressionWithService) {
 
 TEST_F(BamExpBuilder, KpiBoolexpWithService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -672,7 +672,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
 
 TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("({host_1 service_1} {NOT} {CRITICAL})");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -715,7 +715,7 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
 
 TEST_F(BamExpBuilder, BoolexpServiceXorService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "({host_1 service_1} {IS} {CRITICAL}) {XOR} ({host_1 service_2} {IS} "
       "{CRITICAL})");
@@ -771,7 +771,7 @@ TEST_F(BamExpBuilder, BoolexpServiceXorService) {
 
 TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p("{host_1 service_1} < {host_1 service_2}");
   bam::hst_svc_mapping mapping(_logger);
   mapping.set_service("host_1", "service_1", 1, 1, true);
@@ -825,7 +825,7 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
 
 TEST_F(BamExpBuilder, BoolexpKpiService) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
@@ -890,7 +890,7 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
  * expression. */
 TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
       "{CRITICAL}");
@@ -997,7 +997,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
  * with impact_if set to false. */
 TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   bam::exp_parser p(
       "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} "
       "{CRITICAL}");

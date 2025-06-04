@@ -185,7 +185,7 @@ TEST_F(SimuGenericTest, ReadReturnValue4) {
                "end\n");
   std::map<std::string, misc::variant> conf;
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::unique_ptr<luabinding> lb =
       std::make_unique<luabinding>(filename, conf, _logger);
   std::shared_ptr<io::data> d;
@@ -222,7 +222,7 @@ TEST_F(SimuGenericTest, ReadReturnCustomVariable) {
                "end\n");
   std::map<std::string, misc::variant> conf;
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::unique_ptr<luabinding> lb(new luabinding(filename, conf, _logger));
   std::shared_ptr<io::data> d;
   ASSERT_TRUE(lb->read(d));
