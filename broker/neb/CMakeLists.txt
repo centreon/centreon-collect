@@ -20,8 +20,8 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
-include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc
-  ${CMAKE_BINARY_DIR}/bbdo
+include_directories(
+  "${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat)
 
 # NEB sources.
@@ -53,43 +53,16 @@ set(NEB_SOURCES
     ${SRC_DIR}/service_group.cc
     ${SRC_DIR}/service_group_member.cc
     ${SRC_DIR}/service_status.cc
-    ${SRC_DIR}/status.cc
-    ${INC_DIR}/com/centreon/broker/neb/acknowledgement.hh
-    ${INC_DIR}/com/centreon/broker/neb/check.hh
-    ${INC_DIR}/com/centreon/broker/neb/comment.hh
-    ${INC_DIR}/com/centreon/broker/neb/custom_variable.hh
-    ${INC_DIR}/com/centreon/broker/neb/custom_variable_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/downtime.hh
-    ${INC_DIR}/com/centreon/broker/neb/events.hh
-    ${INC_DIR}/com/centreon/broker/neb/group.hh
-    ${INC_DIR}/com/centreon/broker/neb/group_member.hh
-    ${INC_DIR}/com/centreon/broker/neb/host.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_group.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_group_member.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_parent.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_service.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_service_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/host_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/instance.hh
-    ${INC_DIR}/com/centreon/broker/neb/instance_configuration.hh
-    ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
-    ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
-    ${INC_DIR}/com/centreon/broker/neb/service.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_check.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_group.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_group_member.hh
-    ${INC_DIR}/com/centreon/broker/neb/service_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/status.hh)
+    ${SRC_DIR}/status.cc)
 
 # Static library.
 add_library(nebbase STATIC ${NEB_SOURCES})
-add_dependencies(nebbase process_stat table_max_size pb_neb_lib pb_open_telemetry_lib)
+add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
+                 pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
-target_link_libraries(nebbase PRIVATE pb_neb_lib
-                                      pb_header_lib pb_open_telemetry_lib)
+target_link_libraries(nebbase PRIVATE pb_neb_lib pb_header_lib pb_common_lib
+                                      pb_open_telemetry_lib)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
@@ -107,13 +80,11 @@ add_library(
 add_dependencies(${NEB} nebbase)
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} PRIVATE nebbase
-                      spdlog::spdlog)
+target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive spdlog::spdlog)
 
 set_target_properties(
-  ${NEB} PROPERTIES
-  PREFIX ""
-  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/broker/lib)
+  ${NEB} PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
+                              ${CMAKE_BINARY_DIR}/broker/lib)
 
 target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
@@ -122,26 +93,26 @@ install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
                          ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
 
-set_target_properties(cbmod PROPERTIES PREFIX ""
-                                       POSITION_INDEPENDENT_CODE ON
-)
+set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
 
-target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(cbmod PRIVATE
-  fmt::fmt
-  rokerbase
-  multiplexing
-  -Wl,--whole-archive
-  process_stat
-  pb_common_lib
-  pb_neb_lib
-  pb_header_lib
-  nebbase
-  -Wl,--no-whole-archive
-  protobuf::libprotobuf
-  log_v2
-  centreon_common
-  gRPC::grpc++)
+target_precompile_headers(cbmod REUSE_FROM nebbase)
+target_link_libraries(
+  cbmod
+  PRIVATE fmt::fmt
+          -Wl,--whole-archive
+          rokerbase
+          process_stat
+          centreon_common
+          nebbase
+          -Wl,--no-whole-archive
+	  pb_bam_lib
+	  pb_storage_lib
+          multiplexing
+          pb_common_lib
+          pb_neb_lib
+          pb_header_lib
+          log_v2
+          gRPC::grpc++)
 
 get_property(
   CBMOD_DEFINES
@@ -154,8 +125,7 @@ set_property(TARGET cbmod PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
-      # Actual tests
-      #${TEST_DIR}/bbdo2_to_bbdo3_test.cc
+      # Actual tests ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc

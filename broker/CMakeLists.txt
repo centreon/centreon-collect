@@ -308,7 +308,14 @@ add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.pb.h
   )
 
-add_dependencies(pb_broker_lib process_stat)
+add_dependencies(pb_broker_lib process_stat pb_common_lib)
+
+target_link_libraries(pb_broker_lib
+  PRIVATE
+  pb_common_lib
+  process_stat
+)
+
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(core/bbdo)
