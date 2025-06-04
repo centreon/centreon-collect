@@ -87,20 +87,15 @@ ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-target_link_libraries(opentelemetry   
+target_link_libraries(opentelemetry
   spdlog::spdlog
-  -L${PROTOBUF_LIB_DIR}
-  protobuf
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options
+  protobuf::libprotobuf
+  Boost::program_options
   pb_open_telemetry_lib
   ctncrypto)
 
-add_dependencies(opentelemetry
-  pb_open_telemetry_lib
-  pb_neb_lib
-  pb_common_lib
-  engine_rpc)
+add_dependencies(opentelemetry pb_open_telemetry_lib pb_header_lib pb_neb_lib
+                 engine_rpc)
 
 target_include_directories(opentelemetry PRIVATE
   "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry"

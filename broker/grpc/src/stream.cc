@@ -368,16 +368,16 @@ void stream<bireactor_class>::OnDone() {
    * of the current thread which go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  common::pool::io_context().post(
-      [me = std::enable_shared_from_this<
-           stream<bireactor_class>>::shared_from_this(),
-       logger = _logger]() {
-        std::lock_guard l(_instances_m);
-        SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
-                            static_cast<void*>(me.get()));
-        _instances->erase(
-            std::static_pointer_cast<stream<bireactor_class>>(me));
-      });
+  asio::post(common::pool::io_context(),
+             [me = std::enable_shared_from_this<
+                  stream<bireactor_class>>::shared_from_this(),
+              logger = _logger]() {
+               std::lock_guard l(_instances_m);
+               SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
+                                   static_cast<void*>(me.get()));
+               _instances->erase(
+                   std::static_pointer_cast<stream<bireactor_class>>(me));
+             });
 }
 
 /**
@@ -395,17 +395,18 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * pthread_join of the current thread which go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
-  common::pool::io_context().post(
-      [me = std::enable_shared_from_this<
-           stream<bireactor_class>>::shared_from_this(),
-       status, logger = _logger]() {
-        std::lock_guard l(_instances_m);
-        SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
-                            static_cast<void*>(me.get()),
-                            status.error_message(), status.error_details());
-        _instances->erase(
-            std::static_pointer_cast<stream<bireactor_class>>(me));
-      });
+  asio::post(common::pool::instance().io_context(),
+             [me = std::enable_shared_from_this<
+                  stream<bireactor_class>>::shared_from_this(),
+              status, logger = _logger]() {
+               std::lock_guard l(_instances_m);
+               SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
+                                   static_cast<void*>(me.get()),
+                                   status.error_message(),
+                                   status.error_details());
+               _instances->erase(
+                   std::static_pointer_cast<stream<bireactor_class>>(me));
+             });
 }
 
 /**
