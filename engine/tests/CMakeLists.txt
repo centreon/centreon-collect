@@ -188,7 +188,6 @@ if(WITH_TESTING)
             centreon_grpc
             centreon_http
             centreon_process
-	    #Boost::url
 	    Boost::program_options
             pthread
             ${GCOV}
