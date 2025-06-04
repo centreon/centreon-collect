@@ -17,15 +17,23 @@
  */
 
 #include "com/centreon/broker/config/applier/state.hh"
+#include <absl/strings/match.h>
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
-#include <fmt/format.h>
+#include <cstring>
+#include <filesystem>
+#include <system_error>
 
+#include "bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
+#include "com/centreon/common/file.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common.pb.h"
+#include "common/engine_conf/indexed_state.hh"
+#include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
+#include "state.pb.h"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -56,8 +64,23 @@ state::state(common::PeerType peer_type,
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
+      _watch_occupied{false},
       _modules{logger},
-      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
+      _center{std::make_shared<com::centreon::broker::stats::center>()},
+      _diff_state_applied{false} {}
+
+/**
+ * @brief Destructor of the state class.
+ */
+state::~state() noexcept {
+  if (_watch_engine_conf_timer) {
+    try {
+      _watch_engine_conf_timer->cancel();
+    } catch (const std::exception& e) {
+      _logger->error("Cannot cancel watch engine conf timer: {}", e.what());
+    }
+  }
+}
 
 /**
  *  Apply a configuration state.
@@ -301,7 +324,14 @@ void state::add_peer(uint64_t poller_id,
   _connected_peers[{poller_id, poller_name, broker_name}] =
       peer{poller_id,     poller_name, broker_name,
            time(nullptr), peer_type,   extended_negotiation,
-           engine_conf,   engine_conf};
+           engine_conf,   engine_conf, true};
+  if (extended_negotiation && _peer_type == common::BROKER) {
+    if (!_watch_engine_conf_timer) {
+      _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
+          com::centreon::common::pool::instance().io_context());
+      _start_watch_engine_conf_timer();
+    }
+  }
 }
 
 /**
@@ -394,6 +424,15 @@ const std::filesystem::path& state::cache_config_dir() const noexcept {
 void state::set_cache_config_dir(
     const std::filesystem::path& cache_config_dir) {
   _cache_config_dir = cache_config_dir;
+  if (!_cache_config_dir.empty()) {
+    _logger->info("Watching for changes in '{}'", _cache_config_dir.string());
+    _cache_config_dir_watcher = std::make_unique<file::directory_watcher>(
+        _cache_config_dir, IN_CREATE | IN_MODIFY, true);
+  } else if (_cache_config_dir_watcher) {
+    _logger->info("Stop watching for changes in '{}'",
+                  _cache_config_dir.string());
+    _cache_config_dir_watcher.reset();
+  }
 }
 
 /**
@@ -425,36 +464,6 @@ com::centreon::common::PeerType state::peer_type() const {
 }
 
 /**
- * @brief The peer with the given poller_id has its engine configuration version
- * set to the given one.
- *
- * @param poller_id Poller ID concerned by the modification.
- * @param version The version to set.
- */
-void state::set_engine_configuration(uint64_t poller_id,
-                                     const std::string& version) {
-  absl::MutexLock lck(&_connected_peers_m);
-  _engine_configuration[poller_id] = version;
-}
-
-/**
- * @brief Get the engine configuration for a poller. On error an empty string is
- * returned.
- *
- * @param poller_id The poller id.
- *
- * @return The engine configuration as a string.
- */
-std::string state::engine_configuration(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
-  auto found = _engine_configuration.find(poller_id);
-  if (found != _engine_configuration.end())
-    return found->second;
-  else
-    return "";
-}
-
-/**
  * @brief Get the stats center.
  *
  * @return The stats center.
@@ -479,6 +488,306 @@ void state::set_proto_conf(const std::filesystem::path& proto_conf) {
  */
 const std::filesystem::path& state::proto_conf() const {
   return _proto_conf;
+}
+
+/**
+ * @brief Check if some new engine configurations are available.
+ *
+ * @return A vector of poller IDs concerned by some new configuration or an
+ * empty vector.
+ */
+std::vector<uint32_t> state::_watch_engine_conf() {
+  std::vector<uint32_t> retval;
+  if (_cache_config_dir_watcher) {
+    auto it = _cache_config_dir_watcher->watch();
+    for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
+      auto [event, name] = *it;
+      std::string_view event_str;
+      if (event & IN_CREATE)
+        event_str = "IN_CREATE";
+      else if (event & IN_MODIFY)
+        event_str = "IN_MODIFY";
+      else
+        event_str = "UNKNOWN";
+      if (((event & IN_CREATE) || (event & IN_MODIFY)) &&
+          absl::EndsWith(name, ".lck")) {
+        std::string_view prefix(name.data(), name.size() - 4);
+        uint32_t poller_id;
+        if (absl::SimpleAtoi(prefix, &poller_id)) {
+          _logger->info(
+              "New Engine configuration available, change in '{}' detected "
+              "for poller id '{}'",
+              name, poller_id);
+          std::error_code ec;
+          std::filesystem::remove(_cache_config_dir / name, ec);
+          if (ec)
+            _logger->error("Cannot remove lock file '{}': {}", name,
+                           ec.message());
+          acknowledge_engine_peer(poller_id, false);
+          retval.push_back(poller_id);
+        } else
+          _logger->warn("Change in '{}' detected but poller id not found",
+                        _cache_config_dir.string());
+      }
+    }
+  }
+  return retval;
+}
+
+/**
+ * @brief If occupied is true, set the occupied flag to true if possible (we
+ * cannot set it to true if it is already enabled). If occupied is false,
+ * set the occupied flag to false.
+ *
+ * @param occupied True if we want to set the occupied flag to true, false if we
+ * want to set it to false.
+ *
+ * @return True on success, false otherwise. An action linked to this occupied
+ * flag should work only if this function returns true.
+ */
+bool state::set_engine_conf_watcher_occupied(bool occupied,
+                                             const std::string_view& owner) {
+  if (occupied) {
+    bool expected = false;
+    if (_watch_occupied.compare_exchange_strong(expected, true)) {
+      _logger->trace("watcher taken by '{}'", owner);
+      return true;
+    } else
+      return false;
+  } else {
+    _watch_occupied = false;
+    _logger->trace("watcher released by '{}'", owner);
+    return true;
+  }
+}
+
+/**
+ * @brief Check if all Engine peers acknowledged their configuration.
+ * If it is the case, Broker can prepare the database for them.
+ *
+ * @return True if all Engine peers acknowledged their configuration,
+ * false otherwise.
+ */
+bool state::all_engine_peers_acknowledged() const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  for (const auto& peer : _connected_peers) {
+    if (peer.second.peer_type == common::ENGINE &&
+        !peer.second.conf_acknowledged)
+      return false;
+  }
+  return true;
+}
+
+void state::_start_watch_engine_conf_timer() {
+  _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
+  _watch_engine_conf_timer->async_wait(
+      [this](const boost::system::error_code& ec) {
+        if (!ec) {
+          if (set_engine_conf_watcher_occupied(true,
+                                               "applier::state::watcher")) {
+            _check_last_engine_conf();
+            set_engine_conf_watcher_occupied(false, "applier::state::watcher");
+          }
+          _start_watch_engine_conf_timer();
+        }
+      });
+}
+
+void state::_check_last_engine_conf() {
+  _logger->debug("Checking if there is a new engine configuration");
+  auto pollers_vec = config::applier::state::instance()._watch_engine_conf();
+  std::error_code ec;
+  for (uint32_t poller_id : pollers_vec) {
+    auto state = std::make_unique<engine::configuration::State>();
+    engine::configuration::state_helper state_hlp(state.get());
+    engine::configuration::error_cnt err;
+    std::string version = common::hash_directory(
+        config::applier::state::instance().cache_config_dir() /
+            fmt::to_string(poller_id),
+        ec);
+    if (ec) {
+      _logger->error(
+          "Cannot compute the Engine configuration version for poller '{}': {}",
+          poller_id, ec.message());
+      continue;
+    }
+    engine::configuration::parser p;
+    std::filesystem::path centengine_test =
+        config::applier::state::instance().cache_config_dir() /
+        fmt::to_string(poller_id) / "centengine.test";
+    std::filesystem::path centengine_cfg =
+        config::applier::state::instance().cache_config_dir() /
+        fmt::to_string(poller_id) / "centengine.cfg";
+    engine::configuration::parser::build_test_file(centengine_test,
+                                                   centengine_cfg, ec);
+    if (!ec) {
+      try {
+        p.parse(centengine_test, state.get(), err);
+        state->set_config_version(version);
+        state_hlp.expand(err);
+        if (!std::filesystem::exists(pollers_config_dir())) {
+          std::filesystem::create_directories(pollers_config_dir(), ec);
+          if (ec) {
+            _logger->error(
+                "Cannot create pollers configuration directory '{}': {}",
+                pollers_config_dir().string(), ec.message());
+          }
+        }
+        std::filesystem::path last_prot_conf =
+            pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+        std::ofstream f(last_prot_conf);
+        if (f) {
+          state->SerializeToOstream(&f);
+          f.close();
+        } else {
+          _logger->error(
+              "Cannot write the new Engine protobuf configuration '{}': {}",
+              last_prot_conf.string(), strerror(errno));
+        }
+        _prepare_diff_for_poller(poller_id, std::move(state));
+      } catch (const std::exception& e) {
+        _logger->error("error while parsing poller {} Engine configuration: {}",
+                       poller_id, e.what());
+      }
+    } else
+      _logger->error("Cannot create Engine configuration test file '{}': {}",
+                     centengine_test.string(), ec.message());
+  }
+}
+
+/**
+ * @brief Prepare the diff between the previous and the new Engine
+ * configurations. The occupied flag must be enabled during this function.
+ *
+ * @param poller_id The poller ID.
+ * @param state The new Engine configuration.
+ */
+void state::_prepare_diff_for_poller(
+    uint64_t poller_id,
+    std::unique_ptr<engine::configuration::State>&& state) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      if (lower->second.engine_conf != state->config_version()) {
+        _logger->debug(
+            "Poller '{}' with id {} has a new configuration available (old: "
+            "'{}', new: '{}')",
+            lower->second.poller_name, poller_id, lower->second.engine_conf,
+            state->config_version());
+        std::filesystem::path previous_prot_conf =
+            pollers_config_dir() / fmt::format("{}.prot", poller_id);
+        std::fstream f(previous_prot_conf);
+        std::unique_ptr<engine::configuration::DiffState> diff_state;
+        std::string new_version = state->config_version();
+        if (f) {
+          /* There is a previous configuration */
+          auto previous_state =
+              std::make_unique<engine::configuration::State>();
+          previous_state->ParseFromIstream(&f);
+          diff_state = std::make_unique<engine::configuration::DiffState>();
+          auto previous_indexed_state =
+              engine::configuration::indexed_state(std::move(previous_state));
+          previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                      diff_state.get());
+        } else {
+          /* No previous configuration */
+          diff_state = std::make_unique<engine::configuration::DiffState>();
+          diff_state->set_allocated_state(state.release());
+        }
+        std::filesystem::path diff_prot_conf =
+            pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+        std::ofstream df(diff_prot_conf);
+        if (df) {
+          diff_state->SerializeToOstream(&df);
+          df.close();
+
+          /* The new configuration to send to the poller is new-<poller ID>.prot
+           * Once sent to it, this file must be renamed into <poller ID>.prot
+           * and the diff file can be removed. */
+          lower->second.available_conf = new_version;
+        } else {
+          _logger->error(
+              "Cannot write the diff Engine protobuf configuration '{}': {}",
+              diff_prot_conf.string(), strerror(errno));
+        }
+        break;
+      } else {
+        _logger->info(
+            "Poller '{}' with id {} already has the latest configuration "
+            "(conf: '{}')",
+            lower->second.poller_name, poller_id, lower->second.engine_conf);
+      }
+    }
+  }
+}
+
+/**
+ * @brief Check if the poller engine peer needs an update. This function is
+ * called from Broker.
+ *
+ * @param poller_id The poller ID.
+ *
+ * @return A boolean indicating if the poller engine peer needs an update.
+ */
+bool state::engine_peer_needs_update(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      return lower->second.available_conf != lower->second.engine_conf;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Acknowledge or not the poller engine peer configuration. When true,
+ * the poller is well up to date. When false, broker has a new configuration
+ * and the poller did not send any acknowledgement.
+ *
+ * @param poller_id
+ * @param ack
+ */
+void state::acknowledge_engine_peer(uint64_t poller_id, bool ack) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      lower->second.conf_acknowledged = ack;
+      break;
+    }
+  }
+}
+
+/**
+ * @brief Called on Engine side when a pb_diff_state is received to keep the
+ * contained DiffState available for the next Engine update.
+ *
+ * @param diff The diff state.
+ */
+void state::set_diff_state(const std::shared_ptr<io::data>& diff) {
+  assert(diff.unique());
+  absl::MutexLock lck(&_diff_state_m);
+  auto diff_state =
+      std::static_pointer_cast<com::centreon::broker::bbdo::pb_diff_state>(
+          diff);
+  _diff_state =
+      std::make_unique<com::centreon::engine::configuration::DiffState>();
+  _diff_state->Swap(&diff_state->mut_obj());
+}
+
+std::unique_ptr<com::centreon::engine::configuration::DiffState>
+state::diff_state() {
+  absl::MutexLock lck(&_diff_state_m);
+  return std::move(_diff_state);
+}
+
+void state::set_diff_state_applied(bool done) {
+  _diff_state_applied = done;
 }
 
 /**

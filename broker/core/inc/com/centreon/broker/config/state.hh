@@ -100,7 +100,7 @@ class state {
  public:
   state();
   state(state const& other);
-  ~state();
+  ~state() noexcept = default;
   state& operator=(state const& other);
   void broker_id(int id) noexcept;
   int broker_id() const noexcept;
@@ -140,7 +140,7 @@ class state {
   const std::string& poller_name() const noexcept;
   void set_engine_config_dir(const std::string& dir);
   const std::string& engine_config_dir() const noexcept;
-  void set_cache_config_dir(const std::string& config_cache_dir);
+  void set_cache_config_dir(const std::string& cache_config_dir);
   const std::string& cache_config_dir() const noexcept;
   void set_pollers_config_dir(const std::string& pollers_config_dir);
   const std::string& pollers_config_dir() const noexcept;

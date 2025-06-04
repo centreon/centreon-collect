@@ -22,6 +22,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl_flyweight_factory_test.cc
     crypto/base64.cc
     engine_conf/expand_conf.cc
+    engine_conf/indexed_diff_state.cc
     file_test.cc
     jwt_test.cc
     hex_dump_test.cc
@@ -106,7 +107,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 else()
   target_link_libraries(
     ut_common
-    PRIVATE centreon_common
+    PRIVATE centreon_common process_stat
             centreon_process
             Boost::program_options
             re2::re2
@@ -120,7 +121,7 @@ else()
             absl::bits
             fmt::fmt)
 
-  add_dependencies(ut_common centreon_common)
+  add_dependencies(ut_common centreon_common process_stat)
 
 endif()
 

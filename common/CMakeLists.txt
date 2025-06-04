@@ -34,12 +34,8 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
-      ${SRC_DIR}/hex_dump.cc
-      ${SRC_DIR}/perfdata.cc
-      ${SRC_DIR}/pool.cc
-      ${SRC_DIR}/rapidjson_helper.cc
-      ${SRC_DIR}/utf8.cc
-      ${SRC_DIR}/file.cc)
+      ${SRC_DIR}/hex_dump.cc ${SRC_DIR}/perfdata.cc ${SRC_DIR}/pool.cc
+      ${SRC_DIR}/rapidjson_helper.cc ${SRC_DIR}/utf8.cc ${SRC_DIR}/file.cc)
 else()
   add_compile_options("/wd5232")
   # we need not many things to just compile centreon-monitoring-agent

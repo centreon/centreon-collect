@@ -48,7 +48,14 @@ for f in content:
         if os.path.isdir(f):
             dirs.append(f)
             print(f"reading {f}/output.xml")
-            tree = ET.parse(f + '/output.xml')
+            if not os.path.exists(f"{f}/output.xml"):
+                print(f" * {f}/output.xml does not exist")
+                continue
+            try:
+                tree = ET.parse(f"{f}/output.xml")
+            except ET.ParseError as e:
+                print(f" * {f}/output.xml is not a valid XML file: {e}")
+                continue
             root = tree.getroot()
             total_duration = 0
             for p in root.findall('.//test'):

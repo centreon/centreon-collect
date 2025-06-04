@@ -88,11 +88,7 @@ VICT_ONE_CHECK_STATUS
     Ctn Start Engine
     Start Server    127.0.0.1    8000
     # wait all is started
-    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # service ok
     ${start}    Ctn Get Round Current Date
@@ -123,6 +119,8 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
+    # Wait for 1s to be sure that the timestamp is different with previous Service Check Result.
+    Sleep    1s
     # service warning
     ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard
@@ -158,6 +156,7 @@ VICT_ONE_CHECK_STATUS
 
     # service critical
 
+    Sleep    1s
     ${start}    Ctn Get Round Current Date
     Ctn Process Service Result Hard
     ...    host_16
