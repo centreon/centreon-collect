@@ -91,6 +91,7 @@ target_link_libraries(opentelemetry
   spdlog::spdlog
   protobuf::libprotobuf
   Boost::program_options
+  Boost::url
   pb_open_telemetry_lib
   ctncrypto)
 

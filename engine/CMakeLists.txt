@@ -505,7 +505,7 @@ target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 # Library engine target.
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib)
+add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 

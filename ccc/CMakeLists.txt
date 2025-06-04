@@ -45,7 +45,6 @@ include_directories(
   ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src)
-set(ccc_files main.cc client.cc)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
@@ -55,7 +54,9 @@ if(WITH_ASAN)
       "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
-add_executable(ccc ${ccc_files})
+add_executable(ccc
+  main.cc client.cc)
+
 add_dependencies(ccc process_stat)
 target_link_libraries(
   ccc PRIVATE
@@ -63,9 +64,11 @@ target_link_libraries(
   cerpc
   pb_common_lib
   pb_broker_lib
+  protobuf::libprotobuf
   centreon_common
   process_stat
   fmt::fmt)
-set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
+
+set_target_properties(ccc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 install(TARGETS ccc RUNTIME DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}")
