@@ -1,5 +1,5 @@
 /**
- * Copyright 2024-2024 Centreon
+ * Copyright 2024-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@
 #include <google/protobuf/util/json_util.h>
 #include <grpcpp/generic/generic_stub.h>
 #include <nlohmann/json.hpp>
-#include "broker/core/src/broker.grpc.pb.h"
+#include "broker.grpc.pb.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "engine.grpc.pb.h"
+#include "engine/enginerpc/engine.grpc.pb.h"
 
 using namespace com::centreon::ccc;
 
@@ -177,10 +177,10 @@ std::string client::call(const std::string& cmd, const std::string& args) {
   google::protobuf::util::JsonParseOptions options;
   options.ignore_unknown_fields = false;
   options.case_insensitive_enum_parsing = true;
-  google::protobuf::util::Status status =
+  absl::Status status =
       google::protobuf::util::JsonStringToMessage(args, input_message, options);
 
-  if (status.code() != google::protobuf::util::status_internal::StatusCode::kOk)
+  if (!status.ok())
     throw com::centreon::exceptions::msg_fmt(
         "Error during the execution of '{}' method: {}", cmd_str,
         status.ToString());
@@ -213,7 +213,8 @@ std::string client::call(const std::string& cmd, const std::string& args) {
     std::string retval;
     google::protobuf::util::JsonPrintOptions json_options;
     json_options.add_whitespace = true;
-    json_options.always_print_primitive_fields = _always_print_primitive_fields;
+    json_options.always_print_fields_with_no_presence =
+        _always_print_primitive_fields;
     auto status = google::protobuf::util::MessageToJsonString(
         *output_message, &retval, json_options);
 

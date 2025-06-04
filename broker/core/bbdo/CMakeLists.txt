@@ -1,5 +1,5 @@
 #
-# Copyright 2024 Centreon
+# Copyright 2024-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -16,12 +16,13 @@
 # For more information : contact@centreon.com
 #
 
-# include_directories(${PROJECT_SOURCE_DIR}/core)
+include_directories(${CMAKE_BINARY_DIR}/bbdo)
 
 add_library(bbdo STATIC acceptor.cc connector.cc factory.cc
                         internal.cc stream.cc)
 
-add_dependencies(bbdo target_common target_bbdo target_extcmd pb_open_telemetry_lib)
+target_link_libraries(bbdo PRIVATE protobuf::libprotobuf)
+add_dependencies(bbdo pb_bbdo_lib pb_extcmd_lib process_stat pb_open_telemetry_lib pb_neb_lib)
 target_precompile_headers(bbdo PRIVATE precomp_inc/precomp.hh)
 
 set_target_properties(bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
