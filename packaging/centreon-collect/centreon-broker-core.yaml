@@ -15,7 +15,37 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/broker/{neb,stats,bam,storage,unified_sql,tcp,grpc,tls,rrd,lua,sql}/*.so"
+  - src: "../../build/broker/lib/10-neb.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/20-bam.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/20-storage.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/20-unified_sql.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/50-grpc.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/50-tcp.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/60-tls.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/70-lua.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/70-rrd.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/15-stats.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
+
+  - src: "../../build/broker/lib/80-sql.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
   - src: "../../broker/script/centreon-broker.logrotate"
