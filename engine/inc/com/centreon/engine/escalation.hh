@@ -19,7 +19,6 @@
 #define CCE_ESCALATION_HH
 
 #include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/shared.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

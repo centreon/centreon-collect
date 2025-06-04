@@ -20,24 +20,26 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
-
+#include <filesystem>
+#include <system_error>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/common/file.hh"
-#include "common/log_v2/log_v2.hh"
+#include "common.pb.h"
+#include "common/engine_conf/indexed_diff_state.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
-using log_v2 = com::centreon::common::log_v2::log_v2;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Set a boolean within an object.
@@ -1103,47 +1105,88 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       multiplexing::publisher pblshr;
       pblshr.write(loc_stop);
     } break;
+    case pb_diff_state::static_type(): {
+      config::applier::state::instance().set_diff_state(d);
+    } break;
+    case pb_diff_state_ack::static_type(): {
+      _logger->info("BBDO: received diff state ack");
+      auto& obj = std::static_pointer_cast<pb_diff_state_ack>(d)->obj();
+      assert(obj.poller_id() == _poller_id);
+      config::applier::state::instance().set_poller_engine_conf(
+          _poller_id, _poller_name, _broker_name, obj.config_version());
+      config::applier::state::instance().acknowledge_engine_peer(
+          obj.poller_id(), true);
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "BBDO: received diff state ack from Engine with version '{}'",
+          obj.config_version());
+      std::filesystem::path new_name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("new-{}.prot", _poller_id));
+      std::filesystem::path name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("{}.prot", _poller_id));
+      _logger->error("bbdo::stream removing {}", name.string());
+      std::error_code ec;
+      std::filesystem::rename(new_name, name, ec);
+      if (ec)
+        _logger->error("Unable to rename the file from '{}' to '{}'",
+                       new_name.string(), name.string());
+
+      // All the peer pollers have their configuration acknowledged.
+      if (config::applier::state::instance().all_engine_peers_acknowledged()) {
+        SPDLOG_LOGGER_INFO(
+            _logger,
+            "BBDO: all engine peers have acknowledged their configuration");
+        com::centreon::engine::configuration::indexed_diff_state global_diff;
+        std::error_code ec;
+        for (const auto& entry : std::filesystem::directory_iterator(
+                 config::applier::state::instance().pollers_config_dir(), ec)) {
+          std::string poller_id_str(entry.path().filename().string());
+          if (entry.is_regular_file() && entry.path().extension() == ".prot" &&
+              absl::StartsWith(poller_id_str, "diff-")) {
+            _logger->debug("BBDO: Merging diff file '{}' into the global one",
+                           entry.path().string());
+            std::string_view poller_id_view(poller_id_str);
+            poller_id_view.remove_prefix(5);
+            poller_id_view.remove_suffix(5);
+            uint64_t poller_id;
+            if (absl::SimpleAtoi(poller_id_view, &poller_id)) {
+              std::filesystem::path diff_name(
+                  config::applier::state::instance().pollers_config_dir() /
+                  entry.path());
+              std::ifstream f(diff_name);
+              com::centreon::engine::configuration::DiffState diff;
+              if (f) {
+                diff.ParseFromIstream(&f);
+                f.close();
+                global_diff.add_diff_state(diff);
+                _logger->debug("BBDO: Removing diff file '{}'",
+                               diff_name.string());
+                std::filesystem::remove(diff_name);
+              }
+            } else {
+              _logger->error(
+                  "BBDO: The file '{}' seems not to be a diff state file.",
+                  poller_id_str);
+            }
+          }
+        }
+        auto diff = std::make_shared<neb::pb_global_diff_state>();
+        auto& obj = diff->mut_obj();
+        global_diff.release_diff_state(obj);
+        multiplexing::publisher pblshr;
+        _logger->debug("BBDO: Publishing global diff state");
+        pblshr.write(diff);
+
+        // We can now release the watcher for a new configuration.
+        config::applier::state::instance().set_engine_conf_watcher_occupied(
+            false, "bbdo::stream");
+      }
+    } break;
     default:
       break;
   }
-}
-
-/**
- * @brief Wait for a BBDO event (category io::bbdo) of a specific type. While
- * received events are of category io::bbdo, they are handled as usual, and when
- * the expected event is received, it is returned. The expected event is not
- * handled.
- *
- * @param expected_type The expected type of the event.
- * @param d The event that was received with the expected type.
- * @param deadline The deadline in seconds.
- *
- * @return true if the expected event was received before the deadline, false
- * otherwise.
- */
-bool stream::_wait_for_bbdo_event(uint32_t expected_type,
-                                  std::shared_ptr<io::data>& d,
-                                  time_t deadline) {
-  for (;;) {
-    bool timed_out = !_read_any(d, deadline);
-    uint32_t event_id = !d ? 0 : d->type();
-    if (timed_out || (event_id >> 16) != io::bbdo)
-      return false;
-
-    if (event_id == expected_type)
-      return true;
-
-    _handle_bbdo_event(d);
-
-    // Control messages.
-    SPDLOG_LOGGER_DEBUG(
-        _logger,
-        "BBDO: event with ID {} was a control message, launching recursive "
-        "read",
-        event_id);
-  }
-
-  return false;
 }
 
 /**
@@ -1190,6 +1233,30 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       (_events_received_since_last_ack && _last_sent_ack + 5 < now)) {
     _last_sent_ack = now;
     send_event_acknowledgement();
+  }
+  if (_peer_type == common::ENGINE &&
+      config::applier::state::instance().engine_peer_needs_update(_poller_id)) {
+    if (config::applier::state::instance().set_engine_conf_watcher_occupied(
+            true, "bbdo::stream")) {
+      _logger->debug(
+          "BBDO: We should send the Engine configuration to the peer");
+      auto pb_conf = std::make_shared<pb_diff_state>();
+      auto& obj = pb_conf->mut_obj();
+      std::filesystem::path diff_name(
+          config::applier::state::instance().pollers_config_dir() /
+          fmt::format("diff-{}.prot", _poller_id));
+      std::ifstream f(diff_name);
+      if (f) {
+        std::error_code ec;
+        obj.ParseFromIstream(&f);
+        f.close();
+        _logger->debug("BBDO: Sending Engine configuration to poller {}",
+                       _poller_id);
+        config::applier::state::instance().set_poller_engine_conf(
+            _poller_id, _poller_name, _broker_name, obj.config_version());
+        _write(pb_conf);
+      }
+    }
   }
   return !timed_out;
 }
@@ -1506,6 +1573,18 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
+  if (config::applier::state::instance().peer_type() == common::ENGINE &&
+      _peer_type == common::BROKER &&
+      config::applier::state::instance().diff_state_applied()) {
+    const std::string& version =
+        config::applier::state::instance().engine_conf();
+    _logger->debug("BBDO: Sending diff state '{}' acknowledgement", version);
+    auto diff_state_ack = std::make_shared<bbdo::pb_diff_state_ack>();
+    auto& obj = diff_state_ack->mut_obj();
+    obj.set_poller_id(config::applier::state::instance().poller_id());
+    obj.set_config_version(version);
+    _write(diff_state_ack);
+  }
   _write(d);
 
   int32_t retval = _acknowledged_events;
@@ -1541,50 +1620,4 @@ void stream::send_event_acknowledgement() {
     }
     _events_received_since_last_ack = 0;
   }
-}
-
-/**
- * @brief Check if the poller configuration is up to date.
- *
- * @param poller_id
- * @param expected_version
- *
- * @return
- */
-bool stream::check_poller_configuration(uint64_t poller_id,
-                                        const std::string& expected_version) {
-  std::error_code ec;
-  const std::filesystem::path& pollers_conf_dir =
-      config::applier::state::instance().pollers_config_dir();
-  if (!std::filesystem::is_directory(pollers_conf_dir, ec)) {
-    if (ec)
-      _logger->error("Cannot access directory '{}': {}",
-                     pollers_conf_dir.string(), ec.message());
-    std::filesystem::create_directories(pollers_conf_dir, ec);
-    if (ec) {
-      _logger->error("Cannot create directory '{}': {}",
-                     pollers_conf_dir.string(), ec.message());
-      return false;
-    }
-  }
-  auto poller_dir = pollers_conf_dir / fmt::to_string(poller_id);
-  if (!std::filesystem::is_directory(poller_dir, ec)) {
-    if (ec)
-      _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
-                     ec.message());
-    std::filesystem::create_directories(poller_dir, ec);
-    if (ec)
-      _logger->error("Cannot create directory '{}': {}", poller_dir.string(),
-                     ec.message());
-    return false;
-  }
-  std::string current = common::hash_directory(poller_dir, ec);
-  if (ec) {
-    _logger->error("Cannot access directory '{}': {}", poller_dir.string(),
-                   ec.message());
-    return false;
-  }
-  config::applier::state::instance().set_engine_configuration(poller_id,
-                                                              current);
-  return current == expected_version;
 }

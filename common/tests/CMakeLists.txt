@@ -22,6 +22,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl_flyweight_factory_test.cc
     crypto/base64.cc
     engine_conf/expand_conf.cc
+    engine_conf/indexed_diff_state.cc
     file_test.cc
     jwt_test.cc
     hex_dump_test.cc

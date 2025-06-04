@@ -67,12 +67,9 @@ state::state(const state& other)
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
       _pool_size(other._pool_size),
+      _cache_config_dir(other._cache_config_dir),
+      _pollers_config_dir(other._pollers_config_dir),
       _log_conf(other._log_conf) {}
-
-/**
- *  Destructor.
- */
-state::~state() {}
 
 /**
  *  Assignment operator.
@@ -98,6 +95,8 @@ state& state::operator=(state const& other) {
     _poller_id = other._poller_id;
     _poller_name = other._poller_name;
     _pool_size = other._pool_size;
+    _cache_config_dir = other._cache_config_dir;
+    _pollers_config_dir = other._pollers_config_dir;
   }
   return *this;
 }
@@ -493,7 +492,7 @@ const std::string& state::engine_config_dir() const noexcept {
 /**
  * @brief Set the directory containing the cache configuration of the pollers.
  *
- * @param config_cache_dir The directory name
+ * @param cache_config_dir The directory name
  */
 void state::set_cache_config_dir(const std::string& cache_config_dir) {
   _cache_config_dir = cache_config_dir;

@@ -95,6 +95,10 @@ class parser {
   parser& operator=(const parser&) = delete;
   ~parser() noexcept = default;
   void parse(const std::string& path, State* config, error_cnt& err);
+
+  static void build_test_file(const std::filesystem::path& centengine_test,
+                              const std::filesystem::path& centengine_cfg,
+                              std::error_code& ec);
 };
 }  // namespace com::centreon::engine::configuration
 

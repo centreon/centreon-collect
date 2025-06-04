@@ -34,7 +34,7 @@ from array import array
 from dateutil import parser
 import datetime
 from os import makedirs, chmod
-from os.path import exists, dirname, basename
+from os.path import exists, dirname
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 import db_conf
@@ -201,7 +201,9 @@ class EngineInstance:
                 "check_for_orphaned_services=0\n"
                 "check_for_orphaned_hosts=0\n"
                 "check_service_freshness=1\n"
-                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
+                "enable_flap_detection=0\n"
+                "broker_module_config_file={4}/centreon-broker/central-module{0}.json\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
+
 
     def _create_host(self):
         self.last_host_id += 1
@@ -829,7 +831,7 @@ def ctn_get_engines_count():
         return engine.instances
 
 
-def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False, disambiguous: bool = False):
+def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = False, disambiguous: bool = False, cfg_file=None):
     """
     Set a value in the centengine.cfg
 
@@ -841,8 +843,13 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
         true, the key will be added to the file.
         disambiguous (bool, optional): Defaults to False. If the key appears several times in the file and we want to
         match only one, it is interesting to enable this option, it will try to also compare values.
+        cfg_file (str, optional): Defaults to None. If set, the function will modify the specified file instead of
+        {EtcRoot/centreon-engine/config{idx}/centengine.cfg.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    if cfg_file is None:
+        filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    else:
+        filename = cfg_file
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1663,7 +1670,7 @@ def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
-def ctn_create_service(index: int, host_id: int, cmd_id: int):
+def ctn_create_service(index: int, host_id: int, cmd_id: int, cfg_file=None):
     """
     Create a service on the engine instance index, on the host host_id, with the command cmd_id.
 
@@ -1671,6 +1678,8 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
         index (int): Index of the poller configuration (from 0).
         host_id (int): The host ID of the new service to create.
         cmd_id (int): The command ID this new service has to use.
+        cfg_file (str): The configuration file to write the service to, by default it is
+                        "{ETC_ROOT}/centreon-engine/config{index}/services.cfg"
 
     Returns:
         A service ID.
@@ -1678,7 +1687,10 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     Example:
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
+    if cfg_file is None:
+        cfg_file = f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg"
+
+    with open(cfg_file, "a+") as f:
         svc = engine._create_service(host_id, [1, cmd_id])
         lst = svc.split('\n')
         good = [line for line in lst if "_SERVICE_ID" in line][0]
@@ -1688,7 +1700,6 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
         else:
             raise Exception(
                 "Impossible to get the service id from '{}'".format(good))
-            m = 0
         f.write(svc)
     return retval
 

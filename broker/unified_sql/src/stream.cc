@@ -95,7 +95,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_service_check,
     &stream::_process_pb_log,
     &stream::_process_pb_instance_status,
-    nullptr,
+    &stream::_process_pb_global_diff_state,
     &stream::_process_pb_instance,
     &stream::_process_pb_acknowledgement,
     &stream::_process_pb_responsive_instance,
@@ -372,7 +372,7 @@ void stream::_load_caches() {
       "SELECT resource_id, id, parent_id FROM resources",
       std::move(promise_resource));
 
-  /* severities => _severity_cache */
+  /* severities => _severities_cache */
   _mysql.run_query_and_get_result(
       "SELECT severity_id, id, type FROM severities",
       std::move(promise_severity));
@@ -580,7 +580,7 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_resource.get()};
       while (_mysql.fetch_row(res)) {
-        _resource_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
+        _resources_cache[{res.value_as_u64(1), res.value_as_u64(2)}] =
             res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
@@ -591,8 +591,8 @@ void stream::_load_caches() {
     try {
       mysql_result res{future_severity.get()};
       while (_mysql.fetch_row(res)) {
-        _severity_cache[{res.value_as_u64(1),
-                         static_cast<uint16_t>(res.value_as_u32(2))}] =
+        _severities_cache[{res.value_as_u64(1),
+                           static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
       }
     } catch (const std::exception& e) {
@@ -896,7 +896,7 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
                     stop.poller_id());
 
   // Clean tables.
-  _clean_tables(stop.poller_id());
+  clean_tables(stop.poller_id());
 
   // Processing.
   if (_is_valid_poller(stop.poller_id())) {
@@ -1189,13 +1189,13 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
           _cache_svc_cmd.erase(itt);
 
           // resources
-          auto res_it = _resource_cache.find({svc_id, host_id});
-          if (res_it != _resource_cache.end())
-            _resource_cache.erase(res_it);
+          auto res_it = _resources_cache.find({svc_id, host_id});
+          if (res_it != _resources_cache.end())
+            _resources_cache.erase(res_it);
         }
-        auto res_it = _resource_cache.find({host_id, 0});
-        if (res_it != _resource_cache.end())
-          _resource_cache.erase(res_it);
+        auto res_it = _resources_cache.find({host_id, 0});
+        if (res_it != _resources_cache.end())
+          _resources_cache.erase(res_it);
       }
       it = _cache_host_instance.erase(it);
     } else
@@ -1461,4 +1461,12 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*_sscr_resources_update);
     }
   }
+}
+
+mysql& stream::get_mysql() {
+  return _mysql;
+}
+
+bool stream::supports_bulk_prepared_statements() const {
+  return _bulk_prepared_statement;
 }

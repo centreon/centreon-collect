@@ -34,8 +34,6 @@
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
-#include "com/centreon/broker/neb/service_status.hh"
-#include "neb.pb.h"
 #include "storage/metric_mapping.hh"
 
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"

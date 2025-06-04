@@ -112,6 +112,11 @@ void applier::state::apply(configuration::State& new_cfg,
   try {
     _processing_state = state_ready;
     _processing(new_cfg, err, state);
+    if (!proto_conf.empty()) {
+      std::ofstream f(proto_conf / "state.prot", std::ios::binary);
+      pb_indexed_config.serialize_to_ostream(&f);
+      f.close();
+    }
   } catch (const std::exception& e) {
     // If is the first time to load configuration, we don't
     // have a valid configuration to restore.
@@ -126,6 +131,34 @@ void applier::state::apply(configuration::State& new_cfg,
       config_logger->debug("configuration: try to restore old configuration");
       auto old_state = std::unique_ptr<configuration::State>(save.release());
       _processing(*old_state, err, state);
+    }
+  }
+}
+
+void applier::state::apply_diff(configuration::DiffState& diff_conf,
+                                error_cnt& err,
+                                retention::state* state [[maybe_unused]]) {
+  configuration::indexed_state save(pb_indexed_config);
+  try {
+    _processing_state = state_ready;
+    _processing_diff(diff_conf, err);
+    std::ofstream f(proto_conf / "state.prot", std::ios::binary);
+    pb_indexed_config.serialize_to_ostream(&f);
+    f.close();
+  } catch (const std::exception& e) {
+    // If is the first time to load configuration, we don't
+    // have a valid configuration to restore.
+    if (!has_already_been_loaded)
+      throw;
+
+    // If is not the first time, we can restore the old one.
+    config_logger->error("Cannot apply new configuration: {}", e.what());
+
+    // Check if we need to restore old configuration.
+    if (_processing_state == state_error) {
+      auto old_state = std::unique_ptr<configuration::State>(save.release());
+      config_logger->debug("configuration: try to restore old configuration");
+      _processing(*old_state, err);
     }
   }
 }
@@ -487,6 +520,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_indexed_config.mut_state().set_broker_module_cfg_file(
       new_cfg.broker_module_cfg_file());
   pb_indexed_config.mut_state().set_config_version(new_cfg.config_version());
+  pb_indexed_config.mut_state().set_broker_module_cfg_file(
+      new_cfg.broker_module_cfg_file());
   pb_indexed_config.mut_state().clear_user();
   for (auto& p : new_cfg.user())
     pb_indexed_config.mut_state().mutable_user()->at(p.first) = p.second;
@@ -1703,6 +1738,90 @@ void applier::state::_processing(configuration::State& new_cfg,
 
   has_already_been_loaded = true;
   _processing_state = state_ready;
+}
+
+void applier::state::_processing_diff(configuration::DiffState& diff_conf,
+                                      error_cnt& err,
+                                      retention::state* state) {
+  /* Particular case with a diff containing the full state */
+  if (diff_conf.has_state()) {
+    /* The previous version wasn't known by broker, the diff contains the full
+     * state. So let's parse it as usual. */
+    config_logger->info("Processing full configuration from diff.");
+
+    _processing(*diff_conf.mutable_state(), err, state);
+    cbm->set_diff_state_applied(diff_conf.state().config_version());
+    return;
+  } else
+    config_logger->info("Processing differential configuration.");
+
+  // Timing.
+  absl::FixedArray<std::chrono::system_clock::time_point, 5> tv{
+      {}, {}, {}, {}, {}};
+
+  // Call prelaunch broker event the first time to run applier state.
+  if (!has_already_been_loaded)
+    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE);
+
+  //
+  // Expand all objects.
+  //
+  tv[0] = std::chrono::system_clock::now();
+
+  try {
+    std::lock_guard<std::mutex> lock(_apply_lock);
+    _apply_diff_conf(diff_conf, &tv, err);
+
+    config_logger->debug("Duration to apply the diff state configuration {}",
+                         tv[2] - tv[1]);
+    // Apply scheduler
+    applier::scheduler::instance().apply(pb_indexed_config.mut_state(),
+                                         diff_conf);
+    whitelist::reload();
+
+    // Timing.
+    tv[3] = std::chrono::system_clock::now();
+
+    config_logger->debug("Duration to reload the whitelist {}", tv[3] - tv[2]);
+    // Check for circular paths between hosts.
+    pre_flight_circular_check(&err.config_warnings, &err.config_errors);
+
+    // Call start broker event the first time to run applier state.
+    if (!has_already_been_loaded) {
+      neb_load_all_modules();
+
+      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
+    } else {
+      apply_log_config(pb_indexed_config.mut_state());
+      cbm->reload();
+      neb_reload_all_modules();
+    }
+
+    // Print initial states of new hosts and services.
+    for (auto a : diff_conf.hosts().added()) {
+      auto it_hst = engine::host::hosts_by_id.find(a.host_id());
+      if (it_hst != engine::host::hosts_by_id.end())
+        log_host_state(INITIAL_STATES, it_hst->second.get());
+    }
+    for (auto a : diff_conf.services().added()) {
+      auto it_svc =
+          engine::service::services_by_id.find({a.host_id(), a.service_id()});
+      if (it_svc != engine::service::services_by_id.end())
+        log_service_state(INITIAL_STATES, it_svc->second.get());
+    }
+
+    // Timing.
+    tv[4] = std::chrono::system_clock::now();
+    config_logger->debug("Duration to apply resources change {}",
+                         tv[4] - tv[3]);
+  } catch (...) {
+    _processing_state = state_error;
+    throw;
+  }
+
+  has_already_been_loaded = true;
+  _processing_state = state_ready;
+  cbm->set_diff_state_applied(diff_conf.config_version());
 }
 
 template <typename ConfigurationType, typename KeyType, typename ApplierType>

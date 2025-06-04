@@ -124,6 +124,10 @@ class indexed_diff_state {
       _modified_serviceescalations;
   absl::flat_hash_set<uint64_t> _removed_serviceescalations;
 
+  /* List of the poller IDs whose configuration has been given as full and not
+   * as a differential. */
+  std::list<uint64_t> _full_conf_poller_id;
+
   /**
    * @brief This function is used to add a diff message to the indexed
    * diff state.

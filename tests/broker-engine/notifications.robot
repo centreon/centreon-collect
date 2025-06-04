@@ -1481,7 +1481,14 @@ not20
     Ctn Kindly Stop Broker
 
 not_in_timeperiod_without_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is not sent outside timeperiod when _send_recovery_notifications_anyways is not set
+    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
+    ...    Given a configured single service
+    ...    And the service enters a non-OK state
+    ...    When the service remains in a non-OK state
+    ...    Then a notification should be sent
+    ...    And no OK notification should be sent outside the time period
+    ...    When the setting "send_recovery_notifications_anyways" is not set
+
     [Tags]    MON-33121  broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -1511,7 +1518,10 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     ## Time to set the service to CRITICAL HARD.
     Ctn Process Service Result Hard    host_1    service_1    2    critical
 
-    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Ctn Check Service Resource Status With Timeout
+    ...    host_1
+    ...    service_1
+    ...    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
@@ -1527,7 +1537,13 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     Should Not Be True    ${result}    The notification is sent out of time period
 
 not_in_timeperiod_with_send_recovery_notifications_anyways
-    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state and OK is sent outside timeperiod when _send_recovery_notifications_anyways is set
+    [Documentation]    Scenario: Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
+    ...    Given a configured single service
+    ...    And the service enters a non-OK state
+    ...    When the service remains in a non-OK state
+    ...    Then a notification should be sent
+    ...    And an OK notification should be sent outside the time period
+    ...    When the setting "_send_recovery_notifications_anyways" is set
     [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
@@ -1551,7 +1567,7 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
 
     Ctn Start Broker
-    Ctn Start Engine With Extend Conf
+    Ctn Start Engine With Extended Conf
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}
