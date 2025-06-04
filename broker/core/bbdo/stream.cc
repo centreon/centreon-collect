@@ -20,10 +20,12 @@
 
 #include <absl/strings/str_split.h>
 #include <arpa/inet.h>
-
+#include <filesystem>
+#include <system_error>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
