@@ -125,7 +125,11 @@ class http_config {
   const asio::ip::tcp::resolver::results_type& get_endpoints_list() const {
     return _endpoints_list;
   }
-  const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
+  asio::ip::tcp::endpoint get_endpoint() const {
+    if (_endpoints_list.empty())
+      return _endpoint;
+    return _endpoints_list.begin()->endpoint();
+  }
   const std::string& get_server_name() const { return _server_name; }
   bool is_crypted() const { return _crypted; }
   const duration& get_connect_timeout() const { return _connect_timeout; }

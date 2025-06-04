@@ -106,7 +106,9 @@ target_link_libraries(
   ut_broker
   PRIVATE
           roker
+	  -Wl,--whole-archive
           rokerbase
+	  -Wl,--no-whole-archive
           conflictmgr
           centreon_common
           centreon_grpc
