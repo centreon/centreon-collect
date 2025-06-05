@@ -112,12 +112,14 @@ agent_service::agent_service(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     const agent_stat::pointer& stats,
+    const bool& is_crypted,
     const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
     : _io_context(io_context),
       _conf(conf),
       _metric_handler(handler),
       _logger(logger),
       _stats(stats),
+      _is_crypted(is_crypted),
       _trusted_tokens(trusted_tokens) {
   if (!_conf) {
     _conf = std::make_shared<agent_config>(100, 10, 30);
@@ -141,9 +143,11 @@ std::shared_ptr<agent_service> agent_service::load(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     const agent_stat::pointer& stats,
+    const bool& is_crypted,
     const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens) {
   std::shared_ptr<agent_service> ret = std::make_shared<agent_service>(
-      io_context, conf, std::move(handler), logger, stats, trusted_tokens);
+      io_context, conf, std::move(handler), logger, stats, is_crypted,
+      trusted_tokens);
   ret->init();
   return ret;
 }
@@ -172,47 +176,55 @@ void agent_service::init() {
 ::grpc::ServerBidiReactor<com::centreon::agent::MessageFromAgent,
                           com::centreon::agent::MessageToAgent>*
 agent_service::Export(::grpc::CallbackServerContext* context) {
-  auto auth_ctx = context->auth_context();
   std::chrono::system_clock::time_point exp_time =
       std::chrono::system_clock::time_point::min();
-  if (auth_ctx) {
-    // Grab *all* "authorization" metadata values (often just one).
-    auto metadata = context->client_metadata();
-    auto auth_md = metadata.find("authorization");
-    if (auth_md != metadata.end()) {
-      std::string auth_header(auth_md->second.data(), auth_md->second.size());
-      SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
-      try {
-        common::crypto::jwt jwt(auth_header);
-        if (jwt.get_exp() < std::chrono::system_clock::now()) {
-          SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
-          return new ImmediateFinishReactor(::grpc::Status(
-              ::grpc::StatusCode::UNAUTHENTICATED, "Token expired"));
-          ;
-        }
-        // check if token is trusted by the service
-        if (_trusted_tokens->find(jwt.get_string()) == _trusted_tokens->end()) {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "UNAUTHENTICATED : Token is not trusted");
-          return new ImmediateFinishReactor(::grpc::Status(
-              ::grpc::StatusCode::UNAUTHENTICATED, "Token not trusted"));
-        }
+  if (_is_crypted) {
+    auto auth_ctx = context->auth_context();
+    if (auth_ctx) {
+      // Grab *all* "authorization" metadata values (often just one).
+      auto metadata = context->client_metadata();
+      auto auth_md = metadata.find("authorization");
+      if (auth_md != metadata.end()) {
+        std::string auth_header(auth_md->second.data(), auth_md->second.size());
+        SPDLOG_LOGGER_DEBUG(_logger, "Token found in Metadata");
+        try {
+          common::crypto::jwt jwt(auth_header);
+          if (jwt.get_exp() < std::chrono::system_clock::now()) {
+            SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
+            return new ImmediateFinishReactor(::grpc::Status(
+                ::grpc::StatusCode::UNAUTHENTICATED, "Token expired"));
+            ;
+          }
+          // check if token is trusted by the service
+          if (_trusted_tokens->find(jwt.get_string()) ==
+              _trusted_tokens->end()) {
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "UNAUTHENTICATED : Token is not trusted");
+            return new ImmediateFinishReactor(::grpc::Status(
+                ::grpc::StatusCode::UNAUTHENTICATED, "Token not trusted"));
+          }
 
-        SPDLOG_LOGGER_INFO(_logger, "Token is valid");
-        exp_time = jwt.get_exp();
-      } catch (const exceptions::msg_fmt& ex) {
-        SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
-        return new ImmediateFinishReactor(
-            ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED, ex.what()));
+          SPDLOG_LOGGER_DEBUG(_logger, "Token is valid");
+          exp_time = jwt.get_exp();
+        } catch (const exceptions::msg_fmt& ex) {
+          SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
+          return new ImmediateFinishReactor(
+              ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED, ex.what()));
+        }
+      } else {
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "UNAUTHENTICATED: No authorization header");
+        return new ImmediateFinishReactor(::grpc::Status(
+            ::grpc::StatusCode::UNAUTHENTICATED, "Missing authorization"));
       }
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED: No authorization header");
+      return new ImmediateFinishReactor(::grpc::Status(
+          ::grpc::StatusCode::UNAUTHENTICATED, "Missing authorization"));
     }
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED: No authorization header");
-    return new ImmediateFinishReactor(::grpc::Status(
-        ::grpc::StatusCode::UNAUTHENTICATED, "Missing authorization"));
+    // If we reach here, the token is valid:
   }
 
-  // If we reach here, the token is valid:
   std::shared_ptr<server_bireactor> new_reactor;
   {
     absl::MutexLock l(&_conf_m);
