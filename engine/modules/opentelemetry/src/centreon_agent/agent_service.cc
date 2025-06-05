@@ -17,7 +17,6 @@
  */
 
 #include "centreon_agent/agent_service.hh"
-#include <spdlog/spdlog.h>
 #include "common/crypto/jwt.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
