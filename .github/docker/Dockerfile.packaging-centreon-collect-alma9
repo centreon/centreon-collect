@@ -79,7 +79,7 @@ COPY custom-triplets /custom-triplets
 
 RUN bash -e <<EOF
 
-git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg
