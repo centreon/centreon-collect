@@ -258,6 +258,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
     Should Be True    ${result}    resources table not updated
 
+
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted reversed connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
@@ -307,7 +308,6 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Should Be True    ${result}    resources table not updated
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     [Documentation]    agent check host with encrypted connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
@@ -355,6 +355,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     [Documentation]    agent check service with native check cpu and we expect to get it in check result
@@ -491,7 +492,6 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     Should Be True    ${result}    resources table not updated
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     [Documentation]    agent check service with native check uptime and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-147919
@@ -559,6 +559,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     [Documentation]    agent check service with native check memory and we expect to get it in check result
@@ -628,6 +629,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     [Documentation]    agent check service with native check service and we expect to get it in check result
@@ -822,7 +824,6 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     Should Be True    ${result}    check_interval is not respected for service_3
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
     [Tags]    broker    engine    opentelemetry    MON-155395
@@ -1006,61 +1007,7 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
 
     Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
 
-BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
-    [Documentation]    Given the agent is configured with native checks for services
-    ...    And the OpenTelemetry server module is added
-    ...    And services are configured with incorrect check commands and arguments
-    ...    When the broker, engine, and agent are started
-    ...    Then the resources table should be updated with the correct status
-    ...    And appropriate error messages should be generated for invalid checks
-    [Tags]    broker    engine    agent    opentelemetry    MON-158969
-    Ctn Config Engine    ${1}    ${2}    ${2}
-    Ctn Add Otl ServerModule
-    ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
-    Ctn Config Add Otl Connector
-    ...    0
-    ...    OTEL connector
-    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
 
-    # wrong check command for service_1
-    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
-    # wrong args value for service_2
-    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} }    OTEL connector
-    
-    Ctn Engine Config Set Value    0    log_level_checks    trace
-
-    Ctn Clear Metrics
-
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Config Centreon Agent
-    Ctn Broker Config Log    central    sql    trace
-
-    Ctn Config BBDO3    1
-    Ctn Clear Retention
-
-    ${start}    Ctn Get Round Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    Ctn Start Agent
-
-    # Let's wait for the otel server start
-    Ctn Wait For Otel Server To Be Ready    ${start}
-    
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_1
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
-    ...    "Error the output for invalid check command is not correct"
- 
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
-    Should Be True    ${result}    resources table not updated for service_2
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
-    ...    "Error the output for invalid check args is not correct"
  NON_TLS_CONNECTION_WARNING
     [Documentation]    Given an agent starts a non-TLS connection,
     ...    we expect to get a warning message.
@@ -1179,6 +1126,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
         Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
 
+
 NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     [Documentation]    Given agent with encrypted reversed connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308    
@@ -1247,6 +1195,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
     END
 
+
 NON_TLS_CONNECTION_WARNING_ENCRYPTED
     [Documentation]    Given agent with encrypted connection, we expect no warning message.
     [Tags]    agent    engine    opentelemetry    MON-159308 
@@ -1307,6 +1256,7 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
         ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
         Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     END
+
 
 NON_TLS_CONNECTION_WARNING_FULL
     [Documentation]    Given an agent starts a non-TLS connection,
@@ -1438,6 +1388,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
 
+
 BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     [Documentation]    Given the agent is configured with native checks for services
     ...    And the OpenTelemetry server module is added
@@ -1446,7 +1397,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    Then the resources table should be updated with the correct status
     ...    And appropriate error messages should be generated for invalid checks
     [Tags]    broker    engine    agent    opentelemetry    MON-158969
-    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Engine    ${1}    ${2}    ${5}
     Ctn Add Otl ServerModule
     ...    0
     ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
@@ -1454,13 +1405,13 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
-    Ctn Set Services Passive       0    service_[1-2]
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    health_check
+    Ctn Set Services Passive       0    service_[3-4]
     Ctn Clear Db    resources
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_interval    1
 
     # wrong check command for service_1
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "error"}    OTEL connector
@@ -1488,12 +1439,12 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_1    2    60    ANY
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_3    2    120    ANY
     Should Be True    ${result}    resources table not updated for service_1
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
     ...    "Error the output for invalid check command is not correct"
  
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_2    2    60    ANY
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_4    2    120    ANY
     Should Be True    ${result}    resources table not updated for service_2
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
     ...    "Error the output for invalid check args is not correct"
@@ -1578,9 +1529,6 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     Should Be True    ${nb_lines} == 1    no verbose output must not be multiline
 
 
-
-
-
 BEOTEL_CENTREON_AGENT_TOKEN
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
     ...    When the Centreon Agent attempts to connect using an valid JWT token
@@ -1628,6 +1576,74 @@ BEOTEL_CENTREON_AGENT_TOKEN
     ${content}    Create List    Token is valid
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
+
+
+BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
+    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
+    ...    When the Centreon Agent attempts to connect without a JWT token
+    ...    Then the connection should be refused
+    ...    And the log should confirm that missing the authorization header
+    [Tags]    broker    engine    opentelemetry    MON-160435
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
+    ${token1}    Ctn Create Jwt Token    ${60}
+
+    Ctn Add Token Otl Server Module    0    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+    
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    #if the message apear mean that the connection is accepted
+    ${content}    Create List    UNAUTHENTICATED: No authorization header
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
 
 
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
@@ -1740,6 +1756,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
 
+
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
 ...   And the server uses a public certificate and private key for secure communication
@@ -1813,6 +1830,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     ${content}    Create List    UNAUTHENTICATED : Token expired
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     [Documentation]    Given an OpenTelemetry server is configured with token-based connection
