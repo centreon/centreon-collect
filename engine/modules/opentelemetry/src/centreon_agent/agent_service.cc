@@ -17,6 +17,7 @@
  */
 
 #include "centreon_agent/agent_service.hh"
+#include <spdlog/spdlog.h>
 #include "common/crypto/jwt.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
@@ -186,7 +187,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
       auto auth_md = metadata.find("authorization");
       if (auth_md != metadata.end()) {
         std::string auth_header(auth_md->second.data(), auth_md->second.size());
-        SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
+        SPDLOG_LOGGER_DEBUG(_logger, "Token found in Metadata");
         try {
           common::crypto::jwt jwt(auth_header);
           if (jwt.get_exp() < std::chrono::system_clock::now()) {
@@ -204,7 +205,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
                 ::grpc::StatusCode::UNAUTHENTICATED, "Token not trusted"));
           }
 
-          SPDLOG_LOGGER_INFO(_logger, "Token is valid");
+          SPDLOG_LOGGER_DEBUG(_logger, "Token is valid");
           exp_time = jwt.get_exp();
         } catch (const exceptions::msg_fmt& ex) {
           SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
