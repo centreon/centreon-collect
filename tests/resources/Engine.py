@@ -3614,7 +3614,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with
             otl_server_config_json_content), indent=4)
         f.write(pretty_json)
     if with_default_token:
-        if "\"encryption\": \"full\"" in otl_server_config_json_content:
+        if "\"encryption\": true" in otl_server_config_json_content:
             # add token to otl_server.json
             ctn_add_token_otl_server_module(idx, token)
 
