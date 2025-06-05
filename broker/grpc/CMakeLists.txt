@@ -46,7 +46,8 @@ set(GRPC
     ${GRPC}
     PARENT_SCOPE)
 add_library(${GRPC} SHARED ${SOURCES})
-set_target_properties(${GRPC} PROPERTIES PREFIX "")
+set_target_properties(${GRPC} PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries(
   ${GRPC}
   centreon_grpc
