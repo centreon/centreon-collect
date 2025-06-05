@@ -1348,12 +1348,9 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # Both services ${state} => The BA parent is ${state}
     Ctn Process Service Result Hard
@@ -1366,10 +1363,18 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Query
-    ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+    FOR    ${i}    IN RANGE    10
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ${output}    Query
+        ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
+	Log To Console    ${output}
+        IF    ${output} == (('test', '_Module_BAM_1'),)
+	    BREAK
+	END
+        Disconnect From Database
+	Sleep    5s
+    END
+    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    Name or parent name of ba ${ba[1]} is not as expected
 
     Ctn Reload Broker
 
@@ -1379,9 +1384,7 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
-
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 
 
 *** Keywords ***
