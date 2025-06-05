@@ -32,4 +32,7 @@ target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
 set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Link the ctncrypto library with centreon_grpc.
-target_link_libraries(centreon_grpc PRIVATE ctncrypto gRPC::grpc++)
+target_link_libraries(centreon_grpc
+  PRIVATE
+    ctncrypto
+)
