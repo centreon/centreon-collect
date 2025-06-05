@@ -72,7 +72,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         GTest::gtest_main
         GTest::gmock
         GTest::gmock_main
-	Boost::program_options
+        Boost::program_options
         stdc++fs
         gRPC::grpc++
         fmt::fmt pthread
