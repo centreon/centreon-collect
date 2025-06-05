@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2024 Centreon
+# Copyright 2011-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -532,7 +532,6 @@ target_link_libraries(
   centengine
   PRIVATE centreon_clib
   log_v2
-  -Wl,-whole-archive
   enginerpc
   centreon_grpc
   centreon_http
@@ -540,8 +539,6 @@ target_link_libraries(
   Boost::url
   cce_core
   Boost::program_options
-  gRPC::grpc++
-  -Wl,--no-whole-archive
   absl::any
   absl::log
   absl::base

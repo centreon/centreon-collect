@@ -199,7 +199,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
+    -Wl,--whole-archive
     gRPC::grpc++
+    -Wl,--no-whole-archive
+    absl::any absl::log absl::base absl::bits
     centagent_lib
     centreon_common
     centreon_grpc

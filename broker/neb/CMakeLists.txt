@@ -104,6 +104,7 @@ target_link_libraries(
           process_stat
           centreon_common
           nebbase
+	  gRPC::grpc++
           -Wl,--no-whole-archive
 	  pb_bam_lib
 	  pb_storage_lib
@@ -111,8 +112,7 @@ target_link_libraries(
           pb_common_lib
           pb_neb_lib
           pb_header_lib
-          log_v2
-          gRPC::grpc++)
+          log_v2)
 
 get_property(
   CBMOD_DEFINES
