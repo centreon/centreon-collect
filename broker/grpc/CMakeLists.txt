@@ -51,16 +51,16 @@ target_link_libraries(
   ${GRPC}
   centreon_grpc
   #"-Wl,--whole-archive"
-  #pb_neb_lib
-  #pb_common_lib
-  #pb_storage_lib
-  #pb_bbdo_lib
-  #pb_bam_lib
-  #pb_extcmd_lib
-  #pb_open_telemetry_lib
-  #pb_rebuild_message_lib
-  #pb_remove_graph_message_lib
-  #pb_header_lib
+  pb_neb_lib
+  pb_common_lib
+  pb_storage_lib
+  pb_bbdo_lib
+  pb_bam_lib
+  pb_extcmd_lib
+  pb_open_telemetry_lib
+  pb_rebuild_message_lib
+  pb_remove_graph_message_lib
+  pb_header_lib
   centreon_common
   #"-Wl,--no-whole-archive"
   spdlog::spdlog)
