@@ -1583,7 +1583,7 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    Then the connection should be accepted
     [Tags]    broker    engine    opentelemetry    MON-170625
 
-    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Engine    ${1}    ${2}    ${5}
 
     Ctn Add Otl ServerModule
     ...    0
@@ -1595,10 +1595,10 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     
     # create a host with otel_check_icmp command
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Set Hosts Passive  ${0}  host_1
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp
+    Ctn Set Services Passive    0    service_5
     Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_interval    1
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
@@ -1620,8 +1620,9 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    2    120    HARD
     Should Be True    ${result}    resources table not updated
+    Should Contain    ${content}    OK - 127.0.0.1:
 
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
