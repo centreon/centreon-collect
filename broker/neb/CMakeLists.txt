@@ -27,6 +27,7 @@ set(NEB_SOURCES
     # Sources.
     # Headers.
     ${SRC_DIR}/acknowledgement.cc
+    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
@@ -99,6 +100,8 @@ target_link_libraries(nebbase
   pb_header_lib
   pb_open_telemetry_lib)
 
+target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
+
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
@@ -170,6 +173,7 @@ if(WITH_TESTING)
       ${TESTS_SOURCES}
       ${SRC_DIR}/set_log_data.cc
       # Actual tests
+      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc

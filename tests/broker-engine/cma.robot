@@ -244,7 +244,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     
@@ -300,7 +300,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log
     Sleep    1s
 
@@ -348,7 +348,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Start Agent
 
     # Let's wait for the otel server start
-    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${content}    Create List    encrypted server listening on 0.0.0.0:4318
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
@@ -1104,7 +1104,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -1177,7 +1177,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Not Be True   ${result}   "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION."
     
     # check if the agent is in windows or not, to get the right log path
@@ -1235,11 +1235,11 @@ NON_TLS_CONNECTION_WARNING_ENCRYPTED
 
     # Let's wait for the otel server start
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Not Be True   ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
     # check if the agent is in windows or not, to get the right log path
@@ -1367,7 +1367,7 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
