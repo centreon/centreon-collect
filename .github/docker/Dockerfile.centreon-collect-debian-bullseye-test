@@ -37,12 +37,15 @@ apt-get -y install curl \
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python3 get-pip.py
+# Install requirements for python virtual envs
+echo "install python virtual env"
+apt-get install -y python3-venv
+python3 -m venv /.venv
+source /.venv/bin/activate
 
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
-pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
-
+echo "install robot and dependencies"
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
+/.venv/bin/pip3 install grpcio grpcio_tools py-cpuinfo cython gitpython boto3
 
 cd /tmp/collect
 
