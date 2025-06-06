@@ -32,6 +32,7 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
+#include "common/log_v2/log_v2.hh"
 #include "state.pb.h"
 
 using namespace com::centreon::exceptions;
@@ -72,12 +73,8 @@ state::state(common::PeerType peer_type,
  * @brief Destructor of the state class.
  */
 state::~state() noexcept {
-  if (_watch_engine_conf_timer) {
-    boost::system::error_code ec;
-    _watch_engine_conf_timer->cancel(ec);
-    if (ec)
-      _logger->error("Cannot cancel watch engine conf timer: {}", ec.message());
-  }
+  if (_watch_engine_conf_timer)
+    _watch_engine_conf_timer->cancel();
 }
 
 /**
@@ -599,7 +596,7 @@ bool state::all_engine_peers_acknowledged() const {
 }
 
 void state::_start_watch_engine_conf_timer() {
-  _watch_engine_conf_timer->expires_from_now(std::chrono::seconds(5));
+  _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
   _watch_engine_conf_timer->async_wait(
       [this](const boost::system::error_code& ec) {
         if (!ec) {

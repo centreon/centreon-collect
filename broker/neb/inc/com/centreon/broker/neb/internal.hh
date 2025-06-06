@@ -21,6 +21,7 @@
 
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "common/engine_conf/state.pb.h"
