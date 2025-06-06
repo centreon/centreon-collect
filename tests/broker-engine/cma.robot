@@ -1620,7 +1620,7 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    2    120    HARD
+    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    0    120    HARD
     Should Be True    ${result}    resources table not updated
     Should Contain    ${content}    OK - 127.0.0.1:
 
