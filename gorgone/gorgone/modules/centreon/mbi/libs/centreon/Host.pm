@@ -22,7 +22,6 @@ package gorgone::modules::centreon::mbi::libs::centreon::Host;
 
 use strict;
 use warnings;
-use Data::Dumper;
 
 # Constructor
 # parameters:
@@ -150,15 +149,16 @@ sub getHostGroups {
     }
     my $sth           = $centreon->query({ query => $query });
     while (my $row    = $sth->fetchrow_hashref()) {
-        my $new_entry = $row->{"hg_id"} . ";" . $row->{"hg_name"};
+        my $new_entry = [ $row->{"hg_id"}, $row->{"hg_name"} ];
         if (defined($result{$row->{"host_id"}})) {
             my $tab_ref = $result{$row->{"host_id"}};
             my @tab     = @$tab_ref;
             my $exists  = 0;
-            foreach (@tab) {
-                if ($_ eq $new_entry) {
+            foreach my $entry (@tab) {
+                my $diff = grep { $entry->[$_] ne $new_entry->[$_] } 0..$#$entry;
+                unless ($diff) {
                     $exists = 1;
-                    last;
+                    last
                 }
             }
             if (!$exists) {
@@ -226,16 +226,17 @@ sub getDirectLinkedCategories {
 
     my $sth           = $centreon->query({ query => $query });
     while (my $row    = $sth->fetchrow_hashref()) {
-        my $new_entry = $row->{"hc_id"} . ";" . $row->{"hc_name"};
+        my $new_entry = [ $row->{"hc_id"}, $row->{"hc_name"} ];
         if (!scalar(@$ref_hostCat)) {
-            @$ref_hostCat = ($new_entry);
+            @$ref_hostCat = $new_entry;
         } else {
             @tab       = @$ref_hostCat;
             my $exists = 0;
-            foreach (@$ref_hostCat) {
-                if ($_ eq $new_entry) {
+            foreach my $entry (@$ref_hostCat) {
+                my $diff = grep { $entry->[$_] ne $new_entry->[$_] } 0..$#$entry;
+                unless ($diff) {
                     $exists = 1;
-                    last;
+                    last
                 }
             }
             if (!$exists) {
@@ -318,18 +319,19 @@ sub getRecursiveCategoriesForOneHost {
             if ((grep {$_ eq $categoryId} @hostCategoriesAllowed)
             || (defined($etlProperties->{'dimension.all.hostcategories'})
             && $etlProperties->{'dimension.all.hostcategories'} ne '')) {
-                $new_entry = $categoryId . ";" . $categoryName;
+                $new_entry = [ $categoryId, $categoryName ];
                 #If no hostcat has been found for the host, create the line
                 if (!scalar(@$ref_hostCat)) {
-                    @$ref_hostCat = ($new_entry);
+                    @$ref_hostCat = $new_entry;
                 } else {
                     #If the tab is not empty, check wether the combination already exists in the tab
                     @tab       = @$ref_hostCat;
                     my $exists = 0;
-                    foreach (@$ref_hostCat) {
-                        if ($_ eq $new_entry) {
+                    foreach my $entry (@$ref_hostCat) {
+                        my $diff = grep { $entry->[$_] ne $new_entry->[$_] } 0..$#$entry;
+                        unless ($diff) {
                             $exists = 1;
-                            last;
+                            last
                         }
                     }
                     #If the host category did not exist, add it to the table @$ref_hostCat
@@ -366,11 +368,11 @@ sub getHostGroupAndCategories {
             my $group = $_;
             if (scalar(@categoriesTab)) {
                 foreach (@categoriesTab) {
-                    push @results, $hostId . ';' . $hostName . ';' . $group . ';' . $_;
+                    push @results, [ $hostId, $hostName, @$group, @$_ ];
                 }
             } else {
                 #If there is no category
-                push @results, $hostId . ";" . $hostName . ";" . $group . ";0;NoCategory";
+                push @results, [ $hostId, $hostName, @$group, 0, "NoCategory" ];
             }
         }
     }
