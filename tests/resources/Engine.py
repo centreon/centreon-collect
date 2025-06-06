@@ -3687,7 +3687,6 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
         json.dump(data, f, indent=4)
 
 
-
 def ctn_randomword(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
@@ -3903,33 +3902,6 @@ def ctn_send_otl_to_engine_secure(target: str, resource_metrics: list, cert: str
             return stub.Export(request)
         except Exception as e:
             logger.console(f"gRPC server not ready: {e}")
-
-
-def ctn_get_host_info_grpc(id:  int):
-    """
-    Retrieve host information via a gRPC call.
-
-    Args:
-        id: The identifier of the host to retrieve.
-
-    Returns:
-        A dictionary containing the host informations, if successfully retrieved.
-    """
-    if id is not None:
-        limit = time.time() + 30
-        while time.time() < limit:
-            time.sleep(1)
-            with grpc.insecure_channel("127.0.0.1:50001") as channel:
-                stub = engine_pb2_grpc.EngineStub(channel)
-                request = engine_pb2.NameOrIdIdentifier(id=id)
-                try:
-                    host = stub.GetHost(request)
-                    host_dict = MessageToDict(
-                        host, always_print_fields_with_no_presence=True)
-                    return host_dict
-                except Exception as e:
-                    logger.console(f"gRPC server not ready {e}")
-    return {}
 
 
 def ctn_get_service_info_grpc(id_h: int, id_s: int):
