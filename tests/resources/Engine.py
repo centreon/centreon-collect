@@ -3,6 +3,7 @@ import grpc
 import math
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.json_format import MessageToDict
 import engine_pb2
 import engine_pb2_grpc
 from array import array
@@ -111,7 +112,6 @@ class EngineInstance:
                 "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
                 "enable_macros_filter=0\n"
                 "rpc_port={5}\n"
-                "postpone_notification_to_timeperiod=0\n"
                 "instance_heartbeat_interval=30\n"
                 "enable_notifications=1\n"
                 "execute_service_checks=1\n"
@@ -849,6 +849,7 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
     rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
+            i -= 1
             while i < len(lines) and lines[i] != "}":
                 if rkey.match(lines[i]):
                     lines[i] = f"    {key}                 {value}\n"
@@ -1093,6 +1094,68 @@ def ctn_engine_config_remove_host(idx: int, host: str):
     f.close()
 
 
+def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: str):
+    """
+    Rename a host from the hosts.cfg configuration file.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        old_host_name (str): name of the host wanted to be renamed
+        new_host_name (str): new name of the host
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+
+    for i in range(len(lines)):
+        if host_name.match(lines[i]):
+            lines[i] = f"    host_name\t{new_host_name}\n"
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
+    """
+    set a value of a host in the hosts.cfg configuration file.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        host (str): name of the host
+        key (str): the parameter whose value must change.
+        value (str): the new value to set.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    key_name = re.compile(r"^\s*" + key)
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_end = re.compile(r"^}$")
+    host_begin_idx = 0
+    replaced = False
+    while not replaced:
+        if (host_begin_idx >= len(lines)):
+            break
+        if (host_name.match(lines[host_begin_idx])):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if (key_name.match(lines[host_line_idx])):
+                    lines[host_line_idx] = f"    {key}              {value}\n"
+                    replaced = True
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx = host_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_add_host_group(index: int, id_host_group: int, members: list):
     """
     Add a host group on the engine instance index
@@ -1313,7 +1376,7 @@ def ctn_create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inher
     return dbconf.ctn_create_ba_with_services(name, typ, svc, dt_policy)
 
 
-def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit", activate:int = 1):
+def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit", activate: int = 1):
     """
     Create a BA.
 
@@ -1331,7 +1394,8 @@ def ctn_create_ba(name: str, typ: str, critical_impact: int, warning_impact: int
     global dbconf
     return dbconf.ctn_create_ba(name, typ, critical_impact, warning_impact, dt_policy, activate)
 
-def ctn_add_relations_ba_timeperiods(id_ba:int, id_time_period:int):
+
+def ctn_add_relations_ba_timeperiods(id_ba: int, id_time_period: int):
     """
     add a line in mod_bam_relations_ba_timeperiods table
 
@@ -1341,7 +1405,7 @@ def ctn_add_relations_ba_timeperiods(id_ba:int, id_time_period:int):
     """
 
     global dbconf
-    return dbconf.ctn_add_relations_ba_timeperiods(id_ba,id_time_period)
+    return dbconf.ctn_add_relations_ba_timeperiods(id_ba, id_time_period)
 
 
 def ctn_add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
@@ -2294,6 +2358,7 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
     """
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
+
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     """
     Create an dependencies.cfg file for a given poller.
@@ -2303,8 +2368,10 @@ def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dep
         host (str): name of the host master
         dependentservice (str): name of the dependent service that we are gonna test
         service (str): name of the service master
-    """    
-    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+    """
+    engine.create_dependencies_file(
+        poller, dependenthost, host, dependentservice, service)
+
 
 def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
     """
@@ -2313,8 +2380,10 @@ def ctn_create_dependenciesgrp_file(poller: int, dependentservicegroup: str, ser
         poller (int): Index of the poller.
         dependentservicegroup (str): Dependent service group names list defines the group(s) of dependent services
         servicegroup (str): Service group names list defines the group(s) of master services
-    """    
-    engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
+    """
+    engine.create_dependenciesgrp_file(
+        poller, dependentservicegroup, servicegroup)
+
 
 def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
     """
@@ -2323,8 +2392,9 @@ def ctn_create_dependencieshst_file(poller: int, dependenthost: str, host: str):
         poller (int): Index of the poller.
         dependenthost (str): Dependent Host Name
         host (str): master host name
-    """    
+    """
     engine.create_dependencieshst_file(poller, dependenthost, host)
+
 
 def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
     """
@@ -2333,7 +2403,7 @@ def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostg
         poller (int): Index of the poller.
         dependenthostgrp (str): Dependent host group name list defines the dependent host group(s)
         hostgrp (str): Host groups name list defines the master host group(s)
-    """    
+    """
     engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 
@@ -2699,6 +2769,28 @@ def ctn_remove_tags_from_hosts(poller: int, type: str):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
+
+
+def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
+    """
+    Add a parent host to an host.
+
+    Args:
+        poller: index of the Engine configuration (from 0)
+        host: child host name.
+        parent_host: host name of the parent of the child host.
+    """
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(rf"^\s*host_name\s+{host}$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(
+                i + 1, f"    parents                        {parent_host}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def ctn_add_template_to_hosts(poller: int, tmpl: str, hst_lst):
@@ -3298,6 +3390,7 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     with open(filename, "w") as f:
         f.writelines(lines)
 
+
 def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
     """
     Get the log level of a given logger. The timeout is due to the way we ask
@@ -3325,7 +3418,6 @@ def ctn_get_engine_log_level(port, log, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-
 def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, minute_duration: int):
     """
     Create a single day time period with a single time range from date to date + minute_duration
@@ -3341,7 +3433,7 @@ def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, min
         my_date = datetime.fromtimestamp(date)
 
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
-    
+
     begin = my_date.time()
     end = my_date + datetime.timedelta(minutes=minute_duration)
 
@@ -3353,6 +3445,8 @@ define timeperiod {{
     {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
 }}
 """)
+
+
 def ctn_get_service_command_id(service: int):
     """
     Get the command ID of the service with the given ID.
@@ -3365,3 +3459,30 @@ def ctn_get_service_command_id(service: int):
     """
     global engine
     return engine.service_cmd[service][8:]
+
+
+def ctn_get_host_info_grpc(id:  int):
+    """
+    Retrieve host information via a gRPC call.
+
+    Args:
+        id: The identifier of the host to retrieve.
+
+    Returns:
+        A dictionary containing the host informations, if successfully retrieved.
+    """
+    if id is not None:
+        limit = time.time() + 30
+        while time.time() < limit:
+            time.sleep(1)
+            with grpc.insecure_channel("127.0.0.1:50001") as channel:
+                stub = engine_pb2_grpc.EngineStub(channel)
+                request = engine_pb2.HostIdentifier(id=id)
+                try:
+                    host = stub.GetHost(request)
+                    host_dict = MessageToDict(
+                        host, always_print_fields_with_no_presence=True)
+                    return host_dict
+                except Exception as e:
+                    logger.console(f"gRPC server not ready {e}")
+    return {}
