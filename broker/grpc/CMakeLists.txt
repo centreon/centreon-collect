@@ -51,7 +51,6 @@ set_target_properties(${GRPC} PROPERTIES PREFIX ""
 target_link_libraries(
   ${GRPC}
   centreon_grpc
-  #"-Wl,--whole-archive"
   pb_neb_lib
   pb_common_lib
   pb_storage_lib
@@ -63,7 +62,6 @@ target_link_libraries(
   pb_remove_graph_message_lib
   pb_header_lib
   centreon_common
-  #"-Wl,--no-whole-archive"
   spdlog::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)

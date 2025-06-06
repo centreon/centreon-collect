@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2024-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -417,7 +417,6 @@ TEST_F(scheduler_test, time_out) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
-//  scheduler_closer closer(sched);
 
   std::unique_lock l(m);
   export_cond.wait(l);
@@ -473,7 +472,6 @@ TEST_F(scheduler_test, correct_output_examplar) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
-  //scheduler_closer closer(sched);
 
   std::mutex m;
   std::unique_lock l(m);
