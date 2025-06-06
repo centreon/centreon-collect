@@ -533,7 +533,9 @@ target_link_libraries(
   PRIVATE centreon_clib
   log_v2
   enginerpc
+  -Wl,--whole-archive
   centreon_grpc
+  -Wl,--no-whole-archive
   centreon_http
   centreon_common
   Boost::url
