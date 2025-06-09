@@ -13,7 +13,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 @{CONFIG_NAME}      sql    core    processing    tcp    perfdata    victoria_metrics    bam    lua
 
 
-*** Test Cases ***
+*** Test Case ***
 BENCH_${nb_checks}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
     [Tags]    broker    engine    bench    unstable
