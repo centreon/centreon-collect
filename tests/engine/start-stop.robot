@@ -88,7 +88,7 @@ ESS_STATS
     [Tags]    engine    MON-171621
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Config Broker    module
-    Ctn Config BBDO3    1
+    Ctn Config BBDO3    1    only_engine=True
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Clear Retention

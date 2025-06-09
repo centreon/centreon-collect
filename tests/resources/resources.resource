@@ -28,15 +28,19 @@ ${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
 
 *** Keywords ***
 Ctn Config BBDO3
-    [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False
+    [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False    ${only_engine}=False
     Ctn Config Broker Sql Output    central    unified_sql
-    IF    not ${only_central}
+    IF    not ${only_central} and not ${only_engine}
         Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
     END
-    Ctn Broker Config Add Item    central    bbdo_version    ${version}
-    FOR    ${i}    IN RANGE    ${nbEngine}
-        ${mod}    Catenate    SEPARATOR=    module    ${i}
-        Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
+    IF    not ${only_engine}
+        Ctn Broker Config Add Item    central    bbdo_version    ${version}
+    END
+    IF    not ${only_central}
+        FOR    ${i}    IN RANGE    ${nbEngine}
+            ${mod}    Catenate    SEPARATOR=    module    ${i}
+            Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
+        END
     END
     # We replace the global Bbdo2 Variable to False
     Ctn Set Bbdo2    ${False}
