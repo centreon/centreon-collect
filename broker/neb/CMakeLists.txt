@@ -21,6 +21,7 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
 include_directories("${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_BINARY_DIR}/bbdo
   ${CMAKE_BINARY_DIR}/common/process_stat)
 
 # NEB sources.
@@ -91,6 +92,7 @@ add_dependencies(
   table_max_size
   pb_neb_lib
   pb_header_lib
+  pb_storage_lib
   opentelemetry
   pb_bam_lib)
 
