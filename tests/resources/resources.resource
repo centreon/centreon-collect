@@ -29,11 +29,11 @@ ${agentlog}       ${VarRoot}/log/centreon-engine/centreon-agent.log
 *** Keywords ***
 Ctn Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1    ${only_central}=False    ${only_engine}=False
-    Ctn Config Broker Sql Output    central    unified_sql
     IF    not ${only_central} and not ${only_engine}
         Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
     END
     IF    not ${only_engine}
+	Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Add Item    central    bbdo_version    ${version}
     END
     IF    not ${only_central}
