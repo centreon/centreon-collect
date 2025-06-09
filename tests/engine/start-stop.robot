@@ -92,7 +92,6 @@ ESS_STATS
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Clear Retention
-    Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     Wait Until Created    /tmp/var/lib/centreon-engine/central-module-master-stats.json
