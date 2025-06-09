@@ -39,8 +39,13 @@ void grpc_server_base::_init(const builder_option& options) {
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;
-  if (_conf->is_crypted() && !_conf->get_cert().empty() &&
-      !_conf->get_key().empty()) {
+  if (_conf->is_crypted()) {
+    if (_conf->get_cert().empty() || _conf->get_key().empty()) {
+      SPDLOG_LOGGER_ERROR(
+          _logger,
+          "Configuration error: if server is encrypted add cert and key");
+      throw std::runtime_error("GRPC configuration error");
+    }
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
