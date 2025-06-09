@@ -1,5 +1,5 @@
 #
-# Copyright 2024 Centreon
+# Copyright 2024-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -20,10 +20,8 @@
 set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/opentelemetry")
 set(SRC_DIR "${MODULE_DIR}/src")
 
-#protobuf service
-set(service_files
-  opentelemetry/proto/collector/metrics/v1/metrics_service
-)
+# protobuf service
+set(service_files opentelemetry/proto/collector/metrics/v1/metrics_service)
 
 foreach(name IN LISTS service_files)
   set(proto_file "${name}.proto")
@@ -32,83 +30,91 @@ foreach(name IN LISTS service_files)
     COMMENT "Generating grpc files of the otl service file ${proto_file}"
     DEPENDS opentelemetry-proto-files
     COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
-    --grpc_out=${SRC_DIR} ${proto_file}
+      ${Protobuf_PROTOC_EXECUTABLE} ARGS
+      --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+      --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto --grpc_out=${SRC_DIR}
+      ${proto_file}
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 endforeach()
 
-#centagent server and client
+# centagent server and client
 add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
-  COMMENT "Generating interface files of the conf centreon_agent proto file (grpc)"
+  COMMENT
+    "Generating interface files of the conf centreon_agent proto file (grpc)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
-    --grpc_out=${SRC_DIR}/centreon_agent ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --grpc_out=${SRC_DIR}/centreon_agent
+    ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
-  COMMENT "Generating interface files of the conf centreon_agent proto file (protobuf)"
+  COMMENT
+    "Generating interface files of the conf centreon_agent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.pb.cc
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}/centreon_agent
-    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/agent/proto
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # mod_externalcmd target.
-add_library(opentelemetry SHARED 
-${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
-${SRC_DIR}/centreon_agent/agent.pb.cc
-${SRC_DIR}/centreon_agent/agent_check_result_builder.cc
-${SRC_DIR}/centreon_agent/agent_config.cc
-${SRC_DIR}/centreon_agent/agent_impl.cc
-${SRC_DIR}/centreon_agent/agent_reverse_client.cc
-${SRC_DIR}/centreon_agent/agent_service.cc
-${SRC_DIR}/centreon_agent/agent_stat.cc
-${SRC_DIR}/centreon_agent/to_agent_connector.cc
-${SRC_DIR}/grpc_config.cc
-${SRC_DIR}/host_serv_extractor.cc
-${SRC_DIR}/open_telemetry.cc
-${SRC_DIR}/otl_config.cc
-${SRC_DIR}/otl_check_result_builder.cc
-${SRC_DIR}/otl_data_point.cc
-${SRC_DIR}/otl_server.cc
-${SRC_DIR}/main.cc
-${SRC_DIR}/telegraf/conf_server.cc
-${SRC_DIR}/telegraf/nagios_check_result_builder.cc
-${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
+add_library(
+  opentelemetry SHARED
+  ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
+  ${SRC_DIR}/centreon_agent/agent.pb.cc
+  ${SRC_DIR}/centreon_agent/agent_check_result_builder.cc
+  ${SRC_DIR}/centreon_agent/agent_config.cc
+  ${SRC_DIR}/centreon_agent/agent_impl.cc
+  ${SRC_DIR}/centreon_agent/agent_reverse_client.cc
+  ${SRC_DIR}/centreon_agent/agent_service.cc
+  ${SRC_DIR}/centreon_agent/agent_stat.cc
+  ${SRC_DIR}/centreon_agent/to_agent_connector.cc
+  ${SRC_DIR}/grpc_config.cc
+  ${SRC_DIR}/host_serv_extractor.cc
+  ${SRC_DIR}/open_telemetry.cc
+  ${SRC_DIR}/otl_config.cc
+  ${SRC_DIR}/otl_check_result_builder.cc
+  ${SRC_DIR}/otl_data_point.cc
+  ${SRC_DIR}/otl_server.cc
+  ${SRC_DIR}/main.cc
+  ${SRC_DIR}/telegraf/conf_server.cc
+  ${SRC_DIR}/telegraf/nagios_check_result_builder.cc
+  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 )
 
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-target_link_libraries(opentelemetry
-  spdlog::spdlog
-  protobuf::libprotobuf
-  Boost::program_options
-  Boost::url
-  pb_open_telemetry_lib
-  ctncrypto)
+target_link_libraries(
+  opentelemetry
+  PRIVATE spdlog::spdlog
+          protobuf::libprotobuf
+          Boost::program_options
+          Boost::url
+          centreon_http
+          pb_open_telemetry_lib
+          ctncrypto)
 
 add_dependencies(opentelemetry pb_open_telemetry_lib pb_header_lib pb_neb_lib
                  engine_rpc)
 
-target_include_directories(opentelemetry PRIVATE
-  "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry"
-  "${CMAKE_SOURCE_DIR}/bbdo"
-  "${MODULE_DIR}/inc"
-  ${CMAKE_SOURCE_DIR}/common/inc
-  ${CMAKE_SOURCE_DIR}/common/http/inc
-  ${CMAKE_SOURCE_DIR}/common/grpc/inc
-  src
-  ${PROJECT_SOURCE_DIR}/enginerpc
-  ${CMAKE_SOURCE_DIR}/common/src
-  )
+target_include_directories(
+  opentelemetry
+  PRIVATE "${MODULE_DIR}/inc/com/centreon/engine/modules/opentelemetry"
+          "${CMAKE_SOURCE_DIR}/bbdo"
+          "${MODULE_DIR}/inc"
+          ${CMAKE_SOURCE_DIR}/common/inc
+          ${CMAKE_SOURCE_DIR}/common/http/inc
+          ${CMAKE_SOURCE_DIR}/common/grpc/inc
+          src
+          ${PROJECT_SOURCE_DIR}/enginerpc
+          ${CMAKE_SOURCE_DIR}/common/src)
 
 # Install rule.
 install(
