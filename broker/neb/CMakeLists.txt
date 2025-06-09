@@ -151,7 +151,6 @@ target_link_libraries("${CBMOD}" PRIVATE
   rokerbase
   protobuf::libprotobuf
   -Wl,--no-whole-archive
-  rokerbase
 )
 
 set_target_properties(
