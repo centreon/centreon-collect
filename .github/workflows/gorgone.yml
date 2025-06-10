@@ -105,9 +105,29 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+    services:
+      mariadb:
+        image: mariadb:latest
+        ports:
+          - 3306
+        env:
+          MYSQL_USER: centreon
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: password
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Create databases
+        run: |
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run unit tests
         run: yath -L test ./perl-libs/lib/ ./gorgone/tests/unit/
