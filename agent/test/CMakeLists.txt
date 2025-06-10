@@ -91,7 +91,7 @@ else()
     pdh)
 endif()
 
-add_dependencies(ut_agent centreon_common centagent_lib)
+add_dependencies(ut_agent centreon_common centagent_lib process_stat)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
 
