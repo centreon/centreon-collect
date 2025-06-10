@@ -89,7 +89,7 @@ jobs:
 
       - name: Run nightly on a different maintenance branch depending on the day
         run: |
-          NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.04.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
+          NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
           target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
           echo "[INFO] - Dispatching nightly run to $target_branch branch."
           if [[ "$target_branch" == "dev-22.10.x" ]]; then
