@@ -37,8 +37,8 @@ use gorgone::class::module;
 use tests::unit::lib::misc;
 
 # This test uses the MySQL database created for Gorgone robot tests.
-my $db_mon = $ENV{DBHOST} || '127.0.0.1';
-my $db_bi = $ENV{DBHOST} || '127.0.0.1';
+my $db_mon = $ENV{DBHOST} || 'mariadb';
+my $db_bi = $ENV{DBHOST} || 'mariadb';
 
 sub test_etl_dimensions {
     # this is from Test2::Tools::Mock, included by Test2::V0
