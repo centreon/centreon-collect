@@ -75,7 +75,7 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   unit-test-perl:
-    needs: [get-environment, changes]
+    needs: [get-environment, package, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
