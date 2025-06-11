@@ -315,7 +315,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": true, "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
     Ctn Config Add Otl Connector
     ...    0
     ...    OTEL connector
@@ -1440,12 +1440,12 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     Ctn Wait For Otel Server To Be Ready    ${start}
     
     ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_3    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_1
+    Should Be True    ${result}    resources table not updated for service_3
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "error"} , output error : command cpu_check, unknown native check:{"check": "error"}
     ...    "Error the output for invalid check command is not correct"
  
     ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_4    2    120    ANY
-    Should Be True    ${result}    resources table not updated for service_2
+    Should Be True    ${result}    resources table not updated for service_4
     Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
     ...    "Error the output for invalid check args is not correct"
 
