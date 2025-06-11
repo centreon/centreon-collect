@@ -91,7 +91,8 @@ add_dependencies(
   table_max_size
   target_neb
   pb_neb_lib
-  pb_header_lib)
+  pb_header_lib
+  pb_bam_lib)
 
 target_link_libraries(nebbase 
   -L${PROTOBUF_LIB_DIR}

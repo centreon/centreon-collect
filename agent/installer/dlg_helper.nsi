@@ -461,7 +461,7 @@ FunctionEnd
   * @brief ca file I image onClick handler
 */
 Function ca_file_help_onClick
-    MessageBox MB_ICONINFORMATION "Trusted CA's certificate."
+    MessageBox MB_ICONINFORMATION "Trusted CA's certificate file."
 FunctionEnd
 
 /**
