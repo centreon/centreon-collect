@@ -17,6 +17,7 @@
  */
 
 #include "check_sched.hh"
+#include "windows_util.hh"
 
 using namespace com::centreon::agent;
 using Microsoft::WRL::ComPtr;
@@ -126,6 +127,8 @@ check_sched::check_sched(const std::shared_ptr<asio::io_context>& io_context,
                         e.what());
     throw;
   }
+  com_init();
+  _connect_to_sched();
   // initialize the task filter
   _build_checker();
   // calculate the output format
@@ -145,7 +148,9 @@ void check_sched::start_check(const duration& timeout) {
   std::list<common::perfdata> perfs;
 
   // Get all scheduled tasks
-  get_all_scheduled_tasks();
+  _enumerate_tasks(_root_folder_ptr);
+  SPDLOG_LOGGER_INFO(_logger, "Check Task Scheduler: task found = {}",
+                     _task_count);
 
   e_status status = compute(&output, &perfs);
   asio::post(
@@ -276,86 +281,35 @@ e_status check_sched::compute(
 }
 
 /**
- * @brief Get all scheduled tasks from the Task Scheduler.
- * This function initializes COM, connects to the Task Scheduler service,
- * retrieves all registered tasks, and enumerates them.
+ * @brief Create an instance of the Task Service and open root folder
+ *
  */
-void check_sched::get_all_scheduled_tasks() {
-  /*
-    1- Initialize COM and set general COM security.
-    2- Create an instance of the Task Service.
-    3- Connect to the task service.
-  */
-
-  HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+void check_sched::_connect_to_sched() {
+  HRESULT hr = CoCreateInstance(CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER,
+                                IID_ITaskService, (void**)&_service_ptr);
   if (FAILED(hr)) {
-    SPDLOG_LOGGER_ERROR(
-        _logger,
-        "Check Task Scheduler: CoInitializeEx failed with error code: {}", hr);
-    return;
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: Failed to CoCreate an instance "
+        "of the TaskService "
+        "class with error code: {}",
+        hr);
   }
 
-  //  Set general COM security levels.
-  hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-                            RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
+  //  Connect to the task service.
+  hr = _service_ptr->Connect(_variant_t(), _variant_t(), _variant_t(),
+                             _variant_t());
+  if (FAILED(hr)) {
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: ITaskService connect failed: {:#X}", hr);
+  }
+
+  // Get the pointer to the root task folder.
+  hr = _service_ptr->GetFolder(_bstr_t(L"\\"), &_root_folder_ptr);
 
   if (FAILED(hr)) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "Check Task Scheduler: CoInitializeSecurity failed "
-                        "with error code: {}",
-                        hr);
-    return;
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: Cannot get Root Folder pointer:{:#X}", hr);
   }
-  //  ------------------------------------------------------
-  {
-    //  Create an instance of the Task Service.
-    ComPtr<ITaskService> service_ptr;
-    hr = CoCreateInstance(CLSID_TaskScheduler, NULL, CLSCTX_INPROC_SERVER,
-                          IID_ITaskService, (void**)&service_ptr);
-    if (FAILED(hr)) {
-      SPDLOG_LOGGER_ERROR(
-          _logger,
-          "Check Task Scheduler: Failed to CoCreate an instance "
-          "of the TaskService "
-          "class with error code: {}",
-          hr);
-      CoUninitialize();
-      return;
-    }
-
-    //  Connect to the task service.
-    hr = service_ptr->Connect(_variant_t(), _variant_t(), _variant_t(),
-                              _variant_t());
-    if (FAILED(hr)) {
-      SPDLOG_LOGGER_ERROR(
-          _logger, "Check Task Scheduler: ITaskService connect failed: {:#X}",
-          hr);
-      CoUninitialize();
-      return;
-    }
-
-    // Get the pointer to the root task folder.
-    ComPtr<ITaskFolder> root_folder_ptr;
-    hr = service_ptr->GetFolder(_bstr_t(L"\\"), &root_folder_ptr);
-
-    if (FAILED(hr)) {
-      SPDLOG_LOGGER_ERROR(
-          _logger,
-          "Check Task Scheduler: Cannot get Root Folder pointer: "
-          "{:#X}",
-          hr);
-
-      CoUninitialize();
-      return;
-    }
-
-    // Get the registered tasks in the folder.
-    _enumerate_tasks(root_folder_ptr);
-  }
-  // uninitialize COM
-  CoUninitialize();
-  SPDLOG_LOGGER_INFO(_logger, "Check Task Scheduler: task found = {}",
-                     _task_count);
 }
 
 /**
@@ -859,7 +813,7 @@ void check_sched::_print_format(std::string* output, e_status status) {
  * @param help_stream The stream to write the help information to.
  * @return void
  */
-static void help(std::ostream& help_stream) {
+void check_sched::help(std::ostream& help_stream) {
   help_stream << R"(
 Check_TaskSched - Windows Task Scheduler check for Centreon
 -----------------------------------------------------------

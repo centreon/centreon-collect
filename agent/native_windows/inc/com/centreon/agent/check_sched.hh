@@ -86,10 +86,14 @@ class check_sched : public check {
   std::unique_ptr<filters::filter_combinator> _warning_rules_filter;
   std::unique_ptr<filters::filter_combinator> _critical_rules_filter;
 
+  ComPtr<ITaskService> _service_ptr;
+  ComPtr<ITaskFolder> _root_folder_ptr;
+
   void _enumerate_tasks(ComPtr<ITaskFolder> folder);
   void _get_task_info(ComPtr<IRegisteredTask> task);
   void _build_checker();
 
+  void _connect_to_sched();
   void _process_exclude_task(const std::string_view& param);
   void _calc_output_format();
   void _print_format(std::string* output, e_status status);
@@ -113,8 +117,6 @@ class check_sched : public check {
 
   e_status compute(std::string* output,
                    std::list<com::centreon::common::perfdata>* perfs);
-
-  void get_all_scheduled_tasks();
 
   // for testing purposes
   absl::flat_hash_map<std::string, tasksched_data>& get_mutable_tasks() {

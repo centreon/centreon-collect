@@ -17,6 +17,9 @@
  */
 
 #include "windows_util.hh"
+#include <absl/base/call_once.h>
+#include <comdef.h>
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 std::string com::centreon::agent::get_last_error_as_string() {
   // Get the error message ID, if any.
@@ -84,4 +87,44 @@ com::centreon::agent::convert_filetime_to_tp(uint64_t file_time) {
   std::chrono::file_clock::duration d{file_time};
 
   return std::chrono::file_clock::time_point{d};
+}
+
+namespace com::centreon::agent::detail {
+struct com_init {
+  com_init();
+  ~com_init();
+};
+
+com_init::com_init() {
+  HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+  if (FAILED(hr)) {
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: CoInitializeEx failed with error code: {}", hr);
+  }
+
+  //  Set general COM security levels.
+  hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+                            RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
+
+  if (FAILED(hr)) {
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: CoInitializeSecurity failed with error code: {}",
+        hr);
+  }
+}
+
+com_init::~com_init() {
+  CoUninitialize();
+}
+
+};  // namespace com::centreon::agent::detail
+
+void com::centreon::agent::com_init() {
+  struct com_init_ {};
+
+  static std::unique_ptr<com_init_> _instance;
+  static absl::once_flag _com_init_once;
+
+  absl::call_once(_com_init_once,
+                  [&] { _instance = std::make_unique<com_init_>(); });
 }

@@ -1637,15 +1637,15 @@ BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER
     Ctn Set Services Passive       0    service_1
 
     Ctn Engine Config Add Command    ${0}    agent_tasksched_check
-    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit0'} }
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit0'"} }
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_tasksched_warning
-    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit1',"warning-status": "exit_code != 0"} }
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit1'","warning-status": "exit_code != 0"} }
     ...    OTEL connector
 
     Ctn Engine Config Add Command    ${0}    agent_tasksched_critical
-    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit2',"critical-status": "exit_code != 0"} }
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit2'","critical-status": "exit_code != 0"} }
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
