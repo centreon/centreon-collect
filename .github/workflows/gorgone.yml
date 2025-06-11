@@ -75,7 +75,7 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   unit-test-perl:
-    needs: [get-environment, package, changes]
+    needs: [get-environment, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
@@ -119,6 +119,16 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install database client
+        shell: bash
+        run: |
+          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+            apt update
+            apt install -y mariadb-client
+          else
+            dnf install -y mariadb
+          fi
 
       - name: Create databases
         run: |
