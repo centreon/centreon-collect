@@ -462,7 +462,11 @@ std::shared_ptr<muxer> engine::get_muxer(const std::string& name) {
                  [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
                    return p.second.expired();
                  });
-  return _running_muxers[name].lock();
+  auto exist = _running_muxers.find(name);
+  if (exist != _running_muxers.end()) {
+    return exist->second.lock();
+  }
+  return {};
 }
 
 void engine::set_muxer(const std::string& name,
