@@ -117,6 +117,16 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
 
     steps:
+      - name: Install git and database client
+        shell: bash
+        run: |
+          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+            apt update
+            apt install -y mariadb-client git
+          else
+            dnf install -y mariadb git
+          fi
+
       - name: Get linked branch of centreon repository
         id: centreon_repo_linked_branch
         run: |
@@ -142,16 +152,6 @@ jobs:
           sparse-checkout: |
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
-
-      - name: Install database client
-        shell: bash
-        run: |
-          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-            apt update
-            apt install -y mariadb-client git
-          else
-            dnf install -y mariadb git
-          fi
 
       - name: Create databases
         run: |
