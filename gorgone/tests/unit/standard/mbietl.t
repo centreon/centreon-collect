@@ -95,9 +95,12 @@ sub test_etl_dimensions {
         ok($dbmon_centreon->connect() == 0, 'trying to connect to centreon database.');
 
         my $db = $gorgone->{dbbi_centstorage_con};
-        is($db, D(), 'BI database object should not be undef.');
+        is($db, D(), 'BI storage database object should not be undef.');
+        ok($db->connect() == 0, 'trying to connect to BI storage database.');
 
-        ok($db->connect() == 0, 'trying to connect to BI database.');
+        my $db_cent = $gorgone->{dbbi_centreon_con};
+        is($db_cent, D(), 'BI centreon database object should not be undef.');
+        ok($db_cent->connect() == 0, 'trying to connect to BI centreon database.');
 
         return unless $dbmon_centreon->{instance} && $db->{instance};
 
@@ -107,7 +110,8 @@ sub test_etl_dimensions {
         my $dbh = $db->{instance};
 
         # First we initialize and truncate the BI tables to be sure we have a clean state
-        is( tests::unit::lib::misc::exec_sql($dbh, "$FindBin::Bin/mbietl_schema.sql"), U(), 'BI schema reinitialized successfully.');
+        is( tests::unit::lib::misc::exec_sql($db_cent->{instance}, "$FindBin::Bin/mbietl_centreon_schema.sql"), U(), 'test schema reinitialized successfully.');
+        is( tests::unit::lib::misc::exec_sql($dbh, "$FindBin::Bin/mbietl_storage_schema.sql"), U(), 'BI schema reinitialized successfully.');
         gorgone::modules::centreon::mbi::etlworkers::dimensions::main::initVars( $gorgone, %{$options{data}->{content}} );
         gorgone::modules::centreon::mbi::etlworkers::dimensions::main::truncateDimensionTables( $gorgone, %{$options{data}->{content}}, );
 
