@@ -1,0 +1,94 @@
+{
+  "uuid": "2a0ddaa7-4a72-4ceb-a8b4-a79ac18ebeab",
+  "lastMigration": 33,
+  "name": "Web api mockoon",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3002,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a",
+      "type": "http",
+      "documentation": "list version of centreon and all it's modules",
+      "method": "get",
+      "endpoint": "platform/versions",
+      "responses": [
+        {
+          "uuid": "e539bc2f-c7a7-4a53-8ec5-ce4ac28e3411",
+          "body": "{\"modules\": {\"centreon-autodiscovery-server\": {}}}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "only send back autodiscovery with empty body as gorgone don't check for exact version, only presence.",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    },
+    {
+      "key": "Access-Control-Allow-Origin",
+      "value": "*"
+    },
+    {
+      "key": "Access-Control-Allow-Methods",
+      "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    },
+    {
+      "key": "Access-Control-Allow-Headers",
+      "value": "Content-Type, Origin, Accept, Authorization, Content-Length, X-Requested-With"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [],
+  "callbacks": []
+}
