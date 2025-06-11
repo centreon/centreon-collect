@@ -72,7 +72,7 @@ sub new {
 sub database_init_transaction {
     my ($self, %options) = @_;
 
-    my $status = $self->{class_object_centreon}->{db_centreon}->begin_transaction();
+    my $status = $self->{class_object_centreon}->{db_centreon}->start_transaction();
     if ($status == -1) {
         $self->{logger}->writeLogError("$@");
         return -1;
