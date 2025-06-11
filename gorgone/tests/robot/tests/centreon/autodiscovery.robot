@@ -11,66 +11,54 @@ check autodiscovery ${communication_mode}
     ${central}=    Set Variable    ${communication_mode}_gorgone_central_discovery
     ${poller}=    Set Variable    ${communication_mode}_gorgone_poller2_discovery
     @{process_list}    Create List    ${central}    ${poller}
-    #[Teardown]    Test Teardown
+    [Teardown]    Test Teardown    @{process_list}
+    Test Setup    ${communication_mode}    @{process_list}
 
-    @{central_config}    Create List    ${ROOT_CONFIG}autodiscovery.yaml    ${ROOT_CONFIG}actions.yaml
-    @{poller_config}    Create List    ${ROOT_CONFIG}actions.yaml
-    Setup Two Gorgone Instances    central_config=${central_config}    communication_mode=${communication_mode}    central_name=${central}    poller_name=${poller}    poller_config=${poller_config}
-    Gorgone Execute Sql    ${ROOT_CONFIG}db-insert-autodiscovery.sql
     ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data={}
     Log To Console    ${response.json()}
     Dictionary Should Not Contain Key  ${response.json()}    error    api/centreon/statistics/engine api call resulted in an error : ${response.json()}
 
-    Log To Console    engine statistic are being retrived. Gorgone sent a log token : ${response.json()}
+    Check Services Data Are Present In Database
 
+    #Test Host disco
 
     Examples:    communication_mode   --
         ...    push_zmq
 
 *** Keywords ***
+Check Services Data Are Present In Database
+    # check the central node has the data
+    Check Row Count    SELECT * FROM service WHERE service_description like 'Disk-%';    equal    5    alias=conf    retry_timeout=5    retry_pause=1
+    Check Row Count    SELECT service_description FROM service WHERE service_description like 'Disk-/run/user/1001';    equal    1    alias=conf    retry_timeout=5    retry_pause=1
 
-Ctn Wait For Log
-    [Documentation]    We can't make a single call because we don't know which will finish first 
-    ...    (even if it will often be the central node). So we check first for the central log, then for the poller node
-    ...    from the starting point of the log. In the search, the lib search for the first log, and once it's found
-    ...    start searching the second log from the first log position.
-    [Arguments]    ${logfile}    ${date}
-
-    ${log_central}    Create List    poller 1 engine data was integrated in rrd and sql database.
-    ${result_central}    Ctn Find In Log With Timeout    log=${logfile}    content=${log_central}    date=${date}    regex=1    timeout=60
-    Should Be True    ${result_central}    Didn't found the logs : ${result_central}
-
-    ${log_poller2}    Create List    poller 2 engine data was integrated in rrd and sql database.
-    ${result_poller2}    Ctn Find In Log With Timeout    log=${logfile}    content=${log_poller2}    date=${date}    regex=1    timeout=60
-    Should Be True    ${result_poller2}    Didn't found the poller log on Central : ${result_poller2}
-
-Ctn Gorgone Check Poller Engine Stats Are Present
-    [Arguments]    ${poller_id}=
-    
-    &{Service Check Latency}=           Create Dictionary 	  Min=0.102    Max=0.955    Average=0.550
-    &{Host Check Latency}=              Create Dictionary 	  Min=0.020    Max=0.868    Average=0.475
-    &{Service Check Execution Time}=    Create Dictionary 	  Min=0.001    Max=0.332    Average=0.132
-    &{Host Check Execution Time}=       Create Dictionary 	  Min=0.030    Max=0.152    Average=0.083
-    
-    &{data_check}    Create Dictionary    Service Check Latency=&{Service Check Latency}
-    ...   Host Check Execution Time=&{Host Check Execution Time}
-    ...   Host Check Latency=&{Host Check Latency}
-    ...   Service Check Execution Time=&{Service Check Execution Time}
-
-    FOR    ${stat_label}    ${stat_data}    IN    &{data_check}
-        
-        FOR    ${stat_key}    ${stat_value}    IN    &{stat_data}
-            Check Row Count    SELECT instance_id FROM nagios_stats WHERE stat_key = '${stat_key}' AND stat_value = '${stat_value}' AND stat_label = '${stat_label}' AND instance_id='${poller_id}';    equal    1    alias=storage    retry_timeout=5    retry_pause=1
-        END
-    END
-
-Ctn Gorgone Force Engine Statistics Retrieve
-    ${response}=    GET  http://127.0.0.1:8085/api/centreon/statistics/engine
-    Log To Console    ${response.json()}
-    Dictionary Should Not Contain Key  ${response.json()}    error    api/centreon/statistics/engine api call resulted in an error : ${response.json()}
-
-    Log To Console    engine statistic are being retrived. Gorgone sent a log token : ${response.json()}
+Test Host disco
+    ${http_body}=    Set Variable    {"variables":[],"parameters":{},"content":{"plugins":{"centreon-plugin-Applications-Protocol-Snmp":20250300},"post_execution":{"commands":{"command_line":"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf","action":"COMMAND"}},"execution":{"mode":0},"command_line":"echo '{ \"discovered_items\": 9, \"duration\": 0, \"end_time\": 1749650750, \"results\": [ { \"interface_alias\": \"\", \"interface_description\": \"lo\", \"interface_name\": \"lo\", \"ip\": \"127.0.0.2\", \"netmask\": \"\", \"type\": \"ipv4\" } ], \"start_time\": 1749650750 }'","target":1,"job_id":10}}
+    ${response}=    POST  http://127.0.0.1:8085/api/nodes/1/centreon/autodiscovery/hosts   data=${http_body}
+    # For now this don't work for 2 reasons :
+    # - the json body don't seem correct, in bash you can replace the internal ' by '"'"' to make the curl work
+    # - gorgone seem to miss some conf and return me this error :
+    # Use of uninitialized value $options{"job_id"} in numeric eq (==) at /centreon-collect/gorgone/gorgone/modules/centreon/autodiscovery/class.pm line 311.
+    # Use of uninitialized value $options{"job_id"} in numeric eq (==) at /centreon-collect/gorgone/gorgone/modules/centreon/autodiscovery/class.pm line 311.
+    # Use of uninitialized value in concatenation (.) or string at /centreon-collect/gorgone/gorgone/modules/centreon/autodiscovery/class.pm line 373.
+    # 2025-06-11 15:14:02 - ERROR - [autodiscovery] -class- host discovery - cannot get host discovery job '' - configuration missing
+    # Use of uninitialized value in concatenation (.) or string at /centreon-collect/gorgone/gorgone/modules/centreon/autodiscovery/class.pm line 377.
 
 Test Teardown
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Arguments]    @{process_list}
     Gorgone Execute Sql    ${ROOT_CONFIG}db-delete-autodiscovery.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Mockoon
+
+Test Setup
+    [Arguments]    ${communication_mode}    @{process_list}
+    #Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
+    #Gorgone Execute Sql    ${ROOT_CONFIG}db-delete-autodiscovery.sql
+    Gorgone Execute Sql    ${ROOT_CONFIG}db-insert-autodiscovery.sql
+
+    @{central_config}    Create List    ${ROOT_CONFIG}autodiscovery.yaml    ${ROOT_CONFIG}actions.yaml
+    @{poller_config}    Create List    ${ROOT_CONFIG}actions.yaml
+    Setup Two Gorgone Instances    central_config=${central_config}    communication_mode=${communication_mode}    central_name=${process_list}[0]    poller_name=${process_list}[1]    poller_config=${poller_config}
+
+
+    Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
+    ...    alias=conf    autocommit=True

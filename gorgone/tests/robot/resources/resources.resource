@@ -16,6 +16,7 @@ ${pullwss_poller_config}      ${ROOT_CONFIG}pullwss_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml
+${MOCKOON_LOG_FILE}           /tmp/mockoon.log
 
 ${DBHOST}                   127.0.0.1
 ${DBPORT}                   3306
@@ -53,6 +54,35 @@ Stop Gorgone And Remove Gorgone Config
     IF    ${output} == 0
         Run    rm -f /usr/local/bin/sudo
     END
+    
+Start Mockoon
+    [Arguments]    ${MOCKOON_JSON}
+    Remove File    ${MOCKOON_LOG_FILE}
+
+    ${time_start}    Get Time    str=epoch
+
+    ${process}    Start Process
+    ...    mockoon-cli
+    ...    start
+    ...    --data
+    ...    ${MOCKOON_JSON}
+    ...    --port
+    ...    80
+    ...    stdout=${MOCKOON_LOG_FILE}
+
+    Wait Until Created    ${MOCKOON_LOG_FILE}
+    Wait Until Keyword Succeeds
+    ...     30
+    ...     1
+    ...     File Should Not Be Empty	${MOCKOON_LOG_FILE}
+
+    ${time_end}    Get Time    str=epoch
+    ${duration} =     Evaluate    ${time_end} - ${time_start}
+    Log To Console    Mockoon finished starting after ${duration} seconds
+
+Stop Mockoon
+    Terminate All Processes
+    #Remove File    ${MOCKOON_LOG_FILE}
 
 Setup Sudo
     [Documentation]    This keyword setup a simple sudo command for when we are root in a container which don't have sudo installed.

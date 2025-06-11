@@ -13,14 +13,107 @@
       "type": "http",
       "documentation": "list version of centreon and all it's modules",
       "method": "get",
-      "endpoint": "platform/versions",
+      "endpoint": "centreon/api/latest/platform/versions",
       "responses": [
         {
           "uuid": "e539bc2f-c7a7-4a53-8ec5-ce4ac28e3411",
-          "body": "{\"modules\": {\"centreon-autodiscovery-server\": {}}}",
+          "body": "{\n  \"modules\": {\n    \"centreon-autodiscovery-server\": {}\n  }\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "only send back autodiscovery with empty body as gorgone don't check for exact version, only presence.",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "centreon/api/latest/login",
+      "responses": [
+        {
+          "uuid": "fe2868c7-3ace-400f-a871-774d93cd3850",
+          "body": "{\n  \"contact\": {\n    \"id\": 4,\n    \"name\": \"centreon-gorgone\",\n    \"alias\": \"centreon-gorgone\",\n    \"email\": \"gorgone@localhost\",\n    \"is_admin\": true\n  },\n  \"security\": {\n    \"token\": \"Pg2cfT4JecKcuWu43WVH9z0V+4hNcXStIXp2Ahs4SaKJWLRQg+pksf+vtsacgPTB\"\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "centreon/api/latest/auto-discovery/scheduling/jobs",
+      "responses": [
+        {
+          "uuid": "e481c56a-632a-4147-84a7-2c7f22236d5a",
+          "body": "{\n  \"result\": [\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 9,\n      \"token\": \"discovery_9_9be3be3d\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"echo '<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?> <data><label name=\\\"/run\\\" storageid=\\\"35\\\" total=\\\"304492544\\\"/> <label total=\\\"20956397568\\\" storageid=\\\"36\\\" name=\\\"/\\\"/> <label name=\\\"/dev/shm\\\" storageid=\\\"38\\\" total=\\\"1522458624\\\"/> <label total=\\\"5242880\\\" storageid=\\\"39\\\" name=\\\"/run/lock\\\"/> <label name=\\\"/run/user/1001\\\" storageid=\\\"50\\\" total=\\\"304488448\\\"/> </data>'\",\n      \"target\": 2,\n      \"status\": 1,\n      \"last_execution\": {\n        \"date\": \"2025-06-03 13:03:00.000000\",\n        \"timezone_type\": 3,\n        \"timezone\": \"Europe/Paris\"\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    },\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 10,\n      \"token\": null,\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"/usr/lib/centreon/plugins//centreon_generic_snmp.pl --plugin=apps::protocols::snmp::plugin --mode=discovery --hostname='localhost' --snmp-port='161' --snmp-community='public' --snmp-version='2c' --snmp-timeout='5' --snmp-username='$_SNMPUSERNAME$' --authpassphrase='$_SNMPAUTHPASSPHRASE$' --authprotocol='$_SNMPAUTHPROTOCOL$' --privpassphrase='$_SNMPPRIVPASSPHRASE$' --privprotocol='$_SNMPPRIVPROTOCOL$' ; touch /tmp/inject11-06-extraoptions\",\n      \"target\": 1,\n      \"status\": 0,\n      \"last_execution\": null,\n      \"post_execution\": {\n        \"commands\": [\n          {\n            \"action\": \"COMMAND\",\n            \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\"\n          }\n        ]\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10000,\n    \"search\": {},\n    \"sort_by\": {},\n    \"total\": 3\n  }\n}\n",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "",
+      "responses": [
+        {
+          "uuid": "b06bdd40-8eeb-4e0f-88fc-bf06542ef851",
+          "body": "{\n  \"variables\": [],\n  \"parameters\": {},\n  \"content\": {\n    \"plugins\": {\n      \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n    },\n    \"post_execution\": {\n      \"commands\": {\n        \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\",\n        \"action\": \"COMMAND\"\n      }\n    },\n    \"execution\": {\n      \"mode\": 0\n    },\n    \"command_line\": \"/usr/lib/centreon/plugins//centreon_generic_snmp.pl --plugin=apps::protocols::snmp::plugin --mode=discovery --hostname='localhost' --snmp-port='161' --snmp-community='public' --snmp-version='2c' --snmp-timeout='5' --snmp-username='$_SNMPUSERNAME$' --authpassphrase='$_SNMPAUTHPASSPHRASE$' --authprotocol='$_SNMPAUTHPROTOCOL$' --privpassphrase='$_SNMPPRIVPASSPHRASE$' --privprotocol='$_SNMPPRIVPROTOCOL$' ; touch /tmp/inject11-06-extraoptions\",\n    \"target\": 1,\n    \"job_id\": 10\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -44,6 +137,18 @@
     {
       "type": "route",
       "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a"
+    },
+    {
+      "type": "route",
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda"
+    },
+    {
+      "type": "route",
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199"
+    },
+    {
+      "type": "route",
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6"
     }
   ],
   "proxyMode": false,
