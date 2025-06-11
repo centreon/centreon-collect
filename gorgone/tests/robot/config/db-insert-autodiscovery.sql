@@ -1,4 +1,4 @@
-CREATE TABLE `mod_auto_disco_rule` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_rule` (
   `rule_id` int(11) NOT NULL AUTO_INCREMENT,
   `rule_alias` varchar(255) DEFAULT NULL,
   `service_display_name` varchar(255) DEFAULT NULL,
@@ -99,7 +99,7 @@ INSERT IGNORE INTO mod_auto_disco_rule (
   2, 'OS-Linux-SNMP-Disk-Name', 'Disk-$name$', '1', '0', '0', '', '', '', 1, 2, 40
 );
 
-CREATE TABLE `mod_auto_disco_change` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_change` (
   `change_id` int(11) NOT NULL AUTO_INCREMENT,
   `rule_id` int(11) NOT NULL,
   `change_str` varchar(521) NOT NULL,
@@ -112,7 +112,7 @@ CREATE TABLE `mod_auto_disco_change` (
   CONSTRAINT `mod_auto_disco_change_fk_1` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE `mod_auto_disco_inclusion_exclusion` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_inclusion_exclusion` (
   `exinc_id` int(11) NOT NULL AUTO_INCREMENT,
   `exinc_type` enum('0','1') DEFAULT '0',
   `exinc_str` varchar(521) NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE `mod_auto_disco_inclusion_exclusion` (
   CONSTRAINT `mod_auto_disco_inclusion_exclusion_fk_1` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE `mod_auto_disco_macro` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_macro` (
   `macro_id` int(11) NOT NULL AUTO_INCREMENT,
   `macro_name` varchar(255) NOT NULL,
   `macro_value` varchar(255) NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE `mod_auto_disco_macro` (
   CONSTRAINT `mod_auto_disco_macro_fk_2` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE `mod_auto_disco_inst_rule_relation` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_inst_rule_relation` (
   `hrr_id` int(11) NOT NULL AUTO_INCREMENT,
   `instance_id` int(11) NOT NULL,
   `rule_rule_id` int(11) NOT NULL,
@@ -146,7 +146,7 @@ CREATE TABLE `mod_auto_disco_inst_rule_relation` (
   CONSTRAINT `mod_auto_disco_inst_rule_relation_fk_2` FOREIGN KEY (`rule_rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE `mod_auto_disco_ht_rule_relation` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_ht_rule_relation` (
   `hrr_id` int(11) NOT NULL AUTO_INCREMENT,
   `host_host_id` int(11) NOT NULL,
   `rule_rule_id` int(11) NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE `mod_auto_disco_ht_rule_relation` (
   CONSTRAINT `mod_auto_disco_ht_rule_relation_fk_2` FOREIGN KEY (`rule_rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
-CREATE TABLE `mod_auto_disco_rule_service_relation` (
+ CREATE TABLE IF NOT EXISTS `mod_auto_disco_rule_service_relation` (
   `rsr_id` int(11) NOT NULL AUTO_INCREMENT,
   `service_service_id` int(11) NOT NULL,
   `rule_rule_id` int(11) NOT NULL,
@@ -177,15 +177,15 @@ CREATE TABLE IF NOT EXISTS `mod_auto_disco_rule_contact_relation` (
 	PRIMARY KEY (`rcr_id`),
 	KEY `rule_id` (`rule_id`),
 	KEY `contact_id` (`contact_id`),
-	KEY `cg_id` (`cg_id`)
+	KEY `cg_id` (`cg_id`),
+    CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_1` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE,
+    CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_2` FOREIGN KEY (`contact_id`) REFERENCES `contact` (`contact_id`) ON DELETE SET NULL,
+    CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_3` FOREIGN KEY (`cg_id`) REFERENCES `contactgroup` (`cg_id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-ALTER TABLE `mod_auto_disco_rule_contact_relation`
-  ADD CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_1` FOREIGN KEY (`rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_2` FOREIGN KEY (`contact_id`) REFERENCES `contact` (`contact_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `mod_auto_disco_rule_contact_relation_fk_3` FOREIGN KEY (`cg_id`) REFERENCES `contactgroup` (`cg_id`) ON DELETE SET NULL;
 
-INSERT INTO host (
+
+INSERT IGNORE INTO host (
   host_id, host_name, host_alias,
   host_active_checks_enabled, host_passive_checks_enabled, host_checks_enabled,
   host_obsess_over_host, host_check_freshness, host_event_handler_enabled,
@@ -203,21 +203,14 @@ INSERT INTO host (
   0, '0', 1
 );
 
-
-INSERT INTO host (host_id, host_name, host_address, host_activate)
+INSERT IGNORE INTO host (host_id, host_name, host_address, host_activate)
 VALUES (81, 'localhost', '127.0.0.1', '1');
 
-INSERT INTO host_template_relation (host_host_id, host_tpl_id, `order`)
+INSERT IGNORE INTO host_template_relation (host_host_id, host_tpl_id, `order`)
 VALUES (81, 10, 1);
 
-INSERT INTO ns_host_relation (host_host_id, nagios_server_id)
+INSERT IGNORE INTO ns_host_relation (host_host_id, nagios_server_id)
 VALUES (81, 1);
 
-INSERT INTO mod_auto_disco_ht_rule_relation (hrr_id, host_host_id, rule_rule_id) VALUES
+INSERT IGNORE INTO mod_auto_disco_ht_rule_relation (hrr_id, host_host_id, rule_rule_id) VALUES
 (2, 10, 2);
-
-
-
-
-
-
