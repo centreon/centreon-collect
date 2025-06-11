@@ -148,9 +148,9 @@ jobs:
         run: |
           if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
             apt update
-            apt install -y mariadb-client
+            apt install -y mariadb-client git
           else
-            dnf install -y mariadb
+            dnf install -y mariadb git
           fi
 
       - name: Create databases
