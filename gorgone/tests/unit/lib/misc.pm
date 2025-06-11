@@ -15,7 +15,7 @@ sub exec_sql($$) {
     foreach my $command (<$fic>) {
         $dbh->do($command) or do {
             close($fic);
-            return "sql error: $dbh->errstr";
+            return "sql error: $DBI::errstr";
         }
     }
     close($fic);
