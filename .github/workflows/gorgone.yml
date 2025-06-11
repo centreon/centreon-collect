@@ -130,6 +130,19 @@ jobs:
           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
         shell: bash
 
+      - name: Get linked branch of centreon-modules repository
+        id: centreon_modules_repo_linked_branch
+        run: |
+          CENTREON_MODULES_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon-modules.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
+
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon-modules.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+            CENTREON_MODULES_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+          fi
+
+          echo "linked_branch=$CENTREON_MODULES_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -148,7 +161,7 @@ jobs:
         with:
           repository: centreon/centreon-modules
           path: centreon-modules
-          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+          ref: ${{ steps.centreon_modules_repo_linked_branch.outputs.linked_branch }}
           sparse-checkout: |
             centreon-mbi/server/www/modules/centreon-bi-server/sql/install.sql
 
