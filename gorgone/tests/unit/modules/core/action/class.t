@@ -6,7 +6,7 @@ use Test2::V0;
 use Test2::Plugin::NoWarnings echo => 1;
 use Test2::Tools::Compare qw{is like match};
 use FindBin;
-use lib "$FindBin::Bin/../../../../../../";
+use lib "$FindBin::Bin/../../../../../";
 use gorgone::modules::core::action::class;
 use tests::unit::lib::mockLogger;
 
