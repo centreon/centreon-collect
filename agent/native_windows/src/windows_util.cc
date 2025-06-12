@@ -90,6 +90,14 @@ com::centreon::agent::convert_filetime_to_tp(uint64_t file_time) {
 }
 
 namespace com::centreon::agent::detail {
+
+/**
+ * @brief This class is used as a singleton by com_init() function
+ * On called, it initialize com layers
+ * At the end of process, this singleton is destroyed and CoUninitialize() is
+ * called
+ *
+ */
 struct com_init {
   com_init();
   ~com_init();
@@ -121,6 +129,11 @@ com_init::~com_init() {
 
 };  // namespace com::centreon::agent::detail
 
+/**
+ * @brief initialize com layers
+ * must be called before any com usage
+ *
+ */
 void com::centreon::agent::com_init() {
   static std::unique_ptr<detail::com_init> _instance;
   static absl::once_flag _com_init_once;
