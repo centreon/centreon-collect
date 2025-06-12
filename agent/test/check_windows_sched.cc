@@ -48,38 +48,38 @@ class check_windows_sched : public ::testing::Test {
 
     auto now = system_clock::now();
 
-    g_data1.info.name = "t1";
-    g_data1.info.folder = R"(\Tasks\One\)";
-    g_data1.info.enabled = true;
-    g_data1.info.last_run = make_date_info(now);
-    g_data1.info.next_run = make_date_info(now + seconds(30));
-    g_data1.info.exit_code = 0;
-    g_data1.info.state = TASK_STATE_READY;
-    g_data1.info.author = "me";
-    g_data1.info.description = "dummy";
-    g_data1.info.number_missed_runs = 0;
+    g_data1.name = "t1";
+    g_data1.folder = R"(\Tasks\One\)";
+    g_data1.enabled = true;
+    g_data1.last_run = make_date_info(now);
+    g_data1.next_run = make_date_info(now + seconds(30));
+    g_data1.exit_code = 0;
+    g_data1.state = TASK_STATE_READY;
+    g_data1.author = "me";
+    g_data1.description = "dummy";
+    g_data1.number_missed_runs = 0;
 
-    g_data2.info.name = "t2";
-    g_data2.info.folder = R"(\Tasks\Two\)";
-    g_data2.info.enabled = false;
-    g_data2.info.last_run = make_date_info(now - seconds(60));
-    g_data2.info.next_run = make_date_info(now + seconds(60));
-    g_data2.info.exit_code = 0;
-    g_data2.info.state = TASK_STATE_RUNNING;
-    g_data2.info.author = "me2";
-    g_data2.info.description = "dummy2";
-    g_data2.info.number_missed_runs = 1;
+    g_data2.name = "t2";
+    g_data2.folder = R"(\Tasks\Two\)";
+    g_data2.enabled = false;
+    g_data2.last_run = make_date_info(now - seconds(60));
+    g_data2.next_run = make_date_info(now + seconds(60));
+    g_data2.exit_code = 0;
+    g_data2.state = TASK_STATE_RUNNING;
+    g_data2.author = "me2";
+    g_data2.description = "dummy2";
+    g_data2.number_missed_runs = 1;
 
-    g_data3.info.name = "t3";
-    g_data3.info.folder = R"(\Tasks\Three\)";
-    g_data3.info.enabled = true;
-    g_data3.info.last_run = make_date_info(now - seconds(120));
-    g_data3.info.next_run = make_date_info(now + seconds(120));
-    g_data3.info.exit_code = 1;
-    g_data3.info.state = TASK_STATE_READY;
-    g_data3.info.author = "me3";
-    g_data3.info.description = "dummy3";
-    g_data3.info.number_missed_runs = 10;
+    g_data3.name = "t3";
+    g_data3.folder = R"(\Tasks\Three\)";
+    g_data3.enabled = true;
+    g_data3.last_run = make_date_info(now - seconds(120));
+    g_data3.next_run = make_date_info(now + seconds(120));
+    g_data3.exit_code = 1;
+    g_data3.state = TASK_STATE_READY;
+    g_data3.author = "me3";
+    g_data3.description = "dummy3";
+    g_data3.number_missed_runs = 10;
   }
 };
 /*
@@ -121,14 +121,16 @@ TEST_F(check_windows_sched, default_check_sched) {
   // task 3 is enabled, exit_code is 0, so it should be OK
 
   // set data
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   // Set exit_code to 1 for g_data2
-  checker.get_mutable_tasks()[g_data2.info.name].info.exit_code = 1;
+  checker.get_mutable_tasks()[g_data2.name].exit_code = 1;
   // Set exit_code to 0 for g_data3
-  checker.get_mutable_tasks()[g_data3.info.name].info.exit_code = 0;
+  checker.get_mutable_tasks()[g_data3.name].exit_code = 0;
+
+  checker.apply_filter();
 
   e_status status = checker.compute(&output, &perfs);
 
@@ -144,15 +146,18 @@ TEST_F(check_windows_sched, default_check_sched) {
   // task 2 is disabled
   // task 3 is disabled
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  checker.get_mutable_tasks()[g_data1.info.name].info.enabled = false;
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = false;
-  checker.get_mutable_tasks()[g_data3.info.name].info.enabled = false;
+  checker.get_mutable_tasks()[g_data1.name].enabled = false;
+  checker.get_mutable_tasks()[g_data2.name].enabled = false;
+  checker.get_mutable_tasks()[g_data3.name].enabled = false;
   output.clear();
   perfs.clear();
+
+  checker.apply_filter();
+
   status = checker.compute(&output, &perfs);
   ASSERT_EQ(status, e_status::ok);
   ASSERT_EQ(output, "Empty or no match for this filter");
@@ -164,20 +169,23 @@ TEST_F(check_windows_sched, default_check_sched) {
   // task 3 is enabled, exit_code is 1, so it should be WARNING
 
   // set data
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   // Enable all tasks
-  checker.get_mutable_tasks()[g_data1.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data3.info.name].info.enabled = true;
+  checker.get_mutable_tasks()[g_data1.name].enabled = true;
+  checker.get_mutable_tasks()[g_data2.name].enabled = true;
+  checker.get_mutable_tasks()[g_data3.name].enabled = true;
 
   // Set exit_code to 1 for t2,t3
-  checker.get_mutable_tasks()[g_data2.info.name].info.exit_code = 1;
-  checker.get_mutable_tasks()[g_data3.info.name].info.exit_code = 1;
+  checker.get_mutable_tasks()[g_data2.name].exit_code = 1;
+  checker.get_mutable_tasks()[g_data3.name].exit_code = 1;
   output.clear();
   perfs.clear();
+
+  checker.apply_filter();
+
   status = checker.compute(&output, &perfs);
   ASSERT_EQ(status, e_status::warning);
   ASSERT_EQ(output, "WARNING: \\Tasks\\Two\\t2: 0x1,\\Tasks\\Three\\t3: 0x1");
@@ -203,21 +211,24 @@ TEST_F(check_windows_sched, default_check_sched) {
   // task 1 is enabled, exit_code is 0, so it should be OK
   // task 2 is enabled, exit_code is -2, so it should be CRITICAL
   // task 3 is enabled, exit_code is -2, so it should be CRITICAL
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   // Enable all tasks
-  checker.get_mutable_tasks()[g_data1.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data3.info.name].info.enabled = true;
+  checker.get_mutable_tasks()[g_data1.name].enabled = true;
+  checker.get_mutable_tasks()[g_data2.name].enabled = true;
+  checker.get_mutable_tasks()[g_data3.name].enabled = true;
 
   // Set exit_code to -1 for t2 and -2 for t3
-  checker.get_mutable_tasks()[g_data2.info.name].info.exit_code = -1;
-  checker.get_mutable_tasks()[g_data3.info.name].info.exit_code = -2;
+  checker.get_mutable_tasks()[g_data2.name].exit_code = -1;
+  checker.get_mutable_tasks()[g_data3.name].exit_code = -2;
 
   output.clear();
   perfs.clear();
+
+  checker.apply_filter();
+
   status = checker.compute(&output, &perfs);
   ASSERT_EQ(status, e_status::critical);
   ASSERT_EQ(output,
@@ -255,9 +266,9 @@ TEST_F(check_windows_sched, filter_task1) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   std::unique_ptr<filters::filter_combinator> task_filter =
       checker.get_task_filter();
@@ -272,8 +283,8 @@ TEST_F(check_windows_sched, filter_task1) {
   absl::erase_if(tasks, predicate);
 
   ASSERT_EQ(tasks.size(), 2);
-  ASSERT_TRUE(tasks.find(g_data1.info.name) != tasks.end());
-  ASSERT_TRUE(tasks.find(g_data2.info.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data1.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data2.name) != tasks.end());
 }
 
 TEST_F(check_windows_sched, filter_task2) {
@@ -289,9 +300,9 @@ TEST_F(check_windows_sched, filter_task2) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   std::unique_ptr<filters::filter_combinator> task_filter =
       checker.get_task_filter();
@@ -306,8 +317,8 @@ TEST_F(check_windows_sched, filter_task2) {
   absl::erase_if(tasks, predicate);
 
   ASSERT_EQ(tasks.size(), 2);
-  ASSERT_TRUE(tasks.find(g_data1.info.name) != tasks.end());
-  ASSERT_TRUE(tasks.find(g_data3.info.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data1.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data3.name) != tasks.end());
 }
 
 TEST_F(check_windows_sched, warning_filter) {
@@ -324,9 +335,9 @@ TEST_F(check_windows_sched, warning_filter) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   std::unique_ptr<filters::filter_combinator> warning_filter =
       checker.get_warning_rules_filter();
@@ -342,9 +353,9 @@ TEST_F(check_windows_sched, warning_filter) {
   }
 
   ASSERT_EQ(result.size(), 2);
-  ASSERT_TRUE(std::find(result.begin(), result.end(), g_data2.info.name) !=
+  ASSERT_TRUE(std::find(result.begin(), result.end(), g_data2.name) !=
               result.end());
-  ASSERT_TRUE(std::find(result.begin(), result.end(), g_data3.info.name) !=
+  ASSERT_TRUE(std::find(result.begin(), result.end(), g_data3.name) !=
               result.end());
 }
 
@@ -362,9 +373,9 @@ TEST_F(check_windows_sched, exclude_tasks) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   std::unique_ptr<filters::filter_combinator> task_filter =
       checker.get_task_filter();
@@ -385,7 +396,7 @@ TEST_F(check_windows_sched, exclude_tasks) {
   absl::erase_if(tasks, predicate);
 
   ASSERT_EQ(tasks.size(), 1);
-  ASSERT_TRUE(tasks.find(g_data3.info.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data3.name) != tasks.end());
 }
 
 TEST_F(check_windows_sched, output_format) {
@@ -404,13 +415,13 @@ TEST_F(check_windows_sched, output_format) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data2.info.name].info.exit_code = 1;
-  checker.get_mutable_tasks()[g_data3.info.name].info.exit_code =
+  checker.get_mutable_tasks()[g_data2.name].enabled = true;
+  checker.get_mutable_tasks()[g_data2.name].exit_code = 1;
+  checker.get_mutable_tasks()[g_data3.name].exit_code =
       -2147160572;  // 0x8004EE04
 
   std::string output;
@@ -435,21 +446,21 @@ TEST_F(check_windows_sched, output_format_2) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = true;
-  checker.get_mutable_tasks()[g_data2.info.name].info.exit_code = 1;
-  checker.get_mutable_tasks()[g_data3.info.name].info.exit_code =
+  checker.get_mutable_tasks()[g_data2.name].enabled = true;
+  checker.get_mutable_tasks()[g_data2.name].exit_code = 1;
+  checker.get_mutable_tasks()[g_data3.name].exit_code =
       -2147160572;  // 0x8004EE04
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
   std::string expected_output = "CRITICAL: \\Tasks\\One\\t1(ready): 0x0,";
-  expected_output += g_data1.info.next_run.formatted + ",";
-  expected_output += g_data1.info.last_run.formatted + ",0,me,True";
+  expected_output += g_data1.next_run.formatted + ",";
+  expected_output += g_data1.last_run.formatted + ",0,me,True";
   ASSERT_EQ(output, expected_output);
 }
 
@@ -467,9 +478,9 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
   std::unique_ptr<filters::filter_combinator> task_filter =
       checker.get_task_filter();
@@ -490,8 +501,8 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
   absl::erase_if(tasks, predicate);
 
   ASSERT_EQ(tasks.size(), 2);
-  ASSERT_TRUE(tasks.find(g_data1.info.name) != tasks.end());
-  ASSERT_TRUE(tasks.find(g_data3.info.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data1.name) != tasks.end());
+  ASSERT_TRUE(tasks.find(g_data3.name) != tasks.end());
 }
 
 // only task t1 have last_run <= 50s
@@ -509,23 +520,25 @@ TEST_F(check_windows_sched, filter_by_last_run) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  checker.get_mutable_tasks()[g_data1.info.name].info.duration_last_run = 50;
-  checker.get_mutable_tasks()[g_data2.info.name].info.duration_last_run = 60;
-  checker.get_mutable_tasks()[g_data3.info.name].info.duration_last_run = 120;
+  checker.get_mutable_tasks()[g_data1.name].duration_last_run = 50;
+  checker.get_mutable_tasks()[g_data2.name].duration_last_run = 60;
+  checker.get_mutable_tasks()[g_data3.name].duration_last_run = 120;
+
+  checker.apply_filter();
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
   e_status status = checker.compute(&output, &perfs);
-  ASSERT_EQ(status, e_status::ok);
+  EXPECT_EQ(status, e_status::ok);
   std::string expected_output =
       "OK: Ok:1|Nok:0|total:1  warning:0|critical:0\n"
       "\\Tasks\\One\\t1: last run: " +
-      g_data1.info.last_run.formatted + " next run " +
-      g_data1.info.next_run.formatted + " (exit code: 0x0)\n";
+      g_data1.last_run.formatted + " next run " + g_data1.next_run.formatted +
+      " (exit code: 0x0)\n";
   ASSERT_EQ(output, expected_output);
 }
 
@@ -542,15 +555,15 @@ TEST_F(check_windows_sched, warning_last_run) {
          const std::list<std::string>&) {},
       std::make_shared<checks_statistics>());
 
-  checker.get_mutable_tasks()[g_data1.info.name] = g_data1;
-  checker.get_mutable_tasks()[g_data2.info.name] = g_data2;
-  checker.get_mutable_tasks()[g_data3.info.name] = g_data3;
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  checker.get_mutable_tasks()[g_data2.info.name].info.enabled = true;
+  checker.get_mutable_tasks()[g_data2.name].enabled = true;
 
-  checker.get_mutable_tasks()[g_data1.info.name].info.duration_last_run = 121;
-  checker.get_mutable_tasks()[g_data2.info.name].info.duration_last_run = 61;
-  checker.get_mutable_tasks()[g_data3.info.name].info.duration_last_run = 0;
+  checker.get_mutable_tasks()[g_data1.name].duration_last_run = 121;
+  checker.get_mutable_tasks()[g_data2.name].duration_last_run = 61;
+  checker.get_mutable_tasks()[g_data3.name].duration_last_run = 0;
 
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;

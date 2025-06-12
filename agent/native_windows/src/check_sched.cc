@@ -17,6 +17,7 @@
  */
 
 #include "check_sched.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
@@ -173,19 +174,6 @@ e_status check_sched::compute(
   e_status ret = e_status::ok;
   output->clear();
 
-  // exclude tasks and filter tasks
-  auto predicate = [&](auto const& task_data) {
-    if (_exclude_tasks.contains(task_data.first)) {
-      return true;  // Exclude task
-    }
-    if (_task_filter && !_task_filter->check(task_data.second))
-      return true;  // filter this task if it does not match the filter
-
-    return false;
-  };
-
-  absl::erase_if(_tasks, predicate);
-
   if (_tasks.empty()) {
     SPDLOG_LOGGER_INFO(
         _logger, "Check Task Scheduler: Empty or no match for this filter");
@@ -198,7 +186,7 @@ e_status check_sched::compute(
     if (perfs) {
       common::perfdata perf;
       perf.name(name);
-      perf.value(task_data.info.exit_code);
+      perf.value(task_data.exit_code);
       perf.unit("exit_code");
       perfs->emplace_back(std::move(perf));
     }
@@ -259,13 +247,12 @@ e_status check_sched::compute(
         _ok_list.size(), _warning_list.size() + _critical_list.size(),
         _tasks.size(), _warning_list.size(), _critical_list.size());
     for (const auto& [name, task_data] : _tasks) {
-      *output += task_data.info.folder + task_data.info.name + ": " +
-                 "last run: " + task_data.info.last_run.formatted +
-                 " next run " + task_data.info.next_run.formatted +
-                 " (exit code: " +
-                 fmt::format("{0:#x}",
-                             static_cast<uint32_t>(task_data.info.exit_code)) +
-                 ")\n";
+      *output +=
+          task_data.folder + task_data.name + ": " +
+          "last run: " + task_data.last_run.formatted + " next run " +
+          task_data.next_run.formatted + " (exit code: " +
+          fmt::format("{0:#x}", static_cast<uint32_t>(task_data.exit_code)) +
+          ")\n";
     }
   } else {
     _print_format(output, ret);
@@ -397,11 +384,11 @@ void check_sched::_get_task_info(ComPtr<IRegisteredTask> task) {
     size_t last_slash = folder_path.find_last_of('\\');
     if (last_slash != std::string::npos && last_slash != 0) {
       // extract the name of the task
-      data.info.name = folder_path.substr(last_slash + 1);
-      data.info.folder = folder_path.substr(0, last_slash + 1);
+      data.name = folder_path.substr(last_slash + 1);
+      data.folder = folder_path.substr(0, last_slash + 1);
     } else {
-      data.info.name = folder_path.substr(last_slash + 1);
-      data.info.folder = "\\";
+      data.name = folder_path.substr(last_slash + 1);
+      data.folder = "\\";
     }
     SysFreeString(bstr_folder);
   } else {
@@ -411,48 +398,53 @@ void check_sched::_get_task_info(ComPtr<IRegisteredTask> task) {
 
   TASK_STATE state;
   if (SUCCEEDED(task->get_State(&state))) {
-    data.info.state = state;
+    data.state = state;
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task state.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task state of {}.", data.name);
   }
 
   VARIANT_BOOL is_enabled;
   if (SUCCEEDED(task->get_Enabled(&is_enabled))) {
-    data.info.enabled = (is_enabled == VARIANT_TRUE);
+    data.enabled = (is_enabled == VARIANT_TRUE);
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task enabled state.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task enabled state of {}.",
+                        data.name);
   }
 
   DATE last_run_time;
   if (SUCCEEDED(task->get_LastRunTime(&last_run_time))) {
-    data.info.last_run = date_to_info(last_run_time);
-    data.info.duration_last_run =
+    data.last_run = date_to_info(last_run_time);
+    data.duration_last_run =
         std::chrono::duration_cast<std::chrono::seconds>(
-            std::chrono::system_clock::now() - data.info.last_run.timestamp)
+            std::chrono::system_clock::now() - data.last_run.timestamp)
             .count();
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task last run time.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task last run time of {}.",
+                        data.name);
   }
 
   DATE next_run_time;
   if (SUCCEEDED(task->get_NextRunTime(&next_run_time))) {
-    data.info.next_run = date_to_info(next_run_time);
+    data.next_run = date_to_info(next_run_time);
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task next run time.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task next run time of {}.",
+                        data.name);
   }
 
   LONG last_task_result = 0;
   if (SUCCEEDED(task->get_LastTaskResult(&last_task_result))) {
-    data.info.exit_code = last_task_result;
+    data.exit_code = last_task_result;
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task last result.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task last result of {}.",
+                        data.name);
   }
 
   LONG number_missed_runs = 0;
   if (SUCCEEDED(task->get_NumberOfMissedRuns(&number_missed_runs))) {
-    data.info.number_missed_runs = number_missed_runs;
+    data.number_missed_runs = number_missed_runs;
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get number of missed runs.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get number of missed runs of {}.",
+                        data.name);
   }
 
   ComPtr<ITaskDefinition> task_definition_ptr;
@@ -461,28 +453,41 @@ void check_sched::_get_task_info(ComPtr<IRegisteredTask> task) {
     if (SUCCEEDED(task_definition_ptr->get_RegistrationInfo(&reg_info_ptr))) {
       BSTR author = NULL;
       if (SUCCEEDED(reg_info_ptr->get_Author(&author))) {
-        data.info.author = convert_wchar_tostring(author);
+        data.author = convert_wchar_tostring(author);
         SysFreeString(author);
       } else {
-        SPDLOG_LOGGER_ERROR(_logger, "Failed to get task author.");
+        SPDLOG_LOGGER_ERROR(_logger, "Failed to get task author of {}.",
+                            data.name);
       }
 
       BSTR description = NULL;
       if (SUCCEEDED(reg_info_ptr->get_Description(&description))) {
-        data.info.description = convert_wchar_tostring(description);
+        data.description = convert_wchar_tostring(description);
         SysFreeString(description);
       } else {
-        SPDLOG_LOGGER_ERROR(_logger, "Failed to get task description.");
+        SPDLOG_LOGGER_ERROR(_logger, "Failed to get task description of {}.",
+                            data.name);
       }
 
     } else {
-      SPDLOG_LOGGER_ERROR(_logger, "Failed to get task registration info.");
+      SPDLOG_LOGGER_ERROR(
+          _logger, "Failed to get task registration info of {}.", data.name);
     }
   } else {
-    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task definition.");
+    SPDLOG_LOGGER_ERROR(_logger, "Failed to get task definition of {}.",
+                        data.name);
   }
-  std::string lower_label(data.info.name);
+  std::string lower_label(data.name);
   std::ranges::transform(lower_label, lower_label.begin(), ::tolower);
+
+  // exclude tasks and filter tasks
+  if (_exclude_tasks.contains(lower_label)) {
+    return;  // Exclude task
+  }
+  if (_task_filter && !_task_filter->check(data)) {
+    return;  // filter this task if it does not match the filter
+  }
+
   _tasks.emplace(std::move(lower_label), std::move(data));
   _task_count++;
 }
@@ -532,20 +537,26 @@ void check_sched::_build_checker() {
           filt->calc_duration();
         }
         const double& value = filt->get_value();
-        filt->set_checker_from_getter(
-            [label, value](const testable& t) -> long {
-              const auto& data = static_cast<const tasksched_data&>(t);
-              if (label == "enabled") {
-                return (data.info.enabled ? 1l : 0l);
-              } else if (label == "exit_code") {
-                return data.info.exit_code;
-              } else if (label == "missed_runs") {
-                return data.info.number_missed_runs;
-              } else if (label == "last_run") {
-                return data.info.duration_last_run;
-              }
-              return 0l;
-            });
+
+        if (label == "enabled") {
+          filt->set_checker_from_getter([](const testable& t) -> long {
+            return (static_cast<const tasksched_data&>(t).enabled ? 1l : 0l);
+          });
+        } else if (label == "exit_code") {
+          filt->set_checker_from_getter([](const testable& t) -> long {
+            return static_cast<const tasksched_data&>(t).exit_code;
+          });
+        } else if (label == "missed_runs") {
+          filt->set_checker_from_getter([](const testable& t) -> long {
+            return static_cast<const tasksched_data&>(t).number_missed_runs;
+          });
+        } else if (label == "last_run") {
+          filt->set_checker_from_getter([](const testable& t) -> long {
+            return static_cast<const tasksched_data&>(t).duration_last_run;
+          });
+        } else {
+          throw exceptions::msg_fmt("unknown filter label: {}", label);
+        }
       } break;
       case filter::filter_type::label_compare_to_string: {
         filters::label_compare_to_string<char>* filt =
@@ -553,32 +564,70 @@ void check_sched::_build_checker() {
         std::string_view label = filt->get_label();
         if (label == "name") {
           filt->set_checker_from_getter([](const testable& t) {
-            return static_cast<const tasksched_data&>(t).info.name;
+            return static_cast<const tasksched_data&>(t).name;
           });
         } else if (label == "folder") {
           filt->set_checker_from_getter([](const testable& t) {
-            return static_cast<const tasksched_data&>(t).info.folder;
+            return static_cast<const tasksched_data&>(t).folder;
           });
         } else if (label == "author") {
           filt->set_checker_from_getter([](const testable& t) {
-            return static_cast<const tasksched_data&>(t).info.author;
+            return static_cast<const tasksched_data&>(t).author;
           });
         } else if (label == "state") {
           filt->set_checker_from_getter([](const testable& t) {
             const auto& data = static_cast<const tasksched_data&>(t);
-            switch (data.info.state) {
+            switch (data.state) {
               case TASK_STATE::TASK_STATE_DISABLED:
-                return std::string("disabled");
+                return std::string_view("disabled");
               case TASK_STATE::TASK_STATE_QUEUED:
-                return std::string("queued");
+                return std::string_view("queued");
               case TASK_STATE::TASK_STATE_READY:
-                return std::string("ready");
+                return std::string_view("ready");
               case TASK_STATE::TASK_STATE_RUNNING:
-                return std::string("running");
+                return std::string_view("running");
               default:
-                return std::string("unknown");
+                return std::string_view("unknown");
             }
           });
+        } else {
+          throw exceptions::msg_fmt("unknown filter label: {}", label);
+        }
+      } break;
+      case filter::filter_type::label_in: {
+        filters::label_in<char>* filt =
+            static_cast<filters::label_in<char>*>(f);
+        std::string_view label = filt->get_label();
+        if (label == "name") {
+          filt->set_checker_from_getter([](const testable& t) {
+            return static_cast<const tasksched_data&>(t).name;
+          });
+        } else if (label == "folder") {
+          filt->set_checker_from_getter([](const testable& t) {
+            return static_cast<const tasksched_data&>(t).folder;
+          });
+        } else if (label == "author") {
+          filt->set_checker_from_getter([](const testable& t) {
+            return static_cast<const tasksched_data&>(t).author;
+          });
+        } else if (label == "state") {
+          filt->set_checker_from_getter([](const testable& t) {
+            const auto& data = static_cast<const tasksched_data&>(t);
+            switch (data.state) {
+              case TASK_STATE::TASK_STATE_DISABLED:
+                return std::string_view("disabled");
+              case TASK_STATE::TASK_STATE_QUEUED:
+                return std::string_view("queued");
+              case TASK_STATE::TASK_STATE_READY:
+                return std::string_view("ready");
+              case TASK_STATE::TASK_STATE_RUNNING:
+                return std::string_view("running");
+              default:
+                return std::string_view("unknown");
+            }
+          });
+        } else {
+          throw exceptions::msg_fmt("unknown filter label: {}", label);
         }
       } break;
       default:
@@ -719,7 +768,7 @@ void check_sched::_print_format(std::string* output, e_status status) {
   int count = ok_count + problem_count;
 
   // Helper: convert TASK_STATE → string_view
-  auto state_to_string = [](TASK_STATE s) -> std::string {
+  auto state_to_string = [](TASK_STATE s) {
     switch (s) {
       case TASK_STATE::TASK_STATE_DISABLED:
         return "disabled";
@@ -735,9 +784,9 @@ void check_sched::_print_format(std::string* output, e_status status) {
   };
 
   // format the detail output for a label,value
-  auto format_detail = [this, &state_to_string](task_data& data) {
-    std::string enabled_str = (data.enabled ? "True" : "False");
-    std::string state_str_view = state_to_string(data.state);
+  auto format_detail = [this, &state_to_string](tasksched_data& data) {
+    std::string_view enabled_str = (data.enabled ? "True" : "False");
+    std::string_view state_str_view = state_to_string(data.state);
     unsigned exit_code = static_cast<uint32_t>(data.exit_code);
 
     return std::vformat(
@@ -753,7 +802,7 @@ void check_sched::_print_format(std::string* output, e_status status) {
       [this, &format_detail](const absl::btree_set<std::string>& data_map) {
         std::string result = "";
         for (const auto& name : data_map) {
-          result += format_detail(_tasks[name].info) + ",";
+          result += format_detail(_tasks[name]) + ",";
         }
         // remove the last comma
         if (!result.empty()) {
@@ -778,7 +827,7 @@ void check_sched::_print_format(std::string* output, e_status status) {
   }
   list_str += _ok_list_str;
 
-  std::string status_label;
+  std::string_view status_label;
   const std::string* chosen_syntax = &_output_syntax;
 
   switch (status) {
@@ -807,6 +856,25 @@ void check_sched::_print_format(std::string* output, e_status status) {
                             _warning_list_str, crit_count, _critical_list_str,
                             problem_count, _problem_list_str, ok_count,
                             _ok_list_str));
+}
+
+/**
+ * @brief apply filter to stored tasks (only for testing purposes)
+ *
+ */
+void check_sched::apply_filter() {
+  // exclude tasks and filter tasks
+  auto predicate = [&](auto const& task_data) {
+    if (_exclude_tasks.contains(task_data.first)) {
+      return true;  // Exclude task
+    }
+    if (_task_filter && !_task_filter->check(task_data.second))
+      return true;  // filter this task if it does not match the filter
+
+    return false;
+  };
+
+  absl::erase_if(_tasks, predicate);
 }
 
 /**

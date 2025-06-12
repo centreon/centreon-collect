@@ -2217,9 +2217,10 @@ def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expecte
         precision (float): The precision required for the interval comparison.
     """
 
+    #we work on last metric in order to not take into account metrics of previous tests
     limit = time.time() + timeout
     query = f"""SELECT  db.ctime, db.id_metric FROM data_bin db JOIN
-            (SELECT MIN(db.id_metric) AS id_metric FROM data_bin db
+            (SELECT MAX(db.id_metric) AS id_metric FROM data_bin db
                 JOIN metrics m ON db.id_metric = m.metric_id
                 JOIN index_data id ON id.id = m.index_id
                 WHERE id.host_name='{host}' AND id.service_description='{serv}') sub_query 

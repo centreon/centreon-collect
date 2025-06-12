@@ -31,12 +31,20 @@ using Microsoft::WRL::ComPtr;
 
 namespace com::centreon::agent {
 
+/**
+ * @brief time_point with his string display
+ *
+ */
 struct DateInfo {
   std::chrono::system_clock::time_point timestamp;
   std::string formatted;
 };
 
-struct task_data {
+/**
+ * @brief all datas of a task
+ *
+ */
+struct tasksched_data : public testable {
   std::string name;
   std::string folder;
   bool enabled;
@@ -48,10 +56,6 @@ struct task_data {
   std::string description;
   long number_missed_runs{0};
   long duration_last_run{0};
-};
-
-struct tasksched_data : public testable {
-  task_data info;
 };
 
 /**
@@ -131,6 +135,8 @@ class check_sched : public check {
   absl::flat_hash_set<std::string> get_exclude_tasks() const {
     return _exclude_tasks;
   }
+
+  void apply_filter();
 };
 }  // namespace com::centreon::agent
 #endif
