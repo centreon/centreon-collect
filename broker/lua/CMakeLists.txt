@@ -65,6 +65,7 @@ target_link_libraries(
           # crypto ssl bbdo_storage
           bbdo_bam
 	  bbdo_storage
+	  nebbase
 	  pb_storage_lib
           spdlog::spdlog)
 
