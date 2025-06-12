@@ -99,7 +99,8 @@ com_init::com_init() {
   HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
   if (FAILED(hr)) {
     throw exceptions::msg_fmt(
-        "Check Task Scheduler: CoInitializeEx failed with error code: {}", hr);
+        "Check Task Scheduler: CoInitializeEx failed with error code: {:#X}",
+        uint32_t(hr));
   }
 
   //  Set general COM security levels.
@@ -108,8 +109,9 @@ com_init::com_init() {
 
   if (FAILED(hr)) {
     throw exceptions::msg_fmt(
-        "Check Task Scheduler: CoInitializeSecurity failed with error code: {}",
-        hr);
+        "Check Task Scheduler: CoInitializeSecurity failed with error code: "
+        "{:#X}",
+        uint32_t(hr));
   }
 }
 
@@ -120,11 +122,9 @@ com_init::~com_init() {
 };  // namespace com::centreon::agent::detail
 
 void com::centreon::agent::com_init() {
-  struct com_init_ {};
-
-  static std::unique_ptr<com_init_> _instance;
+  static std::unique_ptr<detail::com_init> _instance;
   static absl::once_flag _com_init_once;
 
   absl::call_once(_com_init_once,
-                  [&] { _instance = std::make_unique<com_init_>(); });
+                  [&] { _instance = std::make_unique<detail::com_init>(); });
 }

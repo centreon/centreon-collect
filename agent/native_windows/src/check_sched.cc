@@ -178,7 +178,7 @@ e_status check_sched::compute(
     if (_exclude_tasks.contains(task_data.first)) {
       return true;  // Exclude task
     }
-    if (!_task_filter->check(task_data.second))
+    if (_task_filter && !_task_filter->check(task_data.second))
       return true;  // filter this task if it does not match the filter
 
     return false;
@@ -291,8 +291,8 @@ void check_sched::_connect_to_sched() {
     throw exceptions::msg_fmt(
         "Check Task Scheduler: Failed to CoCreate an instance "
         "of the TaskService "
-        "class with error code: {}",
-        hr);
+        "class with error code: {:#X}",
+        uint32_t(hr));
   }
 
   //  Connect to the task service.
@@ -300,7 +300,8 @@ void check_sched::_connect_to_sched() {
                              _variant_t());
   if (FAILED(hr)) {
     throw exceptions::msg_fmt(
-        "Check Task Scheduler: ITaskService connect failed: {:#X}", hr);
+        "Check Task Scheduler: ITaskService connect failed: {:#X}",
+        uint32_t(hr));
   }
 
   // Get the pointer to the root task folder.
@@ -308,7 +309,8 @@ void check_sched::_connect_to_sched() {
 
   if (FAILED(hr)) {
     throw exceptions::msg_fmt(
-        "Check Task Scheduler: Cannot get Root Folder pointer:{:#X}", hr);
+        "Check Task Scheduler: Cannot get Root Folder pointer:{:#X}",
+        uint32_t(hr));
   }
 }
 
