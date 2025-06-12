@@ -1,46 +1,24 @@
 #!/usr/bin/perl
 
-package main;
 use strict;
 use warnings;
 
-# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
-# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
-BEGIN {
-    package centreon::common::centreonvault;
-    sub get_secret {};
-    sub new {};
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1;
-}
-
-# same here, gorgone use a logger, but we don't want to test it right now, so we mock it.
-BEGIN {
-    package centreon::common::logger;
-    sub writeLogInfo { warn "@_\n" };
-    sub writeLogError { warn "@_\n" };
-    sub writeLogDebug { warn "@_\n" };
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
-}
-
-package main;
 use Test2::V0;
 use Test2::Plugin::NoWarnings echo => 1;
 use Test2::Tools::Compare qw{is like match};
 use FindBin;
-use lib "$FindBin::Bin/../../../";
+use lib "$FindBin::Bin/../../../../../../";
+use tests::unit::lib::mockLogger;
+use tests::unit::lib::mockCentreonvault;
 use gorgone::standard::library;
 use gorgone::class::db;
 use gorgone::modules::centreon::mbi::etlworkers::class;
 use gorgone::modules::centreon::mbi::etlworkers::hooks;
 use gorgone::modules::centreon::mbi::etlworkers::dimensions::main;
 use gorgone::class::module;
-use tests::unit::lib::misc;
+use tests::unit::lib::misc qw(exec_sql db_description);
 
 # This test uses the MySQL database created for Gorgone robot tests.
-my $db_mon = $ENV{DBHOST} || 'mariadb';
-my $db_bi = $ENV{DBHOST} || 'mariadb';
-my $db_centreon = $ENV{DBCENTREON} || 'centreon';
-my $db_centreon_storage = $ENV{DBCENTREON_STORAGE} || 'centreon-storage';
 
 sub test_etl_dimensions {
     # this is from Test2::Tools::Mock, included by Test2::V0
@@ -56,11 +34,12 @@ sub test_etl_dimensions {
             data => {
                 content => {
                     dbbi => {
-                        centstorage => { dsn => "mysql:host=$db_bi;dbname=$db_centreon_storage", user => "centreon", password=>"password" },
-                        centreon => { dsn => "mysql:host=$db_bi;dbname=$db_centreon", user => "centreon", password=>"password" }, },
+                        centstorage => db_description('storage'),
+                        centreon => db_description(),
+                    },
                     dbmon => {
-                        centstorage => { dsn => "mysql:host=$db_mon;dbname=$db_centreon_storage", user => "centreon", password=>"password" },
-                        centreon => { dsn => "mysql:host=$db_mon;dbname=$db_centreon", user => "centreon", password=>"password" },
+                        centstorage => db_description('storage'),
+                        centreon => db_description(),
                     },
                     options => {
                         rebuild => 1, # Same as "centreonBIETL -r" command
@@ -104,14 +83,14 @@ sub test_etl_dimensions {
 
         return unless $dbmon_centreon->{instance} && $db->{instance};
 
-        is( tests::unit::lib::misc::exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_clear.sql"), U(), 'test data reinitialized successfully.');
-        is( tests::unit::lib::misc::exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_data.sql"), U(), 'test data loaded successfully.');
+        is( exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_clear.sql"), U(), 'test data reinitialized successfully.');
+        is( exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_data.sql"), U(), 'test data loaded successfully.');
 
         my $dbh = $db->{instance};
 
         # First we initialize and truncate the BI tables to be sure we have a clean state
-        is( tests::unit::lib::misc::exec_sql($db_cent->{instance}, "$FindBin::Bin/mbietl_centreon_schema.sql"), U(), 'test schema reinitialized successfully.');
-        is( tests::unit::lib::misc::exec_sql($dbh, "$FindBin::Bin/mbietl_storage_schema.sql"), U(), 'BI schema reinitialized successfully.');
+        is( exec_sql($db_cent->{instance}, "$FindBin::Bin/mbietl_centreon_schema.sql"), U(), 'test schema reinitialized successfully.');
+        is( exec_sql($dbh, "$FindBin::Bin/mbietl_storage_schema.sql"), U(), 'BI schema reinitialized successfully.');
         gorgone::modules::centreon::mbi::etlworkers::dimensions::main::initVars( $gorgone, %{$options{data}->{content}} );
         gorgone::modules::centreon::mbi::etlworkers::dimensions::main::truncateDimensionTables( $gorgone, %{$options{data}->{content}}, );
 
@@ -138,7 +117,7 @@ sub test_etl_dimensions {
         ok(defined($count) && $count > 0, 'hostgroups with semicolon should be inserted into mod_bi_hostgroups.');
 
         # Clean up
-        tests::unit::lib::misc::exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_clear.sql");
+        exec_sql($dbmon_centreon->{instance}, "$FindBin::Bin/mbietl_clear.sql");
 }
 
 sub main {

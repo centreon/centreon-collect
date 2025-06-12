@@ -108,7 +108,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:latest
+        image: mariadb:10.11
         ports:
           - 3306
         env:
@@ -117,16 +117,6 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
 
     steps:
-      - name: Install git and database client
-        shell: bash
-        run: |
-          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-            apt update
-            apt install -y mariadb-client git
-          else
-            dnf install -y mariadb git
-          fi
-
       - name: Get linked branch of centreon repository
         id: centreon_repo_linked_branch
         run: |
@@ -281,7 +271,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:latest
+        image: mariadb:10.11
         ports:
           - 3306
         env:
