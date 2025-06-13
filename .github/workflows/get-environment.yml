@@ -269,7 +269,7 @@ jobs:
           script: |
             const getStability = (branchName) => {
               switch (true) {
-                case /(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)(^MON-172275-delivery-add-sync-delete-for-testing-repositories-when-delivering-testing-packages-3$)/.test(branchName):
+                case /(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)|(^MON-172275-delivery-add-sync-delete-for-testing-repositories-when-delivering-testing-packages-3$)/.test(branchName):
                   return 'unstable';
                 case /(^release.+)|(^hotfix.+)/.test(branchName):
                   return 'testing';
@@ -284,7 +284,7 @@ jobs:
 
             let isTargetingFeatureBranch = false;
             if ("${{ github.event_name }}" === "pull_request") {
-              let targetStability = 'unstable';
+              let targetStability = 'canary';
               const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
               prPath.shift(); // remove current branch
 
