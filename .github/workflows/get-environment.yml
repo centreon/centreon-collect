@@ -284,7 +284,7 @@ jobs:
 
             let isTargetingFeatureBranch = false;
             if ("${{ github.event_name }}" === "pull_request") {
-              let targetStability = 'canary';
+              let targetStability = 'unstable';
               const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
               prPath.shift(); // remove current branch
 
