@@ -185,11 +185,7 @@ runs:
             ROOT_REPO_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
           fi
 
-          if [[ "${{ inputs.stability }}" == "stable" ]]; then
-            echo "[DEBUG] - Stability is ${{ inputs.stability }}, not delivering."
-          else
-            jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH" --sync-deletes="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --flat
-          fi
+          jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
 
         # In case of CMA, we also copy it in /installers
