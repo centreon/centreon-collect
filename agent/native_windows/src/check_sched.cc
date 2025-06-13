@@ -150,8 +150,8 @@ void check_sched::start_check(const duration& timeout) {
 
   // Get all scheduled tasks
   _enumerate_tasks(_root_folder_ptr);
-  SPDLOG_LOGGER_INFO(_logger, "Check Task Scheduler: task found = {}",
-                     _task_count);
+  SPDLOG_LOGGER_DEBUG(_logger, "Check Task Scheduler: task found = {}",
+                      _task_count);
 
   e_status status = compute(&output, &perfs);
   asio::post(
@@ -175,7 +175,7 @@ e_status check_sched::compute(
   output->clear();
 
   if (_tasks.empty()) {
-    SPDLOG_LOGGER_INFO(
+    SPDLOG_LOGGER_DEBUG(
         _logger, "Check Task Scheduler: Empty or no match for this filter");
     *output = "Empty or no match for this filter";
     return e_status::ok;
@@ -640,12 +640,13 @@ void check_sched::_build_checker() {
     transform_hex_tolong(_filter_tasks);
     _task_filter = std::make_unique<filters::filter_combinator>();
 
-    if (!filter::create_filter(_filter_tasks, _logger, _task_filter.get())) {
+    if (!filter::create_filter(_filter_tasks, _logger, _task_filter.get(),
+                               false, false)) {
       throw std::runtime_error("Failed to create filter for task filter");
     }
     _task_filter->apply_checker(_checker_builder);
-    SPDLOG_LOGGER_INFO(_logger, "Task filter created with filter: {}",
-                       _filter_tasks);
+    SPDLOG_LOGGER_DEBUG(_logger, "Task filter created with filter: {}",
+                        _filter_tasks);
   }
 
   // create the filter for the warning
@@ -659,8 +660,8 @@ void check_sched::_build_checker() {
       throw std::runtime_error("Failed to create filter for warning status");
     }
     _warning_rules_filter->apply_checker(_checker_builder);
-    SPDLOG_LOGGER_INFO(_logger, "Warning filter created with filter: {}",
-                       _warning_status);
+    SPDLOG_LOGGER_DEBUG(_logger, "Warning filter created with filter: {}",
+                        _warning_status);
   }
 
   // create the filter for the critical
@@ -673,8 +674,8 @@ void check_sched::_build_checker() {
       throw std::runtime_error("Failed to create filter for critical status");
     }
     _critical_rules_filter->apply_checker(_checker_builder);
-    SPDLOG_LOGGER_INFO(_logger, "Critical filter created with filter: {}",
-                       _critical_status);
+    SPDLOG_LOGGER_DEBUG(_logger, "Critical filter created with filter: {}",
+                        _critical_status);
   }
 }
 

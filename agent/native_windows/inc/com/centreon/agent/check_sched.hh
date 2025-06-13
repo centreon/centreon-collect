@@ -126,10 +126,11 @@ class check_sched : public check {
   absl::flat_hash_map<std::string, tasksched_data>& get_mutable_tasks() {
     return _tasks;
   }
-  std::unique_ptr<filters::filter_combinator> get_task_filter() {
+  const std::unique_ptr<filters::filter_combinator>& get_task_filter() {
     return std::move(_task_filter);
   }
-  std::unique_ptr<filters::filter_combinator> get_warning_rules_filter() {
+  const std::unique_ptr<filters::filter_combinator>&
+  get_warning_rules_filter() {
     return std::move(_warning_rules_filter);
   }
   absl::flat_hash_set<std::string> get_exclude_tasks() const {

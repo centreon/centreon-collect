@@ -270,14 +270,11 @@ TEST_F(check_windows_sched, filter_task1) {
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
   checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  std::unique_ptr<filters::filter_combinator> task_filter =
-      checker.get_task_filter();
-
   auto& tasks = checker.get_mutable_tasks();
   ASSERT_EQ(tasks.size(), 3);
 
   auto predicate = [&](auto const& pair) {
-    return !task_filter->check(pair.second);
+    return !checker.get_task_filter()->check(pair.second);
   };
 
   absl::erase_if(tasks, predicate);
@@ -304,14 +301,11 @@ TEST_F(check_windows_sched, filter_task2) {
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
   checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  std::unique_ptr<filters::filter_combinator> task_filter =
-      checker.get_task_filter();
-
   auto& tasks = checker.get_mutable_tasks();
   ASSERT_EQ(tasks.size(), 3);
 
   auto predicate = [&](auto const& pair) {
-    return !task_filter->check(pair.second);
+    return !checker.get_task_filter()->check(pair.second);
   };
 
   absl::erase_if(tasks, predicate);
@@ -319,6 +313,37 @@ TEST_F(check_windows_sched, filter_task2) {
   ASSERT_EQ(tasks.size(), 2);
   ASSERT_TRUE(tasks.find(g_data1.name) != tasks.end());
   ASSERT_TRUE(tasks.find(g_data3.name) != tasks.end());
+}
+
+TEST_F(check_windows_sched, filter_task3) {
+  rapidjson::Document json_config = R"t({
+  "filter-tasks": "name in ('t1','t3')"
+  })t"_json;
+
+  check_sched checker(
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, json_config, nullptr,
+      [](const std::shared_ptr<check>&, int,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {},
+      std::make_shared<checks_statistics>());
+
+  checker.get_mutable_tasks()[g_data1.name] = g_data1;
+  checker.get_mutable_tasks()[g_data2.name] = g_data2;
+  checker.get_mutable_tasks()[g_data3.name] = g_data3;
+
+  auto& tasks = checker.get_mutable_tasks();
+  EXPECT_EQ(tasks.size(), 3);
+
+  auto predicate = [&](auto const& pair) {
+    return !checker.get_task_filter()->check(pair.second);
+  };
+
+  absl::erase_if(tasks, predicate);
+
+  EXPECT_EQ(tasks.size(), 2);
+  EXPECT_TRUE(tasks.find(g_data1.name) != tasks.end());
+  EXPECT_TRUE(tasks.find(g_data3.name) != tasks.end());
 }
 
 TEST_F(check_windows_sched, warning_filter) {
@@ -339,15 +364,12 @@ TEST_F(check_windows_sched, warning_filter) {
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
   checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  std::unique_ptr<filters::filter_combinator> warning_filter =
-      checker.get_warning_rules_filter();
-
   auto& tasks = checker.get_mutable_tasks();
   ASSERT_EQ(tasks.size(), 3);
 
   std::vector<std::string> result;
   for (const auto& [name, data] : tasks) {
-    if (warning_filter->check(data)) {
+    if (checker.get_warning_rules_filter()->check(data)) {
       result.push_back(name);
     }
   }
@@ -377,9 +399,6 @@ TEST_F(check_windows_sched, exclude_tasks) {
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
   checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  std::unique_ptr<filters::filter_combinator> task_filter =
-      checker.get_task_filter();
-
   auto& tasks = checker.get_mutable_tasks();
   ASSERT_EQ(tasks.size(), 3);
 
@@ -387,7 +406,7 @@ TEST_F(check_windows_sched, exclude_tasks) {
     if (checker.get_exclude_tasks().contains(task_data.first)) {
       return true;  // Exclude this task
     }
-    if (!task_filter->check(task_data.second))
+    if (!checker.get_task_filter()->check(task_data.second))
       return true;  // Exclude this task if it does not match the filter
 
     return false;
@@ -482,9 +501,6 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
   checker.get_mutable_tasks()[g_data2.name] = g_data2;
   checker.get_mutable_tasks()[g_data3.name] = g_data3;
 
-  std::unique_ptr<filters::filter_combinator> task_filter =
-      checker.get_task_filter();
-
   auto& tasks = checker.get_mutable_tasks();
   ASSERT_EQ(tasks.size(), 3);
 
@@ -492,7 +508,7 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
     if (checker.get_exclude_tasks().contains(task_data.first)) {
       return true;  // Exclude this task
     }
-    if (!task_filter->check(task_data.second))
+    if (!checker.get_task_filter()->check(task_data.second))
       return true;  // Exclude this task if it does not match the filter
 
     return false;
