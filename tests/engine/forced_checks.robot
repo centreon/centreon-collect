@@ -54,7 +54,7 @@ EFHC1
 
     ${result}    Ctn Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHC2
@@ -97,7 +97,7 @@ EFHC2
 
     ${result}    Ctn Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU1
@@ -147,7 +147,7 @@ EFHCU1
 
     ${result}    Ctn Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU2
@@ -196,7 +196,7 @@ EFHCU2
 
     ${result}    Ctn Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS
@@ -231,7 +231,7 @@ EMACROS
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_NOTIF
@@ -245,6 +245,8 @@ EMACROS_NOTIF
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    0    log_level_checks    trace    True
     Ctn Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Create Directory    /etc/centreon-engine-whitelist
+    Empty Directory    /etc/centreon-engine-whitelist
     Ctn Engine Config Add Command
     ...    0
     ...    command_notif
@@ -261,14 +263,12 @@ EMACROS_NOTIF
     Ctn Start Engine
     Ctn Start Broker
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     FOR    ${i}    IN RANGE    3
         Ctn Process Service Check Result    host_1    service_1    2    critical
+	# To avoid duplicates metrics/status in RRD
+	Sleep    1s
     END
 
     Wait Until Created    /tmp/notif_toto.txt    30s
@@ -277,7 +277,7 @@ EMACROS_NOTIF
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_SEMICOLON
@@ -287,6 +287,7 @@ EMACROS_SEMICOLON
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    0    log_level_checks    trace    True
@@ -296,23 +297,21 @@ EMACROS_SEMICOLON
     ...    \\d+
     ...    /bin/echo "KEY2=$_HOSTKEY2$"
     Ctn Clear Retention
+    Ctn Clear Logs
     ${start}    Get Current Date
     Ctn Start Engine
     Ctn Start Broker
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    # To avoid duplicates between conf and this forced check, we wait for 2s.
+    Sleep    2s
     Ctn Schedule Forced Service Check    host_1    service_1
-    Sleep    5s
 
     ${content}    Create List    KEY2=VAL1;val3;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    VAL1;val3; not found in log.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 E_HOST_DOWN_DISABLE_SERVICE_CHECKS

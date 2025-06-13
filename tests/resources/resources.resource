@@ -97,7 +97,7 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False    ${bbdo2}=False
+    [Arguments]    ${only_central}=False    ${bbdo2}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
     ${b1_obj}    Get Process Object   b1
@@ -121,7 +121,7 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
-        ELSE IF    not ${bbdo2}
+        ELSE IF    not ${bbdo2} and not ${only_central} and not ${no_rrd_test}
             Log To Console    "central broker stopped"
             # We have to check if central RRD logs contain errors about data sent in the past.
             ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
