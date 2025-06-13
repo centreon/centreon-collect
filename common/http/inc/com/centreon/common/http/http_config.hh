@@ -32,9 +32,7 @@ using duration = system_clock::duration;
  */
 class http_config {
   // destination or listen address
-  // if _endpoints is empty, the _endpoint is used and vice versa.
   asio::ip::tcp::resolver::results_type _endpoints;
-  asio::ip::tcp::endpoint _endpoint;
 
   std::string _server_name;
   bool _crypted;
@@ -70,7 +68,10 @@ class http_config {
                   asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "",
               const std::string& key_path = "")
-      : _endpoint(endpoint),
+      : _endpoints(
+            boost::asio::ip::tcp::resolver::results_type::create(endpoint,
+                                                                 "",
+                                                                 "")),
         _server_name(server_name),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
@@ -125,10 +126,7 @@ class http_config {
     return _endpoints;
   }
   asio::ip::tcp::endpoint get_endpoint() const {
-    if (_endpoints.empty())
-      return _endpoint;
-    else
-      return _endpoints.begin()->endpoint();
+    return _endpoints.begin()->endpoint();
   }
   const std::string& get_server_name() const { return _server_name; }
   bool is_crypted() const { return _crypted; }
@@ -165,9 +163,10 @@ struct formatter<com::centreon::common::http::http_config> {
               FormatContext& ctx) const -> decltype(ctx.out()) {
     std::ostringstream s;
     if (conf.get_endpoints().empty()) {
-      s << conf.get_endpoint();
-      return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
-                       conf.is_crypted());
+      s << "no endpoints";
+      // s << conf.get_endpoint();
+      // return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
+      //                  conf.is_crypted());
     } else {
       s << conf.get_endpoints().begin()->endpoint();
       return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
