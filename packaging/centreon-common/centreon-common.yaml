@@ -6,7 +6,7 @@ version: "${VERSION}"
 release: "${RELEASE}${DIST}"
 section: "default"
 priority: "optional"
-maintainer: "Centreon <contact@centreon.com>"
+maintainer: "Centreon  <contact@centreon.com>"
 description: |
   Add user and group for Centreon
   Commit: @COMMIT_HASH@
