@@ -736,10 +736,20 @@ void macro_cache::_process_pb_host_group(
           std::static_pointer_cast<neb::pb_host_group>(found->second.first)
               ->mut_obj();
       current_hg.set_name(hg.name());
+      SPDLOG_LOGGER_TRACE(
+          _cache->logger(),
+          "lua: Poller {} added as user of the host group '{}' of id {}. "
+          "Currently, this group is used by pollers {}",
+          hg.poller_id(), hg.name(), hg.hostgroup_id(),
+          fmt::join(found->second.second, ", "));
     } else {
       absl::flat_hash_set<uint32_t> pollers{hg.poller_id()};
       _host_groups[hg.hostgroup_id()] =
           std::make_pair(std::move(pb_hg), pollers);
+      SPDLOG_LOGGER_TRACE(_cache->logger(),
+                          "lua: Poller {} added as only user of the host "
+                          "group '{}' of id {}. ",
+                          hg.poller_id(), hg.name(), hg.hostgroup_id());
     }
   } else {
     /* We check that no more pollers need this host group. So if the set is
@@ -751,6 +761,19 @@ void macro_cache::_process_pb_host_group(
         found->second.second.erase(f);
         if (found->second.second.empty()) {
           _host_groups.erase(found);
+          SPDLOG_LOGGER_TRACE(
+              _cache->logger(),
+              "lua: Poller {} removed from users of the host group '{}' of "
+              "id {}. This group is removed from the cache as it is not used "
+              "anymore",
+              hg.poller_id(), hg.name(), hg.hostgroup_id());
+        } else {
+          SPDLOG_LOGGER_TRACE(
+              _cache->logger(),
+              "lua: Poller {} removed from users of the host group '{}' of "
+              "id {}. Currently, this group is still used by pollers {}",
+              hg.poller_id(), hg.name(), hg.hostgroup_id(),
+              fmt::join(found->second.second, ", "));
         }
       }
     }
@@ -949,11 +972,21 @@ void macro_cache::_process_pb_service_group(
       found->second.second.insert(sg.poller_id());
       ServiceGroup& current_sg = found->second.first->mut_obj();
       current_sg.set_name(sg.name());
+      SPDLOG_LOGGER_TRACE(
+          _cache->logger(),
+          "lua: Poller {} added as user of the service group '{}' of id {}. "
+          "Currently, this group is used by pollers {}",
+          sg.poller_id(), sg.name(), sg.servicegroup_id(),
+          fmt::join(found->second.second, ", "));
     } else {
       /* Here, we add the servicegroup and the first poller that needs it */
       absl::flat_hash_set<uint32_t> pollers{sg.poller_id()};
       _service_groups[sg.servicegroup_id()] =
           std::make_pair(std::move(pb_sg), pollers);
+      SPDLOG_LOGGER_TRACE(_cache->logger(),
+                          "lua: Poller {} added as only user of the service "
+                          "group '{}' of id {}. ",
+                          sg.poller_id(), sg.name(), sg.servicegroup_id());
     }
   } else {
     /* We check that no more pollers need this service group. So if the set is
@@ -965,6 +998,19 @@ void macro_cache::_process_pb_service_group(
         found->second.second.erase(f);
         if (found->second.second.empty()) {
           _service_groups.erase(found);
+          SPDLOG_LOGGER_TRACE(
+              _cache->logger(),
+              "lua: Poller {} removed from users of the service group '{}' of "
+              "id {}. This group is removed from the cache as it is not used "
+              "anymore",
+              sg.poller_id(), sg.name(), sg.servicegroup_id());
+        } else {
+          SPDLOG_LOGGER_TRACE(
+              _cache->logger(),
+              "lua: Poller {} removed from users of the service group '{}' of "
+              "id {}. Currently, this group is still used by pollers {}",
+              sg.poller_id(), sg.name(), sg.servicegroup_id(),
+              fmt::join(found->second.second, ", "));
         }
       }
     }
