@@ -161,6 +161,10 @@ EBNSGU3_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
 
+    ${content}    Create List    service group 'servicegroup_1' of id 1. Currently, this group is used by pollers [0-9]+, [0-9]+, [0-9]+
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result[0]}    The three pollers should be attached to the servicegroup 1.
+
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test
