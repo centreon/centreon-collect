@@ -123,6 +123,10 @@ EBNSGU3_${test_label}
     Ctn Clear Retention
     Ctn Truncate Resource Host Service
 
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    processing    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    lua    trace
     Ctn Broker Config Source Log    central    1
