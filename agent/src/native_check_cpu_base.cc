@@ -44,12 +44,14 @@ template <unsigned nb_metric>
 void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
                                         const std::string_view metric_label[],
                                         std::string* output) const {
-  if (cpu_index == average_cpu_index) {
-    *output += fmt::format("CPU(s) average Usage: {:.2f}%",
-                           (static_cast<double>(_total_used) / _total) * 100);
-  } else {
-    *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
-                           (static_cast<double>(_total_used) / _total) * 100);
+  if (_total) {
+    if (cpu_index == average_cpu_index) {
+      *output += fmt::format("CPU(s) average Usage: {:.2f}%",
+                             (static_cast<double>(_total_used) / _total) * 100);
+    } else {
+      *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
+                             (static_cast<double>(_total_used) / _total) * 100);
+    }
   }
 
   for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
