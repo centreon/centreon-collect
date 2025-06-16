@@ -666,13 +666,36 @@ not11
 
 
 not12
-    [Documentation]    Escalations
+    [Documentation]    Given the engine is configured with two hosts
+    ...    And each host has one service: (host_1;service_1) and (host_2;service_2)
+    ...    And a service group is configured with both services
+    ...    And three contact groups are configured:
+    ...      | ID | Users       |
+    ...      | 1  | U1          |
+    ...      | 2  | U2, U3      |
+    ...      | 3  | U4          |
+    ...    And an escalation "esc1" is configured to notify contact group 2 on notification number 2 only
+    ...    And an escalation "esc2" is configured to notify contact group 3 from notification number 3 and forever
+    ...    And services are configured to always notify contact group 1
+    ...    Scenario: Escalation notifications for service alerts
+    ...    When services go to state CRITICAL HARD at step 1
+    ...    Then user U1 is notified
+    ...    When services are confirmed in CRITICAL HARD at step 2
+    ...    Then users U2 and U3 are notified as members of contact group 2
+    ...    When services are confirmed in CRITICAL HARD at step 3
+    ...    Then user U4 is notified as member of contact group 3
+    ...    And we wait for 1 minute
+    ...    When services are confirmed in CRITICAL HARD at step 4
+    ...    Then user U4 is notified again as member of contact group 3
+    ...    And we verify that since the first escalation, user U1 is no longer notified
+
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
+    Ctn Engine Config Set Value    ${0}    log_level_notification    trace
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Ctn Config Notifications
     Ctn Config Escalations
@@ -691,91 +714,108 @@ not12
     Ctn Engine Config Set Value In Escalations    0    esc2    last_notification    0
     Ctn Engine Config Set Value In Escalations    0    esc2    notification_interval    1
 
-    ${start}    Get Current Date
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
+    ${start}    Ctn Get Round Current Date
+    ${start4}    Evaluate	${start} + 60
     Ctn Start Broker
     Ctn Start Engine
 
-    # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Log To Console   service_1 and service_2 are set to OK HARD
+    # Notification numbers are set to 0
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Set Command Status    ${cmd_service_2}    ${0}
+    Ctn Schedule Forced Service Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_2    service_2
 
-    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
-    ${cmd_service_2}    Ctn Get Service Command Id    ${2}
+    # Let's wait for notification numbers to be set to 0
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=1    ==    ${0}    retry_timeout=60s    retry_pause=1s
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=2    ==    ${0}    retry_timeout=60s    retry_pause=1s
+    Disconnect From Database
+
+    Log To Console   service_1 and service_2 are set to CRITICAL HARD
     Ctn Set Command Status    ${cmd_service_1}    ${2}
     Ctn Set Command Status    ${cmd_service_2}    ${2}
 
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+    Log To Console   service_1 and service_2 are set to CRITICAL HARD (step 1)
+    Ctn Schedule Forced Service Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_2    service_2
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=1    ==    ${1}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=2    ==    ${1}
+    Disconnect From Database
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;
+    ...    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first notification of U1 is not sent
-    # Let's wait for the first notification of the contact group 1
-    ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first notification of contact group 1 is not sent
+    Should Be True    ${result}    U1 should be notified for service_1 and service_2
 
-    ${start}    Ctn Get Round Current Date
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
+    Log To Console   service_1 and service_2 are set to CRITICAL HARD (step 2)
+    ${start2}    Ctn Get Round Current Date
+    Ctn Schedule Forced Service Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_2    service_2
 
-    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+    Log To Console    Notification numbers should be 2.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=1    ==    ${2}    retry_timeout=60s    retry_pause=1s
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=2    ==    ${2}    retry_timeout=60s    retry_pause=1s
+    Disconnect From Database
 
-    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+    Log To Console    Notifications to U1, U2 and U3 should be sent for service_1 and service_2.
+    # Let's wait for U2 and U3 notifications. U1 should also be notified but a little later because of the notification interval.
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
+    ...    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;
+    ...    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
+    ...    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start2}    ${content}    60
+    Should Be True    ${result}    U1, U2 and U3 should be notified for service_1 and service_2
 
-    # Let's wait for the first notification of the contact group 2 U3 ET U2
-    ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first notification of U2 is not sent
+    Log To Console   service_1 and service_2 are set to CRITICAL HARD (step 3)
+    ${start3}    Ctn Get Round Current Date
+    Ctn Schedule Forced Service Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_2    service_2
 
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first notification of U3 is not sent
+    Log To Console    Notification numbers should be 3.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=1    ==    ${3}    retry_timeout=60s    retry_pause=1s
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=2    ==    ${3}    retry_timeout=60s    retry_pause=1s
+    Disconnect From Database
 
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
-
-    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
-
-    # Let's wait for the second notification of the contact group 2 U3 ET U2
-    ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The second notification of U2 is not sent
-
-    ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The second notification of U3 is not sent
-
-    ${start}    Ctn Get Round Current Date
-    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Ctn Process Service Result Hard    host_2    service_2    ${2}    The service_1 is CRITICAL
-
-    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
-
-    ${result}    Ctn Check Service Resource Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
-
-    # Let's wait for the first notification of the contact group 3 U4
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The first notification of U4 is not sent
+    ...    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start3}    ${content}    60
+    Should Be True    ${result}    The notifications of U4 is not sent
 
-    ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The second notification of U4 is not sent
+    Sleep    1m    # Wait for one minute to be sure that the notification interval is respected
+    Ctn Schedule Forced Service Check    host_1    service_1
+    Ctn Schedule Forced Service Check    host_2    service_2
+
+    Log To Console    Notification numbers should be 4.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=1    ==    ${4}    retry_timeout=60s    retry_pause=1s
+    Check Query Result    SELECT notification_number FROM services WHERE service_id=2    ==    ${4}    retry_timeout=60s    retry_pause=1s
+    Disconnect From Database
+
+    Log To Console    Notifications to U4 should be sent for service_1 and service_2.
+    # Let's wait for U4 notifications.
+    ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;
+    ...    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start4}    ${content}    60
+    Should Be True    ${result}    U4 should be notified for service_1 and service_2
+
+    Log To Console   Since the escalations, U1 should no more be notified.
+    ${content}    Create List    SERVICE NOTIFICATION: U1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start2}    ${content}    2
+    Should Not Be True    ${result}    Because of the escalations, U1 should no more be notified.
 
 not13
     [Documentation]    notification for a dependencies host
@@ -1561,7 +1601,6 @@ Ctn Config Escalations
     Ctn Engine Config Replace Value In Services    0    service_1    retry_interval     1
     Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
     Ctn Engine Config Replace Value In Services    0    service_1    check_interval     1
-    Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_4
     Ctn Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
     Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    c
@@ -1573,6 +1612,5 @@ Ctn Config Escalations
     Ctn Engine Config Replace Value In Services    0    service_2    check_interval     1
     Ctn Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
     Ctn Engine Config Replace Value In Services    0    service_2    retry_interval     1
-    Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif

@@ -211,13 +211,13 @@ class EngineInstance:
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
-        self.service_cmd[service_id] = "command_{}".format(command_id)
+        self.service_cmd[service_id] = f"command_{command_id}"
 
-        retval = """define service {{
-    host_name                       host_{0}
-    service_description             service_{1}
-    _SERVICE_ID                     {1}
-    check_command                   {2}
+        retval = f"""define service {{
+    host_name                       host_{host_id}
+    service_description             service_{service_id}
+    _SERVICE_ID                     {service_id}
+    check_command                   {self.service_cmd[service_id]}
     check_period                    24x7
     max_check_attempts              3
     check_interval                  5
@@ -225,13 +225,12 @@ class EngineInstance:
     register                        1
     active_checks_enabled           1
     passive_checks_enabled          1
-    _KEY_SERV{0}_{1}                VAL_SERV{1}
+    _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-""".format(
-            host_id, service_id, self.service_cmd[service_id])
-        return retval
+"""
+        return retval, service_id
 
-    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+    def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
         """
             Create an anomaly detection service.
             Example:
@@ -363,18 +362,18 @@ define command {
     def create_command(cmd):
         retval: str
         if cmd % 2 == 0:
-            retval = """define command {{
-    command_name                    command_{1}
-    command_line                    {0}/check.pl --id {1}
+            retval = f"""define command {{
+    command_name                    command_{cmd}
+    command_line                    {ENGINE_HOME}/check.pl --id {cmd}
     connector                       Perl Connector
 }}
-""".format(ENGINE_HOME, cmd)
+"""
         else:
-            retval = """define command {{
-    command_name                    command_{1}
-    command_line                    {0}/check.pl --id {1}
+            retval = f"""define command {{
+    command_name                    command_{cmd}
+    command_line                    {ENGINE_HOME}/check.pl --id {cmd}
 }}
-""".format(ENGINE_HOME, cmd)
+"""
         return retval
 
     @staticmethod
@@ -580,9 +579,10 @@ passive_checks_enabled 1
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
-                            ff.write(self._create_service(h["hid"],
-                                                          (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
-                            self.services.append("service_{}".format(h["hid"]))
+                            svc = self._create_service(h["hid"],
+                                                          (inst * self.commands_count + 1, (inst + 1) * self.commands_count))
+                            ff.write(svc[0])
+                            self.services.append(f"service_{svc[1]}")
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
                 for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
@@ -1434,16 +1434,8 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     global engine
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
         svc = engine._create_service(host_id, (1, cmd_id))
-        lst = svc.split('\n')
-        good = [line for line in lst if "_SERVICE_ID" in line][0]
-        m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
-        if m is not None:
-            retval = int(m.group(1))
-        else:
-            raise Exception(
-                "Impossible to get the service id from '{}'".format(good))
-            m = 0
-        f.write(svc)
+        retval = svc[1]
+        f.write(svc[0])
     return retval
 
 
