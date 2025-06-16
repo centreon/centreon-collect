@@ -76,6 +76,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         fmt::fmt pthread
         crypto ssl
         )
+    add_dependencies(ut_agent centreon_common centagent_lib process_stat)
 else()
     target_link_libraries(ut_agent PRIVATE
     centagent_lib
@@ -89,9 +90,8 @@ else()
     gRPC::grpc++
     fmt::fmt
     pdh)
+    add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
-
-add_dependencies(ut_agent centreon_common centagent_lib process_stat)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
 
