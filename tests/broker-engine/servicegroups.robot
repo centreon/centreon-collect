@@ -119,6 +119,9 @@ EBNSGU3_${test_label}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
+    Ctn Clear Logs
+    Ctn Clear Retention
+    Ctn Truncate Resource Host Service
 
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    lua    trace
@@ -127,7 +130,6 @@ EBNSGU3_${test_label}
     Ctn Config Broker Sql Output    central    unified_sql    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
-    Ctn Clear Retention
 
     Create File    /tmp/lua-engine.log
 
