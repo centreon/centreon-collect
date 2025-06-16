@@ -94,7 +94,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 else()
   target_link_libraries(
     ut_common
-    PRIVATE centreon_common process_stat
+    PRIVATE centreon_common
     centreon_process
     Boost::program_options
     re2::re2
@@ -108,8 +108,7 @@ else()
     absl::bits
     fmt::fmt)
 
-    add_dependencies(ut_common centreon_common process_stat)
-
+    add_dependencies(ut_common centreon_common)
 endif()
 
 
