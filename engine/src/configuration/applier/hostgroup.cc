@@ -238,8 +238,6 @@ void applier::hostgroup::modify_object(
  */
 void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing host group '" << obj.hostgroup_name() << "'";
   config_logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
   // Find host group.
