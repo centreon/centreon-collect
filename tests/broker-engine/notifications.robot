@@ -699,6 +699,9 @@ not12
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Ctn Config Notifications
     Ctn Config Escalations
+    Ctn Truncate Resource Host Service
+    Ctn Clear Retention
+    Ctn Clear Logs
 
     Ctn Add Contact Group    ${0}    ${1}    ["U1"]
     Ctn Add Contact Group    ${0}    ${2}    ["U2","U3"]
