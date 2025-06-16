@@ -93,8 +93,7 @@ add_dependencies(
   pb_neb_lib
   pb_header_lib
   pb_storage_lib
-  opentelemetry
-  pb_bam_lib)
+  opentelemetry)
 
 target_link_libraries(nebbase PRIVATE pb_neb_lib
                                       pb_header_lib pb_open_telemetry_lib)
