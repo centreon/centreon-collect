@@ -222,7 +222,7 @@ int _main(bool service_start) {
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
         conf.get_second_max_reconnect_backoff(), conf.get_max_message_length(),
-        conf.get_token());
+        conf.get_token(), conf.get_trusted_tokens());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
