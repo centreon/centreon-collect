@@ -182,7 +182,7 @@ runs:
         # of multiple artifacts at once to an APT repository
 
         # Get list of remote artifacts
-        ARTIFACTS_REMOTE_LIST=$(jf rt search "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/*${{ inputs.distrib }}.deb" --recursive --sort-by=path |jq -r .[].path)
+        ARTIFACTS_REMOTE_LIST=$(jf rt search "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/*${{ inputs.distrib }}.deb" --recursive --sort-by=path |jq -r .[].path|)
 
         # Get list of local artifacts
         ARTIFACTS_LOCAL_LIST=$(dir -1 |grep -E '*\.deb')
