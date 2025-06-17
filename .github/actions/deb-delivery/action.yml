@@ -110,7 +110,8 @@ runs:
 
           # Delete all remote artifacts that have the same ARTIFACT_BASENAME + DISTRIB + ARCH
           ARTIFACT_BASENAME=$(echo "$ARTIFACT" | cut -d '_' -f 1)
-          jf rt delete "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$ARTIFACT_BASENAME.*$DISTRIB.*$ARCH.deb"
+          echo "[DEBUG] - Deleting remote artifact $ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$ARTIFACT_BASENAME*$DISTRIB*$ARCH.deb"
+          jf rt delete "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$ARTIFACT_BASENAME*$DISTRIB*$ARCH.deb"
 
           jf rt upload "$ARTIFACT" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
