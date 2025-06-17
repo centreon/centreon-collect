@@ -145,6 +145,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_event_log.cc
   ${NATIVE_SRC}/check_process.cc
   ${NATIVE_SRC}/check_uptime.cc
+  ${NATIVE_SRC}/check_counter.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
