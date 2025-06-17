@@ -828,7 +828,6 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     Should Be True    ${result}    check_interval is not respected for service_3
 
 
-
 BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
     [Tags]    broker    engine    opentelemetry    MON-155395
@@ -1613,6 +1612,77 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_critical
+    Ctn Reload Engine
+
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+
+
+BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER
+    [Documentation]    Given an agent with task scheduler check, we expect to get the correct status for the centagent process running on windows host
+    [Tags]    broker    engine    opentelemetry    MON-158584
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_check
+    Ctn Set Services Passive       0    service_1
+
+    Ctn Engine Config Add Command    ${0}    agent_tasksched_check
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit0'"} }
+    ...    OTEL connector
+    
+    Ctn Engine Config Add Command    ${0}    agent_tasksched_warning
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit1'","warning-status": "exit_code != 0"} }
+    ...    OTEL connector
+
+    Ctn Engine Config Add Command    ${0}    agent_tasksched_critical
+    ...    {"check":"tasksched", "args":{ "filter-tasks": "name == 'TaskExit2'","critical-status": "exit_code != 0"} }
+    ...    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    Log To Console    service_1 must be ok
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
+    Should Be True    ${result}    resources table not updated for service_1
+
+
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_warning
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_critical
     Ctn Reload Engine
 
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
