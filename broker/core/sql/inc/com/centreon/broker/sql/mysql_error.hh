@@ -19,8 +19,6 @@
 #ifndef CCB_MYSQL_ERROR_HH
 #define CCB_MYSQL_ERROR_HH
 
-#include <fmt/format.h>
-
 namespace com::centreon::broker {
 
 namespace database {

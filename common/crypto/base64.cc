@@ -28,7 +28,7 @@ namespace com::centreon::common::crypto {
  *
  * @return The base64 encoding string.
  */
-std::string base64_encode(const std::string& str) {
+std::string base64_encode(const std::string_view& str) {
   const constexpr std::string_view b(
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
   std::string retval;
@@ -58,7 +58,7 @@ std::string base64_encode(const std::string& str) {
  *
  * @return The decoded string.
  */
-std::string base64_decode(const std::string& ascdata) {
+std::string base64_decode(const std::string_view& ascdata) {
   const constexpr std::array<char, 128> reverse_table{
       64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
       64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
@@ -71,11 +71,11 @@ std::string base64_decode(const std::string& ascdata) {
 
   std::string retval;
 
-  const std::string::const_iterator last = ascdata.end();
+  const auto last = ascdata.end();
   int bits_collected = 0;
   unsigned int accumulator = 0;
 
-  for (std::string::const_iterator i = ascdata.begin(); i != last; ++i) {
+  for (auto i = ascdata.begin(); i != last; ++i) {
     const int c = *i;
     if (std::isspace(c) || c == '=') {
       // Skip whitespace and padding. Be liberal in what you accept.

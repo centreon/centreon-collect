@@ -20,9 +20,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/unified_sql/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${INC_DIR}" "${SRC_DIR}"
+  ${CMAKE_BINARY_DIR}/common/process_stat
+"${PROJECT_SOURCE_DIR}/neb/inc"
+"${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 # Storage module.
@@ -53,15 +54,17 @@ add_library(
   ${INC_DIR}/rebuilder.hh
   ${INC_DIR}/stored_timestamp.hh
   ${INC_DIR}/stream.hh)
-set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
-                                                            "-fPIC")
-add_dependencies("${UNIFIED_SQL}" target_rebuild_message
-                 target_remove_graph_message 
-                 target_neb
+set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX ""
+  POSITION_INDEPENDENT_CODE TRUE
+							    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+add_dependencies("${UNIFIED_SQL}" pb_rebuild_message_lib
+                 pb_remove_graph_message_lib
+		 process_stat
+                 pb_neb_lib
                  pb_open_telemetry_lib)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
-  ${UNIFIED_SQL}
+  ${UNIFIED_SQL} PRIVATE
   bbdo_storage
   pb_storage_lib
   pb_rebuild_message_lib

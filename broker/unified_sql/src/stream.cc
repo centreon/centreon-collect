@@ -1254,7 +1254,7 @@ void stream::update() {
 }
 
 void stream::_start_loop_timer() {
-  _loop_timer.expires_from_now(std::chrono::seconds(_loop_timeout));
+  _loop_timer.expires_after(std::chrono::seconds(_loop_timeout));
   _loop_timer.async_wait([this](const boost::system::error_code& err) {
     if (err) {
       return;

@@ -3193,7 +3193,7 @@ int neb::callback_pb_service(int callback_type [[maybe_unused]], void* data) {
  *
  *  @return 0 on success.
  */
-int neb::callback_service_check(int callback_type, void* data) {
+int neb::callback_service_check(int, void* data) {
   const nebstruct_service_check_data* scdata =
       static_cast<nebstruct_service_check_data*>(data);
 
@@ -3204,8 +3204,16 @@ int neb::callback_service_check(int callback_type, void* data) {
     return 0;
 
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating service check event");
-  (void)callback_type;
+  if (neb_logger->level() <= spdlog::level::debug) {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event host {} "
+                        "service {} command_line={}",
+                        scdata->host_id, scdata->service_id,
+                        scdata->command_line);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger,
+                        "callbacks: generating service check event");
+  }
 
   try {
     // In/Out variables.

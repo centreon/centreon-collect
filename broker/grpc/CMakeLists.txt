@@ -21,10 +21,11 @@ set(MODULE_DIR "${PROJECT_SOURCE_DIR}/grpc")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/broker/grpc")
 set(SRC_DIR "${MODULE_DIR}/src")
 set(TEST_DIR "${MODULE_DIR}/test")
-include_directories(${MODULE_DIR}/inc 
-  ${SRC_DIR} 
+include_directories(${MODULE_DIR}/inc
+  ${SRC_DIR}
   ${CMAKE_SOURCE_DIR}/bbdo
-  ${CMAKE_SOURCE_DIR}/common 
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_SOURCE_DIR}/common
   ${CMAKE_SOURCE_DIR}/common/grpc/inc)
 
 # Sources.
@@ -44,11 +45,13 @@ set(GRPC
     ${GRPC}
     PARENT_SCOPE)
 add_library(${GRPC} SHARED ${SOURCES} )
-set_target_properties(${GRPC} PROPERTIES PREFIX "")
+set_target_properties(${GRPC} PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries(
   ${GRPC}
+  PRIVATE
   centreon_grpc
-  "-Wl,--whole-archive"
+  -Wl,--whole-archive
   pb_neb_lib
   pb_storage_lib
   pb_bbdo_lib
@@ -58,7 +61,7 @@ target_link_libraries(
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
-  "-Wl,--no-whole-archive"
+  -Wl,--no-whole-archive
   spdlog::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
@@ -106,7 +109,8 @@ add_custom_command(
 if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} ${TEST_DIR}/acceptor.cc
-      ${TEST_DIR}/stream_test.cc ${TEST_DIR}/factory_test.cc
+      ${TEST_DIR}/stream_test.cc
+      ${TEST_DIR}/factory_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${GRPC}

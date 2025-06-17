@@ -1,20 +1,20 @@
 /**
-* Copyright 2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2018 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include <fmt/format.h>
@@ -82,43 +82,26 @@ static int l_broker_socket_connect(lua_State* L) {
 
   socket_state = hostLookup;
   ip::tcp::resolver resolver{ctx};
-  ip::tcp::resolver::query query{addr, std::to_string(port)};
-
-  try {
-    ip::tcp::resolver::iterator it{resolver.resolve(query)};
-    ip::tcp::resolver::iterator end;
-    socket_state = connecting;
-
-    boost::system::error_code err{
-        make_error_code(asio::error::host_unreachable)};
-
-    // it can resolve to multiple addresses like ipv4 and ipv6
-    // we need to try all to find the first available socket
-    while (err && it != end) {
-      socket->connect(*it, err);
-
-      if (err)
-        socket->close();
-
-      ++it;
-    }
-
-    if (err) {
-      socket_state = unconnected;
-      luaL_error(L, fmt::format(
-                        "broker_socket::connect: Couldn't connect to {}:{}: {}",
-                        addr, port, err.message())
-                        .c_str());
-    } else {
-      socket_state = connected;
-    }
-  } catch (boost::system::system_error const& se) {
+  boost::system::error_code err;
+  auto endpoints = resolver.resolve(addr, std::to_string(port), err);
+  if (err || endpoints.empty()) {
+    socket_state = unconnected;
+    luaL_error(
+        L, fmt::format("broker_socket::connect: Couldn't resolve {}:{} : {}",
+                       addr, port, err.message())
+               .c_str());
+    return 0;  // never reached, but keeps the compiler happy
+  }
+  asio::connect(*socket, endpoints, err);
+  if (err) {
     socket_state = unconnected;
     luaL_error(
         L, fmt::format("broker_socket::connect: Couldn't connect to {}:{}: {}",
-                       addr, port, se.what())
+                       addr, port, err.message())
                .c_str());
+    return 0;
   }
+  socket_state = connected;
   return 0;
 }
 

@@ -413,15 +413,16 @@ void agent_impl<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
-                         agent_impl<bireactor_class>>::shared_from_this(),
-                     logger = _logger]() {
-    absl::MutexLock l(&_instances_m);
-    SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
-                        static_cast<void*>(me.get()));
-    _instances->erase(
-        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-  });
+  asio::post(*_io_context,
+             [me = std::enable_shared_from_this<
+                  agent_impl<bireactor_class>>::shared_from_this(),
+              logger = _logger]() {
+               absl::MutexLock l(&_instances_m);
+               SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
+                                   static_cast<void*>(me.get()));
+               _instances->erase(
+                   std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+             });
 }
 
 /**
@@ -438,22 +439,23 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * pthread_join of the current thread witch go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
+  asio::post(
+      *_io_context, [me = std::enable_shared_from_this<
                          agent_impl<bireactor_class>>::shared_from_this(),
                      status, logger = _logger]() {
-    absl::MutexLock l(&_instances_m);
-    if (status.ok()) {
-      SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
-                          static_cast<void*>(me.get()), status.error_message(),
-                          status.error_details());
-    } else {
-      SPDLOG_LOGGER_ERROR(logger, "{:p} client::OnDone({}) {}",
-                          static_cast<void*>(me.get()), status.error_message(),
-                          status.error_details());
-    }
-    _instances->erase(
-        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-  });
+        absl::MutexLock l(&_instances_m);
+        if (status.ok()) {
+          SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
+                              static_cast<void*>(me.get()),
+                              status.error_message(), status.error_details());
+        } else {
+          SPDLOG_LOGGER_ERROR(logger, "{:p} client::OnDone({}) {}",
+                              static_cast<void*>(me.get()),
+                              status.error_message(), status.error_details());
+        }
+        _instances->erase(
+            std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+      });
 }
 
 /**

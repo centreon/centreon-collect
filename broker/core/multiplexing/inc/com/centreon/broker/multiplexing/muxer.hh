@@ -87,11 +87,6 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::shared_ptr<stats::center> _center;
   std::time_t _last_stats;
 
-  /* The map of running muxers with the mutex to protect it. */
-  static absl::Mutex _running_muxers_m;
-  static absl::flat_hash_map<std::string, std::weak_ptr<muxer>> _running_muxers
-      ABSL_GUARDED_BY(_running_muxers_m);
-
   /* The logger of the muxer. */
   std::shared_ptr<spdlog::logger> _logger;
 

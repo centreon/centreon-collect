@@ -30,6 +30,7 @@ from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import shutil
 import random
 import string
 from dateutil import parser
@@ -484,8 +485,10 @@ def ctn_clear_cache():
 
 
 def ctn_clear_logs():
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
+    os.makedirs(f"{VAR_ROOT}/log/centreon-engine")
+    os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):

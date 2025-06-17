@@ -157,7 +157,7 @@ void agent_stat::_on_stat_update() const {
 
 void agent_stat::_start_send_timer() {
   absl::MutexLock l(&_protect);
-  _send_timer.expires_from_now(std::chrono::minutes(1));
+  _send_timer.expires_after(std::chrono::minutes(1));
   _send_timer.async_wait(
       [this, me = shared_from_this()](const boost::system::error_code& err) {
         _send_timer_handler(err);

@@ -45,6 +45,7 @@
 #include <absl/synchronization/mutex.h>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include <boost/asio.hpp>

@@ -19,8 +19,6 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/common/utf8.hh"
 
-#include <fmt/format.h>
-
 #include <cassert>
 
 using namespace com::centreon::broker::misc;

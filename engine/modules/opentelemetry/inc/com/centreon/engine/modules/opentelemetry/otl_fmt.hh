@@ -51,7 +51,7 @@ struct formatter<
               FormatContext& ctx) const -> decltype(ctx.out()) {
     if (json_grpc_format) {
       std::string output;
-      google::protobuf::util::MessageToJsonString(p, &output);
+      auto status = google::protobuf::util::MessageToJsonString(p, &output);
       return formatter<std::string>::format(
           max_length_log > 0 ? output.substr(0, max_length_log) : output, ctx);
     } else {
@@ -80,7 +80,8 @@ struct formatter<com::centreon::agent::MessageFromAgent>
 
     if (otl_formatter::json_grpc_format) {
       std::string output;
-      google::protobuf::util::MessageToJsonString(p, &output);
+      auto status [[maybe_unused]] =
+          google::protobuf::util::MessageToJsonString(p, &output);
       return formatter<std::string>::format(
           otl_formatter::max_length_log > 0
               ? output.substr(0, otl_formatter::max_length_log)
@@ -113,7 +114,8 @@ struct formatter<com::centreon::agent::MessageToAgent>
 
     if (otl_formatter::json_grpc_format) {
       std::string output;
-      google::protobuf::util::MessageToJsonString(p, &output);
+      auto status [[maybe_unused]] =
+          google::protobuf::util::MessageToJsonString(p, &output);
       return formatter<std::string>::format(
           otl_formatter::max_length_log > 0
               ? output.substr(0, otl_formatter::max_length_log)
