@@ -20,16 +20,15 @@ EOF
 
 BUILD_TYPE="Debug"
 
-export VCPKG_ROOT=$PWD/vcpkg
-export PATH=$VCPKG_ROOT:$PATH
-echo "Please, before the build, execute the following commands:"
-echo "export VCPKG_ROOT=\$PWD/vcpkg"
-echo "export PATH=\$VCPKG_ROOT:\$PATH"
+export VCPKG_ROOT=vcpkg
+export PATH="$VCPKG_ROOT:$PATH"
+#echo "Please, before the build, execute the following commands:"
+#echo "export VCPKG_ROOT=\$PWD/vcpkg"
+#echo "export PATH=\$VCPKG_ROOT:\$PATH"
 
 COMPILER=gcc
 CC=gcc
 CXX=g++
-WITH_CLANG=OFF
 DR=
 SC=0
 MOLD=
@@ -59,7 +58,6 @@ do
       ;;
     -clang)
       COMPILER=clang
-      WITH_CLANG=ON
       CC=clang
       CXX=clang++
       shift
@@ -262,16 +260,19 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if [ ! -d vcpkg ] ; then
-  echo "No vcpkg directory. Cloning the repo"
-  git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
-  ./vcpkg/bootstrap-vcpkg.sh
-fi
-
 if [ "$force" = "1" ] ; then
   echo "Build forced, removing the 'build' directory before recreating it"
   rm -rf build
+  rm -rf vcpkg
   mkdir build
+fi
+
+if [ ! -d vcpkg ] ; then
+  echo "No vcpkg directory. Cloning the repo"
+  echo "Current dir: $PWD"
+  git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+  ./vcpkg/bootstrap-vcpkg.sh
+  echo "Current dir: $PWD"
 fi
 
 case "$COMPILER" in
@@ -290,11 +291,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR -DWITH_CLANG=$WITH_CLANG $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
 fi

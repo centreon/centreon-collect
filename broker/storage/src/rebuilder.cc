@@ -19,6 +19,7 @@
 #include "com/centreon/broker/storage/rebuilder.hh"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <cfloat>
 #include <cmath>
 

@@ -16,9 +16,12 @@ APT::Install-Suggests "false";
 ' > /etc/apt/apt.conf.d/99custom
 
 apt-get update
-apt-get install -y ca-certificates
+apt-get install -y ca-certificates gpg wget
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg > /dev/null
+echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | tee /etc/apt/sources.list.d/kitware.list
 
 apt-get update
 
@@ -87,7 +90,7 @@ if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=arm
 fi
 
-git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg

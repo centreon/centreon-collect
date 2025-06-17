@@ -21,9 +21,9 @@
 
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
-#include "bbdo/neb.pb.h"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "neb.pb.h"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {

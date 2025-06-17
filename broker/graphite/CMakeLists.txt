@@ -45,7 +45,8 @@ add_library("${GRAPHITE}" SHARED
 )
 target_link_libraries("${GRAPHITE}" bbdo_storage pb_storage_lib spdlog::spdlog)
 target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
-set_target_properties("${GRAPHITE}" PROPERTIES PREFIX "")
+set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 add_dependencies("${GRAPHITE}" nebbase)
 
 # Testing.

@@ -22,6 +22,7 @@ set(SRC_DIR "${PROJECT_SOURCE_DIR}/bam/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/bam/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/core/inc ${PROJECT_SOURCE_DIR}/core/sql/inc
+  ${CMAKE_BINARY_DIR}/bbdo
   ${PROJECT_SOURCE_DIR}/neb/inc
   ${PROJECT_SOURCE_DIR}/core/src
 )
@@ -142,11 +143,12 @@ add_library(
   "${INC_DIR}/service_book.hh"
   "${INC_DIR}/service_listener.hh"
   "${INC_DIR}/timeperiod_map.hh")
-target_link_libraries("${BAM}" bbdo_storage bbdo_bam pb_bam_lib pb_bam_state_lib
+target_link_libraries("${BAM}" bbdo_storage bbdo_bam pb_bam_lib
                       spdlog::spdlog)
 target_precompile_headers(${BAM} PRIVATE precomp_inc/precomp.hpp)
-set_target_properties("${BAM}" PROPERTIES PREFIX "")
-add_dependencies("${BAM}" pb_open_telemetry_lib)
+set_target_properties("${BAM}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+add_dependencies("${BAM}" pb_open_telemetry_lib pb_bam_lib process_stat)
 
 # Testing.
 if(WITH_TESTING)

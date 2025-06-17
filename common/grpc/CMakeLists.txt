@@ -21,14 +21,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/grpc/inc")
 set(SRC_DIR "src")
 
-# Sources.
-set(SOURCES
+add_library(centreon_grpc STATIC
   ${SRC_DIR}/grpc_client.cc
-  ${SRC_DIR}/grpc_server.cc
-)
+  ${SRC_DIR}/grpc_server.cc)
 
-
-add_library(centreon_grpc STATIC ${SOURCES} )
 target_include_directories(centreon_grpc PRIVATE ${INC_DIR} ${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
@@ -36,4 +32,7 @@ target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
 set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Link the ctncrypto library with centreon_grpc.
-target_link_libraries(centreon_grpc PRIVATE ctncrypto)
+target_link_libraries(centreon_grpc
+  PRIVATE
+    ctncrypto
+)

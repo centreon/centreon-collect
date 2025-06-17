@@ -95,7 +95,7 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
@@ -137,7 +137,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
 // Then the receiver can deserialize it.
 TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   config::applier::modules modules(_logger);
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
