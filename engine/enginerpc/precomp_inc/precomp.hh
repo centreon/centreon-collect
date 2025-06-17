@@ -24,6 +24,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/fmt/ostr.h>
 
 #include <absl/container/btree_map.h>

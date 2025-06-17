@@ -19,7 +19,6 @@
 #include "com/centreon/broker/file/splitter.hh"
 
 #include <arpa/inet.h>
-#include <fmt/format.h>
 
 #include <cassert>
 

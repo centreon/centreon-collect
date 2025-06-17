@@ -56,6 +56,7 @@ add_executable(
 add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(
   centreon_connector_ssh
+  PRIVATE
   centreon_clib
   spdlog::spdlog
   fmt::fmt

@@ -89,7 +89,7 @@ TEST_F(StatsTest, Builder) {
 // TEST_F(StatsTest, BuilderWithModules) {
 //   stats::builder build;
 //   auto& modules = config::applier::state::instance().get_modules();
-//   modules.apply({"storage/20-storage.so", "neb/10-neb.so", "lua/70-lua.so"},
+//   modules.apply({"storage/20-storage.so", "lib/10-neb.so", "lua/70-lua.so"},
 //                 ".", nullptr);
 //
 //   build.build();
@@ -105,7 +105,7 @@ TEST_F(StatsTest, Builder) {
 //   ASSERT_TRUE(result["mysql manager"].is_object());
 //   ASSERT_TRUE(result["mysql manager"]["delay since last check"].is_string());
 //
-//   ASSERT_EQ(result["module./neb/10-neb.so"]["state"].get<std::string>(),
+//   ASSERT_EQ(result["module./lib/10-neb.so"]["state"].get<std::string>(),
 //             "loaded");
 //   ASSERT_EQ(result["module./storage/20-storage.so"]["state"].get<std::string>(),
 //             "loaded");

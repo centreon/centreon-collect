@@ -73,10 +73,8 @@ bool broker_module_deinit() {
  *
  *  @param[in] arg Configuration object.
  */
-void broker_module_init(void const* arg) {
-  (void)arg;
-
-  auto logger = log_v2::instance().get(log_v2::SQL);
+void broker_module_init(void const* arg [[maybe_unused]]) {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
 
   // Increment instance number.
   if (!instances++) {
@@ -108,7 +106,7 @@ void broker_module_init(void const* arg) {
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */
       e.register_event(make_type(io::storage, storage::de_rebuild_message),
-                       "rebuild_message",
+                       "RebuildMessage",
                        &storage::pb_rebuild_message::operations);
 
       /* Let's register the pb_remove_graphs bbdo event. This is needed to send
@@ -121,11 +119,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
                        "RemoveGraphMessage",
                        &storage::pb_remove_graph_message::operations);
-
-      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
-       * the remove graphs message from the gRPC interface. */
-      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
-                       "remove_graphs", &bbdo::pb_remove_poller::operations);
 
       /* Let's register the remove_poller event. */
       e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),

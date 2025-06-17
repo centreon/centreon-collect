@@ -59,8 +59,6 @@ reporting_stream::reporting_stream(
       _ack_events(0),
       _pending_events(0),
       _mysql(db_cfg, logger),
-      _processing_dimensions(false),
-      _logger{logger},
       _ba_full_event_insert(logger),
       _ba_event_update(logger),
       _ba_duration_event_insert(logger),
@@ -72,7 +70,9 @@ reporting_stream::reporting_stream(
       _dimension_bv_insert(logger),
       _dimension_ba_bv_relation_insert(logger),
       _dimension_timeperiod_insert(logger),
-      _dimension_ba_timeperiod_insert(logger) {
+      _dimension_ba_timeperiod_insert(logger),
+      _processing_dimensions(false),
+      _logger{logger} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();

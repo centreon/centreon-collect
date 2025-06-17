@@ -63,7 +63,7 @@ foreach(name IN LISTS service_files)
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto 
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${proto_file}
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -183,8 +183,8 @@ add_library(centagent_lib STATIC
 
 include_directories(
   ${INCLUDE_DIR}
-  ${NATIVE_INC} 
-  ${SRC_DIR} 
+  ${NATIVE_INC}
+  ${SRC_DIR}
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
@@ -199,14 +199,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
-    -L${PROTOBUF_LIB_DIR}
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     centagent_lib
     centreon_common
     centreon_grpc
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)

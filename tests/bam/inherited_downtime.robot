@@ -132,7 +132,7 @@ BEBAMIDT2
 
         # Broker is restarted
         Log To Console    Broker is stopped (step ${i})
-        Ctn Kindly Stop Broker
+        Ctn Kindly Stop Broker    bbdo2=True
         Log To Console    Broker is started
         Ctn Start Broker
     END
@@ -154,7 +154,7 @@ BEBAMIDT2
 
     Log To Console    Broker is stopped (end of BEBAMIDT2)
     Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    bbdo2=True
 
 BEBAMIGNDT1
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
@@ -264,7 +264,7 @@ BEBAMIGNDT1
     Log To Console    The BA is now critical (no more downtime)
 
     Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    bbdo2=True
 
 BEBAMIGNDT2
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
@@ -355,7 +355,7 @@ BEBAMIGNDT2
     Log To Console    The BA is now critical (no more downtime)
 
     Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Ctn Kindly Stop Broker    bbdo2=True
 
 
 *** Keywords ***
