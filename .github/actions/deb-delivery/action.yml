@@ -146,8 +146,8 @@ runs:
           SEARCH_PATH="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$BASENAME*OS_DISTRIB*ARCH*.deb"
 
           # search and delete all remote artifacts matching this pattern
-          echo "Searching and deleting $SEARCH_PATTERN"
-          jf rt delete "$SEARCH_PATTERN"
+          echo "Searching and deleting $SEARCH_PATH"
+          jf rt delete "$SEARCH_PATH"
 
           # upload local artifact
           echo "Uploading $file"
