@@ -21,13 +21,13 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-#include <sys/wait.h>
 #include <boost/process/v2/stdio.hpp>
 #include <iostream>
 
 #include "com/centreon/common/process/process.hh"
 
 #if !defined(BOOST_PROCESS_V2_WINDOWS)
+#include <sys/wait.h>
 #include "com/centreon/common/process/detail/centreon_posix_process_launcher.hh"
 #endif
 
