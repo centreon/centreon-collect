@@ -146,6 +146,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_process.cc
   ${NATIVE_SRC}/check_uptime.cc
   ${NATIVE_SRC}/check_counter.cc
+  ${NATIVE_SRC}/check_sched.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
@@ -222,7 +223,8 @@ else()
     absl::any absl::log absl::base absl::bits
     Boost::program_options
     fmt::fmt
-    pdh)
+    pdh
+    taskschd)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # The linker needs to know to retain debug symbols.

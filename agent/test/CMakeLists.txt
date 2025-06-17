@@ -43,6 +43,7 @@ else()
     check_windows_cpu_test.cc  
     check_windows_counter.cc
     check_windows_memory_test.cc 
+    check_windows_sched.cc
     check_uptime_test.cc 
     check_windows_service_test.cc)
 
@@ -90,7 +91,8 @@ else()
     Boost::program_options
     gRPC::grpc++
     fmt::fmt
-    pdh)
+    pdh
+    taskschd)
     add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
 
