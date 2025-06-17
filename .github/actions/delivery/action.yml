@@ -185,7 +185,7 @@ runs:
         ARTIFACTS_REMOTE_LIST=$(jf rt search "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/*.deb" --recursive --sort-by=path |jq -r .[].path)
 
         # Get list of local artifacts
-        ARTIFACTS_LOCAL_LIST=$(dir -1 |grep -E '.*${{ inputs.major_version }}.*.deb')
+        ARTIFACTS_LOCAL_LIST=$(dir -1 |grep -E '*\.deb')
 
         # Build list of diff between local and remote artifacts
         for local_artifact in "${ARTIFACTS_LOCAL_LIST[@]}"; do
