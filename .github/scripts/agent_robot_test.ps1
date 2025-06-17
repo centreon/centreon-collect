@@ -141,6 +141,34 @@ $test_param = @{
 
 Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process { $test_param.drive += $_ }
 
+# create 3 task sched
+$taskScriptsPath = "$env:TEMP\ExitCodeTasks"
+New-Item -Path $taskScriptsPath -ItemType Directory -Force | Out-Null
+
+# Round up to next full minute
+$nextMinute = (Get-Date).AddMinutes(1)
+$startTime = $nextMinute.ToString("HH:mm")
+
+@(
+    @{ Name = "TaskExit0"; Code = 0 },
+    @{ Name = "TaskExit1"; Code = 1 },
+    @{ Name = "TaskExit2"; Code = 2 }
+) | ForEach-Object {
+    $taskName = $_.Name
+    $exitCode = $_.Code
+    $batFile = "$taskScriptsPath\$taskName.bat"
+
+    # Create the batch file
+    Set-Content -Path $batFile -Value "exit $exitCode"
+
+    # Schedule the task
+    schtasks /Create /TN $taskName /TR "`"cmd /c $batFile`"" /SC ONCE /ST $startTime /F /RL LIMITED /RU "$env:USERNAME"
+
+    # Start the task immediately
+    Start-ScheduledTask -TaskName $taskName
+}
+
+
 $json_test_param = $test_param | ConvertTo-Json -Compress
 
 Write-Host "json_test_param" $json_test_param

@@ -59,7 +59,7 @@ static constexpr std::string_view _config_schema(R"(
 
 constexpr unsigned default_max_concurrent_checks = 100;
 constexpr unsigned default_export_period = 60;
-constexpr unsigned default_check_timeout = 30;
+constexpr unsigned default_check_timeout = 120;
 
 /**
  * @brief Construct a new agent config::agent from json data
