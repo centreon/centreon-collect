@@ -336,8 +336,8 @@ int service_downtime::subscribe() {
 }
 
 int service_downtime::handle() {
-  time_t event_time(0L);
-  int attr(0);
+  time_t event_time = 0L;
+  int attr = 0;
 
   SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::handle()");
 
