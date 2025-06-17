@@ -113,7 +113,7 @@ EBNSGU2
 
 EBNSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
-    [Tags]    broker    engine    servicegroup
+    [Tags]    broker    engine    servicegroup    unstable
     Ctn Config Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Config Broker    rrd

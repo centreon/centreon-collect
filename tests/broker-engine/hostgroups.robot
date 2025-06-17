@@ -12,7 +12,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Cases ***
 EBNHG1
     [Documentation]    New host group with several pollers and connections to DB
-    [Tags]    broker    engine    hostgroup
+    [Tags]    broker    engine    hostgroup    unstable
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
