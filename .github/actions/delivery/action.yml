@@ -205,7 +205,7 @@ runs:
         done
 
         # Delete all remote artifacts
-        jf rt delete "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/*${{ inputs.distrib }}.deb"
+        #jf rt delete "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/*${{ inputs.distrib }}.deb"
 
         # Upload local artifacts
         for ARTIFACT in ${ARTIFACTS_LOCAL_LIST[@]}; do
@@ -224,6 +224,10 @@ runs:
           else
             ROOT_REPO_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
           fi
+
+          # Delete all remote artifacts that have the same ARTIFACT_BASENAME + DISTRIB + ARCH
+          ARTIFACT_BASENAME=$(echo "$ARTIFACT" | cut -d '_' -f 1)
+          jf rt delete "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$ARTIFACT_BASENAME.*$DISTRIB.*$ARCH.deb"
 
           jf rt upload "$ARTIFACT" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
