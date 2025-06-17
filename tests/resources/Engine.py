@@ -3602,14 +3602,24 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with
         f.write(
             f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
 
+    json_load = json.loads(otl_server_config_json_content)
+
+    add_token_otel = False
+    if "otel_server" in json_load:
+        add_token_otel = True
+
+    if "centreon_agent" in json_load:
+        if "reverse_connections" in json_load["centreon_agent"]:
+            for obj in json_load["centreon_agent"]["reverse_connections"]:
+                if "encryption" in obj and obj["encryption"] == True:
+                    obj["token"] = token
+
     with open(otl_server_config_path, "w") as f:
-        pretty_json = json.dumps(json.loads(
-            otl_server_config_json_content), indent=4)
+        pretty_json = json.dumps(json_load, indent=4)
         f.write(pretty_json)
-    if with_default_token:
-        if "\"encryption\": true" in otl_server_config_json_content:
-            # add token to otl_server.json
-            ctn_add_token_otl_server_module(idx, token)
+    if add_token_otel and with_default_token:
+        # add token to otl_server.json
+        ctn_add_token_otl_server_module(idx, token)
 
 
 def ctn_add_token_otl_server_module(idx: int, token: str):
@@ -3631,20 +3641,21 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
         data = json.load(f)
 
     # Check if "trusted_tokens" already exists
-    if "otel_server" in data:
-        if "trusted_tokens" in data["otel_server"]:
-            if token not in data["otel_server"]["trusted_tokens"]:
-                data["otel_server"]["trusted_tokens"].append(token)
-                token_inserted = True
-        else:
-            # Insert trusted_tokens after otel_server
-            new_data = {}
-            for key, value in data.items():
-                new_data[key] = value
-                if key == "otel_server":
-                    new_data[key]["trusted_tokens"] = [token]
+    if "otel_server" in data and "encryption" in data["otel_server"]:
+        if data["otel_server"]["encryption"] == True:
+            if "trusted_tokens" in data["otel_server"]:
+                if token not in data["otel_server"]["trusted_tokens"]:
+                    data["otel_server"]["trusted_tokens"].append(token)
                     token_inserted = True
-            data = new_data
+            else:
+                # Insert trusted_tokens after otel_server
+                new_data = {}
+                for key, value in data.items():
+                    new_data[key] = value
+                    if key == "otel_server":
+                        new_data[key]["trusted_tokens"] = [token]
+                        token_inserted = True
+                data = new_data
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
@@ -3679,6 +3690,36 @@ def ctn_del_token_otl_server_module(idx: int, token: str):
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
+
+
+def ctn_add_token_agent_otl_server(idx_config: int, idx_agent: int, token: str):
+    """
+    Add a token in the otl_server.json configuration file.to the fields token
+    Args:
+        idx (int): The index of the configuration directory (e.g., config1, config2, etc.).
+        token (str): The token to be added to the "trusted_tokens" list.
+    Returns:
+        bool: True if the token was successfully inserted, False otherwise.
+    """
+
+    otl_server_config_path = f"{ETC_ROOT}/centreon-engine/config{idx_config}/otl_server.json"
+    token_inserted = False
+
+    if not exists(otl_server_config_path):
+        return
+
+    with open(otl_server_config_path, "r") as f:
+        data = json.load(f)
+
+    # Check if "trusted_tokens" already exists
+    if "centreon_agent" in data:
+        if "reverse_connections" in data["centreon_agent"]:
+            data["centreon_agent"]["reverse_connections"][idx_agent]["token"] = token
+
+    with open(otl_server_config_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+    return token_inserted
 
 
 def ctn_randomword(length):

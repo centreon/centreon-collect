@@ -65,3 +65,42 @@ TEST(config, bad_log_level) {
   f.close();
   ASSERT_THROW(config conf(_json_config_path), std::exception);
 }
+
+TEST(config, token) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "encryption":true,
+    "compression": true,
+    "ca_name":"toto",
+    "token":"token1"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+  ASSERT_EQ(conf.get_token(), "token1");
+}
+
+TEST(config, reversed_grpc_streaming_token) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "encryption":true,
+    "compression": true,
+    "reversed_grpc_streaming":true,
+    "ca_name":"toto",
+    "token":"token1"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+  ASSERT_TRUE(conf.get_trusted_tokens().contains("token1"));
+}
