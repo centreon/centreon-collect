@@ -195,7 +195,7 @@ runs:
           echo "[DEBUG] - OS_distrib: $OS_DISTRIB"
           echo "[DEBUG] - Arch: $ARCH"
 
-          SEARCH_PATH="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/$BASENAME_*$OS_DISTRIB*$ARCH*.deb"
+          SEARCH_PATH="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/${BASENAME}_*${OS_DISTRIB}*${ARCH}*.deb"
 
           # search and delete all remote artifacts matching this pattern 
           echo "Searching and deleting $SEARCH_PATH"
