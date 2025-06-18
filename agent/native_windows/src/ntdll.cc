@@ -33,9 +33,19 @@ RtlGetVersionPtr rtl_get_version = nullptr;
  */
 void load_nt_dll() {
   if (!_ntdll) {
-    _ntdll = LoadLibraryA("ntdll.dll");
+    char windows_dir[4096];
+    constexpr unsigned max_dir_length = sizeof(windows_dir) - 1;
+    unsigned path_length =
+        GetSystemWindowsDirectoryA(windows_dir, max_dir_length);
+    if (path_length > max_dir_length) {
+      throw std::runtime_error("unable to get windows directory");
+    }
+    std::string ntdll_path(windows_dir, path_length);
+    ntdll_path += "\\System32\\ntdll.dll";
+
+    _ntdll = LoadLibraryA(ntdll_path.c_str());
     if (!_ntdll) {
-      throw std::runtime_error("Failed to load ntdll.dll");
+      throw std::runtime_error("Failed to load " + ntdll_path);
     }
   }
 

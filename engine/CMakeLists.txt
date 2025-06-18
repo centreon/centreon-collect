@@ -539,9 +539,9 @@ target_link_libraries(
   -Wl,--no-whole-archive
   centreon_http
   centreon_common
-  centreon_process
   Boost::url
   cce_core
+  centreon_process
   Boost::program_options
   absl::any
   absl::log
