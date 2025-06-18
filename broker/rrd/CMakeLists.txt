@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2013 Centreon
+# Copyright 2011-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -84,9 +84,10 @@ add_library(
   "${INC_DIR}/com/centreon/broker/rrd/factory.hh"
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
   "${INC_DIR}/com/centreon/broker/rrd/output.hh")
-set_target_properties("${RRD}" PROPERTIES PREFIX "")
+set_target_properties("${RRD}" PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies("${RRD}" target_rebuild_message target_remove_graph_message)
+add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib process_stat)
 
 # Compile with librrd flags.
 if(LIBRRD_CFLAGS)
@@ -104,7 +105,7 @@ if(LIBRRD_CFLAGS)
 endif()
 
 target_link_libraries(
-  "${RRD}"
+  "${RRD}" PRIVATE
   ${LIBRRD_LDFLAGS}
   bbdo_storage
   pb_storage_lib

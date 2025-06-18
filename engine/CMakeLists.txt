@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2024 Centreon
+# Copyright 2011-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -52,6 +52,9 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 include_directories(
   ${INC_DIR}
   ${INC_DIR}/compatibility
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/engine/enginerpc
+  ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_BINARY_DIR}/common/engine_conf
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/broker/neb/inc
@@ -495,13 +498,14 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
 add_dependencies(centenginestats centreon_clib)
-target_link_libraries(centenginestats centreon_clib fmt::fmt)
+target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
+
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
 
 # Library engine target.
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
-add_dependencies(cce_core engine_rpc centreon_clib pb_neb_lib pb_common_lib)
+add_dependencies(cce_core process_stat engine_rpc centreon_clib pb_neb_lib cbmod)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
@@ -520,31 +524,23 @@ target_link_libraries(
 # centengine target.
 
 add_executable(centengine "${SRC_DIR}/main.cc")
-set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
+set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
 target_link_libraries(
   centengine
-  -L${PROTOBUF_LIB_DIR}
-  "-rdynamic"
-  centreon_clib
+  PRIVATE centreon_clib
   log_v2
-  "-Wl,-whole-archive"
   enginerpc
+  -Wl,--whole-archive
   centreon_grpc
+  -Wl,--no-whole-archive
   centreon_http
   centreon_common
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_url
+  Boost::url
   cce_core
-  gRPC::grpc++
-  boost_program_options
-  protobuf
-  "-Wl,--no-whole-archive"
-  gRPC::gpr
-  gRPC::grpc
-  gRPC::grpc++_alts
+  Boost::program_options
   absl::any
   absl::log
   absl::base
@@ -555,8 +551,7 @@ target_link_libraries(
   z
   ryml::ryml
   stdc++fs
-  dl
-  -lfmt)
+  dl)
 
 install(
   TARGETS centengine centenginestats

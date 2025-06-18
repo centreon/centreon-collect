@@ -312,7 +312,8 @@ void muxer::_execute_reader_if_needed() {
       _logger, "muxer '{}' execute reader if needed data_handler", _name);
   bool expected = false;
   if (_reader_running.compare_exchange_strong(expected, true)) {
-    com::centreon::common::pool::io_context_ptr()->post(
+    asio::post(
+        *com::centreon::common::pool::io_context_ptr(),
         [me = shared_from_this(), this] {
           std::shared_ptr<data_handler> to_call;
           {

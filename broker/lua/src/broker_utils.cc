@@ -23,6 +23,7 @@
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "com/centreon/broker/config/applier/state.hh"
+#include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>
 #include <cstdlib>
@@ -47,6 +48,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
+using namespace com::centreon::common::crypto;
 using namespace nlohmann;
 using com::centreon::common::log_v2::log_v2;
 
@@ -776,6 +778,42 @@ static int l_broker_url_encode(lua_State* L) {
 }
 
 /**
+ *  The Lua base64_encode function
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_base64_encode(lua_State* L) {
+  size_t len;
+  char const* str = lua_tolstring(L, -1, &len);
+  std::string_view sv(str, len);
+
+  std::string retval = com::centreon::common::crypto::base64_encode(sv);
+
+  lua_pushlstring(L, retval.c_str(), retval.size());
+  return 1;
+}
+
+/**
+ *  The Lua base64_decode function
+ *
+ * @param L The Lua interpreter
+ *
+ * @return 1
+ */
+static int l_broker_base64_decode(lua_State* L) {
+  size_t len;
+  char const* str = lua_tolstring(L, -1, &len);
+  std::string_view sv(str, len);
+
+  std::string retval = base64_decode(sv);
+
+  lua_pushlstring(L, retval.c_str(), retval.size());
+  return 1;
+}
+
+/**
  * @brief The Lua stat function that is just a binding to the C stat().
  * The Lua function will return the asked object or nil followed by an
  * error message.
@@ -889,6 +927,8 @@ void broker_utils::broker_utils_reg(lua_State* L) {
                               {"json_decode", l_broker_json_decode},
                               {"parse_perfdata", l_broker_parse_perfdata},
                               {"url_encode", l_broker_url_encode},
+                              {"base64_encode", l_broker_base64_encode},
+                              {"base64_decode", l_broker_base64_decode},
                               {"stat", l_broker_stat},
                               {"md5", l_broker_md5},
                               {"bbdo_version", l_broker_bbdo_version},

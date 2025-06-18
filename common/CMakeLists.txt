@@ -31,30 +31,12 @@ set(HTTP_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/http/inc/com/centreon/common/http")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 
-add_custom_command(
-  DEPENDS ${SRC_DIR}/process_stat.proto
-  COMMENT "Generating interface files of the proto file (grpc)"
-  OUTPUT ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/process_stat.grpc.pb.h
-  COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
-    --grpc_out="${SRC_DIR}" ${SRC_DIR}/process_stat.proto
-  DEPENDS ${SRC_DIR}/process_stat.proto
-  COMMENT "Generating interface files of the proto file (protobuf)"
-  OUTPUT ${SRC_DIR}/process_stat.pb.cc ${SRC_DIR}/process_stat.pb.h
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-          --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
       ${SRC_DIR}/hex_dump.cc
       ${SRC_DIR}/perfdata.cc
       ${SRC_DIR}/pool.cc
-      ${SRC_DIR}/process_stat.cc
-      ${SRC_DIR}/process_stat.pb.cc
-      ${SRC_DIR}/process_stat.grpc.pb.cc
       ${SRC_DIR}/rapidjson_helper.cc
       ${SRC_DIR}/utf8.cc
       ${SRC_DIR}/file.cc)
@@ -79,6 +61,7 @@ target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(http)
   add_subdirectory(vault)
+  add_subdirectory(process_stat)
 endif()
 
 add_subdirectory(grpc)

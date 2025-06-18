@@ -35,7 +35,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
-  add_executable(ut_common
+  add_executable(
+    ut_common
     absl_flyweight_factory_test.cc
     perfdata_test.cc
     process_test.cc
@@ -45,12 +46,11 @@ else()
     ${TESTS_SOURCES})
 endif()
 
-set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")                   
+set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 target_compile_definitions(
   ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
-  -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
-  )
+                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\")
 
 set_target_properties(
   ut_common
@@ -78,12 +78,13 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
+            process_stat
             ctncrypto
             centreon_http
             centreon_process
-	    engine_conf
-            -L${Boost_LIBRARY_DIR_RELEASE}
-            boost_program_options
+            protobuf::libprotobuf
+            engine_conf
+            Boost::program_options
             re2::re2
             log_v2
             OpenSSL::SSL
@@ -99,7 +100,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             fmt::fmt
             pthread)
 
-  add_dependencies(ut_common centreon_common centreon_http)
+  add_dependencies(ut_common centreon_common process_stat ctncrypto
+                   centreon_http)
 
 else()
   target_link_libraries(

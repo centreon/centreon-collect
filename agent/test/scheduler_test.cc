@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2024-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -417,7 +417,6 @@ TEST_F(scheduler_test, time_out) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
-  scheduler_closer closer(sched);
 
   std::unique_lock l(m);
   export_cond.wait(l);
@@ -446,6 +445,8 @@ TEST_F(scheduler_test, time_out) {
   // timeout 1s
   ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 2000000000);
   ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 2500000000);
+
+  scheduler_closer closer(sched);
 }
 
 TEST_F(scheduler_test, correct_output_examplar) {
@@ -471,7 +472,6 @@ TEST_F(scheduler_test, correct_output_examplar) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
-  scheduler_closer closer(sched);
 
   std::mutex m;
   std::unique_lock l(m);
@@ -526,6 +526,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
 
   ASSERT_LE(first_time_point + 400000000, data_point_state2.time_unix_nano());
   ASSERT_GE(first_time_point + 600000000, data_point_state2.time_unix_nano());
+
+  scheduler_closer closer(sched);
 }
 
 /**

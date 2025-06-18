@@ -80,6 +80,23 @@ ESSCTOWC
     Ctn Config Broker    module
     Repeat Keyword    4 times    Ctn Start Stop Instances    20s
 
+ESS_STATS
+    [Documentation]    Scenario: Reading the stats file after Engine has started
+    ...    Given the Engine is started
+    ...    When we read the Engine's stats file
+    ...    Then Engine must not crash
+    [Tags]    engine    MON-171621
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1    only_engine=True
+    Ctn Clear Retention
+    ${start}    Get Current Date
+    Ctn Clear Retention
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Wait Until Created    /tmp/var/lib/centreon-engine/central-module-master-stats.json
+    ${result}    Grep File    /tmp/var/lib/centreon-engine/central-module-master-stats.json    "name":"/usr/share/centreon/lib/centreon-broker/15-stats.so"
+    Ctn Stop Engine
 
 *** Keywords ***
 Ctn Start Stop Instances

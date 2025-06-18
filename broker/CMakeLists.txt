@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2024 Centreon
+# Copyright 2009-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -66,23 +66,20 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions(
-    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
-  )
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions(
-    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions(
-    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
-  )
+  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/common/process_stat
   "${PROJECT_SOURCE_DIR}/core/inc"
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
@@ -103,10 +100,10 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    protobuf::protoc ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
     --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${SRC_DIR}"
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
@@ -114,20 +111,16 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
     --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
+    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
     ${SRC_DIR}/broker.proto
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    WORKING_DIRECTORY ${SRC_DIR})
 
 add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_SOURCE_DIR}/bbdo)
-
-add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
-                         ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
-target_link_libraries(berpc protobuf pb_common_lib)
-set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
+                    ${CMAKE_SOURCE_DIR}/common/inc
+                    ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Version.
 if(CENTREON_BROKER_PRERELEASE)
@@ -307,6 +300,24 @@ endif()
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
+
+add_library(pb_broker_lib STATIC
+    ${SRC_DIR}/broker.grpc.pb.cc
+    ${SRC_DIR}/broker.grpc.pb.h
+    ${SRC_DIR}/broker.pb.cc
+    ${SRC_DIR}/broker.pb.h
+  )
+
+add_dependencies(pb_broker_lib process_stat pb_common_lib)
+
+target_link_libraries(pb_broker_lib
+  PRIVATE
+  pb_common_lib
+  process_stat
+)
+
+set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(core/bbdo)
 
 # Core library.
@@ -340,6 +351,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/endpoint.cc
     ${SRC_DIR}/io/events.cc
     ${SRC_DIR}/io/factory.cc
+    ${SRC_DIR}/io/limit_endpoint.cc
     ${SRC_DIR}/io/protocols.cc
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
@@ -366,125 +378,60 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/time/timerange.cc
     ${SRC_DIR}/time/timezone_locker.cc
     ${SRC_DIR}/time/timezone_manager.cc
-    # Headers.
-    ${INC_DIR}/broker_impl.hh
-    ${INC_DIR}/brokerrpc.hh
-    ${INC_DIR}/compression/factory.hh
-    ${INC_DIR}/compression/opener.hh
-    ${INC_DIR}/compression/stack_array.hh
-    ${INC_DIR}/compression/stream.hh
-    ${INC_DIR}/config/applier/endpoint.hh
-    ${INC_DIR}/config/applier/init.hh
-    ${INC_DIR}/config/applier/modules.hh
-    ${INC_DIR}/config/applier/state.hh
-    ${INC_DIR}/config/endpoint.hh
-    ${INC_DIR}/config/parser.hh
-    ${INC_DIR}/config/state.hh
-    ${INC_DIR}/exceptions/config.hh
-    ${INC_DIR}/exceptions/interrupt.hh
-    ${INC_DIR}/exceptions/shutdown.hh
-    ${INC_DIR}/exceptions/timeout.hh
-    ${INC_DIR}/file/cfile.hh
-    ${INC_DIR}/file/directory_event.hh
-    ${INC_DIR}/file/directory_watcher.hh
-    ${INC_DIR}/file/factory.hh
-    ${INC_DIR}/file/fifo.hh
-    ${INC_DIR}/file/fs_file.hh
-    ${INC_DIR}/file/opener.hh
-    ${INC_DIR}/file/splitter.hh
-    ${INC_DIR}/file/stream.hh
-    ${INC_DIR}/io/data.hh
-    ${INC_DIR}/io/endpoint.hh
-    ${INC_DIR}/io/event_info.hh
-    ${INC_DIR}/io/events.hh
-    ${INC_DIR}/io/factory.hh
-    ${INC_DIR}/io/protocols.hh
-    ${INC_DIR}/io/raw.hh
-    ${INC_DIR}/io/stream.hh
-    ${INC_DIR}/mapping/entry.hh
-    ${INC_DIR}/mapping/property.hh
-    ${INC_DIR}/mapping/source.hh
-    ${INC_DIR}/misc/diagnostic.hh
-    ${INC_DIR}/misc/filesystem.hh
-    ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/processing_speed_computer.hh
-    ${INC_DIR}/misc/shared_mutex.hh
-    ${INC_DIR}/misc/string.hh
-    ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/variant.hh
-    ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/persistent_cache.hh
-    ${INC_DIR}/persistent_file.hh
-    ${INC_DIR}/processing/acceptor.hh
-    ${INC_DIR}/processing/failover.hh
-    ${INC_DIR}/processing/feeder.hh
-    ${INC_DIR}/processing/stat_visitable.hh
-    ${INC_DIR}/stats/helper.hh
-    ${INC_DIR}/time/daterange.hh
-    ${INC_DIR}/time/ptr_typedef.hh
-    ${INC_DIR}/time/time_info.hh
-    ${INC_DIR}/time/timeperiod.hh
-    ${INC_DIR}/time/timerange.hh
-    ${INC_DIR}/time/timezone_locker.hh
-    ${INC_DIR}/time/timezone_manager.hh
-    ${INC_DIR}/timestamp.hh
-    ${INC_DIR}/vars.hh
-    ${INC_DIR}/version.hh)
+  )
 
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
-set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase berpc target_bbdo target_extcmd pb_neb_lib)
+add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
 target_include_directories(rokerbase
                            PRIVATE ${PROJECT_SOURCE_DIR}/core)
 target_link_libraries(
-  rokerbase
-  bbdo
+  rokerbase PRIVATE
+  sql
   bbdo_bbdo
-  berpc
+  pb_broker_lib
+  bbdo
   ctncrypto
-  dl
   pb_bbdo_lib
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  pthread
+  process_stat
+  z
   spdlog::spdlog
-  sql
-  z)
+  pthread
+  dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase crypto ssl pthread dl)
+target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
+
 add_dependencies(cbd multiplexing centreon_common pb_neb_lib)
+
+set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
-  cbd
-  "-rdynamic"
-  "-Wl,--whole-archive"
+  cbd PRIVATE
+  -Wl,--whole-archive
   log_v2
   sql
   rokerbase
   roker
   multiplexing
   centreon_common
-  "-Wl,--no-whole-archive"
+  -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   fmt::fmt
-  -L${PROTOBUF_LIB_DIR}
-  "-Wl,--whole-archive"
+  -Wl,--whole-archive
   gRPC::grpc++
-  protobuf
-  "-Wl,--no-whole-archive"
-  stdc++fs
-  # spdlog::spdlog
-  gRPC::gpr
-  gRPC::grpc
-  gRPC::grpc++_alts)
+  protobuf::libprotobuf
+  -Wl,--no-whole-archive
+  stdc++fs)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -610,6 +557,40 @@ include(cmake/package.cmake)
 option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
 if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+  set(TESTS_SOURCES
+    ${TESTS_SOURCES}
+    ${TEST_DIR}/bbdo/category.cc
+    ${TEST_DIR}/bbdo/output.cc
+    ${TEST_DIR}/bbdo/read.cc
+    ${TEST_DIR}/cache/global_cache_test.cc
+    ${TEST_DIR}/compression/stream/memory_stream.hh
+    ${TEST_DIR}/compression/stream/read.cc
+    ${TEST_DIR}/compression/stream/write.cc
+    ${TEST_DIR}/compression/zlib/zlib.cc
+    ${TEST_DIR}/config/init.cc
+    ${TEST_DIR}/config/parser.cc
+    ${TEST_DIR}/file/disk_accessor.cc
+    ${TEST_DIR}/file/splitter/concurrent.cc
+    ${TEST_DIR}/file/splitter/default.cc
+    ${TEST_DIR}/file/splitter/more_than_max_size.cc
+    ${TEST_DIR}/file/splitter/permission_denied.cc
+    ${TEST_DIR}/file/splitter/resume.cc
+    ${TEST_DIR}/file/splitter/split.cc
+    ${TEST_DIR}/file/splitter/split_limited.cc
+    ${TEST_DIR}/misc/buffer.cc
+    ${TEST_DIR}/misc/exec.cc
+    ${TEST_DIR}/misc/filesystem.cc
+    ${TEST_DIR}/misc/math.cc
+    ${TEST_DIR}/misc/misc.cc
+    ${TEST_DIR}/misc/string.cc
+    ${TEST_DIR}/modules/module.cc
+    ${TEST_DIR}/processing/acceptor.cc
+    ${TEST_DIR}/processing/feeder.cc
+    ${TEST_DIR}/time/timerange.cc
+    ${TEST_DIR}/rpc/brokerrpc.cc
+    ${TEST_DIR}/exceptions.cc
+    ${TEST_DIR}/io.cc
+  )
   add_subdirectory(test)
 endif()
 
@@ -666,8 +647,6 @@ message(STATUS "")
 message(STATUS "  Install")
 message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
 
-# message(STATUS "    - Binary prefix              ${CMAKE_INSTALL_SBINDIR}")
-# message(STATUS "    - Library prefix             ${PREFIX_LIB}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(
   STATUS

@@ -33,8 +33,8 @@ using duration = system_clock::duration;
  */
 class http_config {
   // destination or listen address
-  asio::ip::tcp::endpoint _endpoint;
-  asio::ip::tcp::resolver::results_type _endpoints_list;
+  asio::ip::tcp::resolver::results_type _endpoints;
+
   std::string _server_name;
   bool _crypted;
   duration _connect_timeout;
@@ -71,7 +71,10 @@ class http_config {
                   asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "",
               const std::string& key_path = "")
-      : _endpoint(endpoint),
+      : _endpoints(
+            boost::asio::ip::tcp::resolver::results_type::create(endpoint,
+                                                                 "",
+                                                                 "")),
         _server_name(server_name),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
@@ -86,7 +89,7 @@ class http_config {
         _certificate_path(certificate_path),
         _key_path(key_path) {}
 
-  http_config(const asio::ip::tcp::resolver::results_type& endpoints_list,
+  http_config(const asio::ip::tcp::resolver::results_type& endpoints,
               const std::string_view& server_name,
               bool crypted = false,
               duration connect_timeout = std::chrono::seconds(10),
@@ -101,7 +104,7 @@ class http_config {
                   asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "",
               const std::string& key_path = "")
-      : _endpoints_list(endpoints_list),
+      : _endpoints(endpoints),
         _server_name(server_name),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
@@ -122,10 +125,12 @@ class http_config {
         _max_send_retry(0),
         _max_connections(0) {}
 
-  const asio::ip::tcp::resolver::results_type& get_endpoints_list() const {
-    return _endpoints_list;
+  const asio::ip::tcp::resolver::results_type& get_endpoints() const {
+    return _endpoints;
   }
-  const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
+  asio::ip::tcp::endpoint get_endpoint() const {
+    return _endpoints.begin()->endpoint();
+  }
   const std::string& get_server_name() const { return _server_name; }
   bool is_crypted() const { return _crypted; }
   const duration& get_connect_timeout() const { return _connect_timeout; }
@@ -162,9 +167,16 @@ struct formatter<com::centreon::common::http::http_config> {
   auto format(const com::centreon::common::http::http_config& conf,
               FormatContext& ctx) const -> decltype(ctx.out()) {
     std::ostringstream s;
-    s << conf.get_endpoint();
-    return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
-                     conf.is_crypted());
+    if (conf.get_endpoints().empty()) {
+      s << "no endpoints";
+      // s << conf.get_endpoint();
+      // return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
+      //                  conf.is_crypted());
+    } else {
+      s << conf.get_endpoints().begin()->endpoint();
+      return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
+                       conf.is_crypted());
+    }
   }
 };
 

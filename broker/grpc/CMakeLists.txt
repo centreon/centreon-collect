@@ -46,23 +46,22 @@ set(GRPC
     ${GRPC}
     PARENT_SCOPE)
 add_library(${GRPC} SHARED ${SOURCES})
-set_target_properties(${GRPC} PROPERTIES PREFIX "")
+set_target_properties(${GRPC} PROPERTIES PREFIX ""
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries(
   ${GRPC}
   centreon_grpc
-  "-Wl,--whole-archive"
   pb_neb_lib
   pb_common_lib
   pb_storage_lib
   pb_bbdo_lib
   pb_bam_lib
-  pb_bam_state_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
   pb_header_lib
-  "-Wl,--no-whole-archive"
+  centreon_common
   spdlog::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)

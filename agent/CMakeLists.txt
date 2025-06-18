@@ -183,8 +183,8 @@ add_library(centagent_lib STATIC
 
 include_directories(
   ${INCLUDE_DIR}
-  ${NATIVE_INC} 
-  ${SRC_DIR} 
+  ${NATIVE_INC}
+  ${SRC_DIR}
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
@@ -199,14 +199,15 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
-    -L${PROTOBUF_LIB_DIR}
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    -Wl,--whole-archive
+    gRPC::grpc++
+    -Wl,--no-whole-archive
+    absl::any absl::log absl::base absl::bits
     centagent_lib
     centreon_common
     centreon_grpc
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
@@ -219,7 +220,7 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    gRPC::grpc++
     absl::any absl::log absl::base absl::bits
     Boost::program_options
     fmt::fmt

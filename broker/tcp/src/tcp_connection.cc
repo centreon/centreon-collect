@@ -108,7 +108,7 @@ int32_t tcp_connection::flush() {
   if (!_writing) {
     _writing = true;
     // The strand is useful because of the flush() method.
-    _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+    asio::post(_strand.context(), std::bind(&tcp_connection::writing, ptr()));
   }
   return retval;
 }
@@ -147,7 +147,7 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
   if (!_writing) {
     _writing = true;
     // The strand is useful because of the flush() method.
-    _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+    asio::post(_strand.context(), std::bind(&tcp_connection::writing, ptr()));
   }
 
   int32_t retval = _acks;
@@ -288,7 +288,8 @@ void tcp_connection::close() {
       if (!_writing) {
         _writing = true;
         // The strand is useful because of the flush() method.
-        _strand.context().post(std::bind(&tcp_connection::writing, ptr()));
+        asio::post(_strand.context(),
+                   std::bind(&tcp_connection::writing, ptr()));
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
@@ -322,7 +323,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
   }
 
   if (!_reading)
-    _strand.post(std::bind(&tcp_connection::start_reading, this));
+    asio::post(_strand, std::bind(&tcp_connection::start_reading, this));
 
   std::vector<char> retval;
 

@@ -37,6 +37,9 @@ find_package(boost_program_options CONFIG REQUIRED)
 find_package(boost_multi_index CONFIG REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
 
+# Find the location of the gRPC plugin
+get_target_property(GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
+
 add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
 add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
 add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
@@ -51,17 +54,6 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   endif()
 endif()
 
-# There is a bug with grpc. It is not put in the triplet directory. So we have
-# to search for its plugin.
-file(GLOB_RECURSE GRPC_CPP_PLUGIN_EXE
-  RELATIVE ${CMAKE_BINARY_DIR} grpc_cpp_plugin.exe)
-find_program(GRPC_CPP_PLUGIN
-  NAMES ${GRPC_CPP_PLUGIN_EXE}
-  PATHS ${CMAKE_BINARY_DIR}
-  REQUIRED
-  NO_DEFAULT_PATH)
-
-set(PROTOBUF_LIB_DIR ${Protobuf_DIR}/../../lib)
 set(VCPKG_INCLUDE_DIR ${OPENSSL_INCLUDE_DIR})
 include(GNUInstallDirs)
 

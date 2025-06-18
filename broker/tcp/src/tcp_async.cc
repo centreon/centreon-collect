@@ -170,31 +170,31 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
     listen_endpoint =
         asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
   else {
-    asio::ip::tcp::resolver::query query(conf->get_host(),
-                                         std::to_string(conf->get_port()));
-    asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
+    asio::ip::tcp::resolver resolver(
+        com::centreon::common::pool::instance().io_context());
     boost::system::error_code ec;
-    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
-    if (ec) {
+    auto endpoints = resolver.resolve(conf->get_host(),
+                                      std::to_string(conf->get_port()), ec);
+    if (ec || endpoints.empty()) {
       _logger->error("TCP: error while resolving '{}' name: {}",
                      conf->get_host(), ec.message());
       listen_endpoint =
           asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
     } else {
-      for (; it != end; ++it) {
-        listen_endpoint = *it;
+      for (auto ep : endpoints) {
+        listen_endpoint = ep;
         _logger->info("TCP: {} gives address {}", conf->get_host(),
                       listen_endpoint.address().to_string());
-        if (listen_endpoint.address().is_v4())
+        if (ep.endpoint().address().is_v4())
           break;
       }
     }
   }
   auto retval{std::make_shared<asio::ip::tcp::acceptor>(
-      com::centreon::common::pool::io_context(), listen_endpoint)};
+      com::centreon::common::pool::instance().io_context(),
+      listen_endpoint)};  // the constructor has the
+                          // reuse_address option true by default
 
-  asio::ip::tcp::acceptor::reuse_address option(true);
-  retval->set_option(option);
   return retval;
 }
 
@@ -340,43 +340,40 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
  */
 tcp_connection::pointer tcp_async::create_connection(
     const tcp_config::pointer& conf) {
-  auto logger = log_v2::instance().get(log_v2::TCP);
-  logger->trace("create connection to host {}:{}", conf->get_host(),
-                conf->get_port());
+  _logger->trace("create connection to host {}:{}", conf->get_host(),
+                 conf->get_port());
   tcp_connection::pointer conn = std::make_shared<tcp_connection>(
-      com::centreon::common::pool::io_context(), _logger, conf->get_host(),
-      conf->get_port());
+      com::centreon::common::pool::instance().io_context(), _logger,
+      conf->get_host(), conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
-  asio::ip::tcp::resolver resolver(com::centreon::common::pool::io_context());
-  asio::ip::tcp::resolver::query query(conf->get_host(),
-                                       std::to_string(conf->get_port()));
-  asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;
+  boost::system::error_code err;
+  asio::ip::tcp::resolver resolver(
+      com::centreon::common::pool::instance().io_context());
 
-  boost::system::error_code err{make_error_code(asio::error::host_unreachable)};
+  auto endpoints =
+      resolver.resolve(conf->get_host(), std::to_string(conf->get_port()), err);
 
-  // it can resolve multiple addresses like ipv4 or ipv6
-  // We need to try all to find the first available socket
-  for (; err && it != end; ++it) {
-    sock.connect(*it, err);
-
-    if (err)
-      sock.close();
-  }
-
-  /* Connection refused */
-  if (err.value() == 111) {
-    logger->error("TCP: Connection refused to {}:{}", conf->get_host(),
-                  conf->get_port());
-    throw std::system_error(err);
-  } else if (err) {
-    logger->error("TCP: could not connect to {}:{}", conf->get_host(),
-                  conf->get_port());
+  if (err) {
+    _logger->error("TCP: could not resolve {}:{}", conf->get_host(),
+                   conf->get_port());
     throw msg_fmt(err.message());
-  } else {
-    _set_sock_opt(sock, conf, _logger);
-    return conn;
   }
+
+  asio::connect(sock, endpoints, err);
+
+  if (err && err.value() == 111 /* Connection refused */) {
+    _logger->error("TCP: Connection refused to {}:{}", conf->get_host(),
+                   conf->get_port());
+    throw std::system_error(err);
+  }
+  if (err) {
+    _logger->error("TCP: could not connect to {}:{} : {}", conf->get_host(),
+                   conf->get_port(), err.message());
+    throw std::system_error(err);
+  }
+  _set_sock_opt(sock, conf, _logger);
+  return conn;
 }
 
 void tcp_async::_set_sock_opt(asio::ip::tcp::socket& sock,

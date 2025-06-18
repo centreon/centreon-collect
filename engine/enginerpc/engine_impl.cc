@@ -26,6 +26,7 @@
 
 #include <spdlog/common.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "com/centreon/common/process_stat.hh"
