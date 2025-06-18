@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * For more information : contact@centreon.com !!! TRIGGER !!!
+ * For more information : contact@centreon.com
  *
  */
 #ifndef CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_

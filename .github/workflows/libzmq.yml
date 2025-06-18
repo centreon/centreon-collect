@@ -137,7 +137,6 @@ jobs:
           cd ..
 
           rm -f libzmq5-dbg_*.deb
-          echo "trigger build"
         shell: bash
 
       - name: cache deb
