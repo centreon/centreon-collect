@@ -323,7 +323,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
   }
 
   if (!_reading)
-    post(_strand, std::bind(&tcp_connection::start_reading, this));
+    asio::post(_strand, std::bind(&tcp_connection::start_reading, this));
 
   std::vector<char> retval;
 

@@ -189,13 +189,13 @@ void http_connection::connect(connect_callback_type&& callback) {
                       *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_connect_timeout());
-  if (_conf->get_endpoints_list().empty())
+  if (_conf->get_endpoints().empty())
     _socket.async_connect(
         _conf->get_endpoint(),
         [me = shared_from_this(), cb = std::move(callback)](
             const boost::beast::error_code& err) { me->on_connect(err, cb); });
   else
-    _socket.async_connect(_conf->get_endpoints_list(),
+    _socket.async_connect(_conf->get_endpoints(),
                           [me = shared_from_this(), cb = std::move(callback)](
                               const boost::beast::error_code& err,
                               const asio::ip::tcp::endpoint& endpoint
@@ -213,7 +213,7 @@ void http_connection::on_connect(const boost::beast::error_code& err,
                                  const connect_callback_type& callback) {
   std::string detail;
   if (err) {
-    if (_conf->get_endpoints_list().empty())
+    if (_conf->get_endpoints().empty())
       detail =
           fmt::format("{:p} fail connect to {}: {}", static_cast<void*>(this),
                       _conf->get_endpoint(), err.message());
