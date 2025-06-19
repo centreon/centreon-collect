@@ -172,7 +172,30 @@ static int l_broker_cache_get_hostgroup_name(lua_State* L) {
 
   try {
     std::string const& hg{cache->get_host_group_name(id)};
-    lua_pushstring(L, hg.c_str());
+    lua_pushlstring(L, hg.c_str(), hg.length());
+  } catch (std::exception const& e) {
+    (void)e;
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
+/**
+ *  The get_hostgroup_alias() method available in the Lua interpreter
+ *  It returns a string.
+ *
+ *  @param L The Lua interpreter
+ *
+ *  @return 1
+ */
+static int l_broker_cache_get_hostgroup_alias(lua_State* L) {
+  macro_cache const* cache(
+      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
+  int id(luaL_checkinteger(L, 2));
+
+  try {
+    const std::string& hg{cache->get_host_group_alias(id)};
+    lua_pushlstring(L, hg.c_str(), hg.length());
   } catch (std::exception const& e) {
     (void)e;
     lua_pushnil(L);
@@ -678,6 +701,7 @@ void broker_cache::broker_cache_reg(lua_State* L,
       {"get_action_url", l_broker_cache_get_action_url},
       {"get_severity", l_broker_cache_get_severity},
       {"get_check_command", l_broker_cache_get_check_command},
+      {"get_hostgroup_alias", l_broker_cache_get_hostgroup_alias},
       {nullptr, nullptr}};
 
   if (api_version == 2) {
