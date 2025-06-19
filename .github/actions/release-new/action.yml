@@ -191,10 +191,8 @@ runs:
         # If RELEASE => set tag description as release
         echo "::notice::Tagging branch ${{ inputs.release_branch }} with ${{ inputs.release_bundle_tag }}."
 
-        # git tag -a "${{ inputs.release_bundle_tag }}" -m "${{ inputs.release_bundle_tag }}" origin/${{ inputs.release_branch }}
-        # git push --follow-tags
+        # Push local release bundle tag as centreon_technique to generate a tag event
         git tag -a "${{ inputs.release_bundle_tag }}" -m "${{ inputs.release_bundle_tag }}"
-        # git push origin --tags
         git push https://x-access-token:${{ inputs.centreon_technique_pat}}@github.com/${{ github.repository }} "${{ inputs.release_bundle_tag }}"
 
         # Add new component release tags on release branch for each release components
@@ -203,12 +201,9 @@ runs:
         for TAG in ${NEW_STABLE_TAGS[@]}; do
           if [ -z $(git tag --list "$TAG" | head -n 1) ] && [ -n $TAG ]; then
 
-            # git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG" origin/${{ inputs.release_branch }}
-            # git push --follow-tags
-
-            git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG"
-            # git push origin --tags
-            git push https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }} "$TAG"
+            # Push local component tags as centreon_technique to generate a tag event
+            # git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG"
+            # git push https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }} "$TAG"
 
             git status
             echo "::notice::Tagging branch ${{ inputs.release_branch }} with $TAG."
@@ -243,7 +238,7 @@ runs:
         for TAG in ${NEW_STABLE_TAGS[@]}; do
           if [ -n $TAG ]; then
             echo "Creating GITHUB release with title $TAG for tag $TAG targeting branch ${{ inputs.release_branch }}."
-            gh release create $TAG --target "${{ inputs.release_branch }}" --title "$TAG" --verify-tag
+            # gh release create $TAG --target "${{ inputs.release_branch }}" --title "$TAG" --verify-tag
           else
             echo "::error::Release tag $TAG was empty, could not create github release for $TAG, exiting."
             exit 1
@@ -267,7 +262,7 @@ runs:
 
         if [[ "$status_code" == "200" ]]; then
           echo "::notice::Release bundle tag $TAG exists, removing branch ${{ inputs.release_branch }}."
-          git push origin --delete ${{ inputs.release_branch }}
+          # git push origin --delete ${{ inputs.release_branch }}
         else
           echo "::error::Release bundle tag $TAG does not exist, aborting."
           exit 1
@@ -277,96 +272,96 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
 
-    # - name: Create stable JIRA versions from new release tags
-    #   run: |
-    #     set -eux
+    - name: Create stable JIRA versions from new release tags
+      run: |
+        set -eux
 
-    #     # Call JIRA to provide new jira versions to create
-    #     # Webhook url
-    #     JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
+        # Call JIRA to provide new jira versions to create
+        # Webhook url
+        JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
 
-    #     # Rebuild NEW_STABLE_TAGS as an array
-    #     for i in ${NEW_STABLE_TAGS[@]}; do
-    #       NEW_RELEASE_TAGS+=("$i")
-    #     done
+        # Rebuild NEW_STABLE_TAGS as an array
+        for i in ${NEW_STABLE_TAGS[@]}; do
+          NEW_RELEASE_TAGS+=("$i")
+        done
 
-    #     # Create new JIRA versions (old way of doing it)
-    #     # TODO: add a future capacity to determine whether the release is hotfix or standard (using TYPE)
-    #     # OR: rely on jira automation to do it (less hassle on github side, and jira knows jira best)
+        # Create new JIRA versions (old way of doing it)
+        # TODO: add a future capacity to determine whether the release is hotfix or standard (using TYPE)
+        # OR: rely on jira automation to do it (less hassle on github side, and jira knows jira best)
 
-    #     # Build JSON vars for JIRA_RELEASE_DATA
-    #     JIRA_RELEASE_ARCHIVED="false"
-    #     JIRA_RELEASE_DESCRIPTION=""
-    #     JIRA_RELEASE_DATE="$(date +%Y-%m-%d)"
-    #     JIRA_RELEASE_NAME=""
-    #     JIRA_PROJECT_ID="${{ inputs.jira_project_id }}"
-    #     JIRA_RELEASE_RELEASED="false"
-    #     JIRA_RELEASE_ID="$(git log |grep -E "Centreon\ next.*\#[0-9]{5,}\#\)" |grep -o -P "(?<=#)[0-9]{5,}(?=#)" |head -n 1)"
+        # Build JSON vars for JIRA_RELEASE_DATA
+        JIRA_RELEASE_ARCHIVED="false"
+        JIRA_RELEASE_DESCRIPTION=""
+        JIRA_RELEASE_DATE="$(date +%Y-%m-%d)"
+        JIRA_RELEASE_NAME=""
+        JIRA_PROJECT_ID="${{ inputs.jira_project_id }}"
+        JIRA_RELEASE_RELEASED="false"
+        JIRA_RELEASE_ID="$(git log |grep -E "Centreon\ next.*\#[0-9]{5,}\#\)" |grep -o -P "(?<=#)[0-9]{5,}(?=#)" |head -n 1)"
 
-    #     # Create JIRA version for each released component
-    #     echo "Creating JIRA releases."
-    #     for TAG in ${NEW_RELEASE_TAGS[@]}; do
-    #       if [ -n $TAG ]; then
-    #         echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
-    #         # Build JSON with release information for JIRA API
-    #         JIRA_RELEASE_DATA=$(jq -nc \
-    #           --arg archived "$JIRA_RELEASE_ARCHIVED" \
-    #           --arg description "$JIRA_RELEASE_ID $TAG" \
-    #           --arg releaseDate "$JIRA_RELEASE_DATE" \
-    #           --arg name "$TAG" \
-    #           --arg projectId "$JIRA_PROJECT_ID" \
-    #           --arg released "$JIRA_RELEASE_RELEASED" \
-    #           '$ARGS.named' )
-    #         # Send to JIRA API release
-    #         echo "Sending to JIRA API release: $JIRA_RELEASE_DATA"
-    #         curl --fail --request POST \
-    #           --url "${{ inputs.jira_base_url }}/rest/api/3/version" \
-    #           --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
-    #           --header 'Accept: application/json' \
-    #           --header 'Content-Type: application/json' \
-    #           --data "$JIRA_RELEASE_DATA"
-    #       else
-    #         echo "::error::Release tag $TAG was empty, exiting."
-    #         exit 1
-    #       fi
-    #     done
-    #   shell: bash
+        # Create JIRA version for each released component
+        echo "Creating JIRA releases."
+        for TAG in ${NEW_RELEASE_TAGS[@]}; do
+          if [ -n $TAG ]; then
+            echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
+            # Build JSON with release information for JIRA API
+            JIRA_RELEASE_DATA=$(jq -nc \
+              --arg archived "$JIRA_RELEASE_ARCHIVED" \
+              --arg description "$JIRA_RELEASE_ID $TAG" \
+              --arg releaseDate "$JIRA_RELEASE_DATE" \
+              --arg name "$TAG" \
+              --arg projectId "$JIRA_PROJECT_ID" \
+              --arg released "$JIRA_RELEASE_RELEASED" \
+              '$ARGS.named' )
+            # Send to JIRA API release
+            echo "Sending to JIRA API release: $JIRA_RELEASE_DATA"
+            # curl --fail --request POST \
+            #   --url "${{ inputs.jira_base_url }}/rest/api/3/version" \
+            #   --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
+            #   --header 'Accept: application/json' \
+            #   --header 'Content-Type: application/json' \
+            #   --data "$JIRA_RELEASE_DATA"
+          else
+            echo "::error::Release tag $TAG was empty, exiting."
+            exit 1
+          fi
+        done
+      shell: bash
 
-    # - name: Trigger release communication for new releases
-    #   run: |
-    #     set -eux
+    - name: Trigger release communication for new releases
+      run: |
+        set -eux
 
-    #     MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION
+        MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION
 
-    #     # Webhook url
-    #     JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
+        # Webhook url
+        JIRA_INCOMING_WEBHOOK="${{ inputs.jira_webhook_url }}"
 
-    #     # Rebuild NEW_STABLE_TAGS as an array (required to build a proper json)
-    #     for i in ${NEW_STABLE_TAGS[@]}; do
-    #       if [ -n "$i" ]; then
-    #         NEW_RELEASE_TAGS+=("$i")
-    #       else
-    #         echo "::error::Release tag $i was empty, exiting."
-    #         exit 1
-    #       fi
-    #     done
+        # Rebuild NEW_STABLE_TAGS as an array (required to build a proper json)
+        for i in ${NEW_STABLE_TAGS[@]}; do
+          if [ -n "$i" ]; then
+            NEW_RELEASE_TAGS+=("$i")
+          else
+            echo "::error::Release tag $i was empty, exiting."
+            exit 1
+          fi
+        done
 
-    #     # Build JSON structure with released versions
-    #     JSON_TAGS=$(jq -n '{componentList:$ARGS.positional}' --args "${NEW_RELEASE_TAGS[@]}")
-    #     JSON_VERSION_INFO=$(jq -n --arg majorVersion "$MAJOR_VERSION" --arg scopeVersion "$SCOPE_VERSION" '$ARGS.named' )
-    #     RELEASE_JSON=$(echo "$JSON_VERSION_INFO" | jq -c --argjson json_tags "$JSON_TAGS" '. += $json_tags')
+        # Build JSON structure with released versions
+        JSON_TAGS=$(jq -n '{componentList:$ARGS.positional}' --args "${NEW_RELEASE_TAGS[@]}")
+        JSON_VERSION_INFO=$(jq -n --arg majorVersion "$MAJOR_VERSION" --arg scopeVersion "$SCOPE_VERSION" '$ARGS.named' )
+        RELEASE_JSON=$(echo "$JSON_VERSION_INFO" | jq -c --argjson json_tags "$JSON_TAGS" '. += $json_tags')
 
-    #     # DEBUG
-    #     echo "JSON_TAGS: \r\n$JSON_TAGS"
-    #     echo "JSON_VERSION_INFO: $JSON_VERSION_INFO"
-    #     echo "Sending to JIRA automation: \r\n$RELEASE_JSON"
+        # DEBUG
+        echo "JSON_TAGS: \r\n$JSON_TAGS"
+        echo "JSON_VERSION_INFO: $JSON_VERSION_INFO"
+        echo "Sending to JIRA automation: \r\n$RELEASE_JSON"
 
-    #     # Call jira webhook to trigger the communication workflow
-    #     # and provide versions data for communication
-    #     curl \
-    #       "$JIRA_INCOMING_WEBHOOK" \
-    #       -X POST \
-    #       -H 'Content-type: application/json' \
-    #       --data "$RELEASE_JSON"
+        # Call jira webhook to trigger the communication workflow
+        # and provide versions data for communication
+        curl \
+          "$JIRA_INCOMING_WEBHOOK" \
+          -X POST \
+          -H 'Content-type: application/json' \
+          --data "$RELEASE_JSON"
 
-    #   shell: bash
+      shell: bash
