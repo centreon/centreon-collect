@@ -19,6 +19,22 @@
 #ifndef CENTREON_COMMON_PROCESS_SPAWNP_LAUNCHER_HH
 #define CENTREON_COMMON_PROCESS_SPAWNP_LAUNCHER_HH
 
+#if !defined(BOOST_PROCESS_V2_WINDOWS)
+/**
+ * we force usage of pidfd_open as SYS_close_range and SYS_pidfd_open are
+ * available in alma8 even if glibc wrapper are not
+ * SYS_pidfd_open and SYS_close_range as were added in kernel 5.3
+ */
+#define BOOST_PROCESS_V2_PIDFD_OPEN 1
+#define BOOST_PROCESS_V2_HAS_PROCESS_HANDLE 1
+#ifndef SYS_pidfd_open
+#define SYS_pidfd_open 434
+#endif
+#ifndef SYS_close_range
+#define SYS_close_range 436
+#endif
+#endif
+
 #include <boost/process/v2/process.hpp>
 #include "com/centreon/common/process/process_args.hh"
 

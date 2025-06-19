@@ -29,16 +29,11 @@
 #include "com/centreon/common/process/process.hh"
 
 #if !defined(BOOST_PROCESS_V2_WINDOWS)
-/**
- * we force usage of pidfd_open as SYS_close_range is available in alma8 even if
- * glibc wrapper is not
- */
-#define BOOST_PROCESS_V2_PIDFD_OPEN 1
-#define SYS_pidfd_open 434
 #include "com/centreon/common/process/detail/spawnp_launcher.hh"
+#else
+#include <boost/process/v2/process.hpp>
 #endif
 
-#include <boost/process/v2/process.hpp>
 #pragma GCC diagnostic pop
 
 namespace proc = boost::process::v2;
