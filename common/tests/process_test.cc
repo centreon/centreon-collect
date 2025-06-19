@@ -19,7 +19,6 @@
 #include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <chrono>
 
 #include "com/centreon/common/process/process.hh"
 
