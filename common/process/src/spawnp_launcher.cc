@@ -100,14 +100,13 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
   pid_t pid(static_cast<pid_t>(-1));
 
 // child not play with parent fds
-#ifdef BOOST_PROCESS_V2_HAS_CLOSE_RANGE
-  ::close_range(3, ~0u, CLOSE_RANGE_CLOEXEC);
-#else
-// alma8 does not provide close_range = > syscall
+// alma8 does not provide close_range => syscall for all os, we don't use
+// close_range
 /* Set the FD_CLOEXEC bit instead of closing the file descriptor. */
+#ifndef CLOSE_RANGE_CLOEXEC
 #define CLOSE_RANGE_CLOEXEC (1U << 2)
-  ::syscall(3, ~0u, CLOSE_RANGE_CLOEXEC);
 #endif
+  ::syscall(SYS_close_range, 3, ~0u, CLOSE_RANGE_CLOEXEC);
 
   if (posix_spawnp(&pid, args->get_exe_path().c_str(), &file_action.actions,
                    &attr.attr,

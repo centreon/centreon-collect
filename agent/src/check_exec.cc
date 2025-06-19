@@ -101,7 +101,7 @@ void check_exec::start_check(const duration& timeout) {
     proc->start_process(
         [me = std::static_pointer_cast<check_exec>(shared_from_this()),
          running_index = _get_running_check_index()](
-            const com::centreon::common::process<false>& proc, int exit_code,
+            const com::centreon::common::process<false>&, int exit_code,
             int exit_status, const std::string& std_out, const std::string&) {
           me->on_completion(running_index, exit_code, exit_status, std_out);
         },

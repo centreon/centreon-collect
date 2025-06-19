@@ -131,6 +131,16 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   asio::readable_pipe _stderr_pipe;
   asio::writable_pipe _stdin_pipe;
   detail::boost_process* _proc = nullptr;
+  /**
+   * @brief workaround
+   * in process lib, terminate method calls waitpid and father process can get
+   * exit status. Then on async_wait completion, waitpid is also called and
+   * waitpid may return ECHILD( unknown child). So in that case, we don't take
+   * this error into account and we use status previously stored in first
+   * waitpid
+   * issue: https://github.com/boostorg/process/issues/496
+   */
+  bool _terminated = false;
 
   using handler_type = std::function<void(const process<use_mutex>& proc,
                                           int /*exit_code*/,

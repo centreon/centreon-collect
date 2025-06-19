@@ -17,7 +17,6 @@
  */
 
 #include <boost/program_options/parsers.hpp>
-#include <memory>
 #include "boost/system/detail/error_code.hpp"
 #include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -30,6 +29,12 @@
 #include "com/centreon/common/process/process.hh"
 
 #if !defined(BOOST_PROCESS_V2_WINDOWS)
+/**
+ * we force usage of pidfd_open as SYS_close_range is available in alma8 even if
+ * glibc wrapper is not
+ */
+#define BOOST_PROCESS_V2_PIDFD_OPEN 1
+#define SYS_pidfd_open 434
 #include "com/centreon/common/process/detail/spawnp_launcher.hh"
 #endif
 
@@ -205,7 +210,8 @@ void process<use_mutex>::start_process(
                                   int raw_exit_status) {
           me->_on_process_end(err, raw_exit_status);
         });
-    SPDLOG_LOGGER_DEBUG(_logger, "process started: {}", *_args);
+    SPDLOG_LOGGER_DEBUG(_logger, "pid:{} process started: {}",
+                        _proc->proc.native_handle(), *_args);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to start {}: {}", *_args, e.what());
     throw;
@@ -302,16 +308,22 @@ void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
   {
     detail::lock<use_mutex> l(&_protect);
     if (err) {
-      SPDLOG_LOGGER_ERROR(_logger, "fail async_wait of {}: {}", *_args,
-                          err.message());
-      _exit_code = -1;
+      // due to a bug in boost::process, we don't take this error into account
+      // if we had terminated child process before
+      if (_terminated) {
+        _exit_code = _proc->proc.exit_code();
+      } else {
+        SPDLOG_LOGGER_ERROR(_logger, "pid:{} fail async_wait of {}: {}",
+                            _proc->proc.native_handle(), *_args, err.message());
+        _exit_code = -1;
+      }
     } else {
       if (_exit_status != e_exit_status::timeout) {
         _exit_status = e_exit_status::normal;
       }
       _exit_code = proc::evaluate_exit_code(raw_exit_status);
-      SPDLOG_LOGGER_DEBUG(_logger, "end of process {}, exit_code={}", *_args,
-                          _exit_code);
+      SPDLOG_LOGGER_DEBUG(_logger, "pid:{} end of process {}, exit_code={}",
+                          _proc->proc.native_handle(), *_args, _exit_code);
     }
   }
   _completion_flags.fetch_or(e_completion_flags::process_end);
@@ -527,8 +539,11 @@ void process<use_mutex>::_on_timeout() {
   detail::lock<use_mutex> l(&_protect);
   _exit_status = e_exit_status::timeout;
   if (_proc->proc.is_open()) {
+    SPDLOG_LOGGER_ERROR(_logger, "pid:{} timeout process {} => kill",
+                        _proc->proc.native_handle(), *_args);
     boost::system::error_code err;
     _proc->proc.terminate(err);
+    _terminated = true;
   }
 }
 
@@ -562,6 +577,7 @@ void process<use_mutex>::kill() {
     SPDLOG_LOGGER_INFO(_logger, "kill process {}", *_args);
     boost::system::error_code err;
     _proc->proc.terminate(err);
+    _terminated = true;
     if (err) {
       SPDLOG_LOGGER_INFO(_logger, "fail to kill {}: {}", *_args, err.message());
     }
