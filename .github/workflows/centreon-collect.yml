@@ -91,6 +91,11 @@ jobs:
         run: |
           NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
           target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
+          if [[ -z "$target_branch" ]]; then
+            echo "[INFO] - The target branch was not defined."
+            exit 0
+          fi
+
           echo "[INFO] - Dispatching nightly run to $target_branch branch."
           if [[ "$target_branch" == "dev-22.10.x" ]]; then
             gh workflow run robot-nightly.yml -r "$target_branch"
