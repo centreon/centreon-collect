@@ -85,7 +85,7 @@ cbmod::cbmod()
   _use_protobuf =
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 
-  com::centreon::broker::config::applier::state::instance().apply(s);
+  com::centreon::broker::config::applier::state::instance().apply(s, false);
 }
 
 cbmod::~cbmod() noexcept {
