@@ -42,7 +42,8 @@ class mock_service_enumerator : public service_enumerator {
 
   bool _query_service_config(
       LPCSTR service_name,
-      QUERY_SERVICE_CONFIGA& serv_conf,
+      std::unique_ptr<unsigned char[]>& buffer,
+      size_t* buffer_size,
       const std::shared_ptr<spdlog::logger>& logger) override;
 
   static enum_with_conf create_serv(const char* name,
@@ -64,7 +65,8 @@ class mock_service_enumerator : public service_enumerator {
     serv_conf.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     serv_conf.dwStartType = start_type;
     serv_conf.dwErrorControl = SERVICE_ERROR_NORMAL;
-    serv_conf.lpBinaryPathName = "C:\\path\\to\\service.exe";
+    static char dummy_path[] = "C:\\path\\to\\service.exe";
+    serv_conf.lpBinaryPathName = dummy_path;
     serv_conf.lpLoadOrderGroup = nullptr;
     serv_conf.dwTagId = 0;
     serv_conf.lpDependencies = nullptr;
@@ -89,11 +91,12 @@ bool mock_service_enumerator::_enumerate_services(serv_array& services,
 
 bool mock_service_enumerator::_query_service_config(
     LPCSTR service_name,
-    QUERY_SERVICE_CONFIGA& serv_conf,
+    std::unique_ptr<unsigned char[]>& buffer,
+    size_t* buffer_size,
     const std::shared_ptr<spdlog::logger>& logger) {
   for (const auto& service : data) {
     if (strcmp(service_name, service.first.lpServiceName) == 0) {
-      serv_conf = service.second;
+      memcpy(buffer.get(), &service.second, sizeof(QUERY_SERVICE_CONFIGA));
       return true;
     }
   }

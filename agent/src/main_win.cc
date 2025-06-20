@@ -21,8 +21,10 @@
 
 #include "agent_info.hh"
 #include "check_cpu.hh"
+#include "check_event_log.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
+#include "check_process.hh"
 #include "check_service.hh"
 #include "check_uptime.hh"
 #include "drive_size.hh"
@@ -69,7 +71,7 @@ static void stop_process() {
   if (_streaming_server) {
     _streaming_server->shutdown();
   }
-  g_io_context->post([]() { g_io_context->stop(); });
+  asio::post(*g_io_context, []() { g_io_context->stop(); });
 }
 
 /**
@@ -130,6 +132,8 @@ void show_help() {
   check_drive_size::help(std::cout);
   check_service::help(std::cout);
   check_health::help(std::cout);
+  check_event_log::help(std::cout);
+  check_process::help(std::cout);
 }
 
 /**
@@ -172,12 +176,11 @@ int _main(bool service_start) {
   try {
     if (conf.get_log_type() == config::to_file) {
       if (!conf.get_log_file().empty()) {
-        if (conf.get_log_files_max_size() > 0 &&
-            conf.get_log_files_max_number() > 0) {
+        if (conf.get_log_max_file_size() > 0 && conf.get_log_max_files() > 0) {
           g_logger = spdlog::rotating_logger_mt(
               logger_name, conf.get_log_file(),
-              conf.get_log_files_max_size() * 0x100000,
-              conf.get_log_files_max_number());
+              conf.get_log_max_file_size() * 0x100000,
+              conf.get_log_max_files());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "
@@ -237,6 +240,25 @@ int _main(bool service_start) {
                                                  grpc_conf, conf.get_host());
     }
 
+    if (!conf.use_encryption()) {
+      SPDLOG_LOGGER_WARN(
+          g_logger,
+          "NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION");
+
+      auto timer = std::make_shared<asio::steady_timer>(*g_io_context,
+                                                        std::chrono::hours(1));
+      timer->async_wait([timer](const boost::system::error_code& ec) {
+        if (!ec) {
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "NON TLS CONNECTION TIME EXPIRED // THIS IS NOT "
+                             "ALLOWED IN PRODUCTION");
+          SPDLOG_LOGGER_WARN(g_logger,
+                             "CONNECTION KILLED, AGENT NEED TO BE RESTART");
+          stop_process();
+        }
+      });
+    }
+
     g_io_context->run();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_CRITICAL(g_logger, "unhandled exception: {}", e.what());
@@ -283,8 +305,8 @@ int main(int argc, char* argv[]) {
       "centagent.exe will start in service mode, if you launch it from command "
       "line, use --standalone flag");
 
-  SERVICE_TABLE_ENTRY DispatchTable[] = {
-      {SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
+  const SERVICE_TABLE_ENTRY DispatchTable[] = {
+      {(LPSTR)SERVICE_NAME, (LPSERVICE_MAIN_FUNCTION)SvcMain}, {NULL, NULL}};
 
   // This call returns when the service has stopped.
   // The process should simply terminate when the call returns.

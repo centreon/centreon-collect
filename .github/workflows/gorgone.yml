@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy, noble]
         include:
           - package_extension: rpm
             image: packaging-centreon-collect-alma8
@@ -58,6 +58,9 @@ jobs:
           - package_extension: deb
             image: packaging-centreon-collect-jammy
             distrib: jammy
+          - package_extension: deb
+            image: packaging-centreon-collect-noble
+            distrib: noble
 
     runs-on: ubuntu-24.04
 
@@ -100,6 +103,7 @@ jobs:
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "gorgone/packaging/*.yaml"
+          module_name: "centreon-gorgone"
           distrib: ${{ matrix.distrib }}
           package_extension: ${{ matrix.package_extension }}
           major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -123,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, jammy]
+        distrib: [el8, el9, bookworm, jammy, noble]
         include:
           - package_extension: rpm
             image: gorgone-testing-alma8
@@ -132,11 +136,14 @@ jobs:
             image: gorgone-testing-alma9
             distrib: el9
           - package_extension: deb
+            image: gorgone-testing-bookworm
+            distrib: bookworm
+          - package_extension: deb
             image: gorgone-testing-jammy
             distrib: jammy
           - package_extension: deb
-            image: gorgone-testing-bookworm
-            distrib: bookworm
+            image: gorgone-testing-noble
+            distrib: noble
 
     runs-on: ubuntu-24.04
     container:
@@ -294,7 +301,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm]
+        distrib: [bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources
@@ -325,7 +332,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el8, el9, bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources

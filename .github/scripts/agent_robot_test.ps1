@@ -51,6 +51,12 @@ $my_host_name = $env:COMPUTERNAME
 $my_ip = (Get-NetIpAddress -AddressFamily IPv4 | Where-Object IPAddress -ne "127.0.0.1" | SELECT IPAddress -First 1).IPAddress
 $pwsh_path = (get-command pwsh.exe).Path
 
+echo "host_name:" $my_host_name
+echo "my_ip:" $my_ip
+
+#as github dns returns dummy address we fix it in hosts file
+Add-Content -Path "$env:windir\system32\drivers\etc\hosts" "$my_ip $my_host_name"
+
 # generate certificate used by wsl and windows
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=${my_host_name}"
 

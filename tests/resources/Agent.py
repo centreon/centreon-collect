@@ -19,15 +19,29 @@
 
 from os import makedirs, environ
 import time
-from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
 from socket import gethostname
 import Common
 import json
 from robot.api import logger
 
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-CONF_DIR = ETC_ROOT + "/centreon-engine"
+def import_robot_resources():
+    global VAR_ROOT, ETC_ROOT, CONF_DIR
+    try:
+        BuiltIn().import_resource('db_variables.resource')
+        ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+        VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+        CONF_DIR = ETC_ROOT + "/centreon-engine"
+    except RobotNotRunningError:
+        # Handle this case if Robot Framework is not running
+        print("Robot Framework is not running. Skipping resource import.")
+        exit(1)
+
+ETC_ROOT = ""
+VAR_ROOT = ""
+CONF_DIR = ""
+
+import_robot_resources()
 
 def ctn_used_address():
     """
@@ -62,7 +76,7 @@ agent_encrypted_config = f"""
     "endpoint":"{ctn_host_hostname()}:4318",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
+    "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
 reversed_agent_config=f"""
@@ -71,7 +85,7 @@ reversed_agent_config=f"""
     "endpoint":"{ctn_host_hostname()}:4320",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
+    "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 reversed_agent_encrypted_config=f"""
 {{
@@ -79,7 +93,7 @@ reversed_agent_encrypted_config=f"""
     "endpoint":"{ctn_host_hostname()}:4321",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"${VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
+    "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
 
