@@ -17,6 +17,7 @@
  *
  */
 #include "parser.hh"
+#include <absl/strings/match.h>
 #include "anomalydetection_helper.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -63,7 +64,7 @@ parser::parser() : _logger{log_v2::instance().get(log_v2::CONFIG)} {}
  *  @param[in] pb_config The state configuration to fill.
  *  @param[out] err   The config warnings/errors counter.
  */
-void parser::parse(std::string const& path, State* pb_config, error_cnt& err) {
+void parser::parse(const std::string& path, State* pb_config, error_cnt& err) {
   /* Parse the global configuration file. */
   auto helper = std::make_unique<state_helper>(pb_config);
   _pb_helper[pb_config] = std::move(helper);
@@ -163,6 +164,39 @@ void parser::_parse_global_configuration(const std::string& path,
                        p.second);
     }
   }
+
+  /* A bad hook so that Engine stays compatible with previous
+   * versions. */
+  for (auto& m : pb_config->broker_module()) {
+    if (absl::StrContains(m, "cbmod.so")) {
+      auto arr = absl::StrSplit(m, absl::ByAnyChar(" \t\n"), absl::SkipEmpty());
+      auto it = arr.begin();
+      std::string_view module_name;
+      if (it != arr.end()) {
+        module_name = *it;
+        ++it;
+        if (it != arr.end()) {
+          std::string_view module_args = *it;
+          module_args = absl::StripAsciiWhitespace(module_args);
+          if (pb_config->broker_module_cfg_file().empty()) {
+            pb_config->set_broker_module_cfg_file(
+                std::string(module_args.data(), module_args.size()));
+            _logger->warn(
+                "Parsing the configuration file '{}' of the 'cbmod' module "
+                "to "
+                "still be able to use it.",
+                module_args);
+          } else {
+            _logger->warn(
+                "The new 'broker_module_cfg_file' field is already set, so "
+                "nothing done with the 'cbmod' module configuration file '{}'.",
+                module_args);
+          }
+        }
+      }
+      break;
+    }
+  }
 }
 
 /**
@@ -173,12 +207,12 @@ void parser::_parse_global_configuration(const std::string& path,
  * from the message format.
  *
  * Two mechanisms are used to complete the reflection.
- * * A hastable <string, string> named correspondence is used in case of several
- *   keys to access to the same value. This is, for example, the case for
- *   host_id which is historically also named _HOST_ID.
+ * * A hastable <string, string> named correspondence is used in case of
+ * several keys to access to the same value. This is, for example, the case
+ * for host_id which is historically also named _HOST_ID.
  * * A std::function<bool(string_view_string_view) can also be defined in
- *   several cases to make special stuffs. For example, we use it for timeperiod
- *   object to set its timeranges.
+ *   several cases to make special stuffs. For example, we use it for
+ * timeperiod object to set its timeranges.
  *
  * @param path The file to parse.
  * @param pb_config The configuration to complete.
@@ -341,7 +375,8 @@ void parser::_parse_object_definitions(const std::string& path,
           if (!msg_helper->set(key, l)) {
             if (!msg_helper->insert_customvariable(key, l))
               throw msg_fmt(
-                  "Unable to parse '{}' key with value '{}' in message of type "
+                  "Unable to parse '{}' key with value '{}' in message of "
+                  "type "
                   "'{}'",
                   key, l, type);
           }
@@ -573,7 +608,8 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
 }
 
 /**
- * @brief Resolvers a message given by its helper and using the given templates.
+ * @brief Resolvers a message given by its helper and using the given
+ * templates.
  *
  * @param msg_helper The message helper.
  * @param tmpls The templates to use.
@@ -602,9 +638,9 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
 }
 
 /**
- * @brief For each unchanged field in the Protobuf object stored in msg_helper,
- * we copy the corresponding field from tmpl. This is the key for the
- * inheritence with cfg files.
+ * @brief For each unchanged field in the Protobuf object stored in
+ * msg_helper, we copy the corresponding field from tmpl. This is the key for
+ * the inheritence with cfg files.
  *
  * @param msg_helper A message_help holding a protobuf message
  * @param tmpl A template of the same type as the on in the msg_helper
