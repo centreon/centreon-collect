@@ -328,6 +328,24 @@ const std::string& macro_cache::get_host_group_name(uint64_t id) const {
 }
 
 /**
+ *  Get the alias of a host group.
+ *
+ *  @param[in] id  The id of the host group.
+ *
+ *  @return             The alias of the host group.
+ */
+const std::string& macro_cache::get_host_group_alias(uint64_t id) const {
+  const auto found = _host_groups.find(id);
+
+  if (found == _host_groups.end()) {
+    _cache->logger()->error("lua: could not find information on host group {}",
+                            id);
+    throw msg_fmt("lua: could not find information on host group {}", id);
+  }
+  return found->second.first->obj().alias();
+}
+
+/**
  *  Get the description of a service.
  *
  *  @param[in] host_id  The id of the host.
