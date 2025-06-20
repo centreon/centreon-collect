@@ -1484,14 +1484,16 @@ int neb::callback_pb_group(int callback_type, void* data) {
         static_cast<engine::hostgroup*>(group_data->object_ptr));
     if (!host_group->get_group_name().empty()) {
       auto new_hg{std::make_shared<neb::pb_host_group>()};
-      new_hg->mut_obj().set_poller_id(
+      auto& obj = new_hg->mut_obj();
+      obj.set_poller_id(
           config::applier::state::instance().poller_id());
-      new_hg->mut_obj().set_hostgroup_id(host_group->get_id());
-      new_hg->mut_obj().set_enabled(group_data->type !=
+      obj.set_hostgroup_id(host_group->get_id());
+      obj.set_enabled(group_data->type !=
                                         NEBTYPE_HOSTGROUP_DELETE &&
                                     !host_group->members.empty());
-      new_hg->mut_obj().set_name(
+      obj.set_name(
           common::check_string_utf8(host_group->get_group_name()));
+      obj.set_alias(host_group->get_alias());
 
       // Send host group event.
       if (host_group->get_id()) {

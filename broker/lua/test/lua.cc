@@ -1276,6 +1276,37 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
   RemoveFile("/tmp/log");
 }
 
+// When a query for a host group alias is made
+// And the cache does know about it
+// Then the alias is returned by the lua method.
+TEST_F(LuaTest, HostGroupCacheTestAlias) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hg{std::make_shared<neb::pb_host_group>()};
+  auto& obj = hg->mut_obj();
+  obj.set_hostgroup_id(28);
+  obj.set_hostgroup_name("centreon");
+  obj.set_enabled(true);
+  obj.set_alias("alias-centreon");
+
+  _cache->write(hg);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hg = broker_cache:get_hostgroup_alias(28)\n"
+               "  broker_log:info(1, 'host group is ' .. tostring(hg))\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("host group is alias-centreon"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
 // When a query for host groups is made
 // And the host is attached to no group
 // Then an empty array is returned.
