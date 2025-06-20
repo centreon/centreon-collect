@@ -91,10 +91,14 @@ jobs:
         run: |
           NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
           target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
-          echo "[INFO] - Dispatching nightly run to $target_branch branch."
-          if [[ "$target_branch" == "dev-22.10.x" ]]; then
+          if [[ -z "$target_branch" ]]; then
+            echo "[INFO] - The target branch was not defined."
+            exit 0
+          elif [[ "$target_branch" == "dev-22.10.x" ]]; then
+            echo "[INFO] - Dispatching nightly run to $target_branch branch."
             gh workflow run robot-nightly.yml -r "$target_branch"
           else
+            echo "[INFO] - Dispatching nightly run to $target_branch branch."
             gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
           fi
         shell: bash
