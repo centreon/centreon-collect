@@ -1262,6 +1262,27 @@ def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value:
         f.writelines(lines)
 
 
+def ctn_engine_config_delete_key(idx: int, key: str):
+    """
+    Delete a parameter in the centengine.cfg for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        key (str): The parameter that will be deleted.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            del lines[i]
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
     """
     Delete a parameter in the file given for the Engine configuration idx.
