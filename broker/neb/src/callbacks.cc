@@ -1185,6 +1185,7 @@ int neb::callback_pb_group(int callback_type, void* data) {
                       (group_data->type == NEBTYPE_HOSTGROUP_UPDATE &&
                        !host_group->members.empty()));
       obj.set_name(common::check_string_utf8(host_group->get_group_name()));
+      obj.set_alias(host_group->get_alias());
 
       // Send host group event.
       if (host_group->get_id()) {
