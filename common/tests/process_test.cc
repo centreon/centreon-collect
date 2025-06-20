@@ -19,6 +19,7 @@
 #include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <fstream>
 
 #include "com/centreon/common/process/process.hh"
 
@@ -257,4 +258,20 @@ TEST_F(process_test, environment) {
   EXPECT_EQ(to_wait->get_exit_status(), e_exit_status::normal);
   EXPECT_EQ(to_wait->get_stdout(), "env1_value env2_value" END_OF_LINE);
   EXPECT_EQ(to_wait->get_stderr(), "");
+}
+
+TEST_F(process_test, stdout_to_file) {
+  using namespace std::literals;
+  std::shared_ptr<process_wait> to_wait(new process_wait(
+      g_io_context, _logger, ECHO_PATH + " tototiti tata > toto.txt"s));
+  to_wait->start_process();
+  to_wait->wait();
+  EXPECT_EQ(to_wait->get_exit_code(), 0);
+  EXPECT_EQ(to_wait->get_exit_status(), e_exit_status::normal);
+  EXPECT_EQ(to_wait->get_stdout(), "");
+  EXPECT_EQ(to_wait->get_stderr(), "");
+  std::ifstream f("toto.txt");
+  std::string first_line;
+  std::getline(f, first_line);
+  EXPECT_EQ(first_line, "tototiti tata");
 }
