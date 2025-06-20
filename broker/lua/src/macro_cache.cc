@@ -342,6 +342,7 @@ const std::string& macro_cache::get_host_group_alias(uint64_t id) const {
                             id);
     throw msg_fmt("lua: could not find information on host group {}", id);
   }
+
   return found->second.first->obj().alias();
 }
 
