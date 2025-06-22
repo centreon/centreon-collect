@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <fstream>
+#include "com/centreon/common/process/process_args.hh"
 
 #include "com/centreon/common/process/process.hh"
 
@@ -260,10 +261,13 @@ TEST_F(process_test, environment) {
   EXPECT_EQ(to_wait->get_stderr(), "");
 }
 
+#ifndef _WIN32
+
 TEST_F(process_test, stdout_to_file) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(new process_wait(
-      g_io_context, _logger, ECHO_PATH + " tototiti tata > toto.txt"s));
+      g_io_context, _logger,
+      "/bin/sh -c '/bin/echo \"tototiti tata \" >> toto.txt'"));
   to_wait->start_process();
   to_wait->wait();
   EXPECT_EQ(to_wait->get_exit_code(), 0);
@@ -273,5 +277,155 @@ TEST_F(process_test, stdout_to_file) {
   std::ifstream f("toto.txt");
   std::string first_line;
   std::getline(f, first_line);
-  EXPECT_EQ(first_line, "tototiti tata");
+  EXPECT_EQ(first_line, "tototiti tata ");
+}
+
+#endif
+
+static bool check(std::string const& cmdline,
+                  std::vector<std::string_view> const& res) {
+  try {
+    process_args cmd(cmdline);
+    if (cmd.get_c_args().size() != res.size() + 1)  // nullptr at the end
+      return false;
+    auto parse_iter = cmd.get_c_args().begin();
+    auto expected_iter = res.begin();
+    for (; expected_iter != res.end(); ++parse_iter, ++expected_iter)
+      if (*expected_iter != *parse_iter)
+        return false;
+  } catch (std::exception const& e) {
+    (void)e;
+    return false;
+  }
+  return true;
+}
+
+static bool check_invalid_cmdline() {
+  try {
+    process_args arg("'12 12");
+  } catch (std::exception const& e) {
+    (void)e;
+    return true;
+  }
+  return false;
+}
+
+TEST_F(process_test, parse_commandline) {
+  EXPECT_TRUE(check_invalid_cmdline());
+  {
+    std::string cmdline("\\ echo -n \"test\"");
+    std::vector<std::string_view> res;
+    res.push_back(" echo");
+    res.push_back("-n");
+    res.push_back("test");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("test \"|\" \"\" \"|\"");
+    std::vector<std::string_view> res;
+    res.push_back("test");
+    res.push_back("|");
+    res.push_back("");
+    res.push_back("|");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("");
+    std::vector<std::string_view> res;
+    EXPECT_FALSE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("        \t\t\t\t\t       ");
+    std::vector<std::string_view> res;
+    EXPECT_FALSE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("aa\tbbb c\tdd ee");
+    std::vector<std::string_view> res;
+    res.push_back("aa");
+    res.push_back("bbb");
+    res.push_back("c");
+    res.push_back("dd");
+    res.push_back("ee");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline(" aa    bbb \t  c  dd  ee    \t");
+    std::vector<std::string_view> res;
+    res.push_back("aa");
+    res.push_back("bbb");
+    res.push_back("c");
+    res.push_back("dd");
+    res.push_back("ee");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("    'aa bbb   cc' dddd   ");
+    std::vector<std::string_view> res;
+    res.push_back("aa bbb   cc");
+    res.push_back("dddd");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("    \" aa bbb   cc \" dddd");
+    std::vector<std::string_view> res;
+    res.push_back(" aa bbb   cc ");
+    res.push_back("dddd");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("  ' \" aa bbb bbb  cc ' ");
+    std::vector<std::string_view> res;
+    res.push_back(" \" aa bbb bbb  cc ");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline(" \" '\\n aaa 42 ' \" 4242 ");
+    std::vector<std::string_view> res;
+    res.push_back(" '\n aaa 42 ' ");
+    res.push_back("4242");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("\\\\\" 1 2 \"");
+    std::vector<std::string_view> res;
+    res.push_back("\\ 1 2 ");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("\\\\\\\" 1 2 \\\"");
+    std::vector<std::string_view> res;
+    res.push_back("\\\"");
+    res.push_back("1");
+    res.push_back("2");
+    res.push_back("\"");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline(" '12\\t ''34 56' \t \" 12 12 12 \" '99 9 9'");
+    std::vector<std::string_view> res;
+    res.push_back("12\t 34 56");
+    res.push_back(" 12 12 12 ");
+    res.push_back("99 9 9");
+    EXPECT_TRUE(check(cmdline, res));
+  }
+
+  {
+    std::string cmdline("\\.\\/\\-\\*\\1");
+    std::vector<std::string_view> res;
+    res.push_back("./-*1");
+    EXPECT_TRUE(check(cmdline, res));
+  }
 }

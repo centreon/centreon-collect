@@ -22,10 +22,12 @@ add_definitions(${spdlog_DEFINITIONS})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
-    src/spawnp_launcher.cc
-    src/process.cc)
+    src/process_args.cc
+    src/process.cc
+    src/spawnp_launcher.cc)
 else()
   set(SOURCES
+    src/process_args.cc
     src/process.cc)
 endif()
 

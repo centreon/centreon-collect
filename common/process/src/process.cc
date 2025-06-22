@@ -136,9 +136,6 @@ process_args::pointer process<use_mutex>::parse_cmd_line(
     const std::string_view& cmd_line) {
 #ifdef _WIN32
   auto split_res = boost::program_options::split_winmain(std::string(cmd_line));
-#else
-  auto split_res = boost::program_options::split_unix(std::string(cmd_line));
-#endif
   if (split_res.begin() == split_res.end()) {
     throw exceptions::msg_fmt("empty command line:\"{}\"", cmd_line);
   }
@@ -147,6 +144,9 @@ process_args::pointer process<use_mutex>::parse_cmd_line(
   split_res.erase(split_res.begin());
 
   return std::make_shared<process_args>(exe_path, std::move(split_res));
+#else
+  return std::make_shared<process_args>(cmd_line);
+#endif
 }
 
 /**

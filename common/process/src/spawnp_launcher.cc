@@ -108,7 +108,7 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
 #endif
   ::syscall(SYS_close_range, 3, ~0u, CLOSE_RANGE_CLOEXEC);
 
-  if (posix_spawnp(&pid, args->get_exe_path().c_str(), &file_action.actions,
+  if (posix_spawnp(&pid, args->get_c_args()[0], &file_action.actions,
                    &attr.attr,
                    const_cast<char* const*>(args->get_c_args().data()),
                    envp ? envp : ::environ)) {

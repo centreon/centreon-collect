@@ -23,28 +23,23 @@ namespace com::centreon::common {
 
 /**
  * @brief The goal of this class is two store arguments in two formats
- * a vector<string> for windows boost process launcher
- * a vector<const char*> for spawnp
+ * a vector<string> for windows boost process launcher, this vector does not
+ * contain exe
+ * a vector<const char*> for spawnp, this vector contains exe and a
+ * nullptr at the end
  *
  */
 class process_args {
   std::string _exe_path;
   std::vector<std::string> _args;
   std::vector<const char*> _c_args;
+  std::unique_ptr<char[]> _buffer;
 
  public:
   using pointer = std::shared_ptr<process_args>;
 
   process_args(const std::string_view& exe_path,
-               std::vector<std::string>&& args)
-      : _exe_path(exe_path), _args(args) {
-    _c_args.reserve(_args.size() + 2);
-    _c_args.push_back(_exe_path.c_str());
-    for (const std::string& arg : _args) {
-      _c_args.push_back(arg.c_str());
-    }
-    _c_args.push_back(nullptr);
-  }
+               std::vector<std::string>&& args);
 
   template <typename string_type>
   process_args(const std::string_view& exe_path,
@@ -62,21 +57,11 @@ class process_args {
     _c_args.push_back(nullptr);
   }
 
-  process_args(const std::string_view& exe_path) : _exe_path(exe_path) {
-    _c_args.reserve(2);
-    _c_args.push_back(_exe_path.c_str());
-    _c_args.push_back(nullptr);
-  }
+  process_args(const std::string_view& unix_commandline);
+  process_args(const process_args&) = delete;
+  process_args& operator=(const process_args&) = delete;
 
-  void dump(std::string* output) const {
-    output->reserve(1024);
-    *output = _exe_path;
-    for (const std::string& arg : _args) {
-      output->append(" \"");
-      output->append(arg);
-      output->push_back('"');
-    }
-  }
+  void dump(std::string* output) const;
 
   const std::string& get_exe_path() const { return _exe_path; }
   const std::vector<std::string>& get_args() const { return _args; }
