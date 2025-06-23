@@ -75,10 +75,11 @@ import_robot_resources()
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
+        self.service_by_host = srv_by_host
         self.last_host_id = 0
         self.last_host_group_id = 0
         self.commands_count = 50
@@ -86,7 +87,7 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host)
+        self.build_configs(hosts, srv_by_host, 0, sh_command)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -248,6 +249,38 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
+    def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
+        """
+            Create a service that uses command_{host_id}_{service_index_in_host}
+            if service_id is a multiple of 10, we set _KO macro and check.sh will return 1
+        """
+        self.last_service_id += 1
+        service_id = self.last_service_id
+        cmd = f"command_{host_id}_{service_index_in_host}"
+        self.service_cmd[service_id] = cmd
+
+        retval = f"""define service {{
+    host_name                       host_{host_id}
+    service_description             service_{service_id}
+    _SERVICE_ID                     {service_id}
+    check_command                   {cmd}
+    check_period                    24x7
+    max_check_attempts              3
+    check_interval                  1
+    retry_interval                  1
+    register                        1
+    active_checks_enabled           1
+    passive_checks_enabled          1
+    _VAR1                           VAL_SERV_{host_id}_{service_id}
+    _VAR2                           VAL_HOST_{host_id}
+"""
+        # for all service_id multiple of 10, check.sh exit with 1
+        if service_id % 10 == 0:
+            retval += "    _KO                             KO\n"
+
+        retval += "}\n"
+        return retval
+
     def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         """
             Create an anomaly detection service.
@@ -393,6 +426,14 @@ define command {{
 }}
 """.format(ENGINE_HOME, cmd)
         return retval
+
+    @staticmethod
+    def create_sh_command(host_id: int, service_id: int):
+        return f"""define command {{
+    command_name                    command_{host_id}_{service_id}
+    command_line                    {ENGINE_HOME}/check.sh {host_id} {service_id}
+}}
+"""
 
     @staticmethod
     def create_host_group(id, mbs):
@@ -576,7 +617,7 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
+    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, sh_command: bool = False):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -604,13 +645,23 @@ passive_checks_enabled 1
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
-                            ff.write(self._create_service(h["hid"],
-                                                          (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                            if (sh_command):
+                                ff.write(
+                                    self._create_service_with_sh_command(h["hid"], j))
+                            else:
+                                ff.write(self._create_service(h["hid"],
+                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
                             self.services.append("service_{}".format(h["hid"]))
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
-                for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
-                    f.write(self.create_command(i))
+                if (sh_command):
+                    for host_id in range(1, nb_hosts + 1):
+                        for service_id in range(1, services_by_host + 1):
+                            f.write(self.create_sh_command(
+                                host_id, service_id))
+                else:
+                    for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
+                        f.write(self.create_command(i))
                 for i in range(self.last_host_id):
                     f.write("""define command {{
     command_name                    checkh{1}
@@ -766,7 +817,7 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "notif.pl", "check_centreon_bam"]:
+            for file in ["check.pl", "check.sh", "notif.pl", "check_centreon_bam"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
@@ -803,7 +854,7 @@ define contact {
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -811,9 +862,10 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
         num (int): How many engine configurations to start
         hosts (int, optional): Defaults to 50.
         srv_by_host (int, optional): Defaults to 20.
+        sh_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host)
+    engine = EngineInstance(num, hosts, srv_by_host, sh_command)
 
 
 def ctn_get_engines_count():
@@ -3875,7 +3927,7 @@ define timeperiod {{
 """)
 
 
-def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with_default_token: bool = True):
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, with_default_token: bool = True):
     """!
     add a new broker_module line to centengine.cfg and create otl_server config file
     @param idx index ofthe poller usually 0
@@ -4616,3 +4668,69 @@ def ctn_engine_command_remove_connector(idx: int, command_name: str):
 
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
         f.writelines(lines)
+
+
+def ctn_engine_check_sh_command_output():
+    """
+    Scan the engine log and search service::handle_async_check_result lines
+    Check the output of check.sh witch return arguments and NAGIOS__SERVICEVAR1 and NAGIOS__SERVICEVAR2 
+    environment variables
+    services with an id multiple of 10 have de _KO macro set, so check.sh returns 1 instead of 0
+
+    Returns: number of different services checked
+    """
+
+    if not engine:
+        return 0
+    search_pattern = re.compile(
+        r"service::handle_async_check_result\(\) service service_(\d+) res:service_check start_time=(\d+) finish_time=(\d+) timeout=(\d+) ok=(\d+) ret_code=(\d+) output:args (\d+) (\d+) env VAL_SERV_(\d+)_(\d+) VAL_HOST_(\d+)")
+    service_checked = {}
+    with open(f"{VAR_ROOT}/log/centreon-engine/config0/centengine.log") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            service_id = int(m.group(1))
+            start_time = m.group(2)
+            finish_time = m.group(3)
+            timeout = m.group(4)
+            ok = m.group(5)
+            ret_code = m.group(6)
+            host_id = int(m.group(7))
+            service_host_index = int(m.group(8))
+            env_host_id = int(m.group(9))
+            env_service_id = int(m.group(10))
+            env_host_id_2 = int(m.group(11))
+            if int(finish_time) - int(start_time) > 5:
+                logger.console(f"check duration too long: {line}")
+                return 0
+            if timeout != '0':
+                logger.console(f"check timeout: {line}")
+                return 0
+            if ok != '1':
+                logger.console(f"check nok: {line}")
+                return 0
+            # for all service_id multiple of 10, check.sh exit with 1
+            if service_id % 10 != 0:
+                if ret_code != '0':
+                    logger.console(f"check ret_code no OK: {line}")
+                    return 0
+            else:
+                if ret_code != '1':
+                    logger.console(f"check ret_code no CRITICAL: {line}")
+                    return 0
+            if (host_id - 1)*engine.service_by_host + service_host_index != service_id:
+                logger.console(f"bad service id:{line}")
+                return 0
+            if host_id != env_host_id:
+                logger.console(f"bad env host id:{line}")
+                return 0
+            if service_id != env_service_id:
+                logger.console(f"bad env service id:{line}")
+                return 0
+            if host_id != env_host_id_2:
+                logger.console(f"bad env val_host id:{line}")
+                return 0
+            service_checked[service_id] = 1
+    return len(service_checked)

@@ -223,6 +223,7 @@ else()
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits
     Boost::program_options
+    Boost::process
     fmt::fmt
     pdh
     taskschd)
