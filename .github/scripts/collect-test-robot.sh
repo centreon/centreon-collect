@@ -7,6 +7,11 @@ export RUN_ENV=docker
 test_file=$1
 database_type=$2
 
+if [ -f "/.venv/bin/activate" ]; then
+  echo "########################### activate python virtual env ###########################"
+  source /.venv/bin/activate
+fi
+
 . /etc/os-release
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
