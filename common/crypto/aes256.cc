@@ -46,8 +46,10 @@ namespace com::centreon::common::crypto {
 aes256::aes256(const std::string_view& json_file_path) {
   rapidjson::Document file_content =
       rapidjson_helper::read_from_file(json_file_path);
-  _first_key = rapidjson_helper(file_content).get_string("app_secret");
-  _second_key = rapidjson_helper(file_content).get_string("salt");
+  _first_key =
+      base64_decode(rapidjson_helper(file_content).get_string("app_secret"));
+  _second_key =
+      base64_decode(rapidjson_helper(file_content).get_string("salt"));
 }
 
 /**
@@ -77,7 +79,7 @@ aes256::aes256(const std::string& first_key, const std::string& second_key)
  *
  * @return The encrypted string.
  */
-std::string aes256::encrypt(const std::string& input) {
+std::string aes256::encrypt(const std::string_view& input) {
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
 
   uint32_t crypted_size =
@@ -151,7 +153,7 @@ std::string aes256::encrypt(const std::string& input) {
  *
  * @return The decrypted string.
  */
-std::string aes256::decrypt(const std::string& input) {
+std::string aes256::decrypt(const std::string_view& input) {
   std::string mix = base64_decode(input);
 
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());

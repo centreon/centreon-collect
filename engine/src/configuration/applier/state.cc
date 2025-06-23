@@ -65,7 +65,7 @@ using com::centreon::engine::logging::broker_sink_mt;
 static bool has_already_been_loaded(false);
 
 constexpr std::string_view _engine_context_path =
-    "/etc/centreon/engine-context.json";
+    "/etc/centreon-engine/engine-context.json";
 
 /**
  * @brief increase soft limit of opened file descriptors
@@ -1567,17 +1567,21 @@ void applier::state::_processing(configuration::State& new_cfg,
       neb_reload_all_modules();
     }
 
-    try {
-      if (std::filesystem::is_regular_file(_engine_context_path) &&
-          std::filesystem::file_size(_engine_context_path) > 0) {
-        std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
-            std::make_unique<com::centreon::common::crypto::aes256>(
-                _engine_context_path);
-        credentials_decrypt = std::move(new_file);
+    if (new_cfg.credentials_encryption()) {
+      try {
+        if (std::filesystem::is_regular_file(_engine_context_path) &&
+            std::filesystem::file_size(_engine_context_path) > 0) {
+          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+              std::make_unique<com::centreon::common::crypto::aes256>(
+                  _engine_context_path);
+          credentials_decrypt = std::move(new_file);
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}",
+                            _engine_context_path, e.what());
       }
-    } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}",
-                          _engine_context_path, e.what());
+    } else {
+      credentials_decrypt.reset();
     }
 
     // Print initial states of new hosts and services.

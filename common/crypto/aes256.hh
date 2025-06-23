@@ -33,8 +33,8 @@ class aes256 {
   aes256(const std::string_view& json_file_path);
   aes256(const aes256&) = delete;
   aes256& operator=(const aes256&) = delete;
-  std::string decrypt(const std::string& input);
-  std::string encrypt(const std::string& input);
+  std::string decrypt(const std::string_view& input);
+  std::string encrypt(const std::string_view& input);
   void set_env_file(const std::string& env_file);
 };
 }  // namespace com::centreon::common::crypto

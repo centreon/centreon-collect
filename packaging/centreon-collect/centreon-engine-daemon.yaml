@@ -56,6 +56,13 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - src: "files/empty_file"
+    dst: "/etc/centreon-engine/engine-context.json"
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
   - src: "../../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
