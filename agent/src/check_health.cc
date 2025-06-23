@@ -17,6 +17,7 @@
  */
 
 #include "check_health.hh"
+#include <chrono>
 #include <iterator>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "config.hh"
@@ -92,15 +93,18 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
 /**
  * @brief start a timer to do the job
  *
- * @param timeout unused
+ * @param timeout
  */
-void check_health::start_check([[maybe_unused]] const duration& timeout) {
+void check_health::start_check(const duration& timeout) {
   if (!_start_check(timeout)) {
     return;
   }
 
+  duration wait_beforecompute =
+      std::min(get_raw_start_expected().get_step() / 2,
+               timeout - std::chrono::milliseconds(100));
   // we wait a little in order to have statistics check_interval/2
-  _measure_timer.expires_after(get_raw_start_expected().get_step() / 2);
+  _measure_timer.expires_after(wait_beforecompute);
   _measure_timer.async_wait(
       [me = shared_from_this(), start_check_index = _get_running_check_index()](
           const boost::system::error_code& err) mutable {

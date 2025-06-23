@@ -17,9 +17,6 @@
  *
  */
 
-#include <cstring>
-#include <regex>
-
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -28,6 +25,7 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
@@ -90,6 +88,8 @@ class ServiceFlappingNotification : public TestEngine {
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
     hst.set_check_command("cmd");
+    hst.set_checks_active(false);
+    hst.set_checks_passive(true);
 #endif
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst, err);
@@ -133,6 +133,7 @@ class ServiceFlappingNotification : public TestEngine {
     _host->set_state_type(checkable::hard);
     _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
+    _host->set_check_type(checkable::check_type::check_passive);
   }
 
   void TearDown() override {
@@ -480,12 +481,18 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
   ASSERT_EQ(m9, std::string::npos);
 }
 
+/**
+ * @brief Given a host down, we generate a flapping service and notifications
+ * should not be called
+ *
+ */
 TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_current_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
 #ifdef LEGACY_CONF
   config->enable_flap_detection(true);
 #else
+  _host->set_check_type(checkable::check_type::check_passive);
   pb_config.set_enable_flap_detection(true);
 #endif
   _service->set_flap_detection_enabled(true);
@@ -500,6 +507,8 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _service->set_state_type(checkable::hard);
   _service->set_first_notification_delay(3);
   _service->set_max_attempts(1);
+
+  commands_logger->set_level(spdlog::level::trace);
 
   // This loop is to store many OK in the state history.
   for (int i = 1; i < 22; i++) {

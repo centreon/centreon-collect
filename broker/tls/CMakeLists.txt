@@ -63,7 +63,7 @@ add_library("${TLS}" SHARED
 
 target_link_libraries("${TLS}" PRIVATE ${GNUTLS_LIBRARIES} spdlog::spdlog)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies("${TLS}" process_stat)
+add_dependencies("${TLS}" process_stat pb_common_lib)
 
 set_target_properties("${TLS}" PROPERTIES PREFIX ""
 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib"

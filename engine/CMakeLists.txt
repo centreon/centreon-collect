@@ -49,7 +49,12 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(${INC_DIR} ${INC_DIR}/compatibility
   ${CMAKE_BINARY_DIR}/common/process_stat
-                    ${CMAKE_BINARY_DIR}/common/ ${CMAKE_SOURCE_DIR}/common/inc)
+  ${CMAKE_BINARY_DIR}/common/engine_conf
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_SOURCE_DIR}/broker/neb/inc
+  ${CMAKE_SOURCE_DIR}/broker/core/inc
+  ${CMAKE_SOURCE_DIR}/bbdo)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -520,32 +525,32 @@ if(LEGACY_ENGINE)
   set_property(TARGET centengine PROPERTY ENABLE_EXPORTS ON)
   add_dependencies(centengine centreon_clib)
 
-  # Link centengine with required libraries.
-  target_link_libraries(
-    centengine
-    PRIVATE centreon_clib
-            log_v2
-            -Wl,-whole-archive
-            enginerpc_legacy
-            centreon_grpc
-            centreon_http
-            centreon_common
-            Boost::url
-            cce_core
-            Boost::program_options
-            gRPC::grpc++
-            -Wl,--no-whole-archive
-            absl::any
-            absl::log
-            absl::base
-            absl::bits
-            crypto
-            ssl
-            ${c-ares_LIBS}
-            z
-            ryml::ryml
-            stdc++fs
-            dl)
+# Link centengine with required libraries.
+target_link_libraries(
+  centengine
+  PRIVATE centreon_clib
+  log_v2
+  enginerpc
+  -Wl,--whole-archive
+  centreon_grpc
+  -Wl,--no-whole-archive
+  centreon_http
+  centreon_common
+  Boost::url
+  cce_core
+  centreon_process
+  Boost::program_options
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  crypto
+  ssl
+  ${c-ares_LIBS}
+  z
+  ryml::ryml
+  stdc++fs
+  dl)
 
   install(
     TARGETS centengine centenginestats

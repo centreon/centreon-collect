@@ -23,7 +23,7 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
-#include "com/centreon/engine/commands/raw.hh"
+#include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -91,8 +91,9 @@ void applier::command::add_object(const configuration::Command& obj) {
   cmd->CopyFrom(obj);
 
   if (obj.connector().empty()) {
-    auto raw = std::make_shared<commands::raw>(
-        obj.command_name(), obj.command_line(), &checks::checker::instance());
+    auto raw = std::make_shared<commands::raw_v2>(
+        g_io_context, obj.command_name(), obj.command_line(),
+        &checks::checker::instance());
     commands::command::commands[raw->get_name()] = std::move(raw);
   } else {
     connector_map::iterator found_con{
@@ -246,9 +247,9 @@ void applier::command::modify_object(configuration::Command* to_modify,
   // not referenced anywhere, only ::command objects are.
   //  commands::command::commands.erase(obj.command_name());
   if (new_obj.connector().empty()) {
-    auto raw = std::make_shared<commands::raw>(new_obj.command_name(),
-                                               new_obj.command_line(),
-                                               &checks::checker::instance());
+    auto raw = std::make_shared<commands::raw_v2>(
+        g_io_context, new_obj.command_name(), new_obj.command_line(),
+        &checks::checker::instance());
     it_obj->second = raw;
   } else {
     connector_map::iterator found_con{
