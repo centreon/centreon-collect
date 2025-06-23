@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ process_args::process_args(const std::string_view& exe_path,
  * commandline
  *
  * Caution, as this is unix case, get_args() will return an empty vector, only
- * get_c_args() will contains fields
+ * get_c_args() will contain arguments of command
+ * In that case only _buffer is used and _c_args point to _buffer
  *
  * @param unix_commandline
  */

@@ -17,6 +17,7 @@
  */
 
 #include "ntdll.hh"
+#include "log.hh"
 
 namespace com::centreon::agent {
 
@@ -37,11 +38,18 @@ void load_nt_dll() {
     constexpr unsigned max_dir_length = sizeof(windows_dir) - 1;
     unsigned path_length =
         GetSystemWindowsDirectoryA(windows_dir, max_dir_length);
-    if (path_length > max_dir_length) {
-      throw std::runtime_error("unable to get windows directory");
+
+    std::string ntdll_path;
+    if (!path_length || path_length > max_dir_length) {
+      SPDLOG_LOGGER_ERROR(g_logger,
+                          "fail to get windows directory => we rely on path to "
+                          "find ntdll.dll: {}",
+                          GetLastError());
+      ntdll_path = "ntdll.dll";
+    } else {
+      ntdll_path.assign(windows_dir, path_length);
+      ntdll_path += "\\System32\\ntdll.dll";
     }
-    std::string ntdll_path(windows_dir, path_length);
-    ntdll_path += "\\System32\\ntdll.dll";
 
     _ntdll = LoadLibraryA(ntdll_path.c_str());
     if (!_ntdll) {

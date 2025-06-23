@@ -59,7 +59,9 @@ struct boost_process;
 }  // namespace detail
 
 /**
- * @brief same as clib exit status
+ * @brief status of execution of a child process
+ * crash is never returned but is there to ensure backward compatibility
+ * with clib
  *
  */
 enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
@@ -70,10 +72,10 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  * It's full asynchronous, and relies on boost v2 process. On linux version, we
  * don't use boost process child process launcher but a spawnp home made one.
  *
- * It's an one shot class not reusable.
- * That's why we pass exe path, arguments and environment with shared pointers
- * in order to not compute, allocate these parameters each time we start the
- * same process.
+ * It's a one shot class not reusable.
+ * That's why we pass executable path, arguments and environment with shared
+ * pointers in order to not compute, allocate these parameters each time we
+ * start the same process.
  *
  * It also manages a timeout. When child duration goes more than
  * timeout, we kill (-9) child process and we handle child process die the same

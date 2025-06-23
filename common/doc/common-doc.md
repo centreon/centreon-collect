@@ -60,7 +60,7 @@ The goal of this class is to provide an base class to execute asynchronously pro
 It relies on boost v2 process library.
 All is asynchronous, child process end of life is notified to on_process_end method. It's the same for stdin write and stdout/err read.
 
-You have 3 constructors that allow user to pass executable arguments in four different ways. On of them accept a string command line with exe and arguments
+You have 3 constructors that allow user to pass executable arguments in four different ways. One of them accept a string command line with exe and arguments
 
 When you have to start several times the same process, the better way is to create a shared_ptr< std::string > (exe path) and a shared_ptr of string vector for arguments with parse_cmd_line static method. Then, you can pass it to this constructor:
 ```c++
@@ -76,7 +76,7 @@ When you have to start several times the same process, the better way is to crea
 
 
 
-This class can be used only one time. 
+This class can be used only once. 
 
 The `process` class can be used alone to execute a program directly in an asynchron way.
 

@@ -24,12 +24,18 @@ namespace com::centreon::common {
 /**
  * @brief The goal of this class is two store arguments in two formats
  * a vector<string> for windows boost process launcher, this vector does not
- * contain exe
- * a vector<const char*> for spawnp, this vector contains exe and a
+ * contain the executable
+ * a vector<const char*> for spawnp, this vector contains executable and a
  * nullptr at the end
  *
  */
 class process_args {
+  // depending on constructor
+  // When you use constructor with exe_path and arguments (windows case)
+  // _exe_path and _args are filled and _c_args elements point to _args data
+  // elements, _buffer is unused
+  //  When you use unix_commandline constructor, only
+  // _c_args are filled and point to _buffer
   std::string _exe_path;
   std::vector<std::string> _args;
   std::vector<const char*> _c_args;

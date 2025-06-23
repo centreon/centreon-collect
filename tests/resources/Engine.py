@@ -251,7 +251,7 @@ class EngineInstance:
 
     def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
         """
-            Create a service witch uses command_{host_id}_{service_index_in_host}
+            Create a service that uses command_{host_id}_{service_index_in_host}
             if service_id is a multiple of 10, we set _KO macro and check.sh will return 1
         """
         self.last_service_id += 1
@@ -3927,7 +3927,7 @@ define timeperiod {{
 """)
 
 
-def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with_default_token: bool = True):
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, with_default_token: bool = True):
     """!
     add a new broker_module line to centengine.cfg and create otl_server config file
     @param idx index ofthe poller usually 0

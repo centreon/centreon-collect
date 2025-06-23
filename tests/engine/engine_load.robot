@@ -31,6 +31,8 @@ ENGINE_MANY_CHECKS
 
     Ctn Stop Engine
     
+    # we have 200 services and checks of all these services must be found in logs
+    # this is the purpose of the following function	
     ${nb_check_ok}    Ctn Engine Check Sh Command Output
 
     Should Be Equal    ${nb_check_ok}    ${200}    we should have 200 services checked

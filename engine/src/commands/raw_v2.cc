@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ void _build_environment_macros(nagios_macros& macros,
 /**
  *  Run a command.
  *
- *  @param[in] args    The command arguments.
+ *  @param[in] processed_cmd     A full command line with arguments.
  *  @param[in] macros  The macros data struct.
  *  @param[in] timeout The command timeout.
  *  @param[in] to_push_to_checker This check_result will be pushed to checher.
@@ -374,7 +374,7 @@ void raw_v2::_on_complete(uint64_t command_id,
  * It's a fake synchronous method, as process is asynchronous, we use an
  * absl::Mutex to wait child process completion
  *
- *  @param[in]  args    The command arguments.
+ *  @param[in]  processed_cmd  A full command line with arguments?.
  *  @param[in]  macros  The macros data struct.
  *  @param[in]  timeout The command timeout.
  *  @param[out] res     The result of the command.
