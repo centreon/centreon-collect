@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bullseye-arm64, unit-tests-bookworm]
+        image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bookworm]
         include:
           - runner_name: ubuntu-24.04
           - package_extension: rpm
@@ -92,10 +92,6 @@ jobs:
           - package_extension: rpm
             image: unit-tests-alma9
             distrib: el9
-          - package_extension: deb
-            image: unit-tests-bullseye-arm64
-            distrib: bullseye-arm64
-            runner_name: ubuntu-24.04-arm
           - package_extension: deb
             image: unit-tests-bookworm
             distrib: bookworm
