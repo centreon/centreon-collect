@@ -51,8 +51,13 @@ class vault_test : public ::testing::Test {
 
 TEST_F(vault_test, httpsConnection) {
   auto p = std::make_shared<process<false>>(
-      g_io_context, _logger, "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
-  p->start_process(false);
+      g_io_context, _logger, "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl",
+      true, false, nullptr);
+  p->start_process(
+      [](const process<false>& proc, int /*exit_code*/, int, /*exit status*/
+         const std::string& /*stdout*/, const std::string&   /*stderr*/
+      ) {},
+      {});
 
   std::promise<std::string> promise;
   std::future<std::string> future = promise.get_future();
