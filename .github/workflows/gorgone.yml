@@ -24,11 +24,15 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
+      - 'release-[2-9][0-9].[0-9][0-9]-next'
+      - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
     paths:
       - ".version"
       - ".version.centreon-gorgone"
       - "gorgone/**"
       - "perl-libs/**"
+    tags:
+      - "centreon-gorgone-*"
 
 env:
   base_directory: gorgone
