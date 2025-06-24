@@ -635,7 +635,6 @@ sub action_processcopy {
                     $self->{logger}->writeLogError("[action] Copy processing - Can't copy file to $dest_filename, $!");
                     return -1
                 }
-
                 my $uid = getpwnam($options{data}->{content}->{owner});
                 my $gid = getgrnam($options{data}->{content}->{group});
                 my $chown_status = chown($uid, $gid, $dest_filename);
@@ -643,6 +642,10 @@ sub action_processcopy {
                 # this should be logged but not quiting the sub, as most of the time it will fail, as we can't change ownership as centreon-gorgone user.
                 if ($chown_status == 0) {
                     $self->{logger}->writeLogError("[action] Copy processing - can't change permission of file $dest_filename: $!");
+                }
+                if ($options{data}->{content}->{mode}) {
+                    chmod(oct($options{data}->{content}->{mode}), $dest_filename) or
+                        $self->{logger}->writeLogError("[action] Copy processing - can't change mode of file $dest_filename: $!");
                 }
             }
         } else {
