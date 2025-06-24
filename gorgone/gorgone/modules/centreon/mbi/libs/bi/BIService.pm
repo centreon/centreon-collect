@@ -90,7 +90,7 @@ sub insertIntoTable {
 	my $counter = 0;
 	
 	foreach (@$data) {
-		my ($service_id, $service_description, $sc_id, $sc_name, $host_id, $host_name, $hg_id, $hg_name, $hc_id, $hc_name) = split(";", $_);
+		my ($service_id, $service_description, $sc_id, $sc_name, $host_id, $host_name, $hg_id, $hg_name, $hc_id, $hc_name) = @$_;
 		$sth->bind_param(1, $service_id);
 		$sth->bind_param(2, $service_description);
 		$sth->bind_param(3, $sc_id);
