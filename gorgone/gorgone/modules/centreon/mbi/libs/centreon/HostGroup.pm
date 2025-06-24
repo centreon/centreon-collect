@@ -126,7 +126,7 @@ sub getAllEntries {
 	my $sth = $db->query({ query => $query });
 	my @entries = ();
 	while (my $row = $sth->fetchrow_hashref()) {
-		push @entries, $row->{"hg_id"}.";".$row->{"hg_name"};
+		push @entries, [ $row->{"hg_id"}, $row->{"hg_name"} ];
 	}
 	$sth->finish();
 	return (\@entries);

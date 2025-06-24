@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS `mod_bi_options_centiles` ( `id` int(11) NOT NULL AUTO_INCREMENT, `centile_param` DECIMAL(7,4) NOT NULL, `timeperiod_id` tinyint(4) NOT NULL, PRIMARY KEY (`id`), UNIQUE KEY `centile` (`centile_param`,`timeperiod_id`)) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;

@@ -1,0 +1,12 @@
+DELETE FROM `host` WHERE host_id in (520000, 521000, 522000);
+DELETE FROM `hostcategories` WHERE hc_id in (220000);
+DELETE FROM `hostgroup` WHERE hg_id in (512000);
+DELETE FROM `service` WHERE service_id in (514800,514900,515000,515100,515200);
+DELETE FROM `service_categories` WHERE sc_id in (535000);
+DELETE FROM `servicegroup` WHERE sg_id in (610000);
+DELETE FROM `servicegroup_relation` WHERE host_host_id in (520000, 521000, 522000);
+DELETE FROM `host_template_relation` WHERE host_host_id in (520000, 521000, 522000);
+DELETE FROM `host_service_relation` WHERE host_host_id in (520000, 521000, 522000);
+DELETE FROM `hostgroup_relation` WHERE host_host_id in (520000, 521000, 522000);
+DELETE FROM `hostcategories_relation` WHERE host_host_id in (520000, 521000, 522000);
+DELETE FROM `service_categories_relation` WHERE service_service_id in (514900);
