@@ -88,7 +88,7 @@ class process_wait : public process<true> {
 
   void start_process() {
     process<true>::start_process(
-        [this](const process<true>& proc, int exit_code, int exit_status,
+        [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
           absl::MutexLock l(&_waiter);
           _completed = true;
@@ -102,7 +102,7 @@ class process_wait : public process<true> {
 
   void start_process(const std::chrono::system_clock::duration& timeout) {
     process<true>::start_process(
-        [this](const process<true>& proc, int exit_code, int exit_status,
+        [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
           absl::MutexLock l(&_waiter);
           _completed = true;

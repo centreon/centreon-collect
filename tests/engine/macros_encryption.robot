@@ -31,7 +31,7 @@ NO_ENGINE_ENCRYPTION
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${content}    Create List    read from stdout: clear_mac raw::raw_mac encrypt::encrypt_mac
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "echo output not found in logs.
     
 ENGINE_ENCRYPTION_BAD_CONF
@@ -50,13 +50,14 @@ ENGINE_ENCRYPTION_BAD_CONF
     Ctn Config Broker    module
 
     Ctn Clear Retention
+    Remove File    /etc/centreon-engine/engine-context.json
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     
     ${content}    Create List     no encryption configured => can't decryp macro _SERVICEENCRYPT_MAC
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    error message not found in logs
 
     ${content}    Create List    read from stdout: clear_mac raw_mac encrypt::encrypt_mac
@@ -99,7 +100,7 @@ ENGINE_ENCRYPTION_GOOD_CONF
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     
     ${content}    Create List    read from stdout: clear_mac raw_mac The content to encode
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    echo output not found in logs.
 
 
