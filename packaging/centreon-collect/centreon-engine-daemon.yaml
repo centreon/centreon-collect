@@ -59,7 +59,7 @@ contents:
   - src: "files/empty_file"
     dst: "/etc/centreon-engine/engine-context.json"
     file_info:
-      mode: 0755
+      mode: 0660
       owner: centreon-engine
       group: centreon-engine
 
