@@ -1285,7 +1285,7 @@ TEST_F(LuaTest, HostGroupCacheTestAlias) {
   auto hg{std::make_shared<neb::pb_host_group>()};
   auto& obj = hg->mut_obj();
   obj.set_hostgroup_id(28);
-  obj.set_hostgroup_name("centreon");
+  obj.set_name("centreon");
   obj.set_enabled(true);
   obj.set_alias("alias-centreon");
 
