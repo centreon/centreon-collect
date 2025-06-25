@@ -47,8 +47,9 @@ void applier::command::add_object(configuration::command const& obj) {
   // Add command to the global configuration set.
   config->commands().insert(obj);
   if (obj.connector().empty()) {
-    std::shared_ptr<commands::raw> raw = std::make_shared<commands::raw>(
-        obj.command_name(), obj.command_line(), &checks::checker::instance());
+    std::shared_ptr<commands::raw_v2> raw = std::make_shared<commands::raw_v2>(
+        g_io_context, obj.command_name(), obj.command_line(),
+        &checks::checker::instance());
     commands::command::commands[raw->get_name()] = raw;
   } else {  // connector or otel, we search it to create the forward command
             // that will use it
@@ -162,8 +163,8 @@ void applier::command::modify_object(configuration::command const& obj) {
   // Find old configuration.
   set_command::iterator it_cfg(config->commands_find(obj.key()));
   if (it_cfg == config->commands().end())
-    throw(engine_error() << "Cannot modify non-existing "
-                         << "command '" << obj.command_name() << "'");
+    throw(engine_error() << "Cannot modify non-existing " << "command '"
+                         << obj.command_name() << "'");
 
   // Find command object.
   command_map::iterator it_obj(commands::command::commands.find(obj.key()));
@@ -186,8 +187,9 @@ void applier::command::modify_object(configuration::command const& obj) {
   // not referenced anywhere, only ::command objects are.
   commands::command::commands.erase(obj.command_name());
   if (obj.connector().empty()) {
-    auto raw = std::make_shared<commands::raw>(
-        obj.command_name(), obj.command_line(), &checks::checker::instance());
+    auto raw = std::make_shared<commands::raw_v2>(
+        g_io_context, obj.command_name(), obj.command_line(),
+        &checks::checker::instance());
     commands::command::commands[raw->get_name()] = raw;
   } else {
     connector_map::iterator found_con{

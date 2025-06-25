@@ -46,7 +46,7 @@ set_target_properties("${STATS}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_link_libraries("${STATS}" PRIVATE spdlog::spdlog)
 target_precompile_headers(${STATS} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(${STATS} process_stat pb_common_lib)
+add_dependencies(${STATS} process_stat)
 
 # Testing.
 if(WITH_TESTING)

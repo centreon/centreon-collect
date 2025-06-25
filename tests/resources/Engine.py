@@ -261,7 +261,7 @@ class EngineInstance:
             retval += "    _KO                             KO\n"
 
         retval += "}\n"
-        return retval
+        return retval, service_id
 
     def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         """
@@ -621,12 +621,13 @@ passive_checks_enabled 1
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
                             if (sh_command):
-                                ff.write(
-                                    self._create_service_with_sh_command(h["hid"], j))
+                                svc = self._create_service_with_sh_command(
+                                    h["hid"], j)
                             else:
-                                ff.write(self._create_service(h["hid"],
-                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
-                            self.services.append("service_{}".format(h["hid"]))
+                                svc = self._create_service(
+                                    h["hid"], (inst * self.commands_count + 1, (inst + 1) * self.commands_count))
+                            ff.write(svc[0])
+                            self.services.append(f"service_{svc[1]}")
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
                 if (sh_command):
@@ -792,7 +793,7 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "check.sh", "notif.pl", "check_centreon_bam"]:
+            for file in ["check.pl", "check.sh", "notif.pl"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |

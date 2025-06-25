@@ -81,6 +81,8 @@ class ServiceFlappingNotification : public TestEngine {
     hst.parse("address", "127.0.0.1");
     hst.parse("_HOST_ID", "12");
     hst.parse("check_command", "cmd");
+    hst.parse("active_checks_enabled", "0");
+    hst.parse("passive_checks_enabled", "1");
 #else
     configuration::Host hst;
     configuration::host_helper hst_hlp(&hst);
@@ -489,10 +491,10 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
 TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_current_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
+  _host->set_check_type(checkable::check_type::check_passive);
 #ifdef LEGACY_CONF
   config->enable_flap_detection(true);
 #else
-  _host->set_check_type(checkable::check_type::check_passive);
   pb_config.set_enable_flap_detection(true);
 #endif
   _service->set_flap_detection_enabled(true);
