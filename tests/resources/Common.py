@@ -1137,7 +1137,7 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                     cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or result[0]['deletion_time'] is not None):
+                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is not None or result[0]['deletion_time'] is not None):
                         return True
         time.sleep(2)
     return False

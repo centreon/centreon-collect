@@ -115,9 +115,9 @@ The Vault file is of the form:
   "url": "localhost",
   "port": 4443,
   "root_path": "john-doe",
-  "secret_id": "clb0EZHfRypwmDSi61gZivsNj+VnSHUdAGgcD5bjaYiYIwZjb9NKrY+j/x/sUIivYDQWC3hm8J8L2qlk1tP9RkVrFMndR5fK+bTKJrTlc97NJzwxgvkzgNKXqfehmo6IOlcHMzun8/SoObYQW+bFJgTSeOkXlfIUYDJuBXv7FDU=",
-  "role_id": "S4t2tU2MgOgXESsIZfcw3LJlJiLd17OiEnjPCNSsLnJ81i7Rvr+sgrHP8EnWR+r6QT0c/XHH0XOoPd09RGyv06dBRmfmArvBz8itfVeFTGIbzsZltliua2NfcMT7A1W3VFRq9OpM29rOtrgmGxArAiFgXPGymDPLXmgIjMNz+K4=",
-  "salt": "U2FsdA=="
+  "secret_id": "{your_secret_key}",
+  "role_id": "{your_role_id}",
+  "salt": "{your_salt}"
 }
 ```
 
