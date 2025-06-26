@@ -50,7 +50,7 @@ runs:
               patchVarName = 'AGENT_PATCH';
             }
 
-            const matches = content.match(new Regexp/^\s*set\(\s*(${majorVarName}|${minorVarName}|${patchVarName})\s+(\d+)\s*\)/gm);
+            const matches = content.match(new Regexp(`^\s*set\(\s*(${majorVarName}|${minorVarName}|${patchVarName})\s+(\d+)\s*\)`), 'gm');
             if (matches) {
               let majorVersion = null;
               let minorVersion = null;
