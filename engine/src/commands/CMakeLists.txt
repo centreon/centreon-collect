@@ -35,6 +35,7 @@ set(
   "${SRC_DIR}/otel_interface.cc"
   "${SRC_DIR}/processing.cc"
   "${SRC_DIR}/raw.cc"
+  "${SRC_DIR}/raw_v2.cc"
   "${SRC_DIR}/result.cc"
 
   # Headers.
