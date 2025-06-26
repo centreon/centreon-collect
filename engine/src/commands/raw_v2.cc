@@ -188,12 +188,7 @@ static void _build_custom_service_macro_environment(
 static void _build_macrosx_environment(
     nagios_macros& macros,
     boost::process::v2::process_environment& env) {
-#ifdef LEGACY_CONF
   bool use_large_installation_tweaks = config->use_large_installation_tweaks();
-#else
-  bool use_large_installation_tweaks =
-      pb_config.use_large_installation_tweaks();
-#endif
   std::string key;
   for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
@@ -232,11 +227,7 @@ static std::vector<std::pair<std::string, std::string>> _empty_args;
  */
 void _build_environment_macros(nagios_macros& macros,
                                boost::process::v2::process_environment& env) {
-#ifdef LEGACY_CONF
   bool enable_environment_macros = config->enable_environment_macros();
-#else
-  bool enable_environment_macros = pb_config.enable_environment_macros();
-#endif
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);

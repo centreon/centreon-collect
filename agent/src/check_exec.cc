@@ -40,8 +40,7 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
             cmd_name,
             cmd_line,
             cnf,
-            std::move(handler),
-            stat) {
+            std::move(handler)) {
   _process_args =
       com::centreon::common::process<false>::parse_cmd_line(cmd_line);
 }
@@ -53,9 +52,7 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
  * @tparam handler_type
  * @param io_context
  * @param logger
- * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this
- * but also others)
+ * @param exp start expected
  * @param serv
  * @param cmd_name
  * @param cmd_line
@@ -71,11 +68,10 @@ std::shared_ptr<check_exec> check_exec::load(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& cnf,
-    check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
-  std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, cnf, std::move(handler), stat);
+    check::completion_handler&& handler) {
+  std::shared_ptr<check_exec> ret =
+      std::make_shared<check_exec>(io_context, logger, exp, serv, cmd_name,
+                                   cmd_line, cnf, std::move(handler));
   return ret;
 }
 
@@ -86,9 +82,7 @@ std::shared_ptr<check_exec> check_exec::load(
  * @param timeout
  */
 void check_exec::start_check(const duration& timeout) {
-  if (!check::_start_check(timeout)) {
-    return;
-  }
+  check::start_check(timeout);
 
   try {
     auto proc = std::make_shared<com::centreon::common::process<false>>(

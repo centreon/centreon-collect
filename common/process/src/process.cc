@@ -162,6 +162,21 @@ process<use_mutex>::~process() {
 }
 
 /**
+ * @brief returns pid of process, -1 otherwise
+ *
+ * @tparam use_mutex
+ * @return int
+ */
+template <bool use_mutex>
+int process<use_mutex>::get_pid() {
+  detail::lock<use_mutex> l(&_protect);
+  if (_proc) {
+    return _proc->proc.id();
+  }
+  return -1;
+}
+
+/**
  * @brief start a new process, if a previous one is running, it's killed
  * In this function, we start child process and stdout, stderr asynchronous read
  * we also start an asynchronous read on process fd to be aware of child process

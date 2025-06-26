@@ -464,8 +464,6 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _service->set_first_notification_delay(3);
   _service->set_max_attempts(1);
 
-  commands_logger->set_level(spdlog::level::trace);
-
   // This loop is to store many OK in the state history.
   for (int i = 1; i < 22; i++) {
     now += 300;

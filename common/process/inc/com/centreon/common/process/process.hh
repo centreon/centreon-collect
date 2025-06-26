@@ -220,6 +220,8 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   static process_args::pointer parse_cmd_line(const std::string_view& cmd_line);
 
+  int get_pid();
+
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 

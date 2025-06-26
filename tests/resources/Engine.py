@@ -230,7 +230,7 @@ class EngineInstance:
 }}
 """.format(
             host_id, service_id, self.service_cmd[service_id])
-        return retval
+        return retval, service_id
 
     def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
         """

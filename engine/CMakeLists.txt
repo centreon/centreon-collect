@@ -532,6 +532,7 @@ target_link_libraries(
   centreon_grpc
   centreon_http
   centreon_common
+  centreon_process
   -L${Boost_LIBRARY_DIR_RELEASE}
   boost_url
   cce_core
