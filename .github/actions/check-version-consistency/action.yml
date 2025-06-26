@@ -45,17 +45,18 @@ runs:
             let majorVarName = 'COLLECT_MAJOR';
             let minorVarName = 'COLLECT_MINOR';
             let patchVarName = 'COLLECT_PATCH';
-            console.log(context.workflow);
             if (context.workflow === 'monitoring-agent') {
               patchVarName = 'AGENT_PATCH';
             }
 
             const matches = content.matchAll(new RegExp(`^\s*set\(\s*(${majorVarName}|${minorVarName}|${patchVarName})\s+(\d+)\s*\)`, 'gm'));
+            console.log(matches);
             if (matches) {
               let majorVersion = null;
               let minorVersion = null;
               let patchVersion = null;
               for (const match of matches) {
+              console.log(match);
                 if (match && match.length > 2) {
                   if (match[1] === majorVarName) {
                     majorVersion = match[2];
