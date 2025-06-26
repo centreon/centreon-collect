@@ -1412,17 +1412,8 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
         svc = engine._create_service(host_id, [1, cmd_id])
-        lst = svc.split('\n')
-        good = [line for line in lst if "_SERVICE_ID" in line][0]
-        m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
-        if m is not None:
-            retval = int(m.group(1))
-        else:
-            raise Exception(
-                "Impossible to get the service id from '{}'".format(good))
-            m = 0
-        f.write(svc)
-    return retval
+        f.write(svc[0])
+    return svc[1]
 
 
 def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
