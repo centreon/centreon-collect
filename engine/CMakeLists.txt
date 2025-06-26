@@ -49,7 +49,9 @@ set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(${INC_DIR} ${INC_DIR}/compatibility
   ${CMAKE_BINARY_DIR}/common/process_stat
-                    ${CMAKE_BINARY_DIR}/common/ ${CMAKE_SOURCE_DIR}/common/inc)
+  ${CMAKE_BINARY_DIR}/common/
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/process/inc)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -532,6 +534,7 @@ if(LEGACY_ENGINE)
             centreon_common
             Boost::url
             cce_core
+            centreon_process
             Boost::program_options
             gRPC::grpc++
             -Wl,--no-whole-archive

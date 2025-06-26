@@ -163,10 +163,7 @@ struct formatter<com::centreon::common::http::http_config> {
               FormatContext& ctx) const -> decltype(ctx.out()) {
     std::ostringstream s;
     if (conf.get_endpoints().empty()) {
-      s << "no endpoints";
-      // s << conf.get_endpoint();
-      // return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
-      //                  conf.is_crypted());
+      return format_to(ctx.out(), "no endpoints crypted:{}", conf.is_crypted());
     } else {
       s << conf.get_endpoints().begin()->endpoint();
       return format_to(ctx.out(), "endpoint:{} crypted:{}", s.str(),
