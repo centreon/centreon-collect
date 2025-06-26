@@ -266,7 +266,7 @@ jobs:
           ticket_squad: "DevSecOps"
 
   package:
-    needs: [get-environment]
+    needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
