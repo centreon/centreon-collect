@@ -55,7 +55,7 @@ runs:
               let majorVersion = null;
               let minorVersion = null;
               let patchVersion = null;
-              for (const match of mapVersionMatches) {
+              for (const match of matches) {
                 if (match && match.length > 2) {
                   if (match[1] === majorVarName) {
                     majorVersion = match[2];
