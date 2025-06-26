@@ -339,7 +339,6 @@ add_library(rokerbase STATIC
     ${SRC_DIR}/file/opener.cc
     ${SRC_DIR}/file/splitter.cc
     ${SRC_DIR}/file/stream.cc
-    ${SRC_DIR}/instance_broadcast.cc
     ${SRC_DIR}/io/data.cc
     ${SRC_DIR}/io/endpoint.cc
     ${SRC_DIR}/io/events.cc
