@@ -56,7 +56,11 @@ endif()
 
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/bad_script.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_common)
@@ -90,18 +94,21 @@ else()
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
-    centreon_process
-    Boost::program_options
-    re2::re2
-    GTest::gtest
-    GTest::gtest_main
-    GTest::gmock
-    GTest::gmock_main
-    absl::any
-    absl::log
-    absl::base
-    absl::bits
-    fmt::fmt)
+            centreon_process
+            Boost::program_options
+            Boost::process
+            re2::re2
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            absl::any
+            absl::log
+            absl::base
+            absl::bits
+            fmt::fmt)
+
+  add_dependencies(ut_common centreon_common)
 
     add_dependencies(ut_common centreon_common)
 

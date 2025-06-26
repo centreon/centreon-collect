@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <absl/strings/match.h>
 
 #include "com/centreon/engine/broker.hh"
@@ -717,8 +716,8 @@ com::centreon::engine::service* add_service(
   if (!host_id) {
     engine_logger(log_config_error, basic)
         << "Error: The service '" << description
-        << "' cannot be created because"
-        << " host '" << host_name << "' does not exist (host_id is null)";
+        << "' cannot be created because" << " host '" << host_name
+        << "' does not exist (host_id is null)";
     config_logger->error(
         "Error: The service '{}' cannot be created because host '{}' does not "
         "exist (host_id is null)",
@@ -1088,7 +1087,9 @@ int service::handle_async_check_result(
   int flapping_check_done = false;
 
   engine_logger(dbg_functions, basic) << "handle_async_service_check_result()";
-  SPDLOG_LOGGER_TRACE(functions_logger, "handle_async_service_check_result()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "service::handle_async_check_result() service {} res:{}",
+                      name(), queued_check_result);
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
