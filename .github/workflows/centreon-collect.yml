@@ -32,27 +32,27 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    paths:
-      - ".version"
-      - ".version.centreon-collect"
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/centreon-collect/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
-      - selinux/**
-      - "!selinux/centreon-common/**"
-      - "!**/test/**"
+    # paths:
+    #   - ".version"
+    #   - ".version.centreon-collect"
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - custom-triplets/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/centreon-collect/**
+    #   - cmake.sh
+    #   - cmake-vcpkg.sh
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - vcpkg.json
+    #   - overlays/**
+    #   - selinux/**
+    #   - "!selinux/centreon-common/**"
+    #   - "!**/test/**"
   push:
     branches:
       - develop
