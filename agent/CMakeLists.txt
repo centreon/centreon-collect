@@ -222,6 +222,7 @@ else()
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     absl::any absl::log absl::base absl::bits
     Boost::program_options
+    Boost::process
     fmt::fmt
     pdh
     taskschd)
