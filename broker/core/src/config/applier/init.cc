@@ -55,12 +55,18 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @brief Load necessary structures. It initializes exactly the same structures
  * as init(const config::state& conf) just with detailed parameters.
  *
+ * @param peer_type The type of peer this broker is.
+ * @param engine_conf_version The version of the engine configuration or "" if
+ * not applicable.
  * @param n_thread number of threads in the pool.
  * @param name The broker name to give to this cbd instance.
+ * @param event_queues_total_size The total size in bytes of the event queues.
+ * It is used to avoid a full disk when writing events to disk.
  */
 void config::applier::init(const common::PeerType peer_type,
+                           const std::string& engine_conf_version,
                            size_t n_thread,
-                           const std::string&,
+                           const std::string& /* name */,
                            size_t event_queues_total_size) {
   /* Load singletons.
    * Why so many?
@@ -108,10 +114,14 @@ void config::applier::deinit() {
 /**
  * @brief Load necessary structures.
  *
+ * @param peer_type The type of peer this broker is.
+ * @param engine_conf_version The version of the engine configuration or "" if
+ * not applicable.
  * @param conf The configuration used to initialize the all.
  */
 void config::applier::init(const common::PeerType peer_type,
+                           const std::string& engine_conf_version,
                            const config::state& conf) {
-  init(peer_type, conf.pool_size(), conf.broker_name(),
+  init(peer_type, engine_conf_version, conf.pool_size(), conf.broker_name(),
        conf.event_queues_total_size());
 }

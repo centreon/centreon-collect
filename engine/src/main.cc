@@ -431,7 +431,8 @@ int main(int argc, char* argv[]) {
            * initial instance, which can lead to issues in the database. Doing
            * this, imply we also have to check if cbm is defined in broker.cc.
            */
-          cbm = std::make_unique<cbmod>(broker_config);
+          cbm = std::make_unique<cbmod>(broker_config,
+                                        pb_config.config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 

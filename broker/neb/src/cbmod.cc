@@ -45,7 +45,8 @@ static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
 
-cbmod::cbmod(const std::string& config_file)
+cbmod::cbmod(const std::string& config_file,
+             const std::string& engine_conf_version)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
@@ -56,7 +57,7 @@ cbmod::cbmod(const std::string& config_file)
    * centengine */
   s.mut_log_conf().allow_only_atomic_changes(true);
   com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               s);
+                                               engine_conf_version, s);
   try {
     log_v2::instance().apply(s.log_conf());
   } catch (const std::exception& e) {
@@ -81,7 +82,7 @@ cbmod::cbmod()
   s.poller_id(1);
   s.poller_name("test");
   com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               s);
+                                               "", s);
   _use_protobuf =
       config::applier::state::instance().get_bbdo_version().major_v > 2;
 

@@ -32,7 +32,8 @@ class Modules : public testing::Test {
 
  public:
   void SetUp() override {
-    config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
+    config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
+                          0);
     _logger = log_v2::instance().get(log_v2::CORE);
   }
 
