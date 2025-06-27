@@ -242,7 +242,8 @@ ANO_DT1
     Ctn Kindly Stop Broker
 
 ANO_DT2
-    [Documentation]    delete downtime on dependent service delete one on ano serv
+    [Documentation]    Given a service and its AD, 
+    ...    when we delete downtime on dependent service, AD must not be in downtime anymore
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -273,9 +274,9 @@ ANO_DT2
 
     Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
-    Should Be True    ${result}    dependent service must be in downtime
+    Should Be True    ${result}    dependent service must not be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
-    Should Be True    ${result}    anomaly service must be in downtime
+    Should Be True    ${result}    anomaly service must not be in downtime
 
     Ctn Stop engine
     Ctn Kindly Stop Broker
