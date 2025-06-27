@@ -32,27 +32,27 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    # paths:
-    #   - ".version"
-    #   - ".version.centreon-collect"
-    #   - bbdo/**
-    #   - broker/**
-    #   - ccc/**
-    #   - clib/**
-    #   - connectors/**
-    #   - custom-triplets/**
-    #   - engine/**
-    #   - grpc/**
-    #   - packaging/centreon-collect/**
-    #   - cmake.sh
-    #   - cmake-vcpkg.sh
-    #   - CMakeLists.txt
-    #   - CMakeListsLinux.txt
-    #   - vcpkg.json
-    #   - overlays/**
-    #   - selinux/**
-    #   - "!selinux/centreon-common/**"
-    #   - "!**/test/**"
+    paths:
+      - ".version"
+      - ".version.centreon-collect"
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - custom-triplets/**
+      - engine/**
+      - grpc/**
+      - packaging/centreon-collect/**
+      - cmake.sh
+      - cmake-vcpkg.sh
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - vcpkg.json
+      - overlays/**
+      - selinux/**
+      - "!selinux/centreon-common/**"
+      - "!**/test/**"
   push:
     branches:
       - develop
@@ -117,9 +117,9 @@ jobs:
   check-version-consistency:
     runs-on: ubuntu-24.04
     needs: [get-environment]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   needs.get-environment.outputs.stability == 'testing'
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'testing'
     env:
       version: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
       version_file: .version.centreon-collect

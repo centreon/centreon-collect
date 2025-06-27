@@ -26,17 +26,17 @@ on:
         type: boolean
 
   pull_request:
-    # paths:
-    #   - ".version"
-    #   - ".version.centreon-monitoring-agent"
-    #   - agent/**
-    #   - common/**
-    #   - custom-triplets/**
-    #   - packaging/centreon-monitoring-agent/**
-    #   - CMakeLists.txt
-    #   - CMakeListsLinux.txt
-    #   - CMakeListsWindows.txt
-    #   - vcpkg.json
+    paths:
+      - ".version"
+      - ".version.centreon-monitoring-agent"
+      - agent/**
+      - common/**
+      - custom-triplets/**
+      - packaging/centreon-monitoring-agent/**
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
   push:
     branches:
       - develop
@@ -65,9 +65,9 @@ jobs:
   check-version-consistency:
     runs-on: ubuntu-24.04
     needs: [get-environment]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   needs.get-environment.outputs.stability == 'testing'
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'testing'
     env:
       version: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
       version_file: .version.centreon-monitoring-agent
@@ -91,7 +91,10 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: windows-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
@@ -328,7 +331,10 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     strategy:
       fail-fast: false
       matrix:
