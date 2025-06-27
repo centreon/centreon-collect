@@ -1,33 +1,30 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2025 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_COMMANDS_COMMAND_LISTENER_HH
 #define CCE_COMMANDS_COMMAND_LISTENER_HH
 
-#include <functional>
-#include <unordered_map>
-
+#include <absl/base/thread_annotations.h>
+#include <absl/synchronization/mutex.h>
 #include "com/centreon/engine/commands/result.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 class command;
 /**
  *  @class command_listener command_listener.hh
@@ -36,7 +33,9 @@ class command;
  *  This class provide interface to notify command events.
  */
 class command_listener {
-  std::unordered_map<command*, std::function<void()>> _clean_callbacks;
+  std::unordered_map<command*, std::function<void()>> _clean_callbacks
+      ABSL_GUARDED_BY(_clean_callbacks_m);
+  absl::Mutex _clean_callbacks_m;
 
  public:
   virtual ~command_listener() noexcept {
@@ -48,12 +47,15 @@ class command_listener {
 
   virtual void finished(result const& res) noexcept = 0;
   void reg(command* const ptr, std::function<void()>& regf) {
+    absl::MutexLock l(&_clean_callbacks_m);
     _clean_callbacks.insert({ptr, regf});
   }
-  void unreg(command* const ptr) { _clean_callbacks.erase(ptr); }
+  void unreg(command* const ptr) {
+    absl::MutexLock l(&_clean_callbacks_m);
+    _clean_callbacks.erase(ptr);
+  }
 };
-}  // namespace commands
 
-}
+}  // namespace com::centreon::engine::commands
 
 #endif  // !CCE_COMMANDS_COMMAND_LISTENER_HH

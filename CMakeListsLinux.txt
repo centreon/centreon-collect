@@ -63,6 +63,8 @@ set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
 
+#we use std::filesystem instead of boost::filesystem
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
 
 # Version.
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
