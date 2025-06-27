@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012, 2021-2024 Centreon
+ * Copyright 2011-2012, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,10 +52,12 @@ class state {
     /* Is this peer ready to receive data? That's to say negociation and engine
      * configuration exchanged. */
     bool ready = false;
+    std::string engine_conf;
   };
 
  private:
   const common::PeerType _peer_type;
+  std::string _engine_conf;
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
@@ -97,12 +99,14 @@ class state {
   mutable absl::Mutex _connected_peers_m;
 
   state(common::PeerType peer_type,
+        const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept = default;
 
  public:
   static state& instance();
-  static void load(common::PeerType peer_type);
+  static void load(common::PeerType peer_type,
+                   const std::string& engine_conf_version);
   static void unload();
   static bool loaded();
 

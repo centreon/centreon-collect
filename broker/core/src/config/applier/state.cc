@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015-2016, 2020-2024 Centreon
+ * Copyright 2011-2013,2015-2016, 2020-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,8 +48,10 @@ state::stats state::_stats_conf;
  *  Default constructor.
  */
 state::state(common::PeerType peer_type,
+             const std::string& engine_conf_version,
              const std::shared_ptr<spdlog::logger>& logger)
     : _peer_type{peer_type},
+      _engine_conf{engine_conf_version},
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
@@ -203,9 +205,11 @@ state& state::instance() {
 /**
  *  Load singleton.
  */
-void state::load(common::PeerType peer_type) {
+void state::load(common::PeerType peer_type,
+                 const std::string& engine_conf_version) {
   if (!gl_state)
-    gl_state = new state(peer_type, log_v2::instance().get(log_v2::CONFIG));
+    gl_state = new state(peer_type, engine_conf_version,
+                         log_v2::instance().get(log_v2::CONFIG));
 }
 
 /**

@@ -80,7 +80,7 @@ void config::applier::init(const common::PeerType peer_type,
    * used, we must keep the singleton.
    */
   com::centreon::common::pool::set_pool_size(n_thread);
-  config::applier::state::load(peer_type);
+  config::applier::state::load(peer_type, engine_conf_version);
   mysql_manager::load();
   file::disk_accessor::load(event_queues_total_size);
   io::protocols::load();
