@@ -1,7 +1,11 @@
 name: centreon-collect
 run-name: |
   ${{
-    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    (github.event_name == 'schedule' ||
+     (github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.nightly_manual_trigger == 'true' || github.event.inputs.robot_pattern != '^((?!cma).)*$')
+     )
+    )
     && format('collect nightly {0}', github.ref_name)
     || ''
   }}
@@ -18,6 +22,11 @@ on:
         required: true
         default: false
         type: boolean
+      robot_pattern:
+        description: 'filter robot files with regex'
+        required: true
+        default: '^((?!cma).)*$'
+        type: string
       packages_in_artifact:
         description: 'Save packages in artifacts'
         required: true
@@ -110,7 +119,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
 
   unit-test:
     needs: [get-environment]
@@ -454,7 +463,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: '^((?!cma).)*$'
+      features_pattern: ${{ inputs.robot_pattern}}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
