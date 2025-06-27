@@ -1,5 +1,5 @@
 /**
- * Copyright 2013,2015,2017, 2021-2024 Centreon
+ * Copyright 2013,2015,2017, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1099,41 +1099,6 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           std::static_pointer_cast<pb_stop>(d)->obj().poller_id());
       multiplexing::publisher pblshr;
       pblshr.write(loc_stop);
-    } break;
-    case pb_engine_configuration::static_type(): {
-      const EngineConfiguration& ec =
-          std::static_pointer_cast<pb_engine_configuration>(d)->obj();
-      /* Here, we are Broker and peer is Engine. */
-      if (config::applier::state::instance().peer_type() == common::BROKER &&
-          _peer_type == common::ENGINE) {
-        SPDLOG_LOGGER_INFO(
-            _logger,
-            "BBDO: received engine configuration from Engine peer '{}'",
-            ec.broker_name());
-        bool match = check_poller_configuration(ec.poller_id(),
-                                                ec.engine_config_version());
-        auto engine_conf = std::make_shared<pb_engine_configuration>();
-        auto& obj = engine_conf->mut_obj();
-        obj.set_poller_id(config::applier::state::instance().poller_id());
-        obj.set_poller_name(config::applier::state::instance().poller_name());
-        obj.set_broker_name(config::applier::state::instance().broker_name());
-        obj.set_peer_type(common::BROKER);
-        if (match) {
-          SPDLOG_LOGGER_INFO(
-              _logger, "BBDO: engine configuration for '{}' is up to date",
-              ec.broker_name());
-          obj.set_need_update(false);
-        } else {
-          SPDLOG_LOGGER_INFO(_logger,
-                             "BBDO: engine configuration for '{}' is "
-                             "outdated",
-                             ec.broker_name());
-          /* engine_conf has a new version, it is sent to engine. And engine
-           * will send its configuration to broker. */
-          obj.set_need_update(true);
-        }
-        _write(engine_conf);
-      }
     } break;
     default:
       break;
