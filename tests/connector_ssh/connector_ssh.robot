@@ -121,6 +121,7 @@ Test6Hosts
 
     ${start}    Get Current Date
     FOR    ${idx}    IN RANGE    1    7
+	Sleep    1s    We don't want to be too brutal with sshd
         Ctn Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
 

@@ -62,7 +62,11 @@ fi
 
 
 ulimit -c unlimited
-echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+
+#only privileged container can write core files
+if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
+  echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+fi
 
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD

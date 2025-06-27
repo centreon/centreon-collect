@@ -61,8 +61,6 @@ project("Centreon Collect" C CXX)
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
