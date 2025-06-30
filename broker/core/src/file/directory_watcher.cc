@@ -19,6 +19,7 @@
 #include "com/centreon/broker/file/directory_watcher.hh"
 
 #include <errno.h>
+#include <boost/asio/posix/stream_descriptor.hpp>
 #include <boost/system/detail/error_code.hpp>
 
 #include "com/centreon/common/pool.hh"
@@ -41,10 +42,10 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
                                      uint32_t mask,
                                      bool non_blocking)
     : _io_context(com::centreon::common::pool::io_context_ptr()),
-      _fd{inotify_init()},
-      _sd(*_io_context, _fd),
+      _sd{asio::posix::stream_descriptor(*_io_context, inotify_init())},
       _logger{log_v2::instance().get(log_v2::CORE)} {
-  if (_fd < 0) {
+  int fd = _sd.native_handle();
+  if (fd < 0) {
     throw msg_fmt("directory_watcher: couldn't create inotify instance: '{}'",
                   ::strerror(errno));
   }
@@ -60,7 +61,7 @@ directory_watcher::directory_watcher(const std::string& to_watch_dir,
     }
   }
 
-  _wd = inotify_add_watch(_fd, to_watch_dir.c_str(), mask);
+  _wd = inotify_add_watch(fd, to_watch_dir.c_str(), mask);
   if (_wd < 0)
     throw msg_fmt(
         "directory_watcher: failed to add inotify watch on directory {}",
@@ -79,8 +80,9 @@ directory_watcher::~directory_watcher() {
                    ec1.message());
   }
 
-  inotify_rm_watch(_fd, _wd);
-  close(_fd);
+  int fd = _sd.native_handle();
+  inotify_rm_watch(fd, _wd);
+  close(fd);
 }
 
 /**

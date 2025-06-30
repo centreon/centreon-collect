@@ -121,7 +121,7 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
       "/tmp/to_watch", IN_CREATE | IN_MODIFY | IN_DELETE | IN_DELETE_SELF,
       true);
 
-  std::vector<std::string> filenames;
+  absl::flat_hash_set<std::string> filenames;
   absl::Mutex filenames_m;
   bool started = false;
 
@@ -138,7 +138,7 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
     }
     while (it != watcher.end()) {
       while (it != watcher.end()) {
-        filenames.emplace_back((*it).second);
+        filenames.emplace((*it).second);
         ++it;
       }
       it = watcher.watch();
@@ -160,12 +160,10 @@ TEST(DirectoryWatcher, WatchNonBlockingMultipleFiles) {
   thread.join();
 
   /* We should have 200 files. file0, file1, file2, file3, etc. */
-  std::sort(filenames.begin(), filenames.end());
-  std::vector<std::string> expected_filenames;
+  absl::flat_hash_set<std::string> expected_filenames;
   for (int count = 0; count < 200; count++) {
-    expected_filenames.push_back(fmt::format("file{}", count));
+    expected_filenames.insert(fmt::format("file{}", count));
   }
-  std::sort(expected_filenames.begin(), expected_filenames.end());
   ASSERT_EQ(filenames.size(), 200);
   ASSERT_EQ(filenames, expected_filenames);
 }

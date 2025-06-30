@@ -26,7 +26,7 @@
 
 namespace com::centreon::broker::file {
 
-constexpr size_t BUF_LEN = sizeof(struct inotify_event) + NAME_MAX + 1;
+constexpr size_t BUF_LEN = 4096;
 
 /**
  *  @class directory_watcher directory_watcher.hh
@@ -40,7 +40,6 @@ class directory_watcher {
   std::shared_ptr<boost::asio::io_context> _io_context;
   /* Watch descriptor */
   int _wd;
-  int _fd;
 
   boost::asio::posix::stream_descriptor _sd;
   char _buffer[BUF_LEN];
