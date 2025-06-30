@@ -172,7 +172,7 @@ TEST_F(scheduler_test, no_config) {
   ASSERT_TRUE(weak_shed.lock());
 
   weak_shed.lock()->stop();
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   ASSERT_FALSE(weak_shed.lock());
 }

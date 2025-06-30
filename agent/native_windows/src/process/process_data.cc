@@ -35,6 +35,12 @@ struct handle_close {
 /**
  * @brief Construct a new process_data::process_data object
  *
+ */
+process_data::process_data() : _pid(0), _state(e_state::unreadable) {}
+
+/**
+ * @brief Construct a new process_data::process_data object
+ *
  * @param pid process id
  * @param fields fields to be read
  * @param logger logger to use
