@@ -63,7 +63,7 @@ class process_data : public testable {
   /**
    * used only for tests
    */
-  process_data() {}
+  process_data();
 
  public:
   process_data(const process_data&) = delete;
