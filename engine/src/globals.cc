@@ -132,6 +132,8 @@ unsigned long next_event_id(1);
 unsigned long next_notification_id(1);
 unsigned long next_problem_id(1);
 
+std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
+
 void init_loggers() {
   checks_logger = log_v2::instance().get(log_v2::CHECKS);
   commands_logger = log_v2::instance().get(log_v2::COMMANDS);

@@ -125,11 +125,10 @@ int get_raw_command_line_r(nagios_macros* mac,
                            std::string const& cmd,
                            std::string& full_command,
                            int macro_options) {
-  char temp_arg[MAX_COMMAND_BUFFER] = "";
+  std::string temp_arg;
+  temp_arg.reserve(MAX_COMMAND_BUFFER);
   std::string arg_buffer;
   unsigned int x = 0;
-  unsigned int y = 0;
-  int arg_index = 0;
   int escaped = false;
 
   engine_logger(dbg_functions, basic) << "get_raw_command_line_r()";
@@ -153,46 +152,38 @@ int get_raw_command_line_r(nagios_macros* mac,
 
   /* get the command arguments */
   if (!cmd.empty()) {
+    std::string::const_iterator arg_iter = cmd.begin();
     /* skip the command name (we're about to get the arguments)... */
-    for (arg_index = 0;; arg_index++) {
-      if (cmd[arg_index] == '!' || cmd[arg_index] == '\x0')
-        break;
-    }
+    for (; arg_iter != cmd.end() && *arg_iter != '!'; ++arg_iter)
+      ;
 
     /* get each command argument */
-    for (x = 0; x < MAX_COMMAND_ARGUMENTS; x++) {
-      /* we reached the end of the arguments... */
-      if (cmd[arg_index] == '\x0')
-        break;
-
+    for (x = 0; x < MAX_COMMAND_ARGUMENTS && arg_iter != cmd.end(); ++x) {
       /* get the next argument */
-      /* can't use strtok(), as that's used in process_macros... */
-      for (arg_index++, y = 0; y < sizeof(temp_arg) - 1; arg_index++) {
+      temp_arg.clear();
+      for (++arg_iter; arg_iter != cmd.end(); ++arg_iter) {
         /* backslashes escape */
-        if (cmd[arg_index] == '\\' && escaped == false) {
+        if (*arg_iter == '\\' && escaped == false) {
           escaped = true;
           continue;
         }
 
         /* end of argument */
-        if ((cmd[arg_index] == '!' && escaped == false) ||
-            cmd[arg_index] == '\x0')
+        if (*arg_iter == '!' && escaped == false)
           break;
 
         /* normal of escaped char */
-        temp_arg[y] = cmd[arg_index];
-        y++;
+        temp_arg.push_back(*arg_iter);
 
         /* clear escaped flag */
         escaped = false;
       }
-      temp_arg[y] = '\x0';
 
       /* ADDED 01/29/04 EG */
       /* process any macros we find in the argument */
       process_macros_r(mac, temp_arg, arg_buffer, macro_options);
 
-      mac->argv[x] = arg_buffer;
+      mac->argv[x] = std::move(arg_buffer);
     }
   }
 

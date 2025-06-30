@@ -288,12 +288,18 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
     std::shared_ptr<common::process<true>> p =
         std::make_shared<common::process<true>>(
             g_io_context, commands_logger, _process_args, true, false, env);
+    // we don't want that lambda own raw because raw could be deleted by lambda
+    // exit called by pool thread
     p->start_process(
-        [me = shared_from_this(), command_id, start = time(nullptr)](
-            const common::process<true>& proc, int exit_code, int exit_status,
+        [me = weak_from_this(), command_id, start = time(nullptr)](
+            const common::process<true>&, int exit_code, int exit_status,
             const std::string& std_out, const std::string& std_err) {
-          me->_on_complete(command_id, start, exit_code, exit_status, std_out,
-                           std_err);
+          std::shared_ptr<raw_v2> parent =
+              std::static_pointer_cast<raw_v2>(me.lock());
+          if (parent) {
+            parent->_on_complete(command_id, start, exit_code, exit_status,
+                                 std_out, std_err);
+          }
         },
         std::chrono::seconds(timeout));
     SPDLOG_LOGGER_TRACE(commands_logger,
@@ -415,7 +421,7 @@ void raw_v2::run(const std::string& processed_cmd,
             g_io_context, commands_logger, _process_args, true, false, env);
     p->start_process(
         [me = shared_from_this(), command_id, start = time(nullptr), &waiter,
-         &done, &res](const common::process<true>& proc, int exit_code,
+         &done, &res](const common::process<true>&, int exit_code,
                       int exit_status, const std::string& std_out,
                       const std::string& std_err) {
           absl::MutexLock lck(&waiter);
