@@ -52,6 +52,7 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
@@ -62,6 +63,9 @@ using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
+
+constexpr std::string_view _engine_context_path =
+    "/etc/centreon-engine/engine-context.json";
 
 /**
  * @brief increase soft limit of opened file descriptors
@@ -423,6 +427,7 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
   pb_config.set_broker_module_cfg_file(new_cfg.broker_module_cfg_file());
+  pb_config.set_credentials_encryption(new_cfg.credentials_encryption());
   pb_config.clear_user();
   for (auto& p : new_cfg.user())
     pb_config.mutable_user()->at(p.first) = p.second;
@@ -1560,6 +1565,23 @@ void applier::state::_processing(configuration::State& new_cfg,
       apply_log_config(new_cfg);
       cbm->reload();
       neb_reload_all_modules();
+    }
+
+    if (new_cfg.credentials_encryption()) {
+      try {
+        if (std::filesystem::is_regular_file(_engine_context_path) &&
+            std::filesystem::file_size(_engine_context_path) > 0) {
+          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+              std::make_unique<com::centreon::common::crypto::aes256>(
+                  _engine_context_path);
+          credentials_decrypt = std::move(new_file);
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}",
+                            _engine_context_path, e.what());
+      }
+    } else {
+      credentials_decrypt.reset();
     }
 
     // Print initial states of new hosts and services.

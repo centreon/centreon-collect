@@ -209,6 +209,7 @@ message State {
   uint32 max_file_descriptors = 144;
   string config_version = 145;
   string broker_module_cfg_file = 146;
+  bool credentials_encryption = 147;
 }
 
 /* Ignore */

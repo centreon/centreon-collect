@@ -18,6 +18,15 @@ debianLinkNagios() {
   fi
 }
 
+createEngineContextFile() {
+  FILE="/etc/centreon-engine/engine-context.json"
+  if [ ! -f "$FILE" ]; then
+    touch "$FILE"
+    chmod 660 "$FILE"
+    chown centreon-engine:centreon-engine "$FILE"
+  fi
+}
+
 # on debian, it is needed to recreate centreon-engine user at each upgrade because it is removed on postrm step on versions < 23.10
 if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-engine)" ]; then
@@ -64,9 +73,11 @@ fi
 
 case "$action" in
   "1" | "install")
+    createEngineContextFile
     startCentengine
     ;;
   "2" | "upgrade")
+    createEngineContextFile
     startCentengine
     ;;
   *)

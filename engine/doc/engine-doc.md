@@ -204,3 +204,12 @@ other configuration parameters are stored in a dedicated json file. The path of 
 Example: broker_module=lib/libopentelemetry.so /etc/centreon_engine/otl_server.json
 In this file there are grpc server parameters and some other parameters.
 
+## macros encryption
+Engine can receive in its configuration encrypted macros.
+If credential_encryption flag in centengine configuration is true, it will manage macros in that way:
+* if /etc/centreon-engine/engine-context.json is filled with a correct app_secret and salt
+  * if macro content begins with secret::, we will decrypt following string
+  * if macro content begins with raw::, we erase prefix
+  * else we return macro content
+* else we return an error
+  

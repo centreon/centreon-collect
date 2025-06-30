@@ -17,7 +17,6 @@
  */
 
 #include "check_health.hh"
-#include <chrono>
 #include <iterator>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "config.hh"
