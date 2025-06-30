@@ -52,6 +52,7 @@ state::state(common::PeerType peer_type,
              const std::shared_ptr<spdlog::logger>& logger)
     : _peer_type{peer_type},
       _engine_conf{engine_conf_version},
+      _logger{logger},
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
@@ -130,16 +131,12 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _cache_dir = cache_dir.string() + "/" + s.broker_name();
 
   if (s.get_bbdo_version().major_v >= 3) {
-    // Engine configuration directory (for cbmod).
-    if (!s.engine_config_dir().empty())
-      set_engine_config_dir(s.engine_config_dir());
-
     // Configuration cache directory (for broker, from php).
-    set_config_cache_dir(s.config_cache_dir());
+    set_cache_config_dir(s.cache_config_dir());
 
     // Pollers configuration directory (for Broker).
     // If not provided in the configuration, use a default directory.
-    if (!s.config_cache_dir().empty() && _pollers_config_dir.empty())
+    if (!s.cache_config_dir().empty() && _pollers_config_dir.empty())
       set_pollers_config_dir(cache_dir / "pollers-configuration/");
     else
       set_pollers_config_dir(s.pollers_config_dir());
@@ -288,22 +285,44 @@ void state::add_peer(uint64_t poller_id,
                      const std::string& poller_name,
                      const std::string& broker_name,
                      common::PeerType peer_type,
-                     bool extended_negotiation) {
+                     bool extended_negotiation,
+                     const std::string& engine_conf) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
-  auto logger = log_v2::instance().get(log_v2::CORE);
+  absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found == _connected_peers.end()) {
-    logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
+    _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
   } else {
-    logger->warn(
+    _logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it.",
         broker_name, poller_id);
     _connected_peers.erase(found);
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
-      peer{poller_id, poller_name,          broker_name, time(nullptr),
-           peer_type, extended_negotiation, true,        false};
+      peer{poller_id,     poller_name, broker_name,
+           time(nullptr), peer_type,   extended_negotiation,
+           engine_conf,   engine_conf};
+}
+
+/**
+ * @brief Set the engine configuration for a poller.
+ *
+ * @param poller_id The poller ID.
+ * @param engine_conf The new Engine configuration version.
+ */
+void state::set_poller_engine_conf(uint64_t poller_id,
+                                   const std::string& poller_name,
+                                   const std::string& broker_name,
+                                   const std::string& engine_conf) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
+  if (found == _connected_peers.end()) {
+    _logger->info("Poller with id {} not found in connected peers", poller_id);
+  } else {
+    _logger->info("Poller with id {} has its version changed from '{}' to '{}'",
+                  found->second.engine_conf, engine_conf);
+    found->second.engine_conf = engine_conf;
+  }
 }
 
 /**
@@ -315,15 +334,14 @@ void state::remove_peer(uint64_t poller_id,
                         const std::string& poller_name,
                         const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
-  absl::MutexLock lck(&_connected_peers_m);
-  auto logger = log_v2::instance().get(log_v2::CORE);
+  absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
   if (found != _connected_peers.end()) {
-    logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
-                 poller_name, broker_name, poller_id);
+    _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
+                  poller_name, broker_name, poller_id);
     _connected_peers.erase(found);
   } else {
-    logger->warn(
+    _logger->warn(
         "Peer poller: '{}' - broker: '{}' with id {} and type '{}' not found "
         "in connected peers",
         poller_name, broker_name, poller_id);
@@ -336,9 +354,11 @@ void state::remove_peer(uint64_t poller_id,
  * @param poller_id The poller to check.
  */
 bool state::has_connection_from_poller(uint64_t poller_id) const {
-  absl::MutexLock lck(&_connected_peers_m);
-  for (auto& p : _connected_peers)
-    if (p.second.poller_id == poller_id && p.second.peer_type == common::ENGINE)
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower)
+    if (lower->second.peer_type == common::ENGINE)
       return true;
   return false;
 }
@@ -349,29 +369,11 @@ bool state::has_connection_from_poller(uint64_t poller_id) const {
  * @return A vector of pairs containing the poller id and the poller name.
  */
 std::vector<state::peer> state::connected_peers() const {
-  absl::MutexLock lck(&_connected_peers_m);
+  absl::ReaderMutexLock lck(&_connected_peers_m);
   std::vector<peer> retval;
   for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
     retval.push_back(it->second);
   return retval;
-}
-
-/**
- * @brief Get the Engine configuration directory.
- *
- * @return The Engine configuration directory.
- */
-const std::filesystem::path& state::engine_config_dir() const noexcept {
-  return _engine_config_dir;
-}
-
-/**
- * @brief Set the Engine configuration directory.
- *
- * @param engine_conf_dir The Engine configuration directory.
- */
-void state::set_engine_config_dir(const std::filesystem::path& dir) {
-  _engine_config_dir = dir;
 }
 
 /**
@@ -380,8 +382,8 @@ void state::set_engine_config_dir(const std::filesystem::path& dir) {
  *
  * @return The configuration cache directory.
  */
-const std::filesystem::path& state::config_cache_dir() const noexcept {
-  return _config_cache_dir;
+const std::filesystem::path& state::cache_config_dir() const noexcept {
+  return _cache_config_dir;
 }
 
 /**
@@ -389,9 +391,9 @@ const std::filesystem::path& state::config_cache_dir() const noexcept {
  *
  * @param engine_conf_dir The configuration cache directory.
  */
-void state::set_config_cache_dir(
-    const std::filesystem::path& config_cache_dir) {
-  _config_cache_dir = config_cache_dir;
+void state::set_cache_config_dir(
+    const std::filesystem::path& cache_config_dir) {
+  _cache_config_dir = cache_config_dir;
 }
 
 /**
@@ -420,91 +422,6 @@ void state::set_pollers_config_dir(
  */
 com::centreon::common::PeerType state::peer_type() const {
   return _peer_type;
-}
-
-/**
- * @brief Specify if a broker needs an update. And then set the broker as ready
- * to receive data.
- *
- * @param poller_id The poller id.
- * @param broker_name The poller name.
- * @param peer_type The peer type.
- * @param need_update true if the broker needs an update, false otherwise.
- */
-void state::set_broker_needs_update(uint64_t poller_id,
-                                    const std::string& poller_name,
-                                    const std::string& broker_name,
-                                    common::PeerType peer_type,
-                                    bool need_update) {
-  absl::MutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found != _connected_peers.end()) {
-    found->second.needs_update = need_update;
-    found->second.ready = true;
-  } else {
-    auto logger = log_v2::instance().get(log_v2::CORE);
-    logger->warn(
-        "Poller '{}' with id {} and type '{}' not found in connected peers",
-        broker_name, poller_id,
-        common::PeerType_descriptor()->FindValueByNumber(peer_type)->name());
-  }
-}
-
-/**
- * @brief Set all the connected peers as ready to receive data (no extended
- * negociation available).
- */
-void state::set_peers_ready() {
-  absl::MutexLock lck(&_connected_peers_m);
-  for (auto& p : _connected_peers)
-    p.second.ready = true;
-}
-
-/**
- * @brief Check if a broker needs an update.
- *
- * @param poller_id The poller id.
- * @param broker_name The poller name.
- * @param peer_type The peer type.
- *
- * @return true if the broker needs an update, false otherwise.
- */
-bool state::broker_needs_update(uint64_t poller_id,
-                                const std::string& poller_name,
-                                const std::string& broker_name) const {
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found != _connected_peers.end())
-    return found->second.needs_update;
-  else
-    return false;
-}
-
-/**
- * @brief Wait for 20 seconds for all Brokers to be ready and then check if at
- * least one broker needs an update.
- *
- * @return true if at least one broker needs an update, false otherwise.
- */
-bool state::broker_needs_update() const {
-  auto brokers_ready = [this] {
-    for (auto& p : _connected_peers) {
-      if (p.second.peer_type == common::BROKER && !p.second.ready)
-        return false;
-    }
-    return true;
-  };
-
-  absl::MutexLock lck(&_connected_peers_m);
-  // Let's wait for at most 20 seconds for all brokers to be ready.
-  _connected_peers_m.AwaitWithTimeout(absl::Condition(&brokers_ready),
-                                      absl::Seconds(20));
-
-  // Now, we can check if they need some updates.
-  for (auto& p : _connected_peers) {
-    if (p.second.peer_type == common::BROKER && p.second.needs_update)
-      return true;
-  }
-  return false;
 }
 
 /**
@@ -544,4 +461,42 @@ std::string state::engine_configuration(uint64_t poller_id) const {
  */
 std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
   return _center;
+}
+
+/**
+ * @brief Set the path to the Engine protobuf configuration directory.
+ *
+ * @param proto_conf
+ */
+void state::set_proto_conf(const std::filesystem::path& proto_conf) {
+  _proto_conf = proto_conf;
+}
+
+/**
+ * @brief Get the path to the Engine protobuf configuration directory.
+ *
+ * @return The path to the Engine protobuf configuration directory.
+ */
+const std::filesystem::path& state::proto_conf() const {
+  return _proto_conf;
+}
+
+/**
+ * @brief Set the Engine configuration version. This method has sense only When
+ * called from Engine. Broker instance does not have a configuration version.
+ *
+ * @param engine_conf The Engine configuration version.
+ */
+void state::set_engine_conf(const std::string& engine_conf) {
+  _engine_conf = engine_conf;
+}
+
+/**
+ * @brief Get the Engine configuration version. This method has sense only when
+ * called from Engine. Broker instance does not have a configuration version.
+ *
+ * @return The Engine configuration version.
+ */
+const std::string& state::engine_conf() const {
+  return _engine_conf;
 }

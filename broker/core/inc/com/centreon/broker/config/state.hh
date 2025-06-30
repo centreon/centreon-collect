@@ -57,7 +57,7 @@ class state {
   std::string _engine_config_dir;
 
   /* The directory where php writes the pollers configurations. */
-  std::string _config_cache_dir;
+  std::string _cache_config_dir;
 
   /* The directory where broker stores all the pollers configurations. */
   std::string _pollers_config_dir;
@@ -140,8 +140,8 @@ class state {
   const std::string& poller_name() const noexcept;
   void set_engine_config_dir(const std::string& dir);
   const std::string& engine_config_dir() const noexcept;
-  void set_config_cache_dir(const std::string& config_cache_dir);
-  const std::string& config_cache_dir() const noexcept;
+  void set_cache_config_dir(const std::string& config_cache_dir);
+  const std::string& cache_config_dir() const noexcept;
   void set_pollers_config_dir(const std::string& pollers_config_dir);
   const std::string& pollers_config_dir() const noexcept;
   common::log_v2::config& mut_log_conf();

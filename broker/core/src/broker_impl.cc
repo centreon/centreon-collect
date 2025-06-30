@@ -444,6 +444,8 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
     peer->set_poller_name(p.poller_name);
     peer->set_broker_name(p.broker_name);
     peer->mutable_connected_since()->set_seconds(p.connected_since);
+    peer->set_engine_conf(p.engine_conf);
+    peer->set_available_conf(p.available_conf);
     peer->set_type(p.peer_type);
   }
   return grpc::Status::OK;
