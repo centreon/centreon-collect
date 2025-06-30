@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_STATE
 
 #include <rapidjson/document.h>
+#include <spdlog/logger.h>
 
 #include "common/engine_conf/message_helper.hh"
 
