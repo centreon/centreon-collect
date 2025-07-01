@@ -21,7 +21,6 @@
 #define CCE_CONFIGURATION_SERVICEESCALATION
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -39,8 +38,9 @@ class serviceescalation_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hostgroups,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+          hostgroups,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
 };
 }  // namespace com::centreon::engine::configuration

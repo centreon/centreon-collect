@@ -17,7 +17,7 @@
  *
  */
 #include "common/engine_conf/hostescalation_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -33,11 +33,16 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostescalation_key(const Hostescalation& he) {
-  return absl::HashOf(he.hosts().data(0),
-                      // he.contactgroups().data(),
-                      he.escalation_options(), he.escalation_period(),
-                      he.first_notification(), he.last_notification(),
-                      he.notification_interval());
+  assert(he.hosts().data().size() == 1 && he.hostgroups().data().empty());
+  uint64_t result = 0;
+  boost::hash_combine(result, he.contactgroups().data());
+  boost::hash_combine(result, he.escalation_options());
+  boost::hash_combine(result, he.escalation_period());
+  boost::hash_combine(result, he.first_notification());
+  boost::hash_combine(result, he.hosts().data(0));
+  boost::hash_combine(result, he.last_notification());
+  boost::hash_combine(result, he.notification_interval());
+  return result;
 }
 
 /**
@@ -145,13 +150,14 @@ void hostescalation_helper::_init() {
 void hostescalation_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
-  std::list<std::unique_ptr<Hostescalation> > resolved;
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        m_hostgroups) {
+  std::list<std::unique_ptr<Hostescalation>> resolved;
   for (auto& he : *s.mutable_hostescalations()) {
+    absl::flat_hash_set<std::string> host_names;
+    for (auto& hname : he.hosts().data())
+      host_names.emplace(hname);
     if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<std::string_view> host_names;
-      for (auto& hname : he.hosts().data())
-        host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {
         auto found_hg = m_hostgroups.find(hg_name);
         if (found_hg != m_hostgroups.end()) {
@@ -163,14 +169,14 @@ void hostescalation_helper::expand(
                         hg_name);
         }
       }
-      he.mutable_hostgroups()->clear_data();
-      he.mutable_hosts()->clear_data();
-      for (auto& n : host_names) {
-        resolved.emplace_back(std::make_unique<Hostescalation>());
-        auto& e = resolved.back();
-        e->CopyFrom(he);
-        fill_string_group(e->mutable_hosts(), n);
-      }
+    }
+    he.mutable_hostgroups()->clear_data();
+    he.mutable_hosts()->clear_data();
+    for (auto& n : host_names) {
+      resolved.emplace_back(std::make_unique<Hostescalation>());
+      auto& e = resolved.back();
+      e->CopyFrom(he);
+      e->mutable_hosts()->add_data(std::move(n));
     }
   }
   s.clear_hostescalations();

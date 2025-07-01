@@ -37,10 +37,13 @@ void CreateFile(std::string const& filename, std::string const& content) {
 }
 
 class SimpleCommand : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
     set_time(-1);
-    init_config_state();
+    _state_hlp = init_config_state();
     config->interval_length(1);
   }
 

@@ -21,7 +21,6 @@
 #define CCE_COMMANDS_RAW_HH
 
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 
 namespace com::centreon::engine {
@@ -77,6 +76,6 @@ class raw : public command, public process_listener {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_RAW_HH

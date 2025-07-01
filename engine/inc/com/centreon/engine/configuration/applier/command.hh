@@ -44,10 +44,9 @@ class command {
   ~command() noexcept = default;
 
   void add_object(const configuration::Command& obj);
-  void expand_objects(configuration::State& s);
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
-  void remove_object(ssize_t idx);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Command& obj, error_cnt& err);
 };
 }  // namespace applier
