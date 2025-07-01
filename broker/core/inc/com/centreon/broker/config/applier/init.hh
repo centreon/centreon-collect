@@ -27,8 +27,11 @@ namespace com::centreon::broker::config::applier {
 enum applier_state { not_started, initialized, finished };
 extern std::atomic<applier_state> mode;
 void deinit();
-void init(const common::PeerType peer_type, const config::state& conf);
 void init(const common::PeerType peer_type,
+          const std::string& engine_conf_version,
+          const config::state& conf);
+void init(const common::PeerType peer_type,
+          const std::string& engine_conf_version,
           size_t n_thread,
           const std::string& name,
           size_t event_queues_total_size);
