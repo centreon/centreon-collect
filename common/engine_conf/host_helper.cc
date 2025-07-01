@@ -329,7 +329,8 @@ bool host_helper::insert_customvariable(std::string_view key,
 void host_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs) {
+    const absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        hgs) {
   // Browse all hosts.
   for (auto& host_cfg : *s.mutable_hosts()) {
     for (auto& grp : host_cfg.hostgroups().data()) {

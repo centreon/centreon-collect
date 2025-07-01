@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -45,10 +44,9 @@ void applier::hostescalation::add_object(
                        obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
-  auto* new_obj = pb_config.add_hostescalations();
-  new_obj->CopyFrom(obj);
-
   size_t key = hostescalation_key(obj);
+  pb_indexed_config.mut_hostescalations().emplace(
+      key, std::make_unique<Hostescalation>(obj));
 
   // Create host escalation.
   auto he = std::make_shared<engine::hostescalation>(
@@ -69,46 +67,6 @@ void applier::hostescalation::add_object(
   // Add contact groups to host escalation.
   for (auto& g : obj.contactgroups().data())
     he->get_contactgroups().insert({g, nullptr});
-}
-
-/**
- *  Expand a host escalation.
- *
- *  @param[in,out] s  Configuration being applied.
- */
-void applier::hostescalation::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<Hostescalation> > resolved;
-  for (auto& he : *s.mutable_hostescalations()) {
-    if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<std::string_view> host_names;
-      for (auto& hname : he.hosts().data())
-        host_names.emplace(hname);
-      for (auto& hg_name : he.hostgroups().data()) {
-        auto found_hg =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found_hg != s.hostgroups().end()) {
-          for (auto& h : found_hg->members().data())
-            host_names.emplace(h);
-        } else
-          throw engine_error() << fmt::format(
-              "Could not expand non-existing host group '{}'", hg_name);
-      }
-      he.mutable_hostgroups()->clear_data();
-      he.mutable_hosts()->clear_data();
-      for (auto& n : host_names) {
-        resolved.emplace_back(std::make_unique<Hostescalation>());
-        auto& e = resolved.back();
-        e->CopyFrom(he);
-        fill_string_group(e->mutable_hosts(), n);
-      }
-    }
-  }
-  s.clear_hostescalations();
-  for (auto& e : resolved)
-    s.mutable_hostescalations()->AddAllocated(e.release());
 }
 
 /**
@@ -134,8 +92,9 @@ void applier::hostescalation::modify_object(
  *  @param[in] obj  The new hostescalation to remove from the monitoring
  *                  engine.
  */
-void applier::hostescalation::remove_object(ssize_t idx) {
-  configuration::Hostescalation obj = pb_config.hostescalations(idx);
+void applier::hostescalation::remove_object(uint64_t hash_key) {
+  configuration::Hostescalation obj =
+      *pb_indexed_config.hostescalations().at(hash_key);
   // Logging.
   config_logger->debug("Removing a host escalation.");
 
@@ -193,7 +152,7 @@ void applier::hostescalation::remove_object(ssize_t idx) {
   }
 
   /* And we clear the configuration */
-  pb_config.mutable_hostescalations()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_hostescalations().erase(hash_key);
 }
 
 /**

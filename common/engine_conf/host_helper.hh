@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_HOST
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -41,10 +40,10 @@ class host_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
-  static void expand(
-      configuration::State& s,
-      configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Hostgroup*>& hgs);
+  static void expand(configuration::State& s,
+                     configuration::error_cnt& err,
+                     const absl::flat_hash_map<std::string_view,
+                                               configuration::Hostgroup*>& hgs);
 };
 }  // namespace com::centreon::engine::configuration
 

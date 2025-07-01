@@ -20,7 +20,6 @@
 #define CC_LOGGING_FILE_HH
 
 #include <cstdio>
-#include <string>
 #include "com/centreon/logging/backend.hh"
 
 namespace com::centreon {
@@ -69,6 +68,6 @@ class file : public backend {
 };
 }  // namespace logging
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_LOGGING_FILE_HH

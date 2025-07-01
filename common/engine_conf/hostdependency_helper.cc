@@ -17,7 +17,7 @@
  *
  */
 #include "common/engine_conf/hostdependency_helper.hh"
-
+#include <boost/functional/hash.hpp>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
@@ -36,9 +36,15 @@ size_t hostdependency_key(const Hostdependency& hd) {
   assert(hd.hosts().data().size() == 1 && hd.hostgroups().data().empty() &&
          hd.dependent_hosts().data().size() == 1 &&
          hd.dependent_hostgroups().data().empty());
-  return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
-                      hd.dependent_hosts().data(0), hd.hosts().data(0),
-                      hd.inherits_parent(), hd.notification_failure_options());
+  uint64_t result = 0;
+  boost::hash_combine(result, hd.dependency_period());
+  boost::hash_combine(result, hd.dependency_type());
+  boost::hash_combine(result, hd.dependent_hosts().data(0));
+  boost::hash_combine(result, hd.hosts().data(0));
+  boost::hash_combine(result, hd.execution_failure_options());
+  boost::hash_combine(result, hd.inherits_parent());
+  boost::hash_combine(result, hd.notification_failure_options());
+  return result;
 }
 
 /**
@@ -171,8 +177,9 @@ void hostdependency_helper::_init() {
 void hostdependency_helper::expand(
     State& s,
     error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Hostgroup*>& m_hostgroups) {
-  std::list<std::unique_ptr<configuration::Hostdependency> > lst;
+    absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
+        m_hostgroups) {
+  std::list<std::unique_ptr<configuration::Hostdependency>> lst;
 
   for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
     auto* hd_conf = s.mutable_hostdependencies(i);

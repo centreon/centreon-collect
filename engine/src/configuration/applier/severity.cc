@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/applier/severity.hh"
-#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -41,8 +40,10 @@ void applier::severity::add_object(const configuration::Severity& obj) {
                        obj.key().type());
 
   // Add severity to the global configuration set.
-  auto* new_sv = pb_config.add_severities();
+  auto new_sv = std::make_unique<Severity>();
   new_sv->CopyFrom(obj);
+  pb_indexed_config.mut_severities().emplace(
+      std::make_pair(obj.key().id(), obj.key().type()), std::move(new_sv));
 
   auto sv{std::make_shared<engine::severity>(obj.key().id(), obj.level(),
                                              obj.icon_id(), obj.severity_name(),
@@ -106,17 +107,14 @@ void applier::severity::modify_object(
  *
  * @param idx The index of the object to remove.
  */
-void applier::severity::remove_object(ssize_t idx) {
-  const configuration::Severity& obj = pb_config.severities()[idx];
-
+void applier::severity::remove_object(
+    const std::pair<uint64_t, uint32_t>& key) {
   // Logging.
-
-  config_logger->debug("Removing severity ({}, {}).", obj.key().id(),
-                       obj.key().type());
+  config_logger->debug("Removing severity ({}, {}).", key.first, key.second);
 
   // Find severity.
   severity_map::iterator it =
-      engine::severity::severities.find({obj.key().id(), obj.key().type()});
+      engine::severity::severities.find({key.first, key.second});
 
   if (it != engine::severity::severities.end()) {
     engine::severity* sv = it->second.get();
@@ -129,5 +127,5 @@ void applier::severity::remove_object(ssize_t idx) {
   }
 
   // Remove severity from the global configuration set.
-  pb_config.mutable_severities()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_severities().erase(key);
 }

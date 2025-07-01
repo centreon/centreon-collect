@@ -21,7 +21,6 @@
 #define CCE_CONFIGURATION_SERVICE
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -40,8 +39,10 @@ class service_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Host> m_host,
-      absl::flat_hash_map<std::string, configuration::Servicegroup*> sgs);
+      const absl::flat_hash_map<std::string_view, const configuration::Host*>&
+          m_host,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
+          sgs);
 };
 }  // namespace com::centreon::engine::configuration
 

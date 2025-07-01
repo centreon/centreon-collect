@@ -28,7 +28,6 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/engine_conf/severity_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -44,8 +43,10 @@ void applier::host::add_object(const configuration::Host& obj) {
   config_logger->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
-  auto* cfg_obj = pb_config.add_hosts();
-  cfg_obj->CopyFrom(obj);
+  auto new_host_config = std::make_unique<Host>();
+  new_host_config->CopyFrom(obj);
+  pb_indexed_config.mut_hosts().emplace(obj.host_id(),
+                                        std::move(new_host_config));
 
   // Create host.
   auto h = std::make_shared<com::centreon::engine::host>(
@@ -86,7 +87,7 @@ void applier::host::add_object(const configuration::Host& obj) {
   h->set_should_reschedule_current_check(false);
   h->set_host_id(obj.host_id());
   h->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   h->set_last_acknowledgement(0);
 
   // Contacts
@@ -256,7 +257,7 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_timezone(new_obj.timezone());
   h->set_host_id(new_obj.host_id());
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());
   h->set_icon_id(new_obj.icon_id());
 
@@ -387,13 +388,13 @@ void applier::host::modify_object(configuration::Host* old_obj,
  *
  *  @param[in] obj The new host to remove from the monitoring engine.
  */
-void applier::host::remove_object(ssize_t idx) {
-  const Host& obj = pb_config.hosts()[idx];
+void applier::host::remove_object(uint64_t host_id) {
+  const Host& obj = *pb_indexed_config.hosts().at(host_id);
   // Logging.
   config_logger->debug("Removing host '{}'.", obj.host_name());
 
   // Find host.
-  host_id_map::iterator it(engine::host::hosts_by_id.find(obj.host_id()));
+  host_id_map::iterator it = engine::host::hosts_by_id.find(obj.host_id());
   if (it != engine::host::hosts_by_id.end()) {
     // Remove host comments.
     comment::delete_host_comments(obj.host_id());
@@ -430,7 +431,7 @@ void applier::host::remove_object(ssize_t idx) {
   }
 
   // Remove host from the global configuration set.
-  pb_config.mutable_hosts()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_hosts().erase(host_id);
 }
 
 /**
@@ -447,7 +448,7 @@ void applier::host::resolve_object(const configuration::Host& obj,
   // remove all the child backlinks of all the hosts.
   // It is necessary to do it only once to prevent the removal
   // of valid child backlinks.
-  if (&obj == &(*pb_config.hosts().begin())) {
+  if (&obj == pb_indexed_config.hosts().begin()->second.get()) {
     for (const auto& [_, sptr_host] : engine::host::hosts)
       sptr_host->child_hosts.clear();
   }
@@ -470,42 +471,4 @@ void applier::host::resolve_object(const configuration::Host& obj,
 
   // Resolve host.
   it->second->resolve(err.config_warnings, err.config_errors);
-}
-
-/**
- *  @brief Expand a host.
- *
- *  During expansion, the host will be added to its host groups. These
- *  will be modified in the state.
- *
- *  @param[int,out] s   Configuration state.
- */
-void applier::host::expand_objects(configuration::State& s) {
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
-  absl::flat_hash_map<std::string_view, configuration::Hostgroup*> hgs;
-  for (auto& hg : *s.mutable_hostgroups())
-    hgs.emplace(hg.hostgroup_name(), &hg);
-
-  // Browse all hosts.
-  for (auto& host_cfg : *s.mutable_hosts()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *host_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
-    for (auto& grp : host_cfg.hostgroups().data()) {
-      auto it = hgs.find(grp);
-      if (it != hgs.end()) {
-        fill_string_group(it->second->mutable_members(), host_cfg.host_name());
-      } else
-        throw engine_error() << fmt::format(
-            "Could not add host '{}' to non-existing host group '{}'",
-            host_cfg.host_name(), grp);
-    }
-  }
 }
