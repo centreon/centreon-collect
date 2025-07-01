@@ -38,22 +38,26 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 
 class ADExtCmd : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
-    init_config_state();
+    _state_hlp = init_config_state();
 
     configuration::error_cnt err;
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::Service svc{new_pb_configuration_service("test_host", "test_svc", "admin")};
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin")};
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 

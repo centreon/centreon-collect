@@ -45,8 +45,8 @@ void applier::contact::add_object(const configuration::Contact& obj) {
   config_logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
-  configuration::Contact* ct_cfg = pb_config.add_contacts();
-  ct_cfg->CopyFrom(obj);
+  pb_indexed_config.mut_contacts().emplace(
+      obj.contact_name(), std::make_unique<configuration::Contact>(obj));
 
   // Create address list.
   std::vector<std::string> addresses;
@@ -292,67 +292,24 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  *
  *  @param[in] obj  The new contact to remove from the monitoring engine.
  */
-void applier::contact::remove_object(ssize_t idx) {
-  const configuration::Contact& obj = pb_config.contacts()[idx];
-
+void applier::contact::remove_object(const std::string& key) {
   // Logging.
-  config_logger->debug("Removing contact '{}'.", obj.contact_name());
+  config_logger->debug("Removing contact '{}'.", key);
 
   // Find contact.
-  contact_map::iterator it{engine::contact::contacts.find(obj.contact_name())};
+  contact_map::iterator it = engine::contact::contacts.find(key);
   if (it != engine::contact::contacts.end()) {
     engine::contact* cntct(it->second.get());
 
     for (auto& it_c : cntct->get_parent_groups())
-      it_c.second->get_members().erase(obj.contact_name());
+      it_c.second->get_members().erase(key);
 
     // Erase contact object (this will effectively delete the object).
     engine::contact::contacts.erase(it);
   }
 
   // Remove contact from the global configuration set.
-  pb_config.mutable_contacts()->DeleteSubrange(idx, 1);
-}
-
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::contact::expand_objects(configuration::State& s) {
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all contacts.
-  for (auto& c : *s.mutable_contacts()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *c.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-
-    // Browse current contact's groups.
-    for (auto& cg : *c.mutable_contactgroups()->mutable_data()) {
-      // Find contact group.
-      Contactgroup* found_cg = nullptr;
-      for (auto& cgg : *s.mutable_contactgroups())
-        if (cgg.contactgroup_name() == cg) {
-          found_cg = &cgg;
-          break;
-        }
-      if (found_cg == nullptr)
-        throw engine_error() << fmt::format(
-            "Could not add contact '{}' to non-existing contact group '{}'",
-            c.contact_name(), cg);
-
-      fill_string_group(found_cg->mutable_members(), c.contact_name());
-    }
-  }
+  pb_indexed_config.mut_contacts().erase(key);
 }
 
 /**

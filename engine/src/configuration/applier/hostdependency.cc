@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -52,17 +51,17 @@ void applier::hostdependency::add_object(
       "Creating new host dependency of host '{}' on host '{}'.",
       obj.dependent_hosts().data(0), obj.hosts().data(0));
 
+  uint64_t hash_key = hostdependency_key(obj);
   // Add dependency to the global configuration set.
-  auto* new_obj = pb_config.add_hostdependencies();
-  new_obj->CopyFrom(obj);
+  pb_indexed_config.mut_hostdependencies().emplace(
+      hash_key, std::make_unique<Hostdependency>(obj));
 
   std::shared_ptr<engine::hostdependency> hd;
 
   if (obj.dependency_type() == DependencyKind::execution_dependency)
     // Create executon dependency.
     hd = std::make_shared<engine::hostdependency>(
-        configuration::hostdependency_key(obj), obj.dependent_hosts().data(0),
-        obj.hosts().data(0),
+        hash_key, obj.dependent_hosts().data(0), obj.hosts().data(0),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.execution_failure_options() & action_hd_up),
@@ -74,8 +73,7 @@ void applier::hostdependency::add_object(
   else
     // Create notification dependency.
     hd = std::make_shared<engine::hostdependency>(
-        hostdependency_key(obj), obj.dependent_hosts().data(0),
-        obj.hosts().data(0),
+        hash_key, obj.dependent_hosts().data(0), obj.hosts().data(0),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
         static_cast<bool>(obj.notification_failure_options() & action_hd_up),
@@ -88,80 +86,6 @@ void applier::hostdependency::add_object(
 
   engine::hostdependency::hostdependencies.insert(
       {obj.dependent_hosts().data(0), hd});
-}
-
-/**
- *  Expand host dependencies.
- *
- *  @param[in,out] s  Configuration being applied.
- */
-void applier::hostdependency::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<configuration::Hostdependency> > lst;
-
-  config_logger->debug("Expanding host dependencies");
-
-  for (int i = s.hostdependencies_size() - 1; i >= 0; --i) {
-    auto* hd_conf = s.mutable_hostdependencies(i);
-    if (hd_conf->hosts().data().size() > 1 ||
-        !hd_conf->hostgroups().data().empty() ||
-        hd_conf->dependent_hosts().data().size() > 1 ||
-        !hd_conf->dependent_hostgroups().data().empty() ||
-        hd_conf->dependency_type() == unknown) {
-      for (auto& hg_name : hd_conf->dependent_hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
-          for (auto& h : hg_conf.members().data())
-            fill_string_group(hd_conf->mutable_dependent_hosts(), h);
-        }
-      }
-      for (auto& hg_name : hd_conf->hostgroups().data()) {
-        auto found =
-            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
-                         [&hg_name](const configuration::Hostgroup& hg) {
-                           return hg.hostgroup_name() == hg_name;
-                         });
-        if (found != s.hostgroups().end()) {
-          auto& hg_conf = *found;
-          for (auto& h : hg_conf.members().data())
-            fill_string_group(hd_conf->mutable_hosts(), h);
-        }
-      }
-      for (auto& h : hd_conf->hosts().data()) {
-        for (auto& h_dep : hd_conf->dependent_hosts().data()) {
-          for (int ii = 1; ii <= 2; ii++) {
-            if (hd_conf->dependency_type() == DependencyKind::unknown ||
-                static_cast<int32_t>(hd_conf->dependency_type()) == ii) {
-              lst.emplace_back(std::make_unique<Hostdependency>());
-              auto& new_hd = lst.back();
-              new_hd->set_dependency_period(hd_conf->dependency_period());
-              new_hd->set_inherits_parent(hd_conf->inherits_parent());
-              fill_string_group(new_hd->mutable_hosts(), h);
-              fill_string_group(new_hd->mutable_dependent_hosts(), h_dep);
-              if (ii == 2) {
-                new_hd->set_dependency_type(
-                    DependencyKind::execution_dependency);
-                new_hd->set_execution_failure_options(
-                    hd_conf->execution_failure_options());
-              } else {
-                new_hd->set_dependency_type(
-                    DependencyKind::notification_dependency);
-                new_hd->set_notification_failure_options(
-                    hd_conf->notification_failure_options());
-              }
-            }
-          }
-        }
-      }
-      s.mutable_hostdependencies()->DeleteSubrange(i, 1);
-    }
-  }
-  for (auto& hd : lst)
-    s.mutable_hostdependencies()->AddAllocated(hd.release());
 }
 
 /**
@@ -188,24 +112,23 @@ void applier::hostdependency::modify_object(
  *  @param[in] idx  The index of the host dependency configuration to remove
  * from engine.
  */
-void applier::hostdependency::remove_object(ssize_t idx) {
+void applier::hostdependency::remove_object(uint64_t hash_key) {
   // Logging.
   config_logger->debug("Removing a host dependency.");
 
   // Find host dependency.
-  auto& obj = pb_config.hostdependencies(0);
-  size_t key = hostdependency_key(obj);
+  auto& obj = *pb_indexed_config.hostdependencies().at(hash_key);
 
   hostdependency_mmap::iterator it =
       engine::hostdependency::hostdependencies_find(
-          {obj.dependent_hosts().data(0), key});
+          {obj.dependent_hosts().data(0), hash_key});
   if (it != engine::hostdependency::hostdependencies.end()) {
     // Remove host dependency from its list.
     engine::hostdependency::hostdependencies.erase(it);
   }
 
   // Remove dependency from the global configuration set.
-  pb_config.mutable_hostdependencies()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_hostdependencies().erase(hash_key);
 }
 
 /**

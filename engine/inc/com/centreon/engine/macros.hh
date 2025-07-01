@@ -1,22 +1,22 @@
-/*
-** Copyright 1999-2010 Ethan Galstad
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2025 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_MACROS_HH
 #define CCE_MACROS_HH
@@ -45,14 +45,14 @@ int grab_contact_macros_r(nagios_macros* mac,
                           com::centreon::engine::contact* cntct);
 
 int grab_custom_macro_value_r(nagios_macros* mac,
-                              std::string const& macro_name,
-                              std::string const& arg1,
-                              std::string const& arg2,
+                              const std::string_view& macro_name,
+                              const std::string_view& arg1,
+                              const std::string_view& arg2,
                               std::string& output);
 int grab_datetime_macro_r(nagios_macros* mac,
                           int macro_type,
-                          std::string const& arg1,
-                          std::string const& arg2,
+                          const std::string_view& arg1,
+                          const std::string_view& arg2,
                           std::string& output);
 int grab_standard_hostgroup_macro_r(
     nagios_macros* mac,
@@ -69,7 +69,7 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
                                   com::centreon::engine::contact* temp_contact,
                                   std::string& output);
 int grab_custom_object_macro_r(nagios_macros* mac,
-                               std::string const& macro_name,
+                               const std::string_view& macro_name,
                                com::centreon::engine::map_customvar const& vars,
                                std::string& output);
 
