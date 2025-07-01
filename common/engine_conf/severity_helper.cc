@@ -151,13 +151,11 @@ void severity_helper::diff(const Container& old_list,
     }
   }
 
-  ssize_t i = 0;
   for (const auto& item : old_list) {
     if (!new_keys.contains({item.key().id(), item.key().type()})) {
       auto* key = result->add_removed();
       key->CopyFrom(item.key());
     }
-    ++i;
   }
   logger->debug("severities::diff result: {}", result->DebugString());
 }
