@@ -37,6 +37,7 @@ else()
       check_windows_counter.cc
       check_windows_memory_test.cc
       check_windows_sched.cc
+      check_windows_files_test.cc
       check_uptime_test.cc
       check_windows_service_test.cc)
 
@@ -87,7 +88,8 @@ else()
             gRPC::grpc++
             fmt::fmt
             pdh
-            taskschd)
+            taskschd
+            Version.lib)
   add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
 

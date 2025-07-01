@@ -23,6 +23,7 @@
 #include "check_counter.hh"
 #include "check_cpu.hh"
 #include "check_event_log.hh"
+#include "check_files.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
 #include "check_process.hh"
@@ -138,6 +139,7 @@ void show_help() {
   check_counter::help(std::cout);
   check_process::help(std::cout);
   check_sched::help(std::cout);
+  check_files::help(std::cout);
 }
 
 /**
@@ -272,6 +274,8 @@ int _main(bool service_start) {
 
   // kill check_drive_size thread if used
   check_drive_size::thread_kill();
+  // kill check_files thread if used
+  check_files::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 
