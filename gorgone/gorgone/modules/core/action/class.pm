@@ -35,6 +35,7 @@ use POSIX ":sys_wait_h";
 use MIME::Base64;
 use Digest::MD5::File qw(file_md5_hex);
 use Archive::Tar;
+use Text::ParseWords;
 use Fcntl;
 use Try::Tiny;
 use EV;
@@ -387,14 +388,21 @@ sub action_command {
         }
 
         if ($self->is_command_authorized(command => $command->{command})) {
-            $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $command->{command});
+            my $commandtolog = $command->{command};
+            unless ($self->{logger}->is_debug()) {
+                my @commands = shellwords($command->{command});
+                $commandtolog = $commands[0];
+                $commandtolog .= ' ...' if @commands > 1;
+            }
+
+            $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $commandtolog);
             $self->send_log(
                 socket => $options{socket_log},
                 code => GORGONE_ACTION_FINISH_KO,
                 token => $options{token},
                 logging => $options{data}->{logging},
                 data => {
-                    message => "command not allowed (whitelist) at array index '$index' : $command->{command}"
+                    message => "command not allowed (whitelist) at array index '$index' : $commandtolog"
                 }
             );
             return -1;
@@ -698,14 +706,21 @@ sub action_actionengine {
     }
 
     if ($self->is_command_authorized(command => $options{data}->{content}->{command})) {
-        $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $options{data}->{content}->{command});
+        my $commandtolog = $options{data}->{content}->{command};
+        unless ($self->{logger}->is_debug()) {
+            my @commands = shellwords($options{data}->{content}->{command});
+            $commandtolog = $commands[0];
+            $commandtolog .= ' ...' if @commands > 1;
+        }
+
+        $self->{logger}->writeLogError("[action] command not allowed (whitelist): " . $commandtolog);
         $self->send_log(
             socket => $options{socket_log},
             code => GORGONE_ACTION_FINISH_KO,
             token => $options{token},
             logging => $options{data}->{logging},
             data => {
-                message => 'command not allowed (whitelist)' . $options{data}->{content}->{command}
+                message => 'command not allowed (whitelist)' . $commandtolog
             }
         );
         return -1;
