@@ -760,10 +760,9 @@ void check_files::_print_format(std::string& output, e_status status) {
                                 last_access_time, last_write_time, data.version,
                                 data.number_of_lines, data.extension));
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(
-          _logger,
-          "Failed to format file detail for {}: {}. Using default format.",
-          data.path, e.what());
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "check files Failed to format file detail for {}",
+                          _files_detail_syntax);
       // Fallback to a simple format if the detailed format fails
       return fmt::format("{} ({} bytes)", data.name, size);
     }
@@ -824,12 +823,19 @@ void check_files::_print_format(std::string& output, e_status status) {
   }
 
   // format the output string
-  output = std::vformat(
-      *chosen_syntax,
-      std::make_format_args(status_label, count, total, list_str, warn_count,
-                            _warning_list_str, crit_count, _critical_list_str,
-                            problem_count, _problem_list_str, ok_count,
-                            _ok_list_str));
+  try {
+    output = std::vformat(
+        *chosen_syntax,
+        std::make_format_args(status_label, count, total, list_str, warn_count,
+                              _warning_list_str, crit_count, _critical_list_str,
+                              problem_count, _problem_list_str, ok_count,
+                              _ok_list_str));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "check files Failed to format output detail for {}",
+                        *chosen_syntax);
+    output = fmt::format("output syntax is incorrect : {}", e.what());
+  }
 }
 
 /**
