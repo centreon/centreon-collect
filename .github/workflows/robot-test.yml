@@ -105,7 +105,12 @@ jobs:
         id: list-features
         run: |
           cd tests
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
+          FEATURES_PATTERN="${{ inputs.features_pattern }}"
+          if [ "0" = "0${FEATURES_PATTERN}" ]; then
+             FEATURES_PATTERN="^((?!cma).)*$"
+          fi
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
