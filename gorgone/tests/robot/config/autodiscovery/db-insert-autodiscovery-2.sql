@@ -43,7 +43,7 @@ ALTER TABLE `mod_auto_disco_ht_rule_relation`
   ADD CONSTRAINT `mod_auto_disco_ht_rule_relation_fk_1` FOREIGN KEY (`host_host_id`) REFERENCES `host` (`host_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `mod_auto_disco_ht_rule_relation_fk_2` FOREIGN KEY (`rule_rule_id`) REFERENCES `mod_auto_disco_rule` (`rule_id`) ON DELETE CASCADE;
 
-INSERT INTO `mod_auto_disco_ht_rule_relation` (`host_host_id`, `rule_rule_id`)  VALUES (10,2);
+INSERT INTO `mod_auto_disco_ht_rule_relation` (`host_host_id`, `rule_rule_id`)  VALUES (10,2), (10,3);
 --
 -- STRUCTURE FOR mod_auto_disco_inst_rule_relation
 --

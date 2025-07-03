@@ -1,7 +1,8 @@
 
 INSERT INTO `command` VALUES
 (1,NULL,'OS-Linux-tests-Discover','echo ''<?xml version=\"1.0\" encoding=\"utf-8\"?> <data> <label name=\"/var/lib/docker\" storageid=\"35\" total=\"304492544\"/> <label total=\"20956397568\" storageid=\"36\" name=\"/\"/> <label name=\"/var/lib\" storageid=\"38\" total=\"1522458624\"/> <label total=\"5242880\" storageid=\"39\" name=\"/home\"/> <label name=\"/run/user/1001\" storageid=\"50\" total=\"304488448\"/> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1),
-(2,NULL,'OS-Linux-tests-Macro','echo ''<?xml version=\"1.0\" encoding=\"utf-8\"?> <data> <element>name</element> <element>total</element> <element>storageid</element> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1);
+(2,NULL,'OS-Linux-tests-Macro','echo ''<?xml version=\"1.0\" encoding=\"utf-8\"?> <data> <element>name</element> <element>total</element> <element>storageid</element> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1),
+(3,NULL,'OS-Linux-injection-Discover','echo "toto" ;touch /tmp/robotInjectionAutodiscoverychecker',NULL,4,0,NULL,'0',NULL,NULL,1);
 
 INSERT IGNORE INTO `service` VALUES
 (1,NULL,NULL,NULL,NULL,NULL,'generic-active-service','generic-active-service',NULL,'0',3,5,1,'0','0',NULL,'1','1','1',NULL,'1',NULL,NULL,'1','1','1','1',NULL,NULL,NULL,'1',0,0,'0','0',NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,'0','0'),
@@ -64,8 +65,6 @@ ALTER TABLE `mod_auto_disco_rule`
   ADD CONSTRAINT `mod_auto_disco_rule_fk_3` FOREIGN KEY (`command_command_id2`) REFERENCES `command` (`command_id`) ON DELETE SET NULL;
 
 
-INSERT INTO `mod_auto_disco_rule` VALUES (2,'OS-Linux-SNMP-Disk-Name','Disk-$name$','1','0','0','','','',1,2,40);
-
-INSERT INTO `mod_host_disco_provider_compatibility` (`provider_version`, `module_versions`)
-    VALUES ('3.0', '[21.04.0-beta.1,]'), ('3.1', '[21.10.0-beta.1,]');
+INSERT INTO `mod_auto_disco_rule` VALUES (2,'OS-Linux-SNMP-Disk-Name','Disk-$name$','1','0','0','','','',1,2,40),
+                                         (3,'OS-Linux-SNMP-injection','Disk-$name$','0','0','0','','','',3,2,40);
 

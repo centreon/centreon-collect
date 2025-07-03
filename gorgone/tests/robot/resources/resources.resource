@@ -163,6 +163,7 @@ Check Poller Communicate
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
+    ${start_time}   Get Time    str=epoch
     ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
     # generate key if there is none.
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
@@ -216,8 +217,13 @@ Setup Two Gorgone Instances
 
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2    max_failed_attempt=1
+    ELSE
+        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, pullwss, pull.
     END
-
+    ${end_time}   Get Time    str=epoch
+    ${duration}=    Evaluate    ${end_time} - ${start_time}
+    Log To Console    Gorgone started in ${communication_mode} after ${duration} seconds
+    
 Wait Until Port Is Bind
     [Arguments]    ${port}
     FOR    ${i}    IN RANGE    15
