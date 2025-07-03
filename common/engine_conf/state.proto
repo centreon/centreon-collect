@@ -27,6 +27,7 @@ enum DateType {
   strict_iso8601 = 3;  // ISO8601 (YYYY-MM-DDTHH:MM:SS)
 }
 
+/* Ignore */
 message InterCheckDelay {
   enum IcdType {
     none = 0;   // no inter-check delay
@@ -38,10 +39,11 @@ message InterCheckDelay {
   double user_value = 2;
 }
 
+/* Ignore */
 message InterleaveFactor {
   enum IFType {
-  ilf_user = 0;   // user-specified interleave factor
-  ilf_smart = 1;  // smart interleave
+    ilf_user = 0;   // user-specified interleave factor
+    ilf_smart = 1;  // smart interleave
   }
   IFType type = 1;
   int32 user_value = 2;
@@ -57,6 +59,7 @@ enum LogLevel {
   trace = 6;
 }
 
+/* Ignore */
 message State {
   string cfg_main = 1;
   repeated string cfg_file = 2;
@@ -204,10 +207,11 @@ message State {
   repeated Tag tags = 142;
   map<string, string> user = 143;
   uint32 max_file_descriptors = 144;
-  string config_version = 145;   // Will be used very soon.
+  string config_version = 145;
   string broker_module_cfg_file = 146;
 }
 
+/* Ignore */
 message Value {
   oneof value {
     bool value_b = 1;
@@ -224,39 +228,11 @@ message Value {
   }
 }
 
-message Key {
-  oneof key {
-    int32 i32 = 1;
-    string str = 2;
-  }
-}
-
-message Path {
-  repeated Key key = 1;
-}
-
-message PathWithValue {
-  Path path = 1;
-  Value val = 2;
-}
-
-message PathWithPair {
-  Path path = 1;
-  Value val1 = 2;
-  Value val2 = 3;
-}
-
-message DiffState {
-  repeated PathWithValue to_add = 1;
-  repeated Path to_remove = 2;
-  repeated PathWithValue to_modify = 3;
-}
-
+/* Ignore */
 message CustomVariable {
   string name = 1;
   string value = 2;
   bool is_sent = 3;
-  //  bool modified = 4;
 }
 
 enum HostStatus {
@@ -278,28 +254,33 @@ enum SeverityType {
   none = 2;
 }
 
+/* Ignore */
 message Object {
   string name = 1;
   bool register = 2;
   repeated string use = 3;
 }
 
+/* Ignore */
 message Point2d {
   int32 x = 1;
   int32 y = 2;
 }
 
+/* Ignore */
 message Point3d {
   double x = 1;
   double y = 2;
   double z = 3;
 }
 
+/* Ignore */
 message KeyType {
   uint64 id = 1;
   uint32 type = 2;
 }
 
+/* Ignore */
 message DaysArray {
   repeated Timerange sunday = 1;
   repeated Timerange monday = 2;
@@ -310,11 +291,13 @@ message DaysArray {
   repeated Timerange saturday = 7;
 }
 
+/* Ignore */
 message Timerange {
   uint64 range_start = 1;
   uint64 range_end = 2;
 }
 
+/* Ignore */
 message Daterange {
   enum TypeRange {
     calendar_date = 0;
@@ -341,6 +324,7 @@ message Daterange {
   repeated Timerange timerange = 13;
 }
 
+/* Ignore */
 message ExceptionArray {
   repeated Daterange calendar_date = 1;
   repeated Daterange month_date = 2;
@@ -349,6 +333,7 @@ message ExceptionArray {
   repeated Daterange week_day = 5;
 }
 
+/* Ignore */
 message PairStringSet {
   message Pair {
     string first = 1;
@@ -358,6 +343,7 @@ message PairStringSet {
   bool additive = 2;
 }
 
+/* Ignore */
 message PairUint64_32 {
   uint64 first = 1;
   uint32 second = 2;
@@ -429,16 +415,29 @@ enum TagType {
   tag_none = 255;  // in legacy configuration, this was -1
 }
 
+/* Ignore */
 message StringList {
   repeated string data = 1;
   bool additive = 2;
 }
 
+/* Ignore */
 message StringSet {
   repeated string data = 1;
   bool additive = 2;
 }
 
+/* Ignore */
+message DiffAnomalydetection {
+  /* Added services */
+  repeated Anomalydetection added = 1;
+  /* Removed services given by their key in the old list. */
+  repeated HostServiceId removed = 2;
+  /* Modified services */
+  repeated Anomalydetection modified = 3;
+}
+
+/* Ignore */
 message Anomalydetection {
   Object obj = 1;
   int32 acknowledgement_timeout = 2;  // Optional - Default value: 0
@@ -498,6 +497,17 @@ message Anomalydetection {
   double sensitivity = 51;
 }
 
+/* Ignore */
+message DiffCommand {
+  /* Added commands */
+  repeated Command added = 1;
+  /* Removed commands given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified commands */
+  repeated Command modified = 3;
+}
+
+/* Ignore */
 message Command {
   Object obj = 1;
   string command_line = 2;
@@ -505,12 +515,34 @@ message Command {
   string connector = 4;
 }
 
+/* Ignore */
+message DiffConnector {
+  /* Added connectors */
+  repeated Connector added = 1;
+  /* Removed connectors given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified connectors */
+  repeated Connector modified = 3;
+}
+
+/* Ignore */
 message Connector {
   Object obj = 1;
   string connector_line = 2;
   string connector_name = 3;
 }
 
+/* Ignore */
+message DiffContact {
+  /* Added contacts */
+  repeated Contact added = 1;
+  /* Removed contacts given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified contacts */
+  repeated Contact modified = 3;
+}
+
+/* Ignore */
 message Contact {
   Object obj = 1;
   repeated string address = 2;
@@ -536,6 +568,17 @@ message Contact {
   optional string timezone = 20;            // Optional
 }
 
+/* Ignore */
+message DiffContactgroup {
+  /* Added contactgroups */
+  repeated Contactgroup added = 1;
+  /* Removed contactgroups given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified contactgroups */
+  repeated Contactgroup modified = 3;
+}
+
+/* Ignore */
 message Contactgroup {
   Object obj = 1;
   string alias = 2;
@@ -544,6 +587,17 @@ message Contactgroup {
   StringSet members = 5;
 }
 
+/* Ignore */
+message DiffHost {
+  /* Added hosts */
+  repeated Host added = 1;
+  /* Removed hosts given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hosts */
+  repeated Host modified = 3;
+}
+
+/* Ignore */
 message Host {
   Object obj = 1;
   optional int32 acknowledgement_timeout = 2;  // Optional
@@ -602,6 +656,17 @@ message Host {
   repeated PairUint64_32 tags = 51;
 }
 
+/* Ignore */
+message DiffHostdependency {
+  /* Added hostdependencies */
+  repeated Hostdependency added = 1;
+  /* Removed hostdependencies given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hostdependencies */
+  repeated Hostdependency modified = 3;
+}
+
+/* Ignore */
 message Hostdependency {
   Object obj = 1;
   string dependency_period = 2;
@@ -617,6 +682,17 @@ message Hostdependency {
       10;  // Optional - Default value: action_hd_none
 }
 
+/* Ignore */
+message DiffHostescalation {
+  /* Added hostescalations */
+  repeated Hostescalation added = 1;
+  /* Removed hostescalations given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified hostescalations */
+  repeated Hostescalation modified = 3;
+}
+
+/* Ignore */
 message Hostescalation {
   Object obj = 1;
   StringSet contactgroups = 2;
@@ -629,6 +705,17 @@ message Hostescalation {
   uint32 notification_interval = 9;  // Optional - Default value: 0
 }
 
+/* Ignore */
+message DiffHostgroup {
+  /* Added hostgroups */
+  repeated Hostgroup added = 1;
+  /* Removed hostgroups given by their key in the old list. */
+  repeated string removed = 2;
+  /* Modified hostgroups */
+  repeated Hostgroup modified = 3;
+}
+
+/* Ignore */
 message Hostgroup {
   Object obj = 1;
   string action_url = 2;
@@ -640,6 +727,17 @@ message Hostgroup {
   string notes_url = 8;
 }
 
+/* Ignore */
+message DiffService {
+  /* Added services */
+  repeated Service added = 1;
+  /* Removed services given by their key in the old list. */
+  repeated HostServiceId removed = 2;
+  /* Modified services */
+  repeated Service modified = 3;
+}
+
+/* Ignore */
 message Service {
   Object obj = 1;
   int32 acknowledgement_timeout = 2;  // Optional - Default value: 0
@@ -696,6 +794,17 @@ message Service {
   repeated PairUint64_32 tags = 48;
 }
 
+/* Ignore */
+message DiffServicedependency {
+  /* Added servicedependencies */
+  repeated Servicedependency added = 1;
+  /* Removed servicedependencies given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified servicedependencies */
+  repeated Servicedependency modified = 3;
+}
+
+/* Ignore */
 message Servicedependency {
   Object obj = 1;
   string dependency_period = 2;
@@ -715,6 +824,17 @@ message Servicedependency {
   StringList service_description = 14;
 }
 
+/* Ignore */
+message DiffServiceescalation {
+  /* Added serviceescalations */
+  repeated Serviceescalation added = 1;
+  /* Removed serviceescalations given by their key in the old list. */
+  repeated uint64 removed = 2;
+  /* Modified serviceescalations */
+  repeated Serviceescalation modified = 3;
+}
+
+/* Ignore */
 message Serviceescalation {
   Object obj = 1;
   StringSet contactgroups = 2;
@@ -729,6 +849,17 @@ message Serviceescalation {
   StringList service_description = 11;
 }
 
+/* Ignore */
+message DiffServicegroup {
+  /* Added servicegroup */
+  repeated Servicegroup added = 1;
+  /* Removed servicegroups given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified servicegroups */
+  repeated Servicegroup modified = 3;
+}
+
+/* Ignore */
 message Servicegroup {
   Object obj = 1;
   string action_url = 2;
@@ -741,6 +872,17 @@ message Servicegroup {
   string servicegroup_name = 9;
 }
 
+/* Ignore */
+message DiffSeverity {
+  /* Added severities */
+  repeated Severity added = 1;
+  /* Removed severities given by there key in the old list. */
+  repeated KeyType removed = 2;
+  /* Modified severities */
+  repeated Severity modified = 3;
+}
+
+/* Ignore */
 message Severity {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
@@ -749,12 +891,40 @@ message Severity {
   string severity_name = 5;
 }
 
+/* Ignore */
+message HostServiceId {
+  uint64 host_id = 1;
+  uint64 service_id = 2;
+}
+
+/* Ignore */
+message DiffTag {
+  /* Added tags */
+  repeated Tag added = 1;
+  /* Removed tags given by there key in the old list. */
+  repeated KeyType removed = 2;
+  /* Modified tags */
+  repeated Tag modified = 3;
+}
+
+/* Ignore */
 message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   string tag_name = 3;
 }
 
+/* Ignore */
+message DiffTimeperiod {
+  /* Added timeperiods */
+  repeated Timeperiod added = 1;
+  /* Removed timeperiods given by there key in the old list. */
+  repeated string removed = 2;
+  /* Modified timeperiods */
+  repeated Timeperiod modified = 3;
+}
+
+/* Ignore */
 message Timeperiod {
   Object obj = 1;
   string alias = 2;
@@ -762,4 +932,190 @@ message Timeperiod {
   StringSet exclude = 4;
   string timeperiod_name = 5;
   DaysArray timeranges = 6;
+}
+
+/* io::neb, neb::de_pb_global_diff_state, 52, DiffState */
+message DiffState {
+  /* Modifications concerning timeperiods */
+  DiffTimeperiod timeperiods = 1;
+
+  /* Modifications concerning commands */
+  DiffCommand commands = 2;
+
+  /* Modifications concerning connectors */
+  DiffConnector connectors = 3;
+
+  /* Modifications concerning severities */
+  DiffSeverity severities = 4;
+
+  /* Modifications concerning tags */
+  DiffTag tags = 5;
+
+  /* Modifications concerning contacts */
+  DiffContact contacts = 6;
+
+  /* Modifications concerning contactgroups */
+  DiffContactgroup contactgroups = 7;
+
+  /* Modifications concerning hosts */
+  DiffHost hosts = 8;
+
+  /* Modifications concerning hostgroups */
+  DiffHostgroup hostgroups = 9;
+
+  /* Modifications concerning services */
+  DiffService services = 10;
+
+  /* Modifications concerning anomalydetections */
+  DiffAnomalydetection anomalydetections = 11;
+
+  /* Modifications concerning servicegroups */
+  DiffServicegroup servicegroups = 12;
+
+  /* Modifications concerning hostdependencies */
+  DiffHostdependency hostdependencies = 13;
+
+  /* Modifications concerning servicedependencies */
+  DiffServicedependency servicedependencies = 14;
+
+  /* Modifications concerning hostescalations */
+  DiffHostescalation hostescalations = 15;
+
+  /* Modifications concerning serviceescalations */
+  DiffServiceescalation serviceescalations = 16;
+
+  /* All the remaining fields of the configuration, they are set as optional
+   * fields, so only filled when needed. */
+  optional string cfg_main = 17;
+  repeated string cfg_file = 18;
+  repeated string resource_file = 19;
+  optional int32 instance_heartbeat_interval = 20;
+  optional bool check_service_freshness = 21;
+  optional bool enable_flap_detection = 22;
+  optional string rpc_listen_address = 23;
+  optional uint32 grpc_port = 24;
+  map<string, string> users = 25;
+  repeated string cfg_dir = 26;
+  optional string state_retention_file = 27;
+  repeated string broker_module = 28;
+  optional string broker_module_directory = 29;
+  optional bool enable_macros_filter = 30;
+  optional StringSet macros_filter = 31;
+
+  optional bool log_v2_enabled = 32;
+  optional bool log_legacy_enabled = 33;
+  optional bool use_syslog = 34;
+  optional string log_v2_logger = 35;
+  optional string log_file = 36;
+  optional string debug_file = 37;
+  optional uint64 debug_level = 38;
+  optional uint32 debug_verbosity = 39;
+  optional uint32 max_debug_file_size = 40;
+  optional bool log_pid = 41;
+  optional bool log_file_line = 42;
+  optional int32 log_flush_period = 43;
+  optional LogLevel log_level_checks = 44;
+  optional LogLevel log_level_commands = 45;
+  optional LogLevel log_level_comments = 46;
+  optional LogLevel log_level_config = 47;
+  optional LogLevel log_level_downtimes = 48;
+  optional LogLevel log_level_eventbroker = 49;
+  optional LogLevel log_level_events = 50;
+  optional LogLevel log_level_external_command = 51;
+  optional LogLevel log_level_functions = 52;
+  optional LogLevel log_level_macros = 53;
+  optional LogLevel log_level_notifications = 54;
+  optional LogLevel log_level_process = 55;
+  optional LogLevel log_level_runtime = 56;
+  optional LogLevel log_level_otl = 57;
+  optional string global_host_event_handler = 58;
+  optional string global_service_event_handler = 59;
+  optional string illegal_object_chars = 60;
+  optional string illegal_output_chars = 61;
+  optional uint32 interval_length = 62;
+  optional string ochp_command = 63;
+  optional string ocsp_command = 64;
+  optional string use_timezone = 65;
+  optional bool accept_passive_host_checks = 66;
+  optional bool accept_passive_service_checks = 67;
+  optional int32 additional_freshness_latency = 68;
+  optional uint32 cached_host_check_horizon = 69;
+  optional bool check_external_commands = 70;
+  optional bool check_host_freshness = 71;
+  optional uint32 check_reaper_interval = 72;
+  optional bool enable_event_handlers = 73;
+  optional bool enable_notifications = 74;
+  optional bool execute_host_checks = 75;
+  optional bool execute_service_checks = 76;
+  optional uint32 max_host_check_spread = 77;
+  optional uint32 max_service_check_spread = 78;
+  optional uint32 notification_timeout = 79;
+  optional bool obsess_over_hosts = 80;
+  optional bool obsess_over_services = 81;
+  optional bool process_performance_data = 82;
+  optional bool soft_state_dependencies = 83;
+  optional bool use_large_installation_tweaks = 84;
+  optional string admin_email = 85;
+  optional string admin_pager = 86;
+  optional bool allow_empty_hostgroup_assignment = 87;
+  optional string command_file = 88;
+  optional string status_file = 89;
+  optional string poller_name = 90;
+  optional uint32 poller_id = 91;
+  optional uint32 cached_service_check_horizon = 92;
+  optional bool check_orphaned_hosts = 93;
+  optional bool check_orphaned_services = 94;
+  optional int32 command_check_interval = 95;
+  optional bool command_check_interval_is_seconds = 96;
+  optional bool enable_environment_macros = 97;
+  optional uint32 event_broker_options = 98;
+  optional uint32 event_handler_timeout = 99;
+  optional int32 external_command_buffer_slots = 100;
+  optional float high_host_flap_threshold = 101;
+  optional float high_service_flap_threshold = 102;
+  optional int32 host_check_timeout = 103;
+  optional uint32 host_freshness_check_interval = 104;
+  optional uint32 service_freshness_check_interval = 105;
+  optional bool log_event_handlers = 106;
+  optional bool log_external_commands = 107;
+  optional bool log_notifications = 108;
+  optional bool log_passive_checks = 109;
+  optional bool log_host_retries = 110;
+  optional bool log_service_retries = 111;
+  optional uint32 max_log_file_size = 112;
+  optional float low_host_flap_threshold = 113;
+  optional float low_service_flap_threshold = 114;
+  optional uint32 max_parallel_service_checks = 115;
+  optional uint32 ochp_timeout = 116;
+  optional uint32 ocsp_timeout = 117;
+  optional int32 perfdata_timeout = 118;
+  optional uint32 retained_host_attribute_mask = 119;
+  optional uint32 retained_process_host_attribute_mask = 120;
+  optional uint32 retained_contact_host_attribute_mask = 121;
+  optional uint32 retained_contact_service_attribute_mask = 122;
+  optional bool retain_state_information = 123;
+  optional uint32 retention_scheduling_horizon = 124;
+  optional uint32 retention_update_interval = 125;
+  optional uint32 service_check_timeout = 126;
+  optional float sleep_time = 127;
+  optional uint32 status_update_interval = 128;
+  optional uint32 time_change_threshold = 129;
+  optional bool use_regexp_matches = 130;
+  optional bool use_retained_program_state = 131;
+  optional bool use_retained_scheduling_info = 132;
+  optional bool use_setpgid = 133;
+  optional bool use_true_regexp_matching = 134;
+  optional DateType date_format = 135;
+  optional InterCheckDelay host_inter_check_delay_method = 136;
+  optional InterCheckDelay service_inter_check_delay_method = 137;
+  optional InterleaveFactor service_interleave_factor_method = 138;
+  optional bool enable_predictive_host_dependency_checks = 139;
+  optional bool enable_predictive_service_dependency_checks = 140;
+  optional bool send_recovery_notifications_anyways = 141;
+  optional bool host_down_disable_service_checks = 142;
+  optional uint32 max_file_descriptors = 143;
+  optional string config_version = 144;
+
+  /* If all the configuration has to be sent */
+  State state = 145;
 }
