@@ -22,9 +22,8 @@
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/connector.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 /**
  *  @class forward commands/forward.hh
  *  @brief Command is a specific implementation of commands::command.
@@ -61,8 +60,7 @@ class forward : public command {
   void unregister_host_serv(const std::string& host,
                             const std::string& service_description) override;
 };
-}  // namespace commands
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::commands
 
 #endif  // !CCE_COMMANDS_FORWARD_HH

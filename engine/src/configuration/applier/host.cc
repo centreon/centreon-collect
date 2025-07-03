@@ -190,8 +190,8 @@ void applier::host::modify_object(configuration::host const& obj) {
   // Find host object.
   host_id_map::iterator it_obj(engine::host::hosts_by_id.find(obj.key()));
   if (it_obj == engine::host::hosts_by_id.end())
-    throw engine_error() << "Could not modify non-existing "
-                         << "host object '" << obj.host_name() << "'";
+    throw engine_error() << "Could not modify non-existing " << "host object '"
+                         << obj.host_name() << "'";
 
   // Update the global configuration set.
   configuration::host obj_old(*it_cfg);
@@ -282,6 +282,7 @@ void applier::host::modify_object(configuration::host const& obj) {
   it_obj->second->set_notes_url(obj.notes_url());
   it_obj->second->set_action_url(obj.action_url());
   it_obj->second->set_icon_image(obj.icon_image());
+  it_obj->second->set_icon_id(obj.icon_id());
   it_obj->second->set_icon_image_alt(obj.icon_image_alt());
   it_obj->second->set_vrml_image(obj.vrml_image());
   it_obj->second->set_statusmap_image(obj.statusmap_image());

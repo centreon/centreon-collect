@@ -61,8 +61,6 @@ project("Centreon Collect" C CXX)
 # set(CMAKE_CXX_COMPILER "clang++")
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
-add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -110,7 +108,7 @@ endif()
 # Version.
 set(COLLECT_MAJOR 24)
 set(COLLECT_MINOR 04)
-set(COLLECT_PATCH 11)
+set(COLLECT_PATCH 12)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
 

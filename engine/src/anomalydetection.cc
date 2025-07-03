@@ -128,7 +128,7 @@ anomalydetection::threshold_point anomalydetection::threshold_point::interpoll(
 
 namespace commands {
 /**
- * @brief this class is used by anomaly detection to avoid axecution of command
+ * @brief this class is used by anomaly detection to avoid execution of command
  * if perfdata is ok
  *
  */
@@ -202,16 +202,20 @@ uint64_t cancellable_command::run(
     const void* caller) {
   if (_fake_result) {
     checks::checker::instance().add_check_result_to_reap(_fake_result);
+    SPDLOG_LOGGER_DEBUG(checks_logger,
+                        "cancellable_command::run use previous result: {}",
+                        *_fake_result);
     return 0;  // no command => no async result
   } else if (_original_command) {
     uint64_t id = _original_command->run(processed_cmd, macros, timeout,
                                          to_push_to_checker, caller);
-    checks_logger->debug(
-        "cancellable_command::run command launched id={} cmd {}", id,
-        _original_command);
+    SPDLOG_LOGGER_DEBUG(
+        checks_logger, "cancellable_command::run command launched id={} cmd {}",
+        id, _original_command);
     return id;
   } else {
-    checks_logger->debug("cancellable_command::run no original command");
+    SPDLOG_LOGGER_DEBUG(checks_logger,
+                        "cancellable_command::run no original command");
     return 0;
   }
 }
@@ -1015,8 +1019,7 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
     SPDLOG_LOGGER_ERROR(runtime_logger, "Error: Unable to parse perfdata '{}'",
                         without_thresholds);
     oss << "UNKNOWN: Unknown activity, " << _metric_name
-        << " did not return any values"
-        << " | " << perfdata;
+        << " did not return any values" << " | " << perfdata;
     calculated_result.set_output(oss.str());
     calculated_result.set_return_code(service_state::state_unknown);
     return false;

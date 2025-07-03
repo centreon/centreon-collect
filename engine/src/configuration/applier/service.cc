@@ -441,6 +441,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   s->set_notes_url(obj.notes_url());
   s->set_action_url(obj.action_url());
   s->set_icon_image(obj.icon_image());
+  s->set_icon_id(obj.icon_id());
   s->set_icon_image_alt(obj.icon_image_alt());
   s->set_is_volatile(obj.is_volatile());
   s->set_timezone(obj.timezone());
