@@ -22,19 +22,13 @@ DROP TABLE IF EXISTS `mod_host_disco_provider`;
 DROP TABLE IF EXISTS `mod_host_disco_provider_type`;
 DROP TABLE IF EXISTS `mod_host_disco_provider_compatibility`;
 
-DELETE FROM topology WHERE topology_page = '60210' AND topology_name = 'Scan';
-DELETE FROM topology WHERE topology_page = '60214' AND topology_name = 'Overview';
-DELETE FROM topology WHERE topology_page = '60215' AND topology_name = 'Rules';
-DELETE FROM topology WHERE topology_parent = '602' AND topology_name = 'Auto Discovery';
-DELETE FROM topology_JS WHERE id_page = '60215';
-DELETE FROM topology_JS WHERE id_page = '60210';
 
--- Delete Host Discovery entry
-DELETE FROM topology WHERE topology_page = 60130;
+DELETE FROM topology;
+DELETE FROM topology_JS;
+DELETE FROM service;
+DELETE FROM host;
 
--- Old command
-DELETE FROM command WHERE command_name IN ('autodisco_snmp_generic_file_system', 'autodisco_snmp_generic_interface', 'autodisco_snmp_generic_process', 'check_centreon_traffic_by_name', 'check_centreon_traffic_by_id', 'check_centreon_traffic_by_id',
-'check_centreon_remote_storage_by_id', 'azure-host-discovery');
+DELETE FROM command;
+DELETE FROM ns_host_relation;
+DELETE FROM host_template_relation;
 
--- Old service
-DELETE FROM service WHERE service_description IN ('Auto-Disco-SNMP-Generic-File-System-By-Name', 'Auto-Disco-SNMP-Generic-File-System-By-ID', 'Auto-Disco-SNMP-Generic-Interface-By-Name', 'Auto-Disco-SNMP-Generic-Interface-By-ID', 'Auto-Disco-SNMP-Generic-Processus');

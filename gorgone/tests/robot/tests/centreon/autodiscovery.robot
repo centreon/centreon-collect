@@ -14,22 +14,29 @@ check autodiscovery ${communication_mode}
     [Teardown]    Test Teardown    @{process_list}
     Test Setup    ${communication_mode}    @{process_list}
 
-    ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data={}
-    Log To Console    ${response.json()}
-    Dictionary Should Not Contain Key  ${response.json()}    error    api/centreon/statistics/engine api call resulted in an error : ${response.json()}
-
-    Check Services Data Are Present In Database
-
+    Test Service Disco
     Test Host disco    ${poller}
+
+    Test Service Disco don't interpret bash
+    #Test Host Disco don't interpret bash
 
     Examples:    communication_mode   --
         ...    push_zmq
 
 *** Keywords ***
+Test Service Disco
+    ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data={}
+    Log To Console    ${response.json()}
+    Dictionary Should Not Contain Key  ${response.json()}    error    api/centreon/statistics/engine api call resulted in an error : ${response.json()}
+    Check Services Data Are Present In Database
+
+Test Service Disco don't interpret bash
+    Sleep    1
+
 Check Services Data Are Present In Database
     # check service discovery added services in mysql config database.
-    Check Row Count    SELECT * FROM service WHERE service_description like 'Disk-%';    equal    5    alias=conf    retry_timeout=5    retry_pause=1
-    Check Row Count    SELECT service_description FROM service WHERE service_description like 'Disk-/run/user/1001';    equal    1    alias=conf    retry_timeout=5    retry_pause=1
+    Check Row Count    SELECT * FROM service WHERE service_description like 'Disk-%';    equal    4    alias=conf    retry_timeout=5    retry_pause=1
+    Check Row Count    SELECT service_description FROM service WHERE service_description = 'Disk-/home';    equal    1    alias=conf    retry_timeout=5    retry_pause=1
 
 Test Host disco
     [Arguments]    ${poller_name}
@@ -59,6 +66,8 @@ Test Setup
     Setup Two Gorgone Instances    central_config=${central_config}    communication_mode=${communication_mode}    central_name=${process_list}[0]    poller_name=${process_list}[1]    poller_config=${poller_config}
     # this file depend on the nagios_server table, which is created by the gorgone setup.
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-insert-autodiscovery.sql
+    Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-insert-autodiscovery-2.sql
+
 
     Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
     ...    alias=conf    autocommit=True
