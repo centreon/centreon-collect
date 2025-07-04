@@ -99,7 +99,8 @@ void extended_conf::update_state(State* pb_config) {
       google::protobuf::util::JsonParseOptions options;
       options.ignore_unknown_fields = false;
       options.case_insensitive_enum_parsing = true;
-      google::protobuf::util::JsonStringToMessage(content, &new_conf);
+      auto status [[maybe_unused]] =
+          google::protobuf::util::JsonStringToMessage(content, &new_conf);
       pb_config->MergeFrom(new_conf);
     } else {
       SPDLOG_LOGGER_ERROR(
