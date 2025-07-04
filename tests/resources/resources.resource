@@ -140,6 +140,13 @@ Ctn Kindly Stop Broker
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         ELSE
             ${Bbdo2}   Ctn In Bbdo2
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    IF    len("""${result}""") > 0
+                Log To Console    The central broker logs contain errors about metrics with metric_id <= 0.
+                Ctn Save Logs
+                Remove File    ${centralLog}
+            END
+	    Should Be Empty    ${result}    Central broker logs contain errors about metrics with metric_id <= 0.
             IF    not ${Bbdo2} and not ${no_rrd_test}
                 IF    not ${only_central}
                         Log To Console    We are in BBDO3, so we also check RRD duplicates
@@ -211,13 +218,13 @@ Ctn Start Engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
             Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}

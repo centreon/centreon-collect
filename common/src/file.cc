@@ -29,6 +29,11 @@ namespace com::centreon::common {
  * @return The content as an std::string.
  */
 std::string read_file_content(const std::filesystem::path& file_path) {
+  // Is path a readable file?
+  if (!std::filesystem::is_regular_file(file_path)) {
+    throw exceptions::msg_fmt("File '{}' is not a regular file",
+                              file_path.string());
+  }
   std::ifstream in(file_path, std::ios::in);
   std::string retval;
   if (in) {

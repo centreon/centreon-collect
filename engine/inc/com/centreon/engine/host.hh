@@ -297,15 +297,6 @@ class host : public notifier {
 
 }  // namespace com::centreon::engine
 
-int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
-                                    com::centreon::engine::host* child);
-int is_host_immediate_parent_of_host(com::centreon::engine::host* child,
-                                     com::centreon::engine::host* parent);
-int number_of_immediate_child_hosts(com::centreon::engine::host* hst);
-int number_of_immediate_parent_hosts(com::centreon::engine::host* hst);
-int number_of_total_child_hosts(com::centreon::engine::host* hst);
-int number_of_total_parent_hosts(com::centreon::engine::host* hst);
-
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::host const& obj);
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);

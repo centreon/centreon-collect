@@ -110,4 +110,53 @@ void severity_helper::_init() {
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(SeverityType::none);
 }
+
+void severity_helper::diff(const Container& old_list,
+                           const Container& new_list,
+                           const std::shared_ptr<spdlog::logger>& logger,
+                           engine::configuration::DiffSeverity* result) {
+  if (logger->level() <= spdlog::level::trace) {
+    logger->trace("severities::diff previous severities:");
+    for (const auto& item : old_list)
+      logger->trace(" * {}", item.DebugString());
+    logger->trace("severities::diff new severities:");
+    for (const auto& item : new_list)
+      logger->trace(" * {}", item.DebugString());
+  }
+  result->Clear();
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                      std::pair<uint32_t, const Severity*>>
+      keys_values;
+  uint32_t idx = 0;
+  for (const auto& item : old_list) {
+    keys_values[{item.key().id(), item.key().type()}] =
+        std::make_pair(idx, &item);
+    ++idx;
+  }
+
+  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> new_keys;
+  for (const auto& item : new_list) {
+    auto inserted = new_keys.insert({item.key().id(), item.key().type()});
+    if (!keys_values.contains(*inserted.first)) {
+      // New object to add
+      result->add_added()->CopyFrom(item);
+    } else {
+      // Object to modify or equal
+      if (!MessageDifferencer::Equals(item,
+                                      *keys_values[*inserted.first].second)) {
+        // There are changes in this object
+        Severity* res = result->add_modified();
+        res->CopyFrom(item);
+      }
+    }
+  }
+
+  for (const auto& item : old_list) {
+    if (!new_keys.contains({item.key().id(), item.key().type()})) {
+      auto* key = result->add_removed();
+      key->CopyFrom(item.key());
+    }
+  }
+  logger->debug("severities::diff result: {}", result->DebugString());
+}
 }  // namespace com::centreon::engine::configuration

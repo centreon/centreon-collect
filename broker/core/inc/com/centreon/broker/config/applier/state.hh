@@ -19,10 +19,15 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
+#include <absl/container/btree_map.h>
+#include <boost/asio/steady_timer.hpp>
+#include "absl/synchronization/mutex.h"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
+#include "com/centreon/broker/file/directory_watcher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
+#include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::broker::config::applier {
 /**
@@ -52,6 +57,9 @@ class state {
     /* The current Engine configuration known by this poller. Only available
      * for an Engine peer. */
     std::string engine_conf;
+    /* The conf_acknowledged flag is set to false when a new configuration
+     * concerning this Engine peer must be sent to it. Otherwise, it is true. */
+    bool conf_acknowledged;
   };
 
  private:
@@ -66,6 +74,8 @@ class state {
   std::string _broker_name;
   size_t _pool_size;
   std::filesystem::path _proto_conf;
+  std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
+  std::atomic_bool _watch_occupied;
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -77,6 +87,8 @@ class state {
   /* In a Broker configuration, this object contains the configuration cache
    * directory used by php. We can find there all the pollers configurations. */
   std::filesystem::path _cache_config_dir;
+  /* This object is used to watch the _cache_config_dir. */
+  std::unique_ptr<file::directory_watcher> _cache_config_dir_watcher;
 
   /* In a Broker configuration, this object contains the pollers configurations
    * known by the Broker. These directories are copies from the
@@ -87,6 +99,9 @@ class state {
   modules _modules;
 
   std::shared_ptr<com::centreon::broker::stats::center> _center;
+  mutable absl::Mutex _diff_state_m;
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
+  std::atomic_bool _diff_state_applied;
 
   static stats _stats_conf;
 
@@ -98,7 +113,14 @@ class state {
   state(common::PeerType peer_type,
         const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
-  ~state() noexcept = default;
+  ~state() noexcept;
+  std::vector<uint32_t> _watch_engine_conf();
+  void _start_watch_engine_conf_timer();
+  void _check_last_engine_conf();
+  void _prepare_diff_for_poller(
+      uint64_t poller_id,
+      std::unique_ptr<engine::configuration::State>&& state)
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
 
  public:
   static state& instance();
@@ -143,9 +165,28 @@ class state {
   std::string get_engine_conf_from_cache(uint64_t poller_id);
   void set_proto_conf(const std::filesystem::path& proto_conf);
   const std::filesystem::path& proto_conf() const;
-  void set_engine_configuration(uint64_t poller_id, const std::string& conf);
-  std::string engine_configuration(uint64_t poller_id) const;
   std::shared_ptr<com::centreon::broker::stats::center> center() const;
+  bool engine_peer_needs_update(uint64_t poller_id) const;
+  void acknowledge_engine_peer(uint64_t poller_id, bool ack);
+  void set_diff_state(const std::shared_ptr<io::data>& diff);
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  void set_diff_state_applied(bool done);
+
+  /**
+   * @brief Check if the diff state has been applied. This method is called from
+   * Engine. It must return true if the diff state has been applied but only
+   * once.
+   *
+   * @return a boolean.
+   */
+  bool diff_state_applied() {
+    bool expected = true;
+    return _diff_state_applied.compare_exchange_strong(expected, false);
+  }
+
+  bool set_engine_conf_watcher_occupied(bool occupied,
+                                        const std::string_view& owner);
+  bool all_engine_peers_acknowledged() const;
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
   void set_poller_engine_conf(uint64_t poller_id,

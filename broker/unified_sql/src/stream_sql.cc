@@ -1722,7 +1722,7 @@ void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
  * @param d Uncasted Protobuf instance configuration.
  */
 void stream::_process_pb_instance_configuration(
-    const std::shared_ptr<io::data>& d [[maybe_unused]]) {}
+    const std::shared_ptr<io::data>& d) {}
 
 /**
  *  Process a host status event.
@@ -2661,6 +2661,22 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
                          database::mysql_error::store_poller, conn);
     _add_action(conn, actions::instances);
   }
+}
+
+/**
+ *  Process an instance event. The thread executing the command is
+ * controlled so that queries depending on this one will be made by the same
+ * thread.
+ *
+ *  @param[in] e Uncasted instance.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
+  const neb::pb_global_diff_state& global_diff_state(
+      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
+  const auto& obj = global_diff_state.obj();
+  _logger_sql->info("unified_sql: processing global diff state event");
 }
 
 /**

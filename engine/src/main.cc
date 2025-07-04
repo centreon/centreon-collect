@@ -21,7 +21,6 @@
 
 #include <unistd.h>
 #include <random>
-#include <string>
 
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
@@ -31,14 +30,11 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-
-#include <rapidjson/document.h>
 
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/engine/broker.hh"
@@ -58,7 +54,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/misc.hh"
-#include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
 #include "com/centreon/engine/retention/state.hh"
@@ -67,7 +62,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/logging/engine.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
@@ -86,6 +80,11 @@ std::shared_ptr<asio::io_context> g_io_context(
  *  @return EXIT_SUCCESS on success.
  */
 int main(int argc, char* argv[]) {
+  // Display arguments to understand an issue
+  for (int i = 0; i < argc; i++) {
+    std::cout << "arg[" << i << "]=" << argv[i] << std::endl;
+  }
+
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
@@ -138,6 +137,10 @@ int main(int argc, char* argv[]) {
       ("extended-config,c",
        po::value<std::vector<std::string>>()->value_name("config-file"),
        "Extended configuration file")
+      ("proto-conf,p", po::value<std::string>()->value_name("proto_dir"),
+       "Directory containing the protocol buffer configuration files")
+      ("log-file,l", po::value<std::string>()->value_name("log-file"),
+       "Full path to the log file name")
       ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
         "Main configuration file");
 
@@ -194,6 +197,8 @@ int main(int argc, char* argv[]) {
         verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
+      if (vm.count("proto-conf"))
+        proto_conf = vm["proto-conf"].as<std::string>();
       if (vm.count("broker-config"))
         broker_config = vm["broker-config"].as<std::string>();
       if (vm.count("extended-config"))
@@ -230,7 +235,7 @@ int main(int argc, char* argv[]) {
           // Read in the configuration files (main config file,
           // resource and object config files).
           configuration::error_cnt err;
-          cbm = std::make_unique<cbmod>();
+          cbm = std::make_unique<cbmod>(proto_conf);
           auto pb_cfg = std::make_unique<configuration::State>();
           configuration::state_helper state_hlp(pb_cfg.get());
           {
@@ -342,11 +347,23 @@ int main(int argc, char* argv[]) {
           // Parse configuration.
           configuration::error_cnt err;
           auto new_conf = std::make_unique<configuration::State>();
-          configuration::state_helper state_hlp(new_conf.get());
-          configuration::parser p;
-          p.parse(config_file, new_conf.get(), err);
-          state_hlp.expand(err);
-
+          bool proto_valid = false;
+          if (!proto_conf.empty()) {
+            std::filesystem::path proto_conf_file(proto_conf / "state.prot");
+            std::ifstream ifs(proto_conf_file);
+            if (ifs.good()) {
+              new_conf->ParseFromIstream(&ifs);
+              ifs.close();
+              proto_valid = true;
+            }
+          }
+          if (!proto_valid) {
+            configuration::state_helper state_hlp(new_conf.get());
+            configuration::parser p;
+            p.parse(config_file, new_conf.get(), err);
+            configuration::error_cnt err;
+            state_hlp.expand(err);
+          }
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
 
@@ -395,6 +412,9 @@ int main(int argc, char* argv[]) {
           setup_sighandler();
 
           // Load broker modules.
+          if (vm.count("log-file"))
+            new_conf->set_log_file(vm["log-file"].as<std::string>());
+
           configuration::applier::state::instance().apply_log_config(*new_conf);
 
           neb_init_callback_list();
@@ -425,16 +445,18 @@ int main(int argc, char* argv[]) {
           // Update all status data (with retained information).
           update_all_status_data();
 
-          /* We don't start cbm earlier because when we apply the configuration,
-           * we also send the configuration to Broker, but the initial instance
-           * will be send by broker_program_state with the
-           * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd send
-           * the configuration twice to Broker. But the first time without the
-           * initial instance, which can lead to issues in the database. Doing
-           * this, imply we also have to check if cbm is defined in broker.cc.
+          /* We don't start cbm earlier because when we apply the
+           * configuration, we also send the configuration to Broker, but the
+           * initial instance will be send by broker_program_state with the
+           * NEBTYPE_PROCESS_EVENTLOOPSTART flag. So, if we'd do this, we'd
+           * send the configuration twice to Broker. But the first time
+           * without the initial instance, which can lead to issues in the
+           * database. Doing this, imply we also have to check if cbm is
+           * defined in broker.cc.
            */
-          cbm = std::make_unique<cbmod>(
-              broker_config, pb_indexed_config.state().config_version());
+          cbm =
+              std::make_unique<cbmod>(broker_config, proto_conf,
+                                      pb_indexed_config.state().config_version());
           // Send program data to broker.
           broker_program_state(NEBTYPE_PROCESS_EVENTLOOPSTART, NEBFLAG_NONE);
 

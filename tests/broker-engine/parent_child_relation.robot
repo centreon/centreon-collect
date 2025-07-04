@@ -14,7 +14,7 @@ Test Teardown       Ctn Save Logs If Failed
 EBPN0
     [Documentation]    Verify if child is in queue when parent is down.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -23,8 +23,11 @@ EBPN0
 
     Ctn Broker Config Log    rrd    rrd    trace
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    processing    error
     Ctn Broker Config Log    rrd    core    error
     Ctn Engine Config Set Value    0    log_level_checks    debug
+    Ctn Engine Config Set Value    0    log_level_config    debug
     Ctn Config Broker Sql Output    central    unified_sql    10
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    rrd    0
@@ -54,7 +57,7 @@ EBPN0
         IF    "${output}" == "((2, 1),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((2, 1),)    host parent not inserted
-    
+
     # check if host_1 is pending
     ${result}    Ctn Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
@@ -67,7 +70,7 @@ EBPN0
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
-    
+
     Ctn Process Host Check Result    host_1    0    host_1 UP
 
     FOR    ${i}    IN RANGE    ${4}
@@ -97,7 +100,7 @@ EBPN0
 EBPN1
     [Documentation]    verify relation parent child when delete parent.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -142,7 +145,7 @@ EBPN1
         IF    "${output}" == "((2, 1),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((2, 1),)    the parent link not inserted
-    
+
     Ctn Engine Config Del Block In Cfg    ${0}    host    host_1    hosts.cfg
     Ctn Engine Config Del Block In Cfg    ${0}    service    host_1    services.cfg
     Ctn Engine Config Delete Value In Hosts    ${0}    host_2    parents
@@ -180,7 +183,7 @@ EBPN1
 EBPN2
     [Documentation]    verify relation parent child when delete child.
     [Tags]    broker    engine    MON-151686
-    
+
     Ctn Config Engine    ${1}    ${5}    ${1}
     Ctn Config Broker    rrd
     Ctn Config Broker    central

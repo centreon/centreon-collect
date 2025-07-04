@@ -53,6 +53,9 @@ class state {
   void apply(configuration::State& new_cfg,
              error_cnt& err,
              retention::state* state = nullptr);
+  void apply_diff(configuration::DiffState& diff_conf,
+                  error_cnt& err,
+                  retention::state* state = nullptr);
   void apply_log_config(configuration::State& new_cfg);
   static state& instance();
   void clear();

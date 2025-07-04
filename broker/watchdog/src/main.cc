@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <cstdint>
 
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/configuration_parser.hh"

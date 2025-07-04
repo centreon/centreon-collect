@@ -22,6 +22,7 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
@@ -33,7 +34,6 @@ class cbmodimpl;
 class cbmod {
   std::shared_ptr<spdlog::logger> _neb_logger;
   std::unique_ptr<cbmodimpl> _impl;
-  std::filesystem::path _proto_conf;
   bool _use_protobuf;
 
   // Acknowledgements list.
@@ -45,8 +45,10 @@ class cbmod {
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
 
  public:
-  cbmod();
-  cbmod(const std::string& config_file, const std::string& engine_conf_version);
+  cbmod(const std::string& config_file,
+        const std::filesystem::path& proto_conf,
+        const std::string& engine_conf_version);
+  cbmod(const std::filesystem::path& proto_conf);
   cbmod& operator=(const cbmod&) = delete;
 
   virtual ~cbmod() noexcept;
@@ -79,6 +81,8 @@ class cbmod {
   void stop_downtime(uint64_t downtime_id, bool cancelled);
   void remove_downtime(uint64_t downtime_id);
   void reload();
+  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
+  void set_diff_state_applied(const std::string& config_version);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
