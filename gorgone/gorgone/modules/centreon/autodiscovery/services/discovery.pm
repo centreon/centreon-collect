@@ -817,7 +817,7 @@ sub service_execute_commands {
                             {
                                 command => $command,
                                 timeout => 90,
-                                no_shell_interpretation => 1,
+                                no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                             }
                         ]
                     }

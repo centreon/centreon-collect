@@ -6,10 +6,11 @@ This module aims to extend Centreon Autodiscovery server functionalities.
 
 ## Configuration
 
-| Directive       | Description                                                            | Default value |
-|:----------------|:-----------------------------------------------------------------------|:--------------|
-| global\_timeout | Time in seconds before a discovery command is considered timed out     | `300`         |
-| check\_interval | Time in seconds defining frequency at which results will be search for | `15`          |
+| Directive                 | Description                                                                                                     | Default value |
+|:--------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
+| global\_timeout           | Time in seconds before a discovery command is considered timed out                                              | `300`         |
+| check\_interval           | Time in seconds defining frequency at which results will be search for                                          | `15`          |
+| no\_shell\_interpretation | don't let bash interpret commands to be executed ('true' :  no interpretation, 'false': bash honnor `; & $()` ) | `true`        |
 
 #### Example
 
@@ -19,6 +20,7 @@ package: "gorgone::modules::centreon::autodiscovery::hooks"
 enable: true
 global_timeout: 60
 check_interval: 10
+no_shell_interpretation: true
 ```
 
 ## Events
@@ -249,15 +251,15 @@ curl --request DELETE "https://hostname:8443/api/centreon/autodiscovery/hosts/di
 
 #### Body
 
-| Key                  | Value                                                                                             |
-|:---------------------|:--------------------------------------------------------------------------------------------------|
-| filter\_rules        | Array of rules to use for discovery (empty means all)                                             |
-| force\_rule          | Run disabled rules ('0': not forced, '1': forced)                                                 |
-| filter\_hosts        | Array of hosts against which run the discovery (empty means all)                                  |
-| filter\_pollers      | Array of pollers for which linked hosts will be discovered against (empty means all)              |
-| manual               | Run discovery for manual scan from web UI ('0': automatic, '1': manual)                           |
-| dry\_run             | Run discovery without configuration change ('0': changes, '1': dry run)                           |
-| no\_generate\_config | No configuration generation (even if there is some changes) ('0': generation, '1': no generation) |
+| Key                        | Value                                                                                                                    |
+|:---------------------------|:-------------------------------------------------------------------------------------------------------------------------|
+| filter\_rules              | Array of rules to use for discovery (empty means all)                                                                    |
+| force\_rule                | Run disabled rules ('0': not forced, '1': forced)                                                                        |
+| filter\_hosts              | Array of hosts against which run the discovery (empty means all)                                                         |
+| filter\_pollers            | Array of pollers for which linked hosts will be discovered against (empty means all)                                     |
+| manual                     | Run discovery for manual scan from web UI ('0': automatic, '1': manual)                                                  |
+| dry\_run                   | Run discovery without configuration change ('0': changes, '1': dry run)                                                  |
+| no\_generate\_config       | No configuration generation (even if there is some changes) ('0': generation, '1': no generation)                        |
 
 ```json
 {

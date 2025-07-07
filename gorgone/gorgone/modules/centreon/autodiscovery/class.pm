@@ -72,6 +72,9 @@ sub new {
     $connector->{tpapi_clapi_name} = defined($options{config}->{tpapi_clapi}) && $options{config}->{tpapi_clapi} ne '' ? $options{config}->{tpapi_clapi} : 'clapi';
     $connector->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ? 
         $options{config}->{tpapi_centreonv2} : 'centreonv2';
+    # disable shell interpretation by default, can be enabled back by user in the config file
+    $connector->{config}->{no_shell_interpretation} = defined($options{config}->{no_shell_interpretation})
+        && $options{config}->{no_shell_interpretation} =~ /^(0|false)$/i ? 0 : 1;
 
     $connector->{is_module_installed} = 0;
     $connector->{is_module_installed_check_interval} = 60;
@@ -494,6 +497,7 @@ sub launchhostdiscovery {
                 {
                     command => $self->{hdisco_jobs_ids}->{$job_id}->{command_line},
                     timeout => $timeout,
+                    no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                     metadata => {
                         job_id => $job_id,
                         source => 'autodiscovery-host-job-discovery',
