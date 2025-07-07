@@ -130,6 +130,9 @@ set(AGENT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
 
+#we use std::filesystem instead of boost::filesystem
+add_definitions("-DBOOST_PROCESS_USE_STD_FS=1")
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   include(CMakeListsLinux.txt)
 else()
