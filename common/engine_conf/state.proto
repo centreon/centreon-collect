@@ -654,6 +654,7 @@ message Host {
   optional uint64 severity_id = 49;  // Optional
   optional uint64 icon_id = 50;      // Optional
   repeated PairUint64_32 tags = 51;
+  uint64 poller_id = 52;
 }
 
 /* Ignore */
@@ -1118,4 +1119,7 @@ message DiffState {
 
   /* If all the configuration has to be sent */
   State state = 145;
+  /* This field is needed when a full conf is given to the unified_sql stream.
+   * Before adding/modifying elements, we have to disable the previous ones. */
+   repeated uint64 full_conf_poller_id = 146;
 }
