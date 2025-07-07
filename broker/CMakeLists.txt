@@ -66,15 +66,20 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 endif()
 
 include_directories(
@@ -100,9 +105,8 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-    protobuf::protoc ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${SRC_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
     --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat --grpc_out="${SRC_DIR}"
     ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
@@ -110,17 +114,15 @@ add_custom_command(
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
-    ${SRC_DIR}/broker.proto
-    WORKING_DIRECTORY ${SRC_DIR})
+    --proto_path=${CMAKE_SOURCE_DIR}/bbdo --proto_path=${SRC_DIR}
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat ${SRC_DIR}/broker.proto
+  WORKING_DIRECTORY ${SRC_DIR})
 
 add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
+                                                "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc
-                    ${CMAKE_SOURCE_DIR}/bbdo)
+                    ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Version.
 if(CENTREON_BROKER_PRERELEASE)
@@ -301,21 +303,14 @@ configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
 
-add_library(pb_broker_lib STATIC
-    ${SRC_DIR}/broker.grpc.pb.cc
-    ${SRC_DIR}/broker.grpc.pb.h
-    ${SRC_DIR}/broker.pb.cc
-    ${SRC_DIR}/broker.pb.h
-  )
+add_library(
+  pb_broker_lib STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
+                       ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h)
 
-add_dependencies(pb_broker_lib process_stat pb_common_lib)
+add_dependencies(pb_broker_lib process_stat pb_common_lib engine_conf)
 
-target_link_libraries(pb_broker_lib
-  PRIVATE
-  pb_common_lib
-  process_stat
-  engine_conf
-)
+target_link_libraries(pb_broker_lib PRIVATE pb_common_lib process_stat
+                                            engine_conf)
 
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -378,32 +373,31 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/time/timeperiod.cc
     ${SRC_DIR}/time/timerange.cc
     ${SRC_DIR}/time/timezone_locker.cc
-    ${SRC_DIR}/time/timezone_manager.cc
-  )
+    ${SRC_DIR}/time/timezone_manager.cc)
 
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
-add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
-target_include_directories(rokerbase
-                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
+add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib
+                 process_stat)
+target_include_directories(rokerbase PRIVATE ${PROJECT_SOURCE_DIR}/core)
 target_link_libraries(
-  rokerbase PRIVATE
-  sql
-  bbdo_bbdo
-  pb_broker_lib
-  bbdo
-  ctncrypto
-  pb_bbdo_lib
-  pb_common_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  process_stat
-  z
-  spdlog::spdlog
-  pthread
-  dl)
+  rokerbase
+  PRIVATE sql
+          bbdo_bbdo
+          pb_broker_lib
+          bbdo
+          ctncrypto
+          pb_bbdo_lib
+          pb_common_lib
+          pb_extcmd_lib
+          pb_open_telemetry_lib
+          process_stat
+          z
+          spdlog::spdlog
+          pthread
+          dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
@@ -417,22 +411,22 @@ set_target_properties(cbd PROPERTIES ENABLE_EXPORTS ON)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
-  cbd PRIVATE
-  -Wl,--whole-archive
-  log_v2
-  sql
-  rokerbase
-  roker
-  multiplexing
-  centreon_common
-  -Wl,--no-whole-archive
-  nlohmann_json::nlohmann_json
-  fmt::fmt
-  -Wl,--whole-archive
-  gRPC::grpc++
-  protobuf::libprotobuf
-  -Wl,--no-whole-archive
-  stdc++fs)
+  cbd
+  PRIVATE -Wl,--whole-archive
+          log_v2
+          sql
+          rokerbase
+          roker
+          multiplexing
+          centreon_common
+          -Wl,--no-whole-archive
+          nlohmann_json::nlohmann_json
+          fmt::fmt
+          -Wl,--whole-archive
+          gRPC::grpc++
+          protobuf::libprotobuf
+          -Wl,--no-whole-archive
+          stdc++fs)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
@@ -447,7 +441,7 @@ unset(MODULE_LIST)
 # sql library
 add_subdirectory(core/sql)
 
-if (ONLY_ROBOT_CMA)
+if(ONLY_ROBOT_CMA)
   add_broker_module(STATS ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
@@ -559,40 +553,39 @@ option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
 
 if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
   set(TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TEST_DIR}/bbdo/category.cc
-    ${TEST_DIR}/bbdo/output.cc
-    ${TEST_DIR}/bbdo/read.cc
-    ${TEST_DIR}/cache/global_cache_test.cc
-    ${TEST_DIR}/compression/stream/memory_stream.hh
-    ${TEST_DIR}/compression/stream/read.cc
-    ${TEST_DIR}/compression/stream/write.cc
-    ${TEST_DIR}/compression/zlib/zlib.cc
-    ${TEST_DIR}/config/init.cc
-    ${TEST_DIR}/config/parser.cc
-    ${TEST_DIR}/file/disk_accessor.cc
-    ${TEST_DIR}/file/directory_watcher.cc
-    ${TEST_DIR}/file/splitter/concurrent.cc
-    ${TEST_DIR}/file/splitter/default.cc
-    ${TEST_DIR}/file/splitter/more_than_max_size.cc
-    ${TEST_DIR}/file/splitter/permission_denied.cc
-    ${TEST_DIR}/file/splitter/resume.cc
-    ${TEST_DIR}/file/splitter/split.cc
-    ${TEST_DIR}/file/splitter/split_limited.cc
-    ${TEST_DIR}/misc/buffer.cc
-    ${TEST_DIR}/misc/exec.cc
-    ${TEST_DIR}/misc/filesystem.cc
-    ${TEST_DIR}/misc/math.cc
-    ${TEST_DIR}/misc/misc.cc
-    ${TEST_DIR}/misc/string.cc
-    ${TEST_DIR}/modules/module.cc
-    ${TEST_DIR}/processing/acceptor.cc
-    ${TEST_DIR}/processing/feeder.cc
-    ${TEST_DIR}/time/timerange.cc
-    ${TEST_DIR}/rpc/brokerrpc.cc
-    ${TEST_DIR}/exceptions.cc
-    ${TEST_DIR}/io.cc
-  )
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/bbdo/category.cc
+      ${TEST_DIR}/bbdo/output.cc
+      ${TEST_DIR}/bbdo/read.cc
+      ${TEST_DIR}/cache/global_cache_test.cc
+      ${TEST_DIR}/compression/stream/memory_stream.hh
+      ${TEST_DIR}/compression/stream/read.cc
+      ${TEST_DIR}/compression/stream/write.cc
+      ${TEST_DIR}/compression/zlib/zlib.cc
+      ${TEST_DIR}/config/init.cc
+      ${TEST_DIR}/config/parser.cc
+      ${TEST_DIR}/file/disk_accessor.cc
+      ${TEST_DIR}/file/directory_watcher.cc
+      ${TEST_DIR}/file/splitter/concurrent.cc
+      ${TEST_DIR}/file/splitter/default.cc
+      ${TEST_DIR}/file/splitter/more_than_max_size.cc
+      ${TEST_DIR}/file/splitter/permission_denied.cc
+      ${TEST_DIR}/file/splitter/resume.cc
+      ${TEST_DIR}/file/splitter/split.cc
+      ${TEST_DIR}/file/splitter/split_limited.cc
+      ${TEST_DIR}/misc/buffer.cc
+      ${TEST_DIR}/misc/exec.cc
+      ${TEST_DIR}/misc/filesystem.cc
+      ${TEST_DIR}/misc/math.cc
+      ${TEST_DIR}/misc/misc.cc
+      ${TEST_DIR}/misc/string.cc
+      ${TEST_DIR}/modules/module.cc
+      ${TEST_DIR}/processing/acceptor.cc
+      ${TEST_DIR}/processing/feeder.cc
+      ${TEST_DIR}/time/timerange.cc
+      ${TEST_DIR}/rpc/brokerrpc.cc
+      ${TEST_DIR}/exceptions.cc
+      ${TEST_DIR}/io.cc)
   add_subdirectory(test)
 endif()
 
