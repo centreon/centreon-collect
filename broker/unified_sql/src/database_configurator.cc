@@ -37,7 +37,7 @@ void database_configurator::process() {
   /* Then we process the diff. */
 
   /* Disabling removed hosts and services */
-  _disable_hosts_and_services();
+  //_disable_hosts_and_services();
 
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
@@ -58,6 +58,7 @@ void database_configurator::process() {
     _add_severities_mariadb(_diff.severities().modified(),
                             _stream->severities_cache());
     _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
+
     _add_hosts_mariadb(_diff.hosts().modified());
     _add_host_resources_mariadb(_diff.hosts().modified(),
                                 _stream->resources_cache());
@@ -2216,6 +2217,107 @@ void database_configurator::_add_anomalydetection_resources_mysql(
         "Error while executing <<_add_anomalydetection_resources>>: {}",
         e.what());
   }
+}
+
+// clang-format off
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_customvariables
+ * Key: {host_id, service_id, variable_name}
+ * Protobuf message: engine::configuration::CustomVariable
+ * Description: Add custom variables into the resources database.
+ * Table: customvariables
+ * Data:
+ *  FIELD     & TYPE   & COL NAME      & C_TYPE & OPTIONS
+ *  -----------------------------------------------------
+ * host_id    & int32  & host_id       & int32  & U
+ * service_id & int32  & service_id    & int32  & U
+ * name       & string & name          & string & U
+ * value      & string & default_value & string &
+ * value      & string & value         & string &
+ * var_type   & uint32 & type          & uint32 &
+ * ${true}    & bool   & enabled       & bool   &
+ * ${false}   & bool   & modified      & bool   &
+ */
+// clang-format on
+/**
+ * @brief Add custom variables into the resources database. (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_customvariables_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::CustomVariable>& lst) {
+  mysql& mysql = _stream->get_mysql();
+  if (!_add_customvariables_stmt->prepared()) {
+    std::string query(
+        "INSERT INTO customvariables "
+        "(host_id,service_id,name,default_value,value,type,enabled,modified) "
+        "VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        "default_value=VALUES(default_value),value=VALUES(value),type=VALUES("
+        "type),enabled=VALUES(enabled),modified=VALUES(modified)");
+    _add_customvariables_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_add_customvariables_stmt);
+  }
+  auto bind = _add_customvariables_stmt->create_bind();
+
+  for (const auto& msg : lst) {
+    bind->set_value_as_i32(0, msg.host_id());
+    bind->set_value_as_i32(1, msg.service_id());
+    bind->set_value_as_str(
+        2, common::truncate_utf8(msg.name(),
+                                 get_centreon_storage_customvariables_col_size(
+                                     centreon_storage_customvariables_name)));
+    bind->set_value_as_str(
+        3,
+        common::truncate_utf8(
+            msg.value(), get_centreon_storage_customvariables_col_size(
+                             centreon_storage_customvariables_default_value)));
+    bind->set_value_as_str(
+        4, common::truncate_utf8(msg.value(),
+                                 get_centreon_storage_customvariables_col_size(
+                                     centreon_storage_customvariables_value)));
+    bind->set_value_as_u32(5, msg.var_type());
+    bind->set_value_as_bool(6, true);
+    bind->set_value_as_bool(7, false);
+    bind->next_row();
+  }
+  _add_customvariables_stmt->set_bind(std::move(bind));
+  mysql.run_statement(*_add_customvariables_stmt);
+}
+
+/**
+ * @brief Add custom variables into the resources database. (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_customvariables_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::CustomVariable>& lst) {
+  mysql& mysql = _stream->get_mysql();
+
+  std::vector<std::string> values;
+  for (const auto& msg : lst) {
+    std::string value(fmt::format(
+        "({},{},'{}','{}','{}',{},1,0)", msg.host_id(), msg.service_id(),
+        misc::string::escape(msg.name(),
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_name)),
+        misc::string::escape(
+            msg.value(), get_centreon_storage_customvariables_col_size(
+                             centreon_storage_customvariables_default_value)),
+        misc::string::escape(msg.value(),
+                             get_centreon_storage_customvariables_col_size(
+                                 centreon_storage_customvariables_value)),
+        msg.var_type()));
+    values.emplace_back(value);
+  }
+  std::string query(fmt::format(
+      "INSERT INTO customvariables VALUES {} ON DUPLICATE KEY UPDATE "
+      "default_value=VALUES(default_value),value=VALUES(value),type=VALUES("
+      "type),enabled=VALUES(enabled),modified=VALUES(modified)",
+      fmt::join(values, ",")));
+  mysql.run_query(query);
 }
 
 }  // namespace com::centreon::broker::unified_sql
