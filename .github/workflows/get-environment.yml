@@ -2,7 +2,7 @@ on:
   workflow_call:
     inputs:
       version_file:
-        required: true
+        required: false
         type: string
         default: CMakeLists.txt
       nightly_manual_trigger:
