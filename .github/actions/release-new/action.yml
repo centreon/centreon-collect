@@ -1,4 +1,4 @@
-name: "release action"
+name: release-new
 description: "Create git release tags, github releases, jira version and push release communication."
 inputs:
   github_ref_name:
@@ -171,6 +171,9 @@ runs:
         echo "NEW_STABLE_TAGS=${NEW_STABLE_TAGS[*]}" >> "$GITHUB_ENV"
         # echo "PREVIOUS_STABLE_BRANCH_MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION" >> "$GITHUB_ENV" # should be removed
         echo "SCOPE_VERSION=$SCOPE_VERSION" >> "$GITHUB_ENV"
+
+        # Make NEW_MAJOR_VERSION available to other steps
+        echo "NEW_MAJOR_VERSION=$NEW_MAJOR_VERSION" >> "$GITHUB_ENV"
       shell: bash
 
     - name: Add new stable tags to release branch
@@ -202,8 +205,8 @@ runs:
           if [ -z $(git tag --list "$TAG" | head -n 1) ] && [ -n $TAG ]; then
 
             # Push local component tags as centreon_technique to generate a tag event
-            # git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG"
-            # git push https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }} "$TAG"
+            git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG"
+            git push https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }} "$TAG"
 
             git status
             echo "::notice::Tagging branch ${{ inputs.release_branch }} with $TAG."
@@ -238,7 +241,7 @@ runs:
         for TAG in ${NEW_STABLE_TAGS[@]}; do
           if [ -n $TAG ]; then
             echo "Creating GITHUB release with title $TAG for tag $TAG targeting branch ${{ inputs.release_branch }}."
-            # gh release create $TAG --target "${{ inputs.release_branch }}" --title "$TAG" --verify-tag
+            gh release create $TAG --target "${{ inputs.release_branch }}" --title "$TAG" --verify-tag
           else
             echo "::error::Release tag $TAG was empty, could not create github release for $TAG, exiting."
             exit 1
@@ -262,7 +265,7 @@ runs:
 
         if [[ "$status_code" == "200" ]]; then
           echo "::notice::Release bundle tag $TAG exists, removing branch ${{ inputs.release_branch }}."
-          # git push origin --delete ${{ inputs.release_branch }}
+          git push origin --delete ${{ inputs.release_branch }}
         else
           echo "::error::Release bundle tag $TAG does not exist, aborting."
           exit 1
@@ -314,12 +317,12 @@ runs:
               '$ARGS.named' )
             # Send to JIRA API release
             echo "Sending to JIRA API release: $JIRA_RELEASE_DATA"
-            # curl --fail --request POST \
-            #   --url "${{ inputs.jira_base_url }}/rest/api/3/version" \
-            #   --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
-            #   --header 'Accept: application/json' \
-            #   --header 'Content-Type: application/json' \
-            #   --data "$JIRA_RELEASE_DATA"
+            curl --fail --request POST \
+              --url "${{ inputs.jira_base_url }}/rest/api/3/version" \
+              --user '${{ inputs.jira_user_email }}:${{ inputs.jira_api_token }}' \
+              --header 'Accept: application/json' \
+              --header 'Content-Type: application/json' \
+              --data "$JIRA_RELEASE_DATA"
           else
             echo "::error::Release tag $TAG was empty, exiting."
             exit 1
