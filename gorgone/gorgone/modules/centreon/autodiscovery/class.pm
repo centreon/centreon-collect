@@ -735,24 +735,24 @@ sub discovery_command_result {
     my $duration = 0;
 
     try {
-        my $json = JSON::XS->new();
-        $json->incr_parse($data->{data}->{result}->{stdout});
-        while (my $obj = $json->incr_parse()) {
-            if (ref($obj) eq 'HASH') {
-                foreach my $host (@{$obj->{results}}) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
-                $duration = $obj->{duration};
-            } elsif (ref($obj) eq 'ARRAY') {
-                foreach my $host (@$obj) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
+        # decode_json can throw an error if the JSON is not valid, so we use try/catch to handle it.
+        my $json = decode_json($data->{data}->{result}->{stdout});
+
+        if (ref($json) eq 'HASH') { # only behavior I saw, an hash with 'results' key containing an array of hosts
+            foreach my $host (@{$json->{results}}) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
+            }
+            $duration = $json->{duration};
+        } elsif (ref($json) eq 'ARRAY') { # existing code, I don't know of plugin that return directly an array of hosts.
+            foreach my $host (@$json) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
             }
         }
+
     } catch {
-        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id'");
+        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id' " . $@);
         $self->update_job_status(
             job_id => $job_id,
             status => JOB_FAILED,
