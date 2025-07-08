@@ -76,7 +76,7 @@ bool get_otel_commands(const std::string& host_name,
     if (cache_iter != whitelist_cache.data.end()) {
       return cache_iter->second;
     }
-    bool allowed = wchecker.is_allowed(cmd_line);
+    bool allowed = wchecker.is_allowed_cma(cmd_line, host_name);
 
     whitelist_cache.data.emplace(cmd_line, allowed);
     return allowed;
