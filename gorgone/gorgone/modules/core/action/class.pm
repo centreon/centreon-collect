@@ -464,6 +464,7 @@ sub action_command {
         my ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
             command => $command->{command},
             timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout},
+            no_shell_interpretation => (defined($command->{no_shell_interpretation})) ? $command->{no_shell_interpretation} : undef,
             wait_exit => 1,
             redirect_stderr => 1,
             logger => $self->{logger}
