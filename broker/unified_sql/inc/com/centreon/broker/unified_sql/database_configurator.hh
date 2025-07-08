@@ -30,6 +30,17 @@ class database_configurator {
   stream* _stream;
   std::shared_ptr<spdlog::logger> _logger;
   database::mysql_stmt _enable_hosts;
+  std::unique_ptr<database::mysql_bulk_stmt>
+      _add_anomalydetection_resources_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_anomalydetections_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_host_resources_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_hosts_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_service_resources_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_severities_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_tags_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _disable_service_resources_stmt;
 
   void _disable_pollers_with_full_conf();
   void _disable_hosts_and_services();
@@ -56,8 +67,7 @@ class database_configurator {
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
-  void _disable_hosts(
-      const ::google::protobuf::RepeatedField<uint64_t>& lst);
+  void _disable_hosts(const ::google::protobuf::RepeatedField<uint64_t>& lst);
   void _add_host_resources_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst,
@@ -92,6 +102,16 @@ class database_configurator {
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::Anomalydetection>& lst,
       absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+  void _disable_services_mariadb(const ::google::protobuf::RepeatedPtrField<
+                                 engine::configuration::HostServiceId>& lst);
+  void _disable_services_mysql(const ::google::protobuf::RepeatedPtrField<
+                               engine::configuration::HostServiceId>& lst);
+  void _disable_service_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::HostServiceId>& lst);
+  void _disable_service_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::HostServiceId>& lst);
 
  public:
   database_configurator(const DiffState& diff,
