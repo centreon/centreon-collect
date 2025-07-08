@@ -15,6 +15,7 @@
  *
  * For more information : contact@centreon.com
  */
+#include <google/protobuf/repeated_ptr_field.h>
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
@@ -67,6 +68,12 @@ void database_configurator::process() {
     _add_anomalydetection_resources_mariadb(
         _diff.anomalydetections().modified(), _stream->resources_cache());
 
+  /* Disabling removed objects */
+  _disable_hosts(_diff.hosts().removed());
+  _disable_services_mariadb(_diff.services().removed());
+  _disable_services_mariadb(_diff.anomalydetections().removed());
+  _disable_service_resources_mariadb(_diff.services().removed());
+  _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added(),
@@ -95,9 +102,13 @@ void database_configurator::process() {
     _add_anomalydetections_mysql(_diff.anomalydetections().modified());
     _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
                                           _stream->resources_cache());
-  }
   /* Disabling removed objects */
   _disable_hosts(_diff.hosts().removed());
+  _disable_services_mysql(_diff.services().removed());
+  _disable_services_mysql(_diff.anomalydetections().removed());
+  _disable_service_resources_mysql(_diff.services().removed());
+  _disable_service_resources_mysql(_diff.anomalydetections().removed());
+  }
 }
 
 /**
@@ -169,7 +180,6 @@ void database_configurator::_disable_hosts_and_services() {
                                  0);
 }
 
-// clang-format off
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_severities
@@ -367,6 +377,35 @@ void database_configurator::_disable_hosts_and_services() {
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool & stalk_on_unknown  & bool &
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
  */
+
+/** Database configuration
+ * Query: UPDATE
+ * Method: _disable_services
+ * Protobuf message: engine::configuration::HostServiceId
+ * Description: Disable services in the database.
+ * Table: services
+ * Data:
+ *  FIELD                    & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  ------------------------------------------------------------------------------------
+ *  host_id                  & uint64_t & host_id                     & int32  & U
+ *  service_id               & uint64   & service_id                  & int32  & U
+ *  ${false}                 & bool     & enabled                     & bool   &
+ */
+
+/** Database configuration
+ * Query: UPDATE
+ * Method: _disable_service_resources
+ * Protobuf message: engine::configuration::HostServiceId
+ * Description: Disable services in the database.
+ * Table: resources
+ * Data:
+ *  FIELD                    & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  ------------------------------------------------------------------------------------
+ *  host_id                  & uint64_t & parent_id                   & int64  & U
+ *  service_id               & uint64   & id                          & int64  & U
+ *  ${false}                 & bool     & enabled                     & bool   &
+ */
+
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_anomalydetections
@@ -427,8 +466,6 @@ void database_configurator::_disable_hosts_and_services() {
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool & stalk_on_unknown  & bool &
  *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
  */
-// clang-format on
-// clang-format on
 
 static uint32_t get_service_type(const engine::configuration::Service& msg) {
   if (absl::StartsWith(msg.host_name(), "_Module_Meta") &&
@@ -441,7 +478,6 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
     return 0;  // com::centreon::engine::service_type::SERVICE
 }
 
-// clang-format off
 /** Database configuration
  * Query: INSERT ON DUPLICATE KEY UPDATE
  * Method: _add_service_resources
@@ -503,6 +539,5 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
  * checks_active & bool & active_checks_enabled & bool &
  * ${true} & bool & enabled & bool &
  */
-// clang-format on
 
 }  // namespace com::centreon::broker::unified_sql
