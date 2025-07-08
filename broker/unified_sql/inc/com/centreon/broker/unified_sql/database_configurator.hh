@@ -39,6 +39,7 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_severities_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_tags_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_customvariables_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_service_resources_stmt;
 
@@ -102,6 +103,11 @@ class database_configurator {
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::Anomalydetection>& lst,
       absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+  void _add_customvariables_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::CustomVariable>& lst);
+  void _add_customvariables_mysql(const ::google::protobuf::RepeatedPtrField<
+                                  engine::configuration::CustomVariable>& lst);
   void _disable_services_mariadb(const ::google::protobuf::RepeatedPtrField<
                                  engine::configuration::HostServiceId>& lst);
   void _disable_services_mysql(const ::google::protobuf::RepeatedPtrField<

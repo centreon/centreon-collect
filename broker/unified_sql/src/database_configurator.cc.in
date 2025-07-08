@@ -541,4 +541,23 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
  * ${true} & bool & enabled & bool &
  */
 
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_customvariables
+ * Key: {host_id, service_id, variable_name}
+ * Protobuf message: engine::configuration::CustomVariable
+ * Description: Add custom variables into the resources database.
+ * Table: customvariables
+ * Data:
+ *  FIELD     & TYPE   & COL NAME      & C_TYPE & OPTIONS
+ *  -----------------------------------------------------
+ * host_id    & int32  & host_id       & int32  & U
+ * service_id & int32  & service_id    & int32  & U
+ * name       & string & name          & string & U
+ * value      & string & default_value & string &
+ * value      & string & value         & string &
+ * var_type   & uint32 & type          & uint32 &
+ * ${true}    & bool   & enabled       & bool   &
+ * ${false}   & bool   & modified      & bool   &
+ */
 }  // namespace com::centreon::broker::unified_sql
