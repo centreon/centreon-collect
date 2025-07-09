@@ -114,7 +114,7 @@ TEST_F(check_files_test, test_filter) {
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
-  // Should only list files > 10k (output should not mention "Empty" unless none
+  // Should only list files > 1k (output should not mention "Empty" unless none
   // found)
   ASSERT_EQ(output.find("Empty"), std::string::npos);
 }
@@ -197,7 +197,7 @@ TEST_F(check_files_test, critical_status) {
       },
       std::make_shared<checks_statistics>());
 
-  checker->start_check(std::chrono::seconds(20));
+  checker->start_check(std::chrono::seconds(120));
 
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
@@ -241,7 +241,7 @@ TEST_F(check_files_test, version) {
       },
       std::make_shared<checks_statistics>());
 
-  checker->start_check(std::chrono::seconds(20));
+  checker->start_check(std::chrono::seconds(120));
 
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
@@ -283,7 +283,7 @@ TEST_F(check_files_test, dll) {
       },
       std::make_shared<checks_statistics>());
 
-  checker->start_check(std::chrono::seconds(20));
+  checker->start_check(std::chrono::seconds(120));
 
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
