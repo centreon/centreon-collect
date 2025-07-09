@@ -176,7 +176,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
     Sleep    1s
 
@@ -266,7 +266,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -285,7 +285,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1129,7 +1129,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -1146,7 +1146,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1168,7 +1168,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -1697,7 +1697,7 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
@@ -2042,13 +2042,16 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
-    ${host_name}  Ctn Get Hostname
+    ${host_name}  Ctn Host Hostname
     ${run_env}       Ctn Run Env
     IF    "${run_env}" == "WSL"
         Copy File    ../server_grpc.key    /tmp/server_grpc.key
         Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
+        Copy File    ../reverse_server_grpc.crt    /tmp/reverse_server_grpc.crt
     ELSE
         Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+        Copy File    /tmp/server_grpc.crt    /tmp/reverse_server_grpc.crt
+        Copy File    /tmp/server_grpc.key    /tmp/reverse_server_grpc.key
     END
 
     Ctn Clean Before Suite
