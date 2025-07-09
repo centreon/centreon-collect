@@ -117,6 +117,7 @@ runs:
           mkdir -p /tmp/promoted-packages
           mv *.rpm /tmp/promoted-packages/ >/dev/null 2>&1 || true
         done
+
       shell: bash
 
     - name: Promote DEB packages to stable

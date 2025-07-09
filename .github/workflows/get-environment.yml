@@ -343,6 +343,7 @@ jobs:
             }
 
             core.setOutput('is_targeting_feature_branch', isTargetingFeatureBranch);
+
       - name: Get version from ${{ inputs.version_file }}
         id: get_version
         run: |
@@ -628,6 +629,7 @@ jobs:
               }
               return 'false';
             };
+
             core.setOutput('is_nightly', getNightlyInput());
 
       - name: Get docker images version
