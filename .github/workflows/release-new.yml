@@ -1,5 +1,5 @@
 ---
-name: Release
+name: release-new
 
 on:
   workflow_dispatch:
@@ -80,9 +80,21 @@ jobs:
         id: build_release_bundle_tag
         run: |
           set -eux
+
           echo "Building release bundle tag."
-          # Expected output: release-YYYYMMDD-cloud or release-YYYYMMDD-onprem
+          # Expected output: release-cloud-YYYYMMNN-AA.BB or release-onprem-YYYYMMNN-AA.BB
+          # YYYY is year
+          # MM is month
+          # NN is stable release iteration number (00 is always the first one)
+          # AA.BB is major version (ex: 25.05)
           NEW_RELEASE_BUNDLE_TAG="release-${{ inputs.release_scope }}-${{ inputs.release_number }}"
+
+          # Extract major version from release_branch input
+          MAJOR_VERSION=$(echo "${{ inputs.release_branch }}" | cut -d "-" -f2)
+
+          # Concatenate final NEW_RELEASE_BUNDLE_TAG
+          NEW_RELEASE_BUNDLE_TAG="release-${{ inputs.release_scope }}-${{ inputs.release_number }}-$MAJOR_VERSION"
+
           # Output to GITHUB_ENV
           echo "new_release_bundle_tag=$NEW_RELEASE_BUNDLE_TAG" >> "$GITHUB_OUTPUT"
         shell: bash
@@ -92,8 +104,7 @@ jobs:
           set -eu
           # Check if github.ref is develop or dev-xxx branches where workflow and action are hosted
           # This must never run on any other ref than develop or dev-xxx
-          #if [[ "${{ github.ref_name }}" == 'develop' ]]; then
-          if [[ "${{ github.ref_name }}" == 'MON-168942' ]]; then
+          if [[ "${{ github.ref_name }}" == 'develop' ]]; then
             echo "[DEBUG] ref hosting release workflow is valid: ${{ github.ref_name }}"
           elif  [[ "${{ github.ref_name }}" =~ ^dev-[2-9][0-9].[0-9][0-9].x ]]; then
             echo "[DEBUG] ref hosting release workflow is valid: ${{ github.ref_name }}"
@@ -102,6 +113,7 @@ jobs:
             exit 1
           fi
         shell: bash
+
       - name: Release
         id: release
         uses: ./.github/actions/release-new
