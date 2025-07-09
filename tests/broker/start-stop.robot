@@ -95,7 +95,7 @@ START_STOP_CBD
     Ctn Clear Db    hosts
     ${start}    Get Current Date
 
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     # wait engine start

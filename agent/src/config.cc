@@ -44,7 +44,7 @@ const std::string_view config::config_schema(R"(
             "type": "boolean"
         },
         "public_cert": {
-            "description": "Path of the SSL certificate file .crt",
+            "description": "Path of the public certificate file .crt",
             "type": "string"
         },
         "private_key": {
@@ -52,11 +52,11 @@ const std::string_view config::config_schema(R"(
             "type": "string"
         },
         "ca_certificate": {
-            "description": "Path of the SSL authority certificate file .crt",
+            "description": "Path of the SSL CA file .crt",
             "type": "string"
         },
         "ca_name": {
-            "description": "Name of the SSL certification authority",
+            "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
             "type": "string"
         },
         "reversed_grpc_streaming": {
@@ -163,7 +163,13 @@ config::config(const std::string& path) {
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
-  if (json_config.has_member("token")) {
-    _token = json_config.get_string("token");
+  if (_reverse_connection) {
+    if (json_config.has_member("token")) {
+      _trusted_tokens.insert(json_config.get_string("token"));
+    }
+  } else {
+    if (json_config.has_member("token")) {
+      _token = json_config.get_string("token");
+    }
   }
 }

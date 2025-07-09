@@ -17,7 +17,7 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../../build/broker/influxdb/70-influxdb.so"
+  - src: "../../build/broker/lib/70-influxdb.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:

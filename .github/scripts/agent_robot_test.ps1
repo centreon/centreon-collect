@@ -51,6 +51,12 @@ $my_host_name = $env:COMPUTERNAME
 $my_ip = (Get-NetIpAddress -AddressFamily IPv4 | Where-Object IPAddress -ne "127.0.0.1" | SELECT IPAddress -First 1).IPAddress
 $pwsh_path = (get-command pwsh.exe).Path
 
+echo "host_name:" $my_host_name
+echo "my_ip:" $my_ip
+
+#as github dns returns dummy address we fix it in hosts file
+Add-Content -Path "$env:windir\system32\drivers\etc\hosts" "$my_ip $my_host_name"
+
 # generate certificate used by wsl and windows
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=${my_host_name}"
 
@@ -96,6 +102,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name pr
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name public_cert -Value ${current_dir}/server_grpc.crt
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value 1
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4321
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name token -Value eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8
 $agent_log_path = $current_dir + "\reports\encrypted_reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
@@ -133,6 +140,34 @@ $test_param = @{
 }
 
 Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -Process { $test_param.drive += $_ }
+
+# create 3 task sched
+$taskScriptsPath = "$env:TEMP\ExitCodeTasks"
+New-Item -Path $taskScriptsPath -ItemType Directory -Force | Out-Null
+
+# Round up to next full minute
+$nextMinute = (Get-Date).AddMinutes(1)
+$startTime = $nextMinute.ToString("HH:mm")
+
+@(
+    @{ Name = "TaskExit0"; Code = 0 },
+    @{ Name = "TaskExit1"; Code = 1 },
+    @{ Name = "TaskExit2"; Code = 2 }
+) | ForEach-Object {
+    $taskName = $_.Name
+    $exitCode = $_.Code
+    $batFile = "$taskScriptsPath\$taskName.bat"
+
+    # Create the batch file
+    Set-Content -Path $batFile -Value "exit $exitCode"
+
+    # Schedule the task
+    schtasks /Create /TN $taskName /TR "`"cmd /c $batFile`"" /SC ONCE /ST $startTime /F /RL LIMITED /RU "$env:USERNAME"
+
+    # Start the task immediately
+    Start-ScheduledTask -TaskName $taskName
+}
+
 
 $json_test_param = $test_param | ConvertTo-Json -Compress
 

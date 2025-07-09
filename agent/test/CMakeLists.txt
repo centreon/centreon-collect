@@ -41,7 +41,9 @@ else()
     check_process_filter_test.cc
     check_process_test.cc
     check_windows_cpu_test.cc  
+    check_windows_counter.cc
     check_windows_memory_test.cc 
+    check_windows_sched.cc
     check_uptime_test.cc 
     check_windows_service_test.cc)
 
@@ -62,38 +64,37 @@ set_target_properties(
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    target_link_libraries(ut_agent PRIVATE 
-        centagent_lib 
+    target_link_libraries(ut_agent PRIVATE
+        centagent_lib
         centreon_common
         centreon_process
-        GTest::gtest 
-        GTest::gtest_main 
-        GTest::gmock 
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
         GTest::gmock_main
-        -L${Boost_LIBRARY_DIR_RELEASE}
-        boost_program_options
+        Boost::program_options
         stdc++fs
-        -L${PROTOBUF_LIB_DIR}
-        gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+        gRPC::grpc++
         fmt::fmt pthread
         crypto ssl
         )
+    add_dependencies(ut_agent centreon_common centagent_lib process_stat)
 else()
-    target_link_libraries(ut_agent PRIVATE 
-    centagent_lib 
+    target_link_libraries(ut_agent PRIVATE
+    centagent_lib
     centreon_common
     centreon_process
-    GTest::gtest 
-    GTest::gtest_main 
-    GTest::gmock 
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
     GTest::gmock_main
     Boost::program_options
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+    gRPC::grpc++
     fmt::fmt
-    pdh)
+    pdh
+    taskschd)
+    add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
-
-add_dependencies(ut_agent centreon_common centagent_lib)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
 

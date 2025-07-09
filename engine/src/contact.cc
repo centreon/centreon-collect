@@ -846,7 +846,8 @@ bool contact::should_be_notified(notifier::notification_category cat,
                                  notifier::reason_type type,
                                  notifier const& notif) const {
   engine_logger(dbg_functions, basic) << "contact::should_be_notified()";
-  functions_logger->trace("contact::should_be_notified()");
+  functions_logger->trace("contact::should_be_notified() for contact '{}'",
+                          get_name());
   /* Are notifications enabled? */
   switch (notif.get_notifier_type()) {
     case notifier::service_notification: {

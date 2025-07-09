@@ -30,6 +30,7 @@ from google.protobuf.json_format import MessageToJson
 import time
 import json
 import psutil
+import shutil
 import random
 import string
 from dateutil import parser
@@ -484,8 +485,10 @@ def ctn_clear_cache():
 
 
 def ctn_clear_logs():
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
+    os.makedirs(f"{VAR_ROOT}/log/centreon-engine")
+    os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):
@@ -703,7 +706,7 @@ def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_des
         service_desc (str): The description of the service.
         status (int): The desired status to check for.
         timeout (int): The timeout period in seconds.
-        state_type (str, optional): The type of state to check for. Defaults to "SOFT". 
+        state_type (str, optional): The type of state to check for. Defaults to "SOFT".
                                     Can be "SOFT", "HARD", or "ANY".
 
     Returns:
@@ -1001,6 +1004,7 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+
                 logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
@@ -1097,7 +1101,7 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
 #    return False
 
 
-def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
+def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1109,16 +1113,19 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
 
         with connection:
             with connection.cursor() as cursor:
-                if enabled != '0':
-                    logger.console(
-                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                first = True
+                if enabled != 0:
+                    if first:
+                        logger.console(
+                            f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        first = False
                     cursor.execute(
                         f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
                         logger.console(
                             f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
-                    if len(result) == int(enabled) and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                    if len(result) == enabled and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == enabled:
                         return True
                     if (len(result) > 0):
                         logger.console("{} downtimes for serv {} scheduled_downtime_depth={}".format(
@@ -1130,7 +1137,7 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                     cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or result[0]['deletion_time'] is not None):
+                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is not None or result[0]['deletion_time'] is not None):
                         return True
         time.sleep(2)
     return False
@@ -1521,7 +1528,7 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
         tag_ids: expected tags ids
         timeout: timeout in seconds
         enabled: if True, check if the tags are enabled, otherwise check if they are different
-        Returns: 
+        Returns:
            - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
            - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
 
@@ -2063,7 +2070,7 @@ def ctn_extract_event_from_lua_log(file_path: str, field_name: str):
     """
     extract_event_from_lua_log
 
-    extract a json object from a lua log file 
+    extract a json object from a lua log file
     Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
 
     Args:
@@ -2147,7 +2154,7 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
                 JOIN metrics m ON db.id_metric = m.metric_id
                 JOIN index_data id ON id.id = m.index_id
                 WHERE id.host_name='{host}' AND id.service_description='{serv}'
-                GROUP BY m.metric_id) sub_query 
+                GROUP BY m.metric_id) sub_query
             ON db.ctime = sub_query.last_data AND db.id_metric = sub_query.id_metric"""
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2160,16 +2167,16 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result) == len(expected):
+                if len(result) >= len(expected):
                     for res in result:
                         logger.console(
                             f"metric: {res['metric_name']}, value: {res['value']}")
                         metric = res['metric_name']
                         value = float(res['value'])
+                        # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                         if metric not in expected:
-                            logger.console(
-                                f"ERROR unexpected metric: {metric}")
-                            return False
+                            # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
+                            continue
                         if expected[metric] is not None and abs(value - expected[metric]) > precision:
                             logger.console(
                                 f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
@@ -2190,12 +2197,13 @@ def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expecte
         precision (float): The precision required for the interval comparison.
     """
 
+    # we work on last metric in order to not take into account metrics of previous tests
     limit = time.time() + timeout
-    query = f"""SELECT  db.ctime FROM data_bin db JOIN
-            (SELECT MIN(db.id_metric) AS id_metric FROM data_bin db
+    query = f"""SELECT  db.ctime, db.id_metric FROM data_bin db JOIN
+            (SELECT MAX(db.id_metric) AS id_metric FROM data_bin db
                 JOIN metrics m ON db.id_metric = m.metric_id
                 JOIN index_data id ON id.id = m.index_id
-                WHERE id.host_name='{host}' AND id.service_description='{serv}') sub_query 
+                WHERE id.host_name='{host}' AND id.service_description='{serv}') sub_query
             ON db.id_metric = sub_query.id_metric ORDER BY db.ctime"""
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2208,11 +2216,13 @@ def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expecte
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if (len(result) > 2):
-                    for i in range(len(result) - 1):
-                        time_diff = result[i + 1]['ctime'] - result[i]['ctime']
+                # we don't take first check into account as it may be generated by previous test
+                if (len(result) >= 3):
+                    for i in range(len(result) - 2):
+                        time_diff = result[i + 2]['ctime'] - \
+                            result[i + 1]['ctime']
                         logger.console(
-                            f"metric: {result[i]['ctime']}, time_diff: {time_diff}")
+                            f"serv:{serv}, metric: {result[i + 1]['id_metric']}, ctime:{result[i + 1]['ctime']}, time_diff: {time_diff}")
                         if abs(time_diff - expected_interval) > precision:
                             logger.console(
                                 f"ERROR unexpected interval, expected: {expected_interval}, found: {time_diff}")

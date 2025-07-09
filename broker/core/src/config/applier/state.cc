@@ -19,7 +19,6 @@
 #include "com/centreon/broker/config/applier/state.hh"
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/vars.hh"
@@ -143,14 +142,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints());
-
-  // Create instance broadcast event.
-  auto ib{std::make_shared<instance_broadcast>()};
-  ib->broker_id = io::data::broker_id;
-  ib->poller_id = _poller_id;
-  ib->poller_name = _poller_name;
-  ib->enabled = true;
-  com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
 
   // Enable multiplexing loop.
   if (run_mux)
