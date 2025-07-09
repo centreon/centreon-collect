@@ -3927,7 +3927,11 @@ define timeperiod {{
 """)
 
 
+<<<<<<< HEAD
 def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, with_default_token: bool = True):
+=======
+def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str,with_default_token: bool = True):
+>>>>>>> master
     """!
     add a new broker_module line to centengine.cfg and create otl_server config file
     @param idx index ofthe poller usually 0
@@ -3957,9 +3961,16 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, wit
     with open(otl_server_config_path, "w") as f:
         pretty_json = json.dumps(json_load, indent=4)
         f.write(pretty_json)
+<<<<<<< HEAD
     if add_token_otel and with_default_token:
         # add token to otl_server.json
         ctn_add_token_otl_server_module(idx, token)
+=======
+    if with_default_token:
+        if "\"encryption\": \"full\"" in otl_server_config_json_content:
+            # add token to otl_server.json
+            ctn_add_token_otl_server_module(idx, token)
+>>>>>>> master
 
 
 def ctn_add_token_otl_server_module(idx: int, token: str):

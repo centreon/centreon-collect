@@ -178,6 +178,7 @@ void agent_service::init() {
 agent_service::Export(::grpc::CallbackServerContext* context) {
   std::chrono::system_clock::time_point exp_time =
       std::chrono::system_clock::time_point::min();
+<<<<<<< HEAD
   if (_is_crypted && !_trusted_tokens->empty()) {
     auto auth_ctx = context->auth_context();
     if (auth_ctx) {
@@ -204,6 +205,34 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
                 ::grpc::StatusCode::UNAUTHENTICATED, "Token not trusted"));
           }
 
+=======
+
+  if (_is_crypted && !_trusted_tokens->empty()) {
+    if (auth_ctx) {
+      // Grab *all* "authorization" metadata values (often just one).
+      auto metadata = context->client_metadata();
+      auto auth_md = metadata.find("authorization");
+      if (auth_md != metadata.end()) {
+        std::string auth_header(auth_md->second.data(), auth_md->second.size());
+        SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
+        try {
+          common::crypto::jwt jwt(auth_header);
+          if (jwt.get_exp() < std::chrono::system_clock::now()) {
+            SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
+            return new ImmediateFinishReactor(::grpc::Status(
+                ::grpc::StatusCode::UNAUTHENTICATED, "Token expired"));
+            ;
+          }
+          // check if token is trusted by the service
+          if (_trusted_tokens->find(jwt.get_string()) ==
+              _trusted_tokens->end()) {
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "UNAUTHENTICATED : Token is not trusted");
+            return new ImmediateFinishReactor(::grpc::Status(
+                ::grpc::StatusCode::UNAUTHENTICATED, "Token not trusted"));
+          }
+
+>>>>>>> master
           SPDLOG_LOGGER_INFO(_logger, "Token is valid");
           exp_time = jwt.get_exp();
         } catch (const exceptions::msg_fmt& ex) {

@@ -293,7 +293,11 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+<<<<<<< HEAD
     Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt    ${None}    ${token1}
+=======
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt
+>>>>>>> master
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1163,7 +1167,11 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+<<<<<<< HEAD
     Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt    ${None}    ${token1}
+=======
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt
+>>>>>>> master
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1744,6 +1752,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
+<<<<<<< HEAD
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
     ...    When the Centreon Agent attempts to connect without a JWT token
@@ -1810,6 +1819,8 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
     
+=======
+>>>>>>> master
 BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled with no trusted_token
     ...    When the Centreon Agent attempts to connect with tls

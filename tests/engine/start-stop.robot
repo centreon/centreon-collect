@@ -80,6 +80,7 @@ ESSCTOWC
     Ctn Config Broker    module
     Repeat Keyword    4 times    Ctn Start Stop Instances    20s
 
+<<<<<<< HEAD
 ESS_STATS
     [Documentation]    Scenario: Reading the stats file after Engine has started
     ...    Given the Engine is started
@@ -98,6 +99,8 @@ ESS_STATS
     ${result}    Grep File    /tmp/var/lib/centreon-engine/central-module-master-stats.json    "name":"/usr/share/centreon/lib/centreon-broker/15-stats.so"
     Ctn Stop Engine
 
+=======
+>>>>>>> master
 ESSOCWNV
     [Documentation]    Scenario: Engine is started with a valid old configuration (concerning cbmod)
     ...    Given the Engine is configured with a valid old configuration
