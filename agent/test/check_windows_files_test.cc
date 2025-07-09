@@ -125,8 +125,8 @@ TEST_F(check_files_test, warning_status) {
   rapidjson::Document check_args =
       R"({
         "path": "C:\\Windows",
-        "max-depth": 1,
-        "pattern": "*.txt",
+        "max-depth": 0,
+        "pattern": "*.*",
         "files-detail-syntax": "${filename}: ${size}",
         "warning-status": "size > 1k",
         "verbose": false
@@ -168,9 +168,9 @@ TEST_F(check_files_test, critical_status) {
   rapidjson::Document check_args =
       R"({
         "path": "C:\\Windows",
-        "max-depth": 1,
-        "pattern": "*.txt",
-        "files-detail-syntax": "${filename}: ${size} {line_count}",
+        "max-depth": 0,
+        "pattern": "*.*",
+        "files-detail-syntax": "${filename}: ${size}",
         "critical-status": "size > 1k",
         "verbose": false
 })"_json;
@@ -254,10 +254,10 @@ TEST_F(check_files_test, dll) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({
-        "path": "C:\\Windows\\System32",
-        "max-depth": 1,
+        "path": "C:\\Windows",
+        "max-depth": 0,
         "pattern": "*.dll",
-        "filter-files": "size > 10m",
+        "filter-files": "size > 1k",
         "verbose": true
 })"_json;
 
