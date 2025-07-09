@@ -564,8 +564,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect' &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
@@ -610,8 +609,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect' &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: windows-latest
