@@ -60,8 +60,10 @@ runs:
         fi
 
         # Set ROOT_REPO_PATH based on inputs
-        if [[ "${{ inputs.is_cloud }}" == "true" ]]; then
+        if [[ "${{ inputs.is_cloud }}" == "true" ]] && [[ "${{ inputs.stability }}" == "unstable" ]]; then
             ROOT_REPO_PATH="apt-standard-internal-${{ inputs.stability }}"
+        elif [[ "${{ inputs.is_cloud }}" == "true" ]] && [[ "${{ inputs.stability }}" != "unstable" ]]; then
+            ROOT_REPO_PATH="installers"
         elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
           ROOT_REPO_PATH="ubuntu-standard-${{ inputs.version }}-${{ inputs.stability }}"
         else
