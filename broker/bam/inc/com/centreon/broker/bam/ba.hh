@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2015, 2021-2024 Centreon
+ * Copyright 2014-2015, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +21,10 @@
 
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
-#include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/configuration/ba.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker::bam {
 // Forward declaration.
@@ -57,6 +53,9 @@ class ba : public computable, public service_listener {
                        com::centreon::broker::bam::state service_hard_state);
   void _compute_inherited_downtime(io::stream* visitor);
   void _commit_initial_events(io::stream* visitor);
+
+ protected:
+  int32_t _acknowledgement_count{0};
 
  public:
   struct impact_info {
@@ -118,8 +117,7 @@ class ba : public computable, public service_listener {
   void add_impact(std::shared_ptr<kpi> const& impact);
   virtual double get_downtime_impact_hard() { return 0.0; }
   virtual double get_downtime_impact_soft() { return 0.0; }
-  virtual double get_ack_impact_hard() { return 0.0; }
-  virtual double get_ack_impact_soft() { return 0.0; }
+  int32_t get_ack_impact_hard() const;
   std::shared_ptr<pb_ba_event> get_ba_event();
   uint32_t get_id() const;
   uint32_t get_host_id() const;

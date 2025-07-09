@@ -21,6 +21,7 @@
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "com/centreon/broker/bam/exp_builder.hh"
+#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -254,27 +255,33 @@ void applier::state::load_from_cache(persistent_cache& cache) {
 
   std::shared_ptr<io::data> d;
   cache.get(d);
+  uint32_t count_idt = 0;
+  uint32_t count_ba = 0;
   while (d) {
     switch (d->type()) {
-      case inherited_downtime::static_type(): {
-        const inherited_downtime& dwn =
-            *std::static_pointer_cast<const inherited_downtime>(d);
-        _ba_applier.apply_inherited_downtime(dwn);
-      } break;
+      case inherited_downtime::static_type():
+        _ba_applier.apply_inherited_downtime(
+            *std::static_pointer_cast<const pb_inherited_downtime>(
+                neb::bbdo2_to_bbdo3(d)));
+        count_idt++;
+        break;
       case pb_inherited_downtime::static_type(): {
         const pb_inherited_downtime& dwn =
             *std::static_pointer_cast<const pb_inherited_downtime>(d);
         _ba_applier.apply_inherited_downtime(dwn);
+        count_idt++;
       } break;
       case pb_services_book_state::static_type(): {
         const ServicesBookState& state =
             std::static_pointer_cast<const pb_services_book_state>(d)->obj();
         _book_service.apply_services_state(state);
+        count_ba++;
       } break;
     }
     cache.get(d);
   }
-  _logger->debug("BAM: Inherited downtimes and BA states restored");
+  _logger->debug("BAM: {} Inherited downtimes and {} BA states restored",
+                 count_idt, count_ba);
 }
 
 /**

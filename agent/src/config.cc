@@ -44,7 +44,7 @@ const std::string_view config::config_schema(R"(
             "type": "boolean"
         },
         "public_cert": {
-            "description": "Path of the SSL certificate file .crt",
+            "description": "Path of the public certificate file .crt",
             "type": "string"
         },
         "private_key": {
@@ -52,11 +52,11 @@ const std::string_view config::config_schema(R"(
             "type": "string"
         },
         "ca_certificate": {
-            "description": "Path of the SSL authority certificate file .crt",
+            "description": "Path of the SSL CA file .crt",
             "type": "string"
         },
         "ca_name": {
-            "description": "Name of the SSL certification authority",
+            "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
             "type": "string"
         },
         "reversed_grpc_streaming": {
@@ -78,13 +78,13 @@ const std::string_view config::config_schema(R"(
             "type": "string",
             "minLength": 5
         },
-        "log_files_max_size": {
-            "description:": "Maximum size (in megabytes) of the log file before it will be rotated. To be valid, log_files_max_number must be also be provided",
+        "log_max_file_size": {
+            "description:": "Maximum size (in megabytes) of the log file before it is rotated. To be valid, log_max_files must be also be supplied",
             "type": "integer",
             "min": 1
         },
-        "log_files_max_number": {
-            "description:": "Maximum number of log files to keep. Supernumerary files will be deleted. To be valid, log_files_max_size must be also be provided",
+        "log_max_files": {
+            "description:": "Maximum number of log files to keep. Excess files will be deleted. To be valid, log_max_file_size must be also be supplied",
             "type": "integer",
             "min": 1
         },
@@ -97,6 +97,9 @@ const std::string_view config::config_schema(R"(
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
             "minimum": 4
+        },"token":{
+            "description": "key for token",
+            "type": "string"
         }
     },
     "required": [
@@ -143,8 +146,8 @@ config::config(const std::string& path) {
                   ? to_file
                   : to_stdout;
   _log_file = json_config.get_string("log_file", "");
-  _log_files_max_size = json_config.get_unsigned("log_files_max_size", 0);
-  _log_files_max_number = json_config.get_unsigned("log_files_max_number", 0);
+  _log_max_file_size = json_config.get_unsigned("log_max_file_size", 0);
+  _log_max_files = json_config.get_unsigned("log_max_files", 0);
   _encryption = json_config.get_bool("encryption", false);
   _public_cert_file = json_config.get_string("public_cert", "");
   _private_key_file = json_config.get_string("private_key", "");
@@ -159,4 +162,8 @@ config::config(const std::string& path) {
       json_config.get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
+
+  if (json_config.has_member("token")) {
+    _token = json_config.get_string("token");
+  }
 }

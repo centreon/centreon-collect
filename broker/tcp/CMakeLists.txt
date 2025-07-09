@@ -33,6 +33,7 @@ set(SOURCES
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/tcp_async.cc"
   "${SRC_DIR}/tcp_connection.cc"
+  "${PROJECT_SOURCE_DIR}/core/src/io/limit_endpoint.cc"
 )
 # Headers.
 set(HEADERS
@@ -53,6 +54,7 @@ add_library("${TCP}" SHARED
 set_target_properties("${TCP}" PROPERTIES PREFIX "")
 target_link_libraries("${TCP}" spdlog::spdlog)
 target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
+add_dependencies("${TCP}" pb_common_lib)
 
 # Testing.
 if (WITH_TESTING)

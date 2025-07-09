@@ -26,7 +26,7 @@ BERES1
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content_not_present}    Create List
     ...    processing host status event (host:
     ...    UPDATE hosts SET checked=i
@@ -39,7 +39,7 @@ BERES1
         ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of hosts/services table(s).
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEHS1
@@ -57,7 +57,7 @@ BEHS1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content_present}    Create List    UPDATE hosts SET checked=    UPDATE services SET checked=
     ${content_not_present}    Create List
     ...    INSERT INTO resources
@@ -72,7 +72,7 @@ BEHS1
         ${result}    Ctn Find In Log    ${centralLog}    ${start}    ${content_not_present}
         Should Not Be True    ${result[0]}    There are updates of the resources table.
     END
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEINSTANCESTATUS
@@ -98,7 +98,7 @@ BEINSTANCESTATUS
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    check_for_external_commands
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
@@ -135,7 +135,7 @@ BEINSTANCESTATUS
     Should Be True    ${result}    passive_host_checks not updated.
     ${result}    Ctn Check Field Db Value    SELECT passive_service_checks FROM instances WHERE instance_id=1    ${0}    3
     Should Be True    ${result}    passive_service_checks not updated.
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BEINSTANCE
@@ -154,7 +154,7 @@ BEINSTANCE
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${engine_pid}    Ctn Get Engine Pid    e0
     ${result}    Ctn Check Field Db Value    SELECT pid FROM instances WHERE instance_id=1    ${engine_pid}    30
     Should Be True    ${result}    no correct engine pid in instances table.
@@ -187,7 +187,7 @@ BE_NOTIF_OVERFLOW
     Ctn Clear Retention
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_16;service_314;
@@ -206,7 +206,7 @@ BE_NOTIF_OVERFLOW
     ...    SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
     Should Be True    ${output[0][0]} == None    notification_number is not null
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
@@ -226,7 +226,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Ctn Clear Retention
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
@@ -240,7 +240,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Should Be Equal As Strings
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
@@ -260,7 +260,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Ctn Clear Retention
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
 
     FOR    ${index}    IN RANGE    300
         ${output}    Query
@@ -270,7 +270,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         IF    "${output}" == "((0.0, 0.0),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BE_FLAPPING_SERVICE_RESOURCE
@@ -297,7 +297,7 @@ BE_FLAPPING_SERVICE_RESOURCE
     Ctn Clear Retention
 
     Ctn Start Broker    
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}
@@ -340,7 +340,7 @@ BE_FLAPPING_HOST_RESOURCE
     Ctn Clear Retention
 
     Ctn Start Broker    
-    Ctn Start engine
+    Ctn Start Engine
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${1}

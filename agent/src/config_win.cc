@@ -92,13 +92,14 @@ config::config(const std::string& registry_key) {
   }
 
   _log_file = get_sz_reg_or_default("log_file", "");
-  _log_files_max_size = get_unsigned("log_files_max_size");
-  _log_files_max_number = get_unsigned("log_files_max_number");
+  _log_max_file_size = get_unsigned("log_max_file_size");
+  _log_max_files = get_unsigned("log_max_files");
   _encryption = get_bool("encryption");
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
+  _token = get_sz_reg_or_default("token", "");
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();

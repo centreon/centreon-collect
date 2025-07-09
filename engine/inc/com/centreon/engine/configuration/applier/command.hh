@@ -19,10 +19,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #define CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #include "com/centreon/engine/configuration/applier/state.hh"
-
-#ifndef LEGACY_CONF
 #include "common/engine_conf/command_helper.hh"
-#endif
 
 namespace com::centreon::engine {
 
@@ -46,21 +43,12 @@ class command {
 
   ~command() noexcept = default;
 
-#ifdef LEGACY_CONF
-  void add_object(configuration::command const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::command const& obj);
-  void remove_object(configuration::command const& obj);
-  void resolve_object(configuration::command const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Command& obj);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
   void remove_object(ssize_t idx);
-  void resolve_object(const configuration::Command& obj,
-                      error_cnt& err);
-#endif
+  void resolve_object(const configuration::Command& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace configuration

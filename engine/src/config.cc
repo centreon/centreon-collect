@@ -24,9 +24,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/parser.hh"
-#endif
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;

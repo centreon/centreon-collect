@@ -1,0 +1,26 @@
+title = "Gitleaks custom rules"
+
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''node_modules\/''',
+  '''vendor\/''',
+  '''(.*?)\.rptlibrary''',
+  '''package\.json''',
+  '''package-lock\.json''',
+  '''pnpm-lock\.yaml''',
+  '''composer\.json''',
+  '''composer\.lock''',
+  '''yarn\.lock''',
+  '''\.gitleaks\.toml$''',
+  '''(.*?)(jpg|gif|doc|pdf|bin)$'''
+]
+
+regexTarget = "match"
+regexes = [
+  '''ABCDEFG1234567890''', # dummy test
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8''', # test base64
+  '''ZuFqRKdv0Oz6RItt6elajMugmy1whBrP''' # test agent token
+]

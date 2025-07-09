@@ -47,8 +47,7 @@ connector::connector(const grpc_config::pointer& conf)
       com::centreon::common::grpc::grpc_client_base(
           conf,
           log_v2::instance().get(log_v2::GRPC)) {
-  _stub = std::move(
-      com::centreon::broker::stream::centreon_bbdo::NewStub(_channel));
+  _stub = com::centreon::broker::stream::centreon_bbdo::NewStub(_channel);
 }
 
 /**

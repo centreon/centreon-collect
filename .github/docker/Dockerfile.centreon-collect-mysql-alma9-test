@@ -35,6 +35,7 @@ dnf install --best -y \
     perl-Thread-Queue \
     rrdtool \
     sudo \
+    tcpdump \
     zstd
 
 dnf clean all
@@ -42,7 +43,7 @@ dnf clean all
 echo "install robot and dependencies"
 
 pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
-pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3 robotframework-requests cryptography
+pip3 install grpcio grpcio_tools py-cpuinfo cython gitpython boto3 robotframework-requests cryptography PyJWT
 
 cd /tmp/collect
 

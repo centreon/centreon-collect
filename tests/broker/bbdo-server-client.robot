@@ -40,7 +40,7 @@ BSCSS2
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
 
 BSCSS3
-    [Documentation]    Start-Stop one instance of broker and no coredump
+    [Documentation]    Start-Stop one instance of broker with tcp connection and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Ctn Config Broker    central
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    tcp
@@ -75,7 +75,7 @@ BSCSSG2
     Repeat Keyword    10 times    Ctn Start Stop Instance    300ms
 
 BSCSSG3
-    [Documentation]    Start-Stop one instance of broker and no coredump
+    [Documentation]    Start-Stop one instance of broker with grpc connection and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc
     Ctn Config Broker    central
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    gRPC
@@ -174,6 +174,23 @@ BSCSSTG1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
+
+    Ctn Create Key And Certificate
+    ...    localhost
+    ...    ${EtcRoot}/centreon-broker/server.key
+    ...    ${EtcRoot}/centreon-broker/server.crt
+
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    private_key
+    ...    ${EtcRoot}/centreon-broker/server.key
+    Ctn Broker Config Input Set
+    ...    rrd
+    ...    central-rrd-master-input
+    ...    certificate
+    ...    ${EtcRoot}/centreon-broker/server.crt
+
     Ctn Start Broker
     ${content}    Create List    Handshake failed
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
@@ -296,8 +313,10 @@ BSCSSTG3
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Config Broker Bbdo Input    central    bbdo_server    5669    tcp
     Ctn Config Broker Bbdo Output    central    bbdo_client    5670    tcp    localhost
     Ctn Config Broker Bbdo Input    rrd    bbdo_server    5670    tcp
@@ -308,9 +327,11 @@ BSCSSC1
     Ctn Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Ctn Start Broker
+    Ctn Start Engine
     ${content}    Create List    compression: writing
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BSCSSC2

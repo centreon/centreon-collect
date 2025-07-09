@@ -215,6 +215,11 @@ void engine::start() {
 void engine::stop() {
   absl::ReleasableMutexLock lck(&_kiew_m);
 
+  if (_state == not_started) {
+    _state = stopped;
+    return;
+  }
+
   if (_state != stopped) {
     // Set writing method.
     _state = stopped;
@@ -296,7 +301,7 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
 engine::engine(const std::shared_ptr<spdlog::logger>& logger)
     : _state{not_started},
       _unprocessed_events{0u},
-      _center{stats::center::instance_ptr()},
+      _center{config::applier::state::instance().center()},
       _stats{_center->register_engine()},
       _sending_to_subscribers{false},
       _logger{logger} {

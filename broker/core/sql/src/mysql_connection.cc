@@ -19,9 +19,7 @@
 #include <mysqld_error.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -428,7 +426,7 @@ void mysql_connection::_statement(mysql_task* t) {
 
   uint32_t array_size = 1;
 
-  std::string& query = _stmt_query[task->statement_id];
+  const std::string& query = _stmt_query[task->statement_id];
   sql::stats::stmt_span stats(&_stats, task->statement_id, query);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
@@ -471,9 +469,10 @@ void mysql_connection::_statement(mysql_task* t) {
                               "server error CR_SERVER_LOST");
           err_code = CR_SERVER_LOST;
         } else {
-          SPDLOG_LOGGER_ERROR(_logger,
-                              "connection fail to execute statement {:p}: {}",
-                              static_cast<const void*>(this), err_msg);
+          SPDLOG_LOGGER_ERROR(
+              _logger, "connection {:p} fail to execute statement {:x}: {}: {}",
+              static_cast<const void*>(this), task->statement_id, query,
+              err_msg);
         }
         if (_server_error(err_code)) {
           set_error_message(err_msg);
@@ -492,8 +491,11 @@ void mysql_connection::_statement(mysql_task* t) {
           break;
         }
 
-        SPDLOG_LOGGER_ERROR(_logger, "mysql_connection {:p} attempts {}: {}",
-                            static_cast<const void*>(this), attempts, err_msg);
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "mysql_connection {:p} attempts {} to execute "
+                            "statement {:x}: {}: {}",
+                            static_cast<const void*>(this), attempts,
+                            task->statement_id, query, err_msg);
         if (++attempts >= MAX_ATTEMPTS) {
           if (_server_error(::mysql_stmt_errno(stmt)))
             set_error_message("{} {}", mysql_error::msg[task->error_code],
@@ -633,7 +635,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
             res.set(prepare_meta_result);
             bind->set_empty();
           }
-          res.set_bind(move(bind));
+          res.set_bind(std::move(bind));
           task->promise.set_value(std::move(res));
         }
         break;
@@ -834,6 +836,9 @@ void mysql_connection::_run() {
   std::unique_lock<std::mutex> lck(_start_m);
   _conn = mysql_init(nullptr);
   if (!_conn) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "mysql_connection: connection initialization failed: {}",
+        ::mysql_error(_conn));
     set_error_message(::mysql_error(_conn));
     _state = finished;
     _start_condition.notify_all();
@@ -907,8 +912,10 @@ void mysql_connection::_run() {
             break;
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
-        } else
+        } else {
+          _logger->info("SQL: Reconnection successful.");
           reconnect_failed_logged = false;
+        }
       } else {
         if (!tasks_list.empty()) {
           stats.start_activity();

@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2015, 2021-2024 Centreon
+ * Copyright 2009-2015, 2021-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,22 +22,12 @@
 #include <absl/hash/hash.h>
 #include "bbdo/events.hh"
 #include "bbdo/neb.pb.h"
+#include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/callback.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 namespace com::centreon::broker {
-
 namespace neb {
-// Forward declaration.
-class acknowledgement;
-
-// Sender object.
-extern multiplexing::publisher gl_publisher;
-
-// Registered callbacks.
-extern std::list<std::unique_ptr<neb::callback>> gl_registered_callbacks;
 
 using pb_downtime =
     io::protobuf<Downtime, make_type(io::neb, neb::de_pb_downtime)>;
@@ -130,6 +120,17 @@ using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
 
 }  // namespace neb
+
+namespace storage {
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+
+using pb_metric_mapping =
+    io::protobuf<MetricMapping,
+                 make_type(io::storage, storage::de_pb_metric_mapping)>;
+
+}  // namespace storage
 
 }  // namespace com::centreon::broker
 

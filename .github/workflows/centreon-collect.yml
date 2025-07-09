@@ -18,11 +18,6 @@ on:
         required: true
         default: false
         type: boolean
-      legacy_engine:
-        description: 'Compile Engine with legacy configuration library'
-        required: true
-        default: false
-        type: boolean
       packages_in_artifact:
         description: 'Save packages in artifacts'
         required: true
@@ -39,7 +34,6 @@ on:
   pull_request:
     paths:
       - ".version"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
@@ -57,8 +51,6 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
   push:
     branches:
@@ -68,7 +60,6 @@ on:
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
       - ".version"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
@@ -86,33 +77,26 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
 
 jobs:
   dispatch-to-maintained-branches:
-    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' && github.repository == 'centreon/centreon-collect'}}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Check current day of the week
-        id: day_check
-        run: echo "day_of_week=$(date +%u)" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - if: ${{ steps.day_check.outputs.day_of_week == '1' }}
+      - name: Run nightly on a different maintenance branch depending on the day
         run: |
           NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.04.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
-          for target in "${NIGHTLY_TARGETS[@]}"; do
-            echo "[INFO] - Dispatching nightly run to $target branch."
-            gh workflow run centreon-collect.yml -r "$target" -f nightly_manual_trigger=true
-            if [[ "$target" == "dev-22.10.x" ]]; then
-              gh workflow run robot-nightly.yml -r "$target"
-            fi
-          done
+          target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
+          echo "[INFO] - Dispatching nightly run to $target_branch branch."
+          if [[ "$target_branch" == "dev-22.10.x" ]]; then
+            gh workflow run robot-nightly.yml -r "$target_branch"
+          else
+            gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
+          fi
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -132,17 +116,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - distrib: alma8
-            only_cma: "OFF"
-          - distrib: alma9
-            only_cma: "OFF"
-          - distrib: bullseye
-            only_cma: "ON"
-          - distrib: bookworm
-            only_cma: "OFF"
-          - distrib: jammy
-            only_cma: "ON"
+        distrib: [alma8, alma9, bookworm]
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -150,7 +124,6 @@ jobs:
       SCCACHE_REGION: "eu-west-1"
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
-      LEGACY_ENGINE: ${{ github.event.inputs.legacy_engine != 'true' && 'OFF' || 'ON' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -212,8 +185,8 @@ jobs:
                   -DWITH_MODULE_SIMU=On \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=${LEGACY_ENGINE} \
-                  -DONLY_ROBOT_CMA=${{ matrix.only_cma }} \
+                  -DLEGACY_ENGINE=OFF \
+                  -DONLY_ROBOT_CMA=OFF \
                   -S .
 
           ninja -Cbuild
@@ -229,8 +202,8 @@ jobs:
         shell: bash
 
       - name: Run unit tests
-        if: ${{ matrix.only_cma == 'OFF' }}
         run: |
+          tests/ut_common --gtest_output=xml:ut_common.xml
           tests/ut_broker --gtest_output=xml:ut_broker.xml
           tests/ut_engine --gtest_output=xml:ut_engine.xml
           tests/ut_clib --gtest_output=xml:ut_clib.xml
@@ -238,20 +211,27 @@ jobs:
         working-directory: build
         shell: bash
 
-      - name: Run agent common unit tests
-        run: |
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
-        working-directory: build
-        shell: bash
-
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: unit-test-${{ matrix.distrib }}-reports
           path: "build/ut_*.xml"
           retention-days: 1
+
+      - name: Create Jira ticket on nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev')
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   package:
     needs: [get-environment]
@@ -267,49 +247,21 @@ jobs:
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-alma9
             distrib: el9
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
           - image: packaging-centreon-collect-vcpkg-bookworm
             distrib: bookworm
             package_extension: deb
             runner: centreon-collect
             arch: amd64
-            only_robot_cma: false
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
-            only_robot_cma: false
-          - image: packaging-centreon-collect-vcpkg-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-            only_robot_cma: true
-          - image: packaging-centreon-collect-vcpkg-jammy-arm64
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-            only_robot_cma: true
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -324,7 +276,7 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
-      legacy_engine: ${{ github.event.inputs.legacy_engine != 'true' && 'OFF' || 'ON' }}
+      legacy_engine: 'OFF'
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
       image: ${{ matrix.image }}
@@ -333,7 +285,7 @@ jobs:
       runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      only_robot_cma: ${{ matrix.only_robot_cma }}
+      only_robot_cma: false
     secrets:
       collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
@@ -374,7 +326,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
 
       - name: Restore packages
-        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ steps.parse-distrib.outputs.package_distrib_name }}-amd64-${{ github.head_ref || github.ref_name }}
@@ -383,12 +335,12 @@ jobs:
       - run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-cbmod,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
+          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
       - name: Login to registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
@@ -397,7 +349,7 @@ jobs:
       - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Build and push web image
-        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
         env:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
@@ -416,6 +368,21 @@ jobs:
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+      - name: Create Jira ticket on nightly build failure
+        if: |
+          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+          failure() &&
+          startsWith(github.ref_name, 'dev') &&
+          github.repository == 'centreon/centreon-collect'
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   robot-test:
     needs: [get-environment, package]
@@ -439,7 +406,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: el9
             image: centreon-collect-mysql-alma9-test
             package_extension: rpm
@@ -447,23 +413,6 @@ jobs:
             database_type: mysql
             test_group_name: robot_test-mysql-el9-amd64
             tests_params: '{}'
-            only_robot_cma: false
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: '{}'
-            only_robot_cma: true
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
             package_extension: deb
@@ -471,7 +420,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-arm64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-test
             package_extension: deb
@@ -479,7 +427,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-amd64
             tests_params: '{}'
-            only_robot_cma: false
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
@@ -487,23 +434,6 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-            only_robot_cma: false
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-jammy-arm64
-            tests_params: '{}'
-            only_robot_cma: true
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-jammy-amd64
-            tests_params: '{}'
-            only_robot_cma: true
 
     name: ${{ matrix.test_group_name }}
 
@@ -519,7 +449,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      only_robot_cma: ${{ matrix.only_robot_cma }}
+      features_pattern: '^((?!cma).)*$'
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -595,7 +525,7 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         if: |
           needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
           failure() &&
@@ -607,6 +537,7 @@ jobs:
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   deliver-deb:
     if: |
@@ -623,24 +554,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bullseye
-            arch: amd64
-            only_cma: true
-          - distrib: bullseye
-            arch: arm64
-            only_cma: true
           - distrib: bookworm
             arch: amd64
-            only_cma: false
           - distrib: bookworm
             arch: arm64
-            only_cma: true
-          - distrib: jammy
-            arch: amd64
-            only_cma: true
-          - distrib: jammy
-            arch: arm64
-            only_cma: true
 
     name: deliver ${{ matrix.distrib }}
 
@@ -659,9 +576,8 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          package_filter: ${{ matrix.only_cma == 'true' && 'centreon-monitoring-agent*' || '' }}
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         if: |
           needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
           failure() &&
@@ -674,6 +590,7 @@ jobs:
           jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
           module_name: "centreon-collect"
           ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
+          ticket_squad: "DevSecOps"
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
@@ -714,3 +631,27 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     uses: ./.github/workflows/set-pull-request-skip-label.yml
+
+  clear-branch-cache:
+    runs-on: ubuntu-24.04
+    needs: [get-environment, deliver-deb, deliver-rpm]
+    env:
+      GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    if: |
+      needs.get-environment.outputs.is_nightly == 'true' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: List and delete cache
+        run: |
+          mapfile -t cache_keys < <(gh cache list --ref refs/heads/${{ github.ref_name }} --json key -q '.[] | .key')
+          echo $cache_keys
+          while read row; do
+            gh cache delete $row
+            echo "Cache $row was deleted."
+          done <<< "$cache_keys"
+        shell: bash

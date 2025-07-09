@@ -31,10 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
-      only_robot_cma:
+      features_pattern:
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: .robot
     secrets:
       registry_username:
         required: true
@@ -56,20 +56,20 @@ on:
         required: true
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Login to Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
       - name: Login to Proxy Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
           username: ${{ secrets.registry_username }}
@@ -86,10 +86,10 @@ jobs:
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ./${{inputs.image}}
-          key: ${{inputs.image_test}}
+          path: ./${{ inputs.image }}
+          key: ${{ inputs.image_test }}
 
   robot-test-list:
     needs: [test-image-to-cache]
@@ -105,17 +105,11 @@ jobs:
         id: list-features
         run: |
           cd tests
-          if [ "${{ inputs.only_robot_cma }}" == "true" ]
-          then
-            FEATURES_PATTERN="cma.robot"
-          else
-            FEATURES_PATTERN=".robot"
-          fi
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -131,14 +125,14 @@ jobs:
           fetch-depth: 0
 
       - name: Restore image
-        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ./${{inputs.image}}
-          key: ${{inputs.image_test}}
+          path: ./${{ inputs.image }}
+          key: ${{ inputs.image_test }}
           fail-on-cache-miss: true
 
       - name: Restore packages
-        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
@@ -148,20 +142,25 @@ jobs:
         run: |
           docker load --input ./${{ inputs.image }}
 
-      - name: Test ${{ matrix.feature }}
+      #  pam sshd authentication doesn't work with privileged containers
+      - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
         run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          privilege_status=""
+          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+            privilege_status="--privileged"
+          fi
+          docker run --rm $privilege_status --ulimit core=-1 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
             --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
             --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_test }} \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+            ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
@@ -197,7 +196,7 @@ jobs:
 
       - name: Upload Test Results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
@@ -212,14 +211,14 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download Artifacts
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: reports-${{inputs.test_group_name}}-*
           path: reports
           merge-multiple: true
 
       - name: Upload the regrouped artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: reports-${{inputs.test_group_name}}
           path: reports/
@@ -257,7 +256,7 @@ jobs:
           echo "End of Deleting"
         shell: bash
 
-      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.10"
 
@@ -280,16 +279,18 @@ jobs:
     if: |
       inputs.is_nightly == 'true' && github.run_attempt == 1 &&
       (failure() || cancelled()) &&
-      startsWith(github.ref_name, 'dev')
+      startsWith(github.ref_name, 'dev') &&
+      github.repository == 'centreon/centreon-collect'
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Create Jira ticket if nightly build failure
+      - name: Create Jira ticket on nightly build failure
         uses: ./.github/actions/create-jira-ticket
         with:
           jira_base_url: ${{ secrets.jira_base_url }}
           jira_user_email: ${{ secrets.jira_user_email }}
           jira_api_token: ${{ secrets.jira_api_token }}
           module_name: "centreon-collect"
-          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "robot-test"]'
+          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "robot-test-${{ inputs.distrib }}-${{ inputs.database_type }}"]'
+          ticket_squad: "Collect"

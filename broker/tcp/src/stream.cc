@@ -89,10 +89,8 @@ stream::stream(const tcp_connection::pointer& conn,
 stream::~stream() noexcept {
   _total_tcp_count--;
   _logger->info(
-      "TCP stream destroyed. Still {} configured on a thread pool of {} "
-      "threads",
-      static_cast<uint32_t>(_total_tcp_count),
-      com::centreon::common::pool::instance().get_pool_size());
+      "TCP stream destroyed. Still {} threads configured on the thread pool",
+      static_cast<uint32_t>(_total_tcp_count));
   _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();

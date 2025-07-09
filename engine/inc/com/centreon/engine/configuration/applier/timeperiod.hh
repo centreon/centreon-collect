@@ -20,19 +20,10 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/timeperiod.hh"
-
-#ifndef LEGACY_CONF
 #include "common/engine_conf/timeperiod_helper.hh"
-#endif
 
 // Forward declaration.
 namespace com::centreon::engine::configuration {
-
-#ifdef LEGACY_CONF
-// Forward declarations.
-class state;
-class timeperiod;
-#endif
 
 namespace applier {
 class timeperiod {
@@ -51,21 +42,12 @@ class timeperiod {
   ~timeperiod() noexcept = default;
   timeperiod(const timeperiod&) = delete;
   timeperiod& operator=(const timeperiod&) = delete;
-#ifdef LEGACY_CONF
-  void add_object(const configuration::timeperiod& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::timeperiod const& obj);
-  void remove_object(configuration::timeperiod const& obj);
-  void resolve_object(configuration::timeperiod const& obj, error_cnt& err);
-#else
   void add_object(const configuration::Timeperiod& obj);
   void expand_objects(configuration::State& s);
   void modify_object(configuration::Timeperiod* to_modify,
                      const configuration::Timeperiod& new_object);
   void remove_object(ssize_t idx);
-  void resolve_object(const configuration::Timeperiod& obj,
-                      error_cnt& err);
-#endif
+  void resolve_object(const configuration::Timeperiod& obj, error_cnt& err);
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

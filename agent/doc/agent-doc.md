@@ -27,8 +27,72 @@ This means that the second check may start later than the scheduled time point (
 
 When a check completes, it is inserted into _waiting_check_queue, and its start will be scheduled as soon as a slot in the queue is available (the queue is a set indexed by expected_start) minus old_start plus check_period.
 
+One receives n checks with different check intervals. 
+first_inter_check_delay = min_check_interval/nb_check is calculated
+We use a time base whose resolution is 
+time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/5) - first_inter_check_delay/10  (is divided by two to limit delays due to the fact that several checks may need the same timeslot in order to meet their own check_interval )
+To meet all check intervals at check_interval_accuracy (default 5s) ready, one decreases time_step until check_interval_x % time_step <= check_interval_accuracy
 
-## native checks
+In order not to repeat compact groups of the most frequent checks, we interlace the least frequent checks.
+For example, if we have n1 checks to run every 60s, n2 every 120s, n3 every 180s and n4 every 24h, we will have
+| check   | period | time                      |
+| ------- | ------ | ------------------------- |
+| check11 | p1     | 0                         |
+| check21 | p2     | first_inter_check_delay   |
+| check31 | p3     | 2*first_inter_check_delay |
+| check41 | p4     | 3*first_inter_check_delay |
+| check12 | p1     | 4*first_inter_check_delay |
+
+Suppose we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and one check with a period of 24 hours (ch4) and another with a period of 3 minutes (ch5) and two others with a period of 2 minutes (ch6 and ch7)
+
+We get a first_inter_check_delay = 60000/7=8571ms. 
+time_step = 4285
+
+So we schedule as this:
+
+| check | time   |
+| ----- | ------ |
+| ch1   | 0      |
+| ch6   | 8.5s   |
+| ch5   | 17.1s  |
+| ch4   | 25.7s  |
+| ch2   | 34.2s  |
+| ch7   | 42.8s  |
+| ch3   | 51.4s  |
+| ch1   | 60s    |
+| ch2   | 94.2s  |
+| ch3   | 111.4s |
+| ch1   | 120s   |
+| ch6   | 128.5s |
+| ch2   | 154.2s |
+| ch7   | 162.8s |
+| ch3   | 171.4s |
+| ch1   | 180s   |
+| ch5   | 197.1s |
+| ch2   | 214.2s |
+| ...   | ...    |
+
+Another case, we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and ch4 with 70s period
+
+first_inter_check_delay = 60/4 = 15s
+time_step = 7500ms
+
+| check | time   |                           |
+| ----- | ------ | ------------------------- |
+| ch1   | 0      |
+| ch4   | 15s    |
+| ch2   | 30s    |
+| ch3   | 45s    |
+| ch1   | 60s    |
+| ch4   | 82.5s  | 15+70=85 => we choice 90s |
+| ch2   | 97.5s  |
+| ch3   | 105s   |
+| ch1   | 120s   |
+| ch2   | 150s   |
+| ch4   | 157.5s | 15+140=155 => 157.5s      |
+
+
+## Native checks
 All checks are scheduled by one thread, no mutex needed.
 In order to add a native check, you need to inherit from check class. 
 Then you have to override constructor and start_check method.
@@ -52,7 +116,7 @@ class dummy_check : public check {
     if (!check::start_check(timeout)) {
       return;
     }
-    _command_timer.expires_from_now(_command_duration);
+    _command_timer.expires_after(_command_duration);
     _command_timer.async_wait([me = shared_from_this(), this,
                                running_index = _get_running_check_index()](
                                   const boost::system::error_code& err) {
@@ -85,7 +149,32 @@ class dummy_check : public check {
 };
 ```
 
-### native_check_cpu (linux version)
+### About filters
+In order to parse filter grammars, we use boost parser library. With that library, you can build a tree of config objects with a few lines of code.
+Some tips:
+* Author advises to skip whitespaces during parsing. It's a bas idea as whitespace are useful to separate tokens. This is why you will see some bp::ws in rule implementations.
+* When you define a rule, you have to create the object that will receive parse result. You have two possibilities. First, you receive a tuple or a variant with all parsed fields. You can give a constructor with all of types contained in the tuple, library will do the bridge. The main difficulty is to know th variant type. In order to have the exact type, I first create a template<typename T> constructor(T&&). Then I write a test that uses this grammar, so compiler will create all needed constructor. Then a nm -C on ut_agent gives me all needed types of constructors.
+* As parsed objects need also a copy and no parameter constructor.
+* There are some unused parameters in parser library, so these warnings are disabled.
+* A piece of code in in filter_rules.hh. The goal is to reuse type less rules in centagent and ut_agent.
+
+Filtering is done in two steps in order to be more reusable.
+- First step
+    Filtering parse filter string, it builds a tree of object composed of filter objects (label_compare_to_value, label_in...). Then you get a filter object that contains filter tree with a check method. But there is no even checking checker in this filters.
+- Second step
+    Once you have your tree, you just have a just configuration tree. You have to:
+  * define a data object that inherit from testable struct with all mandatory data for filters.
+  * define a checker constructor that will be applied to tree config. This checker builder will set _checker member of each filter. Then when you will call root object::check, it will apply checker to each sub filter according to logical rules.
+
+If you have problems on filter testing, you can call the set_logger method. By setting logger to the top filter and enabling trace level, you will see in log which filter return false.
+Another feature is filter enable disable, If you don't set checker in one or more filters, they won't be taken into account in logical and, or filters combinations.
+
+![Filter Example](pictures/filter_example.png)
+
+You can find grammar elements here: [Boost Parser Cheat Sheet](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html)
+
+
+### Native check cpu (linux version)
 It uses /proc/stat to measure cpu statistics. When start_check is called, a first snapshot of /proc/stat is done. Then a timer is started and will expires at max time_out or check_interval minus 1 second. When this timer expires, we do a second snapshot and create plugin output and perfdata from this difference.
 The arguments accepted by this check (in json format) are:
 * cpu-detailed: 
@@ -109,14 +198,14 @@ Example of perfdatas in cpu-detailed mode:
 * iowait#cpu.utilization.percentage
 * used#cpu.utilization.percentage
 
-### native_check_cpu (windows version)
+### Native check cpu (windows version)
 metrics aren't the same as linux version. We collect user, idle, kernel , interrupt and dpc times.
 
 There are two methods, you can use internal microsoft function NtQuerySystemInformation. Yes Microsoft says that they can change signature or data format at any moment, but it's quite stable for many years. A trick, idle time is included un kernel time, so we subtract first from the second. Dpc time is yet included in interrupt time, so we don't sum it to calculate total time.
 The second one relies on performance data counters (pdh API), it gives us percentage despite that sum of percentage is not quite 100%. That's why the default method is the first one.
 The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
 
-### check_drive_size
+### Check drive size
 we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats. This functor is initialized in main function. drive_size thread is stopped at the end of main function.
 
 So it works like that:
@@ -125,6 +214,34 @@ So it works like that:
 * drive_size_thread post result in io_context
 * io_context calls check_drive_size::_completion_handler
 
-### check_health
+### Check health
 This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
 This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.
+
+### Event log
+This is the first checked developed with filters and parameterizable output. 
+How it works:
+* First we subscribe to eventlog, in fact, OS creates a thread that call a callback( container::_subscription_callback)
+* We extract raw data in the object event_data with few or no memory allocation.
+* We apply global filter, warning and critical filters to this object.
+* If it pass global filter:
+  * if it matches critical filter it is stored in container::_critical
+  * or if it matches warning filter it's stored in container::_warning
+  * or we only store time create in _ok_events
+When event_data matches to warning or critical filter, we create an event object from event_data.
+As filter can contain peremption filters (written > -60m), we need to apply filters also on event objects to test if an event object is still accepted by filter.
+That's why event_filter::check_builder is templated by raw_data_tag or event_tag. Warning and critical filters must apply on event_data and event objects. So in container class, you will find _critical_filter and _event_critical_filter. These objects are identical but accessor that allow them to check objects are different, one apply to event_data and other to event class.
+
+In order to do a parameterizable output, we rely on std::format, we just replace for example {file} by {0} and we pass file in first std::vformat argument.
+
+Another point is uniq. When we print event to output, we avoid to print each of them. User can pass a uniq string that acts as a group by in order to not print several events that have for example the same event_id. In order to do that, class event_comparator is used to hash and compare events according to user parameters. Then these class is used by a flat_hash_set to do the 'unique' job.
+
+Use of flyweight: we may create a lot of event objects. As we can have the same string in several objects, we use boost flyweight library in order to store only one string in memory for several events.
+
+### Process log
+On each check, it scans all running processes on host. 
+In order to save CPU, at check construction, we set a field mask (process_field) in order to only get needed data.
+Then it:
+ * enumerates hangs processes and update processes states
+ * applies filters
+ * calc status, output and perfdata

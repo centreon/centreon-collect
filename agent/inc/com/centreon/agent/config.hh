@@ -33,8 +33,8 @@ class config {
   spdlog::level::level_enum _log_level;
   log_type _log_type;
   std::string _log_file;
-  unsigned _log_files_max_size;
-  unsigned _log_files_max_number;
+  unsigned _log_max_file_size;
+  unsigned _log_max_files;
 
   bool _encryption;
   std::string _public_cert_file;
@@ -45,6 +45,7 @@ class config {
   bool _reverse_connection;
   unsigned _second_max_reconnect_backoff;
   unsigned _max_message_length;
+  std::string _token;
 
   static std::unique_ptr<config> _global_conf;
 
@@ -80,8 +81,8 @@ class config {
   spdlog::level::level_enum get_log_level() const { return _log_level; };
   log_type get_log_type() const { return _log_type; }
   const std::string& get_log_file() const { return _log_file; }
-  unsigned get_log_files_max_size() const { return _log_files_max_size; }
-  unsigned get_log_files_max_number() const { return _log_files_max_number; }
+  unsigned get_log_max_file_size() const { return _log_max_file_size; }
+  unsigned get_log_max_files() const { return _log_max_files; }
 
   bool use_encryption() const { return _encryption; }
   const std::string& get_public_cert_file() const { return _public_cert_file; }
@@ -96,6 +97,8 @@ class config {
     return _second_max_reconnect_backoff;
   }
   unsigned get_max_message_length() const { return _max_message_length; }
+
+  const std::string& get_token() const { return _token; }
 };
 };  // namespace com::centreon::agent
 

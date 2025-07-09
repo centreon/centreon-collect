@@ -25,14 +25,28 @@ set( SRC_COMMON
     test_main.cc
 )
 
+
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
-  set(SRC ${SRC_COMMON} 
+  set(SRC ${SRC_COMMON}
+    filter_test.cc
+    check_event_log_data_test.cc
+    check_event_log_filter_test.cc
+    check_event_log_test.cc
+    check_event_log_uniq_test.cc
+    check_process_container_test.cc
+    check_process_data_test.cc
+    check_process_filter_test.cc
+    check_process_test.cc
     check_windows_cpu_test.cc  
+    check_windows_counter.cc
     check_windows_memory_test.cc 
     check_uptime_test.cc 
     check_windows_service_test.cc)
+
+  set_source_files_properties(filter_test.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
 
@@ -83,6 +97,8 @@ endif()
 add_dependencies(ut_agent centreon_common centagent_lib)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_include_directories(ut_agent PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
 target_precompile_headers(ut_agent PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 

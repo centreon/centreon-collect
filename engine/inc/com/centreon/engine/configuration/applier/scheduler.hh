@@ -19,13 +19,9 @@
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/state.hh"
-#else
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
+#include "com/centreon/engine/exceptions/error.hh"
 #include "common/engine_conf/state.pb.h"
-#endif
 
 // Forward declaration.
 namespace com::centreon::engine {
@@ -42,12 +38,6 @@ namespace configuration::applier {
  */
 class scheduler {
  public:
-#ifdef LEGACY_CONF
-  void apply(configuration::state& config,
-             difference<set_host> const& diff_hosts,
-             difference<set_service> const& diff_services,
-             difference<set_anomalydetection> const& diff_anomalydetections);
-#else
   void apply(configuration::State& config,
              const pb_difference<configuration::Host, uint64_t>& diff_hosts,
              const pb_difference<configuration::Service,
@@ -55,7 +45,6 @@ class scheduler {
              const pb_difference<configuration::Anomalydetection,
                                  std::pair<uint64_t, uint64_t> >&
                  diff_anomalydetections);
-#endif
   static scheduler& instance();
   void clear();
   void remove_host(uint64_t host_id);
@@ -66,16 +55,6 @@ class scheduler {
   scheduler(scheduler const&) = delete;
   ~scheduler() noexcept;
   scheduler& operator=(scheduler const&) = delete;
-#ifdef LEGACY_CONF
-  void _apply_misc_event();
-  void _calculate_host_inter_check_delay(
-      configuration::state::inter_check_delay method);
-  void _calculate_host_scheduling_params();
-  void _calculate_service_inter_check_delay(
-      configuration::state::inter_check_delay method);
-  void _calculate_service_interleave_factor(
-      configuration::state::interleave_factor method);
-#else
   void _apply_misc_event();
   void _calculate_host_inter_check_delay(
       const configuration::InterCheckDelay& method);
@@ -84,23 +63,11 @@ class scheduler {
       const configuration::InterCheckDelay& method);
   void _calculate_service_interleave_factor(
       const configuration::InterleaveFactor& method);
-#endif
   void _calculate_service_scheduling_params();
   timed_event* _create_misc_event(int type,
                                   time_t start,
                                   unsigned long interval,
                                   void* data = nullptr);
-#ifdef LEGACY_CONF
-  std::vector<com::centreon::engine::host*> _get_hosts(
-      set_host const& hst_added,
-      bool throw_if_not_found = true);
-  std::vector<com::centreon::engine::service*> _get_anomalydetections(
-      set_anomalydetection const& svc_cfg,
-      bool throw_if_not_found = true);
-  std::vector<com::centreon::engine::service*> _get_services(
-      set_service const& svc_cfg,
-      bool throw_if_not_found = true);
-#else
   std::vector<com::centreon::engine::host*> _get_hosts(
       const std::vector<uint64_t>& hst_ids,
       bool throw_if_not_found);
@@ -110,7 +77,6 @@ class scheduler {
   std::vector<com::centreon::engine::service*> _get_services(
       const std::vector<std::pair<uint64_t, uint64_t> >& ad_ids,
       bool throw_if_not_found);
-#endif
 
   void _remove_misc_event(timed_event*& evt);
   void _schedule_host_events(
@@ -121,11 +87,7 @@ class scheduler {
   void _unschedule_service_events(
       std::vector<engine::service*> const& services);
 
-#ifdef LEGACY_CONF
-  configuration::state* _config;
-#else
   configuration::State* _pb_config;
-#endif
   timed_event* _evt_check_reaper;
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;

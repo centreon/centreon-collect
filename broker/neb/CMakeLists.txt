@@ -1,5 +1,5 @@
 #
-# Copyright 2009-2013,2015 Centreon
+# Copyright 2009-2013,2015-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -27,6 +27,7 @@ set(NEB_SOURCES
     # Sources.
     # Headers.
     ${SRC_DIR}/acknowledgement.cc
+    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
@@ -73,7 +74,6 @@ set(NEB_SOURCES
     ${INC_DIR}/com/centreon/broker/neb/instance.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_configuration.hh
     ${INC_DIR}/com/centreon/broker/neb/instance_status.hh
-    ${INC_DIR}/com/centreon/broker/neb/internal.hh
     ${INC_DIR}/com/centreon/broker/neb/log_entry.hh
     ${INC_DIR}/com/centreon/broker/neb/responsive_instance.hh
     ${INC_DIR}/com/centreon/broker/neb/service.hh
@@ -91,15 +91,19 @@ add_dependencies(
   target_neb
   pb_neb_lib
   pb_common_lib
-  pb_header_lib)
+  pb_header_lib
+  pb_open_telemetry_lib)
 
-target_link_libraries(nebbase
+target_link_libraries(
+  nebbase
   -L${PROTOBUF_LIB_DIR}
   protobuf
   pb_neb_lib
   pb_common_lib
   pb_header_lib
   pb_open_telemetry_lib)
+
+target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
 
 set(NEBBASE_CXXFLAGS "${NEBBASE_CXXFLAGS} -fPIC")
 set_property(TARGET nebbase PROPERTY COMPILE_FLAGS ${NEBBASE_CXXFLAGS})
@@ -124,54 +128,40 @@ set_target_properties("${NEB}" PROPERTIES PREFIX "")
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-set(CBMOD "cbmod")
-add_library(
-  "${CBMOD}" SHARED
-  # Sources.
-  "${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc"
-  "${SRC_DIR}/callback.cc"
-  "${SRC_DIR}/callbacks.cc"
-  "${SRC_DIR}/initial.cc"
-  "${SRC_DIR}/internal.cc"
-  "${SRC_DIR}/neb.cc"
-  "${SRC_DIR}/set_log_data.cc"
-  # Headers.
-  "${INC_DIR}/com/centreon/broker/neb/callback.hh"
-  "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
-  "${INC_DIR}/com/centreon/broker/neb/initial.hh"
-  "${INC_DIR}/com/centreon/broker/neb/internal.hh"
-  "${INC_DIR}/com/centreon/broker/neb/set_log_data.hh")
+add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
+                         ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
+
+set_property(TARGET cbmod PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+set_target_properties(cbmod PROPERTIES PREFIX "")
+target_precompile_headers(cbmod PRIVATE precomp_inc/precomp.hpp)
+target_link_libraries(
+  cbmod
+  fmt::fmt
+  rokerbase
+  multiplexing
+  pb_neb_lib
+  pb_header_lib
+  protobuf
+  nebbase
+  log_v2
+  centreon_common
+  gRPC::grpc++)
 get_property(
   CBMOD_DEFINES
-  TARGET "${CBMOD}"
+  TARGET cbmod
   PROPERTY COMPILE_DEFINITIONS)
 list(APPEND CBMOD_DEFINES CBMOD)
-set_property(TARGET "${CBMOD}" PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
+set_property(TARGET cbmod PROPERTY COMPILE_DEFINITIONS "${CBMOD_DEFINES}")
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  # Flags needed to include all symbols in shared library.
-  target_link_libraries(
-    "${CBMOD}"
-    -L${PROTOBUF_LIB_DIR}
-    "-Wl,--whole-archive"
-    rokerbase
-    multiplexing
-    "-Wl,--no-whole-archive")
-else()
-  target_link_libraries("${CBMOD}" -L${PROTOBUF_LIB_DIR} "rokerbase")
-endif()
-
-set_target_properties("${CBMOD}" PROPERTIES PREFIX "")
-target_precompile_headers(${CBMOD} PRIVATE precomp_inc/precomp.hpp)
-
-target_include_directories(${CBMOD} PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
+# target_include_directories(cbmod PRIVATE ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
-      ${SRC_DIR}/set_log_data.cc
       # Actual tests
+      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc
@@ -186,7 +176,6 @@ if(WITH_TESTING)
       ${TEST_DIR}/service.cc
       ${TEST_DIR}/service_check.cc
       ${TEST_DIR}/service_status.cc
-      ${TEST_DIR}/set_log_data.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${NEB}
@@ -194,4 +183,4 @@ if(WITH_TESTING)
 endif()
 
 # Install rules.
-install(TARGETS "${CBMOD}" LIBRARY DESTINATION "${PREFIX_CBMOD}")
+install(TARGETS cbmod LIBRARY DESTINATION "${PREFIX_CBMOD}")

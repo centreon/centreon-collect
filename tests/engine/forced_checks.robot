@@ -10,8 +10,8 @@ Test Setup          Ctn Stop Processes
 
 *** Test Cases ***
 EFHC1
-    [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
-    [Tags]    engine    external_cmd    log-v2
+    [Documentation]    Engine is configured with hosts and we force check one 5 times with bbdo2
+    [Tags]    engine    external_cmd    log_v2
     Ctn Config Engine    ${1}
     # We force the check command of host_1 to return 2 as status.
     Ctn Config Host Command Status    ${0}    checkh1    2
@@ -54,12 +54,12 @@ EFHC1
 
     ${result}    Ctn Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
-    [Tags]    engine    external_cmd    log-v2
+    [Tags]    engine    external_cmd    log_v2
     Ctn Config Engine    ${1}
 
     # We force the check command of host_1 to return 2 as status.
@@ -71,14 +71,11 @@ EFHC2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
 
     Ctn Clear Retention
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Start Broker
-    ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    Ctn Wait For Engine To Be Ready    ${start}
+
     Ctn Process Host Check Result    host_1    0    host_1 UP
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
@@ -97,7 +94,7 @@ EFHC2
 
     ${result}    Ctn Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU1
@@ -147,7 +144,7 @@ EFHCU1
 
     ${result}    Ctn Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EFHCU2
@@ -196,7 +193,7 @@ EFHCU2
 
     ${result}    Ctn Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS
@@ -231,7 +228,7 @@ EMACROS
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_NOTIF
@@ -277,7 +274,7 @@ EMACROS_NOTIF
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 EMACROS_SEMICOLON
@@ -312,7 +309,7 @@ EMACROS_SEMICOLON
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    VAL1;val3; not found in log.
 
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 E_HOST_DOWN_DISABLE_SERVICE_CHECKS
@@ -342,7 +339,7 @@ E_HOST_DOWN_DISABLE_SERVICE_CHECKS
     # After some time services should be in hard state
     FOR  ${index}  IN RANGE  ${19}
         ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    3    30  HARD
-        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard        
+        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard
     END
 
     # host_1 check returns UP
@@ -355,9 +352,8 @@ E_HOST_DOWN_DISABLE_SERVICE_CHECKS
     END
     FOR  ${index}  IN RANGE  ${19}
         ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    0    30  HARD
-        Should Be True    ${result}    service_${index+1} should be OK hard        
+        Should Be True    ${result}    service_${index+1} should be OK hard
     END
-
 
     [Teardown]  Ctn Stop Engine Broker And Save Logs  only_central=${True}
 
@@ -398,15 +394,13 @@ E_HOST_UNREACHABLE_DISABLE_SERVICE_CHECKS
         Ctn Process Host Check Result    host_1    1    host_1 down
     END
 
-
     ${result}    Ctn Check Host Status    host_1    2    1    False  30
     Should Be True    ${result}    host_1 should be unreachable/hard
 
     #after some time services should be in hard state
     FOR  ${index}  IN RANGE  ${19}
         ${result}    Ctn Check Service Status With Timeout    host_1  service_${index+1}    3    30  HARD
-        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard        
+        Should Be True    ${result}    service_${index+1} should be UNKNOWN hard
     END
 
     [Teardown]  Ctn Stop Engine Broker And Save Logs  only_central=${True}
-

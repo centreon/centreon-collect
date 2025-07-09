@@ -150,6 +150,7 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     libcurl-devel
     tar
     zlib-devel
+    libstdc++-static
   )
   if [[ "$maj" == 'centos8' ]] ; then
     dnf config-manager --set-enabled powertools

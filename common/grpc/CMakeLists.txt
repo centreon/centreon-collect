@@ -29,8 +29,11 @@ set(SOURCES
 
 
 add_library(centreon_grpc STATIC ${SOURCES} )
-target_include_directories(centreon_grpc PRIVATE ${INC_DIR})
+target_include_directories(centreon_grpc PRIVATE ${INC_DIR} ${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(centreon_grpc REUSE_FROM centreon_common)
 
 set_target_properties(centreon_grpc PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Link the ctncrypto library with centreon_grpc.
+target_link_libraries(centreon_grpc PRIVATE ctncrypto)

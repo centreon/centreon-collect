@@ -326,7 +326,7 @@ void conf_session<connection_class>::answer_to_request(
       host,
       [this, &resp, &host](
           const std::string& cmd_name, const std::string& cmd_line,
-          const std::string& service,
+          const std::string& service, [[maybe_unused]] uint32_t check_interval,
           [[maybe_unused]] const std::shared_ptr<spdlog::logger>& logger) {
         return _otel_connector_to_stream(cmd_name, cmd_line, host, service,
                                          resp->body());

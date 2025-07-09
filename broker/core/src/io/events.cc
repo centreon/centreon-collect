@@ -15,21 +15,16 @@
  *
  * For more information : contact@centreon.com
  */
-
-#include "com/centreon/broker/io/events.hh"
-
-#include <cassert>
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
+#include "broker/core/bbdo/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::io;
+using com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 static events* _instance(nullptr);
@@ -93,6 +88,7 @@ uint32_t events::register_event(uint32_t type_id,
                                 event_info::event_operations const* ops,
                                 mapping::entry const* entries,
                                 const std::string& table_v2) {
+  _logger->trace("Registering old event '{}' with type {}", name, type_id);
   auto found = _elements.find(type_id);
   /* The registration is made only if not already done. */
   if (found == _elements.end())
@@ -115,6 +111,7 @@ uint32_t events::register_event(uint32_t type_id,
                                 const std::string& name,
                                 event_info::event_operations const* ops,
                                 const std::string& table) {
+  _logger->trace("Registering pb event '{}' with type {}", name, type_id);
   auto found = _elements.find(type_id);
   /* The registration is made only if not already done. */
   if (found == _elements.end())
@@ -211,12 +208,7 @@ events::events_container events::get_matching_events(
 /**
  *  Default constructor.
  */
-events::events() {
-  // Register instance_broadcast
-  register_event(make_type(io::internal, io::events::de_instance_broadcast),
-                 "instance_broadcast", &instance_broadcast::operations,
-                 instance_broadcast::entries);
-
+events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
   // Register BBDO events.
   register_event(make_type(io::bbdo, bbdo::de_version_response),
                  "version_response", &bbdo::version_response::operations,

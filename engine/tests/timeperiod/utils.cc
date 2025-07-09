@@ -16,18 +16,18 @@
  * For more information : contact@centreon.com
  *
  */
+#include <dlfcn.h>
 #include <array>
 #include <cstring>
+#include <ctime>
 #include <list>
 #include <memory>
 #include <unordered_map>
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
-#include "tests/timeperiod/utils.hh"
-#ifndef LEGACY_CONF
 #include "common/engine_conf/timeperiod_helper.hh"
-#endif
+#include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon::engine;
 // Global time.
@@ -58,18 +58,6 @@ std::shared_ptr<timeperiod> timeperiod_creator::get_timeperiods_shared() {
   return (*_timeperiods.begin());
 }
 
-#ifdef LEGACY_CONF
-/**
- *  Create a new timeperiod.
- *
- *  @return The newly created timeperiod.
- */
-timeperiod* timeperiod_creator::new_timeperiod() {
-  std::shared_ptr<timeperiod> tp{new timeperiod("test", "test")};
-  _timeperiods.push_front(tp);
-  return tp.get();
-}
-#else
 /**
  *  Create a new timeperiod.
  *
@@ -84,7 +72,6 @@ timeperiod* timeperiod_creator::new_timeperiod() {
   _timeperiods.push_front(tp);
   return tp.get();
 }
-#endif
 
 /**
  *  Create a new exclusion on the timeperiod.
@@ -123,17 +110,10 @@ daterange* timeperiod_creator::new_calendar_date(int start_year,
   if (!target)
     target = _timeperiods.begin()->get();
 
-#ifdef LEGACY_CONF
-  target->exceptions[daterange::calendar_date].emplace_back(
-      daterange::calendar_date, start_year, start_month, start_day, 0, 0,
-      end_year, end_month, end_day, 0, 0, 0,
-      std::list<configuration::timerange>());
-#else
   target->exceptions[daterange::calendar_date].emplace_back(
       daterange::calendar_date, start_year, start_month, start_day, 0, 0,
       end_year, end_month, end_day, 0, 0, 0,
       google::protobuf::RepeatedPtrField<configuration::Timerange>());
-#endif
   return &*target->exceptions[daterange::calendar_date].rbegin();
 }
 
@@ -156,16 +136,10 @@ daterange* timeperiod_creator::new_specific_month_date(int start_month,
   if (!target)
     target = _timeperiods.begin()->get();
 
-#ifdef LEGACY_CONF
-  target->exceptions[daterange::month_date].emplace_back(
-      daterange::month_date, 0, start_month, start_day, 0, 0, 0, end_month,
-      end_day, 0, 0, 0, std::list<configuration::timerange>());
-#else
   target->exceptions[daterange::month_date].emplace_back(
       daterange::month_date, 0, start_month, start_day, 0, 0, 0, end_month,
       end_day, 0, 0, 0,
       google::protobuf::RepeatedPtrField<configuration::Timerange>());
-#endif
   return &*target->exceptions[daterange::month_date].rbegin();
 }
 
@@ -187,15 +161,9 @@ daterange* timeperiod_creator::new_generic_month_date(int start_day,
   std::shared_ptr<daterange> dr{new daterange(
       daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0, {})};
 
-#ifdef LEGACY_CONF
-  target->exceptions[daterange::month_day].emplace_back(
-      daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0,
-      std::list<configuration::timerange>());
-#else
   target->exceptions[daterange::month_day].emplace_back(
       daterange::month_day, 0, 0, start_day, 0, 0, 0, 0, end_day, 0, 0, 0,
       google::protobuf::RepeatedPtrField<configuration::Timerange>());
-#endif
   return &*target->exceptions[daterange::month_day].rbegin();
 }
 
@@ -223,17 +191,10 @@ daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
   if (!target)
     target = _timeperiods.begin()->get();
 
-#ifdef LEGACY_CONF
-  target->exceptions[daterange::month_week_day].emplace_back(
-      daterange::month_week_day, 0, start_month, 0, start_wday, start_offset, 0,
-      end_month, 0, end_wday, end_offset, 0,
-      std::list<configuration::timerange>());
-#else
   target->exceptions[daterange::month_week_day].emplace_back(
       daterange::month_week_day, 0, start_month, 0, start_wday, start_offset, 0,
       end_month, 0, end_wday, end_offset, 0,
       google::protobuf::RepeatedPtrField<configuration::Timerange>());
-#endif
   return &*target->exceptions[daterange::month_week_day].rbegin();
 }
 
@@ -257,16 +218,10 @@ daterange* timeperiod_creator::new_offset_weekday_of_generic_month(
   if (!target)
     target = _timeperiods.begin()->get();
 
-#ifdef LEGACY_CONF
-  target->exceptions[daterange::week_day].emplace_back(
-      daterange::week_day, 0, 0, 0, start_wday, start_offset, 0, 0, 0, end_wday,
-      end_offset, 0, std::list<configuration::timerange>());
-#else
   target->exceptions[daterange::week_day].emplace_back(
       daterange::week_day, 0, 0, 0, start_wday, start_offset, 0, 0, 0, end_wday,
       end_offset, 0,
       google::protobuf::RepeatedPtrField<configuration::Timerange>());
-#endif
   return &*target->exceptions[daterange::week_day].rbegin();
 }
 
@@ -379,4 +334,37 @@ extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
     tv->tv_usec = 0;
   }
   return 0;
+}
+/**
+ *  Overload of libc clock_gettime function.
+ */
+
+// Flag to control time travel
+static bool time_travel_enabled = false;
+
+// time to add
+static int time_to_add = 0;
+
+// Original clock_gettime pointer
+using clock_gettime_func = int (*)(clockid_t, struct timespec*);
+static clock_gettime_func real_clock_gettime = nullptr;
+
+// Override of clock_gettime
+extern "C" int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  if (!real_clock_gettime) {
+    real_clock_gettime = (clock_gettime_func)dlsym(RTLD_NEXT, "clock_gettime");
+  }
+
+  int result = real_clock_gettime(clk_id, tp);  // Call the real function
+
+  if (time_travel_enabled)
+    tp->tv_sec += time_to_add;  // Add time if needed
+
+  return result;
+}
+
+// Function to enable or disable time travel
+extern "C" void enable_time_travel(bool enable, int added) {
+  time_travel_enabled = enable;
+  time_to_add = added;
 }

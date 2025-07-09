@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# Copyright 2023-2024 Centreon
+# Copyright 2023-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 # This script is a little tcp server working on port 5669. It can simulate
 # a cbd instance. It is useful to test the validity of BBDO packets sent by
 # centengine.
+
+import jwt
 from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
@@ -29,11 +31,12 @@ import time
 import json
 import psutil
 import random
+import shutil
 import string
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
@@ -55,6 +58,7 @@ def import_robot_resources():
         # Handle this case if Robot Framework is not running
         print("Robot Framework is not running. Skipping resource import.")
 
+
 DB_NAME_STORAGE = ""
 DB_NAME_CONF = ""
 DB_USER = ""
@@ -69,11 +73,13 @@ BBDO2 = True
 import_robot_resources()
 TIMEOUT = 30
 
+
 def ctn_in_bbdo2():
     """ Check if we are in bbdo2 mode
     """
     global BBDO2
     return BBDO2
+
 
 def ctn_set_bbdo2(value: bool):
     """ Set the bbdo2 mode
@@ -83,6 +89,7 @@ def ctn_set_bbdo2(value: bool):
     """
     global BBDO2
     BBDO2 = value
+
 
 def ctn_parse_tests_params():
     params = os.environ.get("TESTS_PARAMS")
@@ -193,7 +200,7 @@ def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int
     return False
 
 
-def ctn_get_date(d: str, agent_format:bool=False):
+def ctn_get_date(d: str, agent_format: bool = False):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
     Args:
@@ -207,19 +214,19 @@ def ctn_get_date(d: str, agent_format:bool=False):
         retval = datetime.fromtimestamp(int(ts))
     except ValueError:
         if (not agent_format):
-                retval = parser.parse(d[:-6])
+            retval = parser.parse(d[:-6])
         else:
-                retval = parser.parse(d)
+            retval = parser.parse(d)
     return retval
 
 
-def ctn_extract_date_from_log(line: str,agent_format:bool=False):
+def ctn_extract_date_from_log(line: str, agent_format: bool = False):
     p = re.compile(r"\[([^\]]*)\]")
     m = p.match(line)
     if m is None:
         return None
     try:
-        return ctn_get_date(m.group(1),agent_format)
+        return ctn_get_date(m.group(1), agent_format)
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -304,7 +311,7 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
-        idx = ctn_find_line_from(lines, date,agent_format)
+        idx = ctn_find_line_from(lines, date, agent_format)
 
         for c in content:
             found = False
@@ -364,6 +371,7 @@ def ctn_run_env():
     Get RUN_ENV env variable content
     """
     return os.environ.get('RUN_ENV', '')
+
 
 def ctn_get_workspace_win():
     """
@@ -476,9 +484,12 @@ def ctn_clear_retention():
 def ctn_clear_cache():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
+
 def ctn_clear_logs():
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-engine/config*")
-    getoutput(f"rm -rf {VAR_ROOT}/log/centreon-broker")
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-engine", ignore_errors=True)
+    shutil.rmtree(f"{VAR_ROOT}/log/centreon-broker", ignore_errors=True)
+    os.makedirs(f"{VAR_ROOT}/log/centreon-engine")
+    os.makedirs(f"{VAR_ROOT}/log/centreon-broker")
 
 
 def ctn_engine_log_table_duplicate(result: list):
@@ -530,7 +541,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
         return False
 
 
-def ctn_find_line_from(lines, date, agent_format:bool=False):
+def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
     except:
@@ -542,13 +553,13 @@ def ctn_find_line_from(lines, date, agent_format:bool=False):
     idx = start
     while end > start:
         idx = (start + end) // 2
-        idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
+        idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
         while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                idx_d = ctn_extract_date_from_log(lines[idx],agent_format)
+                idx_d = ctn_extract_date_from_log(lines[idx], agent_format)
             else:
                 logger.console("We are at the first line and no date found")
                 return 0
@@ -606,7 +617,7 @@ def ctn_clear_commands_status():
 
 
 def ctn_set_command_status(cmd, status):
-    if os.environ.get("RUN_ENV","") == "WSL":
+    if os.environ.get("RUN_ENV", "") == "WSL":
         state_path = "states"
     else:
         state_path = "/tmp/states"
@@ -679,6 +690,7 @@ def ctn_check_service_resource_status_with_timeout(hostname: str, service_desc: 
         time.sleep(1)
     return False
 
+
 def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     """
     brief : same as ctn_check_service_resource_status_with_timeout but with additional return
@@ -724,13 +736,13 @@ def ctn_check_service_resource_status_with_timeout_rt(hostname: str, service_des
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
                     if state_type == 'ANY':
-                        return True,result[0]['output']
+                        return True, result[0]['output']
                     elif state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
-                        return True,result[0]['output']
+                        return True, result[0]['output']
                     elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
-                        return True,result[0]['output']
+                        return True, result[0]['output']
         time.sleep(1)
-    return False,""
+    return False, ""
 
 
 def ctn_check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_time: int, status: int, timeout: int, state_type: str = "SOFT"):
@@ -814,17 +826,58 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                    f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\" AND s.enabled=1 AND h.enabled=1")
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
-                    logger.console(
-                        f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
                         return True
         time.sleep(1)
     return False
+
+
+def ctn_check_service_status_with_timeout_rt(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    ctn_check_service_status_with_timeout_rt
+
+    same as ctn_check_service_status_with_timeout but returns a pair boolean, output
+
+    Args:
+        host_name:
+        service_desc:
+        status: expected service state
+        state_type: HARD, SOFT or ANY
+        timeout: time to wait expected check in seconds
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.state, s.state_type, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                    logger.console(
+                        f"status={result[0]['state']} and state_type={result[0]['state_type']} and output={result[0]['output']}")
+                    if state_type == 'HARD' and int(result[0]['state_type']) == 1:
+                        return True, result[0]['output']
+                    elif state_type != 'SOFT' and int(result[0]['state_type']) == 0:
+                        return True, result[0]['output']
+                    else:
+                        return True, result[0]['output']
+        time.sleep(1)
+    return False, ""
 
 
 def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
@@ -940,7 +993,17 @@ def ctn_check_tags_count(value: int, timeout: int):
     return False
 
 
-def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
+def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int = TIMEOUT):
+    """ check in the database if the BA has the expected status.
+
+    Args:
+        ba_name: The name of the BA
+        status: The expected status
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the status is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -951,9 +1014,9 @@ def ctn_check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
-                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
+                logger.console(f"SELECT current_status from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
-                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
+                    f"SELECT current_status FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
                 logger.console(f"ba: {result[0]}")
                 if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
@@ -989,6 +1052,12 @@ def ctn_check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout
 
 
 def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
+    """ check if the expected number of downtimes is present in the database.
+
+    Args:
+        nb: Expected number of downtimes
+        timeout: timeout in seconds
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1003,6 +1072,7 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute(
                     "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
+                logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['count(*)'] is not None:
                     if result[0]['count(*)'] == int(nb):
                         return True
@@ -1059,12 +1129,16 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
 
         with connection:
             with connection.cursor() as cursor:
+                first = True
                 if enabled != '0':
-                    logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                    if first:
+                        logger.console(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
+                        first = False
                     cursor.execute(f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'")
                     result = cursor.fetchall()
                     if len(result) > 0:
-                        logger.console(f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
+                        logger.console(
+                            f"scheduled_downtime_depth: {result[0]['scheduled_downtime_depth']}")
                     if len(result) == int(enabled) and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == int(enabled):
                         return True
                     if (len(result) > 0):
@@ -1146,7 +1220,7 @@ def ctn_check_service_check_status_with_timeout(hostname: str, service_desc: str
     return False
 
 
-def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_service_output_resource_status_with_timeout(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_service_output_resource_status_with_timeout
 
@@ -1175,13 +1249,13 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
-                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']} and output=\"{result[0]['output']}\"")
                     if status_type == 'HARD' and int(result[0]['status_confirmed']) == 1 and output in result[0]['output']:
                         return True
                     elif status_type == 'SOFT' and int(result[0]['status_confirmed']) == 0 and output in result[0]['output']:
@@ -1190,10 +1264,9 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
     return False
 
 
-
 def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
     """
-    ctl_check_host_check_with_timeout
+    ctn_check_host_check_with_timeout
 
     Checks that the last_check is after the start timestamp.
 
@@ -1227,6 +1300,7 @@ def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
                         return True
         time.sleep(1)
     return False
+
 
 def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_last_check: int, state: int, output: str):
     """
@@ -1263,12 +1337,12 @@ def ctn_check_host_check_status_with_timeout(hostname: str, timeout: int, min_la
                         return True
                     else:
                         logger.console(
-                                f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
+                            f"last_check: {result[0]['last_check']} - min_last_check: {min_last_check} - expected output: {output} - output: {result[0]['output']} - expected state: {state} - state: {result[0]['state']}")
         time.sleep(1)
     return False
 
 
-def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output:str):
+def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
     """
     ctn_check_host_output_resource_status_with_timeout
 
@@ -1296,7 +1370,7 @@ def ctn_check_host_output_resource_status_with_timeout(hostname: str, timeout: i
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}" )
+                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r JOIN hosts h ON r.id=h.host_id WHERE h.name='{hostname}' AND r.parent_id=0 AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1331,6 +1405,7 @@ def ctn_show_downtimes():
 
 def ctn_delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
+    did = 0
     while time.time() < now + TIMEOUT:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1349,15 +1424,24 @@ def ctn_delete_service_downtime(hst: str, svc: str):
                     break
         time.sleep(1)
 
-    logger.console(f"delete downtime internal_id={did}")
-    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    if did != 0:
+        logger.console(f"delete downtime internal_id={did}")
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(f"[{now}] DEL_SVC_DOWNTIME;{did}\n")
 
 
 def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
+    """
+    Check if the number of downtimes is the expected one.
+    Args:
+        nb: The expected number of downtimes
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the number of downtimes is the expected one, False otherwise.
+    """
     limit = time.time() + timeout
+    retval = False
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1369,13 +1453,32 @@ def ctn_number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth='1'")
+                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
                 if int(result[0]['count(*)']) == int(nb):
-                    return True
+                    retval = True
+                    break
         time.sleep(1)
-    return False
+
+    connection = pymysql.connect(host=DB_HOST,
+                             user=DB_USER,
+                             password=DB_PASS,
+                             database=DB_NAME_STORAGE,
+                             charset='utf8mb4',
+                             cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth>0")
+            result = cursor.fetchall()
+            if retval:
+                logger.console("We get the expected number of downtimes")
+            else:
+                logger.console("Not the expected number of downtimes")
+            logger.console(json.dumps(result, indent=4, sort_keys=True))
+    return retval
 
 
 def ctn_clear_db(table: str):
@@ -1459,6 +1562,20 @@ def ctn_check_host_severity_with_timeout(host_id: int, severity_id, timeout: int
 
 
 def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
+    """
+    check if the tags of a resource are the same as the expected ones
+    Args:
+        parent_id: id of the parent of the resource 0 for hosts
+        mid: id of the resource
+        typ: type of the resource (servicegroup, hostgroup or servicecategory)
+        tag_ids: expected tags ids
+        timeout: timeout in seconds
+        enabled: if True, check if the tags are enabled, otherwise check if they are different
+        Returns: 
+           - enabled = True: True if the tags resource (parent_id, mid) is attached to all tags in tag_ids
+           - enabled = False: True if resource (parent_id, mid) is attached to none tag of tag_ids
+
+    """
     if typ == 'servicegroup':
         t = 0
     elif typ == 'hostgroup':
@@ -1479,29 +1596,35 @@ def ctn_check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, ta
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 cursor.execute(
-                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t} and r.enabled=1")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
                     if len(result) == 0:
                         return True
                     else:
+                        found_in_tags_ids = False
                         for r in result:
                             if r['id'] in tag_ids:
                                 logger.console(
                                     "id {} is in tag ids".format(r['id']))
+                                found_in_tags_ids = True
                                 break
-                        return True
-                elif enabled and len(result) > 0:
+                        if not found_in_tags_ids:
+                            return True
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
+                        equals = True
                         for r in result:
                             if r['id'] not in tag_ids:
                                 logger.console(
                                     "id {} is not in tag ids".format(r['id']))
+                                equals = False
                                 break
-                        return True
+                        if equals:
+                            return True
                     else:
                         logger.console(
                             f"Result and tag_ids should have the same size, moreover 'id' in result should be values of tag_ids, result size = {len(result)} and tag_ids size = {len(tag_ids)} - their content are result: {result} and tag_ids: {tag_ids}")
@@ -1602,7 +1725,8 @@ def ctn_check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, va
                     "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
                 result = cursor.fetchall()
                 if len(result) > 0:
-                    logger.console(f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
+                    logger.console(
+                        f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup} => {result[0]}")
                     if int(result[0]['count(*)']) == value:
                         return True
         time.sleep(1)
@@ -1674,21 +1798,19 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
                 confirmed = ''
                 if in_resources:
                     cursor.execute(
-                        "SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                        f"SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{host}'")
                     key = 'status'
                     confirmed = 'status_confirmed'
                 else:
                     cursor.execute(
-                        "SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                        f"SELECT state, state_type FROM hosts WHERE name='{host}'")
                     key = 'state'
                     confirmed = 'state_type'
                 result = cursor.fetchall()
+                logger.console(f"{result}")
                 if len(result) > 0:
                     if int(result[0][key]) == value and int(result[0][confirmed]) == t:
                         return True
-                    else:
-                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
-                            host, result[0][key], result[0][confirmed]))
         time.sleep(1)
     return False
 
@@ -1896,7 +2018,8 @@ def ctn_compare_dot_files(file1: str, file2: str):
             return False
     return True
 
-def ctn_create_bbdo_grpc_server(port : int, ):
+
+def ctn_create_bbdo_grpc_server(port: int, ):
     """
     start a bbdo streamming grpc server.
     It answers nothing and simulates proxy behavior when cbd is down
@@ -1909,6 +2032,7 @@ def ctn_create_bbdo_grpc_server(port : int, ):
         """
         bbdo grpc service that does nothing
         """
+
         def exchange(self, request_iterator, context):
             time.sleep(0.01)
             for request in request_iterator:
@@ -1919,18 +2043,18 @@ def ctn_create_bbdo_grpc_server(port : int, ):
     certificate_chain = open('/tmp/server_1234.crt', 'rb').read()
     ca_cert = open('/tmp/ca_1234.crt', 'rb').read()
 
-
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
-    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(service_implementation(), server)
+    grpc_stream_pb2_grpc.add_centreon_bbdoServicer_to_server(
+        service_implementation(), server)
     creds = grpc.ssl_server_credentials([(private_key, certificate_chain)],
-            root_certificates=ca_cert)
-    
+                                        root_certificates=ca_cert)
+
     server.add_secure_port("0.0.0.0:5669", creds)
     server.start()
     return server
 
 
-def create_random_string(length:int):
+def create_random_string(length: int):
     """
     create_random_string
 
@@ -1948,7 +2072,7 @@ def ctn_create_random_dictionary(nb_entries: int):
     create_random_dictionary
 
     create a dictionary with random keys and random string values
-    
+
     Args:
         nb_entries  dictionary size
     Returns: a dictionary
@@ -1957,10 +2081,10 @@ def ctn_create_random_dictionary(nb_entries: int):
     for ii in range(nb_entries):
         dict_ret[create_random_string(10)] = create_random_string(10)
 
-    return dict_ret;
+    return dict_ret
 
 
-def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
+def ctn_extract_event_from_lua_log(file_path: str, field_name: str):
     """
     extract_event_from_lua_log
 
@@ -2000,7 +2124,6 @@ def ctn_extract_event_from_lua_log(file_path:str, field_name: str):
     return True
 
 
-
 def ctn_protobuf_to_json(protobuf_obj):
     """
     protobuf_to_json
@@ -2012,7 +2135,7 @@ def ctn_protobuf_to_json(protobuf_obj):
     return json.loads(converted)
 
 
-def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
+def ctn_compare_string_with_file(string_to_compare: str, file_path: str):
     """
     ctn_compare_string_with_file
 
@@ -2032,7 +2155,6 @@ def ctn_compare_string_with_file(string_to_compare:str, file_path:str):
         if str_line != file_line:
             return False
     return True
-
 
 
 def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: float, expected: dict):
@@ -2063,16 +2185,18 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result)  == len(expected):
+                if len(result) >= len(expected):
                     for res in result:
-                        logger.console(f"metric: {res['metric_name']}, value: {res['value']}")
+                        logger.console(
+                            f"metric: {res['metric_name']}, value: {res['value']}")
                         metric = res['metric_name']
                         value = float(res['value'])
+                        # as windows agent is not restarted, he can send metrics from previous tests once engine is restarted, so we ignore them
                         if metric not in expected:
-                            logger.console(f"ERROR unexpected metric: {metric}")
-                            return False
+                            continue
                         if expected[metric] is not None and abs(value - expected[metric]) > precision:
-                            logger.console(f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
+                            logger.console(
+                                f"ERROR unexpected value for {metric}, expected: {expected[metric]}, found: {value}")
                             return False
                     return True
         time.sleep(1)
@@ -2080,7 +2204,50 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
     return False
 
 
-def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int):
+def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expected_interval: int, precision: float):
+    """
+    Check if performance data of a metric are spaced of expected_interval.
+        host (str): The hostname of the service to check.
+        serv (str): The service name to check.
+        timeout (int): The timeout value for the check.
+        expected_interval (int): The expected interval between two performance data points.
+        precision (float): The precision required for the interval comparison.
+    """
+
+    limit = time.time() + timeout
+    query = f"""SELECT  db.ctime FROM data_bin db JOIN
+            (SELECT MIN(db.id_metric) AS id_metric FROM data_bin db
+                JOIN metrics m ON db.id_metric = m.metric_id
+                JOIN index_data id ON id.id = m.index_id
+                WHERE id.host_name='{host}' AND id.service_description='{serv}') sub_query 
+            ON db.id_metric = sub_query.id_metric ORDER BY db.ctime"""
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if (len(result) > 2):
+                    for i in range(len(result) - 1):
+                        time_diff = result[i + 1]['ctime'] - result[i]['ctime']
+                        logger.console(
+                            f"metric: {result[i]['ctime']}, time_diff: {time_diff}")
+                        if abs(time_diff - expected_interval) > precision:
+                            logger.console(
+                                f"ERROR unexpected interval, expected: {expected_interval}, found: {time_diff}")
+                            return False
+                    return True
+        time.sleep(1)
+    logger.console(f"unexpected result: {result}")
+    return False
+
+
+def ctn_check_agent_information(total_nb_agent: int, nb_poller: int, timeout: int):
     """
     Check if agent_information table is filled. Collect version is also checked
         total_nb_agent (int): total number of agents
@@ -2106,14 +2273,15 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
-                if len(result)  == nb_poller:
+                if len(result) == nb_poller:
                     nb_agent = 0
                     for res in result:
                         logger.console(f"infos: {res['infos']}")
                         agent_infos = json.loads(res['infos'])
                         for by_agent_info in agent_infos:
                             if by_agent_info['agent_major'] != collect_major or by_agent_info['agent_minor'] != collect_minor or by_agent_info['agent_patch'] != collect_patch:
-                                logger.console(f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
+                                logger.console(
+                                    f"unexpected version: {by_agent_info['agent_major']}.{by_agent_info['agent_minor']}.{by_agent_info['agent_patch']}")
                                 return False
                             nb_agent += by_agent_info['nb_agent']
                     if nb_agent == total_nb_agent:
@@ -2123,7 +2291,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller:int, timeout: int
     return False
 
 
-def ctn_get_nb_process(exe:str):
+def ctn_get_nb_process(exe: str):
     """
     ctn_get_nb_process
 
@@ -2140,6 +2308,7 @@ def ctn_get_nb_process(exe:str):
             counter += 1
     return counter
 
+
 def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: float, expected: int):
     """
     Check if performance data are near as expected.
@@ -2154,7 +2323,6 @@ def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: fl
     s_query = f"""SELECT s.flapping, s.percent_state_change FROM services s JOIN hosts h on s.host_id = h.host_id  WHERE h.name='{host}' AND description='{serv}'"""
     r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE parent_name='{host}' AND name='{serv}'"""
 
-
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -2166,14 +2334,15 @@ def ctn_check_service_flapping(host: str, serv: str, timeout: int, precision: fl
             with connection.cursor() as cursor:
                 cursor.execute(s_query)
                 result = cursor.fetchall()
-                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                     cursor.execute(r_query)
                     result = cursor.fetchall()
-                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                         return True
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False
+
 
 def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected: int):
     """
@@ -2188,7 +2357,6 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
     s_query = f"""SELECT flapping, percent_state_change FROM hosts WHERE name='{host}'"""
     r_query = f"""SELECT flapping, percent_state_change FROM resources WHERE name='{host}' AND parent_id=0"""
 
-
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -2200,16 +2368,17 @@ def ctn_check_host_flapping(host: str, timeout: int, precision: float, expected:
             with connection.cursor() as cursor:
                 cursor.execute(s_query)
                 result = cursor.fetchall()
-                if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                     cursor.execute(r_query)
                     result = cursor.fetchall()
-                    if len(result)  == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
+                    if len(result) == 1 and result[0]['flapping'] == 1 and abs(result[0]['percent_state_change'] - expected) < precision:
                         return True
         time.sleep(1)
     logger.console(f"unexpected result: {result}")
     return False
 
-def ctn_get_process_limit(pid:int, limit:str):
+
+def ctn_get_process_limit(pid: int, limit: str):
     """
     ctn_get_process_limit
 
@@ -2229,3 +2398,20 @@ def ctn_get_process_limit(pid:int, limit:str):
     except:
         return -1, -1
     return -1, -1
+
+
+def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
+    """
+    ctn_create_jwt_token
+
+    create a jwt token
+    Returns: jwt token
+    """
+    value = random.randint(0, 100000)
+    payload = {
+        "iss": f"centreon{value}",
+        "iat": int(datetime.now().timestamp()),
+        "exp": int((datetime.now() + timedelta(seconds=exp_s)).timestamp())
+    }
+    logger.console(payload)
+    return jwt.encode(payload, secret, algorithm="HS256")

@@ -22,7 +22,6 @@
 #include <fmt/format.h>
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/instance_broadcast.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common.pb.h"
@@ -54,7 +53,8 @@ state::state(common::PeerType peer_type,
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
-      _modules{logger} {}
+      _modules{logger},
+      _center{std::make_shared<com::centreon::broker::stats::center>()} {}
 
 /**
  *  Apply a configuration state.
@@ -166,14 +166,6 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
 
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints(), st.params());
-
-  // Create instance broadcast event.
-  auto ib{std::make_shared<instance_broadcast>()};
-  ib->broker_id = io::data::broker_id;
-  ib->poller_id = _poller_id;
-  ib->poller_name = _poller_name;
-  ib->enabled = true;
-  com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
 
   // Enable multiplexing loop.
   if (run_mux)
@@ -539,4 +531,13 @@ std::string state::engine_configuration(uint64_t poller_id) const {
     return found->second;
   else
     return "";
+}
+
+/**
+ * @brief Get the stats center.
+ *
+ * @return The stats center.
+ */
+std::shared_ptr<com::centreon::broker::stats::center> state::center() const {
+  return _center;
 }

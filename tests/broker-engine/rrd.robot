@@ -26,7 +26,7 @@ BRRDDM1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -70,7 +70,7 @@ BRRDWM1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -94,7 +94,7 @@ BRRDDID1
     ${start}    Get Current Date
     Sleep    1s
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -141,7 +141,7 @@ BRRDDMID1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -173,7 +173,7 @@ BRRDDMU1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -217,7 +217,7 @@ BRRDDIDU1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -263,7 +263,7 @@ BRRDDMIDU1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -294,7 +294,7 @@ BRRDRM1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -364,7 +364,7 @@ BRRDRMU1
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -436,7 +436,7 @@ RRD1
     Ctn Create Metrics    3
 
     ${start}    Ctn Get Round Current Date
-    Run Keywords    Ctn Start Broker    AND    Ctn Start engine
+    Run Keywords    Ctn Start Broker    AND    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
@@ -471,7 +471,7 @@ BRRDSTATUS
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Process Service Result Hard    host_1    service_1    2    output critical for service_1

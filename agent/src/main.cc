@@ -55,7 +55,7 @@ static void signal_handler(const boost::system::error_code& error,
         if (_streaming_server) {
           _streaming_server->shutdown();
         }
-        g_io_context->post([]() { g_io_context->stop(); });
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
         return;
       case SIGUSR2:
         SPDLOG_LOGGER_INFO(g_logger, "SIGUSR2 received");
@@ -136,12 +136,11 @@ int main(int argc, char* argv[]) {
   if (conf.get_log_type() == config::to_file) {
     try {
       if (!conf.get_log_file().empty()) {
-        if (conf.get_log_files_max_size() > 0 &&
-            conf.get_log_files_max_number() > 0) {
+        if (conf.get_log_max_file_size() > 0 && conf.get_log_max_files() > 0) {
           g_logger = spdlog::rotating_logger_mt(
               logger_name, conf.get_log_file(),
-              conf.get_log_files_max_size() * 0x100000,
-              conf.get_log_files_max_number());
+              conf.get_log_max_file_size() * 0x100000,
+              conf.get_log_max_files());
         } else {
           SPDLOG_INFO(
               "no log-max-file-size option or no log-max-files option provided "
@@ -186,7 +185,8 @@ int main(int argc, char* argv[]) {
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length());
+        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length(),
+        conf.get_token());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
         if (_streaming_server) {
           _streaming_server->shutdown();
         }
-        g_io_context->post([]() { g_io_context->stop(); });
+        asio::post(*g_io_context, []() { g_io_context->stop(); });
       }
     });
   }

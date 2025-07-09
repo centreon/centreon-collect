@@ -29,8 +29,7 @@ Unicode false
 !define CMA_REG_KEY "SOFTWARE\${COMPANYNAME}\${APPNAME}"
 
 #Match to windows file path C:\tutu yoyo1234 titi\fgdfgdg.rt
-!define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\.]+\s+)*[\w\.]+)+)+$$'
-
+!define FILE_PATH_REGEXP '^[a-zA-Z]:([\\|\/](([\w\._\-]+\s+)*[\w\._\-]+)+)+$$'
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
 !define NSCLIENT_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"

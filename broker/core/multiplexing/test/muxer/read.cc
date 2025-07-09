@@ -34,7 +34,6 @@ class MultiplexingMuxerRead : public ::testing::Test {
   void SetUp() override {
     try {
       config::applier::init(com::centreon::common::BROKER, 0, "test_broker", 0);
-      stats::center::load();
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -43,7 +42,6 @@ class MultiplexingMuxerRead : public ::testing::Test {
   void TearDown() override {
     _m.reset();
     config::applier::deinit();
-    stats::center::unload();
   }
 
   void setup(std::string const& name) {

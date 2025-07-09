@@ -19,7 +19,10 @@
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/service.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -97,13 +100,7 @@ std::string const& macro_cache::get_host_name(uint64_t host_id) const {
   auto const found = _hosts.find(host_id);
   if (found == _hosts.end())
     throw msg_fmt("influxdb: could not find information on host {} ", host_id);
-  if (found->second->type() == neb::host::static_type()) {
-    auto const& h = std::static_pointer_cast<neb::host>(found->second);
-    return h->host_name;
-  } else {
-    auto const& h = std::static_pointer_cast<neb::pb_host>(found->second);
-    return h->obj().name();
-  }
+  return found->second->obj().name();
 }
 
 /**
@@ -121,13 +118,7 @@ std::string const& macro_cache::get_service_description(
   if (found == _services.end())
     throw msg_fmt("influxdb: could not find information on service ({}, {})",
                   host_id, service_id);
-  if (found->second->type() == neb::service::static_type()) {
-    auto const& s = std::static_pointer_cast<neb::service>(found->second);
-    return s->service_description;
-  } else {
-    auto const& s = std::static_pointer_cast<neb::pb_service>(found->second);
-    return s->obj().description();
-  }
+  return found->second->obj().description();
 }
 
 /**
@@ -142,11 +133,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   if (found == _instances.end())
     throw msg_fmt("influxdb: could not find information on instance {}",
                   instance_id);
-  return found->second->type() == neb::instance::static_type()
-             ? std::static_pointer_cast<neb::instance>(found->second)->name
-             : std::static_pointer_cast<neb::pb_instance>(found->second)
-                   ->obj()
-                   .name();
+  return found->second->obj().name();
 }
 
 /**
@@ -160,19 +147,19 @@ void macro_cache::write(const std::shared_ptr<io::data>& data) {
 
   switch (data->type()) {
     case neb::instance::static_type():
-      _process_instance(data);
+      _process_pb_instance(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_instance::static_type():
       _process_pb_instance(data);
       break;
     case neb::host::static_type():
-      _process_host(data);
+      _process_pb_host(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_host::static_type():
       _process_pb_host(data);
       break;
     case neb::service::static_type():
-      _process_service(data);
+      _process_pb_service(neb::bbdo2_to_bbdo3(data));
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
@@ -181,27 +168,17 @@ void macro_cache::write(const std::shared_ptr<io::data>& data) {
       _process_index_mapping(data);
       break;
     case storage::index_mapping::static_type():
-      _process_index_mapping(data);
+      _process_index_mapping(neb::bbdo2_to_bbdo3(data));
       break;
     case storage::pb_metric_mapping::static_type():
       _process_metric_mapping(data);
       break;
     case storage::metric_mapping::static_type():
-      _process_metric_mapping(data);
+      _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
       break;
     default:
       break;
   }
-}
-
-/**
- *  Process an instance event.
- *
- *  @param data  The event.
- */
-void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
-  auto const& in = std::static_pointer_cast<neb::instance>(data);
-  _instances[in->poller_id] = in;
 }
 
 /**
@@ -219,29 +196,9 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
  *
  *  @param data  The event.
  */
-void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
-  auto const& h = std::static_pointer_cast<neb::host>(data);
-  _hosts[h->host_id] = data;
-}
-
-/**
- *  Process a host event.
- *
- *  @param data  The event.
- */
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   auto const& h = std::static_pointer_cast<neb::pb_host>(data);
-  _hosts[h->obj().host_id()] = data;
-}
-
-/**
- *  Process a service event.
- *
- *  @param data  The event.
- */
-void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
-  auto const& s = std::static_pointer_cast<neb::service>(data);
-  _services[{s->host_id, s->service_id}] = data;
+  _hosts[h->obj().host_id()] = h;
 }
 
 /**
@@ -251,7 +208,7 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
-  _services[{s->obj().host_id(), s->obj().service_id()}] = data;
+  _services[{s->obj().host_id(), s->obj().service_id()}] = s;
 }
 
 /**
@@ -261,25 +218,8 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  switch (data->type()) {
-    case storage::pb_index_mapping::static_type(): {
-      auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
-      _index_mappings[im->obj().index_id()] = im;
-    } break;
-    case storage::index_mapping::static_type(): {
-      const auto& im = std::static_pointer_cast<storage::index_mapping>(data);
-      auto pb_im = std::make_shared<storage::pb_index_mapping>();
-      auto& obj = pb_im->mut_obj();
-      obj.set_index_id(im->index_id);
-      obj.set_host_id(im->host_id);
-      obj.set_service_id(im->service_id);
-      _index_mappings[obj.index_id()] = pb_im;
-    } break;
-    default:
-      /* Should not arrive */
-      assert(1 == 0);
-      break;
-  }
+  auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
+  _index_mappings[im->obj().index_id()] = im;
 }
 
 /**
@@ -289,27 +229,8 @@ void macro_cache::_process_index_mapping(
  */
 void macro_cache::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
-  switch (data->type()) {
-    case storage::pb_metric_mapping::static_type(): {
-      const auto& mm =
-          std::static_pointer_cast<storage::pb_metric_mapping>(data);
-      _metric_mappings[mm->obj().metric_id()] = mm;
-    } break;
-    case storage::metric_mapping::static_type(): {
-      /* To avoid conflicts and thinking about future we force all the cache
-       * to contain protobuf messages. */
-      const auto& mm = std::static_pointer_cast<storage::metric_mapping>(data);
-      auto pb_mm = std::make_shared<storage::pb_metric_mapping>();
-      auto& obj = pb_mm->mut_obj();
-      obj.set_index_id(mm->index_id);
-      obj.set_metric_id(mm->metric_id);
-      _metric_mappings[obj.metric_id()] = pb_mm;
-    } break;
-    default:
-      /* Should not arrive */
-      assert(1 == 0);
-      break;
-  }
+  const auto& mm = std::static_pointer_cast<storage::pb_metric_mapping>(data);
+  _metric_mappings[mm->obj().metric_id()] = mm;
 }
 
 /**

@@ -26,10 +26,6 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#ifdef LEGACY_CONF
-#include "common/engine_legacy_conf/command.hh"
-#include "common/engine_legacy_conf/connector.hh"
-#endif
 #include "helper.hh"
 
 using namespace com::centreon;
