@@ -76,10 +76,16 @@ jobs:
         uses: Vampire/setup-wsl@6a8db447be7ed35f2f499c02c6e60ff77ef11278 # v6.0.0
 
         with:
-          wsl-version: 1
+          wsl-version: 2
           distribution: Debian
           use-cache: 'true'
           update: 'true'
+          wsl-conf: |
+            [automount]
+            enabled = true
+            [wsl2]
+            localhostForwarding=true
+#            networkingMode = mirrored
           additional-packages:
             mariadb-server
             libmariadb3
@@ -103,7 +109,7 @@ jobs:
           wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
 
       - name: Compile Agent
-        run: .github/scripts/windows-agent-compile.ps1
+        run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off
         shell: powershell
 
       - name: install database
