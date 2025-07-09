@@ -24,7 +24,7 @@ robotframework robotframework-examples robotframework-databaselibrary \
 pymysql robotframework-requests robotframework-jsonlibrary
 
 # Install nodejs
-curl -fsSL https://deb.nodesource.com/setup_21.x | bash - &&\
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash - &&\
 apt-get install -y nodejs
 # Install mockoon (needs nodejs)
 npm install -g -D @mockoon/cli
