@@ -1708,15 +1708,15 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     Ctn Set Services Passive       0    service_1
 
     Ctn Engine Config Add Command    ${0}    agent_files_check_ok
-    ...    {"check":"files", "args":{ "path": "C:\\Windows\\System32","pattern": "*.dll","max-depth": 1} }
+    ...    {"check":"files", "args":{ "path": "C:\\Windows","pattern": "*.dll","max-depth": 0} }
     ...    OTEL connector
     
     Ctn Engine Config Add Command    ${0}    agent_files_check_warning
-    ...    {"check":"files", "args":{ "path": "C:\\Windows\\System32","pattern": "*.dll","max-depth": 1,"warning-status": "size > 10M"} }
+    ...    {"check":"files", "args":{ "path": "C:\\Windows","pattern": "*.dll","max-depth": 0,"warning-status": "size > 1k"} }
     ...    OTEL connector
 
     Ctn Engine Config Add Command    ${0}    agent_files_check_critical
-    ...    {"check":"files", "args":{ "path": "C:\\Windows\\System32","pattern": "*.dll","max-depth": 1,"critical-status": "size > 10M"} }
+    ...    {"check":"files", "args":{ "path": "C:\\Windows","pattern": "*.dll","max-depth": 0,"critical-status": "size > 1k"} }
     ...    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
