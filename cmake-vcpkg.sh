@@ -218,6 +218,7 @@ elif [ -r /etc/issue ] ; then
       pkg-config
       python3
       python3-pip
+      curl
       zip
       zlib1g-dev
     )
