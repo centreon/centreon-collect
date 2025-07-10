@@ -72,7 +72,7 @@ sub new {
 sub database_init_transaction {
     my ($self, %options) = @_;
 
-    my $status = $self->{class_object_centreon}->{db_centreon}->transaction_mode(1);
+    my $status = $self->{class_object_centreon}->{db_centreon}->start_transaction();
     if ($status == -1) {
         $self->{logger}->writeLogError("$@");
         return -1;
@@ -89,7 +89,6 @@ sub database_commit_transaction {
         return -1;
     }
 
-    $self->{class_object_centreon}->transaction_mode(0);
     return 0;
 }
 
@@ -99,7 +98,6 @@ sub database_error_rollback {
     $self->{logger}->writeLogError($options{message});
     eval {
         $self->{class_object_centreon}->rollback();
-        $self->{class_object_centreon}->transaction_mode(0);
     };
     if ($@) {
         $self->{logger}->writeLogError("$@");

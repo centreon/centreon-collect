@@ -48,7 +48,7 @@ sub new {
 
     $self->{die} = defined($options{die}) ? 1 : 0;
     $self->{instance} = undef;
-    $self->{transaction_begin} = 0;
+    $self->{in_transaction} = 0;
     bless $self, $class;
     return $self;
 }
@@ -158,8 +158,13 @@ sub set_inactive_destroy {
     }
 }
 
-sub transaction_mode {
-    my ($self, $mode) = @_;
+sub start_transaction {
+    my $self = shift;
+
+    if ($self->{in_transaction}) {
+        $self->error('starting a transaction while already in a transaction', 'begin work');
+        return -1;
+    }
 
     my $status;
     if (!defined($self->{instance})) {
@@ -167,17 +172,21 @@ sub transaction_mode {
         return -1 if ($status == -1);
     }
 
-    if ($mode) {
-        $status = $self->{instance}->begin_work();
-        if (!$status) {
-            $self->error($self->{instance}->errstr, 'begin work');
-            return -1;
-        }
-        $self->{transaction_begin} = 1;
-    } else {
-        $self->{transaction_begin} = 0;
-        $self->{instance}->{AutoCommit} = 1;
+    $status = $self->{instance}->begin_work();
+    if (!$status) {
+        $self->error($self->{instance}->errstr, 'begin work');
+        return -1;
     }
+    $self->{in_transaction} = 1;
+
+    return 0;
+}
+
+sub transaction_cleanup {
+    my $self = shift;
+
+    $self->{in_transaction} = 0;
+    $self->{instance}->{AutoCommit} = 1 if (defined($self->{instance}));
 
     return 0;
 }
@@ -185,21 +194,28 @@ sub transaction_mode {
 sub commit {
     my ($self) = @_;
 
-    # Commit only if autocommit isn't enabled
-    if ($self->{instance}->{AutoCommit} != 1) {
-        if (!defined($self->{instance})) {
-            $self->{transaction_begin} = 0;
-            return -1;
-        }
-
-        my $status = $self->{instance}->commit();
-        $self->{transaction_begin} = 0;
-
-        if (!$status) {
-            $self->error($self->{instance}->errstr, 'commit');
-            return -1;
-        }
+    if (!$self->{in_transaction}) {
+        $self->error('commit outside of a transaction', 'commit');
+        return 0;
     }
+
+    if (!defined($self->{instance})) {
+        $self->{logger}->writeLogWarning("Database connection is not defined, please check configuration and database health.");
+        $self->transaction_cleanup();
+        return -1;
+    }
+
+    my $status = $self->{instance}->commit();
+
+    if (!$status) {
+        # Note that the call to error() does a rollback, which is what we want
+        # in case of failure
+        # https://stackoverflow.com/questions/24316603/why-should-i-rollback-after-failed-commit
+        $self->error($self->{instance}->errstr, 'commit');
+        return -1;
+    }
+
+    $self->transaction_cleanup();
 
     return 0;
 }
@@ -207,8 +223,13 @@ sub commit {
 sub rollback {
     my ($self) = @_;
 
+    if (!$self->{in_transaction}) {
+        $self->error('rollback outside of a transaction', 'rollback');
+        return;
+    }
+
     $self->{instance}->rollback() if (defined($self->{instance}));
-    $self->{transaction_begin} = 0;
+    $self->transaction_cleanup();
 }
 
 sub kill {
@@ -228,6 +249,8 @@ sub kill {
 sub connect() {
     my $self = shift;
     my ($status, $count) = (0, 0);
+
+    $self->{in_transaction} = 0;
 
     while (1) {
         $self->{port} = 3306 if (!defined($self->{port}) && $self->{type} eq 'mysql');
@@ -319,7 +342,7 @@ sub error {
 Query: $query
 ";
     $self->{logger}->writeLogError($error);
-    if ($self->{transaction_begin} == 1) {
+    if ($self->{in_transaction} == 1) {
         $self->rollback();
     }
     $self->disconnect();
