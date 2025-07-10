@@ -21,10 +21,8 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 
-namespace com::centreon::engine::configuration {
+namespace com::centreon::engine::configuration::applier {
 
-// Forward declarations.
-namespace applier {
 class serviceescalation {
  public:
   serviceescalation() = default;
@@ -34,12 +32,10 @@ class serviceescalation {
   void add_object(const configuration::Serviceescalation& obj);
   void modify_object(configuration::Serviceescalation* old_obj,
                      const configuration::Serviceescalation& new_obj);
-  void remove_object(ssize_t idx);
-  void expand_objects(configuration::State& s);
+  void remove_object(uint64_t hash_key);
   void resolve_object(const configuration::Serviceescalation& obj,
                       error_cnt& err);
 };
-}  // namespace applier
-}  // namespace com::centreon::engine::configuration
+}  // namespace com::centreon::engine::configuration::applier
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH

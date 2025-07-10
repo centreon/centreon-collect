@@ -20,7 +20,6 @@
 
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
@@ -40,7 +39,7 @@ void enable_flap_detection_routines() {
   functions_logger->trace("enable_flap_detection_routines()");
 
   /* bail out if we're already set */
-  if (pb_config.enable_flap_detection())
+  if (pb_indexed_config.state().enable_flap_detection())
     return;
 
   /* set the attribute modified flag */
@@ -48,7 +47,7 @@ void enable_flap_detection_routines() {
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
 
   /* update program status */
   update_program_status(false);
@@ -72,7 +71,7 @@ void disable_flap_detection_routines() {
   functions_logger->trace("disable_flap_detection_routines()");
 
   /* bail out if we're already set */
-  if (!pb_config.enable_flap_detection())
+  if (!pb_indexed_config.state().enable_flap_detection())
     return;
 
   /* set the attribute modified flag */
@@ -80,7 +79,7 @@ void disable_flap_detection_routines() {
   modified_service_process_attributes |= attr;
 
   /* set flap detection flag */
-  pb_config.set_enable_flap_detection(false);
+  pb_indexed_config.mut_state().set_enable_flap_detection(false);
 
   /* update program status */
   update_program_status(false);

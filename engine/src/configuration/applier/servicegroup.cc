@@ -20,7 +20,6 @@
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -70,8 +69,8 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
                        obj.servicegroup_name());
 
   // Add service group to the global configuration set.
-  auto* new_obj = pb_config.add_servicegroups();
-  new_obj->CopyFrom(obj);
+  pb_indexed_config.mut_servicegroups().emplace(
+      obj.servicegroup_name(), std::make_unique<Servicegroup>(obj));
 
   // Create servicegroup.
   auto sg = std::make_shared<engine::servicegroup>(
@@ -90,34 +89,6 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
   // Apply resolved services on servicegroup.
   for (auto& m : obj.members().data())
     sg->members[{m.first(), m.second()}] = nullptr;
-}
-
-/**
- *  Expand all service groups.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::servicegroup::expand_objects(configuration::State& s) {
-  // This set stores resolved service groups.
-  absl::flat_hash_set<std::string_view> resolved;
-
-  // Here, we store each Servicegroup pointer by its name.
-  absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
-      sg_by_name;
-  for (auto& sg_conf : *s.mutable_servicegroups())
-    sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;
-
-  // Each servicegroup can contain servicegroups, that is to mean the services
-  // in the sub servicegroups are also in our servicegroup.
-  // So, we iterate through all the servicegroups defined in the configuration,
-  // and for each one if it has servicegroup members, we fill its service
-  // members with theirs and then we clear the servicegroup members. At that
-  // step, a servicegroup is considered as resolved.
-  for (auto& sg_conf : *s.mutable_servicegroups()) {
-    if (!resolved.contains(sg_conf.servicegroup_name())) {
-      _resolve_members(s, &sg_conf, resolved, sg_by_name);
-    }
-  }
 }
 
 /**
@@ -178,14 +149,12 @@ void applier::servicegroup::modify_object(
  *
  *  @param[in] idw  Index of the servicegroup to remove in the configuration.
  */
-void applier::servicegroup::remove_object(ssize_t idx) {
+void applier::servicegroup::remove_object(const std::string& key) {
   // Logging.
-  auto obj = pb_config.servicegroups(idx);
-  config_logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
+  config_logger->debug("Removing servicegroup '{}'", key);
 
   // Find service group.
-  servicegroup_map::iterator it =
-      engine::servicegroup::servicegroups.find(obj.servicegroup_name());
+  servicegroup_map::iterator it = engine::servicegroup::servicegroups.find(key);
   if (it != engine::servicegroup::servicegroups.end()) {
     // Notify event broker.
     broker_group(NEBTYPE_SERVICEGROUP_DELETE, it->second.get());
@@ -195,7 +164,7 @@ void applier::servicegroup::remove_object(ssize_t idx) {
   }
 
   // Remove service group from the global configuration state.
-  pb_config.mutable_servicegroups()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_servicegroups().erase(key);
 }
 
 void applier::servicegroup::resolve_object(
@@ -228,7 +197,7 @@ void applier::servicegroup::resolve_object(
  * their name.
  */
 void applier::servicegroup::_resolve_members(
-    configuration::State& s,
+    configuration::indexed_state& s,
     configuration::Servicegroup* sg_conf,
     absl::flat_hash_set<std::string_view>& resolved,
     const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&

@@ -177,7 +177,8 @@ static bool add_command_to_agent_conf(
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
   serv->set_command_line(plugins_cmdline);
-  serv->set_check_interval(check_interval * pb_config.interval_length());
+  serv->set_check_interval(check_interval *
+                           pb_indexed_config.state().interval_length());
 
   return true;
 }

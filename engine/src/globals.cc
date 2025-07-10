@@ -28,7 +28,7 @@
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
-configuration::State pb_config;
+configuration::indexed_state pb_indexed_config;
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",

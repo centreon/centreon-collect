@@ -29,7 +29,7 @@ class state;
 
 namespace applier {
 class contactgroup {
-  void _resolve_members(configuration::State& s,
+  void _resolve_members(configuration::indexed_state& s,
                         configuration::Contactgroup& obj,
                         absl::flat_hash_set<std::string_view>& resolved);
 
@@ -47,10 +47,10 @@ class contactgroup {
   void add_object(const configuration::Contactgroup& obj);
   void modify_object(configuration::Contactgroup* to_modify,
                      const configuration::Contactgroup& new_object);
-  void remove_object(ssize_t idx);
-  void expand_objects(configuration::State& s);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Contactgroup& obj, error_cnt& err);
 };
+
 }  // namespace applier
 
 }  // namespace com::centreon::engine::configuration

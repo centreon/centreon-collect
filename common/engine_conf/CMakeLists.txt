@@ -54,6 +54,10 @@ add_library(
   hostescalation_helper.hh
   hostgroup_helper.cc
   hostgroup_helper.hh
+  indexed_diff_state.cc
+  indexed_diff_state.hh
+  indexed_state.cc
+  indexed_state.hh
   message_helper.cc
   message_helper.hh
   parser.cc
@@ -79,8 +83,7 @@ add_library(
 add_dependencies(engine_conf target_state_proto)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
-target_precompile_headers(engine_conf PRIVATE
-                          ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
+target_precompile_headers(engine_conf PRIVATE precomp_inc/precomp.hh)
 set_target_properties(engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(
   engine_conf

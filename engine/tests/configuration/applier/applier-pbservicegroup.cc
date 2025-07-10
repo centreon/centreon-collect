@@ -24,12 +24,8 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
-#include "com/centreon/engine/servicegroup.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/service_helper.hh"
-#include "common/engine_conf/servicegroup_helper.hh"
-#include "common/engine_conf/state.pb.h"
+#include "com/centreon/engine/globals.hh"
+#include "common/engine_conf/message_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -38,8 +34,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierServicegroup : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -55,7 +54,8 @@ TEST_F(ApplierServicegroup, PbModifyUnexistingServicegroupFromConfig) {
   configuration::servicegroup_helper sg_hlp(&sg);
   sg.set_servicegroup_name("test");
   fill_pair_string_group(sg.mutable_members(), "host1,service1");
-  configuration::Servicegroup* new_sg = pb_config.add_servicegroups();
+  configuration::Servicegroup* new_sg =
+      pb_indexed_config.mut_state().add_servicegroups();
   new_sg->CopyFrom(sg);
   ASSERT_THROW(aply.modify_object(new_sg, sg), std::exception);
 }
@@ -75,7 +75,8 @@ TEST_F(ApplierServicegroup, PbModifyServicegroupFromConfig) {
   ASSERT_TRUE(it->second->get_alias() == "test");
 
   sg.set_alias("test_renamed");
-  aply.modify_object(pb_config.mutable_servicegroups(0), sg);
+  aply.modify_object(pb_indexed_config.mut_servicegroups().at("test").get(),
+                     sg);
   it = engine::servicegroup::servicegroups.find("test");
   ASSERT_TRUE(it->second->get_alias() == "test_renamed");
 }
@@ -90,7 +91,7 @@ TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
   configuration::servicegroup_helper grp_hlp(&grp);
   grp.set_servicegroup_name("test");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_config);
+  _state_hlp->expand(err);
   aplyr.resolve_object(grp, err);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
@@ -108,7 +109,7 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   grp.set_servicegroup_name("test");
   fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
   aplyr.add_object(grp);
-  aplyr.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ASSERT_THROW(aplyr.resolve_object(grp, err), std::exception);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 1);
@@ -151,7 +152,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   fill_string_group(svc.mutable_servicegroups(), "test_group");
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_config);
+  _state_hlp->expand(err);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
 }
 
@@ -161,58 +162,54 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
 // Then the parse method returns true and set the first one service
 // to the second one.
 TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
+  configuration::State* state =
+      static_cast<configuration::State*>(_state_hlp->mut_obj());
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::Servicegroup grp;
-  configuration::servicegroup_helper grp_hlp(&grp);
-  grp.set_servicegroup_name("test_group");
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  configuration::Command cmd;
-  configuration::command_helper cmd_hlp(&cmd);
-  cmd.set_command_name("cmd");
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  hst.set_host_id(12);
-  aply_hst.add_object(hst);
-  configuration::Service svc;
-  configuration::service_helper svc_hlp(&svc);
-  svc.set_service_description("test");
-  svc.set_host_name("test_host");
-  svc.set_service_id(18);
-  cmd.set_command_line("echo 1");
-  svc.set_check_command("cmd");
-  aply_cmd.add_object(cmd);
+  configuration::Servicegroup* grp = state->add_servicegroups();
+  configuration::servicegroup_helper grp_hlp(grp);
+  grp->set_servicegroup_name("test_group");
+  configuration::Host* hst = state->add_hosts();
+  configuration::host_helper hst_hlp(hst);
+  configuration::Command* cmd = state->add_commands();
+  configuration::command_helper cmd_hlp(cmd);
+  cmd->set_command_name("cmd");
+  hst->set_host_name("test_host");
+  hst->set_address("127.0.0.1");
+  hst->set_host_id(12);
+  configuration::Service* svc = state->add_services();
+  configuration::service_helper svc_hlp(svc);
+  svc->set_service_description("test");
+  svc->set_host_name("test_host");
+  svc->set_service_id(18);
+  cmd->set_command_line("echo 1");
+  svc->set_check_command("cmd");
 
   // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
+  svc->set_host_id(12);
 
   configuration::error_cnt err;
-  aply_svc.add_object(svc);
-  fill_string_group(svc.mutable_servicegroups(), "test_group");
-  fill_pair_string_group(grp.mutable_members(), "test_host,test");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_config);
-  aply_grp.resolve_object(grp, err);
-  ASSERT_TRUE(grp.members().data().size() == 1);
+  fill_string_group(svc->mutable_servicegroups(), "test_group");
+  fill_pair_string_group(grp->mutable_members(), "test_host,test");
+  configuration::Servicegroup* grp1 = state->add_servicegroups();
+  configuration::servicegroup_helper grp1_hlp(grp1);
+  grp1->set_servicegroup_name("big_group");
+  fill_string_group(grp1->mutable_servicegroup_members(), "test_group");
+  _state_hlp->expand(err);
 
-  configuration::Servicegroup grp1;
-  configuration::servicegroup_helper grp1_hlp(&grp1);
-  grp1.set_servicegroup_name("big_group");
-  fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
-  aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_config);
+  aply_cmd.add_object(*cmd);
+  aply_hst.add_object(*hst);
+  aply_svc.add_object(*svc);
+  aply_grp.add_object(*grp);
+  aply_grp.add_object(*grp1);
+  aply_grp.resolve_object(*grp, err);
+  ASSERT_TRUE(grp->members().data().size() == 1);
 
-  // grp1 must be reload because the expand_objects reload them totally.
-  auto found = std::find_if(pb_config.servicegroups().begin(),
-                            pb_config.servicegroups().end(),
-                            [](const configuration::Servicegroup& sg) {
-                              return sg.servicegroup_name() == "big_group";
-                            });
-  ASSERT_TRUE(found != pb_config.servicegroups().end());
-  ASSERT_EQ(found->members().data().size(), 1);
+  auto found = pb_indexed_config.servicegroups().find("big_group");
+  ASSERT_TRUE(found != pb_indexed_config.servicegroups().end());
+  ASSERT_EQ(found->second->members().data().size(), 1);
 }
 
 // Given a servicegroup applier
@@ -220,59 +217,57 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
 // When we remove the configuration
 // Then it is really removed
 TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
+  configuration::State* state =
+      static_cast<configuration::State*>(_state_hlp->mut_obj());
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::Servicegroup grp;
-  configuration::servicegroup_helper grp_hlp(&grp);
-  grp.set_servicegroup_name("test_group");
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  configuration::Command cmd;
-  configuration::command_helper cmd_hlp(&cmd);
-  cmd.set_command_name("cmd");
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  hst.set_host_id(12);
-  aply_hst.add_object(hst);
-  configuration::Service svc;
-  configuration::service_helper svc_hlp(&svc);
-  svc.set_service_description("test");
-  svc.set_host_name("test_host");
-  svc.set_service_id(18);
-  cmd.set_command_line("echo 1");
-  svc.set_check_command("cmd");
-  aply_cmd.add_object(cmd);
+  configuration::Servicegroup* grp = state->add_servicegroups();
+  configuration::servicegroup_helper grp_hlp(grp);
+  grp->set_servicegroup_name("test_group");
+  configuration::Host* hst = state->add_hosts();
+  configuration::host_helper hst_hlp(hst);
+  configuration::Command* cmd = state->add_commands();
+  configuration::command_helper cmd_hlp(cmd);
+  cmd->set_command_name("cmd");
+  hst->set_host_name("test_host");
+  hst->set_address("127.0.0.1");
+  hst->set_host_id(12);
+  configuration::Service* svc = state->add_services();
+  configuration::service_helper svc_hlp(svc);
+  svc->set_service_description("test");
+  svc->set_host_name("test_host");
+  svc->set_service_id(18);
+  cmd->set_command_line("echo 1");
+  svc->set_check_command("cmd");
 
   // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
+  svc->set_host_id(12);
 
-  aply_svc.add_object(svc);
-  fill_string_group(svc.mutable_servicegroups(), "test_group");
-  fill_pair_string_group(grp.mutable_members(), "test_host,test");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_config);
   configuration::error_cnt err;
-  aply_grp.resolve_object(grp, err);
-  ASSERT_EQ(grp.members().data().size(), 1);
+  fill_string_group(svc->mutable_servicegroups(), "test_group");
+  fill_pair_string_group(grp->mutable_members(), "test_host,test");
+  configuration::Servicegroup* grp1 = state->add_servicegroups();
+  configuration::servicegroup_helper grp1_hlp(grp1);
+  grp1->set_servicegroup_name("big_group");
+  fill_string_group(grp1->mutable_servicegroup_members(), "test_group");
+  _state_hlp->expand(err);
 
-  configuration::Servicegroup grp1;
-  configuration::servicegroup_helper grp1_hlp(&grp1);
-  grp1.set_servicegroup_name("big_group");
-  fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
-  aply_grp.add_object(grp1);
-  aply_grp.expand_objects(pb_config);
-  auto found = std::find_if(pb_config.servicegroups().begin(),
-                            pb_config.servicegroups().end(),
-                            [](const configuration::Servicegroup& sg) {
-                              return sg.servicegroup_name() == "big_group";
-                            });
-  ASSERT_TRUE(found != pb_config.servicegroups().end());
-  ASSERT_EQ(found->members().data().size(), 1);
+  aply_cmd.add_object(*cmd);
+  aply_hst.add_object(*hst);
+  aply_svc.add_object(*svc);
+  aply_grp.add_object(*grp);
+  aply_grp.add_object(*grp1);
+  aply_grp.resolve_object(*grp, err);
+  ASSERT_TRUE(grp->members().data().size() == 1);
+
+  auto found = pb_indexed_config.servicegroups().find("big_group");
+  ASSERT_TRUE(found != pb_indexed_config.servicegroups().end());
+  ASSERT_EQ(found->second->members().data().size(), 1);
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 2u);
-  aply_grp.remove_object(0);
+  aply_grp.remove_object("big_group");
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
 }
 
@@ -281,63 +276,60 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
 // When we remove the configuration
 // Then it is really removed
 TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
+  configuration::State* state =
+      static_cast<configuration::State*>(_state_hlp->mut_obj());
   configuration::applier::host aply_hst;
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::Servicegroup grp;
-  configuration::servicegroup_helper grp_hlp(&grp);
-  grp.set_servicegroup_name("test_group");
+  configuration::Servicegroup* grp = state->add_servicegroups();
+  configuration::servicegroup_helper grp_hlp(grp);
+  grp->set_servicegroup_name("test_group");
+  configuration::Host* hst = state->add_hosts();
+  configuration::host_helper hst_hlp(hst);
+  configuration::Command* cmd = state->add_commands();
+  configuration::command_helper cmd_hlp(cmd);
+  cmd->set_command_name("cmd");
+  hst->set_host_name("test_host");
+  hst->set_address("127.0.0.1");
+  hst->set_host_id(12);
+  configuration::Service* svc = state->add_services();
+  configuration::service_helper svc_hlp(svc);
+  svc->set_service_description("test");
+  svc->set_host_name("test_host");
+  svc->set_service_id(18);
+  cmd->set_command_line("echo 1");
+  svc->set_check_command("cmd");
+  fill_string_group(svc->mutable_servicegroups(), "test_group");
+  configuration::Service* svc1 = state->add_services();
+  configuration::service_helper svc1_hlp(svc1);
+  svc1->set_service_description("test2");
+  svc1->set_host_name("test_host");
+  svc1->set_service_id(19);
+  svc1->set_check_command("cmd");
+  fill_string_group(svc1->mutable_servicegroups(), "test_group");
 
-  configuration::Command cmd;
-  configuration::command_helper cmd_hlp(&cmd);
-  cmd.set_command_name("cmd");
-  cmd.set_command_line("echo 1");
-  aply_cmd.add_object(cmd);
-
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  hst.set_host_id(12);
-  aply_hst.add_object(hst);
-
-  configuration::Service svc;
-  configuration::service_helper svc_hlp(&svc);
-  svc.set_service_description("test");
-  svc_hlp.hook("service_description", "test");
-  svc.set_host_name("test_host");
-  svc.set_service_id(18);
-  svc.set_check_command("cmd");
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-  aply_svc.add_object(svc);
-  svc_hlp.hook("servicegroups", "test_group");
-
-  svc.set_service_description("test2");
-  svc.set_host_name("test_host");
-  svc.set_service_id(19);
-  svc.set_check_command("cmd");
-  // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
-  aply_svc.add_object(svc);
-  svc_hlp.hook("servicegroups", "test_group");
-
-  grp_hlp.hook("members", "test_host,test,test_host,test2");
-  aply_grp.add_object(grp);
-  aply_grp.expand_objects(pb_config);
   configuration::error_cnt err;
-  aply_grp.resolve_object(grp, err);
-  ASSERT_EQ(grp.members().data().size(), 2);
+  grp_hlp.hook("members", "test_host,test,test_host,test2");
+  _state_hlp->expand(err);
+
+  aply_cmd.add_object(*cmd);
+  aply_hst.add_object(*hst);
+  aply_svc.add_object(*svc);
+  aply_svc.add_object(*svc1);
+  aply_grp.add_object(*grp);
+  aply_grp.resolve_object(*grp, err);
+  ASSERT_TRUE(grp->members().data().size() == 2);
 
   engine::servicegroup* sg =
       engine::servicegroup::servicegroups["test_group"].get();
   ASSERT_EQ(sg->members.size(), 2u);
-  aply_svc.remove_object(1);
+  aply_svc.remove_object({12, 18});
   ASSERT_EQ(sg->members.size(), 1u);
 
   grp_hlp.hook("members", "test_host,test,test_host,test2");
-  aply_grp.modify_object(pb_config.mutable_servicegroups(0), grp);
+  aply_grp.modify_object(pb_indexed_config.mut_state().mutable_servicegroups(0),
+                         *grp);
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
 }

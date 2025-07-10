@@ -32,7 +32,7 @@ class tag {
   void add_object(const configuration::Tag& obj);
   void modify_object(configuration::Tag* to_modify,
                      const configuration::Tag& new_object);
-  void remove_object(ssize_t idx);
+  void remove_object(const std::pair<uint64_t, uint32_t>& key);
   void resolve_object(const configuration::Tag& obj, error_cnt& err);
 };
 }  // namespace applier

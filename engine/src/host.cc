@@ -330,6 +330,8 @@ void host::add_child_host(host* child) {
   if (!child)
     throw engine_error() << "add child link called with nullptr ptr";
 
+  config_logger->debug("Adding child host '{}' to host '{}'", child->name(),
+                       name());
   child_hosts.insert({child->name(), child});
 
   // Notify event broker.
@@ -337,18 +339,16 @@ void host::add_child_host(host* child) {
 }
 
 void host::add_parent_host(const std::string& host_name) {
+  config_logger->info("Adding parent host '{}' to host '{}'", host_name,
+                      name());
   // Make sure we have the data we need.
   if (host_name.empty()) {
-    engine_logger(log_config_error, basic)
-        << "add child link called with bad host_name";
     config_logger->error("add child link called with bad host_name");
     throw engine_error() << "add child link called with bad host_name";
   }
 
   // A host cannot be a parent/child of itself.
   if (name() == host_name) {
-    engine_logger(log_config_error, basic)
-        << "Error: Host '" << name() << "' cannot be a child/parent of itself";
     config_logger->error("Error: Host '{}' cannot be a child/parent of itself",
                          name());
     throw engine_error() << "host is child/parent itself";
@@ -1020,120 +1020,6 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
 }
 
 /**
- *  Determines whether or not a specific host is an immediate child of
- *  another host.
- *
- *  @param[in] parent_host Parent host.
- *  @param[in] child_host  Child host.
- *
- *  @return true or false.
- */
-int is_host_immediate_child_of_host(com::centreon::engine::host* parent_host,
-                                    com::centreon::engine::host* child_host) {
-  // Not enough data.
-  if (!child_host)
-    return false;
-
-  // Root/top-level hosts.
-  if (!parent_host) {
-    if (child_host->parent_hosts.empty())
-      return true;
-  }
-  // Mid-level/bottom hosts.
-  else {
-    auto it{child_host->parent_hosts.find(parent_host->name())};
-    return it != child_host->parent_hosts.end();
-  }
-
-  return false;
-}
-
-/**
- *  Determines whether or not a specific host is an immediate parent of
- *  another host.
- *
- *  @param[in] child_host  Child host.
- *  @param[in] parent_host Parent host.
- *
- *  @return true or false.
- */
-int is_host_immediate_parent_of_host(com::centreon::engine::host* child_host,
-                                     com::centreon::engine::host* parent_host) {
-  if (is_host_immediate_child_of_host(parent_host, child_host))
-    return true;
-  return false;
-}
-
-/**
- *  Returns a count of the immediate children for a given host.
- *
- *  @deprecated This function is only used by the CGIS.
- *
- *  @param[in] hst Target host.
- *
- *  @return Number of immediate child hosts.
- */
-int number_of_immediate_child_hosts(com::centreon::engine::host* hst) {
-  int children(0);
-  for (const auto& [_, sptr_host] : host::hosts)
-    if (is_host_immediate_child_of_host(hst, sptr_host.get()))
-      ++children;
-  return children;
-}
-
-/**
- *  Get the number of immediate parent hosts for a given host.
- *
- *  @deprecated This function is only used by the CGIS.
- *
- *  @param[in] hst Target host.
- *
- *  @return Number of immediate parent hosts.
- */
-int number_of_immediate_parent_hosts(com::centreon::engine::host* hst) {
-  int parents(0);
-  for (const auto& [_, sptr_host] : host::hosts)
-    if (is_host_immediate_parent_of_host(hst, sptr_host.get()))
-      ++parents;
-  return parents;
-}
-
-/**
- *  Returns a count of the total children for a given host.
- *
- *  @deprecated This function is only used by the CGIS.
- *
- *  @param[in] hst Target host.
- *
- *  @return Number of total child hosts.
- */
-int number_of_total_child_hosts(com::centreon::engine::host* hst) {
-  int children(0);
-  for (const auto& [_, sptr_host] : host::hosts)
-    if (is_host_immediate_child_of_host(hst, sptr_host.get()))
-      children += number_of_total_child_hosts(sptr_host.get()) + 1;
-  return children;
-}
-
-/**
- *  Get the total number of parent hosts for a given host.
- *
- *  @deprecated This function is only used by the CGIS.
- *
- *  @param[in] hst Target host.
- *
- *  @return Number of total parent hosts.
- */
-int number_of_total_parent_hosts(com::centreon::engine::host* hst) {
-  int parents(0);
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it)
-    if (is_host_immediate_parent_of_host(hst, it->second.get()))
-      parents += number_of_total_parent_hosts(it->second.get()) + 1;
-  return parents;
-}
-
-/**
  *  Get host by id.
  *
  *  @param[in] host_id The host id.
@@ -1249,8 +1135,10 @@ int host::handle_async_check_result_3x(
   time_t current_time = std::time(nullptr);
   bool accept_passive_host_checks;
   uint32_t cached_host_check_horizon;
-  accept_passive_host_checks = pb_config.accept_passive_host_checks();
-  cached_host_check_horizon = pb_config.cached_host_check_horizon();
+  accept_passive_host_checks =
+      pb_indexed_config.state().accept_passive_host_checks();
+  cached_host_check_horizon =
+      pb_indexed_config.state().cached_host_check_horizon();
 
   double execution_time =
       static_cast<double>(queued_check_result.get_finish_time().tv_sec -
@@ -1594,7 +1482,7 @@ int host::run_scheduled_check(int check_options, double latency) {
   bool time_is_valid = true;
 
   uint32_t interval_length;
-  interval_length = pb_config.interval_length();
+  interval_length = pb_indexed_config.state().interval_length();
 
   engine_logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
   SPDLOG_LOGGER_TRACE(functions_logger, "run_scheduled_host_check_3x()");
@@ -1731,7 +1619,7 @@ int host::run_async_check(int check_options,
     return ERROR;
 
   int32_t host_check_timeout;
-  host_check_timeout = pb_config.host_check_timeout();
+  host_check_timeout = pb_indexed_config.state().host_check_timeout();
 
   // If this check is a rescheduled check, propagate the rescheduled check
   // flag to the host. This solves the problem when a new host check is bound
@@ -2066,10 +1954,11 @@ void host::check_for_flapping(bool update,
   float high_host_flap_threshold;
   bool enable_flap_detection;
 
-  interval_length = pb_config.interval_length();
-  low_host_flap_threshold = pb_config.low_host_flap_threshold();
-  high_host_flap_threshold = pb_config.high_host_flap_threshold();
-  enable_flap_detection = pb_config.enable_flap_detection();
+  interval_length = pb_indexed_config.state().interval_length();
+  low_host_flap_threshold = pb_indexed_config.state().low_host_flap_threshold();
+  high_host_flap_threshold =
+      pb_indexed_config.state().high_host_flap_threshold();
+  enable_flap_detection = pb_indexed_config.state().enable_flap_detection();
 
   engine_logger(dbg_functions, basic) << "host::check_for_flapping()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::check_for_flapping()");
@@ -2336,9 +2225,9 @@ int host::handle_state() {
   time_t current_time;
   bool log_host_retries;
 
-  log_host_retries = pb_config.log_host_retries();
+  log_host_retries = pb_indexed_config.state().log_host_retries();
   bool use_host_down_disable_service_checks =
-      pb_config.host_down_disable_service_checks();
+      pb_indexed_config.state().host_down_disable_service_checks();
 
   engine_logger(dbg_functions, basic) << "handle_host_state()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_host_state()");
@@ -2480,7 +2369,8 @@ int host::handle_state() {
 void host::update_performance_data() {
   /* should we be processing performance data for anything? */
 
-  bool process_performance_data = pb_config.process_performance_data();
+  bool process_performance_data =
+      pb_indexed_config.state().process_performance_data();
   if (!process_performance_data)
     return;
 
@@ -2516,7 +2406,7 @@ bool host::verify_check_viability(int check_options,
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_check_viability_3x()");
 
   uint32_t interval_length;
-  interval_length = pb_config.interval_length();
+  interval_length = pb_indexed_config.state().interval_length();
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
       this->get_current_state() != host::state_up)
@@ -2580,8 +2470,8 @@ int host::notify_contact(nagios_macros* mac,
                          notifier::reason_type type,
                          const std::string& not_author,
                          const std::string& not_data,
-                         int options __attribute((unused)),
-                         int escalated) {
+                         int options [[maybe_unused]],
+                         int escalated [[maybe_unused]]) {
   std::string raw_command;
   std::string processed_command;
   bool early_timeout = false;
@@ -2597,8 +2487,8 @@ int host::notify_contact(nagios_macros* mac,
 
   bool log_notifications;
   uint32_t notification_timeout;
-  log_notifications = pb_config.log_notifications();
-  notification_timeout = pb_config.notification_timeout();
+  log_notifications = pb_indexed_config.state().log_notifications();
+  notification_timeout = pb_indexed_config.state().notification_timeout();
 
   /* get start time */
   gettimeofday(&start_time, nullptr);
@@ -2858,9 +2748,10 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   uint32_t interval_length;
   int32_t additional_freshness_latency;
   uint32_t max_host_check_spread;
-  interval_length = pb_config.interval_length();
-  additional_freshness_latency = pb_config.additional_freshness_latency();
-  max_host_check_spread = pb_config.max_host_check_spread();
+  interval_length = pb_indexed_config.state().interval_length();
+  additional_freshness_latency =
+      pb_indexed_config.state().additional_freshness_latency();
+  max_host_check_spread = pb_indexed_config.state().max_host_check_spread();
 
   engine_logger(dbg_checks, most)
       << "Checking freshness of host '" << name() << "'...";
@@ -3078,10 +2969,10 @@ int host::process_check_result_3x(enum host::host_state new_state,
   uint32_t interval_length;
   bool log_passive_checks;
   bool enable_predictive_host_dependency_checks;
-  interval_length = pb_config.interval_length();
-  log_passive_checks = pb_config.log_passive_checks();
+  interval_length = pb_indexed_config.state().interval_length();
+  log_passive_checks = pb_indexed_config.state().log_passive_checks();
   enable_predictive_host_dependency_checks =
-      pb_config.enable_predictive_host_dependency_checks();
+      pb_indexed_config.state().enable_predictive_host_dependency_checks();
 
   time_t next_check{get_last_check() + check_interval() * interval_length};
   time_t preferred_time = 0L;
@@ -3338,8 +3229,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
         /* we do this because we may now be blocking the route to child hosts */
-        engine_logger(dbg_checks, more)
-            << "Propagating check to immediate non-UNREACHABLE child hosts...";
         SPDLOG_LOGGER_DEBUG(
             checks_logger,
             "Propagating check to immediate non-UNREACHABLE child hosts...");
@@ -3391,8 +3280,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
             continue;
           if (sptr_host->get_current_state() == host::state_up) {
             check_hostlist.push_back(sptr_host.get());
-            engine_logger(dbg_checks, more)
-                << "Check of host '" << key << "' queued.";
             SPDLOG_LOGGER_DEBUG(checks_logger, "Check of host '{}' queued.",
                                 key);
           }
@@ -3400,19 +3287,15 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* propagate checks to immediate children if they are not UNREACHABLE */
         /* we do this because we may now be blocking the route to child hosts */
-        engine_logger(dbg_checks, more)
-            << "Propagating checks to immediate non-UNREACHABLE "
-               "child hosts...";
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "Propagating checks to immediate non-UNREACHABLE "
                             "child hosts...");
 
         for (const auto& [key, ptr_host] : child_hosts) {
+          SPDLOG_LOGGER_ERROR(checks_logger, "Child: '{}'", key);
           if (!ptr_host)
             continue;
           if (ptr_host->get_current_state() != host::state_unreachable) {
-            engine_logger(dbg_checks, more)
-                << "Check of child host '" << key << "' queued.";
             SPDLOG_LOGGER_DEBUG(checks_logger,
                                 "Check of child host '{}' queued.", key);
             check_hostlist.push_back(ptr_host);
@@ -3683,7 +3566,8 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
   engine_logger(dbg_functions, basic) << "host::authorized_by_dependencies()";
   SPDLOG_LOGGER_TRACE(functions_logger, "host::authorized_by_dependencies()");
 
-  bool soft_state_dependencies = pb_config.soft_state_dependencies();
+  bool soft_state_dependencies =
+      pb_indexed_config.state().soft_state_dependencies();
 
   auto p(hostdependency::hostdependencies.equal_range(name()));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
@@ -3736,7 +3620,7 @@ void host::check_result_freshness() {
   time_t current_time = 0L;
 
   bool check_host_freshness;
-  check_host_freshness = pb_config.check_host_freshness();
+  check_host_freshness = pb_indexed_config.state().check_host_freshness();
 
   engine_logger(dbg_functions, basic) << "check_host_result_freshness()";
   SPDLOG_LOGGER_TRACE(functions_logger, "check_host_result_freshness()");
@@ -3851,8 +3735,8 @@ void host::check_for_orphaned() {
 
   int32_t host_check_timeout;
   uint32_t check_reaper_interval;
-  host_check_timeout = pb_config.host_check_timeout();
-  check_reaper_interval = pb_config.check_reaper_interval();
+  host_check_timeout = pb_indexed_config.state().host_check_timeout();
+  check_reaper_interval = pb_indexed_config.state().check_reaper_interval();
 
   /* get the current time */
   time(&current_time);
@@ -3940,32 +3824,27 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   try {
     notifier::resolve(warnings, errors);
   } catch (std::exception const& e) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Host '" << name()
-        << "' has problem in its notifier part: " << e.what();
     config_logger->error(
         "Error: Host '{}' has problem in its notifier part: {}", name(),
         e.what());
   }
 
-  for (service_map::iterator it_svc{service::services.begin()},
-       end_svc{service::services.end()};
+  for (service_map::iterator it_svc = service::services.begin(),
+                             end_svc = service::services.end();
        it_svc != end_svc; ++it_svc) {
     if (name() == it_svc->first.first)
       services.insert({it_svc->first, nullptr});
   }
 
   if (services.empty()) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host '" << name()
-        << "' has no services associated with it!";
     config_logger->warn(
         "Warning: Host '{}' has no services associated with it!", name());
     ++w;
   } else {
-    for (service_map_unsafe::iterator it{services.begin()}, end{services.end()};
+    for (service_map_unsafe::iterator it = services.begin(),
+                                      end = services.end();
          it != end; ++it) {
-      service_map::const_iterator found{service::services.find(it->first)};
+      service_map::const_iterator found = service::services.find(it->first);
       if (found == service::services.end() || !found->second) {
         engine_logger(log_verification_error, basic)
             << "Error: Host '" << name() << "' has a service '"
@@ -3982,12 +3861,10 @@ void host::resolve(uint32_t& w, uint32_t& e) {
 
   /* check all parent parent host */
   for (auto& [key, sptr_host] : parent_hosts) {
+    config_logger->trace("Checking parent host for '{}' for host '{}'", key,
+                         name());
     host_map::const_iterator it_host{host::hosts.find(key)};
     if (it_host == host::hosts.end() || !it_host->second) {
-      engine_logger(log_verification_error, basic) << "Error: '" << key
-                                                   << "' is not a "
-                                                      "valid parent for host '"
-                                                   << name() << "'!";
       config_logger->error("Error: '{}' is not a valid parent for host '{}'!",
                            key, name());
       errors++;
@@ -3995,6 +3872,8 @@ void host::resolve(uint32_t& w, uint32_t& e) {
       sptr_host = it_host->second;
       it_host->second->add_child_host(this);  // add a reverse (child) link to
                                               // make searches faster later on
+      config_logger->trace("Host '{}' added as child to host '{}'", name(),
+                           it_host->first);
     }
   }
 

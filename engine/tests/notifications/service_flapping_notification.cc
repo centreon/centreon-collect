@@ -41,15 +41,18 @@ using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
 
 class ServiceFlappingNotification : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
   void SetUp() override {
     error_cnt err;
-    init_config_state();
+    _state_hlp = init_config_state();
 
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    _state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::applier::command cmd_aply;
@@ -247,7 +250,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlapping) {
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -339,7 +342,7 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->set_is_volatile(true);
   _service->add_flap_detection_on(engine::service::ok);
@@ -441,7 +444,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
 TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_current_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -530,7 +533,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -619,7 +622,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
 }
 
 TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
-  pb_config.set_enable_flap_detection(true);
+  pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);

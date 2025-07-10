@@ -538,7 +538,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   } else {
     // Run command.
     try {
-      cmd->run(processed_cmd, *macros, pb_config.host_check_timeout(), res);
+      cmd->run(processed_cmd, *macros,
+               pb_indexed_config.state().host_check_timeout(), res);
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");
 
@@ -568,7 +569,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
-  uint32_t host_check_timeout = pb_config.host_check_timeout();
+  uint32_t host_check_timeout = pb_indexed_config.state().host_check_timeout();
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              host_check_timeout);

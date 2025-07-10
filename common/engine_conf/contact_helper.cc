@@ -167,7 +167,7 @@ bool contact_helper::insert_customvariable(std::string_view key,
 void contact_helper::expand(
     configuration::State& s,
     configuration::error_cnt& err,
-    absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+    const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
         m_contactgroups) {
   // Browse all contacts.
   for (auto& c : *s.mutable_contacts()) {

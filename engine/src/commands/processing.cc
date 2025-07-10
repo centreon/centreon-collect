@@ -26,7 +26,6 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/retention/parser.hh"
-#include "com/centreon/engine/retention/state.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -848,14 +847,14 @@ bool processing::execute(const std::string& cmdstr) {
   // Log the external command.
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
-    bool log_passive_check = pb_config.log_passive_checks();
+    bool log_passive_check = pb_indexed_config.state().log_passive_checks();
     // Passive checks are logged in checks.c.
     if (log_passive_checks) {
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
       checks_logger->info("EXTERNAL COMMAND: {};{}", command_name, args);
     }
-  } else if (pb_config.log_external_commands()) {
+  } else if (pb_indexed_config.state().log_external_commands()) {
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
     SPDLOG_LOGGER_INFO(external_command_logger, "EXTERNAL COMMAND: {};{}",
@@ -904,10 +903,11 @@ void processing::_wrapper_read_state_information() {
   try {
     retention::state state;
     retention::parser p;
-    const std::string& retention_file = pb_config.state_retention_file();
+    const std::string& retention_file =
+        pb_indexed_config.state().state_retention_file();
     p.parse(retention_file, state);
     retention::applier::state app_state;
-    app_state.apply(pb_config, state);
+    app_state.apply(pb_indexed_config.mut_state(), state);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
@@ -917,7 +917,7 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
-  retention::dump::save(pb_config.state_retention_file());
+  retention::dump::save(pb_indexed_config.state().state_retention_file());
 }
 
 void processing::wrapper_enable_host_and_child_notifications(host* hst) {
