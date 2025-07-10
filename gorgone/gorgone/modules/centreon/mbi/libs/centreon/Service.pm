@@ -145,12 +145,12 @@ sub getServicesWithHostAndCategory {
 }
 
 sub getServicesTemplatesCategories {
-	my $self = shift;
-	my $db = $self->{"centreon"};
-	my %results = ();
+    my $self = shift;
+    my $db = $self->{"centreon"};
+    my %results = ();
 	
-	my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_register = '0'";
-	my $sth = $db->query({ query => $query });
+    my $query = "SELECT service_id, service_description, service_template_model_stm_id FROM service WHERE service_register = '0'";
+    my $sth = $db->query({ query => $query });
     while(my $row = $sth->fetchrow_hashref()) {
 		my $loop_services = { $row->{service_id} => 1 };
 		my $currentTemplate = $row->{"service_id"};
