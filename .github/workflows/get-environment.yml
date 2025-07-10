@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       latest_major_version: ${{ steps.latest_major_version.outputs.latest_major_version }}
-      is_cloud: ${{ steps.detect_cloud_version.outputs.result }}
+      is_cloud: ${{ steps.detect_cloud_version.outputs.isCloud }}
       linked_dev_branch: ${{ steps.linked_branches.outputs.linked_dev_branch }}
       linked_stable_branch: ${{ steps.linked_branches.outputs.linked_stable_branch }}
       major_version: ${{ steps.get_version.outputs.major_version }}
@@ -475,9 +475,13 @@ jobs:
                 // if major version is higher than develop major version => it is a cloud version
                 // if month number is not 04 or 10 => it is a cloud version
                 // anything else => onprem
-                const isCloudCandidate =
-                  Number(currentMajorVersion) >= Number(developMajorVersion) ||
-                  !currentMajorVersion.match(/\.(04|10)$/);
+
+                const toTuple = v => v.split('.').map(Number); // ['24','10'] → [24,10]
+                const [curMajor, curMinor]     = toTuple(currentMajorVersion);
+                const [devMajor, devMinor]     = toTuple(developMajorVersion);
+                const newerThanDevelop        = curMajor > devMajor || (curMajor === devMajor && curMinor > devMinor);
+                const isCloudCandidate        = newerThanDevelop || ![4,10].includes(curMinor);
+
                 releaseScope = isCloudCandidate ? "cloud" : "onprem";
               }
             }
@@ -599,7 +603,7 @@ jobs:
           script: |
             let linkedDevBranch = 'develop';
             let linkedStableBranch = 'master';
-            if ('${{ steps.detect_cloud_version.outputs.result }}' === 'false') {
+            if ('${{ steps.detect_cloud_version.outputs.isCloud }}' === 'false') {
               linkedDevBranch = 'dev-' + '${{ steps.get_version.outputs.major_version }}' + '.x';
               linkedStableBranch = '${{ steps.get_version.outputs.major_version }}' + '.x';
             }
