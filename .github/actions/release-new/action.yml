@@ -50,7 +50,7 @@ runs:
     - name: Get previous release bundle tag
       id: get_previous_release_bundle_tag
       run: |
-        set -eux
+        set -eu
 
         # Check and set release scope
         if [[ ${{ inputs.release_scope }} == "cloud" ]]; then
@@ -81,7 +81,7 @@ runs:
 
     - name: Get released versions for components
       run: |
-        set -eux
+        set -eu
 
         # Variables
         COMPONENTS_OSS=("centreon-awie" "centreon-dsm" "centreon-ha" "centreon-open-tickets" "centreon-web")
@@ -169,7 +169,7 @@ runs:
 
         # Make NEW_STABLE_TAGS available for other steps
         echo "NEW_STABLE_TAGS=${NEW_STABLE_TAGS[*]}" >> "$GITHUB_ENV"
-        # echo "PREVIOUS_STABLE_BRANCH_MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION" >> "$GITHUB_ENV" # should be removed
+        echo "PREVIOUS_STABLE_BRANCH_MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION" >> "$GITHUB_ENV"
         echo "SCOPE_VERSION=$SCOPE_VERSION" >> "$GITHUB_ENV"
 
         # Make NEW_MAJOR_VERSION available to other steps
@@ -178,7 +178,7 @@ runs:
 
     - name: Add new stable tags to release branch
       run: |
-        set -eux
+        set -eu
 
         # Checkout to release branch
         git fetch -a -p
@@ -189,6 +189,9 @@ runs:
         git config --global user.email "release@centreon.com"
         git config --global user.name "Centreon"
 
+        # Set remote
+        git remote set-url origin "https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }}"
+
         # Add new stable release bundle tag to release branch
         # If HOTIFX => set tag description as hotfix
         # If RELEASE => set tag description as release
@@ -196,17 +199,17 @@ runs:
 
         # Push local release bundle tag as centreon_technique to generate a tag event
         git tag -a "${{ inputs.release_bundle_tag }}" -m "${{ inputs.release_bundle_tag }}"
-        git push https://x-access-token:${{ inputs.centreon_technique_pat}}@github.com/${{ github.repository }} "${{ inputs.release_bundle_tag }}"
+        git push origin "${{ inputs.release_bundle_tag }}"
 
         # Add new component release tags on release branch for each release components
         # Abort if no tags or existing tag
         echo "Creating component release tags on branch ${{ inputs.release_branch }}."
         for TAG in ${NEW_STABLE_TAGS[@]}; do
-          if [ -z $(git tag --list "$TAG" | head -n 1) ] && [ -n $TAG ]; then
+          if [[ -z "$(git tag --list "$TAG" | head -n 1)" && -n "$TAG" ]]; then
 
             # Push local component tags as centreon_technique to generate a tag event
             git tag -a "$TAG" -m "${{ inputs.release_type }} $TAG"
-            git push https://x-access-token:${{ inputs.centreon_technique_pat }}@github.com/${{ github.repository }} "$TAG"
+            git push origin "$TAG" --quiet
 
             git status
             echo "::notice::Tagging branch ${{ inputs.release_branch }} with $TAG."
@@ -219,7 +222,7 @@ runs:
 
     - name: Create GITHUB releases from new release tags
       run: |
-        set -eux
+        set -eu
 
         # Install gh cli
         echo "Installing GH CLI."
@@ -239,7 +242,7 @@ runs:
         # Abort if no tags
         echo "Creating GITHUB releases."
         for TAG in ${NEW_STABLE_TAGS[@]}; do
-          if [ -n $TAG ]; then
+          if [ -n "$TAG" ]; then
             echo "Creating GITHUB release with title $TAG for tag $TAG targeting branch ${{ inputs.release_branch }}."
             gh release create $TAG --target "${{ inputs.release_branch }}" --title "$TAG" --verify-tag
           else
@@ -253,7 +256,7 @@ runs:
 
     - name: Clean release / hotfix branch
       run: |
-        set -eux
+        set -eu
 
         REPO="centreon/centreon-collect"
         TAG="${{ inputs.release_bundle_tag }}"
@@ -261,11 +264,12 @@ runs:
         # Check if release bundle tag was set. It MUST exists before removing any release branch.
         echo "Checking if github tag exists before removing release / hotfix branch."
         status_code=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "Authorization: Bearer $GH_TOKEN" \
           "https://api.github.com/repos/$REPO/git/ref/tags/$TAG")
 
         if [[ "$status_code" == "200" ]]; then
           echo "::notice::Release bundle tag $TAG exists, removing branch ${{ inputs.release_branch }}."
-          git push origin --delete ${{ inputs.release_branch }}
+          git push origin --delete "${{ inputs.release_branch }}" --quiet
         else
           echo "::error::Release bundle tag $TAG does not exist, aborting."
           exit 1
@@ -277,7 +281,7 @@ runs:
 
     - name: Create stable JIRA versions from new release tags
       run: |
-        set -eux
+        set -eu
 
         # Call JIRA to provide new jira versions to create
         # Webhook url
@@ -304,7 +308,7 @@ runs:
         # Create JIRA version for each released component
         echo "Creating JIRA releases."
         for TAG in ${NEW_RELEASE_TAGS[@]}; do
-          if [ -n $TAG ]; then
+          if [ -n "$TAG" ]; then
             echo "::notice::Creating JIRA release $TAG based on git release tag $TAG."
             # Build JSON with release information for JIRA API
             JIRA_RELEASE_DATA=$(jq -nc \
@@ -332,7 +336,7 @@ runs:
 
     - name: Trigger release communication for new releases
       run: |
-        set -eux
+        set -eu
 
         MAJOR_VERSION=$PREVIOUS_STABLE_BRANCH_MAJOR_VERSION
 
