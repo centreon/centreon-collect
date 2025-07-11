@@ -26,16 +26,16 @@ on:
         type: boolean
 
   pull_request:
-    paths:
-      - ".version"
-      - agent/**
-      - common/**
-      - custom-triplets/**
-      - packaging/centreon-monitoring-agent/**
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - CMakeListsWindows.txt
-      - vcpkg.json
+    # paths:
+    #   - ".version"
+    #   - agent/**
+    #   - common/**
+    #   - custom-triplets/**
+    #   - packaging/centreon-monitoring-agent/**
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - CMakeListsWindows.txt
+    #   - vcpkg.json
   push:
     branches:
       - develop
@@ -485,9 +485,15 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-rpm:
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect'
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -517,14 +523,22 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          # stability: ${{ needs.get-environment.outputs.stability }}
+          # release_type: ${{ needs.get-environment.outputs.release_type }}
+          stability: testing
+          release_type: hotfix
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect'
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -543,12 +557,8 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
-          - distrib: jammy
-            arch: amd64
-          - distrib: jammy
-            arch: arm64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -562,14 +572,22 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          # stability: ${{ needs.get-environment.outputs.stability }}
+          # release_type: ${{ needs.get-environment.outputs.release_type }}
+          stability: testing
+          release_type: hotfix
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-windows:
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect'
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -597,10 +615,10 @@ jobs:
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
           $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME = "monitoring-agent-$VERSION"
-          $STABILITY = "${{ needs.get-environment.outputs.stability }}"
+          # $STABILITY = "${{ needs.get-environment.outputs.stability }}"
+          $STABILITY = "testing"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -683,8 +701,8 @@ jobs:
           $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 

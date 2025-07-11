@@ -133,19 +133,19 @@ runs:
         done
 
         # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
+        if [[ "${{ inputs.module_name }}" == "monitoring-agent" ]]; then
+          for FILE in $FILES; do
+            echo "[DEBUG] - File: $FILE"
 
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
+            VERSION="${{ inputs.major_version }}"
+            MODULE_NAME="monitoring-agent-$VERSION"
+            STABILITY="${{ inputs.stability }}"
 
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+            TARGET_PATH="installers/monitoring-agent/$VERSION/$STABILITY/${{ inputs.distrib }}/"
 
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          done
+        fi
 
       shell: bash
 
@@ -168,42 +168,37 @@ runs:
           exit 1
         fi
 
+        if [[ "${{ inputs.is_cloud }}" == "true" && "${{ inputs.distrib }}" == "jammy" ]]; then
+          echo "do not delivery ubuntu packages for cloud, exiting."
+          exit 0
+        fi
+
         for FILE in $FILES; do
           echo "[DEBUG] - File: $FILE"
 
           VERSION=${{ inputs.major_version }}
           DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
           ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+          STABILITY="${{ inputs.stability }}"
 
           echo "[DEBUG] - Major version: $VERSION"
 
-          # Set ROOT_REPO_PATH based on inputs
-          if [[ "${{ inputs.is_cloud }}" == "true" ]] && [[ "${{ inputs.stability }}" == "unstable" ]]; then
-              ROOT_REPO_PATH="apt-standard-internal-${{ inputs.stability }}"
-          elif [[ "${{ inputs.is_cloud }}" == "true" ]] && [[ "${{ inputs.stability }}" != "unstable" ]]; then
-              ROOT_REPO_PATH="installers"
-          elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
-            ROOT_REPO_PATH="ubuntu-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
-          else
-            ROOT_REPO_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}"
+          if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/$DISTRIB/$ARCH/"
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           fi
 
-          jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          if [[ "${{ inputs.is_cloud }}" == "false" || "${{ inputs.stability }}" == "unstable" ]]; then
+            # Set ROOT_REPO_PATH based on inputs
+            if [[ "${{ inputs.is_cloud }}" == "true" ]]; then
+              ROOT_REPO_PATH="apt-standard-internal-${{ inputs.stability }}"
+            elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+              ROOT_REPO_PATH="ubuntu-standard-$VERSION-${{ inputs.stability }}"
+            else
+              ROOT_REPO_PATH="apt-standard-$VERSION-${{ inputs.stability }}"
+            fi
+
+            jf rt upload "$FILE" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          fi
         done
-
-        # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
-
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
-
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
-
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
-
       shell: bash
