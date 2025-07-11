@@ -184,7 +184,7 @@ runs:
           echo "[DEBUG] - Major version: $VERSION"
 
           if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
-            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/$DISTRIB/$ARCH/"
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
             jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           fi
 
