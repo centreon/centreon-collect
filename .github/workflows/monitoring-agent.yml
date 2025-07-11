@@ -226,7 +226,6 @@ jobs:
   unit-test-linux:
     needs: [get-environment]
     if: |
-      false &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:
@@ -652,15 +651,9 @@ jobs:
 
   promote-linux:
     needs: [get-environment, deliver-rpm, deliver-deb]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -685,8 +678,7 @@ jobs:
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
           stability: ${{ needs.get-environment.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
-          # release_type: ${{ needs.get-environment.outputs.release_type }}
-          release_type: hotfix
+          release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
       - name: Parse distrib name
@@ -695,23 +687,17 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
 
-      # - name: Deliver monitoring agent to github release
-      #   uses: ./.github/actions/deliver-github-asset
-      #   with:
-      #     file_pattern: /tmp/promoted-packages/centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
-      #     github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-      #     token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+      - name: Deliver monitoring agent to github release
+        uses: ./.github/actions/deliver-github-asset
+        with:
+          file_pattern: /tmp/promoted-packages/centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
+          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   promote-windows:
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
+      (contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -749,21 +735,21 @@ jobs:
 
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
 
-          # jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         shell: powershell
 
-      # - name: Deliver monitoring agent to github release
-      #   uses: ./.github/actions/deliver-github-asset
-      #   with:
-      #     file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
-      #     github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
-      #     token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+      - name: Deliver monitoring agent to github release
+        uses: ./.github/actions/deliver-github-asset
+        with:
+          file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe
+          github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
+          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
-  # set-skip-label:
-  #   needs: [get-environment, deliver-rpm, deliver-deb, deliver-windows, promote-linux, promote-windows]
-  #   if: |
-  #     needs.get-environment.outputs.skip_workflow == 'false' &&
-  #     ! cancelled() &&
-  #     ! contains(needs.*.result, 'failure') &&
-  #     ! contains(needs.*.result, 'cancelled')
-  #   uses: ./.github/workflows/set-pull-request-skip-label.yml
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, deliver-windows, promote-linux, promote-windows]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
