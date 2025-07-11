@@ -248,7 +248,7 @@ class notifier : public checkable {
   bool is_notification_viable(notification_category cat,
                               reason_type type,
                               notification_option options);
-  std::unordered_set<std::weak_ptr<contact>> get_contacts_to_notify(
+  std::unordered_set<std::shared_ptr<contact>> get_contacts_to_notify(
       notification_category cat,
       reason_type type,
       uint32_t& notification_interval,
