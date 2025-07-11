@@ -543,12 +543,8 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
-          - distrib: jammy
-            arch: amd64
-          - distrib: jammy
-            arch: arm64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -597,10 +593,9 @@ jobs:
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
           $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME = "monitoring-agent-$VERSION"
           $STABILITY = "${{ needs.get-environment.outputs.stability }}"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -683,8 +678,8 @@ jobs:
           $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
