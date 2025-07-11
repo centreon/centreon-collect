@@ -84,7 +84,7 @@ sub test_unix_execute {
         },
         {
             msg    => 'no interpretation, incorrect command',
-            expect => 'Error executing the command ./showArgs.sh, does the command require a shell, or is there too much quote ?',
+            expect => 'Error executing the command ./showArgs.sh, does the command require a shell, or is there too many quote ?',
             args   => {
                 command                 => q{./showArgs.sh "firstarg},
                 no_shell_interpretation => 1,
@@ -92,7 +92,7 @@ sub test_unix_execute {
         },
         {
             msg    => 'no interpretation, incorrect command with arguments',
-            expect => 'Error executing the command ./showArgs.sh, does the command require a shell, or is there too much quote ?',
+            expect => 'Error executing the command ./showArgs.sh, does the command require a shell, or is there too many quote ?',
             args   => {
                 command                 => q{./showArgs.sh "firstarg},
                 arguments               => [ 'second arg' ],
@@ -109,7 +109,7 @@ sub test_unix_execute {
         },
         {
             msg    => 'no interpretation, only space command return an error',
-            expect => 'Error executing the command , does the command require a shell, or is there too much quote ?',
+            expect => 'Error executing the command , does the command require a shell, or is there too many quote ?',
             args   => {
                 command                 => "   ",
                 no_shell_interpretation => 1,
