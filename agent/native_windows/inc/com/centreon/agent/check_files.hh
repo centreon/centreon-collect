@@ -41,15 +41,14 @@ struct file_metadata : public testable {
   fs::file_time_type creation_time;
   fs::file_time_type last_access_time;
   fs::file_time_type last_write_time;
-  unsigned long long size = 0;
-  unsigned long long number_of_lines = 0;
+  std::uint64_t size = 0;
+  std::uint64_t number_of_lines = 0;
   std::string version;
 
   file_metadata() = default;
-
-  file_metadata(const filter&) = delete;
+  file_metadata(const file_metadata&) = delete;
   // Delete copy assignment operator
-  file_metadata& operator=(const filter&) = delete;
+  file_metadata& operator=(const file_metadata&) = delete;
 
   file_metadata(const std::string& file_path, bool line_count_needed);
 };
@@ -64,7 +63,8 @@ namespace check_files_detail {
  * It stores metadata about the files in a hash map.
  */
 class filter {
-  absl::flat_hash_map<std::string, file_metadata> _files_metadata;
+  absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>
+      _files_metadata;
 
   filters::filter_combinator* _file_filter;
 
@@ -90,8 +90,8 @@ class filter {
         _file_filter(std::move(file_filter)) {}
 
   void find_files();
-  const absl::flat_hash_map<std::string, file_metadata>& get_files_metadata()
-      const {
+  const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
+  get_files_metadata() const {
     return _files_metadata;
   }
   void clear_files_metadata() { _files_metadata.clear(); }
@@ -106,8 +106,8 @@ class filter {
  */
 class check_files_thread
     : public std::enable_shared_from_this<check_files_thread> {
-  using completion_handler =
-      std::function<void(absl::flat_hash_map<std::string, file_metadata>)>;
+  using completion_handler = std::function<void(
+      const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&)>;
 
   /* * @brief Data structure to hold asynchronous request data.
    *
@@ -181,7 +181,8 @@ class check_files : public check {
 
   void _completion_handler(
       unsigned start_check_index,
-      const absl::flat_hash_map<std::string, file_metadata>& result);
+      const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
+          result);
 
  public:
   check_files(const std::shared_ptr<asio::io_context>& io_context,

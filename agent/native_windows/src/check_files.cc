@@ -309,11 +309,13 @@ void ::check_files_detail::filter::find_files() {
       try {
         std::string filename = it->path().filename().string();
         if (std::regex_match(filename, regex_pattern)) {
-          file_metadata metadata(it->path().string(), _line_count_needed);
-          if (_file_filter && !_file_filter->check(metadata)) {
+          auto path_str = it->path().string();
+          auto metadata =
+              std::make_unique<file_metadata>(path_str, _line_count_needed);
+          if (_file_filter && !_file_filter->check(*metadata)) {
             continue;  // skip to next if the data don't match the filter
           }
-          _files_metadata[it->path().string()] = metadata;
+          _files_metadata[std::move(path_str)] = std::move(metadata);
         }
       } catch (const std::exception& e) {
         continue;  // Skip files that cannot be processed
@@ -364,13 +366,12 @@ void ::check_files_detail::check_files_thread::run() {
     if (!_queue.empty()) {
       auto to_execute = _queue.begin();
       // Execute the filter to find files
-      to_execute->request_filter->find_files();
-      asio::post(
-          *_io_context,
-          [result = std::move(to_execute->request_filter->get_files_metadata()),
-           completion_handler = std::move(to_execute->handler)]() {
-            completion_handler(result);
-          });
+      auto filter = to_execute->request_filter;
+      filter->find_files();
+      asio::post(*_io_context, [filter, completion_handler =
+                                            std::move(to_execute->handler)]() {
+        completion_handler(filter->get_files_metadata());
+      });
       _queue.erase(to_execute);
     }
   }
@@ -774,7 +775,7 @@ void check_files::_print_format(std::string& output, e_status status) {
         std::string result = "";
         const auto& files_metadata = _filter->get_files_metadata();
         for (const auto& path : data) {
-          result += format_detail(files_metadata.at(path)) + ",";
+          result += format_detail(*files_metadata.at(path)) + ",";
         }
         // remove the last comma
         if (!result.empty()) {
@@ -864,7 +865,8 @@ void check_files::_print_format(std::string& output, e_status status) {
  */
 void check_files::_completion_handler(
     unsigned start_check_index,
-    const absl::flat_hash_map<std::string, file_metadata>& result) {
+    const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
+        result) {
   auto result_size = result.size();
   e_status ret = e_status::ok;
   std::string output;
@@ -880,10 +882,10 @@ void check_files::_completion_handler(
 
   // check warning and critical status
   for (const auto& [path, metadata] : result) {
-    if (_critical_rules_filter && _critical_rules_filter->check(metadata)) {
+    if (_critical_rules_filter && _critical_rules_filter->check(*metadata)) {
       _critical_list.insert(path);
     } else if (_warning_rules_filter &&
-               _warning_rules_filter->check(metadata)) {
+               _warning_rules_filter->check(*metadata)) {
       _warning_list.insert(path);
     } else {
       _ok_list.insert(path);
@@ -935,7 +937,8 @@ void check_files::_completion_handler(
         "{}: Ok:{}|Nok:{}|total:{}  warning:{}|critical:{}\n", status_str,
         _ok_list.size(), _warning_list.size() + _critical_list.size(),
         result.size(), _warning_list.size(), _critical_list.size());
-    for (const auto& [path, metadata] : result) {
+    for (const auto& [path, metadata_ptr] : result) {
+      const file_metadata& metadata = *metadata_ptr;
       output += fmt::format(
           "{}: size: {}, created: {}, written: {}, accessed: {}", path,
           format_size(metadata.size), format_file_time(metadata.creation_time),
@@ -991,8 +994,9 @@ void check_files::start_check(const duration& timeout) {
   _worker_files_check->async_get_files(
       _filter, std::chrono::system_clock::now() + timeout,
       [me = shared_from_this(), running_check_index](
-          const absl::flat_hash_map<std::string, file_metadata>& result) {
-        me->_completion_handler(running_check_index, std::move(result));
+          const absl::flat_hash_map<std::string,
+                                    std::unique_ptr<file_metadata>>& result) {
+        me->_completion_handler(running_check_index, result);
       });
 }
 
