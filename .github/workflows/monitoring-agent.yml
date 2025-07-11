@@ -26,16 +26,16 @@ on:
         type: boolean
 
   pull_request:
-    # paths:
-    #   - ".version"
-    #   - agent/**
-    #   - common/**
-    #   - custom-triplets/**
-    #   - packaging/centreon-monitoring-agent/**
-    #   - CMakeLists.txt
-    #   - CMakeListsLinux.txt
-    #   - CMakeListsWindows.txt
-    #   - vcpkg.json
+    paths:
+      - ".version"
+      - agent/**
+      - common/**
+      - custom-triplets/**
+      - packaging/centreon-monitoring-agent/**
+      - CMakeLists.txt
+      - CMakeListsLinux.txt
+      - CMakeListsWindows.txt
+      - vcpkg.json
   push:
     branches:
       - develop
