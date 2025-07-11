@@ -875,12 +875,12 @@ bool notifier::_is_notification_viable_custom(reason_type type
  *
  * @return A set of contacts to notify.
  */
-std::unordered_set<std::weak_ptr<contact>> notifier::get_contacts_to_notify(
+std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
     notification_category cat,
     reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
-  std::unordered_set<std::weak_ptr<contact>> retval;
+  std::unordered_set<std::shared_ptr<contact>> retval;
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 
@@ -926,13 +926,11 @@ std::unordered_set<std::weak_ptr<contact>> notifier::get_contacts_to_notify(
     }
 
     /* For each contact group, we also add its contacts. */
-    for (contactgroup_map_unsafe::const_iterator
-             it{get_contactgroups().begin()},
-         end{get_contactgroups().end()};
+    for (contactgroup_map::const_iterator it = get_contactgroups().begin(),
+                                          end = get_contactgroups().end();
          it != end; ++it) {
-      for (contact_map_unsafe::const_iterator
-               cit{it->second->get_members().begin()},
-           cend{it->second->get_members().end()};
+      for (contact_map::const_iterator cit = it->second->get_members().begin(),
+                                       cend = it->second->get_members().end();
            cit != cend; ++cit) {
         assert(cit->second);
         if (cit->second->should_be_notified(cat, type, *this))
@@ -985,7 +983,7 @@ int notifier::notify(notifier::reason_type type,
   /* What are the contacts to notify? */
   uint32_t notification_interval;
   bool escalated;
-  std::unordered_set<std::weak_ptr<contact>> to_notify =
+  std::unordered_set<std::shared_ptr<contact>> to_notify =
       get_contacts_to_notify(cat, type, notification_interval, escalated);
 
   _current_notification_id = _next_notification_id++;
@@ -1350,15 +1348,14 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
     return false;
 
   // Search all individual contacts of this host.
-  for (contact_map_unsafe::const_iterator it = notif->contacts().begin(),
-                                          end = notif->contacts().end();
+  for (contact_map::const_iterator it = notif->contacts().begin(),
+                                   end = notif->contacts().end();
        it != end; ++it)
-    if (it->second == cntct)
+    if (it->second.get() == cntct)
       return true;
 
-  for (contactgroup_map_unsafe::const_iterator
-           it{notif->get_contactgroups().begin()},
-       end{notif->get_contactgroups().end()};
+  for (contactgroup_map::const_iterator it = notif->get_contactgroups().begin(),
+                                        end = notif->get_contactgroups().end();
        it != end; ++it) {
     assert(it->second);
     if (it->second->get_members().find(cntct->get_name()) ==
@@ -1462,8 +1459,8 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check all contacts */
-  for (contact_map_unsafe::iterator it = mut_contacts().begin(),
-                                    end = mut_contacts().end();
+  for (contact_map::iterator it = mut_contacts().begin(),
+                             end = mut_contacts().end();
        it != end; ++it) {
     contact_map::const_iterator found_it{contact::contacts.find(it->first)};
     if (found_it == contact::contacts.end() || !found_it->second.get()) {
@@ -1478,12 +1475,12 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
       errors++;
     } else
       /* save the pointer to the contact */
-      it->second = found_it->second.get();
+      it->second = found_it->second;
   }
 
   /* check all contact groups */
-  for (contactgroup_map_unsafe::iterator it{get_contactgroups().begin()},
-       end{get_contactgroups().end()};
+  for (contactgroup_map::iterator it = get_contactgroups().begin(),
+                                  end = get_contactgroups().end();
        it != end; ++it) {
     // Find the contact group.
     contactgroup_map::const_iterator found_it{
@@ -1500,7 +1497,7 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
           it->first, get_display_name());
       errors++;
     } else
-      it->second = found_it->second.get();
+      it->second = found_it->second;
   }
 
   // Check notification timeperiod.
