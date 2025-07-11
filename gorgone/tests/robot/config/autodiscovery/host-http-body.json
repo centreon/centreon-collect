@@ -1,0 +1,16 @@
+{
+  "plugins": {
+    "centreon-plugin-Applications-Protocol-Snmp": 20250300
+  },
+  "post_execution": {
+    "commands": {
+      "command_line": "/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf",
+      "action": "COMMAND"
+    }
+  },
+  "execution": {
+    "mode": 0
+  },
+  "target": 2,
+  "job_id": 10
+}
