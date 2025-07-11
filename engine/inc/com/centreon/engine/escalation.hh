@@ -29,6 +29,14 @@ namespace com::centreon::engine {
 class timeperiod;
 
 class escalation {
+  uint32_t _first_notification;
+  uint32_t _last_notification;
+  double _notification_interval;
+  std::string _escalation_period;
+  uint32_t _escalate_on;
+  contactgroup_map _contact_groups;
+  const size_t _internal_key;
+
  public:
   escalation(uint32_t first_notification,
              uint32_t last_notification,
@@ -50,9 +58,9 @@ class escalation {
   virtual bool is_viable(int state, uint32_t notification_number) const;
   Uuid const& get_uuid() const;
 
-  contactgroup_map_unsafe const& get_contactgroups() const;
-  contactgroup_map_unsafe& get_contactgroups();
-  virtual void resolve(int& w, int& e);
+  const contactgroup_map& get_contactgroups() const;
+  contactgroup_map& get_contactgroups();
+  virtual void resolve(uint32_t& w, uint32_t& e);
 
   notifier* notifier_ptr;
   timeperiod* escalation_period_ptr;

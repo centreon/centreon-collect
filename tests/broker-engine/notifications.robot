@@ -17,6 +17,60 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
+not1_reload
+    [Documentation]    This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
+    [Tags]    broker    engine    services    hosts    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${2}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,c,r,s
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_options    w,c,r,s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${cmd_service_2}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_2}    ${2}
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_2    ${2}    The service_2 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_2) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_2;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+    # It's time to schedule a downtime
+    Ctn Schedule Service Fixed Downtime    host_1    service_2    60
+
+    ${result}    Ctn Check Service Downtime With Timeout    host_1    service_2    1    90
+    Should Be True    ${result}    service must be in downtime
+
+    Ctn Config Engine    ${1}    ${1}    ${1}
+
+    Ctn Reload Engine
+    Ctn Reload Broker
+
+    Sleep    20s
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 not1
     [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
     [Tags]    broker    engine    services    hosts    notification
@@ -486,6 +540,9 @@ not10
     END
 
     Ctn Schedule Host Downtime    ${0}    host_1    ${60}
+    ${content}    Create List    Notifications for the service will not be sent out during that time period.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    The downtime has not been sent.
 
     Ctn Process Host Check Result    host_1    2    host_1 DOWN
 
@@ -1423,6 +1480,7 @@ Ctn Config Notifications
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Add Item    rrd    bbdo_version    3.0.1
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
@@ -1430,6 +1488,8 @@ Ctn Config Notifications
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    module0    processing    error
+    Ctn Broker Config Log    module0    core    error
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config Broker Remove Rrd Output    central
     Ctn Clear Retention
