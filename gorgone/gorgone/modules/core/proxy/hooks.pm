@@ -631,6 +631,7 @@ sub setlogs {
         $options{logger}->writeLogInfo("[proxy] SETLOGS was split in $options{data}->{data}->{nb_total_msg} messages.");
     }
 
+    my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
     $status = $options{dbh}->start_transaction();
