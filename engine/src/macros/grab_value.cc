@@ -338,14 +338,14 @@ static int handle_contact_macro(nagios_macros* mac,
       retval = ERROR;
     else {
       // Concatenate macro values for all contactgroup members.
-      for (contact_map_unsafe::const_iterator
-               it{cg->second->get_members().begin()},
-           end{cg->second->get_members().end()};
+      for (contact_map::const_iterator it = cg->second->get_members().begin(),
+                                       end = cg->second->get_members().end();
            it != end; ++it) {
         if (it->second) {
           // Get the macro value for this contact.
           std::string buffer;
-          grab_standard_contact_macro_r(mac, macro_type, it->second, buffer);
+          grab_standard_contact_macro_r(mac, macro_type, it->second.get(),
+                                        buffer);
           // Add macro value to already running macro.
           if (output.empty())
             output = buffer;
@@ -1050,15 +1050,15 @@ int grab_macro_value_r(nagios_macros* mac,
           return ERROR;
 
         /* concatenate macro values for all contactgroup members */
-        for (contact_map_unsafe::const_iterator
-                 it{cg_it->second->get_members().begin()},
-             end{cg_it->second->get_members().end()};
+        for (contact_map::const_iterator
+                 it = cg_it->second->get_members().begin(),
+                 end = cg_it->second->get_members().end();
              it != end; ++it) {
           if (!it->second)
             continue;
 
           /* get the macro value for this contact */
-          grab_contact_address_macro(x, it->second, temp_buffer);
+          grab_contact_address_macro(x, it->second.get(), temp_buffer);
 
           if (temp_buffer.empty())
             continue;

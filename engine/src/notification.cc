@@ -59,13 +59,15 @@ notification::notification(notifier* parent,
  * @return OK on success, ERROR otherwise.
  */
 int notification::execute(
-    const std::unordered_set<std::weak_ptr<contact>>& to_notify) {
+    const std::unordered_set<std::shared_ptr<contact>>& to_notify) {
   uint32_t contacts_notified{0};
 
   struct timeval start_time;
   gettimeofday(&start_time, nullptr);
 
-  struct timeval end_time{0L, 0L};
+  struct timeval end_time {
+    0L, 0L
+  };
 
   /* send data to event broker */
   int neb_result{broker_notification_data(
@@ -171,9 +173,8 @@ int notification::execute(
     mac->x[MACRO_SERVICENOTIFICATIONID] = std::to_string(_id);
   }
 
-  for (const std::weak_ptr<contact>& wctc : to_notify) {
+  for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
     /* get the contact */
-    auto ctc_ptr = wctc.lock();
     auto ctc = ctc_ptr.get();
 
     /* grab the macro variables for this contact */
