@@ -9,8 +9,10 @@ This module aims to extend Centreon Autodiscovery server functionalities.
 | Directive                 | Description                                                                                                     | Default value |
 |:--------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
 | global\_timeout           | Time in seconds before a discovery command is considered timed out                                              | `300`         |
-| check\_interval           | Time in seconds defining frequency at which results will be search for                                          | `15`          |
-| no\_shell\_interpretation | don't let bash interpret commands to be executed ('true' :  no interpretation, 'false': bash honnor `; & $()` ) | `true`        |
+| check\_interval           | Time in seconds defining the frequency at which results will be searched for                                          | `15`          |
+
+| no\_shell\_interpretation | Don't let bash interpret commands to be executed ('true' :  no interpretation, 'false': bash honnor `; & $()` ) | `true`        |
+
 
 #### Example
 
