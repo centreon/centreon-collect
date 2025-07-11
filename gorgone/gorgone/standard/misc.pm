@@ -201,9 +201,9 @@ sub backtick {
         if (!defined($command_list[-1])){
             pop(@command_list);
         }
-        if (scalar(@command_list) <= 0 or !defined($command_list[0]) || $command_list[0] eq '') {
+        if (!@command_list or !defined($command_list[0]) or $command_list[0] eq '') {
             my $binary = (split(/ /, $arg{command}))[0] // ''; # let's show only the first part of the command, to avoid showing the password
-            return(-1002, "Error executing the command $binary, does the command require a shell, or is there too much quote ?", -1);
+            return(-1002, "Error executing the command $binary, does the command require a shell, or is there too many quote ?", -1);
         }
     }
     # open use fork under the hood to create a child when specifying '-|', and redirect the output of the child to the parent.
