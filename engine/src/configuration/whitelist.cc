@@ -133,8 +133,8 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
     while (read != file_size) {
       std::streamsize some_read =
           f.readsome(buff.get() + read, file_size - read);
-      if (some_read < 0) {
-        SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}");
+      if (some_read <= 0) {
+        SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}", file_path);
         return false;
       }
       read += some_read;
@@ -279,19 +279,26 @@ whitelist::e_refresh_result whitelist::parse_dir(
                         "directory {} must have 750 right access", directory);
   }
 
-  e_refresh_result res = e_refresh_result::empty_directory;
-  // all must be sorted in order to perform an incremental comparaison
-  for (const auto& dir_entry : std::filesystem::directory_iterator{directory}) {
-    if (dir_entry.status().type() == std::filesystem::file_type::regular) {
-      if (res < e_refresh_result::no_rule) {
-        res = e_refresh_result::no_rule;
-      }
-      if (_parse_file(dir_entry.path().generic_string())) {
-        res = e_refresh_result::rules;
+  try {
+    e_refresh_result res = e_refresh_result::empty_directory;
+    // all must be sorted in order to perform an incremental comparaison
+    for (const auto& dir_entry :
+         std::filesystem::directory_iterator{directory}) {
+      if (dir_entry.status().type() == std::filesystem::file_type::regular) {
+        if (res < e_refresh_result::no_rule) {
+          res = e_refresh_result::no_rule;
+        }
+        if (_parse_file(dir_entry.path().generic_string())) {
+          res = e_refresh_result::rules;
+        }
       }
     }
+    return res;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(config_logger, "fail to read {} directory: {}", directory,
+                        e.what());
+    return e_refresh_result::no_directory;
   }
-  return res;
 }
 
 whitelist& whitelist::instance() {
