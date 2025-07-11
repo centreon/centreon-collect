@@ -23,7 +23,7 @@ Test Timeout        220s
 
 # @TODO : I know it's possible to have a remote server managing some poller. For now we don't test this case, but it should be tested and documented.
 *** Test Cases ***
-action module with ${communication_mode} communcation mode ${tc}
+action module with ${communication_mode} communcation mode
     [Documentation]    test action on distant node, no whitelist configured
     @{process_list}    Create List    ${communication_mode}_gorgone_central    ${communication_mode}_gorgone_poller_2
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
@@ -91,7 +91,7 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    timeout=30    node_path=${node_path}
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=70
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.

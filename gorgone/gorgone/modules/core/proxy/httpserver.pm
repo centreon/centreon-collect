@@ -301,10 +301,6 @@ sub proxy {
     );
 
     $connector->{ws_clients}->{ $connector->{identities}->{$target_client} }->{tx}->send({text => $message});
-    use Time::HiRes qw( time);
-    open(my $fh, '>>', '/tmp/gorgone.log') or die "Could not open file: $!";
-    $| = 1;
-    print($fh time() . " [proxy-evan-$$] [proxy] action: $action target: $options{target}\n");
 }
 
 sub read_zmq_events {
