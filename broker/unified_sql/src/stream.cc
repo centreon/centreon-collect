@@ -238,12 +238,11 @@ stream::stream(const database_config& dbcfg,
       _severity_insert(_logger_sql),
       _severity_update(_logger_sql),
       _tag_insert_update(_logger_sql),
+      _tag_insert_update_nothing(_logger_sql),
       _tag_delete(_logger_sql),
       _resources_tags_insert(_logger_sql),
-      _resources_host_insert(_logger_sql),
-      _resources_host_update(_logger_sql),
-      _resources_service_insert(_logger_sql),
-      _resources_service_update(_logger_sql),
+      _resources_host_insert_or_update(_logger_sql),
+      _resources_service_insert_or_update(_logger_sql),
       _resources_disable(_logger_sql),
       _resources_tags_remove(_logger_sql),
       _index_data_insert(_logger_sql),
@@ -1255,7 +1254,7 @@ void stream::update() {
 }
 
 void stream::_start_loop_timer() {
-  _loop_timer.expires_from_now(std::chrono::seconds(_loop_timeout));
+  _loop_timer.expires_after(std::chrono::seconds(_loop_timeout));
   _loop_timer.async_wait([this](const boost::system::error_code& err) {
     if (err) {
       return;

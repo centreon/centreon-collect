@@ -195,6 +195,7 @@ overrides:
       - perl(RRDs)
       - perl(lib)
       - perl(Safe)
+      - perl(Tie::File) # required by MBI module
   deb:
     depends:
       - libdatetime-perl

@@ -31,6 +31,7 @@ set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
 # deadlocks with it. So here we only get from opentelemetry new stuffs.
 target_link_libraries(
   ${STATS_EXPORTER}
+  PRIVATE
   ${CURL_LIBRARY_RELEASE}
   spdlog::spdlog
   -L${OTLP_LIB_DIR}

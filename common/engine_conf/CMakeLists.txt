@@ -15,16 +15,6 @@
 #
 # For more information : contact@centreon.com
 #
-add_custom_command(
-  OUTPUT state.pb.cc state.pb.h
-  DEPENDS state.proto
-  COMMENT "Generating interface files of the engine configuration file"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=.
-          --proto_path=${CMAKE_CURRENT_SOURCE_DIR} state.proto
-  VERBATIM)
-
-add_custom_target(target_state_proto DEPENDS state.pb.cc state.pb.h)
-
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
 
 add_definitions(-DDEFAULT_STATUS_FILE="${ENGINE_VAR_LOG_DIR}/status.dat")
@@ -36,6 +26,7 @@ add_definitions(-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log")
 
 add_library(
   engine_conf STATIC
+  state.proto
   anomalydetection_helper.cc
   anomalydetection_helper.hh
   command_helper.cc
@@ -68,15 +59,14 @@ add_library(
   servicegroup_helper.hh
   severity_helper.cc
   severity_helper.hh
-  ${CMAKE_CURRENT_BINARY_DIR}/state.pb.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/state.pb.h
   state_helper.cc
   state_helper.hh
   tag_helper.cc
   tag_helper.hh
   timeperiod_helper.cc
   timeperiod_helper.hh)
-add_dependencies(engine_conf target_state_proto)
+
+protobuf_generate(TARGET engine_conf)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(engine_conf PRIVATE
@@ -89,5 +79,4 @@ target_link_libraries(
   absl::log
   absl::base
   absl::bits
-  -L${PROTOBUF_LIB_DIR}
-  protobuf)
+  protobuf::libprotobuf)

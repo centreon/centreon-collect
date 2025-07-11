@@ -24,6 +24,7 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace asio;
@@ -65,45 +66,28 @@ stream::stream(std::string const& metric_naming,
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
-    std::string auth{_db_user};
-    auth.append(":").append(_db_password);
-
-    _auth_query.append("Authorization: Basic ")
-        .append(misc::string::base64_encode(auth))
-        .append("\n");
+    std::string auth = fmt::format("{}:{}", _db_user, _db_password);
+    _auth_query = fmt::format("Authorization: Basic {}\n",
+                              common::crypto::base64_encode(auth));
     _query.append(_auth_query);
   }
 
+  boost::system::error_code err;
   ip::tcp::resolver resolver{_io_context};
-  ip::tcp::resolver::query query{_db_host, std::to_string(_db_port)};
 
-  try {
-    ip::tcp::resolver::iterator it{resolver.resolve(query)};
-    ip::tcp::resolver::iterator end;
+  auto endpoint = resolver.resolve(_db_host, std::to_string(_db_port), err);
 
-    boost::system::error_code err{
-        make_error_code(asio::error::host_unreachable)};
+  if (err) {
+    throw msg_fmt(
+        "graphite: can't resolve graphite on host '{}', port '{}' : {}",
+        _db_host, _db_port, err.message());
+  }
 
-    // it can resolve to multiple addresses like ipv4 and ipv6
-    // we need to try all to find the first available socket
-    while (err && it != end) {
-      _socket.connect(*it, err);
-
-      if (err)
-        _socket.close();
-
-      ++it;
-    }
-
-    if (err) {
-      throw msg_fmt(
-          "graphite: can't connect to graphite on host '{}', port '{}' : {}",
-          _db_host, _db_port, err.message());
-    }
-  } catch (boost::system::system_error const& se) {
+  asio::connect(_socket, endpoint, err);
+  if (err) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
-        _db_host, _db_port, se.what());
+        _db_host, _db_port, err.message());
   }
 }
 

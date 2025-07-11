@@ -558,6 +558,8 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_perfdata(get_perfdata());
     o.set_service_id(_service_id);
     o.set_state_type(ServiceStatus_StateType_HARD);
+    _logger->trace("BAM: new virtual service status for BA {}: {}", _id,
+                   o.DebugString());
     return status;
   }
 }

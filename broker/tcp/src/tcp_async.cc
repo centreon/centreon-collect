@@ -170,31 +170,29 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
     listen_endpoint =
         asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
   else {
-    asio::ip::tcp::resolver::query query(conf->get_host(),
-                                         std::to_string(conf->get_port()));
     asio::ip::tcp::resolver resolver(*_io_context);
     boost::system::error_code ec;
-    asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
-    if (ec) {
+    auto endpoints = resolver.resolve(conf->get_host(),
+                                      std::to_string(conf->get_port()), ec);
+    if (ec || endpoints.empty()) {
       _logger->error("TCP: error while resolving '{}' name: {}",
                      conf->get_host(), ec.message());
       listen_endpoint =
           asio::ip::tcp::endpoint(asio::ip::tcp::v4(), conf->get_port());
     } else {
-      for (; it != end; ++it) {
-        listen_endpoint = *it;
+      for (auto ep : endpoints) {
+        listen_endpoint = ep;
         _logger->info("TCP: {} gives address {}", conf->get_host(),
                       listen_endpoint.address().to_string());
-        if (listen_endpoint.address().is_v4())
+        if (ep.endpoint().address().is_v4())
           break;
       }
     }
   }
-  auto retval{
-      std::make_shared<asio::ip::tcp::acceptor>(*_io_context, listen_endpoint)};
+  auto retval{std::make_shared<asio::ip::tcp::acceptor>(
+      *_io_context, listen_endpoint)};  // the constructor has the
+                                        // reuse_address option true by default
 
-  asio::ip::tcp::acceptor::reuse_address option(true);
-  retval->set_option(option);
   return retval;
 }
 
@@ -342,35 +340,32 @@ tcp_connection::pointer tcp_async::create_connection(
       *_io_context, _logger, conf->get_host(), conf->get_port());
   asio::ip::tcp::socket& sock = conn->socket();
 
+  boost::system::error_code err;
   asio::ip::tcp::resolver resolver(*_io_context);
-  asio::ip::tcp::resolver::query query(conf->get_host(),
-                                       std::to_string(conf->get_port()));
-  asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;
 
-  boost::system::error_code err{make_error_code(asio::error::host_unreachable)};
+  auto endpoints =
+      resolver.resolve(conf->get_host(), std::to_string(conf->get_port()), err);
 
-  // it can resolve multiple addresses like ipv4 or ipv6
-  // We need to try all to find the first available socket
-  for (; err && it != end; ++it) {
-    sock.connect(*it, err);
-
-    if (err)
-      sock.close();
+  if (err) {
+    _logger->error("TCP: could not resolve {}:{}", conf->get_host(),
+                   conf->get_port());
+    throw msg_fmt(err.message());
   }
 
-  /* Connection refused */
-  if (err.value() == 111) {
+  asio::connect(sock, endpoints, err);
+
+  if (err && err.value() == 111 /* Connection refused */) {
     _logger->error("TCP: Connection refused to {}:{}", conf->get_host(),
                    conf->get_port());
     throw std::system_error(err);
-  } else if (err) {
-    _logger->error("TCP: could not connect to {}:{}", conf->get_host(),
-                   conf->get_port());
-    throw msg_fmt(err.message());
-  } else {
-    _set_sock_opt(sock, conf, _logger);
-    return conn;
   }
+  if (err) {
+    _logger->error("TCP: could not connect to {}:{} : {}", conf->get_host(),
+                   conf->get_port(), err.message());
+    throw std::system_error(err);
+  }
+  _set_sock_opt(sock, conf, _logger);
+  return conn;
 }
 
 void tcp_async::_set_sock_opt(asio::ip::tcp::socket& sock,
@@ -383,28 +378,21 @@ void tcp_async::_set_sock_opt(asio::ip::tcp::socket& sock,
   tcp_user_timeout option5(1000 * (conf->get_second_keepalive_interval() *
                                    (conf->get_keepalive_count() + 1)));
   boost::system::error_code err;
-  sock.set_option(option1, err);
-  if (err) {
-    SPDLOG_LOGGER_ERROR(logger, "fail to set keepalive option {}",
-                        err.message());
-  } else {
-    sock.set_option(option2, err);
+
+  auto set = [&](auto opt, std::string_view desc) {
+    sock.set_option(opt, err);
     if (err) {
-      SPDLOG_LOGGER_ERROR(logger, "fail to set keepalive cnt {}",
+      SPDLOG_LOGGER_ERROR(logger, "fail to set {} option {}", desc,
                           err.message());
     }
-    sock.set_option(option3, err);
-    if (err) {
-      SPDLOG_LOGGER_ERROR(logger, "fail to set keepalive idle {}",
-                          err.message());
-    }
-    sock.set_option(option4, err);
-    if (err) {
-      SPDLOG_LOGGER_ERROR(logger, "fail to set keepalive interval {}",
-                          err.message());
-    }
+    return !err;
+  };
+
+  if (set(option1, "keepalive")) {
+    set(option2, "keepalive count");
+    set(option3, "keepalive idle");
+    set(option4, "keepalive interval");
   }
-  sock.set_option(option5, err);
-  if (err)
-    SPDLOG_LOGGER_ERROR(logger, "fail to set keepalive option");
+
+  set(option5, "user timeout");
 }

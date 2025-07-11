@@ -19,8 +19,6 @@
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/common/utf8.hh"
 
-#include <fmt/format.h>
-
 #include <cassert>
 
 using namespace com::centreon::broker::misc;
@@ -44,29 +42,6 @@ std::string& string::trim(std::string& str) noexcept {
       str.erase(0, pos);
   }
   return str;
-}
-
-std::string string::base64_encode(const std::string& str) {
-  static const std::string b =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  std::string retval;
-  retval.reserve((str.size() / 3 + (str.size() % 3 > 0)) * 4);
-
-  int val = 0, valb = -6;
-  for (unsigned char c : str) {
-    val = (val << 8) + c;
-    valb += 8;
-    while (valb >= 0) {
-      retval.push_back(b[(val >> valb) & 0x3F]);
-      valb -= 6;
-    }
-  }
-  if (valb > -6)
-    retval.push_back(b[((val << 8) >> (valb + 8)) & 0x3F]);
-  while (retval.size() % 4)
-    retval.push_back('=');
-
-  return retval;
 }
 
 bool string::is_number(const std::string& s) {

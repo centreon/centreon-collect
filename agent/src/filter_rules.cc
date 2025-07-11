@@ -29,7 +29,9 @@ namespace bp = boost::parser;
 // Grammar elements are described here:
 // https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html
 
-#define label_grammar +(bp::char_('a', 'z') | bp::char_('_'))
+#define label_grammar                                            \
+  +(bp::char_('a', 'z') | bp::char_('_') | bp::char_('A', 'Z') | \
+    bp::char_('0', '9') | bp::char_('-') | bp::char_('/') | bp::char_(':'))
 
 /************************************************************************
 label_compare_to_value grammar

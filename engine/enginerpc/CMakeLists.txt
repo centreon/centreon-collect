@@ -17,47 +17,46 @@
 #
 
 # Set directories.
-set(ENGINERPC_DIR "${PROJECT_SOURCE_DIR}/enginerpc")
-set(ENGINERPC_DIR
-    "${PROJECT_SOURCE_DIR}/enginerpc"
-    PARENT_SCOPE)
 set(INC_DIR "../inc/com/centreon/engine/")
 
-set(ENGINERPC enginerpc)
-set(ENGINERPC
-    enginerpc
-    PARENT_SCOPE)
 # Include directories.
-include_directories(${ENGINERPC_DIR} ${CMAKE_SOURCE_DIR}/common/src
-                    ${CMAKE_SOURCE_DIR}/common/inc ${CONAN_INCLUDE_DIRS_GRPC})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/common/src
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_BINARY_DIR}/common/process_stat)
 
 add_custom_command(
-  DEPENDS ${ENGINERPC_DIR}/engine.proto
+  DEPENDS engine.proto
   COMMENT "Generating interface files of the proto file (grpc)"
-  OUTPUT ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.grpc.pb.h
+  OUTPUT engine.grpc.pb.cc engine.grpc.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS
-    --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} --proto_path=${ENGINERPC_DIR}
-    --proto_path=${CMAKE_SOURCE_DIR}/common/src --grpc_out="${ENGINERPC_DIR}"
-    ${ENGINERPC_DIR}/engine.proto
-  DEPENDS ${ENGINERPC_DIR}/engine.proto
+  protobuf::protoc ARGS --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+    --proto_path=${CMAKE_SOURCE_DIR}/engine/enginerpc
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat
+    --grpc_out="${CMAKE_CURRENT_BINARY_DIR}" ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto
+  DEPENDS engine.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
-  OUTPUT ${ENGINERPC_DIR}/engine.pb.cc ${ENGINERPC_DIR}/engine.pb.h
+  OUTPUT engine.pb.cc engine.pb.h
   COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${ENGINERPC_DIR}"
-    --proto_path=${ENGINERPC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
-    ${ENGINERPC_DIR}/engine.proto
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    protobuf::protoc ARGS --cpp_out="${CMAKE_CURRENT_BINARY_DIR}"
+    --proto_path=${CMAKE_SOURCE_DIR}/engine/enginerpc
+    --proto_path=${CMAKE_SOURCE_DIR}/common/process_stat ${CMAKE_SOURCE_DIR}/engine/enginerpc/engine.proto
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/engine/enginerpc)
 
 add_custom_target(
   engine_rpc
-  DEPENDS ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.pb.cc
-          ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.cc
+          ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.cc
+          ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.h
+          ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
 
 add_library(
-  cerpc STATIC ${ENGINERPC_DIR}/engine.grpc.pb.cc ${ENGINERPC_DIR}/engine.pb.cc
-               ${ENGINERPC_DIR}/engine.grpc.pb.h ${ENGINERPC_DIR}/engine.pb.h)
-target_link_libraries(cerpc protobuf)
+  cerpc STATIC
+  ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.h
+  ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
+target_link_libraries(cerpc PRIVATE protobuf::libprotobuf)
+add_dependencies(cerpc engine_rpc process_stat)
 
 if(LEGACY_ENGINE)
   # mod_enginerpc target.
@@ -68,7 +67,7 @@ if(LEGACY_ENGINE)
     # Headers.
     "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-  add_dependencies(enginerpc_legacy centreon_common)
+  add_dependencies(enginerpc_legacy centreon_common process_stat cerpc)
   target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
 
   # Prettier name.
@@ -77,25 +76,27 @@ if(LEGACY_ENGINE)
     PROPERTY PREFIX ""
     PROPERTY POSITION_INDEPENDENT_CODE ON)
   # Link target with libraries.
-  target_link_libraries(enginerpc_legacy cerpc centreon_common spdlog::spdlog)
+  target_link_libraries(enginerpc_legacy PRIVATE cerpc centreon_common
+    process_stat
+                                                 spdlog::spdlog)
 else()
   # mod_enginerpc target.
   add_library(
-    ${ENGINERPC} STATIC
+    enginerpc STATIC
     # Sources.
     engine_impl.cc enginerpc.cc
     # Headers.
     "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-  add_dependencies(${ENGINERPC} centreon_common)
+  add_dependencies(enginerpc centreon_common cerpc)
 
-  target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
+  target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
 
   # Prettier name.
   set_property(
-    TARGET ${ENGINERPC}
+    TARGET enginerpc
     PROPERTY PREFIX ""
     PROPERTY POSITION_INDEPENDENT_CODE ON)
   # Link target with libraries.
-  target_link_libraries(${ENGINERPC} cerpc centreon_common spdlog::spdlog)
+  target_link_libraries(enginerpc PRIVATE cerpc centreon_common spdlog::spdlog)
 endif()

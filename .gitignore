@@ -95,6 +95,9 @@ broker/compile_commands.json
 broker/grpc/grpc_stream.proto
 broker/grpc/src/grpc_bridge.cc
 
+# agent
+agent/inc/com/centreon/agent/version.hh
+agent/src/agent.rc
 
 # clib
 clib/inc/com/centreon/clib/version.hh

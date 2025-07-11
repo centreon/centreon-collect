@@ -24,7 +24,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../../build/broker/neb/cbmod.so"
+  - src: "../../build/broker/lib/cbmod.so"
     dst: "/usr/lib64/nagios/cbmod.so"
 
 overrides:

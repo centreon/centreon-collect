@@ -31,10 +31,12 @@ BAWORST_ACK
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    Log To Console    Check Ba status
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Ctn Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
+    Log To Console    Check Ba output
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
     ...    Status is OK - All KPIs are in an OK state
@@ -140,6 +142,7 @@ BAWORST
     ${output}    Query
     ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
     Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
+    Disconnect From Database
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
@@ -759,6 +762,7 @@ BEPB_DIMENSION_BV_EVENT
     Execute SQL String    DELETE FROM mod_bam_ba_groups
     Execute SQL String
     ...    INSERT INTO mod_bam_ba_groups (id_ba_group, ba_group_name, ba_group_description) VALUES (574, 'virsgtr', 'description_grtmxzo')
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -791,6 +795,7 @@ BEPB_DIMENSION_BA_EVENT
     Execute SQL String    SET FOREIGN_KEY_CHECKS=0
     Execute SQL String
     ...    UPDATE mod_bam set description='fdpgvo75', sla_month_percent_warn=1.23, sla_month_percent_crit=4.56, sla_month_duration_warn=852, sla_month_duration_crit=789, id_reporting_period=741
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -824,6 +829,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Delete All Rows From Table    mod_bam_bagroup_ba_relation
     Execute SQL String    INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -842,8 +848,9 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     @{query_results}    Query    SELECT bv_id FROM mod_bam_reporting_relations_ba_bv WHERE bv_id=456 and ba_id=1
 
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
+    Disconnect From Database
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}    no_rrd_test=True
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -860,6 +867,7 @@ BEPB_DIMENSION_TIMEPERIOD
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "sunday_value", "monday_value", "tuesday_value", "wednesday_value", "thursday_value", "friday_value", "saturday_value")
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -900,6 +908,7 @@ BEPB_DIMENSION_KPI_EVENT
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
+	Disconnect From Database
         Sleep    1s
         IF    ${output} == ${expected}    BREAK
     END
@@ -927,8 +936,8 @@ BEPB_KPI_STATUS
     ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    10
-        Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
         Sleep    1s
         IF    ${output} == ((2, '1'),)    BREAK
@@ -942,6 +951,7 @@ BEPB_KPI_STATUS
 
     Should Be True    (${output} + 0.999) >= ${start}
 
+    Disconnect From Database
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_BA_DURATION_EVENT
@@ -954,6 +964,7 @@ BEPB_BA_DURATION_EVENT
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
+    Disconnect From Database
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
@@ -993,6 +1004,7 @@ BEPB_BA_DURATION_EVENT
     Should Be True    ${output[0][1]} > ${output[0][0]}
     Should Be True    ${output[0][0]} >= ${start_event}
     Should Be True    ${output[0][1]} <= ${end_event}
+    Disconnect From Database
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
@@ -1009,6 +1021,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
     Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
     Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+    Disconnect From Database
 
     Ctn Start Broker    True
     Ctn Start Engine
@@ -1017,6 +1030,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query
         ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
+	Disconnect From Database
         Sleep    1s
         IF    "${output}" != "()"    BREAK
     END
@@ -1118,7 +1132,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
 
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1179,7 +1193,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
 
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
@@ -1237,7 +1251,7 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
 
 BA_IMPACT_IMPACT
     [Documentation]    A BA of type impact is defined with two BAs of type impact
@@ -1318,7 +1332,7 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
 
 BA_DISABLED
     [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
@@ -1361,12 +1375,9 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ${ba}    Ctn Create Ba With Services    test    worst    ${svc}
 
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}
 
     # Both services ${state} => The BA parent is ${state}
     Ctn Process Service Result Hard
@@ -1379,10 +1390,18 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     Ctn Dump Ba On Error    ${result}    ${ba[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}    Query
-    ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
-    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+    FOR    ${i}    IN RANGE    10
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+        ${output}    Query
+        ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
+	Log To Console    ${output}
+        IF    ${output} == (('test', '_Module_BAM_1'),)
+	    BREAK
+	END
+        Disconnect From Database
+	Sleep    5s
+    END
+    Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    Name or parent name of ba ${ba[1]} is not as expected
 
     Ctn Reload Broker
 
@@ -1392,9 +1411,7 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
 
 
 *** Keywords ***
@@ -1408,6 +1425,7 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+    Disconnect From Database
 
 Ctn BAM Init
     Ctn Clear Commands Status

@@ -52,7 +52,7 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} spdlog::spdlog fmt::fmt
+target_link_libraries(centreon_connector_perl PRIVATE centreon_clib ${PERL_LIBRARIES} spdlog::spdlog fmt::fmt
   absl::any absl::log absl::base absl::bits
   absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
   pthread)

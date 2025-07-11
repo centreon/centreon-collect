@@ -35,12 +35,18 @@ grpc_server_base::grpc_server_base(
     const std::shared_ptr<spdlog::logger>& logger)
     : _conf(conf), _logger(logger) {}
 
-void grpc_server_base::_init(const builder_option& options) {
+void grpc_server_base::_init(const builder_option& options,
+                             bool with_auth_process) {
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;
-  if (_conf->is_crypted() && !_conf->get_cert().empty() &&
-      !_conf->get_key().empty()) {
+  if (_conf->is_crypted()) {
+    if (_conf->get_cert().empty() || _conf->get_key().empty()) {
+      SPDLOG_LOGGER_ERROR(
+          _logger,
+          "Configuration error: if server is encrypted add cert and key");
+      throw std::runtime_error("GRPC configuration error");
+    }
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
@@ -55,6 +61,9 @@ void grpc_server_base::_init(const builder_option& options) {
     ssl_opts.pem_key_cert_pairs.push_back(pkcp);
 
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
+    if (with_auth_process)
+      server_creds->SetAuthMetadataProcessor(
+          std::make_shared<Authprocess>(_conf->get_trusted_tokens(), _logger));
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted server listening on {}",
                        _conf->get_hostport());

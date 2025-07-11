@@ -114,19 +114,18 @@ TEST(agent_reverse_client, update_config) {
 
   auto agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
-          {std::make_shared<grpc_config>("host1:port1", false)}));
+          100, 60, 10, {std::make_shared<grpc_config>("host1:port1", false)}));
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 1);
   ASSERT_EQ(fake_connector::all_fake.begin()->first,
             *agent_conf->get_agent_grpc_reverse_conf().begin());
-  agent_conf = std::make_shared<centreon_agent::agent_config>(1, 100, 1, 10);
+  agent_conf = std::make_shared<centreon_agent::agent_config>(100, 1, 10);
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 0);
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          100, 60, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
@@ -135,7 +134,7 @@ TEST(agent_reverse_client, update_config) {
   auto second_conn = (++fake_connector::all_fake.begin())->second;
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          100, 60, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port2", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
@@ -149,7 +148,7 @@ TEST(agent_reverse_client, update_config) {
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          100, 60, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
@@ -159,8 +158,7 @@ TEST(agent_reverse_client, update_config) {
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
-          {std::make_shared<grpc_config>("host1:port3", false)}));
+          100, 60, 10, {std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 1);
   ASSERT_EQ(fake_connector::all_fake.begin()->second, third_conn);

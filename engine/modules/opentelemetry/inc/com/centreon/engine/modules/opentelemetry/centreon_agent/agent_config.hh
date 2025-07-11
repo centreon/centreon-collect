@@ -33,9 +33,6 @@ class agent_config {
  private:
   // all endpoints engine has to connect to
   grpc_config_set _agent_grpc_reverse_conf;
-  // delay between 2 checks of one service, so we will do all check in that
-  // period (in seconds)
-  uint32_t _check_interval;
   // limit the number of active checks in order to limit charge
   uint32_t _max_concurrent_checks;
   // period of metric exports (in seconds)
@@ -49,13 +46,11 @@ class agent_config {
   agent_config();
 
   // used for tests
-  agent_config(uint32_t check_interval,
-               uint32_t max_concurrent_checks,
+  agent_config(uint32_t max_concurrent_checks,
                uint32_t export_period,
                uint32_t check_timeout);
 
-  agent_config(uint32_t check_interval,
-               uint32_t max_concurrent_checks,
+  agent_config(uint32_t max_concurrent_checks,
                uint32_t export_period,
                uint32_t check_timeout,
                const std::initializer_list<grpc_config::pointer>& endpoints);
@@ -64,7 +59,6 @@ class agent_config {
     return _agent_grpc_reverse_conf;
   }
 
-  uint32_t get_check_interval() const { return _check_interval; }
   uint32_t get_max_concurrent_checks() const { return _max_concurrent_checks; }
   uint32_t get_export_period() const { return _export_period; }
   uint32_t get_check_timeout() const { return _check_timeout; }

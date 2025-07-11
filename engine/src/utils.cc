@@ -32,7 +32,8 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/commands/raw.hh"
+#include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -82,15 +83,10 @@ int my_system_r(nagios_macros* mac,
   // time to start command.
   gettimeofday(&start_time, nullptr);
 
-  // send event broker.
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_time, end_time, *exectime, timeout,
-                        *early_timeout, service::state_ok,
-                        const_cast<char*>(cmd.c_str()), nullptr, nullptr);
-
-  commands::raw raw_cmd("system", cmd);
+  std::shared_ptr<commands::raw_v2> raw_cmd =
+      std::make_shared<commands::raw_v2>(g_io_context, "system", cmd);
   commands::result res;
-  raw_cmd.run(cmd, *mac, timeout, res);
+  raw_cmd->run(cmd, *mac, timeout, res);
 
   end_time.tv_sec = res.end_time.to_seconds();
   end_time.tv_usec = res.end_time.to_useconds() - end_time.tv_sec * 1000000ull;
@@ -419,6 +415,9 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling && !verify_config) {
     checks::checker::deinit();
+    for (auto& c : commands::connector::connectors)
+      c.second->stop_connector();
+
     neb_free_callback_list();
     neb_unload_all_modules(NEBMODULE_FORCE_UNLOAD, sigshutdown
                                                        ? NEBMODULE_NEB_SHUTDOWN

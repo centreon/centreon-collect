@@ -575,7 +575,7 @@ BEUTAG11
     Ctn Reload Engine
     Ctn Reload Broker
     ${result}    Ctn Check Resources Tags With Timeout    1    4    servicegroup    [2,4]    60
-    Should Be True    ${result}    Second step: Service (1, 4) should not have servicegroup tags 2 and 4
+    Should Be True    ${result}    Second step: Service (1, 4) should have servicegroup tags 2 and 4
 
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicecategory    [5]    60    False
     Should Be True    ${result}    Second step: Service (1, 3) should not have servicecategory tags 5
@@ -583,7 +583,7 @@ BEUTAG11
     ${result}    Ctn Check Resources Tags With Timeout    26    504    servicegroup    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 504) should not have servicegroup tags 3 and 5
 
-    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
+    ${result}    Ctn Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
 BEUTAG12
@@ -700,6 +700,103 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     ${result}    Ctn Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 3 should have hostgroup tags 2
+
+
+MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
+    [Documentation]    Scenario: Moving hosts between pollers without losing hostgroup tag
+    ...    Given two pollers each with two hosts
+    ...    And all hosts belong to the same hostgroup
+    ...    When I move two hosts from one poller to the other
+    ...    Then the hostgroup tag of the moved hosts is not erased
+    [Tags]    broker    engine    tags    MON-169515
+    Ctn Clear Db    tags
+    Ctn Clear Db    resources
+    Ctn Clear Db    resources_tags
+
+    Ctn Config Engine    ${2}    ${8}    ${5}
+    Ctn Create Tags File    ${0}    ${1}    ${0}    hostgroup
+    Ctn Create Tags File    ${1}    ${1}    ${0}    hostgroup
+    Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Config Engine Add Cfg File    ${1}    tags.cfg
+    Ctn Add Tags To Hosts    ${0}    group_tags    1    ['host_1', 'host_2']
+    Ctn Add Tags To Hosts    ${1}    group_tags    1    ['host_5', 'host_6']
+    Ctn Add Host Group    ${0}    1    ['host_1', 'host_2']
+    Ctn Add Host Group    ${1}    1    ['host_5', 'host_6']
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    ${2}
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Clear Retention
+
+    Sleep    1s
+    ${start}    Get Current Date
+    Ctn Start engine
+    Ctn Start Broker
+
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 1 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 2 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 5 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    6    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 6 should have hostgroup tags 1
+
+    #remove host_5 and host_6 from poller 1
+    Log To Console    Remove host_5 and host_6 from poller 1
+    Ctn Engine Config Remove Host    ${1}    host_5
+    Ctn Engine Config Remove Host    ${1}    host_6
+    Ctn Engine Config Remove Service Host    ${1}    host_5
+    Ctn Engine Config Remove Service Host    ${1}    host_6
+    Ctn Engine Config Remove Tag    ${1}    1
+
+    ${start}    Get Current Date
+    Ctn Reload Engine    poller_index=${1}
+    Ctn Reload Broker
+
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 1 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 2 should have hostgroup tags 1
+
+    ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    ${60}    False
+    Should Be True    ${result}    tag 1 yet attached to host_5
+
+    ${content}    Create List    processing tag
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling processing tag should be available.
+
+    
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    Check Row Count     SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_time_out=30s    retry_pause=2s
+
+    #host_5 and host_6 will be now on poller 0
+    Log To Console    host_5 and host_6 on poller 0
+    Ctn Config Engine    ${2}    ${14}    ${5}
+    Ctn Create Tags File    ${0}    ${1}    ${0}    hostgroup
+    Ctn Create Tags File    ${1}    ${1}    ${0}    hostgroup
+    Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Config Engine Add Cfg File    ${1}    tags.cfg
+    Ctn Add Tags To Hosts    ${0}    group_tags    1    ['host_1', 'host_2', 'host_5', 'host_6']
+    Ctn Add Host Group    ${0}    1    ['host_1', 'host_2', 'host_5', 'host_6']
+    Ctn Reload Engine    ${0}
+    Ctn Reload Broker
+
+    ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 1 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 2 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 5 should have hostgroup tags 1
+    ${result}    Ctn Check Resources Tags With Timeout    0    6    hostgroup    [1]    60    True
+    Should Be True    ${result}    Host 6 should have hostgroup tags 1
+
+    Check Query Result    SELECT name FROM tags WHERE id = 1    equals    tag0    retry_timeout=5s    retry_pause=1s
+
 
 
 *** Keywords ***

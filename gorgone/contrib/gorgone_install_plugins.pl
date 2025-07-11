@@ -43,15 +43,16 @@ if (scalar(@$plugins) <= 0) {
 
 my $command;
 if ($type eq 'rpm') {
-    $command = 'yum -y install';
-    foreach (@$plugins) {
-        $command .= " '" . $_ . "-*'"
+    if (-x '/usr/bin/dnf' or -x '/usr/sbin/dnf') {
+      $command = 'dnf -y install';
+    } else {
+      $command = 'yum -y install';
     }
 } elsif ($type eq 'deb') {
     $command = 'apt-get -y install';
-    foreach (@$plugins) {
-        $command .= " '" . $_ . "-*'"
-    }
+}
+foreach (@$plugins) {
+    $command .= " '" . $_ . "-*'"
 }
 $command .= ' 2>&1';
 

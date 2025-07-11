@@ -87,7 +87,7 @@ if [ "${TRIPLET}" = "arm64-linux" ] ; then
   export VCPKG_FORCE_SYSTEM_BINARIES=arm
 fi
 
-git clone --depth 1 -b 2024.01.12 https://github.com/Microsoft/vcpkg.git
+git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg

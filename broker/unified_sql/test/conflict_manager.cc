@@ -59,7 +59,7 @@ TEST_F(USConflictManagerTest, OpenClose) {
 
 TEST_F(USConflictManagerTest, InstCVConflict) {
   modules::loader l;
-  l.load_file("./broker/neb/10-neb.so");
+  l.load_file("./broker/lib/10-neb.so");
   uint32_t loop_timeout = 5;
   uint32_t instance_timeout = 5;
   database_config dbcfg("MySQL", "127.0.0.1", 3306, "centreon", "centreon",

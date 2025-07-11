@@ -21,7 +21,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../../core/test/test_server.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/common/pool.hh"

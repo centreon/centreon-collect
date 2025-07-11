@@ -1,20 +1,20 @@
-##
-## Copyright 2013 Centreon
-##
-## Licensed under the Apache License, Version 2.0 (the "License");
-## you may not use this file except in compliance with the License.
-## You may obtain a copy of the License at
-##
-##     http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-##
-## For more information : contact@centreon.com
-##
+#
+# Copyright 2013 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/tls2/inc")
@@ -42,7 +42,7 @@ add_library("${TLS2}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS2}" crypto ssl spdlog::spdlog)
+target_link_libraries("${TLS2}" PRIVATE crypto ssl spdlog::spdlog)
 
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
 
@@ -63,10 +63,10 @@ if (WITH_TESTING)
 
   add_executable(anon-test
       "${TEST_DIR}/anon-test.cc")
-  target_link_libraries(anon-test crypto ssl -pthread -ldl)
+    target_link_libraries(anon-test PRIVATE crypto ssl -pthread -ldl)
   add_executable(crypt-test
       "${TEST_DIR}/crypt-test.cc")
-  target_link_libraries(crypt-test crypto ssl -pthread -ldl fmt::fmt)
+    target_link_libraries(crypt-test PRIVATE crypto ssl -pthread -ldl fmt::fmt)
 endif()
 # Install rule.
 install(TARGETS "${TLS2}"

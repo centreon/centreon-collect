@@ -22,6 +22,8 @@
 #include <grpcpp/server_builder.h>
 
 #include "com/centreon/common/grpc/grpc_config.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/jwt.hh"
 
 namespace com::centreon::common::grpc {
 
@@ -36,7 +38,7 @@ class grpc_server_base {
 
  protected:
   using builder_option = std::function<void(::grpc::ServerBuilder&)>;
-  void _init(const builder_option& options);
+  void _init(const builder_option& options, bool with_auth_process = false);
 
  public:
   grpc_server_base(const grpc_config::pointer& conf,
@@ -55,6 +57,71 @@ class grpc_server_base {
   bool initialized() const { return _server.get(); }
 };
 
+/**
+ * @brief Auth process for grpc server
+ *
+ * This class is used to authenticate incoming requests using JWT tokens.
+ * It checks if the token is present, valid, and trusted.
+ */
+class Authprocess final : public ::grpc::AuthMetadataProcessor {
+  const std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
+  const std::shared_ptr<spdlog::logger> _logger;
+
+ public:
+  Authprocess(
+      std::shared_ptr<const absl::flat_hash_set<std::string>> trusted_tokens,
+      std::shared_ptr<spdlog::logger> logger)
+      : _trusted_tokens(std::move(trusted_tokens)), _logger(std::move(logger)) {
+    assert(_trusted_tokens && _logger);
+  }
+
+  ::grpc::Status Process(const InputMetadata& auth_metadata,
+                         ::grpc::AuthContext* context [[maybe_unused]],
+                         OutputMetadata* consumed_auth_metadata
+                         [[maybe_unused]],
+                         OutputMetadata* response_metadata [[maybe_unused]]) {
+    // Extract the JWT token from the metadata
+    auto it = auth_metadata.find("authorization");
+    std::chrono::system_clock::time_point exp_time =
+        std::chrono::system_clock::time_point::min();
+
+    if (it == auth_metadata.end()) {
+      SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED: No authorization header");
+      return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                            "Missing authorization metadata");
+    }
+
+    std::string auth_header(it->second.data(), it->second.size());
+    SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
+    try {
+      common::crypto::jwt jwt(auth_header);
+      if (jwt.get_exp() < std::chrono::system_clock::now()) {
+        SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
+        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                              "Token expired");
+      }
+      // check if token is trusted by the service
+      if (!_trusted_tokens->contains(jwt.get_string())) {
+        SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token is not trusted");
+        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                              "Token not trusted");
+      }
+      exp_time = jwt.get_exp();
+      context->AddProperty(
+          "jwt-exp",
+          std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                             exp_time.time_since_epoch())
+                             .count()));
+      SPDLOG_LOGGER_INFO(_logger, "Token is valid");
+      return ::grpc::Status::OK;
+    } catch (const com::centreon::exceptions::msg_fmt& ex) {
+      SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
+      return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED, ex.what());
+    }
+  }
+
+  bool IsBlocking() const { return true; }
+};
 }  // namespace com::centreon::common::grpc
 
 #endif

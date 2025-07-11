@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Centreon
+ * Copyright 2018-2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,7 +172,30 @@ static int l_broker_cache_get_hostgroup_name(lua_State* L) {
 
   try {
     std::string const& hg{cache->get_host_group_name(id)};
-    lua_pushstring(L, hg.c_str());
+    lua_pushlstring(L, hg.c_str(), hg.length());
+  } catch (std::exception const& e) {
+    (void)e;
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
+/**
+ *  The get_hostgroup_alias() method available in the Lua interpreter
+ *  It returns a string.
+ *
+ *  @param L The Lua interpreter
+ *
+ *  @return 1
+ */
+static int l_broker_cache_get_hostgroup_alias(lua_State* L) {
+  macro_cache const* cache(
+      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
+  int id(luaL_checkinteger(L, 2));
+
+  try {
+    const std::string& hg{cache->get_host_group_alias(id)};
+    lua_pushlstring(L, hg.c_str(), hg.length());
   } catch (std::exception const& e) {
     (void)e;
     lua_pushnil(L);
@@ -453,27 +476,15 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
     int i{1};
     for (auto it(first), end(second); it != end; ++it) {
       lua_createtable(L, 0, 2);
-      if (it->second->type() == neb::service_group_member::static_type()) {
-        const neb::service_group_member& sgm =
-            *std::static_pointer_cast<neb::service_group_member>(it->second);
+      const ServiceGroupMember& sgm =
+          std::static_pointer_cast<neb::pb_service_group_member>(it->second)
+              ->obj();
 
-        lua_pushinteger(L, sgm.group_id);
-        lua_setfield(L, -2, "group_id");
+      lua_pushinteger(L, sgm.servicegroup_id());
+      lua_setfield(L, -2, "group_id");
 
-        lua_pushstring(L, sgm.group_name.c_str());
-        lua_setfield(L, -2, "group_name");
-
-      } else {
-        const ServiceGroupMember& sgm =
-            std::static_pointer_cast<neb::pb_service_group_member>(it->second)
-                ->obj();
-
-        lua_pushinteger(L, sgm.servicegroup_id());
-        lua_setfield(L, -2, "group_id");
-
-        lua_pushstring(L, sgm.name().c_str());
-        lua_setfield(L, -2, "group_name");
-      }
+      lua_pushstring(L, sgm.name().c_str());
+      lua_setfield(L, -2, "group_name");
       lua_rawseti(L, -2, i);
       ++i;
     }
@@ -505,24 +516,14 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
     for (auto it(first); it != second; ++it) {
       lua_createtable(L, 0, 2);
       std::shared_ptr<io::data> evt = it->second;
-      if (it->second->type() == neb::host_group_member::static_type()) {
-        const neb::host_group_member& hgm =
-            *std::static_pointer_cast<neb::host_group_member>(it->second);
-        lua_pushinteger(L, hgm.group_id);
-        lua_setfield(L, -2, "group_id");
+      const HostGroupMember& hgm =
+          std::static_pointer_cast<neb::pb_host_group_member>(it->second)
+              ->obj();
+      lua_pushinteger(L, hgm.hostgroup_id());
+      lua_setfield(L, -2, "group_id");
 
-        lua_pushstring(L, hgm.group_name.c_str());
-        lua_setfield(L, -2, "group_name");
-      } else {
-        const HostGroupMember& hgm =
-            std::static_pointer_cast<neb::pb_host_group_member>(it->second)
-                ->obj();
-        lua_pushinteger(L, hgm.hostgroup_id());
-        lua_setfield(L, -2, "group_id");
-
-        lua_pushstring(L, hgm.name().c_str());
-        lua_setfield(L, -2, "group_name");
-      }
+      lua_pushstring(L, hgm.name().c_str());
+      lua_setfield(L, -2, "group_name");
       lua_rawseti(L, -2, i);
       ++i;
     }
@@ -700,6 +701,7 @@ void broker_cache::broker_cache_reg(lua_State* L,
       {"get_action_url", l_broker_cache_get_action_url},
       {"get_severity", l_broker_cache_get_severity},
       {"get_check_command", l_broker_cache_get_check_command},
+      {"get_hostgroup_alias", l_broker_cache_get_hostgroup_alias},
       {nullptr, nullptr}};
 
   if (api_version == 2) {

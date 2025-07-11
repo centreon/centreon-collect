@@ -19,15 +19,14 @@
 #include "com/centreon/broker/stats/center.hh"
 
 #include <absl/synchronization/mutex.h>
-#include <fmt/format.h>
 #include <google/protobuf/util/json_util.h>
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/version.hh"
-#include "common/log_v2/log_v2.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
@@ -187,7 +186,7 @@ std::string center::to_string() {
   absl::MutexLock lck(&_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);
-  MessageToJsonString(_stats, &retval, options);
+  auto status = MessageToJsonString(_stats, &retval, options);
   return retval;
 }
 

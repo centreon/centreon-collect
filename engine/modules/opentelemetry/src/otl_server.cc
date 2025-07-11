@@ -293,11 +293,14 @@ otl_server::otl_server(
 
     : common::grpc::grpc_server_base(conf, logger),
       _service(detail::metric_service::load(handler, logger)),
-      _agent_service(centreon_agent::agent_service::load(io_context,
-                                                         agent_config,
-                                                         handler,
-                                                         logger,
-                                                         agent_stats)) {}
+      _agent_service(
+          centreon_agent::agent_service::load(io_context,
+                                              agent_config,
+                                              handler,
+                                              logger,
+                                              agent_stats,
+                                              conf->is_crypted(),
+                                              conf->get_trusted_tokens())) {}
 
 /**
  * @brief Destroy the otl server::otl server object

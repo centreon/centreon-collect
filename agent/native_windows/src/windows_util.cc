@@ -17,6 +17,9 @@
  */
 
 #include "windows_util.hh"
+#include <absl/base/call_once.h>
+#include <comdef.h>
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 std::string com::centreon::agent::get_last_error_as_string() {
   // Get the error message ID, if any.
@@ -84,4 +87,57 @@ com::centreon::agent::convert_filetime_to_tp(uint64_t file_time) {
   std::chrono::file_clock::duration d{file_time};
 
   return std::chrono::file_clock::time_point{d};
+}
+
+namespace com::centreon::agent::detail {
+
+/**
+ * @brief This class is used as a singleton by com_init() function
+ * On called, it initialize com layers
+ * At the end of process, this singleton is destroyed and CoUninitialize() is
+ * called
+ *
+ */
+struct com_init {
+  com_init();
+  ~com_init();
+};
+
+com_init::com_init() {
+  HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+  if (FAILED(hr)) {
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: CoInitializeEx failed with error code: {:#X}",
+        uint32_t(hr));
+  }
+
+  //  Set general COM security levels.
+  hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+                            RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
+
+  if (FAILED(hr)) {
+    throw exceptions::msg_fmt(
+        "Check Task Scheduler: CoInitializeSecurity failed with error code: "
+        "{:#X}",
+        uint32_t(hr));
+  }
+}
+
+com_init::~com_init() {
+  CoUninitialize();
+}
+
+};  // namespace com::centreon::agent::detail
+
+/**
+ * @brief initialize com layers
+ * must be called before any com usage
+ *
+ */
+void com::centreon::agent::com_init() {
+  static std::unique_ptr<detail::com_init> _instance;
+  static absl::once_flag _com_init_once;
+
+  absl::call_once(_com_init_once,
+                  [&] { _instance = std::make_unique<detail::com_init>(); });
 }
