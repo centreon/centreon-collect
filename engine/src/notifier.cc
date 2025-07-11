@@ -875,12 +875,12 @@ bool notifier::_is_notification_viable_custom(reason_type type
  *
  * @return A set of contacts to notify.
  */
-std::unordered_set<contact*> notifier::get_contacts_to_notify(
+std::unordered_set<std::weak_ptr<contact>> notifier::get_contacts_to_notify(
     notification_category cat,
     reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
-  std::unordered_set<contact*> retval;
+  std::unordered_set<std::weak_ptr<contact>> retval;
   escalated = false;
   uint32_t notif_interv{_notification_interval};
 
@@ -899,13 +899,13 @@ std::unordered_set<contact*> notifier::get_contacts_to_notify(
       }
 
       /* For each contact group, we also add its contacts. */
-      for (contactgroup_map_unsafe::const_iterator
-               cgit{e->get_contactgroups().begin()},
-           cgend{e->get_contactgroups().end()};
+      for (contactgroup_map::const_iterator
+               cgit = e->get_contactgroups().begin(),
+               cgend = e->get_contactgroups().end();
            cgit != cgend; ++cgit) {
-        for (contact_map_unsafe::const_iterator
-                 cit{cgit->second->get_members().begin()},
-             cend{cgit->second->get_members().end()};
+        for (contact_map::const_iterator
+                 cit = cgit->second->get_members().begin(),
+                 cend = cgit->second->get_members().end();
              cit != cend; ++cit) {
           assert(cit->second);
           if (cit->second->should_be_notified(cat, type, *this))
@@ -918,9 +918,8 @@ std::unordered_set<contact*> notifier::get_contacts_to_notify(
   if (!escalated) {
     /* Construction of the set containing contacts to notify. We don't know
      * for the moment if those contacts accept notification. */
-    for (contact_map_unsafe::const_iterator it{contacts().begin()},
-         end{contacts().end()};
-         it != end; ++it) {
+    for (auto it = contacts().begin(), end = contacts().end(); it != end;
+         ++it) {
       assert(it->second);
       if (it->second->should_be_notified(cat, type, *this))
         retval.insert(it->second);
@@ -986,8 +985,8 @@ int notifier::notify(notifier::reason_type type,
   /* What are the contacts to notify? */
   uint32_t notification_interval;
   bool escalated;
-  std::unordered_set<contact*> to_notify{
-      get_contacts_to_notify(cat, type, notification_interval, escalated)};
+  std::unordered_set<std::weak_ptr<contact>> to_notify =
+      get_contacts_to_notify(cat, type, notification_interval, escalated);
 
   _current_notification_id = _next_notification_id++;
   auto notif = std::make_unique<notification>(
@@ -1319,20 +1318,21 @@ notifier::notifier_type notifier::get_notifier_type() const noexcept {
   return _notifier_type;
 }
 
-absl::flat_hash_map<std::string, contact*>& notifier::mut_contacts() noexcept {
+absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
+notifier::mut_contacts() noexcept {
   return _contacts;
 }
 
-const absl::flat_hash_map<std::string, contact*>& notifier::contacts()
-    const noexcept {
+const absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
+notifier::contacts() const noexcept {
   return _contacts;
 }
 
-contactgroup_map_unsafe& notifier::get_contactgroups() noexcept {
+contactgroup_map& notifier::get_contactgroups() noexcept {
   return _contact_groups;
 }
 
-contactgroup_map_unsafe const& notifier::get_contactgroups() const noexcept {
+const contactgroup_map& notifier::get_contactgroups() const noexcept {
   return _contact_groups;
 }
 

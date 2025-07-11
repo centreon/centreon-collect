@@ -264,16 +264,18 @@ class notifier : public checkable {
   bool is_notification_viable(notification_category cat,
                               reason_type type,
                               notification_option options);
-  std::unordered_set<contact*> get_contacts_to_notify(
+  std::unordered_set<std::weak_ptr<contact>> get_contacts_to_notify(
       notification_category cat,
       reason_type type,
       uint32_t& notification_interval,
       bool& escalated);
   notifier_type get_notifier_type() const noexcept;
-  absl::flat_hash_map<std::string, contact*>& mut_contacts() noexcept;
-  const absl::flat_hash_map<std::string, contact*>& contacts() const noexcept;
-  contactgroup_map_unsafe& get_contactgroups() noexcept;
-  contactgroup_map_unsafe const& get_contactgroups() const noexcept;
+  absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
+  mut_contacts() noexcept;
+  const absl::flat_hash_map<std::string, std::shared_ptr<contact>>& contacts()
+      const noexcept;
+  contactgroup_map& get_contactgroups() noexcept;
+  const contactgroup_map& get_contactgroups() const noexcept;
   void resolve(uint32_t& w, uint32_t& e);
   std::array<int, MAX_STATE_HISTORY_ENTRIES> const& get_state_history() const;
   std::array<int, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
@@ -349,8 +351,8 @@ class notifier : public checkable {
   /* New ones */
   int _notification_number;
   // reason_type _type;
-  contact_map_unsafe _contacts;
-  contactgroup_map_unsafe _contact_groups;
+  contact_map _contacts;
+  contactgroup_map _contact_groups;
   std::array<std::unique_ptr<notification>, 6> _notification;
   std::array<int, MAX_STATE_HISTORY_ENTRIES> _state_history;
   int _pending_flex_downtime;
