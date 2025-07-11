@@ -218,7 +218,10 @@ runs:
 
           TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
 
-          echo "[DEBUG] - CMA Major version: $VERSION"
+          if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          fi
 
           jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
         done
