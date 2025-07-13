@@ -61,7 +61,7 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
       throw engine_error() << "Error: Cannot resolve contact group "
                            << obj.contactgroup_name() << "'";
     } else {
-      cg->get_members().insert({ct_it->first, ct_it->second.get()});
+      cg->get_members().insert({ct_it->first, ct_it->second});
       broker_group(NEBTYPE_CONTACTGROUP_ADD, cg.get());
     }
   }
@@ -125,8 +125,7 @@ void applier::contactgroup::modify_object(
             << fmt::format("Error: Cannot resolve contact group '{}'",
                            new_object.contactgroup_name());
       } else {
-        it_obj->second->get_members().insert(
-            {ct_it->first, ct_it->second.get()});
+        it_obj->second->get_members().insert({ct_it->first, ct_it->second});
         broker_group(NEBTYPE_CONTACTGROUP_ADD, it_obj->second.get());
       }
     }

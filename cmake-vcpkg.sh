@@ -134,6 +134,7 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
 
   pkgs=(
     gcc-c++
+    curl
     ninja-build
     rrdtool-devel
     gnutls-devel
@@ -203,6 +204,7 @@ elif [ -r /etc/issue ] ; then
       cmake
       g++
       gcc
+      curl
       libcurl4-openssl-dev
       libgcrypt20-dev
       libgnutls28-dev
@@ -233,6 +235,7 @@ elif [ -r /etc/issue ] ; then
     pkgs=(
       gcc
       g++
+      curl
       pkg-config
       libmariadb3
       librrd-dev
