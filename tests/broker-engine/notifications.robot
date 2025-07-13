@@ -626,7 +626,7 @@ not10
     Ctn Start Broker
     Ctn Start Engine
 
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
