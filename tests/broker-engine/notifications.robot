@@ -620,6 +620,7 @@ not10
     Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Broker Config Log    module0    core    trace
 
     ${start}    Get Current Date
     Ctn Start Broker
