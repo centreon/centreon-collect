@@ -66,7 +66,7 @@ class filter {
   absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>
       _files_metadata;
 
-  filters::filter_combinator* _file_filter;
+  std::shared_ptr<filters::filter_combinator> _file_filter;
 
   std::string _root_path;
   std::string _pattern;
@@ -82,12 +82,12 @@ class filter {
          const std::string& pattern,
          int max_depth,
          bool line_count_needed,
-         filters::filter_combinator* file_filter)
+         std::shared_ptr<filters::filter_combinator> file_filter)
       : _root_path(root_path),
         _pattern(pattern),
         _max_depth(max_depth),
         _line_count_needed(line_count_needed),
-        _file_filter(std::move(file_filter)) {}
+        _file_filter(file_filter) {}
 
   void find_files();
   const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
@@ -170,7 +170,7 @@ class check_files : public check {
 
   std::function<void(filter*)> _checker_builder;
 
-  std::unique_ptr<filters::filter_combinator> _file_filter;
+  std::shared_ptr<filters::filter_combinator> _file_filter;
   std::unique_ptr<filters::filter_combinator> _warning_rules_filter;
   std::unique_ptr<filters::filter_combinator> _critical_rules_filter;
 

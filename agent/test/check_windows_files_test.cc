@@ -415,3 +415,47 @@ TEST_F(check_files_test, globs) {
   EXPECT_TRUE(RE2::FullMatch("file(+).txt", re));
   EXPECT_FALSE(RE2::FullMatch("file12.txt", re));
 }
+
+TEST_F(check_files_test, no_dangling_pointer) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({
+        "path": "C:\\Windows",
+        "max-depth": 1,
+        "pattern": "*.exe"
+        })"_json;
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  bool complete = false;
+
+  auto is_complete = [&]() { return complete; };
+
+  {
+    auto checker = std::make_shared<check_files>(
+        g_io_context, spdlog::default_logger(),
+        std::chrono::system_clock::now(), std::chrono::seconds(1), "serv"s,
+        "cmd_name"s, "cmd_line"s, check_args, nullptr,
+        [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+            [[maybe_unused]] int status,
+            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+                perfdata,
+            [[maybe_unused]] const std::list<std::string>& outputs) {
+          absl::MutexLock lck(&wait_m);
+          complete = true;
+          output = outputs.front();
+        },
+        std::make_shared<checks_statistics>());
+
+    checker->start_check(std::chrono::seconds(10));
+    checker.reset();  // Reset the checker to ensure it is deleted
+  }
+
+  absl::MutexLock lck(&wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  re2::RE2 ok_regex(R"(OK: All \d+ files are ok)");
+  ASSERT_TRUE(RE2::FullMatch(output, ok_regex))
+      << "Output format does not match expected pattern: " << output;
+}

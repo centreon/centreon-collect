@@ -540,7 +540,7 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
   _calc_output_format();
 
   _filter = std::make_shared<check_files_detail::filter>(
-      _root_path, _pattern, _max_depth, _line_count_needed, _file_filter.get());
+      _root_path, _pattern, _max_depth, _line_count_needed, _file_filter);
 }
 
 /**
@@ -653,7 +653,7 @@ void check_files::_build_checker() {
 
   // create filters
   if (!_filter_files.empty()) {
-    _file_filter = std::make_unique<filters::filter_combinator>();
+    _file_filter = std::make_shared<filters::filter_combinator>();
 
     if (!filter::create_filter(_filter_files, _logger, _file_filter.get(),
                                false, false)) {
