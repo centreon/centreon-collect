@@ -23,7 +23,7 @@
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "windows_util.hh"
 
-#include <regex>
+#include <re2/re2.h>
 
 using namespace com::centreon::agent;
 
@@ -69,41 +69,77 @@ std::string format_size(double size) {
  * @param glob The input glob pattern as a std::string.
  * @return A std::string containing the equivalent regular expression.
  */
-std::string glob_to_regex(const std::string& glob) {
+std::string com::centreon::agent::glob_to_regex(std::string_view glob) {
   std::string regex;
-  regex.reserve(glob.size() * 2);  // Just an estimate for efficiency
+  regex.reserve(glob.size() * 2);
 
-  for (char c : glob) {
-    switch (c) {
-      case '*':
-        regex += ".*";
-        break;
-      case '?':
-        regex += ".";
-        break;
-      // Escape regex special characters
-      case '.':
-      case '(':
-      case ')':
-      case '+':
-      case '|':
-      case '^':
-      case '$':
-      case '@':
-      case '%':
-      case '\\':
-      case '{':
-      case '}':
-      case '[':
-      case ']':
-      case '#':
-        regex += '\\';
-        regex += c;
-        break;
-      default:
-        regex += c;
-        break;
+  auto flush_literal = [&](std::string_view lit) {
+    for (char c : lit) {
+      switch (c) {
+        case '*':
+          regex += ".*";
+          break;
+        case '?':
+          regex += '.';
+          break;
+        case '.':
+        case '+':
+        case '(':
+        case ')':
+        case '|':
+        case '^':
+        case '$':
+        case '\\':
+        case '{':
+        case '}':
+          regex += '\\';
+          [[fallthrough]];
+        case '[':
+        case ']':
+        default:
+          regex += c;
+          break;
+      }
     }
+  };
+
+  std::size_t i = 0;
+  while (i < glob.size()) {
+    if (glob[i] != '{') {
+      flush_literal(glob.substr(i, 1));
+      ++i;
+      continue;
+    }
+
+    std::size_t brace = i++;  // skip '{'
+    int depth = 1;
+    std::size_t start = i;
+    std::vector<std::string_view> alts;
+
+    while (i < glob.size() && depth) {
+      if (glob[i] == '{')
+        ++depth;
+      else if (glob[i] == '}')
+        --depth;
+
+      if ((glob[i] == ',' && depth == 1) || depth == 0) {
+        alts.push_back(glob.substr(start, i - start));
+        start = i + 1;
+      }
+      ++i;
+    }
+    if (depth)  // no matching '}'
+      throw exceptions::msg_fmt("unmatched '}' in pattern '{}'", glob);
+
+    // build (?:alt1|alt2)
+    regex += "(?:";
+    for (std::size_t a = 0; a < alts.size(); ++a) {
+      if (a)
+        regex += '|';
+      regex += com::centreon::agent::glob_to_regex(
+          alts[a]);  // recurse: '*' and '?' inside
+    }
+    regex += ')';
   }
   return regex;
 }
@@ -288,7 +324,7 @@ file_metadata::file_metadata(const std::string& file_path,
 void ::check_files_detail::filter::find_files() {
   auto pattern = glob_to_regex(_pattern);
 
-  std::regex regex_pattern(pattern, std::regex::ECMAScript | std::regex::icase);
+  re2::RE2 regex_pattern(pattern);
   fs::path search_path(_root_path);
 
   if (!fs::exists(search_path) || !fs::is_directory(search_path)) {
@@ -308,7 +344,7 @@ void ::check_files_detail::filter::find_files() {
     if (fs::is_regular_file(*it)) {
       try {
         std::string filename = it->path().filename().string();
-        if (std::regex_match(filename, regex_pattern)) {
+        if (re2::RE2::FullMatch(filename, regex_pattern)) {
           auto path_str = it->path().string();
           auto metadata =
               std::make_unique<file_metadata>(path_str, _line_count_needed);
@@ -1034,7 +1070,7 @@ JSON arguments
 ==============
 {
   "path"                : string,                 # Root directory to search files in. (Required)
-  "pattern"             : string,                 # Glob pattern to match filenames (default: "*.*")
+  "pattern"             : string,                 # Shell-style wildcards pattern to match filenames (default: "*.*")
   "max-depth"           : integer,                # Max recursion depth (0=top only, 1=+subdirs, -1=unlimited)
   "output-syntax"       : string,                 # Output format string for the overall check result.
                                                   # Placeholders: {status}, {count}, {total}, {list},

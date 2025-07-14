@@ -207,5 +207,7 @@ class check_files : public check {
   static void help(std::ostream& help_stream);
 };
 
+std::string glob_to_regex(std::string_view glob);
+
 }  // namespace com::centreon::agent
 #endif

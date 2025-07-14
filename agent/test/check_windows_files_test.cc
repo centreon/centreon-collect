@@ -17,7 +17,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <regex>
+#include <re2/re2.h>
+#include <chrono>
 
 #include "check.hh"
 #include "check_files.hh"
@@ -31,13 +32,80 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class check_files_test : public ::testing::Test {
  protected:
  public:
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() { check_files::thread_kill(); }
+  static inline std::filesystem::path root_;
+  static void SetUpTestCase() {
+    namespace fs = std::filesystem;
+
+    auto now = std::chrono::high_resolution_clock::now();
+
+    root_ = fs::temp_directory_path() / "check_files_fixture";
+    std::cout << "Using root path: " << root_ << std::endl;
+    fs::remove_all(root_);
+    fs::create_directories(root_);
+
+    constexpr std::string_view dirs[] = {"dirA", "dirB", "dirC", "dirD",
+                                         "dirE"};
+    constexpr std::string_view top[] = {"dirN1", "dirN2"};
+    constexpr std::string_view mid[] = {"level1", "level2"};
+    constexpr std::string_view leaf[] = {"deep1", "deep2"};
+    constexpr std::string_view exts[] = {".txt",  ".log", ".cpp",
+                                         ".json", ".cfg", ".bin"};
+
+    std::mt19937_64 rng{std::random_device{}()};
+    std::uniform_int_distribution<int> nLines(1, 400);
+    std::uniform_int_distribution<int> nWords(3, 12);
+
+    int id = 0;
+
+    auto emit_file = [&](const fs::path& dir) {
+      for (auto e : exts) {
+        fs::path p = dir / ("file" + std::to_string(id++) + std::string(e));
+        std::ofstream out(p, std::ios::binary);
+
+        int lines = nLines(rng), words = nWords(rng);
+        for (int l = 0; l < lines; ++l) {
+          for (int w = 0; w < words; ++w)
+            out << "w" << w << ' ';
+          out << '\n';
+        }
+        if (e == ".bin") {
+          std::vector<char> pad(256 + id);
+          out.write(pad.data(), pad.size());
+        }
+      }
+    };
+
+    /* A) flat dirs */
+    for (auto d : dirs) {
+      fs::create_directories(root_ / d);
+      emit_file(root_ / d);
+    }
+
+    /* B) nested dirs */
+    for (auto t : top)
+      for (auto m : mid)
+        for (auto l : leaf) {
+          fs::path dir = root_ / t / m / l;
+          fs::create_directories(dir);
+          emit_file(dir);
+        }
+
+    std::cout << "time to create files: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     std::chrono::high_resolution_clock::now() - now)
+                     .count()
+              << " ms" << std::endl;
+  }
+
+  static void TearDownTestCase() {
+    std::filesystem::remove_all(root_);
+    check_files::thread_kill();
+  }
 };
 
 // Test the default behavior of the check_files class
 // It should check files in the specified path and return an OK status
-TEST_F(check_files_test, default) {
+TEST_F(check_files_test, default_behavior) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({
@@ -71,8 +139,8 @@ TEST_F(check_files_test, default) {
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
-  std::regex ok_regex(R"(OK: All \d+ files are ok)");
-  ASSERT_TRUE(std::regex_search(output, ok_regex))
+  re2::RE2 ok_regex(R"(OK: All \d+ files are ok)");
+  ASSERT_TRUE(RE2::FullMatch(output, ok_regex))
       << "Output format does not match expected pattern: " << output;
 }
 
@@ -288,8 +356,62 @@ TEST_F(check_files_test, dll) {
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
   // check regex for output  OK: Ok:22|Nok:0|total:22  warning:0|critical:0
-  std::regex ok_regex(
+  re2::RE2 ok_regex(
       R"(OK: Ok:\d+\|Nok:\d+\|total:\d+  warning:\d+\|critical:\d+)");
-  ASSERT_TRUE(std::regex_search(output, ok_regex))
+  ASSERT_TRUE(RE2::PartialMatch(output, ok_regex))
       << "Output format does not match expected pattern: " << output;
+}
+
+// Helper function for checking if a string matches a glob pattern
+void ExpectMatches(const std::string& glob,
+                   std::list<std::string_view> should_match,
+                   std::list<std::string_view> should_fail) {
+  std::string re_str = glob_to_regex(glob);
+  re2::RE2 re(re_str);
+
+  for (auto s : should_match)
+    EXPECT_TRUE(RE2::FullMatch(std::string{s}, re))
+        << "glob \"" << glob << "\"  regex \"" << re_str
+        << "\"  SHOULD match  \"" << s << '"';
+
+  for (auto s : should_fail)
+    EXPECT_FALSE(RE2::FullMatch(std::string{s}, re))
+        << "glob \"" << glob << "\"  regex \"" << re_str
+        << "\"  SHOULD NOT match  \"" << s << '"';
+}
+
+TEST_F(check_files_test, globs) {
+  // * and ? wildcards
+  ExpectMatches("*", {"abc", "", "file.txt"}, {});
+  ExpectMatches("file?.txt", {"file1.txt", "filea.txt"},
+                {"file.txt", "file12.txt"});
+  // [] wildcard
+  ExpectMatches("data[0-9].csv", {"data0.csv", "data5.csv"},
+                {"data.csv", "data12.csv", "dataX.csv"});
+  // {} for alternation
+  ExpectMatches("*.{txt,log,cpp,TXT}",
+                {"readme.TXT", "readme.txt", "error.log", "main.cpp"},
+                {"image.png", "filetxt", "main.c"});
+  // complex patterns
+  ExpectMatches("lib{foo?,bar*}.so",
+                {"libfoo1.so", "libbar.so", "libbar_old.so"},
+                {"libfoo12.so", "libbaz.so"});
+
+  ExpectMatches("lib{foo[1-2],bar*}.so",
+                {"libfoo1.so", "libfoo2.so", "libbar.so", "libbar_old.so"},
+                {"libfoo12.so", "libfoo3.so", "libbaz.so"});
+  // nested patterns
+  ExpectMatches("lib{{foo1,foo2},bar*}.so",
+                {"libfoo1.so", "libfoo2.so", "libbar.so", "libbar_old.so"},
+                {"libfoo12.so", "libfoo3.so", "libbaz.so"});
+
+  // should throw missing }
+  EXPECT_THROW(glob_to_regex("*.{txt,log"), std::runtime_error);
+
+  // No changes
+  std::string regex = glob_to_regex("file(+).txt");
+  EXPECT_EQ(regex, R"(file\(\+\)\.txt)");
+  re2::RE2 re(regex);
+  EXPECT_TRUE(RE2::FullMatch("file(+).txt", re));
+  EXPECT_FALSE(RE2::FullMatch("file12.txt", re));
 }
