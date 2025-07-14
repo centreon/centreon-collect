@@ -133,7 +133,9 @@ class check_files_thread
   void run();
   void kill();
 
-  bool has_to_wait() const { return !_active || !_queue.empty(); }
+  bool has_to_wait() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(_queue_m) {
+    return !_active || !_queue.empty();
+  }
 
   template <class handler_type>
   void async_get_files(const std::shared_ptr<filter>& request_filter,
