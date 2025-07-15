@@ -182,7 +182,11 @@ runs:
           echo "[DEBUG] - Promoting (upload) $ARTIFACT_DL to stable $TARGET_PATH."
           jf rt upload "$ARTIFACT_DL" "$TARGET_PATH" --deb "${{ inputs.distrib }}/main/$ARCH" --flat $DRY_RUN_FLAG
         done
+      shell: bash
 
+    - name: Move deb packages to /tmp/promoted-packages
+      if: ${{ contains(fromJSON('["bookworm", "noble"]'), inputs.distrib) }}
+      run: |
         mkdir -p /tmp/promoted-packages
         mv *.deb /tmp/promoted-packages/ >/dev/null 2>&1 || true
       shell: bash
