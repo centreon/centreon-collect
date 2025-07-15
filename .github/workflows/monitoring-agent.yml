@@ -666,7 +666,7 @@ jobs:
     runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy, noble]
+        distrib: [el8, el9, bookworm, noble]
 
     steps:
       - name: Checkout sources
