@@ -203,14 +203,14 @@ runs:
 
           if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
             TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
-            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+            jf rt upload "$file" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           fi
 
           SEARCH_PATH="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/${BASENAME}_*${OS_DISTRIB}*${ARCH}*.deb"
 
           # search and delete all remote artifacts matching this pattern
           echo "Searching and deleting $SEARCH_PATH"
-          jf rt delete "$SEARCH_PATH"
+          # jf rt delete "$SEARCH_PATH"
 
           # upload local artifact
           echo "Uploading $file"
