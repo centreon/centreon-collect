@@ -667,13 +667,11 @@ sub setlogs {
             increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
             return -1;
         }
-        $options{dbh}->transaction_mode(0);
         return -1 if ($status == -1);
 
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0);
     } else {
         $options{dbh}->rollback();
-        $options{dbh}->transaction_mode(0);
         $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
 
         increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
