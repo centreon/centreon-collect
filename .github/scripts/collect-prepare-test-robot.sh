@@ -74,3 +74,7 @@ else
   apt-get install -y python3-dev
   apt-get clean
 fi
+
+if ! id centreon-engine > /dev/null 2>&1; then
+  useradd -d /var/lib/centreon-engine -r centreon-engine > /dev/null 2>&1
+fi
