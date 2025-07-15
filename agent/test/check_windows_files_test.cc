@@ -416,6 +416,136 @@ TEST_F(check_files_test, globs) {
   EXPECT_FALSE(RE2::FullMatch("file12.txt", re));
 }
 
+TEST_F(check_files_test, regex_failures) {
+  using namespace com::centreon::common::literals;
+  std::string json_str = R"({
+        "path": ")" + root_.string() +
+                         R"(",
+        "max-depth": -1,
+        "pattern": "[0-9*.*",
+        "verbose": false,
+        "files-detail-syntax": "${filename}",
+        "ok-syntax": "${status}: {list}"
+})";
+  // Replace all '\' with '\\' in the path for JSON
+  size_t pos = 0;
+  while ((pos = json_str.find("\\", pos)) != std::string::npos) {
+    json_str.replace(pos, 1, "\\\\");
+    pos += 2;
+  }
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  bool complete = false;
+
+  auto is_complete = [&]() { return complete; };
+
+  auto checker = std::make_shared<check_files>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
+      nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(&wait_m);
+        complete = true;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(120));
+
+  absl::MutexLock lck(&wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  // Expect an error due to invalid regex pattern
+  re2::RE2 error_regex("Invalid regex pattern:");
+  ASSERT_TRUE(RE2::PartialMatch(output, error_regex))
+      << "Output should indicate regex failure: " << output;
+}
+
+TEST_F(check_files_test, pattern_matching) {
+  using namespace com::centreon::common::literals;
+  std::string json_str = R"({
+        "path": ")" + root_.string() +
+                         R"(",
+        "max-depth": -1,
+        "pattern": "*.{txt,log}",
+        "verbose": false,
+        "files-detail-syntax": "${filename}",
+        "ok-syntax": "${status}: {list}"
+})";
+  // Replace all '\' with '\\' in the path for JSON
+  size_t pos = 0;
+  while ((pos = json_str.find("\\", pos)) != std::string::npos) {
+    json_str.replace(pos, 1, "\\\\");
+    pos += 2;
+  }
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  bool complete = false;
+
+  auto is_complete = [&]() { return complete; };
+
+  auto checker = std::make_shared<check_files>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
+      nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(&wait_m);
+        complete = true;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  checker->start_check(std::chrono::seconds(120));
+
+  absl::MutexLock lck(&wait_m);
+  wait_m.Await(absl::Condition(&is_complete));
+
+  ASSERT_TRUE(output.starts_with("OK: "))
+      << "Unexpected status line: " << output;
+
+  pos = output.find(':');
+  ASSERT_NE(pos, std::string::npos);  // we just tested starts_with
+
+  std::string list_str = output.substr(pos + 1);  // after "OK:"
+  std::string_view list = list_str;
+  list.remove_prefix(list.find_first_not_of(' '));  // trim
+
+  size_t count = 0;
+  while (!list.empty()) {
+    auto comma = list.find(',');
+    std::string_view file =
+        list.substr(0, comma == std::string_view::npos ? list.size() : comma);
+
+    ASSERT_TRUE(file.ends_with(".txt") || file.ends_with(".log"))
+        << "Found unexpected extension in \"" << file << '"';
+
+    ++count;
+    if (comma == std::string_view::npos)
+      break;
+    list.remove_prefix(comma + 1);
+  }
+
+  EXPECT_EQ(count, 26u) << "Fixture should contain 26 *.txt / *.log files";
+}
+
 TEST_F(check_files_test, no_dangling_pointer) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =

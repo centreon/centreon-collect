@@ -67,6 +67,7 @@ class filter {
       _files_metadata;
 
   std::shared_ptr<filters::filter_combinator> _file_filter;
+  std::shared_ptr<spdlog::logger> _logger;
 
   std::string _root_path;
   std::string _pattern;
@@ -82,12 +83,14 @@ class filter {
          const std::string& pattern,
          int max_depth,
          bool line_count_needed,
-         std::shared_ptr<filters::filter_combinator> file_filter)
+         std::shared_ptr<filters::filter_combinator> file_filter,
+         std::shared_ptr<spdlog::logger> logger)
       : _root_path(root_path),
         _pattern(pattern),
         _max_depth(max_depth),
         _line_count_needed(line_count_needed),
-        _file_filter(file_filter) {}
+        _file_filter(file_filter),
+        _logger(logger) {}
 
   void find_files();
   const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
@@ -107,7 +110,8 @@ class filter {
 class check_files_thread
     : public std::enable_shared_from_this<check_files_thread> {
   using completion_handler = std::function<void(
-      const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&)>;
+      const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&,
+      const std::string&)>;
 
   /* * @brief Data structure to hold asynchronous request data.
    *
@@ -184,7 +188,8 @@ class check_files : public check {
   void _completion_handler(
       unsigned start_check_index,
       const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
-          result);
+          result,
+      const std::string& msg_err);
 
  public:
   check_files(const std::shared_ptr<asio::io_context>& io_context,

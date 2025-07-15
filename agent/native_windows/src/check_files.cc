@@ -324,7 +324,16 @@ file_metadata::file_metadata(const std::string& file_path,
 void ::check_files_detail::filter::find_files() {
   auto pattern = glob_to_regex(_pattern);
 
-  re2::RE2 regex_pattern(pattern);
+  re2::RE2::Options options;
+  options.set_log_errors(false);
+  re2::RE2 regex_pattern(pattern, options);
+
+  if (!regex_pattern.ok()) {
+    SPDLOG_LOGGER_ERROR(_logger, "Invalid regex pattern: {}", pattern);
+    throw exceptions::msg_fmt("Invalid regex pattern: {}",
+                              regex_pattern.error());
+  }
+
   fs::path search_path(_root_path);
 
   if (!fs::exists(search_path) || !fs::is_directory(search_path)) {
@@ -341,8 +350,9 @@ void ::check_files_detail::filter::find_files() {
       it.disable_recursion_pending();
       continue;
     }
-    if (fs::is_regular_file(*it)) {
-      try {
+
+    try {
+      if (fs::is_regular_file(*it)) {
         std::string filename = it->path().filename().string();
         if (re2::RE2::FullMatch(filename, regex_pattern)) {
           auto path_str = it->path().string();
@@ -353,9 +363,9 @@ void ::check_files_detail::filter::find_files() {
           }
           _files_metadata[std::move(path_str)] = std::move(metadata);
         }
-      } catch (const std::exception& e) {
-        continue;  // Skip files that cannot be processed
       }
+    } catch (const std::exception& e [[maybe_unused]]) {
+      continue;  // Skip files that cannot be accessed or processed
     }
   }
 }
@@ -403,11 +413,22 @@ void ::check_files_detail::check_files_thread::run() {
       auto to_execute = _queue.begin();
       // Execute the filter to find files
       auto filter = to_execute->request_filter;
-      filter->find_files();
-      asio::post(*_io_context, [filter, completion_handler =
-                                            std::move(to_execute->handler)]() {
-        completion_handler(filter->get_files_metadata());
-      });
+      try {
+        filter->find_files();
+        asio::post(
+            *_io_context,
+            [filter, completion_handler = std::move(to_execute->handler)]() {
+              completion_handler(filter->get_files_metadata(), "");
+            });
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(_logger, "Error while processing file check: {}",
+                            e.what());
+        asio::post(*_io_context,
+                   [msg_err = std::string(e.what()),
+                    completion_handler = std::move(to_execute->handler)]() {
+                     completion_handler({}, msg_err);
+                   });
+      }
       _queue.erase(to_execute);
     }
   }
@@ -528,19 +549,21 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_files failed to parse check params: {}",
                         e.what());
-    throw;
+    throw exceptions::msg_fmt("check_files failed to parse check params: {}",
+                              e.what());
   }
 
   if (_root_path.empty()) {
     SPDLOG_LOGGER_ERROR(_logger, "check_files: root path is empty");
-    throw;
+    throw exceptions::msg_fmt("check_files: root path is empty");
   }
 
   _build_checker();
   _calc_output_format();
 
   _filter = std::make_shared<check_files_detail::filter>(
-      _root_path, _pattern, _max_depth, _line_count_needed, _file_filter);
+      _root_path, _pattern, _max_depth, _line_count_needed, _file_filter,
+      _logger);
 }
 
 /**
@@ -657,7 +680,10 @@ void check_files::_build_checker() {
 
     if (!filter::create_filter(_filter_files, _logger, _file_filter.get(),
                                false, false)) {
-      throw std::runtime_error("Failed to create filter for file filter");
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Failed to create filter for file filter: {}",
+                          _filter_files);
+      throw exceptions::msg_fmt("Failed to create filter for file filter");
     }
     _file_filter->apply_checker(_checker_builder);
     SPDLOG_LOGGER_DEBUG(_logger, "file filter created with filter: {}",
@@ -669,7 +695,10 @@ void check_files::_build_checker() {
 
     if (!filter::create_filter(_warning_status, _logger,
                                _warning_rules_filter.get())) {
-      throw std::runtime_error("Failed to create filter for warning status");
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Failed to create filter for warning status: {}",
+                          _warning_status);
+      throw exceptions::msg_fmt("Failed to create filter for warning status");
     }
     _warning_rules_filter->apply_checker(_checker_builder);
     SPDLOG_LOGGER_DEBUG(_logger, "Warning filter created with filter: {}",
@@ -680,7 +709,10 @@ void check_files::_build_checker() {
     _critical_rules_filter = std::make_unique<filters::filter_combinator>();
     if (!filter::create_filter(_critical_status, _logger,
                                _critical_rules_filter.get())) {
-      throw std::runtime_error("Failed to create filter for critical status");
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "Failed to create filter for critical status: {}",
+                          _critical_status);
+      throw exceptions::msg_fmt("Failed to create filter for critical status");
     }
     _critical_rules_filter->apply_checker(_checker_builder);
     SPDLOG_LOGGER_DEBUG(_logger, "Critical filter created with filter: {}",
@@ -902,11 +934,20 @@ void check_files::_print_format(std::string& output, e_status status) {
 void check_files::_completion_handler(
     unsigned start_check_index,
     const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
-        result) {
+        result,
+    const std::string& msg_err) {
   auto result_size = result.size();
   e_status ret = e_status::ok;
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
+
+  if (!msg_err.empty()) {
+    SPDLOG_LOGGER_ERROR(_logger, "check_files error: {}", msg_err);
+    ret = e_status::unknown;
+    output = fmt::format("Error while checking files: {}", msg_err);
+    on_completion(start_check_index, ret, perfs, {output});
+    return;
+  }
 
   if (result_size == 0) {
     SPDLOG_LOGGER_DEBUG(_logger,
@@ -1031,8 +1072,9 @@ void check_files::start_check(const duration& timeout) {
       _filter, std::chrono::system_clock::now() + timeout,
       [me = shared_from_this(), running_check_index](
           const absl::flat_hash_map<std::string,
-                                    std::unique_ptr<file_metadata>>& result) {
-        me->_completion_handler(running_check_index, result);
+                                    std::unique_ptr<file_metadata>>& result,
+          const std::string& msg_err) {
+        me->_completion_handler(running_check_index, result, msg_err);
       });
 }
 
