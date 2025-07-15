@@ -59,7 +59,7 @@ class escalation {
 
   const contactgroup_map& get_contactgroups() const;
   contactgroup_map& get_contactgroups();
-  virtual void resolve(uint32_t& w, uint32_t& e);
+  virtual void resolve(int& w, int& e);
 
   notifier* notifier_ptr;
   timeperiod* escalation_period_ptr;

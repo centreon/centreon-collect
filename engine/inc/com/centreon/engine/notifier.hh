@@ -276,7 +276,7 @@ class notifier : public checkable {
       const noexcept;
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
-  void resolve(uint32_t& w, uint32_t& e);
+  void resolve(int& w, int& e);
   std::array<int, MAX_STATE_HISTORY_ENTRIES> const& get_state_history() const;
   std::array<int, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
   std::array<std::unique_ptr<notification>, 6> const&
