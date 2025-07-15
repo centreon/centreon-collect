@@ -742,7 +742,7 @@ jobs:
 
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
 
-          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          jf rt upload $VERSION_EXE "${TARGET_PATH}"
         shell: powershell
 
       - name: Deliver monitoring agent to github release
