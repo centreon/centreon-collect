@@ -418,7 +418,7 @@ TEST_F(ApplierService, ContactgroupResolution) {
   contact_map::const_iterator it{engine::contact::contacts.find("admin")};
   ASSERT_NE(it, engine::contact::contacts.end());
 
-  ASSERT_EQ(itt->second, it->second);
+  ASSERT_EQ(itt->second.get(), it->second.get());
 }
 
 TEST_F(ApplierService, StalkingOptionsWhenServiceIsModified) {
