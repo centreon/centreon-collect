@@ -380,6 +380,7 @@ void ExpectMatches(const std::string& glob,
         << "\"  SHOULD NOT match  \"" << s << '"';
 }
 
+// Test glob pattern matching
 TEST_F(check_files_test, globs) {
   // * and ? wildcards
   ExpectMatches("*", {"abc", "", "file.txt"}, {});
@@ -416,6 +417,8 @@ TEST_F(check_files_test, globs) {
   EXPECT_FALSE(RE2::FullMatch("file12.txt", re));
 }
 
+// Test regex failures
+// This test checks that the check_files class handles invalid regex patterns
 TEST_F(check_files_test, regex_failures) {
   using namespace com::centreon::common::literals;
   std::string json_str = R"({
@@ -470,6 +473,8 @@ TEST_F(check_files_test, regex_failures) {
       << "Output should indicate regex failure: " << output;
 }
 
+// Test regex pattern matching
+// This test checks if the regex pattern correctly matches files with specific
 TEST_F(check_files_test, pattern_matching) {
   using namespace com::centreon::common::literals;
   std::string json_str = R"({
@@ -546,6 +551,7 @@ TEST_F(check_files_test, pattern_matching) {
   EXPECT_EQ(count, 26u) << "Fixture should contain 26 *.txt / *.log files";
 }
 
+// Test for dangling pointers in check_files class
 TEST_F(check_files_test, no_dangling_pointer) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
@@ -588,4 +594,86 @@ TEST_F(check_files_test, no_dangling_pointer) {
   re2::RE2 ok_regex(R"(OK: All \d+ files are ok)");
   ASSERT_TRUE(RE2::FullMatch(output, ok_regex))
       << "Output format does not match expected pattern: " << output;
+}
+
+TEST_F(check_files_test, two_checks_same_path) {
+  using namespace com::centreon::common::literals;
+  std::string json_str = R"({
+        "path": ")" + root_.string() +
+                         R"(",
+        "max-depth": -1,
+        "pattern": "*.{txt,log}",
+        "verbose": false,
+        "files-detail-syntax": "${filename} ${line_count}",
+        "ok-syntax": "${status}: {list}"
+  })";
+  // Replace all '\' with '\\' in the path for JSON
+  size_t pos = 0;
+  while ((pos = json_str.find("\\", pos)) != std::string::npos) {
+    json_str.replace(pos, 1, "\\\\");
+    pos += 2;
+  }
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
+
+  absl::Mutex wait_m;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::string output;
+  bool complete = false;
+
+  auto is_complete = [&]() { return complete; };
+
+  auto checker = std::make_shared<check_files>(
+      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
+      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
+      nullptr,
+      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+          [[maybe_unused]] int status,
+          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+              perfdata,
+          [[maybe_unused]] const std::list<std::string>& outputs) {
+        absl::MutexLock lck(&wait_m);
+        complete = true;
+        output = outputs.front();
+      },
+      std::make_shared<checks_statistics>());
+
+  auto run_one_check = [&](std::chrono::seconds timeout) {
+    {
+      absl::MutexLock lk(&wait_m);
+      complete = false;
+    }
+    checker->start_check(timeout);
+
+    // wait until the completion‑handler flips 'complete'
+    absl::MutexLock lk(&wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+  };
+
+  run_one_check(std::chrono::seconds(20));
+
+  // extract the numbre of line for the file.72
+  auto re = re2::RE2(R"(file72\.txt\s+(\d+))");
+  int number_lines = 0;
+  RE2::PartialMatch(output, re, &number_lines);
+
+  // open file dirN2\level2\deep2\file72.txt  and add 100 lines
+  std::filesystem::path file_to_modify =
+      root_ / "dirN2" / "level2" / "deep2" / "file72.txt";
+  std::ofstream out(file_to_modify, std::ios::app);
+  std::mt19937 rng{std::random_device{}()};
+  std::uniform_int_distribution<int> char_dist('a', 'z');
+  for (int i = 0; i < 20; i++) {
+    out << '\n';
+  }
+  out.close();
+
+  run_one_check(std::chrono::seconds(20));
+  int new_number_lines = 0;
+  RE2::PartialMatch(output, re, &new_number_lines);
+
+  // check if a change of lines is detected
+  ASSERT_EQ(number_lines + 20, new_number_lines);
 }

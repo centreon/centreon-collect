@@ -45,12 +45,19 @@ struct file_metadata : public testable {
   std::uint64_t number_of_lines = 0;
   std::string version;
 
+  bool has_changed;
+  bool exist;
+
   file_metadata() = default;
   file_metadata(const file_metadata&) = delete;
   // Delete copy assignment operator
   file_metadata& operator=(const file_metadata&) = delete;
 
-  file_metadata(const std::string& file_path, bool line_count_needed);
+  file_metadata(
+      const std::string& file_path,
+      bool line_count_needed,
+      const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
+          files_metadata);
 };
 
 namespace check_files_detail {

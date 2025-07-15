@@ -18,8 +18,9 @@
 
 #include "check_files.hh"
 
+#include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
-#include "boost/interprocess/file_mapping.hpp"
+
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "windows_util.hh"
 
@@ -241,11 +242,16 @@ std::string format_file_time(const std::filesystem::file_time_type& ftime) {
  * - If requested, counts the number of lines in the file using memory mapping
  * for efficiency.
  */
-file_metadata::file_metadata(const std::string& file_path,
-                             bool line_count_needed)
+file_metadata::file_metadata(
+    const std::string& file_path,
+    bool line_count_needed,
+    const absl::flat_hash_map<std::string, std::unique_ptr<file_metadata>>&
+        files_metadata)
     : path(file_path),
       name(fs::path(file_path).filename().string()),
       extension(fs::path(file_path).extension().string()) {
+  has_changed = true;
+
   HANDLE hFile =
       CreateFile(file_path.c_str(), GENERIC_READ,
                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -268,35 +274,45 @@ file_metadata::file_metadata(const std::string& file_path,
     last_write_time = fs::file_time_type::min();
   }
 
-  size = fs::file_size(file_path);
+  // if the file metadata already exists and the date match, we
+  // don't need to check the file info
+  auto it = files_metadata.find(file_path);
+  exist = (it != files_metadata.end());
+  if (exist && it->second->creation_time == creation_time &&
+      it->second->last_write_time == last_write_time) {
+    has_changed = false;
+  } else {
+    has_changed = true;
 
-  version = "";
-  if (extension == ".exe" || extension == ".dll") {
-    version = get_file_version(fs::path(file_path).string());
-  }
+    size = fs::file_size(file_path);
+    version = "";
+    if (extension == ".exe" || extension == ".dll") {
+      version = get_file_version(fs::path(file_path).string());
+    }
 
-  number_of_lines = 0;
-  if (line_count_needed) {
-    if (size > 0) {
-      boost::interprocess::file_mapping file_map(
-          file_path.c_str(), boost::interprocess::read_only);
-      boost::interprocess::mapped_region region(file_map,
-                                                boost::interprocess::read_only);
+    number_of_lines = 0;
+    if (line_count_needed) {
+      if (size > 0) {
+        boost::interprocess::file_mapping file_map(
+            file_path.c_str(), boost::interprocess::read_only);
+        boost::interprocess::mapped_region region(
+            file_map, boost::interprocess::read_only);
 
-      const char* data = static_cast<const char*>(region.get_address());
-      std::size_t size = region.get_size();
-      const char* cur = data;
-      const char* end = data + size;
-      while (cur < end) {
-        const void* p = std::memchr(cur, '\n', end - cur);
-        if (!p)
-          break;
-        ++number_of_lines;
-        cur = static_cast<const char*>(p) + 1;
-      }
-      // If file does not end with '\n', count the last line
-      if (size > 0 && data[size - 1] != '\n') {
-        ++number_of_lines;
+        const char* data = static_cast<const char*>(region.get_address());
+        std::size_t size = region.get_size();
+        const char* cur = data;
+        const char* end = data + size;
+        while (cur < end) {
+          const void* p = std::memchr(cur, '\n', end - cur);
+          if (!p)
+            break;
+          ++number_of_lines;
+          cur = static_cast<const char*>(p) + 1;
+        }
+        // If file does not end with '\n', count the last line
+        if (size > 0 && data[size - 1] != '\n') {
+          ++number_of_lines;
+        }
       }
     }
   }
@@ -356,12 +372,14 @@ void ::check_files_detail::filter::find_files() {
         std::string filename = it->path().filename().string();
         if (re2::RE2::FullMatch(filename, regex_pattern)) {
           auto path_str = it->path().string();
-          auto metadata =
-              std::make_unique<file_metadata>(path_str, _line_count_needed);
-          if (_file_filter && !_file_filter->check(*metadata)) {
-            continue;  // skip to next if the data don't match the filter
+          auto metadata = std::make_unique<file_metadata>(
+              path_str, _line_count_needed, _files_metadata);
+          if (metadata->has_changed) {
+            if (_file_filter && !_file_filter->check(*metadata)) {
+              continue;  // skip to next if the data don't match the filter
+            }
+            _files_metadata[std::move(path_str)] = std::move(metadata);
           }
-          _files_metadata[std::move(path_str)] = std::move(metadata);
         }
       }
     } catch (const std::exception& e [[maybe_unused]]) {
@@ -1033,7 +1051,6 @@ void check_files::_completion_handler(
   }
 
   // clear the lists
-  _filter->clear_files_metadata();
   _ok_list.clear();
   _warning_list.clear();
   _critical_list.clear();
