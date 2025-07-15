@@ -633,7 +633,6 @@ jobs:
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
           $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME = "monitoring-agent-$VERSION"
           $STABILITY = "${{ needs.get-environment.outputs.stability }}"
 
           $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
