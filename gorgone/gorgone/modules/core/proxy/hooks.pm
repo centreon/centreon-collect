@@ -704,9 +704,7 @@ sub increment_log_messages_retrieved {
     my $logger = shift;
     my $id = shift;
 
-    if (!$node->{total_msg} or $node->{total_msg} == -1){
-        return;
-    }
+    return if !defined($node->{total_msg});
 
     $node->{got_msg}++;
 
