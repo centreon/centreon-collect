@@ -133,19 +133,19 @@ runs:
         done
 
         # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
+        if [[ "${{ inputs.module_name }}" == "monitoring-agent" ]]; then
+          for FILE in $FILES; do
+            echo "[DEBUG] - File: $FILE"
 
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
+            VERSION="${{ inputs.major_version }}"
+            MODULE_NAME="monitoring-agent-$VERSION"
+            STABILITY="${{ inputs.stability }}"
 
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+            TARGET_PATH="installers/monitoring-agent/$VERSION/$STABILITY/${{ inputs.distrib }}/"
 
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          done
+        fi
 
       shell: bash
 
@@ -188,6 +188,7 @@ runs:
           BASENAME=$(echo "$file" | cut -d '_' -f 1)
           OS_DISTRIB=""
           ARCH=$(echo $file | cut -d '_' -f3 | cut -d '.' -f1)
+          STABILITY="${{ inputs.stability }}"
 
           # Handle debian or ubuntu distrib based on inputs.distrib
           if [[ "${{inputs.distrib}}" == "jammy" ]] || [[ "${{ inputs.distrib }}" == "noble" ]]; then
@@ -196,6 +197,11 @@ runs:
             OS_DISTRIB=$(echo "$file" | sed -nE 's/.*(deb[0-9]+).*/\1/p')
           else
             echo "Distrib ${{ inputs.distrib }} is not supported as OS_DISTRIB."
+          fi
+
+          if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           fi
 
           # debug
@@ -214,20 +220,4 @@ runs:
           echo "Uploading $file"
           jf rt upload "$file" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
-
-        # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
-
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
-
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
-
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
-
       shell: bash
