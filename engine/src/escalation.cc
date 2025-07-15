@@ -32,16 +32,15 @@ escalation::escalation(uint32_t first_notification,
                        std::string const& escalation_period,
                        uint32_t escalate_on,
                        Uuid const& uuid)
-    : notifier_ptr{nullptr},
-      escalation_period_ptr{nullptr},
-      _first_notification{first_notification},
+    : _first_notification{first_notification},
       _last_notification{last_notification},
       _notification_interval{
           (notification_interval < 0) ? 0 : notification_interval},
       _escalation_period{escalation_period},
       _escalate_on{escalate_on},
-      _uuid{uuid} {}
-
+      _uuid{uuid},
+      escalation_period_ptr{nullptr},
+      notifier_ptr{nullptr} {}
 std::string const& escalation::get_escalation_period() const {
   return _escalation_period;
 }
@@ -138,7 +137,7 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
 
   // Check all contact groups.
   for (contactgroup_map::iterator it = _contact_groups.begin(),
-       end = _contact_groups.end();
+                                  end = _contact_groups.end();
        it != end; ++it) {
     // Find the contact group.
     contactgroup_map::iterator it_cg{

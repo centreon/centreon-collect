@@ -58,7 +58,7 @@ class contactgroup {
   void clear_members();
   contact_map& get_members();
   const contact_map& get_members() const;
-  void resolve(uint32_t& w, uint32_t& e);
+  void resolve(int& w, int& e);
 
   contactgroup& operator=(contactgroup const& other);
 
