@@ -26,17 +26,17 @@ on:
         type: boolean
 
   pull_request:
-    paths:
-      - ".version"
-      - ".version.centreon-monitoring-agent"
-      - agent/**
-      - common/**
-      - custom-triplets/**
-      - packaging/centreon-monitoring-agent/**
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - CMakeListsWindows.txt
-      - vcpkg.json
+    # paths:
+    #   - ".version"
+    #   - ".version.centreon-monitoring-agent"
+    #   - agent/**
+    #   - common/**
+    #   - custom-triplets/**
+    #   - packaging/centreon-monitoring-agent/**
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - CMakeListsWindows.txt
+    #   - vcpkg.json
   push:
     branches:
       - develop
@@ -562,13 +562,13 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
@@ -598,8 +598,10 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
+          # stability: ${{ needs.get-environment.outputs.stability }}
+          # release_type: ${{ needs.get-environment.outputs.release_type }}
+          stability: testing
+          release_type: hotfix
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-windows:
