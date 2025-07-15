@@ -33,7 +33,7 @@ class escalation {
   double _notification_interval;
   std::string _escalation_period;
   uint32_t _escalate_on;
-  contactgroup_map_unsafe _contact_groups;
+  contactgroup_map _contact_groups;
   Uuid _uuid;
 
  public:
