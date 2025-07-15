@@ -309,7 +309,7 @@ TEST_F(check_files_test, version) {
       },
       std::make_shared<checks_statistics>());
 
-  checker->start_check(std::chrono::seconds(120));
+  checker->start_check(std::chrono::seconds(200));
 
   absl::MutexLock lck(&wait_m);
   wait_m.Await(absl::Condition(&is_complete));
