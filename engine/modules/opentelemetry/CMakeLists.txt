@@ -87,7 +87,8 @@ ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-target_link_libraries(opentelemetry   
+target_link_libraries(opentelemetry
+  pb_open_telemetry_lib   
   spdlog::spdlog
   -L${PROTOBUF_LIB_DIR}
   protobuf
