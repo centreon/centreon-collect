@@ -185,7 +185,7 @@ runs:
       shell: bash
 
     - name: Move deb packages to /tmp/promoted-packages
-      if: ${{ contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
+      if: ${{ contains(fromJSON('["bookworm", "noble"]'), inputs.distrib) }}
       run: |
         mkdir -p /tmp/promoted-packages
         mv *.deb /tmp/promoted-packages/ >/dev/null 2>&1 || true
