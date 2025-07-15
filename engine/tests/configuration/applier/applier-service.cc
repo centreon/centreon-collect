@@ -412,18 +412,17 @@ TEST_F(ApplierService, ContactgroupResolution) {
   ASSERT_EQ(sm.begin()->first.first, 1u);
   ASSERT_EQ(sm.begin()->first.second, 3u);
 
-  contactgroup_map_unsafe cgs{sm.begin()->second->get_contactgroups()};
+  contactgroup_map cgs = sm.begin()->second->get_contactgroups();
   ASSERT_EQ(cgs.size(), 1u);
   ASSERT_EQ(cgs.begin()->first, "contactgroup_test");
-  contact_map_unsafe::iterator itt{
-      cgs.begin()->second->get_members().find("admin")};
+  contact_map::iterator itt = cgs.begin()->second->get_members().find("admin");
 
   ASSERT_NE(itt, cgs.begin()->second->get_members().end());
 
   contact_map::const_iterator it{engine::contact::contacts.find("admin")};
   ASSERT_NE(it, engine::contact::contacts.end());
 
-  ASSERT_EQ(itt->second, it->second.get());
+  ASSERT_EQ(itt->second, it->second);
 }
 
 TEST_F(ApplierService, StalkingOptionsWhenServiceIsModified) {

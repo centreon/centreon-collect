@@ -68,7 +68,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
       throw engine_error() << "Error: Cannot resolve contact group "
                            << obj.contactgroup_name() << "'";
     } else {
-      cg->get_members().insert({ct_it->first, ct_it->second.get()});
+      cg->get_members().insert({ct_it->first, ct_it->second});
       broker_group(NEBTYPE_CONTACTGROUP_ADD, cg.get());
     }
   }
@@ -208,8 +208,7 @@ void applier::contactgroup::modify_object(
         throw engine_error() << "Error: Cannot resolve contact group "
                              << obj.contactgroup_name() << "'";
       } else {
-        it_obj->second->get_members().insert(
-            {ct_it->first, ct_it->second.get()});
+        it_obj->second->get_members().insert({ct_it->first, ct_it->second});
         broker_group(NEBTYPE_CONTACTGROUP_ADD, it_obj->second.get());
       }
     }
@@ -229,7 +228,8 @@ void applier::contactgroup::modify_object(
     configuration::Contactgroup* to_modify,
     const configuration::Contactgroup& new_object) {
   // Logging.
-  config_logger->debug("Modifying contactgroup '{}'", to_modify->contactgroup_name());
+  config_logger->debug("Modifying contactgroup '{}'",
+                       to_modify->contactgroup_name());
 
   // Find contact group object.
   contactgroup_map::iterator it_obj =
@@ -367,7 +367,8 @@ void applier::contactgroup::resolve_object(
  * @param obj Contact group configuration to resolve.
  */
 void applier::contactgroup::resolve_object(
-    const configuration::Contactgroup& obj, error_cnt& err) {
+    const configuration::Contactgroup& obj,
+    error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 
@@ -454,7 +455,7 @@ void applier::contactgroup::_resolve_members(
   if (!obj.contactgroup_members().data().empty()) {
     // Logging.
     config_logger->debug("Resolving members of contact group '{}'",
-                  obj.contactgroup_name());
+                         obj.contactgroup_name());
     for (auto& cg_name : obj.contactgroup_members().data()) {
       auto it = std::find_if(s.mutable_contactgroups()->begin(),
                              s.mutable_contactgroups()->end(),
