@@ -525,14 +525,9 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-rpm:
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -567,14 +562,9 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled') &&
-    #   github.repository == 'centreon/centreon-collect'
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -608,10 +598,8 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          # stability: ${{ needs.get-environment.outputs.stability }}
-          # release_type: ${{ needs.get-environment.outputs.release_type }}
-          stability: testing
-          release_type: hotfix
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-windows:
