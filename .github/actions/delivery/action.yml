@@ -141,7 +141,7 @@ runs:
             MODULE_NAME="monitoring-agent-$VERSION"
             STABILITY="${{ inputs.stability }}"
 
-            TARGET_PATH="installers/monitoring-agent/$VERSION/$STABILITY/${{ inputs.release_type }}/${{ inputs.distrib }}/"
+            TARGET_PATH="installers/monitoring-agent/$VERSION/$STABILITY/${{ inputs.distrib }}/"
 
             jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           done
@@ -202,7 +202,7 @@ runs:
           echo "[DEBUG] - Arch: $ARCH"
 
           if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
-            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.release_type }}/${{ inputs.distrib }}/$ARCH/"
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
             jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
           fi
 
