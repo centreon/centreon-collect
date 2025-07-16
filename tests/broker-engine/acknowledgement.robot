@@ -45,6 +45,10 @@ BEACK1
     ...    ${result}
     ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
 
+    # The service command is set to CRITICAL to also control active checks
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    SOFT
@@ -53,6 +57,7 @@ BEACK1
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
+
     ${start}    Ctn Get Round Current Date
     ${d}    Get Current Date    result_format=epoch    exclude_millis=True
     Ctn Acknowledge Service Problem    host_1    service_1

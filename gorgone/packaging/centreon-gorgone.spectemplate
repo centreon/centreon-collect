@@ -1,7 +1,7 @@
 %define selinuxdevel %{_datadir}/selinux/devel
 
 Name:       centreon-gorgone
-Version:    23.10.12
+Version:    23.10.13
 Release:    %{PACKAGE_RELEASE}%{?dist}
 Summary:    Perl daemon task handlers
 Group:      Applications/System
@@ -45,6 +45,7 @@ Requires:   perl(Sys::Syslog)
 Requires:   perl(DateTime)
 Requires:   perl(Try::Tiny)
 Requires:   perl(lib)
+Requires:   perl(Tie::File)
 Requires:   tar
 AutoReqProv: no
 
