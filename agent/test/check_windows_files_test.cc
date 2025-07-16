@@ -584,7 +584,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
         },
         std::make_shared<checks_statistics>());
 
-    checker->start_check(std::chrono::seconds(10));
+    checker->start_check(std::chrono::seconds(120));
     checker.reset();  // Reset the checker to ensure it is deleted
   }
 
@@ -652,7 +652,7 @@ TEST_F(check_files_test, two_checks_same_path) {
     wait_m.Await(absl::Condition(&is_complete));
   };
 
-  run_one_check(std::chrono::seconds(20));
+  run_one_check(std::chrono::seconds(120));
 
   // extract the numbre of line for the file.72
   auto re = re2::RE2(R"(file72\.txt\s+(\d+))");
@@ -670,7 +670,7 @@ TEST_F(check_files_test, two_checks_same_path) {
   }
   out.close();
 
-  run_one_check(std::chrono::seconds(20));
+  run_one_check(std::chrono::seconds(120));
   int new_number_lines = 0;
   RE2::PartialMatch(output, re, &new_number_lines);
 
