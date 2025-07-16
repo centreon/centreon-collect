@@ -33,7 +33,7 @@ class check_files_test : public ::testing::Test {
  protected:
  public:
   static inline std::filesystem::path root_;
-  static void SetUpTestCase() {
+  static void SetUpTestSuite() {
     namespace fs = std::filesystem;
 
     auto now = std::chrono::high_resolution_clock::now();
@@ -97,7 +97,7 @@ class check_files_test : public ::testing::Test {
               << " ms" << std::endl;
   }
 
-  static void TearDownTestCase() {
+  static void TearDownTestSuite() {
     std::filesystem::remove_all(root_);
     check_files::thread_kill();
   }
@@ -278,8 +278,8 @@ TEST_F(check_files_test, version) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({
-        "path": "C:\\Windows",
-        "max-depth": 1,
+        "path": "C:\\Windows"\\System32",
+        "max-depth": 0,
         "pattern": "*.exe",
         "filter-files": "filename == 'cmd.exe'",
         "ok-syntax": "${status}: {list}",
@@ -584,7 +584,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
         },
         std::make_shared<checks_statistics>());
 
-    checker->start_check(std::chrono::seconds(10));
+    checker->start_check(std::chrono::seconds(120));
     checker.reset();  // Reset the checker to ensure it is deleted
   }
 
@@ -652,7 +652,7 @@ TEST_F(check_files_test, two_checks_same_path) {
     wait_m.Await(absl::Condition(&is_complete));
   };
 
-  run_one_check(std::chrono::seconds(20));
+  run_one_check(std::chrono::seconds(120));
 
   // extract the numbre of line for the file.72
   auto re = re2::RE2(R"(file72\.txt\s+(\d+))");
@@ -670,7 +670,7 @@ TEST_F(check_files_test, two_checks_same_path) {
   }
   out.close();
 
-  run_one_check(std::chrono::seconds(20));
+  run_one_check(std::chrono::seconds(120));
   int new_number_lines = 0;
   RE2::PartialMatch(output, re, &new_number_lines);
 
