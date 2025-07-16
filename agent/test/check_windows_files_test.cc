@@ -278,8 +278,8 @@ TEST_F(check_files_test, version) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({
-        "path": "C:\\Windows",
-        "max-depth": 1,
+        "path": "C:\\Windows\\System32",
+        "max-depth": 0,
         "pattern": "*.exe",
         "filter-files": "filename == 'cmd.exe'",
         "ok-syntax": "${status}: {list}",
