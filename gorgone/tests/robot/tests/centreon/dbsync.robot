@@ -14,7 +14,7 @@ send many log by ${communication_mode}, expect all of them on the central
     @{process_list}    Set Variable    ${poller_name}    ${central_name}
     Log To Console    \nStarting the gorgone setup
 
-    Setup Two Gorgone Instances    communication_mode=pullwss    central_name=${central_name}     poller_name=${poller_name}
+    Setup Two Gorgone Instances    communication_mode=${communication_mode}    central_name=${central_name}     poller_name=${poller_name}
     #Ctn Check No Error In Logs    pullwss_gorgone_poller_2
 
     Connect To Database
@@ -36,7 +36,7 @@ send many log by ${communication_mode}, expect all of them on the central
     FOR    ${i}    IN RANGE    3
         ${nb_log_central}=    Evaluate    ${nb_log_central} + ${log_count}
         ${token}=    Create Many Sqlite Log    @{process_list}    log_size=${log_size}    log_count=${log_count}
-        Sleep    6s
+        Sleep    3s
         Get Log From Central    @{process_list}    token=${token}    log_count=${log_count}
         ${log_count}=    Evaluate    ${log_count} + 1000
     END

@@ -77,6 +77,7 @@ Setup Gorgone Config
     [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=
     Gorgone Execute Sql    ${sql_file}
     Create Directory    /var/log/centreon-gorgone/${gorgone_name}/
+    Remove Files    /var/log/centreon-gorgone/${gorgone_name}/config.d/*
     Copy File    ${CURDIR}${/}..${/}config${/}includer.yaml    /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
     FOR    ${file}    IN    @{file_list}
@@ -100,6 +101,11 @@ Setup Gorgone Config
 
 Check Poller Is Connected
     [Arguments]    ${port}=    ${expected_nb}=
+
+    # let's call the log api to force a gorgone GETLOG message to be sent to the poller.
+    # we don't want to parse the output because we don't have any log to check.
+    ${response}=    GET  http://127.0.0.1:8085/api/nodes/2/log/initLogRobot
+
     Log To Console    checking TCP connection is established...
     FOR    ${i}    IN RANGE    40
         Sleep    4
@@ -151,7 +157,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${central_name}
-        
+        # wait api port to port is bound by central gorgone.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
 
@@ -169,6 +176,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    8086
         Start Gorgone    debug    ${poller_name}
+        # wait api port to port is bound by central gorgone.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
@@ -184,7 +193,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${poller_name}
-
+        # wait api port to port is bound by central gorgone.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2    max_failed_attempt=1
     END
