@@ -250,7 +250,8 @@ sub routing {
 
         if (defined($register_nodes->{$target})) {
             if ($synctime_nodes->{$target}->{synctime_error} == -1 && get_sync_time(dbh => $options{dbh}, node_id => $target) == -1) {
-                $options{logger}->writeLogDebug("[proxy] ignoring Getlog for '" . $target . "' because last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{total_msg})");
+                $options{logger}->writeLogDebug("[proxy] ignoring Getlog for '" . $target .
+                    "' because last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{got_msg} / $synctime_nodes->{$target}->{total_msg})");
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -261,6 +262,8 @@ sub routing {
             }
 
             if (defined($synctime_nodes->{$target}->{total_msg})) {
+                $options{logger}->writeLogDebug("[proxy] getlog already in progress for '" . $target .
+                    "' last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{got_msg} / $synctime_nodes->{$target}->{total_msg})");
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -601,6 +604,7 @@ sub setlogs {
     my (%options) = @_;
 
     if (!defined($options{data}->{data}->{id}) || $options{data}->{data}->{id} eq '') {
+        $options{logger}->writeLogInfo("[proxy] [$options{token}] Need a id to setlogs");
         gorgone::standard::library::add_history({
             dbh         => $options{dbh},
             code        => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -634,10 +638,11 @@ sub setlogs {
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
+        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
+
     $status = $options{dbh}->start_transaction();
     if ($status == -1){
         $options{logger}->writeLogError("[proxy] setlogs() could not start a transaction to add log in database. Logs are still available on remote host if needed.");
-        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
         return -1;
     }
     foreach (@{$options{data}->{data}->{result}}) {
@@ -656,7 +661,6 @@ sub setlogs {
         });
         if ($status == -1){
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
             last;
         }
         $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
@@ -665,17 +669,13 @@ sub setlogs {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
-            increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
             return -1;
         }
-        return -1 if ($status == -1);
 
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0);
     } else {
         $options{dbh}->rollback();
         $options{logger}->writeLogError("[proxy] setlogs() could not update data, doing a rollback. Logs are still available on remote host if needed.");
-
-        increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
         return -1;
     }
 
@@ -690,7 +690,6 @@ sub setlogs {
             token => undef,
         );
     }
-    increment_log_messages_retrieved($node_status, $options{logger}, $options{data}->{data}->{id});
 
     return 0;
 }
