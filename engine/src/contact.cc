@@ -254,68 +254,7 @@ void contact::set_timezone(std::string const& timezone) {
   _timezone = timezone;
 }
 
-/**
- *  Equal operator.
- *
- *  @param[in] obj1 The first object to compare.
- *  @param[in] obj2 The second object to compare.
- *
- *  @return True if is the same object, otherwise false.
- */
-// bool operator==(
-//       contact const& obj1,
-//       contact const& obj2) throw () {
-//  return obj1.get_name() == obj2.get_name()
-//         && obj1.get_alias() == obj2.get_alias()
-//         && obj1.get_email() == obj2.get_email()
-//         && obj1.get_pager() == obj2.get_pager()
-//         && obj1.get_addresses() == obj2.get_addresses()
-//         && obj1.get_host_notification_commands() ==
-//         obj2.get_host_notification_commands()
-//         && obj1.get_service_notification_commands() ==
-//         obj2.get_service_notification_commands()
-//         && obj1.notify_on(notifier::service_notification) ==
-//         obj2.notify_on(notifier::service_notification)
-//         && obj1.notify_on(notifier::host_notification) ==
-//         obj2.notify_on(notifier::host_notification)
-//         && obj1.get_host_notification_period() ==
-//         obj2.get_host_notification_period()
-//         && obj1.get_service_notification_period() ==
-//         obj2.get_service_notification_period()
-//         && obj1.get_host_notifications_enabled() ==
-//         obj2.get_host_notifications_enabled()
-//         && obj1.get_service_notifications_enabled() ==
-//         obj2.get_service_notifications_enabled()
-//         && obj1.get_can_submit_commands() == obj2.get_can_submit_commands()
-//         && obj1.get_retain_status_information() ==
-//         obj2.get_retain_status_information()
-//         && obj1.get_retain_nonstatus_information() ==
-//         obj2.get_retain_nonstatus_information()
-//         && obj1.custom_variables == obj2.custom_variables
-//         && obj1.get_last_host_notification() ==
-//         obj2.get_last_host_notification()
-//         && obj1.get_last_service_notification() ==
-//         obj2.get_last_service_notification()
-//         && obj1.get_modified_attributes() == obj2.get_modified_attributes()
-//         && obj1.get_modified_host_attributes() ==
-//         obj2.get_modified_host_attributes()
-//         && obj1.get_modified_service_attributes() ==
-//         obj2.get_modified_service_attributes();
-//}
-
-/**
- *  Not equal operator.
- *
- *  @param[in] obj1 The first object to compare.
- *  @param[in] obj2 The second object to compare.
- *
- *  @return True if is not the same object, otherwise false.
- */
-// bool operator!=(
-//       contact const& obj1,
-//       contact const& obj2) throw () {
-//  return !operator==(obj1, obj2);
-//}
+namespace com::centreon::engine {
 
 /**
  *  Dump contact content into the stream.
@@ -458,6 +397,20 @@ std::ostream& operator<<(std::ostream& os, contact const& obj) {
     os << cv.first << " ; ";
   os << "}\n";
   return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const contact_map& obj) {
+  for (contact_map::const_iterator it = obj.begin(), end = obj.end(); it != end;
+       ++it) {
+    os << it->first;
+    if (std::next(it) != end)
+      os << ", ";
+    else
+      os << "";
+  }
+  return os;
+}
+
 }
 
 /**
@@ -806,18 +759,6 @@ contact::get_service_notification_commands() const {
 std::list<std::shared_ptr<commands::command> >&
 contact::get_service_notification_commands() {
   return _service_notification_commands;
-}
-
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj) {
-  for (contact_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
-       it != end; ++it) {
-    os << it->first;
-    if (std::next(it) != end)
-      os << ", ";
-    else
-      os << "";
-  }
-  return os;
 }
 
 contactgroup_map_unsafe const& contact::get_parent_groups() const {

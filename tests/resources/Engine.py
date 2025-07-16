@@ -986,11 +986,20 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     lines = f.readlines()
     f.close()
 
-    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines.insert(i + 1, f"    {key}              {value}\n")
-            break
+    r_contact_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
+    r_key = re.compile(rf"^\s*{key}\s+[\w\.,]+\s*$")
+    in_block = False
+    for i, line in enumerate(lines):
+        if not in_block:
+            if r_contact_name.match(line):
+                in_block = True
+        else:
+            if r_key.match(line):
+                lines[i] = f"    {key}                     {value}\n"
+                break
+            elif line.strip() == "}":
+                lines.insert(i, f"    {key}                     {value}\n")
+                break
 
     f = open(filename, "w")
     f.writelines(lines)

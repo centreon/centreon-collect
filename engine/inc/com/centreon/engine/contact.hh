@@ -180,6 +180,10 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
+std::ostream& operator<<(std::ostream& os,
+                         com::centreon::engine::contact const& obj);
+std::ostream& operator<<(std::ostream& os, const contact_map& obj);
+
 }  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
@@ -206,9 +210,5 @@ std::shared_ptr<com::centreon::engine::contact> add_contact(
     int can_submit_commands,
     int retain_status_information,
     int retain_nonstatus_information);
-
-std::ostream& operator<<(std::ostream& os,
-                         com::centreon::engine::contact const& obj);
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj);
 
 #endif  // !CCE_CONTACT_HH

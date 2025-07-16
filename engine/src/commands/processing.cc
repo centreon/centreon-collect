@@ -753,12 +753,11 @@ void processing::_redirector_contactgroup(int id,
     return;
   }
 
-  for (contact_map_unsafe::const_iterator
-           it(it_cg->second->get_members().begin()),
-       end(it_cg->second->get_members().end());
+  for (contact_map::const_iterator it = it_cg->second->get_members().begin(),
+                                   end = it_cg->second->get_members().end();
        it != end; ++it)
     if (it->second)
-      (*fptr)(it->second);
+      (*fptr)(it->second.get());
 }
 
 template <void (*fptr)(anomalydetection*, char*)>
