@@ -250,6 +250,7 @@ sub routing {
 
         if (defined($register_nodes->{$target})) {
             if ($synctime_nodes->{$target}->{synctime_error} == -1 && get_sync_time(dbh => $options{dbh}, node_id => $target) == -1) {
+                $options{logger}->writeLogDebug("[proxy] ignoring Getlog for '" . $target . "' because last sync ($synctime_nodes->{$target}->{ctime}) is not finished (expecting $synctime_nodes->{$target}->{total_msg})");
                 gorgone::standard::library::add_history({
                     dbh => $options{dbh},
                     code => GORGONE_ACTION_FINISH_KO, token => $options{token},
@@ -707,7 +708,7 @@ sub increment_log_messages_retrieved {
     $node->{got_msg}++;
 
     if ($node->{got_msg} >= $node->{total_msg}) {
-        $logger->writeLogInfo("[proxy] All $node->{total_msg} logs parts received for node $id, last log is from $node->{ctime}");
+        $logger->writeLogInfo("[proxy] ". ($node->{total_msg} != -1 ? $node->{total_msg} : 1) . " logs parts received for node $id, last log is from $node->{ctime}");
         delete($node->{total_msg});
         $node->{got_msg} = 0;
 
