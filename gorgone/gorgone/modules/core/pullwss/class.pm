@@ -264,8 +264,9 @@ sub transmit_back {
             # websocket have a size limit on each message, so we need to split the response if it's too big
             # For now we split only for a getlog response (which become a setlog message here for an unknown reason).
             # max_msg_size is now a parameter with a default value set in pullwss::hooks::register()
+            my $token = $1;
             my $max_msg_size = $self->{config}->{max_msg_size};
-            my $msg_header   = "[SETLOGS] [$1] [] ";
+            my $msg_header   = "[SETLOGS] [$token] [] ";
             my $size         = length($msg_header);  # Size of current message to be sent.
             my @msg_to_send  = (); # keep all messages to send to add the total number of message to each one.
             my $logs = $msg_recv->{data}->{result};
@@ -279,7 +280,7 @@ sub transmit_back {
 
             for my $log (@{$logs}) {
                  if (get_len_msg($log) > $max_msg_size) {
-                    $self->{logger}->writeLogError('[pullwss] cannot send log message created at ' .
+                    $self->{logger}->writeLogError("[pullwss] [$token] cannot send log message created at " .
                         $log->{ctime} . ', too big : ' . get_len_msg($log) . ' > ' . $max_msg_size);
                     next;
                 }
@@ -291,16 +292,24 @@ sub transmit_back {
                 $size += get_len_msg($log);
             }
 
-            $self->{logger}->writeLogDebug("[pullwss] getlog message included "
-                . scalar(@{$logs}) . " logs, splitting into $nb_msg messages, last log is " . $size . " character long");
-
-            # let's send each message. @msg_to_send contains a list of payload (logs) to send.
-            # $payload is a reference to the array of logs to send for this particular message.
-            foreach my $payload (@msg_to_send) {
+            if (scalar(@{$logs}) <= 0) {
+                $self->{logger}->writeLogDebug("[pullwss] [$token] getlog message included no logs, sending an empty response");
                 $msg_recv->{data}->{nb_total_msg} = $nb_msg + 1;
-                $msg_recv->{data}->{result} = $payload;
+                $msg_recv->{data}->{result} = [];
                 my $message = $msg_header . encode_json($msg_recv);
                 $self->send_message(message => $message);
+            } else {
+                $self->{logger}->writeLogDebug("[pullwss]  [$token] getlog message included "
+                    . scalar(@{$logs}) . " logs, splitting into $nb_msg messages, last log is " . $size . " character long");
+
+                # let's send each message. @msg_to_send contains a list of payload (logs) to send.
+                # $payload is a reference to the array of logs to send for this particular message.
+                foreach my $payload (@msg_to_send) {
+                    $msg_recv->{data}->{nb_total_msg} = $nb_msg + 1;
+                    $msg_recv->{data}->{result} = $payload;
+                    my $message = $msg_header . encode_json($msg_recv);
+                    $self->send_message(message => $message);
+                }
             }
         }
     } elsif (${$options{message}} =~ /^\[BCASTCOREKEY\]\s+\[.*?\]\s+\[.*?\]\s+(.*)/m) {
