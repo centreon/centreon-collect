@@ -33,7 +33,6 @@ class environment;
  */
 class raw_v2 : public command {
   std::shared_ptr<asio::io_context> _io_context;
-  asio::system_timer _timeout_timer;
 
   std::atomic_bool _running = false;
 

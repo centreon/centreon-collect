@@ -42,8 +42,7 @@ raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
                std::string const& command_line,
                command_listener* listener)
     : command(name, command_line, listener, e_type::raw),
-      _io_context(io_context),
-      _timeout_timer(*io_context) {
+      _io_context(io_context) {
   if (_command_line.empty()) {
     throw exceptions::msg_fmt(
         "Could not create {}'' command: command line is empty", _name);
@@ -264,7 +263,8 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
 
   bool expected = false;
   if (!_running.compare_exchange_strong(expected, true)) {
-    throw exceptions::msg_fmt("a check is yet running for command {}", _name);
+    throw exceptions::msg_fmt("a check is already running for command {}",
+                              _name);
   }
 
   if (_last_processed_cmd != processed_cmd) {
