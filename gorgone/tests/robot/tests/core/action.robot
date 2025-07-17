@@ -50,7 +50,8 @@ action module with ${communication_mode} communcation mode
     Test Async Action Module    node_path=nodes/2/    plugin_install=centreon-plugin-Operatingsystems-Linux-Snmp
     # we need to check it is the poller and not the central that have done the action.
     ${log_poller2_query}    Create List    Robot test write with param: for node nodes/2/
-    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=10
+    # this can be long as the poller can install new packages before executing the command.
+    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=70
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file : ${logs_poller}
 
     # Now we test the action api by waiting for the command output in one call.
@@ -91,7 +92,7 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=5
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
@@ -120,9 +121,11 @@ Post Action Endpoint
 Check Action Api Do Something
     [Arguments]    ${status}    ${logs}    ${node_path}    ${get_params}
 
-    Should Be True    ${status}    No log found in the gorgone api or the command failed.
-    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime), status code(code), and data (among other thing)
+    Should Be True    ${status}    No log found in the gorgone api or the command failed : ${logs}
+    # the log api send back a json containing a list of log, with for each logs the token, id, creation time (ctime),
+    # status code(code), and data (among other thing)
     # data is a stringified json that need to be evaluated separately.
+    Should Not Be Empty    ${logs}[data]    no data found in the log
     ${internal_json}=    Evaluate     json.loads("""${logs}[data]""")    json
 
     Should Be Equal As Numbers    0    ${internal_json}[result][exit_code]

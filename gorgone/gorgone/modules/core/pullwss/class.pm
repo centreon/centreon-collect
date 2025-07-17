@@ -115,6 +115,7 @@ sub disconnect_zmq_socket_and_exit {
 
 sub send_message {
     my ($self, %options) = @_;
+    $connector->{logger}->writeLogDebug("[pullwss] read message from internal, sending to remote node : $options{message}");
     my $message = HTML::Entities::encode_entities($options{message});
     $self->{tx}->send({text => $message });
 }
@@ -183,7 +184,6 @@ sub wss_connect {
 
                     # We skip. Dont need to send it in gorgone-core
                     return undef if ($msg =~ /^\[ACK\]/);
-
                     if ($msg =~ /^\[.*\]/) {
                         $connector->{logger}->writeLogDebug('[pullwss] websocket message: ' . $msg);
                         $connector->send_internal_action({message => $msg});
@@ -241,54 +241,117 @@ sub run {
     disconnect_zmq_socket_and_exit();
 
 }
-
+# take a ref string as parameter representing a zmq message, and send it to the parent node through the websocket if needed.
+# Only send back GETLOGS/SETLOGS and PONG, other message are not transmitted.
+# GETLOG are transformed into SETLOGS message, and the result is split into smaller messages if needed.
 sub transmit_back {
-    my (%options) = @_;
+    my ($self, %options) = @_;
 
     return undef if (!defined($options{message}));
 
-    if ($options{message} =~ /^\[ACK\]\s+\[(.*?)\]\s+(.*)/m) {
-        my $data;
+    if (${$options{message}} =~ /^\[ACK\]\s+\[(.*?)\]\s+(.*)/m) {
+        # message received by pullwss from the core. If it's a getlog message, we may need to split it into smaller messages
+        my $msg_recv;
         eval {
-            $data = JSON::XS->new->decode($2);
+            $msg_recv = JSON::XS->new->decode($2);
         };
         if ($@) {
-            return $options{message};
+            # sending it as is if decoding fail, so it will be logged on central and on poller.
+            $connector->send_message(message => ${$options{message}});
         }
-        
-        if (defined($data->{data}->{action}) && $data->{data}->{action} eq 'getlog') {
-            return '[SETLOGS] [' . $1 . '] [] ' . $2;
+
+        if (defined($msg_recv->{data}->{action}) && $msg_recv->{data}->{action} eq 'getlog') {
+            # websocket have a size limit on each message, so we need to split the response if it's too big
+            # For now we split only for a getlog response (which become a setlog message here for an unknown reason).
+            # max_msg_size is now a parameter with a default value set in pullwss::hooks::register()
+            my $token = $1;
+            my $max_msg_size = $self->{config}->{max_msg_size};
+            my $msg_header   = "[SETLOGS] [$token] [] ";
+            my $size         = length($msg_header);  # Size of current message to be sent.
+            my @msg_to_send  = (); # keep all messages to send to add the total number of message to each one.
+            my $logs = $msg_recv->{data}->{result};
+            # don't want to change the data of the message except the number of logs per message.
+            # So we need to keep the original message and use it to construct each new smaller message to send.
+            # result is an arrayref, it will be filled just before encoding to json the object, and the ref is deleted just after.
+            # When size of logs is over the limit, use a new message.
+            $msg_recv->{data}->{result} = undef;
+            my $nb_msg = 0; # This will keep track of the number of message we have to send.
+            # Note that the msg 0 is the first message, so to get the number of message you should add 1.
+
+            for my $log (@{$logs}) {
+                 if (get_len_msg($log) > $max_msg_size) {
+                    $self->{logger}->writeLogError("[pullwss] [$token] cannot send log message created at " .
+                        $log->{ctime} . ', too big : ' . get_len_msg($log) . ' > ' . $max_msg_size);
+                    next;
+                }
+                if ($size + get_len_msg($log) > $max_msg_size) {
+                    $nb_msg++;
+                    $size = length($msg_header);
+                }
+                push(@{$msg_to_send[$nb_msg]}, $log);
+                $size += get_len_msg($log);
+            }
+
+            if (scalar(@{$logs}) <= 0) {
+                $self->{logger}->writeLogDebug("[pullwss] [$token] getlog message included no logs, sending an empty response");
+                $msg_recv->{data}->{nb_total_msg} = $nb_msg + 1;
+                $msg_recv->{data}->{result} = [];
+                my $message = $msg_header . encode_json($msg_recv);
+                $self->send_message(message => $message);
+            } else {
+                $self->{logger}->writeLogDebug("[pullwss]  [$token] getlog message included "
+                    . scalar(@{$logs}) . " logs, splitting into $nb_msg messages, last log is " . $size . " character long");
+
+                # let's send each message. @msg_to_send contains a list of payload (logs) to send.
+                # $payload is a reference to the array of logs to send for this particular message.
+                foreach my $payload (@msg_to_send) {
+                    $msg_recv->{data}->{nb_total_msg} = $nb_msg + 1;
+                    $msg_recv->{data}->{result} = $payload;
+                    my $message = $msg_header . encode_json($msg_recv);
+                    $self->send_message(message => $message);
+                }
+            }
         }
-        return undef;
-    } elsif ($options{message} =~ /^\[BCASTCOREKEY\]\s+\[.*?\]\s+\[.*?\]\s+(.*)/m) {
+    } elsif (${$options{message}} =~ /^\[BCASTCOREKEY\]\s+\[.*?\]\s+\[.*?\]\s+(.*)/m) {
         my $data;
         eval {
             $data = JSON::XS->new->decode($1);
         };
         if ($@) {
-            $connector->{logger}->writeLogDebug("[pull] cannot decode BCASTCOREKEY: $@");
+            $connector->{logger}->writeLogDebug("[pullwss] cannot decode BCASTCOREKEY: $@");
             return undef;
         }
-
         $connector->action_bcastcorekey(data => $data);
-        return undef;
-    } elsif ($options{message} =~ /^\[(PONG|SYNCLOGS)\]/) {
-        return $options{message};
-    }
-    return undef;
-}
 
+    } elsif (${$options{message}} =~ /^\[(PONG|SYNCLOGS)\]/) {
+        $self->send_message(message => ${$options{message}});
+    }
+}
+sub get_len_msg {
+    my $msg = shift;
+    my $len = 104; # a message with empty token and data take around this size, then we add up the data and token field size.
+    if (defined($msg) and ref($msg) eq "HASH") {
+        if (defined($msg->{data})) {
+            $len = $len + length($msg->{data});
+        }
+        if (defined($msg->{token})){
+            $len = $len + length($msg->{token});
+        }
+    }
+    return $len;
+}
 sub read_zmq_events {
     my ($self, %options) = @_;
 
     while (!$self->{stop} and $self->{internal_socket}->has_pollin()) {
         my ($message) = $connector->read_message();
-        $message = transmit_back(message => $message);
-        next if (!defined($message));
 
-        # Only send back SETLOGS and PONG
-        $connector->{logger}->writeLogDebug("[pullwss] read message from internal: $message");
-        $connector->send_message(message => $message);
+        # on the worst case $message could be huge (all of gorgone_history data from the sqlite db for example).
+        # So this is a passby reference to avoid copying the data.
+        # the format of the getlog message stop us from using only reference inside the transmit_back function.
+        $self->transmit_back(message => \$message);
+
+
     }
 }
 

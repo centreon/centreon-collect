@@ -80,16 +80,45 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
     uri = host + "/api/" + node_path + "log/" + token
     while time.time() < limit_date:
         response = requests.get(uri)
-        logger.info(f"http response : {response.json()}")
-
         (status, output) = parse_json_response(response)
+        logger.info(f"answer of parse_json_response: {output}")
+
         if not status:
-            logger.console(f"sleeping one more sec : {uri}")
             time.sleep(1)
             continue
         return status, output
 
-    return False, None
+    return False, f"timeout reached while querying {uri}"
+
+
+def ctn_get_api_log_count_with_timeout(token: str, count=0, node_path='', host='http://127.0.0.1:8085', timeout=15, ):
+    """! Query gorgone log API until the response contain at least one log, and send back the number of log found.
+        @param token: token to search in the API
+        @param node_path: part of the API URL defining if we use the local gorgone or another one, ex node/2/
+        @param timeout: timeout in seconds
+        @param host: gorgone API URL with the port
+        @return number of log present in the api response
+        """
+    limit_date = time.time() + timeout
+    api_json = []
+    while time.time() < limit_date:
+        uri = host + "/api/" + node_path + "log/" + token
+        response = requests.get(uri)
+        api_json = response.json()
+        # http code should either be 200 for success or 404 for no log found if we are too early.
+        # as the time of writing, status code is always 200 because webapp autodiscovery module always expect a 200.
+        if response.status_code != 200 and response.status_code != 404:
+            return False, api_json
+
+        if 'error' in api_json and api_json['error'] == "no_log":
+            time.sleep(2)
+            continue
+        elif len(api_json['data']) >= count:
+            return len(api_json['data'])
+        else:
+            time.sleep(1)
+            continue
+    return 0
 
 
 def parse_json_response(response):
@@ -100,15 +129,13 @@ def parse_json_response(response):
         return False, api_json
 
     if 'error' in api_json and api_json['error'] == "no_log":
-        logger.console(f"no log found for this token.")
-        return False, False
+        return False, 'gorgone api didnt sent back any logs'
     for log_detail in api_json["data"]:
         if log_detail["code"] == 1:
             return False, log_detail
         if log_detail["code"] == 100:
             return True, log_detail
-    logger.console(f"dind't find any log with code 1 or 100 in the response")
-    return False, False
+    return False, 'No log and no error found in gorgone api response.'
 
 
 # these function search log in the gorgone log file
@@ -202,8 +229,6 @@ def ctn_find_line_from(lines, date):
         idx = (start + end) // 2
         idx_d = ctn_extract_date_from_log(lines[idx])
         while idx_d is None:
-            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
-                start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
                 idx_d = ctn_extract_date_from_log(lines[idx])
