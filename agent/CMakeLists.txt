@@ -208,6 +208,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
@@ -221,6 +222,7 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
+    ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits
     Boost::program_options

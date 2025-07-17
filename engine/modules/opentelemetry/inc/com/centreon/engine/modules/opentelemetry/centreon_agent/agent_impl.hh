@@ -46,6 +46,7 @@ class agent_impl
   whitelist_cache _whitelist_cache;
 
   agent_config::pointer _conf ABSL_GUARDED_BY(_protect);
+  bool _credentials_encrypted ABSL_GUARDED_BY(_protect);
 
   metric_handler _metric_handler;
 

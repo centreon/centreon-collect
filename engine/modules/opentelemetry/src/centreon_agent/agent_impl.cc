@@ -91,6 +91,7 @@ agent_impl<bireactor_class>::agent_impl(
       _reversed(reversed),
       _exp_time(exp_time),
       _conf(conf),
+      _credentials_encrypted(false),
       _metric_handler(handler),
       _write_pending(false),
       _logger(logger),
@@ -158,7 +159,8 @@ static bool add_command_to_agent_conf(
     uint32_t check_interval,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
-    const std::string& peer) {
+    const std::string& peer,
+    bool encrypt_credentials) {
   std::string plugins_cmdline = boost::trim_copy(cmd_line);
 
   if (plugins_cmdline.empty()) {
@@ -176,7 +178,12 @@ static bool add_command_to_agent_conf(
   com::centreon::agent::Service* serv = cnf->add_services();
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
-  serv->set_command_line(plugins_cmdline);
+  if (encrypt_credentials && credentials_decrypt) {
+    serv->set_command_line("encrypt::" +
+                           credentials_decrypt->encrypt(plugins_cmdline));
+  } else {
+    serv->set_command_line(plugins_cmdline);
+  }
   serv->set_check_interval(check_interval * pb_config.interval_length());
 
   return true;
@@ -207,11 +214,13 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       const std::string& peer = get_peer();
       bool at_least_one_command_found = get_otel_commands(
           _agent_info->init().host(),
-          [cnf, &peer](const std::string& cmd_name, const std::string& cmd_line,
-                       const std::string& service, uint32_t check_interval,
-                       const std::shared_ptr<spdlog::logger>& logger) {
+          [cnf, &peer, crypt_cred = _credentials_encrypted](
+              const std::string& cmd_name, const std::string& cmd_line,
+              const std::string& service, uint32_t check_interval,
+              const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(cmd_name, cmd_line, service,
-                                             check_interval, cnf, logger, peer);
+                                             check_interval, cnf, logger, peer,
+                                             crypt_cred);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
@@ -250,6 +259,35 @@ void agent_impl<bireactor_class>::on_request(
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
+      _credentials_encrypted = false;
+      if (!_agent_info->init().encryption_test().empty()) {
+        if (credentials_decrypt) {
+          try {
+            std::string decrypted = credentials_decrypt->decrypt(
+                _agent_info->init().encryption_test());
+            if (decrypted == "test credentials decrypt") {
+              _credentials_encrypted = true;
+              SPDLOG_LOGGER_INFO(_logger, "{} works with encrypted credentials",
+                                 *request);
+            } else {
+              SPDLOG_LOGGER_ERROR(_logger,
+                                  "Fail to decrypt test sentence from {} => no "
+                                  "encrypted credentials",
+                                  *request);
+            }
+          } catch (const std::exception& e) {
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "Fail to decrypt test sentence from {} => no "
+                                "encrypted credentials",
+                                *request);
+          }
+        } else {
+          SPDLOG_LOGGER_INFO(_logger,
+                             "Agent {} is ready to receive encrypted "
+                             "credentials but engine not",
+                             *request);
+        }
+      }
     }
     _stats->add_agent(_agent_info->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());
