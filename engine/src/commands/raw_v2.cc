@@ -49,6 +49,14 @@ raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
   }
 }
 
+raw_v2::~raw_v2() {
+  if (_running && _process) {
+    process_logger->debug("raw_v2::~raw_v2: killing process for command '{}'",
+                          _name);
+    _process->kill();
+  }
+}
+
 static void _build_argv_macro_environment(
     nagios_macros const& macros,
     boost::process::v2::process_environment& env) {
@@ -285,12 +293,11 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
   _build_environment_macros(macros, *env);
 
   try {
-    std::shared_ptr<common::process<true>> p =
-        std::make_shared<common::process<true>>(
-            g_io_context, commands_logger, _process_args, true, false, env);
+    _process = std::make_shared<common::process<true>>(
+        g_io_context, commands_logger, _process_args, true, false, env);
     // we don't want that lambda own raw because raw could be deleted by lambda
     // exit called by pool thread
-    p->start_process(
+    _process->start_process(
         [me = weak_from_this(), command_id, start = time(nullptr)](
             const common::process<true>&, int exit_code, int exit_status,
             const std::string& std_out, const std::string& std_err) {
@@ -416,10 +423,9 @@ void raw_v2::run(const std::string& processed_cmd,
   bool done = false;
 
   try {
-    std::shared_ptr<common::process<true>> p =
-        std::make_shared<common::process<true>>(
-            g_io_context, commands_logger, _process_args, true, false, env);
-    p->start_process(
+    _process = std::make_shared<common::process<true>>(
+        g_io_context, commands_logger, _process_args, true, false, env);
+    _process->start_process(
         [me = shared_from_this(), command_id, start = time(nullptr), &waiter,
          &done, &res](const common::process<true>&, int exit_code,
                       int exit_status, const std::string& std_out,
