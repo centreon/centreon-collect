@@ -107,11 +107,15 @@ class check_files_test : public ::testing::Test {
 // It should check files in the specified path and return an OK status
 TEST_F(check_files_test, default_behavior) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows"
-        })"_json;
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1
+  }})",
+                                     root_.generic_string());
 
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
   std::string output;
@@ -147,14 +151,17 @@ TEST_F(check_files_test, default_behavior) {
 // Test the check_files class with a specific pattern and filter
 TEST_F(check_files_test, test_filter) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows",
-        "max-depth": 0,
-        "pattern": "*.*",
-        "filter-files": "size > 1k"
-        })"_json;
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "filter-files": "size > 1k"
+  }})",
+                                     root_.generic_string());
 
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
   std::string output;
@@ -190,15 +197,19 @@ TEST_F(check_files_test, test_filter) {
 // Test the check_files class with a warning status condition
 TEST_F(check_files_test, warning_status) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows",
-        "max-depth": 0,
-        "pattern": "*.*",
-        "files-detail-syntax": "${filename}: ${size}",
-        "warning-status": "size > 1k",
-        "verbose": false
-})"_json;
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "warning-status": "size > 1k",
+    "verbose": false
+    }})",
+                                     root_.generic_string());
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -233,15 +244,19 @@ TEST_F(check_files_test, warning_status) {
 // Test the check_files class with a critical status condition
 TEST_F(check_files_test, critical_status) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows",
-        "max-depth": 0,
-        "pattern": "*.*",
-        "files-detail-syntax": "${filename}: ${size}",
-        "critical-status": "size > 1k",
-        "verbose": false
-})"_json;
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "critical-status": "size > 1k",
+    "verbose": false
+    }})",
+                                     root_.generic_string());
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
@@ -421,21 +436,16 @@ TEST_F(check_files_test, globs) {
 // This test checks that the check_files class handles invalid regex patterns
 TEST_F(check_files_test, regex_failures) {
   using namespace com::centreon::common::literals;
-  std::string json_str = R"({
-        "path": ")" + root_.string() +
-                         R"(",
-        "max-depth": -1,
-        "pattern": "[0-9*.*",
-        "verbose": false,
-        "files-detail-syntax": "${filename}",
-        "ok-syntax": "${status}: {list}"
-})";
-  // Replace all '\' with '\\' in the path for JSON
-  size_t pos = 0;
-  while ((pos = json_str.find("\\", pos)) != std::string::npos) {
-    json_str.replace(pos, 1, "\\\\");
-    pos += 2;
-  }
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "[0-9*.*",
+    "verbose": false,
+    "files-detail-syntax": "${{filename}}",
+    "ok-syntax": "${{status}}: {{list}}"
+}})",
+                                     root_.generic_string());
+
   std::cout << "JSON String: " << json_str << std::endl;
   rapidjson::Document check_args;
   check_args.Parse(json_str.c_str());
@@ -554,12 +564,16 @@ TEST_F(check_files_test, pattern_matching) {
 // Test for dangling pointers in check_files class
 TEST_F(check_files_test, no_dangling_pointer) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows",
-        "max-depth": 1,
-        "pattern": "*.exe"
-        })"_json;
+  std::string json_str = fmt::format(R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*"
+    }})",
+                                     root_.generic_string());
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
