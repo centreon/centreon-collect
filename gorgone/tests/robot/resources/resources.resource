@@ -157,7 +157,7 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${central_name}
-        # wait api port to port is bound by central gorgone.
+        # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
@@ -176,7 +176,7 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    8086
         Start Gorgone    debug    ${poller_name}
-        # wait api port to port is bound by central gorgone.
+        # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
@@ -193,7 +193,7 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${poller_name}
-        # wait api port to port is bound by central gorgone.
+        # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2    max_failed_attempt=1

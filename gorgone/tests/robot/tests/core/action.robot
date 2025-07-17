@@ -50,7 +50,8 @@ action module with ${communication_mode} communcation mode
     Test Async Action Module    node_path=nodes/2/    plugin_install=centreon-plugin-Operatingsystems-Linux-Snmp
     # we need to check it is the poller and not the central that have done the action.
     ${log_poller2_query}    Create List    Robot test write with param: for node nodes/2/
-    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=10
+    # this can be long as the poller can install new packages before executing the command.
+    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query}    date=${start_date}    timeout=70
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file : ${logs_poller}
 
     # Now we test the action api by waiting for the command output in one call.
@@ -58,7 +59,7 @@ action module with ${communication_mode} communcation mode
     # On my machine the sync_wait was at least 0.22 seconds to work sometime, it always worked with 0.5s.
     # In real world where poller is not on the same server the delay will be greater and more random,
     # so the async method should be privileged.
-    ${get_params}=    Set Variable    ?log_wait=6000000&sync_wait=2000000
+    ${get_params}=    Set Variable    ?log_wait=3000000&sync_wait=500000
     Test Sync Action Module    get_params=${get_params}
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/1/
     Test Sync Action Module    get_params=${get_params}    node_path=nodes/2/
@@ -91,7 +92,7 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=70
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=5
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
