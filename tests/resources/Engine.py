@@ -1217,16 +1217,15 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
     if file == "contactTemplates.cfg":
-        r = re.compile(rf"^\s*name\s+{desc}\s*$")
+        r_name = re.compile(rf"^\s*name\s+{desc}\s*$")
     else:
-        r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
+        r_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
 
-    r_contact_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
     r_key = re.compile(rf"^\s*{key}\s+[\w\.,]+\s*$")
     in_block = False
     for i, line in enumerate(lines):
         if not in_block:
-            if r_contact_name.match(line):
+            if r_name.match(line):
                 in_block = True
         else:
             if r_key.match(line):
