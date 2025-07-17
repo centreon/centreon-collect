@@ -297,8 +297,9 @@ void process_manager::_run() {
           break;
         else {
           /* After 20s with only orphans pid, we quit if asked. */
-          std::time_t now;
-          std::time(&now);
+          auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
           if (now - _finished_time > 20)
             break;
         }
