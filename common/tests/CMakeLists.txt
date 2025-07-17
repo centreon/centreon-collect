@@ -86,6 +86,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+            ctncrypto
             protobuf::libprotobuf
             engine_conf
             Boost::program_options
@@ -112,6 +113,7 @@ else()
     ut_common
     PRIVATE centreon_common
             centreon_process
+            ctncrypto
             Boost::program_options
             Boost::process
             re2::re2

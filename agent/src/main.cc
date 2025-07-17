@@ -19,7 +19,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-
 #include "log.hh"
 
 #include "agent_info.hh"
@@ -31,10 +30,14 @@
 #include "streaming_client.hh"
 #include "streaming_server.hh"
 
+#include "common/crypto/aes256.hh"
+
 using namespace com::centreon::agent;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
+
+std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 
 static std::shared_ptr<streaming_client> _streaming_client;
 
@@ -229,6 +232,21 @@ int main(int argc, char* argv[]) {
       }
     });
   }
+
+  try {
+    if (!conf.get_engine_content_path().empty()) {
+      credentials_decrypt =
+          std::make_unique<com::centreon::common::crypto::aes256>(
+              conf.get_engine_content_path());
+      set_encryption_test(
+          credentials_decrypt->encrypt("test credentials decrypt"));
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(g_logger,
+                        "Fail to load {} => credentials won't be encrypted",
+                        conf.get_engine_content_path().empty());
+  }
+
   try {
     g_io_context->run();
   } catch (const std::exception& e) {

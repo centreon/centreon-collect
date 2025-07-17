@@ -19,6 +19,9 @@
 #include "check_exec.hh"
 #include "com/centreon/common/process/process.hh"
 
+extern std::unique_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
 using namespace com::centreon::agent;
 
 /******************************************************************
@@ -47,6 +50,10 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
             stat) {
   _process_args =
       com::centreon::common::process<false>::parse_cmd_line(cmd_line);
+  if (credentials_decrypt) {
+    _process_args->encrypt_args(*credentials_decrypt);
+    _process_args->clear_no_encrypted_args();
+  }
 }
 
 /**
@@ -97,6 +104,10 @@ void check_exec::start_check(const duration& timeout) {
   try {
     auto proc = std::make_shared<com::centreon::common::process<false>>(
         _io_context, _logger, _process_args, true, false, nullptr);
+
+    if (credentials_decrypt) {
+      _process_args->decrypt_args(*credentials_decrypt);
+    }
     // we add 100ms to time out in order to let check class manage timeout
     proc->start_process(
         [me = std::static_pointer_cast<check_exec>(shared_from_this()),
@@ -107,6 +118,7 @@ void check_exec::start_check(const duration& timeout) {
         },
         timeout + std::chrono::milliseconds(100));
     _pid = proc->get_pid();
+    _process_args->clear_no_encrypted_args();
   } catch (const boost::system::system_error& e) {
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
