@@ -552,14 +552,25 @@ TEST_F(check_files_test, pattern_matching) {
 }
 
 // Test for dangling pointers in check_files class
+// destroying check_files does not crash
 TEST_F(check_files_test, no_dangling_pointer) {
   using namespace com::centreon::common::literals;
-  rapidjson::Document check_args =
-      R"({
-        "path": "C:\\Windows",
-        "max-depth": 1,
-        "pattern": "*.exe"
-        })"_json;
+  std::string json_str = R"({
+        "path": ")" + root_.string() +
+                         R"(",
+        "max-depth": -1,
+        "pattern": "*.*",
+  })";
+  // Replace all '\' with '\\' in the path for JSON
+  size_t pos = 0;
+  while ((pos = json_str.find("\\", pos)) != std::string::npos) {
+    json_str.replace(pos, 1, "\\\\");
+    pos += 2;
+  }
+
+  std::cout << "JSON String: " << json_str << std::endl;
+  rapidjson::Document check_args;
+  check_args.Parse(json_str.c_str());
 
   absl::Mutex wait_m;
   std::list<com::centreon::common::perfdata> perfs;
