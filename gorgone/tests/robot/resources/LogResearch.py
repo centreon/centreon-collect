@@ -229,8 +229,6 @@ def ctn_find_line_from(lines, date):
         idx = (start + end) // 2
         idx_d = ctn_extract_date_from_log(lines[idx])
         while idx_d is None:
-            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
-                start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
                 idx_d = ctn_extract_date_from_log(lines[idx])
