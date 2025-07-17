@@ -16,6 +16,7 @@ ${pullwss_poller_config}      ${ROOT_CONFIG}pullwss_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml
+${MOCKOON_LOG_FILE}           /tmp/mockoon.log
 
 ${DBHOST}                   127.0.0.1
 ${DBPORT}                   3306
@@ -53,6 +54,35 @@ Stop Gorgone And Remove Gorgone Config
     IF    ${output} == 0
         Run    rm -f /usr/local/bin/sudo
     END
+    
+Start Mockoon
+    [Arguments]    ${MOCKOON_JSON}
+    Remove File    ${MOCKOON_LOG_FILE}
+
+    ${time_start}    Get Time    str=epoch
+
+    ${process}    Start Process
+    ...    mockoon-cli
+    ...    start
+    ...    --data
+    ...    ${MOCKOON_JSON}
+    ...    --port
+    ...    80
+    ...    stdout=${MOCKOON_LOG_FILE}
+
+    Wait Until Created    ${MOCKOON_LOG_FILE}
+    Wait Until Keyword Succeeds
+    ...     30
+    ...     1
+    ...     File Should Not Be Empty	${MOCKOON_LOG_FILE}
+
+    ${time_end}    Get Time    str=epoch
+    ${duration} =     Evaluate    ${time_end} - ${time_start}
+    Log To Console    Mockoon finished starting after ${duration} seconds
+
+Stop Mockoon
+    Terminate All Processes
+    #Remove File    ${MOCKOON_LOG_FILE}
 
 Setup Sudo
     [Documentation]    This keyword setup a simple sudo command for when we are root in a container which don't have sudo installed.
@@ -133,6 +163,7 @@ Check Poller Communicate
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
+    ${start_time}   Get Time    str=epoch
     ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
     # generate key if there is none.
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
@@ -186,8 +217,13 @@ Setup Two Gorgone Instances
 
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2    max_failed_attempt=1
+    ELSE
+        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, pullwss, pull.
     END
-
+    ${end_time}   Get Time    str=epoch
+    ${duration}=    Evaluate    ${end_time} - ${start_time}
+    Log To Console    Gorgone started in ${communication_mode} after ${duration} seconds
+    
 Wait Until Port Is Bind
     [Arguments]    ${port}
     FOR    ${i}    IN RANGE    15

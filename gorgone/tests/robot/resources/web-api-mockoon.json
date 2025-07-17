@@ -1,0 +1,199 @@
+{
+  "uuid": "2a0ddaa7-4a72-4ceb-a8b4-a79ac18ebeab",
+  "lastMigration": 33,
+  "name": "Web api mockoon",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3002,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a",
+      "type": "http",
+      "documentation": "list version of centreon and all it's modules",
+      "method": "get",
+      "endpoint": "centreon/api/latest/platform/versions",
+      "responses": [
+        {
+          "uuid": "e539bc2f-c7a7-4a53-8ec5-ce4ac28e3411",
+          "body": "{\n  \"modules\": {\n    \"centreon-autodiscovery-server\": {}\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "only send back autodiscovery with empty body as gorgone don't check for exact version, only presence.",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda",
+      "type": "http",
+      "documentation": "",
+      "method": "post",
+      "endpoint": "centreon/api/latest/login",
+      "responses": [
+        {
+          "uuid": "fe2868c7-3ace-400f-a871-774d93cd3850",
+          "body": "{\n  \"contact\": {\n    \"id\": 4,\n    \"name\": \"centreon-gorgone\",\n    \"alias\": \"centreon-gorgone\",\n    \"email\": \"gorgone@localhost\",\n    \"is_admin\": true\n  },\n  \"security\": {\n    \"token\": \"Pg2cfT4JecKcuWu43WVH9z0V+4hNcXStIXp2Ahs4SaKJWLRQg+pksf+vtsacgPTB\"\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "centreon/api/latest/auto-discovery/scheduling/jobs",
+      "responses": [
+        {
+          "uuid": "e481c56a-632a-4147-84a7-2c7f22236d5a",
+          "body": "{\n  \"result\": [\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 9,\n      \"token\": \"discovery_9_9be3be3d\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"target\": 2,\n      \"status\": 1,\n      \"last_execution\": {\n        \"date\": \"2025-06-03 13:03:00.000000\",\n        \"timezone_type\": 3,\n        \"timezone\": \"Europe/Paris\"\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    },\n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 10,\n      \"token\": \"discovery_10_24be3d\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"echo '{\\\"discovered_items\\\":9,\\\"duration\\\":0,\\\"end_time\\\":1750779641,\\\"results\\\":[{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"fe80::a00:27ff:fe79:e8ea\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"10.0.2.255\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"fd00::a00:27ff:fe8d:c04d\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"10.0.2.15\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"192.168.56.106\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"lo\\\",\\\"interface_name\\\":\\\"lo\\\",\\\"ip\\\":\\\"127.0.0.1\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth1\\\",\\\"ip\\\":\\\"192.168.56.255\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv4\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"lo\\\",\\\"interface_name\\\":\\\"lo\\\",\\\"ip\\\":\\\"::1\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"},{\\\"interface_alias\\\":\\\"\\\",\\\"interface_description\\\":\\\"Intel Corporation 82540EM Gigabit Ethernet Controller\\\",\\\"interface_name\\\":\\\"eth0\\\",\\\"ip\\\":\\\"fe80::a00:27ff:fe8d:c04d\\\",\\\"netmask\\\":\\\"\\\",\\\"type\\\":\\\"ipv6\\\"}],\\\"start_time\\\":1750779641}'\",\n      \"target\": 2,\n      \"status\": 0,\n      \"last_execution\": null,\n      \"post_execution\": {\n        \"commands\": [\n          {\n            \"action\": \"COMMAND\",\n            \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\"\n          }\n        ]\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    }, \n    {\n      \"execution\": {\n        \"parameters\": {\n          \"cron_definition\": null\n        },\n        \"mode\": 0\n      },\n      \"job_id\": 11,\n      \"token\": \"discovery_11_9ae7be2a\",\n      \"uuid_parameters\": [\n        \"ip\"\n      ],\n      \"command_line\": \"echo $(date)\",\n      \"target\": 2,\n      \"status\": 0,\n      \"last_execution\": null,\n      \"post_execution\": {\n        \"commands\": [\n          {\n            \"action\": \"COMMAND\",\n            \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\"\n          }\n        ]\n      },\n      \"plugins\": {\n        \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n      }\n    }\n  ],\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 10000,\n    \"search\": {},\n    \"sort_by\": {},\n    \"total\": 3\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "",
+      "responses": [
+        {
+          "uuid": "b06bdd40-8eeb-4e0f-88fc-bf06542ef851",
+          "body": "{\n  \"variables\": [],\n  \"parameters\": {},\n  \"content\": {\n    \"plugins\": {\n      \"centreon-plugin-Applications-Protocol-Snmp\": 20250300\n    },\n    \"post_execution\": {\n      \"commands\": {\n        \"command_line\": \"/usr/share/centreon/www/modules/centreon-autodiscovery-server/script/run_save_discovered_host --all --job-id=10 --export-conf\",\n        \"action\": \"COMMAND\"\n      }\n    },\n    \"execution\": {\n      \"mode\": 0\n    },\n    \"command_line\": \"/usr/lib/centreon/plugins//centreon_generic_snmp.pl --plugin=apps::protocols::snmp::plugin --mode=discovery --hostname='localhost' --snmp-port='161' --snmp-community='public' --snmp-version='2c' --snmp-timeout='5' --snmp-username='$_SNMPUSERNAME$' --authpassphrase='$_SNMPAUTHPASSPHRASE$' --authprotocol='$_SNMPAUTHPROTOCOL$' --privpassphrase='$_SNMPPRIVPASSPHRASE$' --privprotocol='$_SNMPPRIVPROTOCOL$' ; touch /tmp/inject11-06-extraoptions\",\n    \"target\": 1,\n    \"job_id\": 10\n  }\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "a4dd7254-ee90-4e32-b63a-2827eff8c15a"
+    },
+    {
+      "type": "route",
+      "uuid": "476d442e-e1ab-4e6f-a862-0e2b3fc18bda"
+    },
+    {
+      "type": "route",
+      "uuid": "ba98e287-c8dd-4661-9b6f-7c0f52635199"
+    },
+    {
+      "type": "route",
+      "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    },
+    {
+      "key": "Access-Control-Allow-Origin",
+      "value": "*"
+    },
+    {
+      "key": "Access-Control-Allow-Methods",
+      "value": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+    },
+    {
+      "key": "Access-Control-Allow-Headers",
+      "value": "Content-Type, Origin, Accept, Authorization, Content-Length, X-Requested-With"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [],
+  "callbacks": []
+}
