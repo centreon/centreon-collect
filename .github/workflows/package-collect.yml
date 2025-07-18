@@ -30,6 +30,9 @@ on:
       legacy_engine:
         required: true
         type: string
+      build_debug_packages:
+        required: true
+        type: boolean
       packages_in_artifact:
         required: true
         type: boolean
@@ -116,8 +119,14 @@ jobs:
       - name: Generate selinux binaries
         if: ${{ inputs.package_extension == 'rpm' }}
         run: |
+          if [[ "${{ inputs.only_robot_cma }}" == "true" ]]; then
+            MODULES=("centreon-monitoring-agent")
+          else
+            MODULES=("centreon-engine" "centreon-broker")
+          fi
+
           cd selinux
-          for MODULE in "centreon-engine" "centreon-broker" "centreon-monitoring-agent"; do
+          for MODULE in "${MODULES[@]}"; do
             cd $MODULE
             sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
@@ -127,7 +136,7 @@ jobs:
 
       - name: Remove selinux packaging files on debian
         if: ${{ inputs.package_extension == 'deb' }}
-        run: rm -f packaging/centreon-collect/*-selinux.yaml
+        run: rm -f packaging/centreon-*/*-selinux.yaml
         shell: bash
 
       - name: Compile sources
@@ -189,7 +198,7 @@ jobs:
         shell: bash
 
       - name: Generate debug files
-        if: ${{ !inputs.only_robot_cma }}
+        if: ${{ ! inputs.only_robot_cma }}
         run: |
           for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
             echo "Making a debug file of $file"
@@ -201,7 +210,6 @@ jobs:
                "build/broker/watchdog/cbwd"
                "build/engine/centengine"
                "build/engine/centenginestats"
-               "build/engine/modules/bench/centengine_bench_passive"
                "build/connectors/perl/centreon_connector_perl"
                "build/connectors/ssh/centreon_connector_ssh"
                "build/ccc/ccc"
@@ -237,13 +245,36 @@ jobs:
           done
         shell: bash
 
+      - if: ${{ inputs.build_debug_packages == false }}
+        run: rm -f packaging/centreon-{collect,monitoring-agent}/*debuginfo*.yaml
+        shell: bash
+
+      - name: Package centreon-monitoring-agent
+        if: ${{ inputs.only_robot_cma }}
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "packaging/centreon-monitoring-agent/*.yaml"
+          module_name: "centreon-monitoring-agent"
+          distrib: ${{ inputs.distrib }}
+          package_extension: ${{ inputs.package_extension }}
+          major_version: ${{ inputs.cma_major_version }}
+          minor_version: ${{ inputs.cma_minor_version }}
+          release: ${{ inputs.release }}
+          arch: ${{ inputs.arch }}
+          commit_hash: ${{ inputs.commit_hash }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-monitoring-agent-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
+          stability: ${{ inputs.stability }}
+
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
         run: |
           rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite,broker-influxdb,broker-victoria,engine-bench}*
         shell: bash
 
-      - name: Packages
+      - name: Package centreon-collect
         uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
@@ -252,12 +283,10 @@ jobs:
           package_extension: ${{ inputs.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
-          cma_major_version: ${{ inputs.cma_major_version }}
-          cma_minor_version: ${{ inputs.cma_minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension}}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}

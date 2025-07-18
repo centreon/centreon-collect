@@ -95,6 +95,7 @@ class log_v2 {
   size_t _current_max_size = 0U;
   bool _log_pid = false;
   bool _log_source = false;
+  bool _absl_sink = false;
 
  public:
   static void load(std::string name);

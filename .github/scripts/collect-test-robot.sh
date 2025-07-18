@@ -9,7 +9,6 @@ database_type=$2
 #this env variable is a json that contains some test params
 export TESTS_PARAMS='$3'
 
-
 if [ -f "/.venv/bin/activate" ]; then
   echo "########################### activate python virtual env ###########################"
   source /.venv/bin/activate

@@ -82,7 +82,7 @@ class connection_ok : public connection_base {
   void send(request_ptr request [[maybe_unused]],
             send_callback_type&& callback) override {
     if (_state != e_idle) {
-      _io_context->post([cb = std::move(callback)]() {
+      asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
       });
     } else {
@@ -234,30 +234,30 @@ class connection_bagot : public connection_base {
     if (_fail_stage == fail_stage::fail_connect) {
       _state = e_not_connected;
 
-      _io_context->post([cb = std::move(callback)]() {
+      asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(make_error_code(asio::error::host_unreachable), "connect_error");
       });
     } else {
       _state = e_idle;
-      _io_context->post([cb = std::move(callback)]() { cb({}, {}); });
+      asio::post(*_io_context, [cb = std::move(callback)]() { cb({}, {}); });
     }
   }
 
   void send(request_ptr request [[maybe_unused]],
             send_callback_type&& callback) override {
     if (_state != e_idle) {
-      _io_context->post([cb = std::move(callback)]() {
+      asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
       });
     } else {
       _keep_alive_end = system_clock::now() + std::chrono::hours(1);
       if (_fail_stage == fail_send) {
-        _io_context->post([cb = std::move(callback)]() {
+        asio::post(*_io_context, [cb = std::move(callback)]() {
           cb(make_error_code(asio::error::host_unreachable), "send error",
              nullptr);
         });
       } else {
-        _io_context->post([me = this, cb = std::move(callback)]() {
+        asio::post(*_io_context, [me = this, cb = std::move(callback)]() {
           auto resp = std::make_shared<response_type>();
           bool keep_alive = rand() & 0x01;
           SPDLOG_LOGGER_DEBUG(me->_logger, "{:p} keepalive={}",
@@ -348,7 +348,7 @@ class connection_retry : public connection_bagot {
 
   void connect(connect_callback_type&& callback) override {
     _state = e_idle;
-    _io_context->post([cb = std::move(callback)]() { cb({}, {}); });
+    asio::post(*_io_context, [cb = std::move(callback)]() { cb({}, {}); });
   }
 
   void send(request_ptr request, send_callback_type&& callback) override {
@@ -357,12 +357,12 @@ class connection_retry : public connection_bagot {
     }
     if (nb_failed_per_request[request] < failed_before_success) {
       ++nb_failed_per_request[request];
-      _io_context->post([cb = std::move(callback)]() {
+      asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(make_error_code(asio::error::host_unreachable), "send error",
            nullptr);
       });
     } else {
-      _io_context->post([me = this, cb = std::move(callback)]() {
+      asio::post(*_io_context, [me = this, cb = std::move(callback)]() {
         auto resp = std::make_shared<response_type>();
         bool keep_alive = rand() & 0x01;
         SPDLOG_LOGGER_DEBUG(me->_logger, "{:p} keepalive={}",

@@ -27,8 +27,72 @@ This means that the second check may start later than the scheduled time point (
 
 When a check completes, it is inserted into _waiting_check_queue, and its start will be scheduled as soon as a slot in the queue is available (the queue is a set indexed by expected_start) minus old_start plus check_period.
 
+One receives n checks with different check intervals. 
+first_inter_check_delay = min_check_interval/nb_check is calculated
+We use a time base whose resolution is 
+time_step = first_inter_check_delay/2 + rand()%(first_inter_check_delay/5) - first_inter_check_delay/10  (is divided by two to limit delays due to the fact that several checks may need the same timeslot in order to meet their own check_interval )
+To meet all check intervals at check_interval_accuracy (default 5s) ready, one decreases time_step until check_interval_x % time_step <= check_interval_accuracy
 
-## native checks
+In order not to repeat compact groups of the most frequent checks, we interlace the least frequent checks.
+For example, if we have n1 checks to run every 60s, n2 every 120s, n3 every 180s and n4 every 24h, we will have
+| check   | period | time                      |
+| ------- | ------ | ------------------------- |
+| check11 | p1     | 0                         |
+| check21 | p2     | first_inter_check_delay   |
+| check31 | p3     | 2*first_inter_check_delay |
+| check41 | p4     | 3*first_inter_check_delay |
+| check12 | p1     | 4*first_inter_check_delay |
+
+Suppose we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and one check with a period of 24 hours (ch4) and another with a period of 3 minutes (ch5) and two others with a period of 2 minutes (ch6 and ch7)
+
+We get a first_inter_check_delay = 60000/7=8571ms. 
+time_step = 4285
+
+So we schedule as this:
+
+| check | time   |
+| ----- | ------ |
+| ch1   | 0      |
+| ch6   | 8.5s   |
+| ch5   | 17.1s  |
+| ch4   | 25.7s  |
+| ch2   | 34.2s  |
+| ch7   | 42.8s  |
+| ch3   | 51.4s  |
+| ch1   | 60s    |
+| ch2   | 94.2s  |
+| ch3   | 111.4s |
+| ch1   | 120s   |
+| ch6   | 128.5s |
+| ch2   | 154.2s |
+| ch7   | 162.8s |
+| ch3   | 171.4s |
+| ch1   | 180s   |
+| ch5   | 197.1s |
+| ch2   | 214.2s |
+| ...   | ...    |
+
+Another case, we have 3 checks (ch1, ch2, ch3 ) with a period of one minute and ch4 with 70s period
+
+first_inter_check_delay = 60/4 = 15s
+time_step = 7500ms
+
+| check | time   |                           |
+| ----- | ------ | ------------------------- |
+| ch1   | 0      |
+| ch4   | 15s    |
+| ch2   | 30s    |
+| ch3   | 45s    |
+| ch1   | 60s    |
+| ch4   | 82.5s  | 15+70=85 => we choice 90s |
+| ch2   | 97.5s  |
+| ch3   | 105s   |
+| ch1   | 120s   |
+| ch2   | 150s   |
+| ch4   | 157.5s | 15+140=155 => 157.5s      |
+
+
+## Native checks
 All checks are scheduled by one thread, no mutex needed.
 In order to add a native check, you need to inherit from check class. 
 Then you have to override constructor and start_check method.
@@ -110,7 +174,7 @@ Another feature is filter enable disable, If you don't set checker in one or mor
 You can find grammar elements here: [Boost Parser Cheat Sheet](https://www.boost.org/doc/libs/1_87_0/doc/html/boost_parser/cheat_sheet.html)
 
 
-### native_check_cpu (linux version)
+### Native check cpu (linux version)
 It uses /proc/stat to measure cpu statistics. When start_check is called, a first snapshot of /proc/stat is done. Then a timer is started and will expires at max time_out or check_interval minus 1 second. When this timer expires, we do a second snapshot and create plugin output and perfdata from this difference.
 The arguments accepted by this check (in json format) are:
 * cpu-detailed: 
@@ -134,14 +198,14 @@ Example of perfdatas in cpu-detailed mode:
 * iowait#cpu.utilization.percentage
 * used#cpu.utilization.percentage
 
-### native_check_cpu (windows version)
+### Native check cpu (windows version)
 metrics aren't the same as linux version. We collect user, idle, kernel , interrupt and dpc times.
 
 There are two methods, you can use internal microsoft function NtQuerySystemInformation. Yes Microsoft says that they can change signature or data format at any moment, but it's quite stable for many years. A trick, idle time is included un kernel time, so we subtract first from the second. Dpc time is yet included in interrupt time, so we don't sum it to calculate total time.
 The second one relies on performance data counters (pdh API), it gives us percentage despite that sum of percentage is not quite 100%. That's why the default method is the first one.
 The choice between the two methods is done by 'use-nt-query-system-information' boolean parameter.
 
-### check_drive_size
+### Check drive size
 we have to get free space on server drives. In case of network drives, this call can block in case of network failure. Unfortunately, there is no asynchronous API to do that. So a dedicated thread (drive_size_thread) computes these statistics. In order to be os independent and to test it, drive_size_thread relies on a functor that do the job: drive_size_thread::os_fs_stats. This functor is initialized in main function. drive_size thread is stopped at the end of main function.
 
 So it works like that:
@@ -150,11 +214,11 @@ So it works like that:
 * drive_size_thread post result in io_context
 * io_context calls check_drive_size::_completion_handler
 
-### check_health
+### Check health
 This little check sends agent's statistics to the poller. In order to do that, each check shares a common checks_statistics object. 
 This object is created by scheduler each time agent receives config from poller. This object contains last check interval and last check duration of each command. The first time it's executed, it can send unknown state if there is no other yet executed checks.
 
-### event_log
+### Event log
 This is the first checked developed with filters and parameterizable output. 
 How it works:
 * First we subscribe to eventlog, in fact, OS creates a thread that call a callback( container::_subscription_callback)
@@ -174,7 +238,7 @@ Another point is uniq. When we print event to output, we avoid to print each of 
 
 Use of flyweight: we may create a lot of event objects. As we can have the same string in several objects, we use boost flyweight library in order to store only one string in memory for several events.
 
-### process_log
+### Process log
 On each check, it scans all running processes on host. 
 In order to save CPU, at check construction, we set a field mask (process_field) in order to only get needed data.
 Then it:

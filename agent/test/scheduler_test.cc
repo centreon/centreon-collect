@@ -96,6 +96,19 @@ std::vector<std::pair<tempo_check*, time_point>> tempo_check::check_starts;
 std::mutex tempo_check::check_starts_m;
 uint64_t tempo_check::completion_time;
 
+class scheduler_closer {
+  std::shared_ptr<scheduler> _to_stop;
+
+ public:
+  scheduler_closer(const std::shared_ptr<scheduler>& to_stop)
+      : _to_stop(to_stop) {}
+
+  ~scheduler_closer() {
+    asio::post(*g_io_context, [to_stop = _to_stop]() { to_stop->stop(); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
+};
+
 class scheduler_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
@@ -124,7 +137,6 @@ scheduler_test::create_conf(unsigned nb_serv,
   std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
       std::make_shared<com::centreon::agent::MessageToAgent>();
   auto cnf = conf->mutable_config();
-  cnf->set_check_interval(second_check_period);
   cnf->set_export_period(export_period);
   cnf->set_max_concurrent_checks(max_concurent_check);
   cnf->set_check_timeout(check_timeout);
@@ -134,6 +146,7 @@ scheduler_test::create_conf(unsigned nb_serv,
     serv->set_service_description(fmt::format("serv{}", serv_index + 1));
     serv->set_command_name(fmt::format("command{}", serv_index + 1));
     serv->set_command_line("/usr/bin/ls");
+    serv->set_check_interval(second_check_period);
   }
   return conf;
 }
@@ -159,24 +172,64 @@ TEST_F(scheduler_test, no_config) {
   ASSERT_TRUE(weak_shed.lock());
 
   weak_shed.lock()->stop();
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   ASSERT_FALSE(weak_shed.lock());
 }
 
 static bool tempo_check_assert_pred(const time_point& after,
                                     const time_point& before) {
-  if ((after - before) <= std::chrono::milliseconds(400)) {
+  if ((after - before) <= std::chrono::milliseconds(250)) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
-  if ((after - before) >= std::chrono::milliseconds(600)) {
+  if ((after - before) >= std::chrono::milliseconds(750)) {
     SPDLOG_ERROR("after={}, before={}", after, before);
     return false;
   }
   return true;
 }
 
+static bool tempo_check_assert_pred3(const time_point& after,
+                                     const time_point& before,
+                                     const unsigned min_second_check_interval) {
+  std::chrono::milliseconds expected_interval(min_second_check_interval * 1000 /
+                                              20);
+  if ((after - before) <= expected_interval - std::chrono::milliseconds(250)) {
+    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
+                 before, min_second_check_interval);
+    return false;
+  }
+  if ((after - before) >= expected_interval + std::chrono::milliseconds(250)) {
+    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
+                 before, min_second_check_interval);
+    return false;
+  }
+  return true;
+}
+
+static bool tempo_check_interval(const check* chk,
+                                 const time_point& after,
+                                 const time_point& before) {
+  if ((after - before) <=
+      (chk->get_check_interval() - std::chrono::seconds(1))) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  if ((after - before) >=
+      (chk->get_check_interval() + std::chrono::seconds(1))) {
+    SPDLOG_ERROR("after={}, before={}", after, before);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * @brief We plan 20 checks with a 10 s check period
+ * We expect that first between check interval is around 500ms
+ * Then we check that check interval is about 10s
+ *
+ */
 TEST_F(scheduler_test, correct_schedule) {
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -201,7 +254,9 @@ TEST_F(scheduler_test, correct_schedule) {
             std::chrono::milliseconds(50), std::move(handler), stat);
       });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10100));
+  scheduler_closer closer(sched);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(11100));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -221,11 +276,79 @@ TEST_F(scheduler_test, correct_schedule) {
     }
   }
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-
+  std::this_thread::sleep_for(std::chrono::milliseconds(16000));
+  // we have at least two checks for each service
   {
     std::lock_guard l(tempo_check::check_starts_m);
     ASSERT_GE(tempo_check::check_starts.size(), 40);
+    std::map<tempo_check*, time_point> previous;
+    for (const auto& [check, tp] : tempo_check::check_starts) {
+      auto yet_one = previous.find(check);
+      if (yet_one == previous.end()) {
+        previous.emplace(check, tp);
+      } else {
+        ASSERT_PRED3(tempo_check_interval, check, tp, yet_one->second);
+        yet_one->second = tp;
+      }
+    }
+  }
+}
+
+/**
+ * @brief We plan 20 checks with a 5 to 10 s check period
+ * We expect that first between check interval is around 500ms
+ * Then we check that check intervals are respected
+ *
+ */
+TEST_F(scheduler_test, correct_schedule_diff_intervals) {
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    tempo_check::check_starts.clear();
+  }
+
+  std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
+      std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(10);
+  cnf->set_max_concurrent_checks(50);
+  cnf->set_check_timeout(10);
+  cnf->set_use_exemplar(true);
+  unsigned min_interval = 10;
+  for (unsigned serv_index = 0; serv_index < 20; ++serv_index) {
+    auto serv = cnf->add_services();
+    serv->set_service_description(fmt::format("serv{}", serv_index + 1));
+    serv->set_command_name(fmt::format("command{}", serv_index + 1));
+    serv->set_command_line("/usr/bin/ls");
+    serv->set_check_interval(5 + (rand() % 5));
+    if (serv->check_interval() < min_interval) {
+      min_interval = serv->check_interval();
+    }
+  }
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, duration check_interval,
+         const std::string& service, const std::string& cmd_name,
+         const std::string& cmd_line,
+         const engine_to_agent_request_ptr& engine_to_agent_request,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat) {
+        return std::make_shared<tempo_check>(
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, 0,
+            std::chrono::milliseconds(50), std::move(handler), stat);
+      });
+
+  scheduler_closer closer(sched);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(6100));
+
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    ASSERT_GE(tempo_check::check_starts.size(), 20);
     bool first = true;
     std::pair<tempo_check*, time_point> previous;
     for (const auto& check_time : tempo_check::check_starts) {
@@ -233,17 +356,36 @@ TEST_F(scheduler_test, correct_schedule) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        ASSERT_PRED2(tempo_check_assert_pred, check_time.second,
-                     previous.second);
+        // check if we have a delay of 250ms between two checks
+        ASSERT_PRED3(tempo_check_assert_pred3, check_time.second,
+                     previous.second, min_interval);
       }
       previous = check_time;
     }
   }
 
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::this_thread::sleep_for(std::chrono::milliseconds(16000));
+  // we have at least two checks for each service
+  {
+    std::lock_guard l(tempo_check::check_starts_m);
+    ASSERT_GE(tempo_check::check_starts.size(), 40);
+    std::map<tempo_check*, time_point> previous;
+    for (const auto& [check, tp] : tempo_check::check_starts) {
+      auto yet_one = previous.find(check);
+      if (yet_one == previous.end()) {
+        previous.emplace(check, tp);
+      } else {
+        ASSERT_PRED3(tempo_check_interval, check, tp, yet_one->second);
+        yet_one->second = tp;
+      }
+    }
+  }
 }
 
+/**
+ * @brief: we execute long checks with a 1s timeout and
+ * we expect completion time = now + 1s + timeout(1s)
+ */
 TEST_F(scheduler_test, time_out) {
   std::shared_ptr<MessageFromAgent> exported_request;
   std::condition_variable export_cond;
@@ -275,6 +417,8 @@ TEST_F(scheduler_test, time_out) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(1500), std::move(handler), stat);
       });
+  scheduler_closer closer(sched);
+
   std::unique_lock l(m);
   export_cond.wait(l);
 
@@ -300,11 +444,8 @@ TEST_F(scheduler_test, time_out) {
   const auto& data_point = metric.gauge().data_points()[0];
   ASSERT_EQ(data_point.as_int(), 3);
   // timeout 1s
-  ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 1000000000);
-  ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 1500000000);
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  ASSERT_GE(data_point.time_unix_nano(), expected_completion_time + 2000000000);
+  ASSERT_LE(data_point.time_unix_nano(), expected_completion_time + 2500000000);
 }
 
 TEST_F(scheduler_test, correct_output_examplar) {
@@ -330,6 +471,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
             cmd_name, cmd_line, engine_to_agent_request, 0,
             std::chrono::milliseconds(10), std::move(handler), stat);
       });
+  scheduler_closer closer(sched);
+
   std::mutex m;
   std::unique_lock l(m);
   export_cond.wait(l);
@@ -346,7 +489,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
   ASSERT_EQ(res_attrib.at(0).key(), "host.name");
   ASSERT_EQ(res_attrib.at(0).value().string_value(), "my_host");
   ASSERT_EQ(res_attrib.at(1).key(), "service.name");
-  ASSERT_EQ(res_attrib.at(1).value().string_value(), "serv1");
+  ASSERT_EQ(res_attrib.at(1).value().string_value(), "serv2");
   ASSERT_EQ(res.scope_metrics_size(), 1);
   const ::opentelemetry::proto::metrics::v1::ScopeMetrics& scope_metrics =
       res.scope_metrics()[0];
@@ -367,7 +510,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
   ASSERT_EQ(res_attrib2.at(0).key(), "host.name");
   ASSERT_EQ(res_attrib2.at(0).value().string_value(), "my_host");
   ASSERT_EQ(res_attrib2.at(1).key(), "service.name");
-  ASSERT_EQ(res_attrib2.at(1).value().string_value(), "serv2");
+  ASSERT_EQ(res_attrib2.at(1).value().string_value(), "serv1");
   ASSERT_EQ(res2.scope_metrics_size(), 1);
 
   const ::opentelemetry::proto::metrics::v1::ScopeMetrics& scope_metrics2 =
@@ -383,11 +526,11 @@ TEST_F(scheduler_test, correct_output_examplar) {
 
   ASSERT_LE(first_time_point + 400000000, data_point_state2.time_unix_nano());
   ASSERT_GE(first_time_point + 600000000, data_point_state2.time_unix_nano());
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
+/**
+ * @brief: this fake check store executed checks and max active checks at a time
+ */
 class concurent_check : public check {
   asio::system_timer _completion_timer;
   int _command_exit_status;
@@ -465,6 +608,10 @@ std::set<concurent_check*> concurent_check::active_checks;
 unsigned concurent_check::max_active_check;
 std::mutex concurent_check::checked_m;
 
+/**
+ * @brief we configure a scheduler with 200 services and we expect
+ * that scheduler will respect maximum concurent check (10)
+ */
 TEST_F(scheduler_test, max_concurent) {
   std::shared_ptr<scheduler> sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "my_host",
@@ -488,16 +635,16 @@ TEST_F(scheduler_test, max_concurent) {
             std::move(handler), stat);
       });
 
-  // to many tests to be completed in eleven second
-  std::this_thread::sleep_for(std::chrono::milliseconds(11000));
+  scheduler_closer closer(sched);
+
+  // to many tests to be completed in 12s
+  std::this_thread::sleep_for(std::chrono::milliseconds(12000));
   EXPECT_LT(concurent_check::checked.size(), 200);
   EXPECT_EQ(concurent_check::max_active_check, 10);
 
-  // all tests must be completed in 16s
-  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  // all tests must be completed in 16s ((0.75*200)/10 + 1) but we add 2s
+  // because of windows slowness
+  std::this_thread::sleep_for(std::chrono::milliseconds(6000));
   EXPECT_EQ(concurent_check::max_active_check, 10);
   EXPECT_EQ(concurent_check::checked.size(), 200);
-
-  asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }

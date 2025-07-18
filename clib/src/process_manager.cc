@@ -24,6 +24,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/logging/logger.hh"
 #include "com/centreon/process_listener.hh"
@@ -174,8 +175,11 @@ void process_manager::_update_list() {
  *  @return the process manager.
  */
 process_manager& process_manager::instance() {
-  static process_manager instance;
-  return instance;
+  static std::unique_ptr<process_manager> instance;
+  if (!instance) {
+    instance = std::unique_ptr<process_manager>(new process_manager);
+  }
+  return *instance;
 }
 
 /**
@@ -283,7 +287,7 @@ void process_manager::_run() {
   try {
     for (;;) {
       // Update the file descriptor list.
-      if (_update)
+      if (_update || _finished)
         _update_list();
       if (_finished)
         _stop_processes();

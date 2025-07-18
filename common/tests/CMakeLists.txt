@@ -18,8 +18,11 @@
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_executable(ut_common
+  add_executable(
+    ut_common
     absl_flyweight_factory_test.cc
+    crypto/base64.cc
+    jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
     node_allocator_test.cc
@@ -59,7 +62,11 @@ endif()
 
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/bad_script.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_common)
@@ -68,14 +75,13 @@ add_test(NAME tests COMMAND ut_common)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_common
-    PRIVATE centreon_common
+    PRIVATE centreon_common process_stat ctncrypto
     centreon_http
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     re2::re2
     log_v2
-    crypto 
+    crypto
     ssl
     GTest::gtest
     GTest::gtest_main
@@ -87,27 +93,29 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     absl::bits
     fmt::fmt pthread)
 
-    add_dependencies(ut_common centreon_common centreon_http)
+    add_dependencies(ut_common centreon_common process_stat ctncrypto centreon_http)
 
 else()
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
-    centreon_process
-    Boost::program_options
-    re2::re2
-    GTest::gtest
-    GTest::gtest_main
-    GTest::gmock
-    GTest::gmock_main
-    absl::any
-    absl::log
-    absl::base
-    absl::bits
-    fmt::fmt)
+            centreon_process
+            Boost::program_options
+            Boost::process
+            re2::re2
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            absl::any
+            absl::log
+            absl::base
+            absl::bits
+            fmt::fmt)
+
+  add_dependencies(ut_common centreon_common)
 
     add_dependencies(ut_common centreon_common)
-
 endif()
 
 

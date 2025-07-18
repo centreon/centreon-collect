@@ -78,6 +78,15 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
             "minimum": 4
+        },"token":{
+          "description": "key for token",
+          "type": "string"
+      },"trusted_tokens":{
+            "description": "tokens for authentication",
+            "type": "array",
+              "items": {
+                "type": "string"
+              }
         }
     },
     "required": [
@@ -138,10 +147,23 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   unsigned max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
+  std::string token;
+  if (json_config.has_member("token")) {
+    token = json_config.get_string("token");
+  }
+  absl::flat_hash_set<std::string> trusted_tokens;
+  if (json_config.has_member("trusted_tokens")) {
+    const rapidjson::Value& tokens_v = json_config.get_member("trusted_tokens");
+    for (const auto& v : tokens_v.GetArray()) {
+      trusted_tokens.insert(v.GetString());
+    }
+  }
+
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
       hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
       second_keepalive_interval, second_max_reconnect_backoff,
-      max_message_length);
+      max_message_length, token,
+      std::make_shared<absl::flat_hash_set<std::string>>(trusted_tokens));
 }
 
 /**

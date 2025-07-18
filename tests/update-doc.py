@@ -24,20 +24,23 @@ import re
 
 
 def complete_doc(dico, ff):
-    f = open(ff, 'r')
-    content = f.readlines()
-    f.close()
+    with open(ff, 'r') as f:
+        content = f.readlines()
     r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
     rd = re.compile(r"\s+\.\.\.    \s*(.*)$")
 
     in_test = False
     in_documentation = False
+    gherkin = False
     test_name = ""
     for line in content:
         if in_documentation:
             m = rd.match(line)
             if m:
-                dico[test_name] += " " + m.group(1)
+                if gherkin:
+                    dico[test_name] += "\n      * " + m.group(1)
+                else:
+                    dico[test_name] += " " + m.group(1)
                 continue
             else:
                 test_name = ""
@@ -50,7 +53,15 @@ def complete_doc(dico, ff):
                 m = r.match(line)
                 if m:
                     in_documentation = True
-                    dico[test_name] = m.group(1)
+                    if m.group(1).startswith("Given") or m.group(1).startswith("When"):
+                        gherkin = True
+                        dico[test_name] = "\n      * " + m.group(1)
+                    elif m.group(1).startswith("Scenario:"):
+                        gherkin = True
+                        dico[test_name] = m.group(1)
+                    else:
+                        gherkin = False
+                        dico[test_name] = m.group(1)
             if not line.startswith('\t') and not line.startswith("  "):
                 test_name = line.strip()
         elif line.startswith("*** Test Cases ***"):
@@ -95,11 +106,11 @@ On AlmaLinux, the following commands should work to initialize your robot tests:
 ```bash
 dnf install "Development Tools" python3-devel -y
 
-pip3 install -U robotframework \
-        robotframework-databaselibrary \
-        robotframework-examples pymysql \
-        robotframework-requests psutil \
-        robotframework-httpctrl boto3 \
+pip3 install -U robotframework \\
+        robotframework-databaselibrary \\
+        robotframework-examples pymysql \\
+        robotframework-requests psutil \\
+        robotframework-httpctrl boto3 \\
         GitPython unqlite py-cpuinfo
 
 
@@ -123,22 +134,26 @@ dnf install perl-HTTP-Daemon-SSL
 dnf install perl-JSON
 ```
 
-Then you can initialize the tests with the following commands:
+To work with gRPC, we also need to install some python modules.
+
+On rpm based system, we have to install:
+```
+yum install python3-devel -y
+```
+
+On deb based system, we have to install:
+```
+apt-get install python3-dev
+```
+
+And then we can install the required python modules:
+```
+pip3 install grpcio grpcio_tools
+```
+
+Now it should be possible to initialize the tests with the following commands:
 
 ```bash
-./init-proto.sh
-./init-sql.sh
-```
-
-On other rpm based distributions, you can try the following commands to initialize your robot tests:
-
-```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql robotframework-requests
-
-yum install python3-devel -y
-
-pip3 install grpcio grpcio_tools
-
 ./init-proto.sh
 ./init-sql.sh
 ```
@@ -176,7 +191,7 @@ for k in keys:
     name = name.replace('_', ' ').capitalize()
     out.write(f"### {name}\n")
     if isinstance(dico[k], str):
-        out.write(f"{idx}. [x] **{k}**: {dico[k]}\n")
+        out.write(f"{idx}. **{k}**: {dico[k]}\n")
         idx += 1
         count += 1
     else:
@@ -185,7 +200,7 @@ for k in keys:
         idx = 1
         for kk in tests:
             if isinstance(dico[k][kk], str):
-                out.write(f"{idx}. [x] **{kk}**: {dico[k][kk]}\n")
+                out.write(f"{idx}. **{kk}**: {dico[k][kk]}\n")
                 idx += 1
                 count += 1
             else:
@@ -193,5 +208,6 @@ for k in keys:
                 exit(1)
         out.write("\n")
 
+out.write(f"\n{count} tests currently implemented.\n")
 out.close()
 print(f"{count} tests are documented now.")

@@ -1,4 +1,4 @@
-name: Centreon Monitoring Agent Windows robot test
+name: windows-agent-robot-test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -32,6 +32,7 @@ jobs:
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'ON'
+      build_debug_packages: false
       packages_in_artifact: false
       image: packaging-centreon-collect-vcpkg-bullseye
       distrib: bullseye
@@ -72,7 +73,8 @@ jobs:
         run: wsl --list --online
 
       - name: install debian
-        uses: Vampire/setup-wsl@f40fb59d850112c9a292b0218bca8271305b9127 # v5.0.0
+        uses: Vampire/setup-wsl@6a8db447be7ed35f2f499c02c6e60ff77ef11278 # v6.0.0
+
         with:
           wsl-version: 1
           distribution: Debian
@@ -98,7 +100,7 @@ jobs:
       - name: install robot framework
         run: |
           wsl pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
-          wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil
+          wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
 
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1

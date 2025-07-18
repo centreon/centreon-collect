@@ -715,6 +715,7 @@ message HostGroup {
   uint64 hostgroup_id = 3;
   string name = 4;
   uint64 poller_id = 5;
+  string alias = 6;
 }
 
 /* io::neb, neb::de_pb_service_group, 24 */
@@ -850,7 +851,7 @@ message AgentInfo {
   bool reverse = 4;
   string os = 5;
   string os_version = 6;
-  uint32 nb_agent = 7; 
+  uint32 nb_agent = 7;
 }
 
 /* io::neb, neb::de_pb_agent_stats, 57 */

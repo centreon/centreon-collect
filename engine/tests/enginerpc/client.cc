@@ -22,7 +22,7 @@
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
 
-#include "engine.grpc.pb.h"
+#include "engine/enginerpc/engine.grpc.pb.h"
 
 using namespace com::centreon::engine;
 

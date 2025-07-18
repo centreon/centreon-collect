@@ -19,6 +19,7 @@
 #include <google/protobuf/util/message_differencer.h>
 
 #include "centreon_agent/agent_impl.hh"
+#include "com/centreon/engine/globals.hh"
 
 #include "otl_fmt.hh"
 
@@ -64,6 +65,31 @@ agent_impl<bireactor_class>::agent_impl(
     : _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
+      _exp_time(std::chrono::system_clock::time_point::min()),
+      _conf(conf),
+      _metric_handler(handler),
+      _write_pending(false),
+      _logger(logger),
+      _alive(true),
+      _stats(stats) {
+  SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
+                      static_cast<const void*>(this));
+}
+
+template <class bireactor_class>
+agent_impl<bireactor_class>::agent_impl(
+    const std::shared_ptr<boost::asio::io_context>& io_context,
+    const std::string_view class_name,
+    const agent_config::pointer& conf,
+    const metric_handler& handler,
+    const std::shared_ptr<spdlog::logger>& logger,
+    bool reversed,
+    const agent_stat::pointer& stats,
+    const std::chrono::system_clock::time_point& exp_time)
+    : _io_context(io_context),
+      _class_name(class_name),
+      _reversed(reversed),
+      _exp_time(exp_time),
       _conf(conf),
       _metric_handler(handler),
       _logger(logger),
@@ -129,6 +155,7 @@ static bool add_command_to_agent_conf(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const std::string& service,
+    uint32_t check_interval,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& peer) {
@@ -150,6 +177,11 @@ static bool add_command_to_agent_conf(
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
   serv->set_command_line(plugins_cmdline);
+#ifdef LEGACY_CONF
+  serv->set_check_interval(check_interval * config->interval_length());
+#else
+  serv->set_check_interval(check_interval * pb_config.interval_length());
+#endif
 
   return true;
 }
@@ -167,7 +199,6 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       std::make_shared<agent::MessageToAgent>();
   {
     agent::AgentConfiguration* cnf = new_conf->mutable_config();
-    cnf->set_check_interval(_conf->get_check_interval());
     cnf->set_check_timeout(_conf->get_check_timeout());
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
@@ -181,10 +212,10 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       bool at_least_one_command_found = get_otel_commands(
           _agent_info->init().host(),
           [cnf, &peer](const std::string& cmd_name, const std::string& cmd_line,
-                       const std::string& service,
+                       const std::string& service, uint32_t check_interval,
                        const std::shared_ptr<spdlog::logger>& logger) {
-            return add_command_to_agent_conf(cmd_name, cmd_line, service, cnf,
-                                             logger, peer);
+            return add_command_to_agent_conf(cmd_name, cmd_line, service,
+                                             check_interval, cnf, logger, peer);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
@@ -294,6 +325,14 @@ void agent_impl<bireactor_class>::start_read() {
 template <class bireactor_class>
 void agent_impl<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
+    if (_exp_time != std::chrono::system_clock::time_point::min() &&
+        _exp_time <= std::chrono::system_clock::now()) {
+      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
+                          static_cast<void*>(this), _class_name);
+      on_error();
+      this->shutdown();
+      return;
+    }
     std::shared_ptr<agent::MessageFromAgent> readden;
     {
       absl::MutexLock l(&_protect);
@@ -374,15 +413,16 @@ void agent_impl<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
-                         agent_impl<bireactor_class>>::shared_from_this(),
-                     logger = _logger]() {
-    absl::MutexLock l(&_instances_m);
-    SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
-                        static_cast<void*>(me.get()));
-    _instances->erase(
-        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-  });
+  asio::post(*_io_context,
+             [me = std::enable_shared_from_this<
+                  agent_impl<bireactor_class>>::shared_from_this(),
+              logger = _logger]() {
+               absl::MutexLock l(&_instances_m);
+               SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
+                                   static_cast<void*>(me.get()));
+               _instances->erase(
+                   std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+             });
 }
 
 /**
@@ -399,22 +439,23 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * pthread_join of the current thread witch go to a EDEADLOCK error and call
    * grpc::Crash. So we uses asio thread to do the job
    */
-  _io_context->post([me = std::enable_shared_from_this<
+  asio::post(
+      *_io_context, [me = std::enable_shared_from_this<
                          agent_impl<bireactor_class>>::shared_from_this(),
                      status, logger = _logger]() {
-    absl::MutexLock l(&_instances_m);
-    if (status.ok()) {
-      SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
-                          static_cast<void*>(me.get()), status.error_message(),
-                          status.error_details());
-    } else {
-      SPDLOG_LOGGER_ERROR(logger, "{:p} client::OnDone({}) {}",
-                          static_cast<void*>(me.get()), status.error_message(),
-                          status.error_details());
-    }
-    _instances->erase(
-        std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-  });
+        absl::MutexLock l(&_instances_m);
+        if (status.ok()) {
+          SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
+                              static_cast<void*>(me.get()),
+                              status.error_message(), status.error_details());
+        } else {
+          SPDLOG_LOGGER_ERROR(logger, "{:p} client::OnDone({}) {}",
+                              static_cast<void*>(me.get()),
+                              status.error_message(), status.error_details());
+        }
+        _instances->erase(
+            std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+      });
 }
 
 /**

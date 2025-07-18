@@ -393,6 +393,33 @@ bool filter_combinator::check(const testable& t) const {
 }
 
 /**
+ * @brief Evaluates all filters against the testable object without
+ * short-circuiting.
+ * @param t The testable object to be evaluated against the filters
+ * @return bool True if the testable object passes the combined filter
+ * conditions, false otherwise
+ */
+bool filter_combinator::check_all(const testable& t) const {
+  bool result;
+  if (_logical == logical_operator::filter_and) {
+    result = true;
+    for (auto& subfilter : _filters) {
+      if (subfilter->get_enabled() && !subfilter->check(t)) {
+        result = false;
+      }
+    }
+  } else {
+    result = false;
+    for (auto& subfilter : _filters) {
+      if (subfilter->get_enabled() && subfilter->check(t)) {
+        result = true;
+      }
+    }
+  }
+  return result;
+}
+
+/**
  * @brief visit all subfilters
  */
 void filter_combinator::visit(const visitor& visitr) const {

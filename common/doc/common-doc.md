@@ -59,62 +59,104 @@ The goal of this class is to provide an base class to execute asynchronously pro
 It relies on boost v2 process library.
 All is asynchronous, child process end of life is notified to on_process_end method. It's the same for stdin write and stdout/err read.
 
-You have 4 constructors that allow user to pass executable arguments in four different ways. On of them accept a string command line with exe and arguments
+You have 3 constructors that allow user to pass executable arguments in four different ways. One of them accept a string command line with exe and arguments
 
-In order to use this, you have to inherit from this class
-
-An example of usage:
+When you have to start several times the same process, the better way is to create a shared_ptr< std::string > (exe path) and a shared_ptr of string vector for arguments with parse_cmd_line static method. Then, you can pass it to this constructor:
 ```c++
-class process_wait : public process {
-  std::condition_variable _cond;
-  std::string _stdout;
-  std::string _stderr;
+  process(const std::shared_ptr<boost::asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          const shared_str& exe_path,
+          bool use_setpgid,
+          bool use_stdin,
+          const shared_args& args,
+          const shared_env& env);
 
- public:
-  void on_stdout_read(const boost::system::error_code& err,
-                      size_t nb_read) override {
-    if (!err) {
-      _stdout += std::string_view(_stdout_read_buffer, nb_read);
-    }
-    process::on_stdout_read(err, nb_read);
-  }
+```
 
-  void on_stderr_read(const boost::system::error_code& err,
-                      size_t nb_read) override {
-    if (!err) {
-      _stderr += std::string_view(_stderr_read_buffer, nb_read);
-    }
-    process::on_stderr_read(err, nb_read);
-  }
+This class can be used only once. 
 
-  void on_process_end(const boost::system::error_code& err,
-                      int raw_exit_status) override {
-    process::on_process_end(err, raw_exit_status);
-    _cond.notify_one();
-  }
+The `process` class can be used alone to execute a program directly in an asynchron way.
 
-  template <typename string_type>
-  process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const std::string_view& exe_path,
-               const std::initializer_list<string_type>& args)
-      : process(io_context, logger, exe_path, args) {}
+Here is another practical example:
 
-  process_wait(const std::shared_ptr<boost::asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const std::string_view& cmd_line)
-      : process(io_context, logger, cmd_line) {}
+```
+#include "com/centreon/common/process/process.hh"
 
-  const std::string& get_stdout() const { return _stdout; }
-  const std::string& get_stderr() const { return _stderr; }
+void do_stuff() {
+  /* process must be a shared_ptr. */
+  auto p = std::make_shared<process<false>>(g_io_context, _logger,
+                            "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
 
-  void wait() {
-    std::mutex dummy;
-    std::unique_lock l(dummy);
-    _cond.wait(l);
-  }
-};
+  /* Here the process is started. */
+  p->start_process(false);
 
+  /* Now, while the process is running, we can do our work. */
+  my_function_that_exchanges_with_process();
+  my_other_function_that_doesnt_work_with_process();
+
+  /* When all the stuff is done, we can stop p */
+  p->kill();
+}
+```
+
+## Vault
+
+Broker can work with Hashicorp Vault to get its database passwords.
+We have a library designed for that in `common/vault`.
+
+To use it, we need two files:
+* the JSON vault file that contains all the fields needed to access the Vault.
+* an env file that contains the APP_SECRET salt used to encrypt the Vault access secrets.
+
+The Vault file is of the form:
+```
+{
+  "name": "my_vault",
+  "url": "localhost",
+  "port": 4443,
+  "root_path": "john-doe",
+  "secret_id": "{your_secret_key}",
+  "role_id": "{your_role_id}",
+  "salt": "{your_salt}"
+}
+```
+
+The `secret_id` and the `role_id` are used for the authentication to the Vault. They are AES256 encrypted
+in this file so not directly usable.
+The `salt` is used during the AES256 encryption, `url` and `port` are the access to the vault.
+
+If we have these two files and a spdlog::logger, it is pretty simple to access the vault.
+
+Let's suppose we have a path in the vault and we want to get the corresponding password, let's say
+```
+std::string path = "secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password";
+```
+
+We can use the following code to get the password:
+
+```
+std::string env_file("/tmp/env_file");
+std::string vault_file("/tmp/vault_file");
+bool verify_peer = true;
+std::shared_ptr<spdlog::logger> logger = my_logger();
+common::vault::vault_access vault(env_file, vault_file, verify_peer, logger);
+std::string password = vault.decrypt(path);
+```
+
+In case of error, an exception is thrown with the error message, so to also catch the
+message we can write something like this:
+
+```
+std::string env_file("/tmp/env_file");
+std::string vault_file("/tmp/vault_file");
+bool verify_peer = true;
+std::shared_ptr<spdlog::logger> logger = my_logger();
+try {
+  common::vault::vault_access vault(env_file, vault_file, verify_peer, logger);
+  std::string password = vault.decrypt(path);
+} catch (const std::exception& e) {
+  logger->error("Error with the vault: {}", e.what());
+}
 ```
 
 ### Asio bug work around

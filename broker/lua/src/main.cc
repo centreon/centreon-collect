@@ -19,6 +19,7 @@
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
@@ -46,7 +47,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", "20-bam.so", nullptr};
   return retval;
 }
 

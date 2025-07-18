@@ -133,8 +133,8 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
     while (read != file_size) {
       std::streamsize some_read =
           f.readsome(buff.get() + read, file_size - read);
-      if (some_read < 0) {
-        SPDLOG_LOGGER_ERROR(_logger, "fail to read {}: {}");
+      if (some_read <= 0) {
+        SPDLOG_LOGGER_ERROR(_logger, "fail to read {}", file_path);
         return false;
       }
       read += some_read;
@@ -172,11 +172,13 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
     } else {
       for (auto wildcard : wildcards) {
         auto value = wildcard.val();
-        std::string_view str_value(value.data(), value.size());
-        SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
-                           str_value);
-        _wildcards.emplace_back(str_value);
-        ret = true;
+        if (value.size() > 0) {
+          std::string_view str_value(value.data(), value.size());
+          SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
+                             str_value);
+          _wildcards.emplace_back(str_value);
+          ret = true;
+        }
       }
     }
   }
@@ -186,19 +188,21 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
     } else {
       for (auto re : regexps) {
         auto value = re.val();
-        std::string_view str_value(value.data(), value.size());
-        std::unique_ptr<re2::RE2> to_push_back =
-            std::make_unique<re2::RE2>(str_value);
-        if (to_push_back->error_code() ==
-            re2::RE2::ErrorCode::NoError) {  // success compile regex
-          SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
-                             str_value);
-          _regex.push_back(std::move(to_push_back));
-          ret = true;
-        } else {  // bad regex
-          SPDLOG_LOGGER_ERROR(
-              _logger, "fail to parse regex {}: error: {} at {} ", str_value,
-              to_push_back->error(), to_push_back->error_arg());
+        if (value.size() > 0) {
+          std::string_view str_value(value.data(), value.size());
+          std::unique_ptr<re2::RE2> to_push_back =
+              std::make_unique<re2::RE2>(str_value);
+          if (to_push_back->error_code() ==
+              re2::RE2::ErrorCode::NoError) {  // success compile regex
+            SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
+                               str_value);
+            _regex.push_back(std::move(to_push_back));
+            ret = true;
+          } else {  // bad regex
+            SPDLOG_LOGGER_ERROR(
+                _logger, "fail to parse regex {}: error: {} at {} ", str_value,
+                to_push_back->error(), to_push_back->error_arg());
+          }
         }
       }
     }
@@ -277,19 +281,26 @@ whitelist::e_refresh_result whitelist::parse_dir(
                         directory);
   }
 
-  e_refresh_result res = e_refresh_result::empty_directory;
-  // all must be sorted in order to perform an incremental comparaison
-  for (const auto& dir_entry : std::filesystem::directory_iterator{directory}) {
-    if (dir_entry.status().type() == std::filesystem::file_type::regular) {
-      if (res < e_refresh_result::no_rule) {
-        res = e_refresh_result::no_rule;
-      }
-      if (_parse_file(dir_entry.path().generic_string())) {
-        res = e_refresh_result::rules;
+  try {
+    e_refresh_result res = e_refresh_result::empty_directory;
+    // all must be sorted in order to perform an incremental comparaison
+    for (const auto& dir_entry :
+         std::filesystem::directory_iterator{directory}) {
+      if (dir_entry.status().type() == std::filesystem::file_type::regular) {
+        if (res < e_refresh_result::no_rule) {
+          res = e_refresh_result::no_rule;
+        }
+        if (_parse_file(dir_entry.path().generic_string())) {
+          res = e_refresh_result::rules;
+        }
       }
     }
+    return res;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to read {} directory: {}", directory,
+                        e.what());
+    return e_refresh_result::no_directory;
   }
-  return res;
 }
 
 whitelist& whitelist::instance() {
