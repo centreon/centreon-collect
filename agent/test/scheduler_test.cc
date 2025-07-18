@@ -24,8 +24,11 @@
 #include "scheduler.hh"
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+
+namespace com::centreon::agent {
 extern std::unique_ptr<com::centreon::common::crypto::aes256>
     credentials_decrypt;
+}
 
 using namespace com::centreon::agent;
 

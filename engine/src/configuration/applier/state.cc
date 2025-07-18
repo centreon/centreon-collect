@@ -18,6 +18,7 @@
  */
 
 #include <sys/resource.h>
+#include <stdexcept>
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
@@ -1574,11 +1575,20 @@ void applier::state::_processing(configuration::State& new_cfg,
           std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
               std::make_unique<com::centreon::common::crypto::aes256>(
                   _engine_context_path);
-          credentials_decrypt = std::move(new_file);
+          // we test validity of keys
+          std::string encrypted = new_file->encrypt("test encrypt");
+          if (new_file->decrypt(encrypted) == "test encrypt") {
+            credentials_decrypt = std::move(new_file);
+          } else {
+            throw std::invalid_argument(
+                "this keys are unable to crypt and decrypt a sentence");
+          }
         }
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}",
-                            _engine_context_path, e.what());
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
+            "credentials_encryption is set but we can not read {}: {}",
+            _engine_context_path, e.what());
       }
     } else {
       credentials_decrypt.reset();

@@ -59,7 +59,9 @@ using namespace com::centreon::agent;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
+namespace com::centreon::agent {
 std::unique_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
+};
 
 static std::shared_ptr<streaming_client> _streaming_client;
 
