@@ -18,10 +18,15 @@
 
 #include <gtest/gtest.h>
 #include "check.hh"
+#include "check_exec.hh"
+#include "common/crypto/aes256.hh"
 
 #include "scheduler.hh"
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+extern std::unique_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
 using namespace com::centreon::agent;
 
 class tempo_check : public check {
@@ -649,4 +654,98 @@ TEST_F(scheduler_test, max_concurent) {
   std::this_thread::sleep_for(std::chrono::milliseconds(6000));
   EXPECT_EQ(concurent_check::max_active_check, 10);
   EXPECT_EQ(concurent_check::checked.size(), 200);
+}
+
+TEST_F(scheduler_test, can_not_decrypt) {
+  credentials_decrypt = std::make_unique<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+
+  std::shared_ptr<check> created;
+
+  std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
+      std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(15);
+  cnf->set_max_concurrent_checks(10);
+  cnf->set_check_timeout(10);
+  cnf->set_use_exemplar(true);
+  auto serv = cnf->add_services();
+  serv->set_service_description("serv");
+  serv->set_command_name("command");
+  serv->set_command_line("encrypt::/usr/bin/ls");
+  serv->set_check_interval(10);
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      [&](const std::shared_ptr<asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          time_point start_expected, duration check_interval,
+          const std::string& service, const std::string& cmd_name,
+          const std::string& cmd_line,
+          const engine_to_agent_request_ptr& engine_to_agent_request,
+          check::completion_handler&& handler,
+          const checks_statistics::pointer& stat) {
+        created = scheduler::default_check_builder(
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, std::move(handler),
+            stat);
+        return created;
+      });
+
+  scheduler_closer closer(sched);
+
+  auto check_created = std::dynamic_pointer_cast<check_dummy>(created);
+  ASSERT_TRUE(check_created);
+  EXPECT_EQ(
+      check_created->get_output(),
+      "Unable to decrypt command line The content is not AES256 encrypted");
+}
+
+TEST_F(scheduler_test, can_decrypt) {
+  credentials_decrypt = std::make_unique<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+
+  std::string command_line =
+      "encrypt::" + credentials_decrypt->encrypt("/usr/bin/ls *.*");
+
+  std::shared_ptr<check> created;
+
+  std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
+      std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(15);
+  cnf->set_max_concurrent_checks(10);
+  cnf->set_check_timeout(10);
+  cnf->set_use_exemplar(true);
+  auto serv = cnf->add_services();
+  serv->set_service_description("serv");
+  serv->set_command_name("command");
+  serv->set_command_line(command_line);
+  serv->set_check_interval(10);
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      [](const std::shared_ptr<MessageFromAgent>&) {},
+      [&](const std::shared_ptr<asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          time_point start_expected, duration check_interval,
+          const std::string& service, const std::string& cmd_name,
+          const std::string& cmd_line,
+          const engine_to_agent_request_ptr& engine_to_agent_request,
+          check::completion_handler&& handler,
+          const checks_statistics::pointer& stat) {
+        created = scheduler::default_check_builder(
+            io_context, logger, start_expected, check_interval, service,
+            cmd_name, cmd_line, engine_to_agent_request, std::move(handler),
+            stat);
+        return created;
+      });
+
+  scheduler_closer closer(sched);
+
+  auto check_created = std::dynamic_pointer_cast<check_exec>(created);
+  ASSERT_TRUE(check_created);
+  ASSERT_EQ(check_created->get_process_args()->get_c_args().size(), 3);
+  EXPECT_EQ(check_created->get_process_args()->get_exe_path(), "/usr/bin/ls");
 }

@@ -55,9 +55,12 @@ class TestEngine : public ::testing::Test {
                                   std::string const& hostname,
                                   std::string const& contacts,
                                   uint64_t hst_id = 12);
-  configuration::Host new_pb_configuration_host(const std::string& hostname,
-                                                const std::string& contacts,
-                                                uint64_t hst_id = 12);
+  configuration::Host new_pb_configuration_host(
+      const std::string& hostname,
+      const std::string& contacts,
+      uint64_t hst_id = 12,
+      const std::string_view& connector = "",
+      int cmd_index = -1);
   configuration::Contactgroup new_pb_configuration_contactgroup(
       const std::string& name,
       const std::string& contactname);
@@ -69,7 +72,9 @@ class TestEngine : public ::testing::Test {
       const std::string& hostname,
       const std::string& description,
       const std::string& contacts,
-      uint64_t svc_id = 13);
+      uint64_t svc_id = 13,
+      const std::string_view& connector = "",
+      int cmd_index = -1);
   configuration::Anomalydetection new_pb_configuration_anomalydetection(
       const std::string& hostname,
       const std::string& description,

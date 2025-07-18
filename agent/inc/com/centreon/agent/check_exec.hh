@@ -68,6 +68,10 @@ class check_exec : public check {
                      const std::string&);
 
   int get_pid() const { return _pid; }
+
+  const common::process_args::pointer get_process_args() const {
+    return _process_args;
+  }
 };
 
 /**
