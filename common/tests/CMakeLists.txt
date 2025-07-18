@@ -114,6 +114,8 @@ else()
     PRIVATE centreon_common
             centreon_process
             ctncrypto
+            OpenSSL::SSL
+            OpenSSL::Crypto
             Boost::program_options
             Boost::process
             re2::re2
@@ -127,7 +129,7 @@ else()
             absl::bits
             fmt::fmt)
 
-  add_dependencies(ut_common centreon_common)
+  add_dependencies(ut_common centreon_common ctncrypto)
 
 endif()
 

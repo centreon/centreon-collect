@@ -19,8 +19,10 @@
 #include "check_exec.hh"
 #include "com/centreon/common/process/process.hh"
 
+namespace com::centreon::agent {
 extern std::unique_ptr<com::centreon::common::crypto::aes256>
     credentials_decrypt;
+}
 
 using namespace com::centreon::agent;
 
