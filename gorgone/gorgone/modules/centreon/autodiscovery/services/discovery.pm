@@ -90,7 +90,6 @@ sub database_commit_transaction {
         return -1;
     }
 
-    $self->{class_object_centreon}->transaction_mode(0);
     return 0;
 }
 
@@ -100,7 +99,6 @@ sub database_error_rollback {
     $self->{logger}->writeLogError($options{message});
     eval {
         $self->{class_object_centreon}->rollback();
-        $self->{class_object_centreon}->transaction_mode(0);
     };
     if ($@) {
         $self->{logger}->writeLogError("$@");
@@ -818,7 +816,8 @@ sub service_execute_commands {
                         content => [
                             {
                                 command => $command,
-                                timeout => 90
+                                timeout => 90,
+                                no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                             }
                         ]
                     }

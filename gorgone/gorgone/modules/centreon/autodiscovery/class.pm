@@ -72,7 +72,11 @@ sub new {
     $connector->{tpapi_clapi_name} = defined($options{config}->{tpapi_clapi}) && $options{config}->{tpapi_clapi} ne '' ? $options{config}->{tpapi_clapi} : 'clapi';
     $connector->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ? 
         $options{config}->{tpapi_centreonv2} : 'centreonv2';
-
+    # enable shell interpretation by default, can be disabled by user in the config file
+    $connector->{config}->{no_shell_interpretation} = 0;
+    if (defined($options{config}->{no_shell_interpretation}) && $options{config}->{no_shell_interpretation} !~ /^(0|false)$/i) {
+        $connector->{config}->{no_shell_interpretation} = 0;
+    }
     $connector->{is_module_installed} = 0;
     $connector->{is_module_installed_check_interval} = 60;
     $connector->{is_module_installed_last_check} = -1;
@@ -494,6 +498,7 @@ sub launchhostdiscovery {
                 {
                     command => $self->{hdisco_jobs_ids}->{$job_id}->{command_line},
                     timeout => $timeout,
+                    no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                     metadata => {
                         job_id => $job_id,
                         source => 'autodiscovery-host-job-discovery',
@@ -735,24 +740,24 @@ sub discovery_command_result {
     my $duration = 0;
 
     try {
-        my $json = JSON::XS->new();
-        $json->incr_parse($data->{data}->{result}->{stdout});
-        while (my $obj = $json->incr_parse()) {
-            if (ref($obj) eq 'HASH') {
-                foreach my $host (@{$obj->{results}}) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
-                $duration = $obj->{duration};
-            } elsif (ref($obj) eq 'ARRAY') {
-                foreach my $host (@$obj) {
-                    my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
-                    return 1 if ($rv);
-                }
+        # decode_json can throw an error if the JSON is not valid, so we use try/catch to handle it.
+        my $json = decode_json($data->{data}->{result}->{stdout});
+
+        if (ref($json) eq 'HASH') { # only behavior I saw, an hash with 'results' key containing an array of hosts
+            foreach my $host (@{$json->{results}}) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
+            }
+            $duration = $json->{duration};
+        } elsif (ref($json) eq 'ARRAY') { # existing code, I don't know of plugin that return directly an array of hosts.
+            foreach my $host (@$json) {
+                my $rv = $self->discovery_add_host_result(host => $host, job_id => $job_id, uuid_parameters => $uuid_parameters, builder => $builder);
+                return 1 if ($rv);
             }
         }
+
     } catch {
-        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id'");
+        $self->{logger}->writeLogError("[autodiscovery] -class- host discovery - failed to decode discovery plugin response job '$job_id' " . $@);
         $self->update_job_status(
             job_id => $job_id,
             status => JOB_FAILED,

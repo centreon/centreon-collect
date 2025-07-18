@@ -1,6 +1,7 @@
 FROM almalinux:9
 
-ARG VERSION
+ARG VERSION=24.10
+ARG IS_CLOUD=0
 
 RUN bash -e <<EOF
 
@@ -10,6 +11,11 @@ dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSI
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
 
+# Install nodejs
+curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+dnf install -y nodejs
+# Install mockoon (needs nodejs)
+npm install -g -D @mockoon/cli
 
 dnf clean all
 
