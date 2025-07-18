@@ -88,6 +88,7 @@ find_package(GTest CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS url program_options process)
 find_package(ryml CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 add_definitions("-DSPDLOG_FMT_EXTERNAL")
 
 # Find the location of the gRPC plugin

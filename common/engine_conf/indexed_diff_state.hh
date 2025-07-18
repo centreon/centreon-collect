@@ -124,6 +124,22 @@ class indexed_diff_state {
       _modified_serviceescalations;
   absl::flat_hash_set<uint64_t> _removed_serviceescalations;
 
+  /**
+   * @brief This function is used to add a diff message to the indexed
+   * diff state.
+   *
+   * @tparam DiffType Type of the diff message.
+   * @tparam Type Type of the messages behind the diff message.
+   * @tparam Key Type of the key used to index the messages.
+   * @param diff The diff message to add.
+   * @param added_map The map of this object containing the added messages.
+   * @param modified_map The map of this object containing the modified
+   * messages.
+   * @param removed_set The set of this object containing the removed
+   * messages.
+   * @param key_builder A function that builds the key from the
+   * Type object.
+   */
   template <typename DiffType, typename Type, typename Key>
   void _add_diff_message(
       DiffType* diff,
@@ -136,6 +152,24 @@ class indexed_diff_state {
         nullptr);
   }
 
+  /**
+   * @brief This function is used to add a diff message to the indexed
+   * diff state.
+   *
+   * @tparam DiffType Type of the diff message.
+   * @tparam Type Type of the messages behind the diff message.
+   * @tparam Key Type of the key used to index the messages.
+   * @tparam ProtoKey Type of the key when seen as a Protobuf message.
+   * @param diff The diff message to add.
+   * @param added_map The map of this object containing the added messages.
+   * @param modified_map The map of this object containing the modified
+   * messages.
+   * @param removed_set The set of this object containing the removed
+   * messages.
+   * @param key_builder A function that builds the key from the
+   * Type object.
+   * @param convert_key A function that converts the ProtoKey to the Key
+   */
   template <typename DiffType, typename Type, typename Key, typename ProtoKey>
   void _add_diff_message(
       DiffType* diff,
@@ -194,6 +228,20 @@ class indexed_diff_state {
     }
   }
 
+  /**
+   * @brief This internal function is used to add messages to the indexed
+   * diff state. It is used when the diff_state added to this just contains
+   * a state message, not a diff message.
+   *
+   * @tparam Type Type of the messages to add.
+   * @tparam Key Type of the key used to index the messages.
+   * @param container The container of messages to add. It is a pointer to one
+   * of the state message containers.
+   * @param added_map The map of this object containing the added messages.
+   * @param modified_map The map of this object containing the modified.
+   * @param removed_set The set of this object containing the removed.
+   * @param key_builder A function that builds the key from the messages.
+   */
   template <typename Type, typename Key>
   void _add_message(
       google::protobuf::RepeatedPtrField<Type>* container,
