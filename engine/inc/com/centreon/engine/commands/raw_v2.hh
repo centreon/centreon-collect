@@ -18,6 +18,7 @@
 
 #ifndef CCE_COMMANDS_RAW_V2_HH
 #define CCE_COMMANDS_RAW_V2_HH
+#include "com/centreon/common/process/process.hh"
 #include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/engine/commands/command.hh"
 
@@ -33,12 +34,12 @@ class environment;
  */
 class raw_v2 : public command {
   std::shared_ptr<asio::io_context> _io_context;
-  asio::system_timer _timeout_timer;
 
   std::atomic_bool _running = false;
 
   std::string _last_processed_cmd;
   common::process_args::pointer _process_args;
+  std::shared_ptr<com::centreon::common::process<true>> _process;
 
   void _on_complete(uint64_t command_id,
                     time_t start,
@@ -53,6 +54,7 @@ class raw_v2 : public command {
          const std::string& command_line,
          command_listener* listener = nullptr);
   raw_v2(const raw_v2&) = delete;
+  ~raw_v2() override;
   raw_v2& operator=(const raw_v2&) = delete;
 
   std::shared_ptr<raw_v2> shared_from_this() {

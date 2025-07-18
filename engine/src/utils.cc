@@ -26,8 +26,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-
 #include <csignal>
+#include "absl/debugging/stacktrace.h"
+#include "absl/debugging/symbolize.h"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -415,8 +416,12 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling && !verify_config) {
     checks::checker::deinit();
+    /* Before stopping, we stop all the connectors that are not already finished. */
     for (auto& c : commands::connector::connectors)
       c.second->stop_connector();
+
+    /* Before stopping, we destroy all the running checks that are not already finished. */
+    com::centreon::engine::commands::command::commands.clear();
 
     neb_free_callback_list();
     neb_unload_all_modules(NEBMODULE_FORCE_UNLOAD, sigshutdown
@@ -451,4 +456,63 @@ void free_memory(nagios_macros* mac) {
   */
   clear_volatile_macros_r(mac);
   free_macrox_names();
+}
+
+// Thread-safe initialization guard
+std::once_flag symbolizer_initialized;
+
+void ensure_symbolizer_initialized(const char* program_name) {
+  std::call_once(symbolizer_initialized, [program_name]() {
+    absl::InitializeSymbolizer(program_name);
+  });
+}
+
+/**
+ * @brief Captures the current stack trace and returns it as a formatted string.
+ *
+ * This function captures the current call stack and attempts to symbolize each
+ * frame to provide readable function names. If symbolization fails for a frame,
+ * the raw address is displayed instead.
+ *
+ * @param max_depth Maximum number of stack frames to capture (default: 64)
+ * @return std::string A formatted string containing the stack trace, with each
+ * frame on a separate line in the format "#<frame_number> <function_name>"
+ *
+ * @note This function skips its own frame in the stack trace output.
+ * @note Requires absl::InitializeSymbolizer() to be called for proper
+ * symbolization.
+ *
+ * @example
+ * @code
+ * void debug_function() {
+ *     std::cout << get_stack_trace() << std::endl;
+ * }
+ * @endcode
+ */
+std::string get_stack_trace(int max_depth) {
+  // Ensure symbolizer is initialized (safe to call multiple times)
+  ensure_symbolizer_initialized("program");
+
+  // Array to store stack frame addresses
+  void* stack[max_depth];
+
+  // Capture the stack trace, skipping this function (skip_count = 1)
+  int depth = absl::GetStackTrace(stack, max_depth, 1);
+
+  std::string result;
+  result.reserve(1024);  // Reserve space to avoid reallocations
+
+  for (int i = 0; i < depth; ++i) {
+    char symbol[1024];
+
+    // Try to symbolize the address to get function name
+    if (absl::Symbolize(stack[i], symbol, sizeof(symbol))) {
+      absl::StrAppendFormat(&result, "#%d %s\n", i, symbol);
+    } else {
+      // If symbolization fails, display the raw address
+      absl::StrAppendFormat(&result, "#%d <unknown> [%p]\n", i, stack[i]);
+    }
+  }
+
+  return result;
 }
