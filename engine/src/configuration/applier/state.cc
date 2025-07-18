@@ -214,11 +214,6 @@ absl::flat_hash_map<std::string, std::string>& applier::state::user_macros() {
  *  @return  Iterator to user macros.
  */
 absl::flat_hash_map<std::string, std::string>::const_iterator
-applier::state::user_macros_find(std::string const& key) const {
-  return _user_macros.find(key);
-}
-
-absl::flat_hash_map<std::string, std::string>::const_iterator
 applier::state::user_macros_find(const std::string_view& key) const {
   return _user_macros.find(key);
 }
