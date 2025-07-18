@@ -132,8 +132,8 @@ TEST_F(open_telemetry_test, data_available) {
   metric_request_ptr request =
       std::make_shared<::opentelemetry::proto::collector::metrics::v1::
                            ExportMetricsServiceRequest>();
-  ::google::protobuf::util::JsonStringToMessage(telegraf_example,
-                                                request.get());
+  (void)::google::protobuf::util::JsonStringToMessage(telegraf_example,
+                                                      request.get());
   instance->on_metric(request);
   command_manager::instance().execute();
 

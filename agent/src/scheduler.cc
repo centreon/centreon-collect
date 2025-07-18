@@ -661,13 +661,14 @@ std::shared_ptr<check> scheduler::default_check_builder(
       command_line =
           credentials_decrypt->decrypt(std::string_view(cmd_line).substr(9));
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(g_logger,
-                          "fail to decrypt command line for service {} : {}",
+      SPDLOG_LOGGER_ERROR(logger,
+                          "Fail to decrypt command line for service {} : {}",
                           service, e.what());
       return check_dummy::load(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, "unable to decrypt command line", std::string(e.what()),
-          conf, std::move(handler), stat);
+          cmd_name, "",
+          fmt::format("Unable to decrypt command line {}", e.what()), conf,
+          std::move(handler), stat);
     }
   } else {
     command_line = cmd_line;
