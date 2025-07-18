@@ -157,6 +157,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/process/process_container.cc
   ${NATIVE_SRC}/process/process_data.cc
   ${NATIVE_SRC}/process/process_filter.cc
+  ${NATIVE_SRC}/check_files.cc
 )
 
 set( SRC_LINUX
@@ -225,7 +226,8 @@ else()
     Boost::process
     fmt::fmt
     pdh
-    taskschd)
+    taskschd
+    Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # The linker needs to know to retain debug symbols.
