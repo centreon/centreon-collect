@@ -23,6 +23,12 @@ pip3 install --break-system-packages --no-cache-dir \
 robotframework robotframework-examples robotframework-databaselibrary \
 pymysql robotframework-requests robotframework-jsonlibrary
 
+# Install nodejs
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash - &&\
+apt-get install -y nodejs
+# Install mockoon (needs nodejs)
+npm install -g -D @mockoon/cli
+
 VERSION_CODENAME=\$(
   . /etc/os-release
   echo \$VERSION_CODENAME
@@ -39,8 +45,6 @@ echo "deb https://packages.centreon.com/apt-plugins-stable/ \$VERSION_CODENAME m
 echo "deb https://packages.centreon.com/apt-plugins-testing/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list
 echo "deb https://packages.centreon.com/apt-plugins-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
 wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-
-apt-get update
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
