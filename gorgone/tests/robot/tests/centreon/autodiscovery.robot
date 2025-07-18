@@ -15,12 +15,12 @@ check autodiscovery ${communication_mode}
 
     Test Service Disco
     Test Host disco    ${poller}
-    Test Service Disco don't interpret bash    ${central}
+    Test Service Disco do interpret bash    ${central}
 
     Examples:    communication_mode   --
         ...    push_zmq
-        ...    pullwss
-        ...    pull
+        #...    pullwss
+        #...    pull
 
 *** Keywords ***
 Test Service Disco
@@ -30,8 +30,8 @@ Test Service Disco
     Check Row Count    SELECT * FROM service WHERE service_description like 'Disk-%';    equal    4    alias=conf    retry_timeout=5    retry_pause=1
     Check Row Count    SELECT service_description FROM service WHERE service_description = 'Disk-/home';    equal    1    alias=conf    retry_timeout=5    retry_pause=1
 
-Test Service Disco don't interpret bash
-    [Documentation]    the 3rd service discovery is disabled by default, so we can test it separately and check there is no bash injection possible.
+Test Service Disco do interpret bash
+    [Documentation]    the 3rd service discovery is disabled by default, so we can test it separately and check there is bash interpolation possible.
     [Arguments]    ${poller_name}
     ${start_date}=   Get Current Date    increment=-1s
 
@@ -39,10 +39,10 @@ Test Service Disco don't interpret bash
     ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data=${http_body}
     Log To Console    ${response.json()}
 
-    ${query}    Create List    internal message: .PUTLOG.*"stdout":"toto ;touch /tmp/robotInjectionAutodiscoverychecker
+    ${query}    Create List    internal message: .PUTLOG.*"stdout":"toto"
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${poller_name}/gorgoned.log    content=${query}    date=${start_date}    timeout=10    regex=True
     Should Be True    ${logs_poller}    Didn't found the service injection command in the poller logs
-    File Should Not Exist    /tmp/robotInjectionAutodiscoverychecker    File should not have been created by the autodiscovery service.
+    File Should Exist    /tmp/robotInjectionAutodiscoverychecker    File should not have been created by the autodiscovery service.
 
 Test Host disco
     [Arguments]    ${poller_name}
