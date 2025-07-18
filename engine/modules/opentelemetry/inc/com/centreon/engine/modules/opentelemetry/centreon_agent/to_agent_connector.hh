@@ -20,8 +20,8 @@
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_CLIENT_HH
 
 #include "centreon_agent/agent.grpc.pb.h"
-#include "centreon_agent/agent_stat.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
+#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_stat.hh"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"

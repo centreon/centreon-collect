@@ -39,8 +39,14 @@ struct fake_connector : public to_agent_connector {
                  const std::shared_ptr<boost::asio::io_context>& io_context,
                  const centreon_agent::agent_config::pointer& agent_conf,
                  const metric_handler& handler,
-                 const std::shared_ptr<spdlog::logger>& logger)
-      : to_agent_connector(conf, io_context, agent_conf, handler, logger) {}
+                 const std::shared_ptr<spdlog::logger>& logger,
+                 const agent_stat::pointer& stats)
+      : to_agent_connector(conf,
+                           io_context,
+                           agent_conf,
+                           handler,
+                           logger,
+                           stats) {}
 
   void start() override {
     all_fake.emplace(std::static_pointer_cast<grpc_config>(get_conf()),
@@ -52,9 +58,10 @@ struct fake_connector : public to_agent_connector {
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const centreon_agent::agent_config::pointer& agent_conf,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger) {
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats) {
     std::shared_ptr<to_agent_connector> ret = std::make_shared<fake_connector>(
-        conf, io_context, agent_conf, handler, logger);
+        conf, io_context, agent_conf, handler, logger, stats);
     ret->start();
     return ret;
   }
@@ -69,21 +76,25 @@ struct fake_connector : public to_agent_connector {
 fake_connector::config_to_fake fake_connector::all_fake;
 
 class my_agent_reverse_client : public agent_reverse_client {
+  agent_stat::pointer _stats = std::make_shared<agent_stat>(g_io_context);
+
  public:
   my_agent_reverse_client(
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger)
-      : agent_reverse_client(io_context, handler, logger) {}
+      const std::shared_ptr<spdlog::logger>& logger,
+      const agent_stat::pointer& stats)
+      : agent_reverse_client(io_context, handler, logger, stats) {}
 
   agent_reverse_client::config_to_client::iterator
   _create_new_client_connection(
       const grpc_config::pointer& agent_endpoint,
       const agent_config::pointer& agent_conf) override {
     return _agents
-        .try_emplace(agent_endpoint,
-                     fake_connector::load(agent_endpoint, _io_context,
-                                          agent_conf, _metric_handler, _logger))
+        .try_emplace(
+            agent_endpoint,
+            fake_connector::load(agent_endpoint, _io_context, agent_conf,
+                                 _metric_handler, _logger, _stats))
         .first;
   }
 
@@ -93,26 +104,27 @@ class my_agent_reverse_client : public agent_reverse_client {
 };
 
 TEST(agent_reverse_client, update_config) {
+  agent_stat::pointer stats = std::make_shared<agent_stat>(g_io_context);
   my_agent_reverse_client to_test(
-      g_io_context, [](const metric_request_ptr&) {}, spdlog::default_logger());
+      g_io_context, [](const metric_request_ptr&) {}, spdlog::default_logger(),
+      stats);
 
   ASSERT_TRUE(fake_connector::all_fake.empty());
 
   auto agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
-          {std::make_shared<grpc_config>("host1:port1", false)}));
+          60, 100, 10, {std::make_shared<grpc_config>("host1:port1", false)}));
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 1);
   ASSERT_EQ(fake_connector::all_fake.begin()->first,
             *agent_conf->get_agent_grpc_reverse_conf().begin());
-  agent_conf = std::make_shared<centreon_agent::agent_config>(1, 100, 1, 10);
+  agent_conf = std::make_shared<centreon_agent::agent_config>(1, 100, 10);
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 0);
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          60, 100, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
@@ -121,7 +133,7 @@ TEST(agent_reverse_client, update_config) {
   auto second_conn = (++fake_connector::all_fake.begin())->second;
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          60, 100, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port2", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
@@ -135,7 +147,7 @@ TEST(agent_reverse_client, update_config) {
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
+          60, 100, 10,
           {std::make_shared<grpc_config>("host1:port1", false),
            std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
@@ -145,8 +157,7 @@ TEST(agent_reverse_client, update_config) {
 
   agent_conf = std::shared_ptr<centreon_agent::agent_config>(
       new centreon_agent::agent_config(
-          60, 100, 60, 10,
-          {std::make_shared<grpc_config>("host1:port3", false)}));
+          60, 100, 10, {std::make_shared<grpc_config>("host1:port3", false)}));
   to_test.update(agent_conf);
   ASSERT_EQ(fake_connector::all_fake.size(), 1);
   ASSERT_EQ(fake_connector::all_fake.begin()->second, third_conn);

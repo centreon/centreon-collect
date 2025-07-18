@@ -21,6 +21,9 @@
 
 namespace com::centreon::common {
 
+namespace crypto {
+class aes256;
+};
 /**
  * @brief The goal of this class is two store arguments in two formats
  * a vector<string> for windows boost process launcher, this vector does not
@@ -30,16 +33,11 @@ namespace com::centreon::common {
  *
  */
 class process_args {
-  // depending on constructor
-  // When you use constructor with exe_path and arguments (windows case)
-  // _exe_path and _args are filled and _c_args elements point to _args data
-  // elements, _buffer is unused
-  //  When you use unix_commandline constructor, only
-  // _c_args are filled and point to _buffer
+  //_c_args point to _exe_path and _args
   std::string _exe_path;
   std::vector<std::string> _args;
+  std::vector<std::string> _encrypted_args;
   std::vector<const char*> _c_args;
-  std::unique_ptr<char[]> _buffer;
 
  public:
   using pointer = std::shared_ptr<process_args>;
@@ -66,6 +64,12 @@ class process_args {
   process_args(const std::string_view& unix_commandline);
   process_args(const process_args&) = delete;
   process_args& operator=(const process_args&) = delete;
+
+  void encrypt_args(const crypto::aes256& crypto);
+
+  void decrypt_args(const crypto::aes256& crypto);
+
+  void clear_no_encrypted_args();
 
   void dump(std::string* output) const;
 

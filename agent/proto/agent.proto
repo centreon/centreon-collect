@@ -65,6 +65,8 @@ message AgentInfo {
     Version centreon_version=2;
     string os=3; //can be alma, windows, etc
     string os_version=4;
+    string encryption_test=5; //if agent has loaded key and salt file, it sends encrypted phrase 
+                              // to notify engine he is able to receive encrypted commands
 }
 
 //Agent configuration sent by Engine

@@ -46,6 +46,7 @@ class config {
   unsigned _second_max_reconnect_backoff;
   unsigned _max_message_length;
   std::string _token;
+  std::string _engine_context_path;
 
   absl::flat_hash_set<std::string> _trusted_tokens;
   static std::unique_ptr<config> _global_conf;
@@ -102,6 +103,9 @@ class config {
   const std::string& get_token() const { return _token; }
   const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
     return _trusted_tokens;
+  }
+  const std::string& get_engine_content_path() const {
+    return _engine_context_path;
   }
 };
 };  // namespace com::centreon::agent

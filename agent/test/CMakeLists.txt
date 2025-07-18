@@ -62,6 +62,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            ctncrypto
             GTest::gtest
             GTest::gtest_main
             GTest::gmock
@@ -80,6 +81,7 @@ else()
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            ctncrypto
             GTest::gtest
             GTest::gtest_main
             GTest::gmock
