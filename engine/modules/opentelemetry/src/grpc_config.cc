@@ -39,8 +39,11 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "maximum": 65535
         },
         "encryption": {
-            "description": "true if https",
-            "type": "boolean"
+          "description": "encryption mode: full, insecure, or no",
+            "anyOf": [
+              { "type": "boolean" },
+              { "type": "string", "enum": ["full", "insecure", "no", "true", "false"] }
+            ]
         },
         "public_cert": {
             "description": "path of certificate file .crt",
@@ -116,8 +119,15 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   bool compress = false;
   int second_keepalive_interval;
 
-  if (json_config.has_member("encryption"))
-    crypted = json_config.get_bool("encryption");
+  if (json_config.has_member("encryption")) {
+    const auto& encryption_value = json_config_v["encryption"];
+    if (encryption_value.IsString()) {
+      const std::string& encryption = json_config.get_string("encryption");
+      crypted = (encryption == "full" || encryption == "true");
+    } else if (encryption_value.IsBool()) {
+      crypted = encryption_value.GetBool();
+    }
+  }
 
   read_file(json_config_v, "public_cert", certificate);
   read_file(json_config_v, "private_key", cert_key);

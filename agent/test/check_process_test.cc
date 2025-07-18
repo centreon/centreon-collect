@@ -137,7 +137,7 @@ TEST(check_process, output_no_verbose) {
   EXPECT_EQ(status, e_status::ok);
   EXPECT_EQ(output,
             std::format("OK: All processes are ok must empty: 'taratata.exe "
-                        "C:\\temp\\taratata.exe started {:%FT%T} 1s 9 "
+                        "C:\\temp\\taratata.exe unreadable {:%FT%T} 1s 9 "
                         "6s 59 7s 69 1000 1 2 1 '",
                         rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
@@ -204,16 +204,17 @@ TEST(check_process, output_no_verbose) {
   checker.cont->refresh({1, 2, 3}, {2});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::critical);
-  EXPECT_EQ(output,
-            std::format(
-                "CRITICAL: "
-                "turlututu.exe C:\\temp\\turlututu.exe started {0:%FT%T} 3s 29 "
-                "6s 59 9s 89 1000000 5 6 3 "
-                "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
-                "6s 59 7s 69 1000 1 2 1 "
-                "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
-                "6s 59 8s 79 1000000 5 6 2 ",
-                rounded_now));
+  EXPECT_EQ(
+      output,
+      std::format(
+          "CRITICAL: "
+          "turlututu.exe C:\\temp\\turlututu.exe unreadable {0:%FT%T} 3s 29 "
+          "6s 59 9s 89 1000000 5 6 3 "
+          "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
+          "6s 59 7s 69 1000 1 2 1 "
+          "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
+          "6s 59 8s 79 1000000 5 6 2 ",
+          rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 3);
 }
@@ -295,10 +296,11 @@ TEST(check_process, output_verbose) {
   checker.cont->refresh({1}, {});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::ok);
-  EXPECT_EQ(output, std::format("OK: All processes are ok\ntaratata.exe "
-                                "C:\\temp\\taratata.exe started {:%FT%T} 1s 9 "
-                                "6s 59 7s 69 1000 1 2 1",
-                                rounded_now));
+  EXPECT_EQ(output,
+            std::format("OK: All processes are ok\ntaratata.exe "
+                        "C:\\temp\\taratata.exe unreadable {:%FT%T} 1s 9 "
+                        "6s 59 7s 69 1000 1 2 1",
+                        rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 1);
 
@@ -363,16 +365,17 @@ TEST(check_process, output_verbose) {
   checker.cont->refresh({1, 2, 3}, {2});
   status = checker.compute(*checker.cont, &output, &perf);
   EXPECT_EQ(status, e_status::critical);
-  EXPECT_EQ(output,
-            std::format(
-                "CRITICAL\n"
-                "turlututu.exe C:\\temp\\turlututu.exe started {0:%FT%T} 3s 29 "
-                "6s 59 9s 89 1000000 5 6 3\n"
-                "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
-                "6s 59 7s 69 1000 1 2 1\n"
-                "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
-                "6s 59 8s 79 1000000 5 6 2",
-                rounded_now));
+  EXPECT_EQ(
+      output,
+      std::format(
+          "CRITICAL\n"
+          "turlututu.exe C:\\temp\\turlututu.exe unreadable {0:%FT%T} 3s 29 "
+          "6s 59 9s 89 1000000 5 6 3\n"
+          "taratata.exe C:\\temp\\taratata.exe started {0:%FT%T} 1s 9 "
+          "6s 59 7s 69 1000 1 2 1\n"
+          "turlututu.exe C:\\temp\\turlututu.exe hung {0:%FT%T} 2s 19 "
+          "6s 59 8s 79 1000000 5 6 2",
+          rounded_now));
   EXPECT_EQ(perf.name(), "process.count");
   EXPECT_EQ(perf.value(), 3);
 }
