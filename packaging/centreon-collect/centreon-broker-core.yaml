@@ -80,6 +80,7 @@ overrides:
     provides:
       - centreon-broker-storage
       - centreon-broker-core-dev
+      - centreon-broker-caching-sha2-password
 
 rpm:
   summary: Centreon Broker's shared library.
