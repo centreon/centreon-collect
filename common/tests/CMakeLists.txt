@@ -114,10 +114,9 @@ else()
     PRIVATE centreon_common
             centreon_process
             ctncrypto
-            OpenSSL::SSL
-            OpenSSL::Crypto
             Boost::program_options
             Boost::process
+            gRPC::grpc++
             re2::re2
             GTest::gtest
             GTest::gtest_main

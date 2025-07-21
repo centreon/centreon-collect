@@ -17,11 +17,14 @@
  */
 
 #include "scheduler.hh"
+#include <exception>
+#include <memory>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
 #include "config.hh"
 #include "log.hh"
+#include "spdlog/spdlog.h"
 #ifdef _WIN32
 #include "check_counter.hh"
 #include "check_event_log.hh"
@@ -38,11 +41,6 @@
 #include "drive_size.hh"
 
 #include "common/crypto/aes256.hh"
-
-namespace com::centreon::agent {
-extern std::unique_ptr<com::centreon::common::crypto::aes256>
-    credentials_decrypt;
-}
 
 using namespace com::centreon::agent;
 
@@ -189,6 +187,17 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     checks_statistics::pointer statistics =
         std::make_shared<checks_statistics>();
 
+    if (!conf->config().key().empty() && !conf->config().salt().empty()) {
+      try {
+        _credentials_decrypt = std::make_shared<common::crypto::aes256>(
+            conf->config().key(), conf->config().salt());
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(_logger,
+                            "Invalid credentials received from engine, agent "
+                            "will be unable to decrypt credentials");
+      }
+    }
+
     // first we group checks by check_interval
     std::map<uint32_t, std::vector<const Service*>> group_serv;
     for (const auto& serv : conf->config().services()) {
@@ -275,7 +284,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                 const std::list<std::string>& outputs) {
               me->_check_handler(check, status, perfdata, outputs);
             },
-            statistics);
+            statistics, _credentials_decrypt);
         last_inserted_iter = _waiting_check_queue.emplace_hint(
             last_inserted_iter, step_index, check_to_schedule);
         next += first_inter_check_delay;
@@ -655,7 +664,8 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& conf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::string command_line;
   // has to decrypt cmd_line
   if (credentials_decrypt && !cmd_line.compare(0, 9, "encrypt::")) {
@@ -751,6 +761,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,
                             check_interval, service, cmd_name, command_line,
-                            conf, std::move(handler), stat);
+                            conf, std::move(handler), stat,
+                            credentials_decrypt);
   }
 }

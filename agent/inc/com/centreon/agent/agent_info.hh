@@ -23,8 +23,6 @@
 
 namespace com::centreon::agent {
 
-void set_encryption_test(std::string&& encryption_test);
-
 void read_os_version();
 
 void fill_agent_info(const std::string& supervised_host,

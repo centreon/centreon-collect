@@ -19,27 +19,24 @@
 #include "check_exec.hh"
 #include "com/centreon/common/process/process.hh"
 
-namespace com::centreon::agent {
-extern std::unique_ptr<com::centreon::common::crypto::aes256>
-    credentials_decrypt;
-}
-
 using namespace com::centreon::agent;
 
 /******************************************************************
  * check_exec
  ******************************************************************/
 
-check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
-                       const std::shared_ptr<spdlog::logger>& logger,
-                       time_point first_start_expected,
-                       duration check_interval,
-                       const std::string& serv,
-                       const std::string& cmd_name,
-                       const std::string& cmd_line,
-                       const engine_to_agent_request_ptr& cnf,
-                       check::completion_handler&& handler,
-                       const checks_statistics::pointer& stat)
+check_exec::check_exec(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    duration check_interval,
+    const std::string& serv,
+    const std::string& cmd_name,
+    const std::string& cmd_line,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
     : check(io_context,
             logger,
             first_start_expected,
@@ -49,11 +46,12 @@ check_exec::check_exec(const std::shared_ptr<asio::io_context>& io_context,
             cmd_line,
             cnf,
             std::move(handler),
-            stat) {
+            stat),
+      _credentials_decrypt(credentials_decrypt) {
   _process_args =
       com::centreon::common::process<false>::parse_cmd_line(cmd_line);
-  if (credentials_decrypt) {
-    _process_args->encrypt_args(*credentials_decrypt);
+  if (_credentials_decrypt) {
+    _process_args->encrypt_args(*_credentials_decrypt);
     _process_args->clear_no_encrypted_args();
   }
 }
@@ -85,10 +83,11 @@ std::shared_ptr<check_exec> check_exec::load(
     const std::string& cmd_line,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
-    const checks_statistics::pointer& stat) {
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
       io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, cnf, std::move(handler), stat);
+      cmd_line, cnf, std::move(handler), stat, credentials_decrypt);
   return ret;
 }
 
@@ -107,8 +106,8 @@ void check_exec::start_check(const duration& timeout) {
     auto proc = std::make_shared<com::centreon::common::process<false>>(
         _io_context, _logger, _process_args, true, false, nullptr);
 
-    if (credentials_decrypt) {
-      _process_args->decrypt_args(*credentials_decrypt);
+    if (_credentials_decrypt) {
+      _process_args->decrypt_args(*_credentials_decrypt);
     }
     // we add 100ms to time out in order to let check class manage timeout
     proc->start_process(

@@ -65,8 +65,7 @@ message AgentInfo {
     Version centreon_version=2;
     string os=3; //can be alma, windows, etc
     string os_version=4;
-    string encryption_test=5; //if agent has loaded key and salt file, it sends encrypted phrase 
-                              // to notify engine he is able to receive encrypted commands
+    bool encryption_ready=5; //true if agent is able to receive encrypted commands
 }
 
 //Agent configuration sent by Engine
@@ -86,6 +85,9 @@ message AgentConfiguration {
     repeated Service services = 7;
     //when we calculate checks scheduling, we adjust time step in order to respect all checks interval at max_check_interval_error rounded
     uint32 max_check_interval_error = 8;
+    //encryption keys to decrypt and crypt commands
+    string key = 9;
+    string salt = 10;
 }
 
 //Service (poller configuration definition)

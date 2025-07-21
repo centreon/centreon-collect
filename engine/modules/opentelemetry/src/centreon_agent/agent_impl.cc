@@ -20,6 +20,7 @@
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/crypto/base64.hh"
 
 #include "otl_fmt.hh"
 
@@ -206,6 +207,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
+    if (_credentials_encrypted && credentials_decrypt) {
+      cnf->set_key(
+          common::crypto::base64_encode(credentials_decrypt->first_key()));
+      cnf->set_salt(
+          common::crypto::base64_encode(credentials_decrypt->second_key()));
+    }
     absl::MutexLock l(&_protect);
     if (!_alive) {
       return;
@@ -259,35 +266,7 @@ void agent_impl<bireactor_class>::on_request(
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
-      _credentials_encrypted = false;
-      if (!_agent_info->init().encryption_test().empty()) {
-        if (credentials_decrypt) {
-          try {
-            std::string decrypted = credentials_decrypt->decrypt(
-                _agent_info->init().encryption_test());
-            if (decrypted == "test credentials decrypt") {
-              _credentials_encrypted = true;
-              SPDLOG_LOGGER_INFO(_logger, "{} works with encrypted credentials",
-                                 *request);
-            } else {
-              SPDLOG_LOGGER_ERROR(_logger,
-                                  "Fail to decrypt test sentence from {} => no "
-                                  "encrypted credentials",
-                                  *request);
-            }
-          } catch (const std::exception& e) {
-            SPDLOG_LOGGER_ERROR(_logger,
-                                "Fail to decrypt test sentence from {} => no "
-                                "encrypted credentials",
-                                *request);
-          }
-        } else {
-          SPDLOG_LOGGER_INFO(_logger,
-                             "Agent {} is ready to receive encrypted "
-                             "credentials but engine not",
-                             *request);
-        }
-      }
+      _credentials_encrypted = _agent_info->init().encryption_ready();
     }
     _stats->add_agent(_agent_info->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());

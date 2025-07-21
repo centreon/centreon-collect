@@ -97,13 +97,8 @@ const std::string_view config::config_schema(R"(
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
             "minimum": 4
-        },
-        "token":{
+        },"token":{
             "description": "key for token",
-            "type": "string"
-        },
-        "engine_context_path":{
-            "description": "path of file that contains key and salt for decrypt commands, same as /etc/centreon-engine/engine-context.json on poller host",
             "type": "string"
         }
     },
@@ -177,5 +172,4 @@ config::config(const std::string& path) {
       _token = json_config.get_string("token");
     }
   }
-  _engine_context_path = json_config.get_string("engine_context_path", "");
 }

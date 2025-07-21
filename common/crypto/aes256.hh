@@ -40,6 +40,8 @@ class aes256 {
   }
   void decrypt(const std::string_view& input, std::string* output) const;
   std::string encrypt(const std::string_view& input) const;
+  const std::string& first_key() const { return _first_key; }
+  const std::string second_key() const { return _second_key; }
 };
 }  // namespace com::centreon::common::crypto
 

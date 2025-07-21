@@ -113,6 +113,5 @@ config::config(const std::string& registry_key) {
   else
     _token = get_sz_reg_or_default("token", "");
 
-  _engine_context_path = get_sz_reg_or_default("engine_context_path", "");
   RegCloseKey(h_key);
 }

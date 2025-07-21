@@ -25,11 +25,6 @@
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-namespace com::centreon::agent {
-extern std::unique_ptr<com::centreon::common::crypto::aes256>
-    credentials_decrypt;
-}
-
 using namespace com::centreon::agent;
 
 class tempo_check : public check {
@@ -169,7 +164,8 @@ TEST_F(scheduler_test, no_config) {
          duration /* check interval */, const std::string& /*service*/,
          const std::string& /*cmd_name*/, const std::string& /*cmd_line*/,
          const engine_to_agent_request_ptr& /*engine to agent request*/,
-         check::completion_handler&&, const checks_statistics::pointer&) {
+         check::completion_handler&&, const checks_statistics::pointer&,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::shared_ptr<check>();
       });
 
@@ -255,7 +251,8 @@ TEST_F(scheduler_test, correct_schedule) {
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
-         const checks_statistics::pointer& stat) {
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::make_shared<tempo_check>(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, 0,
@@ -343,7 +340,8 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
-         const checks_statistics::pointer& stat) {
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::make_shared<tempo_check>(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, 0,
@@ -419,7 +417,8 @@ TEST_F(scheduler_test, time_out) {
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
-         const checks_statistics::pointer& stat) {
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::make_shared<tempo_check>(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, 0,
@@ -474,7 +473,8 @@ TEST_F(scheduler_test, correct_output_examplar) {
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
-         const checks_statistics::pointer& stat) {
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::make_shared<tempo_check>(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, 0,
@@ -634,7 +634,8 @@ TEST_F(scheduler_test, max_concurent) {
          const std::string& cmd_line,
          const engine_to_agent_request_ptr& engine_to_agent_request,
          check::completion_handler&& handler,
-         const checks_statistics::pointer& stat) {
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
         return std::make_shared<concurent_check>(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, 0,
@@ -660,9 +661,6 @@ TEST_F(scheduler_test, max_concurent) {
 }
 
 TEST_F(scheduler_test, can_not_decrypt) {
-  credentials_decrypt = std::make_unique<com::centreon::common::crypto::aes256>(
-      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
-
   std::shared_ptr<check> created;
 
   std::shared_ptr<com::centreon::agent::MessageToAgent> conf =
@@ -672,6 +670,8 @@ TEST_F(scheduler_test, can_not_decrypt) {
   cnf->set_max_concurrent_checks(10);
   cnf->set_check_timeout(10);
   cnf->set_use_exemplar(true);
+  cnf->set_key("SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=");
+  cnf->set_salt("U2FsdA==");
   auto serv = cnf->add_services();
   serv->set_service_description("serv");
   serv->set_command_name("command");
@@ -688,11 +688,13 @@ TEST_F(scheduler_test, can_not_decrypt) {
           const std::string& cmd_line,
           const engine_to_agent_request_ptr& engine_to_agent_request,
           check::completion_handler&& handler,
-          const checks_statistics::pointer& stat) {
+          const checks_statistics::pointer& stat,
+          const std::shared_ptr<com::centreon::common::crypto::aes256>&
+              credentials_decrypt) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, std::move(handler),
-            stat);
+            stat, credentials_decrypt);
         return created;
       });
 
@@ -706,8 +708,9 @@ TEST_F(scheduler_test, can_not_decrypt) {
 }
 
 TEST_F(scheduler_test, can_decrypt) {
-  credentials_decrypt = std::make_unique<com::centreon::common::crypto::aes256>(
-      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+  auto credentials_decrypt =
+      std::make_unique<com::centreon::common::crypto::aes256>(
+          "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
 
   std::string command_line =
       "encrypt::" + credentials_decrypt->encrypt("/usr/bin/ls *.*");
@@ -721,6 +724,8 @@ TEST_F(scheduler_test, can_decrypt) {
   cnf->set_max_concurrent_checks(10);
   cnf->set_check_timeout(10);
   cnf->set_use_exemplar(true);
+  cnf->set_key("SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=");
+  cnf->set_salt("U2FsdA==");
   auto serv = cnf->add_services();
   serv->set_service_description("serv");
   serv->set_command_name("command");
@@ -737,11 +742,13 @@ TEST_F(scheduler_test, can_decrypt) {
           const std::string& cmd_line,
           const engine_to_agent_request_ptr& engine_to_agent_request,
           check::completion_handler&& handler,
-          const checks_statistics::pointer& stat) {
+          const checks_statistics::pointer& stat,
+          const std::shared_ptr<com::centreon::common::crypto::aes256>&
+              credentials_decrypt) {
         created = scheduler::default_check_builder(
             io_context, logger, start_expected, check_interval, service,
             cmd_name, cmd_line, engine_to_agent_request, std::move(handler),
-            stat);
+            stat, credentials_decrypt);
         return created;
       });
 

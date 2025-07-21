@@ -21,16 +21,6 @@
 
 static std::string _os;
 static std::string _os_version;
-static std::string _encryption_test;
-
-/**
- * @brief set _encryption_test in order to enable engine to test encryption
- *
- * @param encryption_test
- */
-void com::centreon::agent::set_encryption_test(std::string&& encryption_test) {
-  _encryption_test = std::move(encryption_test);
-}
 
 /**
  * @brief read os version
@@ -81,7 +71,5 @@ void com::centreon::agent::fill_agent_info(
   agent_info->set_host(supervised_host);
   agent_info->set_os(_os);
   agent_info->set_os_version(_os_version);
-  if (!_encryption_test.empty()) {
-    agent_info->set_encryption_test(_encryption_test);
-  }
+  agent_info->set_encryption_ready(true);
 }
