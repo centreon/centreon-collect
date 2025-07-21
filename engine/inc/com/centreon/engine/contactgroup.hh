@@ -41,8 +41,9 @@ using contactgroup_map =
                         std::shared_ptr<com::centreon::engine::contactgroup>>;
 using contactgroup_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::contactgroup*>;
-using contact_map_unsafe =
-    absl::flat_hash_map<std::string, com::centreon::engine::contact*>;
+using contact_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::contact>>;
 
 namespace com::centreon::engine {
 
@@ -60,8 +61,8 @@ class contactgroup {
   void set_alias(std::string const& alias);
   void add_member(contact* cntct);
   void clear_members();
-  contact_map_unsafe& get_members();
-  contact_map_unsafe const& get_members() const;
+  contact_map& get_members();
+  const contact_map& get_members() const;
   void resolve(uint32_t& w, uint32_t& e);
 
   contactgroup& operator=(contactgroup const& other);
@@ -70,12 +71,12 @@ class contactgroup {
 
  private:
   std::string _alias;
-  contact_map_unsafe _members;
+  contact_map _members;
   std::string _name;
 };
 
 }  // namespace com::centreon::engine
 
-std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj);
+std::ostream& operator<<(std::ostream& os, const contactgroup_map& obj);
 
 #endif  // !CCE_OBJECTS_CONTACTGROUP_HH

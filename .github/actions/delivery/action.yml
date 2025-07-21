@@ -133,19 +133,19 @@ runs:
         done
 
         # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
+        if [[ "${{ inputs.module_name }}" == "monitoring-agent" ]]; then
+          for FILE in $FILES; do
+            echo "[DEBUG] - File: $FILE"
 
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
+            VERSION="${{ inputs.major_version }}"
+            MODULE_NAME="monitoring-agent-$VERSION"
+            STABILITY="${{ inputs.stability }}"
 
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+            TARGET_PATH="installers/monitoring-agent/$VERSION/$STABILITY/${{ inputs.distrib }}/"
 
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
+            jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          done
+        fi
 
       shell: bash
 
@@ -168,6 +168,11 @@ runs:
           exit 1
         fi
 
+        if [[ "${{ inputs.is_cloud }}" == "true" && "${{ inputs.distrib }}" == "jammy" ]]; then
+          echo "do not delivery ubuntu packages for cloud, exiting."
+          exit 0
+        fi
+
         # Set ROOT_REPO_PATH based on inputs
         if [[ "${{ inputs.is_cloud }}" == "true" ]]; then
           ROOT_REPO_PATH="apt-standard-internal-${{ inputs.stability }}"
@@ -188,12 +193,18 @@ runs:
           BASENAME=$(echo "$file" | cut -d '_' -f 1)
           OS_DISTRIB=$(echo "$file" | sed -n 's/.*+\(deb[0-9]\+\).*/\1/p')
           ARCH=$(echo $file | cut -d '_' -f3 | cut -d '.' -f1)
+          STABILITY="${{ inputs.stability }}"
 
           # debug
           echo "[DEBUG] - Version: $VERSION"
           echo "[DEBUG] - Basename: $BASENAME"
           echo "[DEBUG] - OS_distrib: $OS_DISTRIB"
           echo "[DEBUG] - Arch: $ARCH"
+
+          if [[ "${{ inputs.module_name }}" == "monitoring-agent" && "${{ inputs.stability }}" == "testing" ]]; then
+            TARGET_PATH="installers/${{ inputs.module_name }}/$VERSION/$STABILITY/${{ inputs.distrib }}/$ARCH/"
+            jf rt upload "$file" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          fi
 
           SEARCH_PATH="$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/${BASENAME}_*${OS_DISTRIB}*${ARCH}*.deb"
 
@@ -205,20 +216,4 @@ runs:
           echo "Uploading $file"
           jf rt upload "$file" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
-
-        # In case of CMA, we also copy it in /installers
-        for FILE in "centreon-monitoring-agent*.${{ env.extfile }}" ; do
-          echo "[DEBUG] - CMA File: $FILE"
-
-          VERSION="${{ inputs.cma_major_version }}.${{ inputs.cma_minor_version }}"
-          MODULE_NAME="monitoring-agent-$VERSION"
-          STABILITY="${{ inputs.stability }}"
-
-          TARGET_PATH="installers/monitoring-agent/${{ inputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
-
-          echo "[DEBUG] - CMA Major version: $VERSION"
-
-          jf rt upload "$FILE" "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
-        done
-
       shell: bash

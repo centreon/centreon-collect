@@ -43,6 +43,8 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
+      - 'release-[2-9][0-9].[0-9][0-9]-next'
+      - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
     paths:
       - ".version"
       - ".version.centreon-monitoring-agent"
@@ -54,6 +56,8 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
+    tags:
+      - "centreon-monitoring-agent-*"
 
 jobs:
   get-environment:
@@ -564,8 +568,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect' &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
@@ -580,12 +583,8 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
-          - distrib: jammy
-            arch: amd64
-          - distrib: jammy
-            arch: arm64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -610,8 +609,7 @@ jobs:
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect' &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: windows-latest
@@ -635,10 +633,9 @@ jobs:
           Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
 
           $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME = "monitoring-agent-$VERSION"
           $STABILITY = "${{ needs.get-environment.outputs.stability }}"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/$MODULE_NAME/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -673,6 +670,7 @@ jobs:
           module_name: monitoring-agent
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
           stability: ${{ needs.get-environment.outputs.stability }}
           github_ref_name: ${{ github.ref_name }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
@@ -721,8 +719,8 @@ jobs:
           $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
           $STABILITY= "${{ needs.get-environment.outputs.stability }}"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/$MODULE_NAME/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/$MODULE_NAME/"
+          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -732,7 +730,7 @@ jobs:
 
           Write-Host "[DEBUG] promote to stable ${VERSION_EXE} to path: ${TARGET_PATH}"
 
-          jf rt upload $VERSION_EXE "${TARGET_PATH}" --sync-deletes="${TARGET_PATH}"
+          jf rt upload $VERSION_EXE "${TARGET_PATH}"
         shell: powershell
 
       - name: Deliver monitoring agent to github release

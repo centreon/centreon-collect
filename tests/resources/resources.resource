@@ -195,7 +195,7 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
     # Currently we are in BBDO2 by default.
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
@@ -209,6 +209,9 @@ Ctn Start Engine
             Remove File    ${lib}/rw/centengine.cmd
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        IF    ${with_centreon_engine_user}
+            Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
         IF    ${newGeneration}
             Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log

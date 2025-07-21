@@ -70,6 +70,8 @@ report.html
 agent/scripts/centagent.service
 agent/conf/centagent.json
 opentelemetry-proto
+agent/src/agent.rc
+agent/inc/com/centreon/agent/version.hh
 
 # bbdo
 bbdo/*_accessor.hh
