@@ -119,8 +119,13 @@ void check_exec::start_check(const duration& timeout) {
         },
         timeout + std::chrono::milliseconds(100));
     _pid = proc->get_pid();
-    _process_args->clear_no_encrypted_args();
+    if (_credentials_decrypt) {
+      _process_args->clear_no_encrypted_args();
+    }
   } catch (const boost::system::system_error& e) {
+    if (_credentials_decrypt) {
+      _process_args->clear_no_encrypted_args();
+    }
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
     asio::post(*_io_context,

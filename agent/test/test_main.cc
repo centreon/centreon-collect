@@ -18,8 +18,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/crypto/aes256.hh"
-
 #ifdef _WIN32
 #include "ntdll.hh"
 #endif

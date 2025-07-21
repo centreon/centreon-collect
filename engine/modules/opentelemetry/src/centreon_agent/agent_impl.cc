@@ -62,10 +62,12 @@ agent_impl<bireactor_class>::agent_impl(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     bool reversed,
+    bool is_crypted,
     const agent_stat::pointer& stats)
     : _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
+      _is_crypted(is_crypted),
       _exp_time(std::chrono::system_clock::time_point::min()),
       _conf(conf),
       _metric_handler(handler),
@@ -85,14 +87,16 @@ agent_impl<bireactor_class>::agent_impl(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     bool reversed,
+    bool is_crypted,
     const agent_stat::pointer& stats,
     const std::chrono::system_clock::time_point& exp_time)
     : _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
+      _is_crypted(is_crypted),
       _exp_time(exp_time),
       _conf(conf),
-      _credentials_encrypted(false),
+      _agent_can_receive_encrypted_credentials(false),
       _metric_handler(handler),
       _write_pending(false),
       _logger(logger),
@@ -207,12 +211,33 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
-    if (_credentials_encrypted && credentials_decrypt) {
+    bool crypt_credentials = false;
+    if (!_is_crypted) {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "As connection is not encrypted, Engine will send no "
+                         "encrypted credentials to agent {}",
+                         *new_conf);
+    } else if (!_agent_can_receive_encrypted_credentials) {
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "Agent is not credentials encrypted ready, Engine will send no "
+          "encrypted credentials to agent {}",
+          *new_conf);
+    } else if (credentials_decrypt) {
       cnf->set_key(
           common::crypto::base64_encode(credentials_decrypt->first_key()));
       cnf->set_salt(
           common::crypto::base64_encode(credentials_decrypt->second_key()));
+      SPDLOG_LOGGER_INFO(_logger,
+                         "Engine will send encrypted credentials to agent {}",
+                         *new_conf);
+      crypt_credentials = true;
+    } else {
+      SPDLOG_LOGGER_INFO(
+          _logger, "Engine will send no encrypted credentials to agent {}",
+          *new_conf);
     }
+
     absl::MutexLock l(&_protect);
     if (!_alive) {
       return;
@@ -221,13 +246,13 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       const std::string& peer = get_peer();
       bool at_least_one_command_found = get_otel_commands(
           _agent_info->init().host(),
-          [cnf, &peer, crypt_cred = _credentials_encrypted](
+          [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
               const std::string& service, uint32_t check_interval,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(cmd_name, cmd_line, service,
                                              check_interval, cnf, logger, peer,
-                                             crypt_cred);
+                                             crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
@@ -266,7 +291,8 @@ void agent_impl<bireactor_class>::on_request(
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
-      _credentials_encrypted = _agent_info->init().encryption_ready();
+      _agent_can_receive_encrypted_credentials =
+          _agent_info->init().encryption_ready();
     }
     _stats->add_agent(_agent_info->init(), _reversed, this);
     SPDLOG_LOGGER_DEBUG(_logger, "init from {}", get_peer());

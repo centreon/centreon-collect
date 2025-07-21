@@ -17,14 +17,10 @@
  */
 
 #include "scheduler.hh"
-#include <exception>
-#include <memory>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
 #include "config.hh"
-#include "log.hh"
-#include "spdlog/spdlog.h"
 #ifdef _WIN32
 #include "check_counter.hh"
 #include "check_event_log.hh"
@@ -191,11 +187,17 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       try {
         _credentials_decrypt = std::make_shared<common::crypto::aes256>(
             conf->config().key(), conf->config().salt());
+        SPDLOG_LOGGER_INFO(_logger,
+                           "Agent is ready to receive encrypted credentials");
       } catch (const std::exception& e) {
+        _credentials_decrypt.reset();
         SPDLOG_LOGGER_ERROR(_logger,
                             "Invalid credentials received from engine, agent "
                             "will be unable to decrypt credentials");
       }
+    } else {
+      _credentials_decrypt.reset();
+      SPDLOG_LOGGER_INFO(_logger, "agent will need no encrypted credentials");
     }
 
     // first we group checks by check_interval

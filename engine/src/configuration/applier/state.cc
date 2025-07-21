@@ -18,7 +18,6 @@
  */
 
 #include <sys/resource.h>
-#include <stdexcept>
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 

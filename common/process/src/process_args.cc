@@ -176,6 +176,11 @@ void process_args::dump(std::string* output) const {
   output->push_back(']');
 }
 
+/**
+ * @brief encrypt all arguments, exe_path is not encrypted
+ *
+ * @param crypto
+ */
 void process_args::encrypt_args(const crypto::aes256& crypto) {
   _encrypted_args.reserve(_args.size());
   for (const std::string& s : _args) {
@@ -183,6 +188,11 @@ void process_args::encrypt_args(const crypto::aes256& crypto) {
   }
 }
 
+/**
+ * @brief decrypt all arguments
+ *
+ * @param crypto
+ */
 void process_args::decrypt_args(const crypto::aes256& crypto) {
   auto decrypt_iter = _args.begin();
   auto c_args_iter = _c_args.begin();
@@ -195,8 +205,13 @@ void process_args::decrypt_args(const crypto::aes256& crypto) {
   }
 }
 
+/**
+ * @brief clear unencrypted arguments
+ *
+ */
 void process_args::clear_no_encrypted_args() {
   for (std::string& s : _args) {
+    s.assign(s.size(), ' ');
     s.clear();
   }
 }
