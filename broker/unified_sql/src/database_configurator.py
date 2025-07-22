@@ -22,7 +22,7 @@ from collections import namedtuple
 
 
 class Generator:
-    def __init__(self, query: str, method, return_value, key_value, pb_msg, table, fields):
+    def __init__(self, query: str, method: str, return_value, key_value, pb_msg, table, fields):
         self.query = query
         self.method = method
         self.return_value = return_value

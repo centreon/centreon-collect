@@ -31,6 +31,11 @@ using com::centreon::engine::configuration::ActionServiceOn;
 namespace com::centreon::broker::unified_sql {
 
 void database_configurator::process() {
+  absl::flat_hash_map<
+      std::pair<uint64_t, uint64_t>,
+      const engine::configuration::CustomVariable*>
+      cv_added;
+
   /* We start by disabling pollers with full conf. */
   _disable_pollers_with_full_conf();
 
@@ -39,6 +44,60 @@ void database_configurator::process() {
   /* Disabling removed hosts and services */
   //_disable_hosts_and_services();
 
+//  /* Custom variables */
+//  for (auto& h : _diff.hosts().added()) {
+//    for (auto& cv : h.customvariables()) {
+//      cv_added[{h.host_id(), 0}] = &cv;
+//    }
+//  }
+//
+//  for (auto& svc : _diff.services().added()) {
+//    for (auto& cv : svc.customvariables()) {
+//      cv_added[{svc.host_id(), svc.service_id()}] = &cv;
+//    }
+//  }
+//
+//  for (auto& ad : _diff.anomalydetections().added()) {
+//    for (auto& cv : ad.customvariables()) {
+//      cv_added[{ad.host_id(), ad.service_id()}] = &cv;
+//    }
+//  }
+//
+//  for (auto& h : _diff.hosts().modified()) {
+//    for (auto& cv : h.customvariables()) {
+//      cv_added[{h.host_id(), 0}] = &cv;
+//    }
+//  }
+//
+//  for (auto& svc : _diff.services().modified()) {
+//    for (auto& cv : svc.customvariables()) {
+//      cv_added[{svc.host_id(), svc.service_id()}] = &cv;
+//    }
+//  }
+//
+//  for (auto& ad : _diff.anomalydetections().modified()) {
+//    for (auto& cv : ad.customvariables()) {
+//      cv_added[{ad.host_id(), ad.service_id()}] = &cv;
+//    }
+//  }
+//
+//  for (auto& hid : _diff.hosts().removed()) {
+//    for (auto& cv : h.customvariables()) {
+//      cv_removed[{h.host_id(), 0}] = hid;
+//    }
+//  }
+//
+//  for (auto& svc : _diff.services().removed()) {
+//    for (auto& cv : svc.customvariables()) {
+//      cv_added[{svc.host_id(), svc.service_id()}] = &cv;
+//    }
+//  }
+//
+//  for (auto& ad : _diff.anomalydetections().removed()) {
+//    for (auto& cv : ad.customvariables()) {
+//      cv_added[{ad.host_id(), ad.service_id()}] = &cv;
+//    }
+//  }
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
     _add_severities_mariadb(_diff.severities().added(),
@@ -103,12 +162,13 @@ void database_configurator::process() {
     _add_anomalydetections_mysql(_diff.anomalydetections().modified());
     _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
                                           _stream->resources_cache());
-  /* Disabling removed objects */
-  _disable_hosts(_diff.hosts().removed());
-  _disable_services_mysql(_diff.services().removed());
-  _disable_services_mysql(_diff.anomalydetections().removed());
-  _disable_service_resources_mysql(_diff.services().removed());
-  _disable_service_resources_mysql(_diff.anomalydetections().removed());
+
+    /* Disabling removed objects */
+    _disable_hosts(_diff.hosts().removed());
+    _disable_services_mysql(_diff.services().removed());
+    _disable_services_mysql(_diff.anomalydetections().removed());
+    _disable_service_resources_mysql(_diff.services().removed());
+    _disable_service_resources_mysql(_diff.anomalydetections().removed());
   }
 }
 
@@ -226,61 +286,75 @@ void database_configurator::_disable_hosts_and_services() {
  * Description: Add hosts into the database.
  * Table: hosts
  * Data:
- *   FIELD                                                                  & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *   FIELD                                                                  &
+ * TYPE   & COL NAME                      & C_TYPE & OPTIONS
  *   ----------------------------------------------------------------------------------------------------------------------------------
- *   host_id                                                                & uint64 & host_id                       & int32  & U
- *   host_name                                                              & string & name                          & string &
- *   poller_id                                                              & uint64 & instance_id                   & int32  &
- *   action_url                                                             & string & action_url                    & string &
- *   checks_active                                                          & bool   & active_checks                 & bool   &
- *   address                                                                & string & address                       & string &
- *   alias                                                                  & string & alias                         & string &
- *   check_command                                                          & string & check_command                 & string &
- *   check_freshness                                                        & bool   & check_freshness               & bool   &
- *   check_interval                                                         & uint32 & check_interval                & double &
- *   check_period                                                           & string & check_period                  & string &
- *   checks_active                                                          & bool   & default_active_checks         & bool   &
- *   event_handler_enabled                                                  & bool   & default_event_handler_enabled & bool   &
- *   flap_detection_enabled                                                 & bool   & default_flap_detection        & bool   &
- *   notifications_enabled                                                  & bool   & default_notify                & bool   &
- *   checks_passive                                                         & bool   & default_passive_checks        & bool   &
- *   process_perf_data                                                      & bool   & default_process_perfdata      & bool   &
- *   display_name                                                           & string & display_name                  & string &
- *   ${true}                                                                & bool   & enabled                       & bool   &
- *   event_handler                                                          & string & event_handler                 & string &
- *   event_handler_enabled                                                  & bool   & event_handler_enabled         & bool   &
- *   first_notification_delay                                               & uint32 & first_notification_delay      & double &
- *   flap_detection_enabled                                                 & bool   & flap_detection                & bool   &
- *   ${msg.flap_detection_options() & ActionHostOn::action_hst_down}        & bool   & flap_detection_on_down        & bool   &
- *   ${msg.flap_detection_options() & ActionHostOn::action_hst_unreachable} & bool   & flap_detection_on_unreachable & bool   &
- *   ${msg.flap_detection_options() & ActionHostOn::action_hst_up}          & bool   & flap_detection_on_up          & bool   &
- *   freshness_threshold                                                    & uint32 & freshness_threshold           & double &
- *   high_flap_threshold                                                    & uint32 & high_flap_threshold           & double &
- *   icon_image                                                             & string & icon_image                    & string &
- *   icon_image_alt                                                         & string & icon_image_alt                & string &
- *   low_flap_threshold                                                     & uint32 & low_flap_threshold            & double &
- *   max_check_attempts                                                     & uint32 & max_check_attempts            & int32  &
- *   notes                                                                  & string & notes                         & string &
- *   notes_url                                                              & string & notes_url                     & string &
- *   notification_interval                                                  & uint32 & notification_interval         & double &
- *   notification period                                                    & string & notification_period           & string &
- *   notifications_enabled                                                  & bool   & notify                        & bool   &
- *   ${msg.notification_options() & ActionHostOn::action_hst_down}          & bool   & notify_on_down                & bool   &
- *   ${msg.notification_options() & ActionHostOn::action_hst_downtime}      & bool   & notify_on_downtime            & bool   &
- *   ${msg.notification_options() & ActionHostOn::action_hst_flapping}      & bool   & notify_on_flapping            & bool   &
- *   ${msg.notification_options() & ActionHostOn::action_hst_up}            & bool   & notify_on_recovery            & bool   &
- *   ${msg.notification_options() & ActionHostOn::action_hst_unreachable}   & bool   & notify_on_unreachable         & bool   &
- *   obsess_over_host                                                       & bool   & obsess_over_host              & bool   &
- *   checks_passive                                                         & bool   & passive_checks                & bool   &
- *   process_perf_data                                                      & bool   & process_perfdata              & bool   &
- *   retain_nonstatus_information                                           & bool   & retain_nonstatus_information  & bool   &
- *   retain_status_information                                              & bool   & retain_status_information     & bool   &
- *   retry_interval                                                         & uint32 & retry_interval                & double &
- *   ${msg.stalking_options() & ActionHostOn::action_hst_down}              & bool   & stalk_on_down                 & bool   &
- *   ${msg.stalking_options() & ActionHostOn::action_hst_unreachable}       & bool   & stalk_on_unreachable          & bool   &
- *   ${msg.stalking_options() & ActionHostOn::action_hst_up}                & bool   & stalk_on_up                   & bool   &
- *   statusmap_image                                                        & string & statusmap_image               & string &
- *   timezone                                                               & string & timezone                      & string & O
+ *   host_id                                                                &
+ * uint64 & host_id                       & int32  & U host_name & string & name
+ * & string & poller_id & uint64 & instance_id                   & int32  &
+ *   action_url                                                             &
+ * string & action_url                    & string & checks_active & bool   &
+ * active_checks                 & bool   & address & string & address & string
+ * & alias                                                                  &
+ * string & alias                         & string & check_command & string &
+ * check_command                 & string & check_freshness & bool   &
+ * check_freshness               & bool   & check_interval & uint32 &
+ * check_interval                & double & check_period & string & check_period
+ * & string & checks_active & bool   & default_active_checks         & bool   &
+ *   event_handler_enabled                                                  &
+ * bool   & default_event_handler_enabled & bool   & flap_detection_enabled &
+ * bool   & default_flap_detection        & bool   & notifications_enabled &
+ * bool   & default_notify                & bool   & checks_passive & bool   &
+ * default_passive_checks        & bool   & process_perf_data & bool   &
+ * default_process_perfdata      & bool   & display_name & string & display_name
+ * & string &
+ *   ${true}                                                                &
+ * bool   & enabled                       & bool   & event_handler & string &
+ * event_handler                 & string & event_handler_enabled & bool   &
+ * event_handler_enabled         & bool   & first_notification_delay & uint32 &
+ * first_notification_delay      & double & flap_detection_enabled & bool   &
+ * flap_detection                & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_down}        &
+ * bool   & flap_detection_on_down        & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_unreachable} &
+ * bool   & flap_detection_on_unreachable & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_up}          &
+ * bool   & flap_detection_on_up          & bool   & freshness_threshold &
+ * uint32 & freshness_threshold           & double & high_flap_threshold &
+ * uint32 & high_flap_threshold           & double & icon_image & string &
+ * icon_image                    & string & icon_image_alt & string &
+ * icon_image_alt                & string & low_flap_threshold & uint32 &
+ * low_flap_threshold            & double & max_check_attempts & uint32 &
+ * max_check_attempts            & int32  & notes & string & notes & string &
+ *   notes_url                                                              &
+ * string & notes_url                     & string & notification_interval &
+ * uint32 & notification_interval         & double & notification period &
+ * string & notification_period           & string & notifications_enabled &
+ * bool   & notify                        & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_down}          &
+ * bool   & notify_on_down                & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_downtime}      &
+ * bool   & notify_on_downtime            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_flapping}      &
+ * bool   & notify_on_flapping            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_up}            &
+ * bool   & notify_on_recovery            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_unreachable}   &
+ * bool   & notify_on_unreachable         & bool   & obsess_over_host & bool   &
+ * obsess_over_host              & bool   & checks_passive & bool   &
+ * passive_checks                & bool   & process_perf_data & bool   &
+ * process_perfdata              & bool   & retain_nonstatus_information & bool
+ * & retain_nonstatus_information  & bool   & retain_status_information & bool
+ * & retain_status_information     & bool   & retry_interval & uint32 &
+ * retry_interval                & double &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_down}              &
+ * bool   & stalk_on_down                 & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_unreachable}       &
+ * bool   & stalk_on_unreachable          & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_up}                &
+ * bool   & stalk_on_up                   & bool   & statusmap_image & string &
+ * statusmap_image               & string & timezone & string & timezone &
+ * string & O
  */
 
 /** Database configuration
@@ -323,37 +397,42 @@ void database_configurator::_disable_hosts_and_services() {
  * Description: Add services into the database.
  * Table: services
  * Data:
- *  FIELD                                                               & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  FIELD                                                               & TYPE
+ * & COL NAME                      & C_TYPE & OPTIONS
  *  ----------------------------------------------------------------------------------------------------------------------------------
- *  host_id                  & uint64_t & host_id                       & int32  & U
- *  service_description      & string   & description                   & string &
- *  service_id               & uint64   & service_id                    & int32  & U
- *  action_url               & string   & action_url                    & string &
- *  checks_active            & bool     & active_checks                 & bool   &
- *  check_command            & string   & check_command                 & string &
- *  check_freshness          & bool     & check_freshness               & bool   &
- *  check_interval           & uint32   & check_interval                & double &
- *  check_period             & string   & check_period                  & string &
- *  checks_active            & bool     & default_active_checks         & bool   &
- *  event_handler_enabled    & bool     & default_event_handler_enabled & bool   &
- *  flap_detection_enabled   & bool     & default_flap_detection        & bool   &
- *  notifications_enabled    & bool     & default_notify                & bool   &
- *  checks_passive           & bool     & default_passive_checks        & bool   &
- *  process_perf_data        & bool     & default_process_perfdata      & bool   &
- *  display_name             & string   & display_name                  & string &
- *  ${true}                  & bool     & enabled                       & bool   &
- *  event_handler            & string   & event_handler                 & string &
- *  event_handler_enabled    & bool     & event_handler_enabled         & bool   &
- *  first_notification_delay & uint32   & first_notification_delay      & double &
- *  flap_detection_enabled   & bool     & flap_detection                & bool   &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_critical} & bool & flap_detection_on_critical & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_ok}       & bool & flap_detection_on_ok       & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_unknown}  & bool & flap_detection_on_unknown  & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_warning}  & bool & flap_detection_on_warning  & bool &
- *  freshness_threshold   & uint32 & freshness_threshold   & double &
- *  high_flap_threshold   & uint32 & high_flap_threshold   & double &
- *  icon_image            & string & icon_image            & string &
- *  icon_image_alt        & string & icon_image_alt        & string &
+ *  host_id                  & uint64_t & host_id                       & int32
+ * & U service_description      & string   & description                   &
+ * string & service_id               & uint64   & service_id & int32  & U
+ *  action_url               & string   & action_url                    & string
+ * & checks_active            & bool     & active_checks                 & bool
+ * & check_command            & string   & check_command                 &
+ * string & check_freshness          & bool     & check_freshness & bool   &
+ *  check_interval           & uint32   & check_interval                & double
+ * & check_period             & string   & check_period                  &
+ * string & checks_active            & bool     & default_active_checks & bool &
+ *  event_handler_enabled    & bool     & default_event_handler_enabled & bool &
+ *  flap_detection_enabled   & bool     & default_flap_detection        & bool &
+ *  notifications_enabled    & bool     & default_notify                & bool &
+ *  checks_passive           & bool     & default_passive_checks        & bool &
+ *  process_perf_data        & bool     & default_process_perfdata      & bool &
+ *  display_name             & string   & display_name                  & string
+ * &
+ *  ${true}                  & bool     & enabled                       & bool &
+ *  event_handler            & string   & event_handler                 & string
+ * & event_handler_enabled    & bool     & event_handler_enabled         & bool
+ * & first_notification_delay & uint32   & first_notification_delay      &
+ * double & flap_detection_enabled   & bool     & flap_detection & bool   &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_critical} &
+ * bool & flap_detection_on_critical & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_ok}       &
+ * bool & flap_detection_on_ok       & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_unknown}  &
+ * bool & flap_detection_on_unknown  & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_warning}  &
+ * bool & flap_detection_on_warning  & bool & freshness_threshold   & uint32 &
+ * freshness_threshold   & double & high_flap_threshold   & uint32 &
+ * high_flap_threshold   & double & icon_image            & string & icon_image
+ * & string & icon_image_alt        & string & icon_image_alt        & string &
  *  low_flap_threshold    & uint32 & low_flap_threshold    & double &
  *  max_check_attempts    & uint32 & max_check_attempts    & int32  &
  *  notes                 & string & notes                 & string &
@@ -361,22 +440,32 @@ void database_configurator::_disable_hosts_and_services() {
  *  notification_interval & uint32 & notification_interval & double &
  *  notification_period   & string & notification_period   & string & O
  *  notifications_enabled & bool   & notify                & bool   &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_critical} & bool & notify_on_critical & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_downtime} & bool & notify_on_downtime & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_flapping} & bool & notify_on_flapping & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_ok} & bool & notify_on_recovery & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_unknown} & bool & notify_on_unknown & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_warning} & bool & notify_on_warning & bool &
- *  obsess_over_service          & bool   & obsess_over_service          & bool   &
- *  checks_passive               & bool   & passive_checks               & bool   &
- *  process_perf_data            & bool   & process_perfdata             & bool   &
- *  retain_nonstatus_information & bool   & retain_nonstatus_information & bool   &
- *  retain_status_information    & bool   & retain_status_information    & bool   &
- *  retry_interval               & uint32 & retry_interval               & double &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_critical} & bool & stalk_on_critical & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_ok}       & bool & stalk_on_ok       & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool & stalk_on_unknown  & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_critical} & bool
+ * & notify_on_critical & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_downtime} & bool
+ * & notify_on_downtime & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_flapping} & bool
+ * & notify_on_flapping & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_ok} & bool &
+ * notify_on_recovery & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_unknown} & bool &
+ * notify_on_unknown & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_warning} & bool &
+ * notify_on_warning & bool & obsess_over_service          & bool   &
+ * obsess_over_service          & bool   & checks_passive               & bool
+ * & passive_checks               & bool   & process_perf_data            & bool
+ * & process_perfdata             & bool   & retain_nonstatus_information & bool
+ * & retain_nonstatus_information & bool   & retain_status_information    & bool
+ * & retain_status_information    & bool   & retry_interval               &
+ * uint32 & retry_interval               & double &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_critical} & bool &
+ * stalk_on_critical & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_ok}       & bool &
+ * stalk_on_ok       & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool &
+ * stalk_on_unknown  & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool &
+ * stalk_on_warning  & bool &
  */
 
 /** Database configuration
@@ -386,10 +475,12 @@ void database_configurator::_disable_hosts_and_services() {
  * Description: Disable services in the database.
  * Table: services
  * Data:
- *  FIELD                    & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  FIELD                    & TYPE   & COL NAME                      & C_TYPE &
+ * OPTIONS
  *  ------------------------------------------------------------------------------------
- *  host_id                  & uint64_t & host_id                     & int32  & U
- *  service_id               & uint64   & service_id                  & int32  & U
+ *  host_id                  & uint64_t & host_id                     & int32  &
+ * U service_id               & uint64   & service_id                  & int32
+ * & U
  *  ${false}                 & bool     & enabled                     & bool   &
  */
 
@@ -400,10 +491,12 @@ void database_configurator::_disable_hosts_and_services() {
  * Description: Disable services in the database.
  * Table: resources
  * Data:
- *  FIELD                    & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  FIELD                    & TYPE   & COL NAME                      & C_TYPE &
+ * OPTIONS
  *  ------------------------------------------------------------------------------------
- *  host_id                  & uint64_t & parent_id                   & int64  & U
- *  service_id               & uint64   & id                          & int64  & U
+ *  host_id                  & uint64_t & parent_id                   & int64  &
+ * U service_id               & uint64   & id                          & int64
+ * & U
  *  ${false}                 & bool     & enabled                     & bool   &
  */
 
@@ -414,35 +507,40 @@ void database_configurator::_disable_hosts_and_services() {
  * Description: Add services into the database.
  * Table: services
  * Data:
- *  FIELD                                                               & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *  FIELD                                                               & TYPE
+ * & COL NAME                      & C_TYPE & OPTIONS
  *  ----------------------------------------------------------------------------------------------------------------------------------
- *  host_id                  & uint64_t & host_id                       & int32  & U
- *  service_description      & string   & description                   & string &
- *  service_id               & uint64   & service_id                    & int32  & U
- *  action_url               & string   & action_url                    & string &
- *  checks_active            & bool     & active_checks                 & bool   &
- *  check_freshness          & bool     & check_freshness               & bool   &
- *  check_interval           & uint32   & check_interval                & double &
- *  checks_active            & bool     & default_active_checks         & bool   &
- *  event_handler_enabled    & bool     & default_event_handler_enabled & bool   &
- *  flap_detection_enabled   & bool     & default_flap_detection        & bool   &
- *  notifications_enabled    & bool     & default_notify                & bool   &
- *  checks_passive           & bool     & default_passive_checks        & bool   &
- *  process_perf_data        & bool     & default_process_perfdata      & bool   &
- *  display_name             & string   & display_name                  & string &
- *  ${true}                  & bool     & enabled                       & bool   &
- *  event_handler            & string   & event_handler                 & string &
- *  event_handler_enabled    & bool     & event_handler_enabled         & bool   &
- *  first_notification_delay & uint32   & first_notification_delay      & double &
- *  flap_detection_enabled   & bool     & flap_detection                & bool   &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_critical} & bool & flap_detection_on_critical & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_ok}       & bool & flap_detection_on_ok       & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_unknown}  & bool & flap_detection_on_unknown  & bool &
- *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_warning}  & bool & flap_detection_on_warning  & bool &
- *  freshness_threshold   & uint32 & freshness_threshold   & double &
- *  high_flap_threshold   & uint32 & high_flap_threshold   & double &
- *  icon_image            & string & icon_image            & string &
- *  icon_image_alt        & string & icon_image_alt        & string &
+ *  host_id                  & uint64_t & host_id                       & int32
+ * & U service_description      & string   & description                   &
+ * string & service_id               & uint64   & service_id & int32  & U
+ *  action_url               & string   & action_url                    & string
+ * & checks_active            & bool     & active_checks                 & bool
+ * & check_freshness          & bool     & check_freshness               & bool
+ * & check_interval           & uint32   & check_interval                &
+ * double & checks_active            & bool     & default_active_checks & bool &
+ *  event_handler_enabled    & bool     & default_event_handler_enabled & bool &
+ *  flap_detection_enabled   & bool     & default_flap_detection        & bool &
+ *  notifications_enabled    & bool     & default_notify                & bool &
+ *  checks_passive           & bool     & default_passive_checks        & bool &
+ *  process_perf_data        & bool     & default_process_perfdata      & bool &
+ *  display_name             & string   & display_name                  & string
+ * &
+ *  ${true}                  & bool     & enabled                       & bool &
+ *  event_handler            & string   & event_handler                 & string
+ * & event_handler_enabled    & bool     & event_handler_enabled         & bool
+ * & first_notification_delay & uint32   & first_notification_delay      &
+ * double & flap_detection_enabled   & bool     & flap_detection & bool   &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_critical} &
+ * bool & flap_detection_on_critical & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_ok}       &
+ * bool & flap_detection_on_ok       & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_unknown}  &
+ * bool & flap_detection_on_unknown  & bool &
+ *  ${msg.flap_detection_options() & ActionServiceOn::action_svc_warning}  &
+ * bool & flap_detection_on_warning  & bool & freshness_threshold   & uint32 &
+ * freshness_threshold   & double & high_flap_threshold   & uint32 &
+ * high_flap_threshold   & double & icon_image            & string & icon_image
+ * & string & icon_image_alt        & string & icon_image_alt        & string &
  *  low_flap_threshold    & uint32 & low_flap_threshold    & double &
  *  max_check_attempts    & uint32 & max_check_attempts    & int32  &
  *  notes                 & string & notes                 & string &
@@ -450,22 +548,32 @@ void database_configurator::_disable_hosts_and_services() {
  *  notification_interval & uint32 & notification_interval & double &
  *  notification_period   & string & notification_period   & string & O
  *  notifications_enabled & bool   & notify                & bool   &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_critical} & bool & notify_on_critical & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_downtime} & bool & notify_on_downtime & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_flapping} & bool & notify_on_flapping & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_ok} & bool & notify_on_recovery & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_unknown} & bool & notify_on_unknown & bool &
- *  ${msg.notification_options() & ActionServiceOn::action_svc_warning} & bool & notify_on_warning & bool &
- *  obsess_over_service          & bool   & obsess_over_service          & bool   &
- *  checks_passive               & bool   & passive_checks               & bool   &
- *  process_perf_data            & bool   & process_perfdata             & bool   &
- *  retain_nonstatus_information & bool   & retain_nonstatus_information & bool   &
- *  retain_status_information    & bool   & retain_status_information    & bool   &
- *  retry_interval               & uint32 & retry_interval               & double &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_critical} & bool & stalk_on_critical & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_ok}       & bool & stalk_on_ok       & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool & stalk_on_unknown  & bool &
- *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool & stalk_on_warning  & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_critical} & bool
+ * & notify_on_critical & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_downtime} & bool
+ * & notify_on_downtime & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_flapping} & bool
+ * & notify_on_flapping & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_ok} & bool &
+ * notify_on_recovery & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_unknown} & bool &
+ * notify_on_unknown & bool &
+ *  ${msg.notification_options() & ActionServiceOn::action_svc_warning} & bool &
+ * notify_on_warning & bool & obsess_over_service          & bool   &
+ * obsess_over_service          & bool   & checks_passive               & bool
+ * & passive_checks               & bool   & process_perf_data            & bool
+ * & process_perfdata             & bool   & retain_nonstatus_information & bool
+ * & retain_nonstatus_information & bool   & retain_status_information    & bool
+ * & retain_status_information    & bool   & retry_interval               &
+ * uint32 & retry_interval               & double &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_critical} & bool &
+ * stalk_on_critical & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_ok}       & bool &
+ * stalk_on_ok       & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_unknown}  & bool &
+ * stalk_on_unknown  & bool &
+ *  ${msg.stalking_options() & ActionServiceOn::action_svc_warning}  & bool &
+ * stalk_on_warning  & bool &
  */
 
 static uint32_t get_service_type(const engine::configuration::Service& msg) {
@@ -496,9 +604,9 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
  * ${NULL} & uint64 & internal_id & uint64 &
  * ${get_service_type(msg)} & uint32 & type & uint32 &
  * max_check_attempts & uint32 & max_check_attempts & uint32 &
- * ${_stream->hosts_instances_cache(msg.host_id())} & uint64 & poller_id & uint64 &
- * severity_id & uint64 & severity_id & uint64 & O
- * service_description & string & name & string &
+ * ${_stream->hosts_instances_cache(msg.host_id())} & uint64 & poller_id &
+ * uint64 & severity_id & uint64 & severity_id & uint64 & O service_description
+ * & string & name & string &
  * ${NULL} & string & alias & string &
  * host_name & string & parent_name & string &
  * notes_url & string & notes_url & string &
@@ -527,9 +635,9 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
  * ${NULL} & uint64 & internal_id & uint64 &
  * ${4} & uint32 & type & uint32 &
  * max_check_attempts & uint32 & max_check_attempts & uint32 &
- * ${_stream->hosts_instances_cache(msg.host_id())} & uint64 & poller_id & uint64 &
- * severity_id & uint64 & severity_id & uint64 & O
- * service_description & string & name & string &
+ * ${_stream->hosts_instances_cache(msg.host_id())} & uint64 & poller_id &
+ * uint64 & severity_id & uint64 & severity_id & uint64 & O service_description
+ * & string & name & string &
  * ${NULL} & string & alias & string &
  * host_name & string & parent_name & string &
  * notes_url & string & notes_url & string &

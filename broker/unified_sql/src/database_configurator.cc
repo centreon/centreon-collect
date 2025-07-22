@@ -889,6 +889,7 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_bool(17, msg.checks_active());
     bind->set_value_as_bool(18, true);
     bind->next_row();
+    _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
   }
   _add_host_resources_stmt->set_bind(std::move(bind));
 
@@ -951,6 +952,7 @@ void database_configurator::_add_host_resources_mysql(
         msg.notifications_enabled(), msg.checks_passive(),
         msg.checks_active()));
     values.emplace_back(value);
+    _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
   }
   std::string query(fmt::format(
       "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
@@ -1943,6 +1945,7 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_bool(15, msg.checks_active());
     bind->set_value_as_bool(16, true);
     bind->next_row();
+    _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
   }
   _add_service_resources_stmt->set_bind(std::move(bind));
 
@@ -2001,6 +2004,7 @@ void database_configurator::_add_service_resources_mysql(
         msg.notifications_enabled(), msg.checks_passive(),
         msg.checks_active()));
     values.emplace_back(value);
+    _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
   }
   std::string query(fmt::format(
       "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
@@ -2133,6 +2137,8 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_value_as_bool(15, msg.checks_active());
     bind->set_value_as_bool(16, true);
     bind->next_row();
+    _add_customvariables_mariadb(msg.host_id(), msg.service_id(),
+                                 msg.customvariables());
   }
   _add_anomalydetection_resources_stmt->set_bind(std::move(bind));
 
@@ -2191,6 +2197,8 @@ void database_configurator::_add_anomalydetection_resources_mysql(
         msg.notifications_enabled(), msg.checks_passive(),
         msg.checks_active()));
     values.emplace_back(value);
+    _add_customvariables_mysql(msg.host_id(), msg.service_id(),
+                               msg.customvariables());
   }
   std::string query(fmt::format(
       "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
@@ -2246,6 +2254,8 @@ void database_configurator::_add_anomalydetection_resources_mysql(
  * @param lst The list of messages to add/update.
  */
 void database_configurator::_add_customvariables_mariadb(
+    uint64_t host_id,
+    uint64_t service_id,
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::CustomVariable>& lst) {
   mysql& mysql = _stream->get_mysql();
@@ -2262,8 +2272,11 @@ void database_configurator::_add_customvariables_mariadb(
   auto bind = _add_customvariables_stmt->create_bind();
 
   for (const auto& msg : lst) {
-    bind->set_value_as_i32(0, msg.host_id());
-    bind->set_value_as_i32(1, msg.service_id());
+    bind->set_value_as_i32(0, host_id);
+    if (service_id)
+      bind->set_value_as_i32(1, service_id);
+    else
+      bind->set_null_i32(1);
     bind->set_value_as_str(
         2, common::truncate_utf8(msg.name(),
                                  get_centreon_storage_customvariables_col_size(
@@ -2277,7 +2290,12 @@ void database_configurator::_add_customvariables_mariadb(
         4, common::truncate_utf8(msg.value(),
                                  get_centreon_storage_customvariables_col_size(
                                      centreon_storage_customvariables_value)));
-    bind->set_value_as_u32(5, msg.var_type());
+    /* var_type is 0 for hosts, 1 otherwise */
+    if (service_id)
+      bind->set_value_as_u32(5, 1);
+    else
+      bind->set_value_as_u32(5, 0);
+
     bind->set_value_as_bool(6, true);
     bind->set_value_as_bool(7, false);
     bind->next_row();
@@ -2292,6 +2310,8 @@ void database_configurator::_add_customvariables_mariadb(
  * @param lst The list of messages to add/update.
  */
 void database_configurator::_add_customvariables_mysql(
+    uint64_t host_id,
+    uint64_t service_id,
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::CustomVariable>& lst) {
   mysql& mysql = _stream->get_mysql();
@@ -2299,7 +2319,7 @@ void database_configurator::_add_customvariables_mysql(
   std::vector<std::string> values;
   for (const auto& msg : lst) {
     std::string value(fmt::format(
-        "({},{},'{}','{}','{}',{},1,0)", msg.host_id(), msg.service_id(),
+        "({},{},'{}','{}','{}',{},1,0)", host_id, service_id,
         misc::string::escape(msg.name(),
                              get_centreon_storage_customvariables_col_size(
                                  centreon_storage_customvariables_name)),
@@ -2309,7 +2329,7 @@ void database_configurator::_add_customvariables_mysql(
         misc::string::escape(msg.value(),
                              get_centreon_storage_customvariables_col_size(
                                  centreon_storage_customvariables_value)),
-        msg.var_type()));
+        service_id ? 1 : 0));
     values.emplace_back(value);
   }
   std::string query(fmt::format(
