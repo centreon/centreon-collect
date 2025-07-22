@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2024 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1080,16 +1080,17 @@ int service::handle_async_check_result(
   com::centreon::engine::service* master_service = nullptr;
   int run_async_check = true;
   int flapping_check_done = false;
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   bool accept_passive_service_checks =
-      pb_config.accept_passive_service_checks();
-  bool log_passive_checks = pb_config.log_passive_checks();
-  uint32_t cached_host_check_horizon = pb_config.cached_host_check_horizon();
-  bool obsess_over_services = pb_config.obsess_over_services();
+      pb_indexed_config.state().accept_passive_service_checks();
+  bool log_passive_checks = pb_indexed_config.state().log_passive_checks();
+  uint32_t cached_host_check_horizon =
+      pb_indexed_config.state().cached_host_check_horizon();
+  bool obsess_over_services = pb_indexed_config.state().obsess_over_services();
   bool enable_predictive_service_dependency_checks =
-      pb_config.enable_predictive_service_dependency_checks();
+      pb_indexed_config.state().enable_predictive_service_dependency_checks();
   uint32_t cached_service_check_horizon =
-      pb_config.cached_service_check_horizon();
+      pb_indexed_config.state().cached_service_check_horizon();
 
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "service::handle_async_check_result() service {} res:{}",
@@ -2091,7 +2092,7 @@ int service::handle_async_check_result(
  *  @return Return true on success.
  */
 int service::log_event() {
-  bool log_service_retries = pb_config.log_service_retries();
+  bool log_service_retries = pb_indexed_config.state().log_service_retries();
   if (get_state_type() == soft && !log_service_retries)
     return OK;
 
@@ -2134,9 +2135,11 @@ void service::check_for_flapping(bool update,
   float high_service_flap_threshold;
   bool enable_flap_detection;
 
-  low_service_flap_threshold = pb_config.low_service_flap_threshold();
-  high_service_flap_threshold = pb_config.high_service_flap_threshold();
-  enable_flap_detection = pb_config.enable_flap_detection();
+  low_service_flap_threshold =
+      pb_indexed_config.state().low_service_flap_threshold();
+  high_service_flap_threshold =
+      pb_indexed_config.state().high_service_flap_threshold();
+  enable_flap_detection = pb_indexed_config.state().enable_flap_detection();
 
   /* large install tweaks skips all flap detection logic - including state
    * change calculation */
@@ -2274,7 +2277,8 @@ int service::handle_service_event() {
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_service_event()");
 
   /* bail out if we shouldn't be running event handlers */
-  bool enable_event_handlers = pb_config.enable_event_handlers();
+  bool enable_event_handlers =
+      pb_indexed_config.state().enable_event_handlers();
   if (!enable_event_handlers)
     return OK;
   if (!event_handler_enabled())
@@ -2314,9 +2318,9 @@ int service::obsessive_compulsive_service_check_processor() {
 
   bool obsess_over_services;
   uint32_t ocsp_timeout;
-  obsess_over_services = pb_config.obsess_over_services();
-  const std::string& ocsp_command = pb_config.ocsp_command();
-  ocsp_timeout = pb_config.ocsp_timeout();
+  obsess_over_services = pb_indexed_config.state().obsess_over_services();
+  const std::string& ocsp_command = pb_indexed_config.state().ocsp_command();
+  ocsp_timeout = pb_indexed_config.state().ocsp_timeout();
 
   engine_logger(dbg_functions, basic)
       << "obsessive_compulsive_service_check_processor()";
@@ -2416,7 +2420,7 @@ int service::obsessive_compulsive_service_check_processor() {
 /* updates service performance data */
 int service::update_service_performance_data() {
   /* should we be processing performance data for anything? */
-  bool process_pd = pb_config.process_performance_data();
+  bool process_pd = pb_indexed_config.state().process_performance_data();
   if (!process_pd)
     return OK;
 
@@ -2469,7 +2473,7 @@ int service::run_scheduled_check(int check_options, double latency) {
        * minutes from now
        * */
       if (current_time >= preferred_time) {
-        uint32_t interval_length = pb_config.interval_length();
+        uint32_t interval_length = pb_indexed_config.state().interval_length();
         preferred_time =
             current_time +
             static_cast<time_t>(check_interval() <= 0
@@ -2618,7 +2622,7 @@ int service::run_async_check_local(int check_options,
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
     if (preferred_time != nullptr) {
-      uint32_t interval_length = pb_config.interval_length();
+      uint32_t interval_length = pb_indexed_config.state().interval_length();
       *preferred_time +=
           static_cast<time_t>(check_interval() * interval_length);
     }
@@ -2715,7 +2719,7 @@ int service::run_async_check_local(int check_options,
   };
 
   bool use_host_down_disable_service_checks =
-      pb_config.host_down_disable_service_checks();
+      pb_indexed_config.state().host_down_disable_service_checks();
   bool has_to_execute_check = true;
   if (use_host_down_disable_service_checks) {
     auto hst = host::hosts_by_id.find(_host_id);
@@ -2749,7 +2753,8 @@ int service::run_async_check_local(int check_options,
       retry = false;
       try {
         // Run command.
-        uint32_t service_check_timeout = pb_config.service_check_timeout();
+        uint32_t service_check_timeout =
+            pb_indexed_config.state().service_check_timeout();
         uint64_t id = get_check_command_ptr()->run(processed_cmd, *macros,
                                                    service_check_timeout,
                                                    check_result_info, this);
@@ -3116,7 +3121,7 @@ bool service::verify_check_viability(int check_options,
   SPDLOG_LOGGER_TRACE(functions_logger, "check_service_check_viability()");
 
   /* get the check interval to use if we need to reschedule the check */
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   if (get_state_type() == soft && _current_state != service::state_ok)
     check_interval = static_cast<int>(retry_interval() * interval_length);
   else
@@ -3195,7 +3200,7 @@ int service::notify_contact(nagios_macros* mac,
                             const std::string& not_author,
                             const std::string& not_data,
                             int options __attribute__((unused)),
-                            int escalated) {
+                            int escalated [[maybe_unused]]) {
   std::string raw_command;
   std::string processed_command;
   bool early_timeout = false;
@@ -3238,7 +3243,7 @@ int service::notify_contact(nagios_macros* mac,
                                 processed_command);
 
     /* log the notification to program log file */
-    bool log_notifications = pb_config.log_notifications();
+    bool log_notifications = pb_indexed_config.state().log_notifications();
     if (log_notifications) {
       char const* service_state_str("UNKNOWN");
       if ((unsigned int)_current_state < tab_service_states.size())
@@ -3276,7 +3281,8 @@ int service::notify_contact(nagios_macros* mac,
 
     /* run the notification command */
     if (command_is_allowed_by_whitelist(processed_command, NOTIF_TYPE)) {
-      uint32_t notification_timeout = pb_config.notification_timeout();
+      uint32_t notification_timeout =
+          pb_indexed_config.state().notification_timeout();
       try {
         std::string tmp;
         my_system_r(mac, processed_command, notification_timeout,
@@ -3420,9 +3426,11 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   uint32_t interval_length;
   int32_t additional_freshness_latency;
   uint32_t max_service_check_spread;
-  interval_length = pb_config.interval_length();
-  additional_freshness_latency = pb_config.additional_freshness_latency();
-  max_service_check_spread = pb_config.max_service_check_spread();
+  interval_length = pb_indexed_config.state().interval_length();
+  additional_freshness_latency =
+      pb_indexed_config.state().additional_freshness_latency();
+  max_service_check_spread =
+      pb_indexed_config.state().max_service_check_spread();
 
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
@@ -3622,7 +3630,8 @@ bool service::authorized_by_dependencies(
 
     /* Get the status to use (use last hard state if it's currently in a soft
      * state) */
-    bool soft_state_dependencies = pb_config.soft_state_dependencies();
+    bool soft_state_dependencies =
+        pb_indexed_config.state().soft_state_dependencies();
     service_state state =
         (dep->master_service_ptr->get_state_type() == notifier::soft &&
          !soft_state_dependencies)
@@ -3661,8 +3670,8 @@ void service::check_for_orphaned() {
 
   uint32_t service_check_timeout;
   uint32_t check_reaper_interval;
-  service_check_timeout = pb_config.service_check_timeout();
-  check_reaper_interval = pb_config.check_reaper_interval();
+  service_check_timeout = pb_indexed_config.state().service_check_timeout();
+  check_reaper_interval = pb_indexed_config.state().check_reaper_interval();
   /* check all services... */
   for (service_map::iterator it(service::services.begin()),
        end(service::services.end());
@@ -3730,7 +3739,8 @@ void service::check_result_freshness() {
 
   /* bail out if we're not supposed to be checking freshness */
 
-  bool check_service_freshness = pb_config.check_service_freshness();
+  bool check_service_freshness =
+      pb_indexed_config.state().check_service_freshness();
   if (!check_service_freshness) {
     engine_logger(dbg_checks, more)
         << "Service freshness checking is disabled.";
@@ -3796,7 +3806,8 @@ const std::string& service::get_current_state_as_string() const {
 }
 
 bool service::get_notify_on_current_state() const {
-  bool soft_state_dependencies = pb_config.soft_state_dependencies();
+  bool soft_state_dependencies =
+      pb_indexed_config.state().soft_state_dependencies();
   if (_host_ptr->get_current_state() != host::state_up &&
       (_host_ptr->get_state_type() || soft_state_dependencies))
     return false;

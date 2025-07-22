@@ -39,13 +39,14 @@ static void CreateFile(const std::string& filename,
 class PbSimpleCommand : public ::testing::Test {
  protected:
   std::shared_ptr<spdlog::logger> logger;
+  std::unique_ptr<configuration::state_helper> _state_hlp;
 
  public:
   void SetUp() override {
     logger = log_v2::instance().get(log_v2::COMMANDS);
     set_time(-1);
-    init_config_state();
-    pb_config.set_interval_length(1);
+    _state_hlp = init_config_state();
+    pb_indexed_config.mut_state().set_interval_length(1);
   }
 
   void TearDown() override { deinit_config_state(); }

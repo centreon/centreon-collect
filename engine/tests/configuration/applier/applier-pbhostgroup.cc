@@ -21,11 +21,8 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostgroup.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -34,8 +31,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHostGroup : public ::testing::Test {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -74,10 +74,7 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
   hg_hlp.hook("members", "a,b,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_b, err));
@@ -89,9 +86,8 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
 }
 
 // Given a host configuration
-// When we change the host name in the configuration
-// Then the applier modify_object changes the host name without changing
-// the host id.
+// When we reduce the number of hosts in a hostgroup
+// Then the applier modify_object changes the hostgroup members properly.
 TEST_F(ApplierHostGroup, PbHostRenamed) {
   configuration::error_cnt err;
   configuration::applier::hostgroup hg_aply;
@@ -118,9 +114,7 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
@@ -128,11 +122,10 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg);
+  hg_aply.modify_object(pb_indexed_config.mut_hostgroups().at("temphg").get(),
+                        hg);
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
   ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 1u);
@@ -166,9 +159,7 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(_state_hlp->expand(err));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
@@ -176,15 +167,15 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
   ASSERT_EQ(hg_obj->members.size(), 2u);
-  ASSERT_NO_THROW(hst_aply.remove_object(0));
+  ASSERT_NO_THROW(hst_aply.remove_object(1));
   ASSERT_EQ(hg_obj->members.size(), 1u);
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  ASSERT_NO_THROW(
-      hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg));
+  ASSERT_NO_THROW(hg_aply.modify_object(
+      pb_indexed_config.mut_hostgroups().at("temphg").get(), hg));
 
-  hg_aply.remove_object(0);
-  ASSERT_TRUE(pb_config.hostgroups().empty());
+  hg_aply.remove_object("temphg");
+  ASSERT_TRUE(pb_indexed_config.hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

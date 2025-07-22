@@ -242,7 +242,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
   }
 
   /* are notifications enabled? */
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -354,7 +354,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   if (_first_notification_delay > 0 && !_notification[cat_normal] &&
       get_last_hard_state_change() +
               _first_notification_delay * interval_length >
@@ -429,7 +429,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
   bool retval{true};
   bool send_later{false};
 
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   /* are notifications enabled? */
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
@@ -455,9 +455,9 @@ bool notifier::_is_notification_viable_recovery(reason_type type
     std::time_t now;
     std::time(&now);
 
-    uint32_t interval_length = pb_config.interval_length();
+    uint32_t interval_length = pb_indexed_config.state().interval_length();
     bool use_send_recovery_notifications_anyways =
-        pb_config.send_recovery_notifications_anyways();
+        pb_indexed_config.state().send_recovery_notifications_anyways();
 
     // if use_send_recovery_notifications_anyways flag is set, we don't take
     // timeperiod into account for recovery
@@ -594,7 +594,7 @@ bool notifier::_is_notification_viable_acknowledgement(
     return true;
   }
 
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   /* are notifications enabled? */
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
@@ -645,7 +645,7 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
   }
 
   /* are notifications enabled? */
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -757,7 +757,7 @@ bool notifier::_is_notification_viable_downtime(reason_type type
   }
 
   /* are notifications enabled? */
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -830,7 +830,7 @@ bool notifier::_is_notification_viable_custom(reason_type type
   }
 
   /* are notifications enabled? */
-  bool enable_notifications = pb_config.enable_notifications();
+  bool enable_notifications = pb_indexed_config.state().enable_notifications();
   if (!enable_notifications) {
     engine_logger(dbg_notifications, more)
         << "Notifications are disabled, so notifications will "
@@ -1650,7 +1650,7 @@ time_t notifier::get_next_notification_time(time_t offset) {
                      interval_to_use);
 
   /* calculate next notification time */
-  uint32_t interval_length = pb_config.interval_length();
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
   time_t next_notification{
       offset + static_cast<time_t>(interval_to_use * interval_length)};
 
