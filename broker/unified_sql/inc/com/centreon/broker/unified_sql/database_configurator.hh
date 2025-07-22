@@ -104,9 +104,12 @@ class database_configurator {
           engine::configuration::Anomalydetection>& lst,
       absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
   void _add_customvariables_mariadb(
+      uint64_t host_id, uint64_t service_id,
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::CustomVariable>& lst);
-  void _add_customvariables_mysql(const ::google::protobuf::RepeatedPtrField<
+  void _add_customvariables_mysql(
+      uint64_t host_id, uint64_t service_id,
+      const ::google::protobuf::RepeatedPtrField<
                                   engine::configuration::CustomVariable>& lst);
   void _disable_services_mariadb(const ::google::protobuf::RepeatedPtrField<
                                  engine::configuration::HostServiceId>& lst);
