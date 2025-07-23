@@ -78,6 +78,7 @@ case "$action" in
     ;;
   "2" | "upgrade")
     createEngineContextFile
+    ./centreon-whitelist-migration.sh
     startCentengine
     ;;
   *)
