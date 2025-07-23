@@ -1537,6 +1537,33 @@ void applier::state::_processing(configuration::State& new_cfg,
       applier::scheduler::instance().apply(new_cfg, diff_hosts, diff_services,
                                            diff_anomalydetections);
 
+    // we first reload credentials keys before decrypt macros
+    if (new_cfg.credentials_encryption()) {
+      try {
+        if (std::filesystem::is_regular_file(_engine_context_path) &&
+            std::filesystem::file_size(_engine_context_path) > 0) {
+          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+              std::make_unique<com::centreon::common::crypto::aes256>(
+                  _engine_context_path);
+          // we test validity of keys
+          std::string encrypted = new_file->encrypt("test encrypt");
+          if (new_file->decrypt(encrypted) == "test encrypt") {
+            credentials_decrypt = std::move(new_file);
+          } else {
+            throw std::invalid_argument(
+                "this keys are unable to crypt and decrypt a sentence");
+          }
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(
+            config_logger,
+            "credentials_encryption is set but we can not read {}: {}",
+            _engine_context_path, e.what());
+      }
+    } else {
+      credentials_decrypt.reset();
+    }
+
     // Apply new global on the current state.
     if (!verify_config) {
       _apply(new_cfg, err);
@@ -1565,32 +1592,6 @@ void applier::state::_processing(configuration::State& new_cfg,
       apply_log_config(new_cfg);
       cbm->reload();
       neb_reload_all_modules();
-    }
-
-    if (new_cfg.credentials_encryption()) {
-      try {
-        if (std::filesystem::is_regular_file(_engine_context_path) &&
-            std::filesystem::file_size(_engine_context_path) > 0) {
-          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
-              std::make_unique<com::centreon::common::crypto::aes256>(
-                  _engine_context_path);
-          // we test validity of keys
-          std::string encrypted = new_file->encrypt("test encrypt");
-          if (new_file->decrypt(encrypted) == "test encrypt") {
-            credentials_decrypt = std::move(new_file);
-          } else {
-            throw std::invalid_argument(
-                "this keys are unable to crypt and decrypt a sentence");
-          }
-        }
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(
-            config_logger,
-            "credentials_encryption is set but we can not read {}: {}",
-            _engine_context_path, e.what());
-      }
-    } else {
-      credentials_decrypt.reset();
     }
 
     // Print initial states of new hosts and services.

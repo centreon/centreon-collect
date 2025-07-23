@@ -439,7 +439,7 @@ TEST_F(process_test, encryption) {
 
   process_args cmd(cmdline);
   cmd.encrypt_args(crypt);
-  cmd.clear_no_encrypted_args();
+  cmd.clear_unencrypted_args();
 
   EXPECT_EQ(cmd.get_exe_path(), "12\t 34 56");
   ASSERT_EQ(cmd.get_c_args().size(), 4);  // nullptr at the end

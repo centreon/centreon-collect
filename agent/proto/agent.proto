@@ -25,76 +25,79 @@ package com.centreon.agent;
 
 // Agent connects to engine
 service AgentService {
-    rpc Export(stream MessageFromAgent) returns (stream MessageToAgent) {}
+  rpc Export(stream MessageFromAgent) returns (stream MessageToAgent) {}
 }
-
 
 // Engine connects to agent (reversed connection)
 service ReversedAgentService {
-    rpc Import(stream MessageToAgent) returns (stream MessageFromAgent) {}
+  rpc Import(stream MessageToAgent) returns (stream MessageFromAgent) {}
 }
 
-
-//Message sent to agent reversed connection or not
+// Message sent to agent reversed connection or not
 message MessageToAgent {
-    oneof content {
-        AgentConfiguration config = 1;
-        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse otel_response = 2;
-    }
+  oneof content {
+    AgentConfiguration config = 1;
+    opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse
+        otel_response = 2;
+  }
 }
 
-//Message sent to Engine reversed connection or not
+// Message sent to Engine reversed connection or not
 message MessageFromAgent {
-    oneof content {
-        AgentInfo  init = 1;
-        opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest otel_request = 2;
-    }
+  oneof content {
+    AgentInfo init = 1;
+    opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest
+        otel_request = 2;
+  }
 }
 
-//Binary version Engine or Agent
+// Binary version Engine or Agent
 message Version {
-    uint32 major = 1;
-    uint32 minor = 2;
-    uint32 patch = 3;
+  uint32 major = 1;
+  uint32 minor = 2;
+  uint32 patch = 3;
 }
 
-//First message sent to engine
+// First message sent to engine
 message AgentInfo {
-    //host name of the computer of the agent
-    string host=1;
-    Version centreon_version=2;
-    string os=3; //can be alma, windows, etc
-    string os_version=4;
-    bool encryption_ready=5; //true if agent is able to receive encrypted commands
+  // host name of the computer of the agent
+  string host = 1;
+  Version centreon_version = 2;
+  string os = 3;  // can be alma, windows, etc
+  string os_version = 4;
+  bool encryption_ready = 5;  // true if agent is able to receive encrypted commands
 }
 
-//Agent configuration sent by Engine
+// Agent configuration sent by Engine
 message AgentConfiguration {
-    Version centreon_version = 1;
-    //delay between 2 checks of one service, so we will do all check in that period (in seconds)
-    //uint32 check_interval = 2; //removed but we keep it for backward compatibility (no reused of this field index)
-    //limit the number of active checks in order to limit charge
-    uint32 max_concurrent_checks = 3;
-    //period of metric exports (in seconds)
-    uint32 export_period = 4;
-    //after this timeout, process is killed (in seconds)
-    uint32 check_timeout = 5;
-    //if true we store nagios other metrics (min max warn crit in Exemplar otel objects)
-    bool use_exemplar = 6;
-    //list of services with their commands
-    repeated Service services = 7;
-    //when we calculate checks scheduling, we adjust time step in order to respect all checks interval at max_check_interval_error rounded
-    uint32 max_check_interval_error = 8;
-    //encryption keys to decrypt and crypt commands
-    string key = 9;
-    string salt = 10;
+  Version centreon_version = 1;
+  // delay between 2 checks of one service, so we will do all check in that
+  // period (in seconds) uint32 check_interval = 2; //removed but we keep it for
+  // backward compatibility (no reused of this field index) limit the number of
+  // active checks in order to limit charge
+  uint32 max_concurrent_checks = 3;
+  // period of metric exports (in seconds)
+  uint32 export_period = 4;
+  // after this timeout, process is killed (in seconds)
+  uint32 check_timeout = 5;
+  // if true we store nagios other metrics (min max warn crit in Exemplar otel
+  // objects)
+  bool use_exemplar = 6;
+  // list of services with their commands
+  repeated Service services = 7;
+  // when we calculate checks scheduling, we adjust time step in order to
+  // respect all checks interval at max_check_interval_error rounded
+  uint32 max_check_interval_error = 8;
+  // encryption keys to decrypt and crypt commands
+  string key = 9;
+  string salt = 10;
 }
 
-//Service (poller configuration definition)
+// Service (poller configuration definition)
 message Service {
-    //empty if host check
-    string service_description = 1;
-    string command_name = 2;
-    string command_line = 3;
-    uint32 check_interval = 4;
+  // empty if host check
+  string service_description = 1;
+  string command_name = 2;
+  string command_line = 3;
+  uint32 check_interval = 4;
 }

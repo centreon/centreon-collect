@@ -197,7 +197,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       }
     } else {
       _credentials_decrypt.reset();
-      SPDLOG_LOGGER_INFO(_logger, "agent will need no encrypted credentials");
+      SPDLOG_LOGGER_INFO(_logger, "Agent will need no encrypted credentials");
     }
 
     // first we group checks by check_interval

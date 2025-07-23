@@ -209,7 +209,7 @@ void process_args::decrypt_args(const crypto::aes256& crypto) {
  * @brief clear unencrypted arguments
  *
  */
-void process_args::clear_no_encrypted_args() {
+void process_args::clear_unencrypted_args() {
   for (std::string& s : _args) {
     s.assign(s.size(), ' ');
     s.clear();

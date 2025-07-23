@@ -69,7 +69,7 @@ class process_args {
 
   void decrypt_args(const crypto::aes256& crypto);
 
-  void clear_no_encrypted_args();
+  void clear_unencrypted_args();
 
   void dump(std::string* output) const;
 

@@ -52,7 +52,7 @@ check_exec::check_exec(
       com::centreon::common::process<false>::parse_cmd_line(cmd_line);
   if (_credentials_decrypt) {
     _process_args->encrypt_args(*_credentials_decrypt);
-    _process_args->clear_no_encrypted_args();
+    _process_args->clear_unencrypted_args();
   }
 }
 
@@ -120,11 +120,11 @@ void check_exec::start_check(const duration& timeout) {
         timeout + std::chrono::milliseconds(100));
     _pid = proc->get_pid();
     if (_credentials_decrypt) {
-      _process_args->clear_no_encrypted_args();
+      _process_args->clear_unencrypted_args();
     }
   } catch (const boost::system::system_error& e) {
     if (_credentials_decrypt) {
-      _process_args->clear_no_encrypted_args();
+      _process_args->clear_unencrypted_args();
     }
     SPDLOG_LOGGER_ERROR(_logger, " serv {} fail to execute {}: {}",
                         get_service(), get_command_line(), e.code().message());
