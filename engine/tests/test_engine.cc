@@ -195,7 +195,9 @@ configuration::Hostdependency TestEngine::new_pb_configuration_hostdependency(
 configuration::Host TestEngine::new_pb_configuration_host(
     const std::string& hostname,
     const std::string& contacts,
-    uint64_t hst_id) {
+    uint64_t hst_id,
+    const std::string_view& connector,
+    int cmd_index) {
   configuration::Host hst;
   configuration::host_helper hst_hlp(&hst);
   hst.set_host_name(hostname);
@@ -205,9 +207,16 @@ configuration::Host TestEngine::new_pb_configuration_host(
 
   configuration::Command cmd;
   configuration::command_helper cmd_hlp(&cmd);
-  cmd.set_command_name("hcmd");
+  if (cmd_index >= 0) {
+    cmd.set_command_name(fmt::format("hcmd{}", cmd_index));
+  } else {
+    cmd.set_command_name("hcmd");
+  }
   cmd.set_command_line("echo 0");
-  hst.set_check_command("hcmd");
+  if (!connector.empty()) {
+    cmd.set_connector(connector);
+  }
+  hst.set_check_command(cmd.command_name());
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
 
@@ -257,7 +266,9 @@ configuration::Service TestEngine::new_pb_configuration_service(
     const std::string& hostname,
     const std::string& description,
     const std::string& contacts,
-    uint64_t svc_id) {
+    uint64_t svc_id,
+    const std::string_view& connector,
+    int cmd_index) {
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   svc.set_host_name(hostname);
@@ -278,9 +289,16 @@ configuration::Service TestEngine::new_pb_configuration_service(
 
   configuration::Command cmd;
   configuration::command_helper cmd_hlp(&cmd);
-  cmd.set_command_name("cmd");
+  if (cmd_index >= 0) {
+    cmd.set_command_name(fmt::format("cmd{}", cmd_index));
+  } else {
+    cmd.set_command_name("cmd");
+  }
   cmd.set_command_line("echo 'output| metric=$ARG1$;50;75'");
-  svc.set_check_command("cmd!12");
+  if (!connector.empty()) {
+    cmd.set_connector(connector);
+  }
+  svc.set_check_command(cmd.command_name() + "!12");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
 

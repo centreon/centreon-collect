@@ -3949,7 +3949,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, wit
 
     with open(filename, "a+") as f:
         f.write(
-            f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}")
+            f"broker_module=/usr/lib64/centreon-engine/libopentelemetry.so {otl_server_config_path}\n")
 
     json_load = json.loads(otl_server_config_json_content)
 

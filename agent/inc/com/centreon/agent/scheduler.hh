@@ -19,7 +19,9 @@
 #ifndef CENTREON_AGENT_SCHEDULER_HH
 #define CENTREON_AGENT_SCHEDULER_HH
 
+#include <memory>
 #include "check.hh"
+#include "common/crypto/aes256.hh"
 
 namespace com::centreon::agent {
 
@@ -43,7 +45,9 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::string& /*cmd_line*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
       check::completion_handler&&,
-      const checks_statistics::pointer& /*stat*/)>;
+      const checks_statistics::pointer& /*stat*/,
+      const std::shared_ptr<common::crypto::aes256> /*credentials_decrypt*/
+      )>;
 
  private:
   /**
@@ -96,6 +100,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // number of metrics and we store it in this variable For the next frames, we
   // multiply metrics number by this variable to estimate message length
   unsigned _average_metric_length;
+
+  std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
 
   void _start();
   void _start_send_timer();
@@ -182,7 +188,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::string& cmd_line,
       const engine_to_agent_request_ptr& conf,
       check::completion_handler&& handler,
-      const checks_statistics::pointer& stat);
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
 
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;

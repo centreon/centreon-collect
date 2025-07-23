@@ -58,4 +58,5 @@ void com::centreon::agent::fill_agent_info(
   agent_info->set_host(supervised_host);
   agent_info->set_os(_os);
   agent_info->set_os_version(_os_version);
+  agent_info->set_encryption_ready(true);
 }
