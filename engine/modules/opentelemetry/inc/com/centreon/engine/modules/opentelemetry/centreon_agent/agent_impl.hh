@@ -41,11 +41,13 @@ class agent_impl
   std::shared_ptr<boost::asio::io_context> _io_context;
   const std::string_view _class_name;
   const bool _reversed;
+  const bool _is_crypted;
   const std::chrono::system_clock::time_point _exp_time;
 
   whitelist_cache _whitelist_cache;
 
   agent_config::pointer _conf ABSL_GUARDED_BY(_protect);
+  bool _agent_can_receive_encrypted_credentials ABSL_GUARDED_BY(_protect);
 
   metric_handler _metric_handler;
 
@@ -85,6 +87,7 @@ class agent_impl
              const metric_handler& handler,
              const std::shared_ptr<spdlog::logger>& logger,
              bool reversed,
+             bool is_crypted,
              const agent_stat::pointer& stats);
 
   agent_impl(const std::shared_ptr<boost::asio::io_context>& io_context,
@@ -93,6 +96,7 @@ class agent_impl
              const metric_handler& handler,
              const std::shared_ptr<spdlog::logger>& logger,
              bool reversed,
+             bool is_crypted,
              const agent_stat::pointer& stats,
              const std::chrono::system_clock::time_point& exp_time);
 

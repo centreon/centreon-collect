@@ -17,7 +17,7 @@
  */
 
 #include "com/centreon/common/process/process_args.hh"
-#include <stdexcept>
+#include "common/crypto/aes256.hh"
 
 using namespace com::centreon::common;
 using com::centreon::exceptions::msg_fmt;
@@ -43,23 +43,13 @@ process_args::process_args(const std::string_view& exe_path,
  * @brief Construct a new process args::process args object with an unix style
  * commandline
  *
- * Caution, as this is unix case, get_args() will return an empty vector, only
- * get_c_args() will contain arguments of command
- * In that case only _buffer is used and _c_args point to _buffer
- *
  * @param unix_commandline
  */
 process_args::process_args(const std::string_view& unix_commandline) {
-  _buffer = std::make_unique<char[]>(unix_commandline.length() + 1);
-
-  memcpy(_buffer.get(), unix_commandline.data(), unix_commandline.length());
-  _buffer.get()[unix_commandline.length()] = '\0';
-  // Status variables.shared_ptr
   bool escap(false);
   char quote(0);
 
-  char* begin = nullptr;
-  char* write = _buffer.get();
+  std::string current;
 
   enum e_state { e_waiting_begin, e_decoding_field, e_decoding_in_quote };
   e_state state = e_waiting_begin;
@@ -67,38 +57,46 @@ process_args::process_args(const std::string_view& unix_commandline) {
   auto on_escape = [&](char c) {
     switch (c) {
       case 'n':
-        *(write++) = '\n';
+        current.push_back('\n');
         break;
       case 'r':
-        *(write++) = '\r';
+        current.push_back('\r');
         break;
       case 't':
-        *(write++) = '\t';
+        current.push_back('\t');
         break;
       case 'a':
-        *(write++) = '\a';
+        current.push_back('\a');
         break;
       case 'b':
-        *(write++) = '\b';
+        current.push_back('\b');
         break;
       case 'v':
-        *(write++) = '\v';
+        current.push_back('\v');
         break;
       case 'f':
-        *(write++) = '\f';
+        current.push_back('\f');
         break;
       default:
-        *(write++) = c;
+        current.push_back(c);
         break;
     }
     escap = false;
+  };
+
+  auto push_args = [&]() {
+    if (_exe_path.empty()) {
+      _exe_path = std::move(current);
+    } else {
+      _args.push_back(current);
+    }
+    current.clear();
   };
 
   for (char c : unix_commandline) {
     switch (state) {
       case e_waiting_begin:
         if (escap) {
-          begin = write;
           on_escape(c);
           state = e_decoding_field;
         } else if (c == '\\') {
@@ -110,8 +108,7 @@ process_args::process_args(const std::string_view& unix_commandline) {
           continue;
         } else {
           state = e_decoding_field;
-          begin = write;
-          *(write++) = c;
+          current.push_back(c);
         }
         break;
       case e_decoding_field:
@@ -120,15 +117,13 @@ process_args::process_args(const std::string_view& unix_commandline) {
         } else if (c == '\\') {
           escap = true;
         } else if (isspace(c)) {  // field end
-          *(write++) = 0;
-          _c_args.push_back(begin);
-          begin = nullptr;
+          push_args();
           state = e_waiting_begin;
         } else if (c == '"' || c == '\'') {
           state = e_decoding_in_quote;
           quote = c;
         } else {
-          *(write++) = c;
+          current.push_back(c);
         }
         break;
       case e_decoding_in_quote:
@@ -137,14 +132,9 @@ process_args::process_args(const std::string_view& unix_commandline) {
         } else if (c == '\\') {
           escap = true;
         } else if (c == quote) {
-          if (!begin) {  // empty string between quotes
-            begin = write;
-          }
           state = e_decoding_field;
         } else {
-          if (!begin)
-            begin = write;
-          *(write++) = c;
+          current.push_back(c);
         }
         break;
     }
@@ -153,10 +143,17 @@ process_args::process_args(const std::string_view& unix_commandline) {
   if (state == e_decoding_in_quote)
     throw msg_fmt("missing separator '{}'", quote);
 
-  *write = '\0';
   // a last tokern
   if (state == e_decoding_field) {
-    _c_args.push_back(begin);
+    push_args();
+  }
+
+  _c_args.reserve(_args.size() + 2);
+  if (!_exe_path.empty()) {
+    _c_args.push_back(_exe_path.c_str());
+  }
+  for (const std::string& arg : _args) {
+    _c_args.push_back(arg.c_str());
   }
 
   if (_c_args.empty()) {
@@ -177,4 +174,44 @@ void process_args::dump(std::string* output) const {
     }
   }
   output->push_back(']');
+}
+
+/**
+ * @brief encrypt all arguments, exe_path is not encrypted
+ *
+ * @param crypto
+ */
+void process_args::encrypt_args(const crypto::aes256& crypto) {
+  _encrypted_args.reserve(_args.size());
+  for (const std::string& s : _args) {
+    _encrypted_args.push_back(crypto.encrypt(s));
+  }
+}
+
+/**
+ * @brief decrypt all arguments
+ *
+ * @param crypto
+ */
+void process_args::decrypt_args(const crypto::aes256& crypto) {
+  auto decrypt_iter = _args.begin();
+  auto c_args_iter = _c_args.begin();
+  ++c_args_iter;  // exe
+  for (const std::string& s : _encrypted_args) {
+    crypto.decrypt(s, &*decrypt_iter);
+    *c_args_iter = decrypt_iter->c_str();
+    ++c_args_iter;
+    ++decrypt_iter;
+  }
+}
+
+/**
+ * @brief clear unencrypted arguments
+ *
+ */
+void process_args::clear_unencrypted_args() {
+  for (std::string& s : _args) {
+    s.assign(s.size(), ' ');
+    s.clear();
+  }
 }

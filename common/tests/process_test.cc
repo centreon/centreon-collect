@@ -21,6 +21,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <fstream>
 #include "com/centreon/common/process/process_args.hh"
+#include "common/crypto/aes256.hh"
 
 #include "com/centreon/common/process/process.hh"
 
@@ -428,4 +429,28 @@ TEST_F(process_test, parse_commandline) {
     res.push_back("./-*1");
     EXPECT_TRUE(check(cmdline, res));
   }
+}
+
+TEST_F(process_test, encryption) {
+  crypto::aes256 crypt("SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=",
+                       "U2FsdA==");
+
+  std::string cmdline(" '12\\t ''34 56' \t \" 12 12 12 \" '99 9 9'");
+
+  process_args cmd(cmdline);
+  cmd.encrypt_args(crypt);
+  cmd.clear_unencrypted_args();
+
+  EXPECT_EQ(cmd.get_exe_path(), "12\t 34 56");
+  ASSERT_EQ(cmd.get_c_args().size(), 4);  // nullptr at the end
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[0]), "12\t 34 56");
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[1]), std::string_view(""));
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[2]), std::string_view(""));
+  EXPECT_EQ(cmd.get_c_args()[3], nullptr);
+
+  cmd.decrypt_args(crypt);
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[0]), "12\t 34 56");
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[1]), " 12 12 12 ");
+  EXPECT_EQ(std::string_view(cmd.get_c_args()[2]), "99 9 9");
+  EXPECT_EQ(cmd.get_c_args()[3], nullptr);
 }

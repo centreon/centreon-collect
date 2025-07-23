@@ -83,6 +83,79 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Should Be True    ${result}    resources table not updated
 
 
+BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
+    [Documentation]    Given an agent host checked by centagent over a non encrypted connection,
+    ...    Engine use credentials encryption, but send no encrypted commands
+    ...    we set a first output to check command, 
+    ...    modify it, reload engine and expect the new output in resource table
+    [Tags]    broker    engine    opentelemetry    MON-158789
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Add Value    0    credentials_encryption    1
+    
+    Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    Sleep    1s
+    Remove File    /etc/centreon-engine/engine-context.json
+
+    #lets wait engine not send keys to CMA
+    ${content}    Create List    As connection is not encrypted, Engine will send no encrypted credentials to agent
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "As connection is not encrypted, Engine will send no encrypted credentials to agent" should be available.
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_2
+    
+    ${echo_command}   Ctn Echo Command  "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command  ${0}    otel_check_icmp_2  ${echo_command}    OTEL connector
+
+    #update conf engine, it must be taken into account by agent
+    Log To Console    modify engine conf and reload engine
+    Ctn Reload Engine
+
+    #wait for new data from agent
+    ${start}    Ctn Get Round Current Date
+    ${content}    Create List    description: \"OK check2
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    Should Be True    ${result}    "description: "OK check2" should be available.
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
+    Should Be True    ${result}    resources table not updated
+
+
 BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     [Documentation]    agent check service and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
@@ -358,6 +431,62 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     Sleep    1
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS
+    [Documentation]    Given an agent host checked by centagent over an encrypted connection,
+    ...    Engine use credentials encryption and send encrypted commands
+    ...    we set a first output to check command, 
+    ...    modify it, reload engine and expect the new output in resource table
+    [Tags]    broker    engine    opentelemetry    MON-158789
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Add Value    0    credentials_encryption    1
+    
+    Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    Sleep    1s
+    Remove File    /etc/centreon-engine/engine-context.json
+
+    #lets wait engine send keys to CMA
+    ${content}    Create List    Engine will send encrypted credentials to agent
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "Engine will send encrypted credentials to agent" should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
@@ -2552,3 +2681,7 @@ Ctn Create Cert And Init
     END
 
     Ctn Clean Before Suite
+
+*** Variables ***
+${Salt}        U2FsdA==
+${AppSecret}   SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=

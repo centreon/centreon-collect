@@ -79,7 +79,7 @@ aes256::aes256(const std::string& first_key, const std::string& second_key)
  *
  * @return The encrypted string.
  */
-std::string aes256::encrypt(const std::string_view& input) {
+std::string aes256::encrypt(const std::string_view& input) const {
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
 
   uint32_t crypted_size =
@@ -153,7 +153,7 @@ std::string aes256::encrypt(const std::string_view& input) {
  *
  * @return The decrypted string.
  */
-std::string aes256::decrypt(const std::string_view& input) {
+void aes256::decrypt(const std::string_view& input, std::string* output) const {
   std::string mix = base64_decode(input);
 
   const int iv_length = EVP_CIPHER_iv_length(EVP_aes_256_cbc());
@@ -173,9 +173,8 @@ std::string aes256::decrypt(const std::string_view& input) {
   int len = 0;
   int plaintext_len = 0;
 
-  std::string data;
-  data.resize(encrypted_first_part.size() +
-              EVP_CIPHER_block_size(EVP_aes_256_cbc()));
+  output->resize(encrypted_first_part.size() +
+                 EVP_CIPHER_block_size(EVP_aes_256_cbc()));
 
   if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL,
                           (unsigned char*)_first_key.data(),
@@ -184,7 +183,7 @@ std::string aes256::decrypt(const std::string_view& input) {
     throw exceptions::msg_fmt("Decryption initialization failed");
   }
 
-  if (!EVP_DecryptUpdate(ctx, (unsigned char*)data.data(), &len,
+  if (!EVP_DecryptUpdate(ctx, (unsigned char*)output->data(), &len,
                          (unsigned char*)encrypted_first_part.data(),
                          encrypted_first_part.size())) {
     EVP_CIPHER_CTX_free(ctx);
@@ -192,7 +191,7 @@ std::string aes256::decrypt(const std::string_view& input) {
   }
   plaintext_len = len;
 
-  if (!EVP_DecryptFinal_ex(ctx, (unsigned char*)data.data() + len, &len)) {
+  if (!EVP_DecryptFinal_ex(ctx, (unsigned char*)output->data() + len, &len)) {
     uint64_t err = ERR_get_error();
     absl::FixedArray<char, 1024> mess(0);
     ERR_error_string_n(err, mess.data(), 1023);
@@ -202,10 +201,10 @@ std::string aes256::decrypt(const std::string_view& input) {
   }
   plaintext_len += len;
 
-  data.resize(plaintext_len);
+  output->resize(plaintext_len);
   EVP_CIPHER_CTX_free(ctx);
 
-  if (!data.empty()) {
+  if (!output->empty()) {
     std::string second_encrypted_new;
     second_encrypted_new.resize(SHA512_DIGEST_LENGTH);
     uint32_t second_encrypted_length;
@@ -219,10 +218,10 @@ std::string aes256::decrypt(const std::string_view& input) {
 
     assert(second_encrypted_length == 64);
     if (hash == second_encrypted_new)
-      return data;
+      return;
   }
 
-  return std::string();
+  output->clear();
 }
 
 }  // namespace com::centreon::common::crypto

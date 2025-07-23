@@ -17,20 +17,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <absl/container/btree_map.h>
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/json_util.h>
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
-#include <limits>
-
-#include "com/centreon/engine/configuration/applier/contact.hh"
-#include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/configuration/applier/service.hh"
-#include "common/engine_legacy_conf/host.hh"
-#include "common/engine_legacy_conf/service.hh"
 
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 #include "opentelemetry/proto/common/v1/common.pb.h"
@@ -38,9 +27,6 @@
 
 #include "com/centreon/engine/modules/opentelemetry/otl_check_result_builder.hh"
 
-#include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_check_result_builder.hh"
-
-#include "helper.hh"
 #include "test_engine.hh"
 
 using namespace com::centreon::engine::modules::opentelemetry;
@@ -370,7 +356,8 @@ class otl_agent_check_result_builder_test : public TestEngine {
         std::make_shared< ::opentelemetry::proto::collector::metrics::v1::
                               ExportMetricsServiceRequest>();
 
-    ::google::protobuf::util::JsonStringToMessage(agent_exemple, request.get());
+    (void)::google::protobuf::util::JsonStringToMessage(agent_exemple,
+                                                        request.get());
 
     otl_data_point::extract_data_points(
         request, [&](const otl_data_point& data_pt) {

@@ -98,6 +98,9 @@ ENGINE_ENCRYPTION_GOOD_CONF
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Sleep    1s
+    Remove File    /etc/centreon-engine/engine-context.json
     
     ${content}    Create List    read from stdout: clear_mac raw_mac The content to encode
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60

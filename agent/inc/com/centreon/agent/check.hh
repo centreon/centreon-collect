@@ -157,9 +157,9 @@ class check : public std::enable_shared_from_this<check> {
   time_step _start_expected;
   const std::string& _service;
   const std::string& _command_name;
-  const std::string& _command_line;
+  std::string _command_line;
   // by owning a reference to the original request, we can get only reference to
-  // host, service and command_line
+  // host, service
   // on completion, this pointer is compared to the current config pointer.
   // if not equal result is not processed
   engine_to_agent_request_ptr _conf;
