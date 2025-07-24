@@ -10,16 +10,6 @@ log_info()  {
   fi
 }
 
-log_warn()  { 
-  local context="${1:-}"
-  shift
-  if [[ -n "$context" ]]; then
-    echo -e "\033[1;33m[WARN]\033[0m  [$context] $*"
-  else
-    echo -e "\033[1;33m[WARN]\033[0m  $*"
-  fi
-}
-
 log_error() { 
   local context="${1:-}"
   shift
@@ -54,7 +44,7 @@ patch_whitelist() {
   elif grep -qE '^[[:space:]]*whitelist:' "$CONFIG_FILE"; then
     FORMAT="yaml"
   else
-    log_warn "$CONFIG_FILE" "File does not contain expected whitelist structure. Skipping."
+    log_info "$CONFIG_FILE" "File does not contain expected whitelist structure. Skipping."
     return 0
   fi
 
@@ -84,7 +74,7 @@ patch_whitelist() {
     extract_json "wildcard" json_wildcard
 
     if [[ ${#json_regex[@]} -eq 0 && ${#json_wildcard[@]} -eq 0 ]]; then
-      log_warn "$CONFIG_FILE" "No entries found in JSON whitelist. Skipping."
+      log_info "$CONFIG_FILE" "No entries found in JSON whitelist. Skipping."
       return 0
     fi
 
@@ -186,7 +176,7 @@ patch_whitelist() {
     extract_yaml_array "wildcard" yaml_wildcard
 
     if [[ ${#yaml_regex[@]} -eq 0 && ${#yaml_wildcard[@]} -eq 0 ]]; then
-      log_warn "$CONFIG_FILE" "No entries found in YAML whitelist. Skipping."
+      log_info "$CONFIG_FILE" "No entries found in YAML whitelist. Skipping."
       return 0
     fi
 
