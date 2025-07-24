@@ -162,47 +162,87 @@ bool whitelist::_parse_file(const std::string_view& file_path) {
  */
 template <class ryml_tree>
 bool whitelist::_read_file_content(const ryml_tree& file_content) {
-  ryml::ConstNodeRef root = file_content["whitelist"];
-  ryml::ConstNodeRef wildcards = root.find_child("wildcard");
-  ryml::ConstNodeRef regexps = root.find_child("regex");
+  ryml::ConstNodeRef root = file_content;
+
   bool ret = false;
-  if (wildcards.valid() && !wildcards.empty()) {
-    if (!wildcards.is_seq()) {  // not an array => error
-      SPDLOG_LOGGER_ERROR(_logger, "{}: wildcard is not a sequence");
-    } else {
-      for (auto wildcard : wildcards) {
-        auto value = wildcard.val();
-        if (value.size() > 0) {
-          std::string_view str_value(value.data(), value.size());
-          SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
-                             str_value);
-          _wildcards.emplace_back(str_value);
-          ret = true;
+
+  auto load_ruleset = [&](const ryml::ConstNodeRef& node, rule_set& rules) {
+    // add whildcard and regexps
+    if (node.has_child("wildcard")) {
+      auto wc_node = node["wildcard"];
+      if (wc_node.is_seq()) {
+        for (auto wildcard : wc_node) {
+          auto value = wildcard.val();
+          if (value.size() > 0) {
+            std::string_view str_value(value.data(), value.size());
+            SPDLOG_LOGGER_INFO(_logger, "wildcard '{}' added to whitelist",
+                               str_value);
+            rules.wildcard.emplace_back(str_value);
+            ret = true;
+          }
         }
+      } else {
+        SPDLOG_LOGGER_ERROR(_logger, "wildcard is not a sequence");
       }
     }
-  }
-  if (regexps.valid() && !regexps.empty()) {
-    if (!regexps.is_seq()) {  // not an array => error
-      SPDLOG_LOGGER_ERROR(_logger, "{}: regex is not a sequence");
-    } else {
-      for (auto re : regexps) {
-        auto value = re.val();
-        if (value.size() > 0) {
-          std::string_view str_value(value.data(), value.size());
-          std::unique_ptr<re2::RE2> to_push_back =
-              std::make_unique<re2::RE2>(str_value);
-          if (to_push_back->error_code() ==
-              re2::RE2::ErrorCode::NoError) {  // success compile regex
-            SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
-                               str_value);
-            _regex.push_back(std::move(to_push_back));
-            ret = true;
-          } else {  // bad regex
-            SPDLOG_LOGGER_ERROR(
-                _logger, "fail to parse regex {}: error: {} at {} ", str_value,
-                to_push_back->error(), to_push_back->error_arg());
+
+    if (node.has_child("regex")) {
+      auto re_node = node["regex"];
+      if (re_node.is_seq()) {
+        for (auto re : re_node) {
+          auto value = re.val();
+          if (value.size() > 0) {
+            std::string_view str_value(value.data(), value.size());
+            std::unique_ptr<re2::RE2> to_push_back =
+                std::make_unique<re2::RE2>(str_value);
+            if (to_push_back->error_code() == re2::RE2::ErrorCode::NoError) {
+              SPDLOG_LOGGER_INFO(_logger, "regexp '{}' added to whitelist",
+                                 str_value);
+              rules.regex.push_back(std::move(to_push_back));
+              ret = true;
+            } else {
+              SPDLOG_LOGGER_ERROR(_logger, "fail to parse {}: error: {} at {} ",
+                                  str_value, to_push_back->error(),
+                                  to_push_back->error_arg());
+            }
           }
+        }
+      } else {
+        SPDLOG_LOGGER_ERROR(_logger, "regex is not a sequence");
+      }
+    }
+  };
+
+  /* 1. whitelist -----------------------------------------------------------*/
+  if (root.has_child("whitelist")) {
+    ryml::ConstNodeRef whitelist = root["whitelist"];
+    load_ruleset(whitelist, _config.engine);
+  }
+
+  /* 2. cma-whitelist (optional) ------------------------------------------- */
+  if (root.has_child("cma-whitelist")) {
+    ryml::ConstNodeRef cma = root["cma-whitelist"];
+
+    /* default ----------------------------------------------------------- */
+    if (cma.has_child("default")) {
+      auto seq = cma["default"];
+      load_ruleset(seq, _config.cma.defaults);
+    }
+
+    /* hosts ------------------------------------------------------------- */
+    if (cma.has_child("hosts")) {
+      ryml::ConstNodeRef hosts = cma["hosts"];
+      for (const ryml::ConstNodeRef& host : hosts) {
+        auto hostname = host["hostname"].val();
+        if (hostname.size() > 0) {
+          std::string_view str_hostname(hostname.data(), hostname.size());
+          SPDLOG_LOGGER_INFO(_logger, "cma whitelist for host '{}'",
+                             str_hostname);
+          rule_set& rules = _config.cma.hosts[std::string(str_hostname)];
+          load_ruleset(host, rules);
+          ret = true;
+        } else {
+          SPDLOG_LOGGER_ERROR(_logger, "cma whitelist host name is empty");
         }
       }
     }
@@ -211,25 +251,34 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
 }
 
 /**
- * @brief test if a cmdline matches
+ * @brief Determines if a command is permitted according to configured wildcard
+ * and regex rules.
  *
- * @param cmdline
- * @return true  cmdline matches to at least one regex or wildcard
- * @return false  cmdline don't match
+ * The cmdline is first normalized by collapsing any "//" sequences into a
+ * single "/". If the provided rule_set contains no wildcard or regex patterns,
+ * the command is always allowed. Otherwise, this function:
+ *   1. Applies each wildcard pattern (fnmatch with FNM_PATHNAME | FNM_PERIOD).
+ *   2. If no wildcard matches, applies each regex pattern (RE2::FullMatch).
+ * The command is allowed as soon as one pattern matches.
+ *
+ * @param cmdline Full command line (macros already expanded) to test.
+ * @param rules   Rule set containing wildcard and regex patterns.
+ * @return true  cmdline matches at least one wildcard or regex rule.
+ * @return false cmdline does not match any configured rule.
  */
-bool whitelist::is_allowed(const std::string& cmdline) {
-  if (_wildcards.empty() && _regex.empty()) {
+bool whitelist::_is_allowed(const std::string& cmdline, const rule_set& rules) {
+  if (rules.wildcard.empty() && rules.regex.empty()) {
     return true;
   }
   auto check_cmd_line = [&](const std::string& clean_cmdline) -> bool {
-    for (const std::string& wildcard : _wildcards) {
+    for (const std::string& wildcard : rules.wildcard) {
       if (!fnmatch(wildcard.c_str(), clean_cmdline.c_str(),
                    FNM_PATHNAME | FNM_PERIOD)) {
         return true;
       }
     }
 
-    for (const auto& regex : _regex) {
+    for (const auto& regex : rules.regex) {
       if (RE2::FullMatch(clean_cmdline, *regex)) {
         return true;
       }
@@ -244,6 +293,29 @@ bool whitelist::is_allowed(const std::string& cmdline) {
   } else {
     return check_cmd_line(cmdline);
   }
+}
+
+/**
+ * Check if a command is allowed by the CMA whitelist.
+ * Uses host-specific rules when available, otherwise falls back to defaults.
+ *
+ * @param cmdline Final command line (macros expanded)
+ * @param hostname Host name to check (empty = use default rules)
+ * @return true if the command is allowed, false otherwise
+ */
+bool whitelist::is_allowed_by_cma(const std::string& cmdline,
+                                  const std::string& hostname) {
+  const auto& defaults = _config.cma.defaults;
+  if (defaults.wildcard.empty() && defaults.regex.empty() &&
+      _config.cma.hosts.empty())
+    return true;
+
+  if (!hostname.empty()) {
+    auto it = _config.cma.hosts.find(hostname);
+    if (it != _config.cma.hosts.end())
+      return _is_allowed(cmdline, it->second);
+  }
+  return _is_allowed(cmdline, defaults);
 }
 
 /**
