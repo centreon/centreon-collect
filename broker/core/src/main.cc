@@ -54,6 +54,7 @@ using namespace com::centreon;
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/crypto/aes256.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -65,6 +66,11 @@ using namespace com::centreon::exceptions;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
+
+std::shared_ptr<boost::asio::signal_set> signals =
+    std::make_shared<boost::asio::signal_set>(*g_io_context, SIGHUP, SIGTERM);
+
+std::shared_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
@@ -79,71 +85,67 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
                                        {0, 0, 0, 0}};
 
 /**
- *  Function called when updating configuration (when program receives
- *  SIGHUP).
+ * @brief handle signals SIGHUP and SIGTERM
  *
- *  @param[in] signum Signal number.
+ * @param err
+ * @param signal_number
  */
-static void hup_handler(int) {
-  // Disable SIGHUP handling during handler execution.
-  signal(SIGHUP, SIG_IGN);
-
-  // Log message.
-  auto core_logger = log_v2::instance().get(log_v2::CORE);
-  core_logger->info("main: configuration update requested");
-
-  try {
-    // Parse configuration file.
-    config::parser parsr;
-    config::state conf{parsr.parse(gl_mainconfigfiles.front())};
-    auto& log_conf = conf.mut_log_conf();
-    log_conf.allow_only_atomic_changes(true);
-    try {
-      log_v2::instance().apply(log_conf);
-      /* We update the logger, since the conf has been applied */
-    } catch (const std::exception& e) {
-      core_logger->error("problem while reloading cbd: {}", e.what());
-      core_logger->error("problem while reloading cbd: {}", e.what());
-    }
+static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
+                           const boost::system::error_code& err,
+                           int signal_number) {
+  if (signal_number == SIGTERM) {
+    core_logger->info("main: SIGTERM received by process {}", getpid());
+    gl_term = true;
+    return;  // no restart a signals->async_wait
+  } else if (signal_number == SIGHUP) {
+    // Log message.
+    core_logger->info("main: configuration update requested");
 
     try {
-      // Apply resulting configuration.
-      config::applier::state::instance().apply(conf);
+      // Parse configuration file.
+      config::parser parsr;
+      config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+      auto& log_conf = conf.mut_log_conf();
+      log_conf.allow_only_atomic_changes(true);
+      try {
+        log_v2::instance().apply(log_conf);
+        /* We update the logger, since the conf has been applied */
+      } catch (const std::exception& e) {
+        core_logger->error("problem while reloading cbd: {}", e.what());
+        core_logger->error("problem while reloading cbd: {}", e.what());
+      }
 
-      gl_state = conf;
+      try {
+        // Apply resulting configuration.
+        config::applier::state::instance().apply(conf);
+
+        gl_state = conf;
+      } catch (const std::exception& e) {
+        core_logger->error(
+            "main: configuration update could not succeed, reloading previous "
+            "configuration: {}",
+            e.what());
+        config::applier::state::instance().apply(gl_state);
+      } catch (...) {
+        core_logger->error(
+            "main: configuration update could not succeed, reloading previous "
+            "configuration");
+        config::applier::state::instance().apply(gl_state);
+      }
     } catch (const std::exception& e) {
-      core_logger->error(
-          "main: configuration update could not succeed, reloading previous "
-          "configuration: {}",
-          e.what());
-      config::applier::state::instance().apply(gl_state);
+      core_logger->info("main: configuration update failed: {}", e.what());
     } catch (...) {
-      core_logger->error(
-          "main: configuration update could not succeed, reloading previous "
-          "configuration");
-      config::applier::state::instance().apply(gl_state);
+      core_logger->info("main: configuration update failed: unknown exception");
     }
-  } catch (const std::exception& e) {
-    core_logger->info("main: configuration update failed: {}", e.what());
-  } catch (...) {
-    core_logger->info("main: configuration update failed: unknown exception");
+  } else {
+    core_logger->error("main: unimplemented signal handler for signal: {}",
+                       signal_number);
   }
-
-  // Reenable SIGHUP handler.
-  signal(SIGHUP, hup_handler);
-}
-
-/**
- *  Function called on termination request (when program receives
- *  SIGTERM).
- *
- *  @param[in] signum Unused.
- *  @param[in] info   Signal informations.
- *  @param[in] data   Unused.
- */
-static void term_handler(int signum) {
-  (void)signum;
-  gl_term = true;
+  signals->async_wait(
+      [save_signalset = signals, core_logger](
+          const boost::system::error_code& err, int signal_number) {
+        signal_handler(core_logger, err, signal_number);
+      });
 }
 
 /**
@@ -170,21 +172,12 @@ int main(int argc, char* argv[]) {
   auto core_logger = log_v2::instance().get(log_v2::CORE);
   com::centreon::common::pool::load(g_io_context, core_logger);
 
-  // Set configuration update handler.
-  if (signal(SIGHUP, hup_handler) == SIG_ERR) {
-    char const* err{strerror(errno)};
-    core_logger->info(
-        "main: could not register configuration update handler: {}", err);
-  }
-
-  // Init signal handler.
-  struct sigaction sigterm_act;
-  memset(&sigterm_act, 0, sizeof(sigterm_act));
-  sigterm_act.sa_handler = &term_handler;
-
-  // Set termination handler.
-  if (sigaction(SIGTERM, &sigterm_act, nullptr) < 0)
-    core_logger->info("main: could not register termination handler");
+  // Set signal handler.
+  signals->async_wait(
+      [save_signalset = signals, core_logger](
+          const boost::system::error_code& err, int signal_number) {
+        signal_handler(core_logger, err, signal_number);
+      });
 
   // Return value.
   int retval(0);
