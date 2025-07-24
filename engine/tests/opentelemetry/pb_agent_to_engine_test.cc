@@ -25,6 +25,13 @@
 
 #include <rapidjson/document.h>
 
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
+
+namespace multi_index = boost::multi_index;
+
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.h"
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
@@ -63,6 +70,9 @@ class agent_to_engine_test : public TestEngine {
   asio::executor_work_guard<asio::io_context::executor_type> _worker;
   std::thread _agent_io_ctx_thread;
 
+  centreon_agent::agent_stat::pointer _stats =
+      std::make_shared<centreon_agent::agent_stat>(_agent_io_context);
+
  public:
   agent_to_engine_test()
       : _agent_io_context(std::make_shared<asio::io_context>()),
@@ -88,38 +98,45 @@ class agent_to_engine_test : public TestEngine {
     init_config_state();
 
     configuration::applier::connector conn_aply;
-    configuration::connector cnn("agent");
-    cnn.parse("connector_line",
-              "opentelemetry "
-              "--processor=nagios_telegraf --extractor=attributes "
-              "--host_path=resource_metrics.scope_metrics.data.data_points."
-              "attributes.host "
-              "--service_path=resource_metrics.scope_metrics.data.data_points."
-              "attributes.service");
+    configuration::Connector cnn;
+    configuration::connector_helper cnn_hlp(&cnn);
+    cnn.set_connector_name("agent");
+    cnn.set_connector_line(
+        "opentelemetry "
+        "--processor=nagios_telegraf --extractor=attributes "
+        "--host_path=resource_metrics.scope_metrics.data.data_points."
+        "attributes.host "
+        "--service_path=resource_metrics.scope_metrics.data.data_points."
+        "attributes.service");
+
     conn_aply.add_object(cnn);
     configuration::error_cnt err;
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct, err);
 
-    configuration::host hst =
-        new_configuration_host("test_host", "admin", 1, "agent");
-
+    configuration::Host hst =
+        new_pb_configuration_host("test_host", "admin", 1, "agent", 1);
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::service svc{new_configuration_service(
-        "test_host", "test_svc", "admin", 1, "agent")};
-    configuration::service svc2{new_configuration_service(
-        "test_host", "test_svc_2", "admin", 2, "agent")};
-    configuration::service svc_no_otel{
-        new_configuration_service("test_host", "test_svc_2", "admin", 3)};
+    configuration::Service svc = new_pb_configuration_service(
+        "test_host", "test_svc", "admin", 1, "agent", 2);
+    svc.set_check_interval(1);
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
+
+    configuration::Service svc2 = new_pb_configuration_service(
+        "test_host", "test_svc_2", "admin", 2, "agent", 3);
+    svc2.set_check_interval(1);
     svc_aply.add_object(svc2);
+
+    configuration::Service svc_no_otel = new_pb_configuration_service(
+        "test_host", "test_svc_no_otel", "admin", 3, "", 4);
+    svc_no_otel.set_check_interval(1);
     svc_aply.add_object(svc_no_otel);
 
     hst_aply.resolve_object(hst, err);
@@ -141,7 +158,7 @@ class agent_to_engine_test : public TestEngine {
                     const centreon_agent::agent_config::pointer& agent_conf,
                     const metric_handler_type& handler) {
     _server = otl_server::load(_agent_io_context, listen_endpoint, agent_conf,
-                               handler, spdlog::default_logger());
+                               handler, spdlog::default_logger(), _stats);
   }
 };
 
@@ -271,12 +288,89 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
   grpc_config::pointer listen_endpoint =
       std::make_shared<grpc_config>("127.0.0.1:4623", false);
 
+  ::credentials_decrypt.reset();
   absl::Mutex mut;
   std::vector<metric_request_ptr> received;
   std::vector<const opentelemetry::proto::metrics::v1::ResourceMetrics*>
       resource_metrics;
 
-  auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 1, 5);
+  auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 5);
+
+  start_server(listen_endpoint, agent_conf,
+               [&](const metric_request_ptr& metric) {
+                 absl::MutexLock l(&mut);
+                 received.push_back(metric);
+                 for (const opentelemetry::proto::metrics::v1::ResourceMetrics&
+                          res_metric : metric->resource_metrics()) {
+                   resource_metrics.push_back(&res_metric);
+                 }
+               });
+
+  auto agent_client =
+      streaming_client::load(_agent_io_context, spdlog::default_logger(),
+                             listen_endpoint, "test_host");
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  command_manager::instance().execute();
+
+  auto metric_received = [&]() { return resource_metrics.size() >= 3; };
+
+  mut.LockWhen(absl::Condition(&metric_received));
+  mut.Unlock();
+
+  agent_client->shutdown();
+
+  _server->shutdown(std::chrono::seconds(15));
+
+  bool host_metric_found = true;
+  bool serv_1_found = false;
+  bool serv_2_found = false;
+
+  for (const opentelemetry::proto::metrics::v1::ResourceMetrics* to_compare :
+       resource_metrics) {
+    if (compare_to_expected_serv_metric(*to_compare, "test_svc")) {
+      serv_1_found = true;
+    } else if (compare_to_expected_serv_metric(*to_compare, "test_svc_2")) {
+      serv_2_found = true;
+    } else if (compare_to_expected_host_metric(*to_compare)) {
+      host_metric_found = true;
+    } else {
+      SPDLOG_ERROR("bad resource metric: {}", to_compare->DebugString());
+      ASSERT_TRUE(false);
+    }
+  }
+  ASSERT_TRUE(host_metric_found);
+  ASSERT_TRUE(serv_1_found);
+  ASSERT_TRUE(serv_2_found);
+}
+
+extern std::unique_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
+TEST_F(
+    agent_to_engine_test,
+    server_send_no_encrypted_conf_on_no_crypted_connection_to_agent_and_receive_metrics) {
+  grpc_config::pointer listen_endpoint =
+      std::make_shared<grpc_config>("127.0.0.1:4623", false);
+
+  ::credentials_decrypt =
+      std::make_unique<com::centreon::common::crypto::aes256>(
+          "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+
+  struct cred_eraser {
+    ~cred_eraser() { ::credentials_decrypt.reset(); }
+  };
+
+  pb_config.set_credentials_encryption(true);
+
+  cred_eraser eraser;
+
+  absl::Mutex mut;
+  std::vector<metric_request_ptr> received;
+  std::vector<const opentelemetry::proto::metrics::v1::ResourceMetrics*>
+      resource_metrics;
+
+  auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 5);
 
   start_server(listen_endpoint, agent_conf,
                [&](const metric_request_ptr& metric) {

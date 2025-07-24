@@ -2665,6 +2665,92 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "this message client::OnDone(Token expired) should apper in log"
 
+BEOTEL_CENTREON_AGENT_WHITE_LIST
+    [Documentation]    Scenario: Enforcing command whitelist for agent checks
+    ...    Given a whitelist file is created with allowed commands for host_1
+    ...    And the engine, broker, and agent are configured and started
+    ...    When a check command matching the whitelist is executed for host_1
+    ...    Then the check result is accepted and stored in the resources table
+    ...    When a check command not matching the whitelist is configured for host_1 and engine is reloaded
+    ...    Then the command is rejected and a "command not allowed by whitelist" message appears in the log
+    [Tags]    broker    engine    opentelemetry    MON-173914
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' != 'None'
+        Pass Execution    Test passes, skipping on Windows
+    END
+    Create Directory    /etc/centreon-engine-whitelist
+    Empty Directory    /etc/centreon-engine-whitelist
+    ${whitelist_content}    Catenate    {"cma-whitelist": {"default": {"wildcard": ["*"]}, "hosts": [{"hostname": "host_1", "wildcard": ["/bin/echo \\"OK - *"]}]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+    
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp    ${echo_command}    OTEL connector
+
+        ${echo_command}   Ctn Echo Command  "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command  ${0}    rejected_by_whitelist    ${echo_command}    OTEL connector
+
+
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    1s
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    rejected_by_whitelist
+    
+
+
+    #update conf engine, it must be taken into account by agent
+    Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    #wait for new data from agent
+    ${content}    Create List    host_1: command not allowed by whitelist /bin/echo "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    command not allowed by whitelist.
+
+
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
