@@ -217,26 +217,24 @@ patch_whitelist() {
 
   fi
 
-  mv "$TMP_FILE" "$CONFIG_FILE" && log_info "$CONFIG_FILE" "File patched successfully." || {
+  mv "$TMP_FILE" "$CONFIG_FILE" || {
     log_error "$CONFIG_FILE" "Failed to overwrite $CONFIG_FILE"
     return 1
   }
 }
 
 patch_folder_whitelist(){
-  log_info "" "Starting patch process"
   # Check if the directory exists
   if [ ! -d /etc/centreon-engine-whitelist ]; then
     log_info "" "Nothing to patch, /etc/centreon-engine-whitelist does not exist."
     return 0
   fi
-
+  log_info "" "Updating centreon-engine whitelist format"
   # recursively loop through all files in the /etc/centreon-engine-whitelist directory
   while IFS= read -r -d '' file; do
     patch_whitelist "$file"
   done < <(find /etc/centreon-engine-whitelist -type f -print0)
 
-  log_info "" "Patch process completed."
   return 0
 }
 
