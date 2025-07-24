@@ -251,11 +251,20 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
 }
 
 /**
- * @brief test if a cmdline matches
+ * @brief Determines if a command is permitted according to configured wildcard
+ * and regex rules.
  *
- * @param cmdline
- * @return true  cmdline matches to at least one regex or wildcard
- * @return false  cmdline don't match
+ * The cmdline is first normalized by collapsing any "//" sequences into a
+ * single "/". If the provided rule_set contains no wildcard or regex patterns,
+ * the command is always allowed. Otherwise, this function:
+ *   1. Applies each wildcard pattern (fnmatch with FNM_PATHNAME | FNM_PERIOD).
+ *   2. If no wildcard matches, applies each regex pattern (RE2::FullMatch).
+ * The command is allowed as soon as one pattern matches.
+ *
+ * @param cmdline Full command line (macros already expanded) to test.
+ * @param rules   Rule set containing wildcard and regex patterns.
+ * @return true  cmdline matches at least one wildcard or regex rule.
+ * @return false cmdline does not match any configured rule.
  */
 bool whitelist::_is_allowed(const std::string& cmdline, const rule_set& rules) {
   if (rules.wildcard.empty() && rules.regex.empty()) {
@@ -287,15 +296,15 @@ bool whitelist::_is_allowed(const std::string& cmdline, const rule_set& rules) {
 }
 
 /**
- * @brief check if a command is allowed by cma-whitelist
- * it tries to use last whitelist check result
+ * Check if a command is allowed by the CMA whitelist.
+ * Uses host-specific rules when available, otherwise falls back to defaults.
  *
- * @param cmdline final command line (macros replaced)
- * @return true allowed
- * @return false not allowed
+ * @param cmdline Final command line (macros expanded)
+ * @param hostname Host name to check (empty = use default rules)
+ * @return true if the command is allowed, false otherwise
  */
-bool whitelist::is_allowed_cma(const std::string& cmdline,
-                               const std::string& hostname) {
+bool whitelist::is_allowed_by_cma(const std::string& cmdline,
+                                  const std::string& hostname) {
   const auto& defaults = _config.cma.defaults;
   if (defaults.wildcard.empty() && defaults.regex.empty() &&
       _config.cma.hosts.empty())

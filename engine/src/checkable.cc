@@ -558,7 +558,7 @@ bool checkable::command_is_allowed_by_whitelist(
   // something has changed => call whitelist
   cached_cmd.command.process_cmd = process_cmd;
   cached_cmd.command.allowed =
-      configuration::whitelist::instance().is_allowed_engine(process_cmd);
+      configuration::whitelist::instance().is_allowed_by_engine(process_cmd);
   cached_cmd.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
   return cached_cmd.command.allowed;
@@ -585,7 +585,7 @@ bool checkable::command_is_allowed_by_whitelist(const std::string& process_cmd,
   // something has changed => call whitelist
   cmd.process_cmd = process_cmd;
   cmd.allowed =
-      configuration::whitelist::instance().is_allowed_engine(process_cmd);
+      configuration::whitelist::instance().is_allowed_by_engine(process_cmd);
   _whitelist_last_result.whitelist_instance_id =
       configuration::whitelist::instance().instance_id();
   return cmd.allowed;

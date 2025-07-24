@@ -39,7 +39,7 @@ struct rule_set {
  * cma-whitelist is a special whitelist that is used by the CMA to restrict
  * commands that can be executed.
  */
-struct cma_whitlist {
+struct cma_whitelist {
   rule_set defaults;
   std::unordered_map<std::string, rule_set> hosts;
 };
@@ -50,7 +50,7 @@ struct cma_whitlist {
  */
 struct whitelist_config {
   rule_set engine;
-  cma_whitlist cma;
+  cma_whitelist cma;
 };
 
 /**
@@ -95,6 +95,7 @@ class whitelist {
   bool _empty(const rule_set& rules) const {
     return rules.wildcard.empty() && rules.regex.empty();
   }
+
   bool _is_allowed(const std::string& cmdline, const rule_set& rules);
 
  public:
@@ -106,21 +107,39 @@ class whitelist {
   static whitelist& instance();
   static void reload();
 
-  bool empty_engine() const { return _empty(_config.engine); }
+  bool is_engine_whitelist_empty() const { return _empty(_config.engine); }
 
-  bool empty_cma() const {
+  bool is_cma_whitelist_empty() const {
     return (_empty(_config.cma.defaults) && _config.cma.hosts.empty());
   }
 
-  bool is_allowed_engine(const std::string& cmdline) {
+  /**
+   * @brief check if the command line is allowed by the whitelist engine.
+   * @param cmdline the command line to check.
+   * @return true if the command line is allowed, false otherwise.
+   */
+  bool is_allowed_by_engine(const std::string& cmdline) {
     return _is_allowed(cmdline, _config.engine);
   }
 
-  bool is_allowed_cma(const std::string& cmdline, const std::string& hostname);
+  /**
+   * @brief check if the command line is allowed by the cma-whitelist.
+   * @param cmdline the command line to check.
+   * @param hostname the hostname to check.
+   * @return true if the command line is allowed, false otherwise.
+   */
+  bool is_allowed_by_cma(const std::string& cmdline,
+                         const std::string& hostname);
 
   uint instance_id() const { return _instance_id; }
 
-  const std::vector<std::string> get_wildcards() const {
+  /**
+   * @brief Get the wildcards from the engine whitelist.
+   * @return A vector of wildcards.
+   *
+   * This method is intended to be used in unit tests.
+   */
+  const std::vector<std::string> get_wildcards_engine() const {
     return _config.engine.wildcard;
   }
 };
