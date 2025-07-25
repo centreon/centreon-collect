@@ -51,6 +51,16 @@ $my_host_name = $env:COMPUTERNAME
 $pwsh_path = (get-command pwsh.exe).Path
 
 echo "host_name:" $my_host_name
+<<<<<<< HEAD
+=======
+echo "my_ip:" $my_ip
+
+#as github dns returns dummy address we fix it in hosts file
+Add-Content -Path "$env:windir\system32\drivers\etc\hosts" "$my_ip $my_host_name"
+
+# generate certificate used by wsl and windows
+openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=${my_host_name}"
+>>>>>>> 24.10.x
 
 #open reverse ports
 New-NetFirewallRule -DisplayName "Allow Port 4320" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 4320

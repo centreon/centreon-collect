@@ -109,6 +109,7 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
 }
 
+<<<<<<< HEAD
 // test if we can set trusted tokens
 TEST(otl_grpc_config, tokens) {
   grpc_config c(R"(
@@ -197,6 +198,8 @@ TEST(otl_grpc_config, tokencompare) {
   ASSERT_EQ(c2.compare(c2_minos), 1);
   ASSERT_EQ(c2.compare(c2_plus), -1);
 }
+=======
+>>>>>>> 24.10.x
 //  test all allow encryption values
 //  full, insecure, no, true, false
 TEST(otl_grpc_config, encryption_value) {
