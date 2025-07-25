@@ -186,7 +186,7 @@ std::string center::to_string() {
   absl::MutexLock lck(&_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);
-  auto status = MessageToJsonString(_stats, &retval, options);
+  auto status [[maybe_unused]] = MessageToJsonString(_stats, &retval, options);
   return retval;
 }
 
