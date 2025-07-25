@@ -109,6 +109,7 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
 }
 
+<<<<<<< HEAD
 // test if we can set trusted tokens
 TEST(otl_grpc_config, tokens) {
   grpc_config c(R"(
@@ -196,4 +197,59 @@ TEST(otl_grpc_config, tokencompare) {
   ASSERT_EQ(c2.compare(c2_same), 0);
   ASSERT_EQ(c2.compare(c2_minos), 1);
   ASSERT_EQ(c2.compare(c2_plus), -1);
+=======
+//  test all allow encryption values
+//  full, insecure, no, true, false
+TEST(otl_grpc_config, encryption_value) {
+  grpc_config conf_full(R"(
+{   
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":"full"
+})"_json);
+  grpc_config conf_insecure(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"insecure"
+  })"_json);
+  grpc_config conf_no(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"no"
+  })"_json);
+  grpc_config conf_true_s(R"(
+  {   
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":"true"
+  })"_json);
+  grpc_config conf_false_s(R"(
+    {   
+        "host":"127.0.0.1",
+        "port":2500,
+        "encryption":"false"
+    })"_json);
+  grpc_config conf_true(R"(
+      {   
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":true
+      })"_json);
+  grpc_config conf_false(R"(
+      {   
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":false
+      })"_json);
+
+  ASSERT_TRUE(conf_full.is_crypted());
+  ASSERT_FALSE(conf_insecure.is_crypted());
+  ASSERT_FALSE(conf_no.is_crypted());
+  ASSERT_TRUE(conf_true_s.is_crypted());
+  ASSERT_FALSE(conf_false_s.is_crypted());
+  ASSERT_TRUE(conf_true.is_crypted());
+  ASSERT_FALSE(conf_false.is_crypted());
+>>>>>>> 24.10.x
 }
