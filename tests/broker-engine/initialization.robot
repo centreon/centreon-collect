@@ -30,55 +30,101 @@ BEUS
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    3
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Clear Retention
     Ctn Clean Before Suite
-    ${cmd_id}    Ctn Get Service Command Id    ${1}
-    Ctn Set Command Status    ${cmd_id}    0
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     # We should have 50 hosts + 1000 services
+    Log To Console    We should have 50 hosts + 1000 services
     Check Query Result    SELECT COUNT(*) FROM resources    ==    ${1050}    retry_timeout=30s    retry_pause=2s
-    # We check service 1:1 in resources
-    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, last_check, output, enabled, flapping, percent_state_change FROM resources WHERE id=1 AND parent_id=1
-    Should Be Equal    "${output}"    "((None, 0, 4, 1, 0, 0, 1, 1, 3, 1, None, 'service_1', None, None, 'host_1', 0, '', '', '', 0, 1, 1, 1, 0, None, None, 1, 0, 0.0),)"    Service 1:1 not as expected in resources table (first step)
 
-    # We check host 1 in resources
-    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, last_check, output, enabled, flapping, percent_state_change FROM resources WHERE id=1 AND parent_id=0
-    Should Be Equal    "${output}"    "((None, 1, 4, 1, 0, 0, 1, 1, 3, 1, None, 'host_1', 'host_1', '1.0.0.0', 'host_1', 0, '', '', '', 0, 1, 1, 1, 0, None, None, 1, 0, 0.0),)"    Host 1 not as expected in resources table
+    # We check that for at least one host, the command_line is correctly filled
+    Log To Console    We check that for at least one host, the command_line is correctly filled
+    Check Query Result    SELECT COUNT(command_line) FROM hosts WHERE command_line IS NOT NULL    >    ${0}    retry_timeout=30s    retry_pause=2s
 
-    # We check service 1:1 in services
-    ${output}    Query    SELECT description, acknowledged, acknowledgement_type, action_url, active_checks, check_attempt, check_freshness, check_interval, check_period, check_type, checked, command_line, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, execution_time, failure_prediction, failure_prediction_options, first_notification_delay, flap_detection, flap_detection_on_critical, flap_detection_on_ok, flap_detection_on_unknown, flap_detection_on_warning, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_check, last_hard_state, last_hard_state_change, last_notification, last_state_change, last_time_critical, last_time_ok, last_time_unknown, last_time_warning, latency, low_flap_threshold, max_check_attempts, modified_attributes, next_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_critical, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unknown, notify_on_warning, obsess_over_service, output, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_critical, stalk_on_ok, stalk_on_unknown, stalk_on_warning, state, state_type, volatile, real_state FROM services WHERE host_id=1 AND service_id=1
-    Should Be Equal    "${output}"    "(('service_1', 0, 0, '', 1, 1, 0, 5.0, '24x7', 0, 0, None, 1, 1, None, 1, 1, 1, None, 'service_1', 1, '', 1, 0.0, None, None, 0.0, 1, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', None, 0, None, None, None, None, None, None, None, 0.0, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, '', 1, 0.0, '', None, 1, 1, 5.0, 0, 1, 0, 0, 0, 0, 4, 1, 0, None),)"    Service 1:1 not as expected in services table (first step)
+    Log To Console    What host has its command_line filled?
+    ${output}    QUERY    SELECT host_id FROM hosts WHERE command_line IS NOT NULL LIMIT 1
+    ${host_id}    Evaluate    int(${output[0][0]})
 
-    ${svc_state}    Query    SELECT state FROM services WHERE host_id=1 AND service_id=1
-    ${svc_last_update}    Query    SELECT last_update FROM services WHERE host_id=1 AND service_id=1
-    ${svc_next_check}    Query    SELECT next_check FROM services WHERE host_id=1 AND service_id=1
-    ${svc_latency}    Query    SELECT latency FROM services WHERE host_id=1 AND service_id=1
+    # We check the host of ID host_id in hosts
+    Log To Console    We check the host of ID host_id in hosts
+    ${output}    Query    SELECT host_id, name, instance_id, acknowledged, acknowledgement_type, action_url, active_checks, address, alias, check_attempt, check_command, check_freshness, check_interval, check_period, check_type, checked, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, execution_time, failure_prediction, first_notification_delay, flap_detection, flap_detection_on_down, flap_detection_on_unreachable, flap_detection_on_up, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_check, last_hard_state, last_hard_state_change, last_notification, last_state_change, last_time_down, last_time_unreachable, last_time_up, latency, low_flap_threshold, max_check_attempts, modified_attributes, next_host_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_down, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unreachable, obsess_over_host, output, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_down, stalk_on_unreachable, stalk_on_up, state, state_type, statusmap_image, timezone, real_state FROM hosts WHERE host_id=${host_id}
 
-    # We check host 1 in hosts
-    ${output}    Query    SELECT host_id, name, instance_id, acknowledged, acknowledgement_type, action_url, active_checks, address, alias, check_attempt, check_command, check_freshness, check_interval, check_period, check_type, checked, command_line, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, execution_time, failure_prediction, first_notification_delay, flap_detection, flap_detection_on_down, flap_detection_on_unreachable, flap_detection_on_up, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_check, last_hard_state, last_hard_state_change, last_notification, last_state_change, last_time_down, last_time_unreachable, last_time_up, latency, low_flap_threshold, max_check_attempts, modified_attributes, next_host_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_down, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unreachable, obsess_over_host, output, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_down, stalk_on_unreachable, stalk_on_up, state, state_type, statusmap_image, timezone, real_state FROM hosts WHERE host_id=1
+    Should Be Equal    "${output}"    "((${host_id}, 'host_${host_id}', 1, 0, 0, '', 1, '${host_id}.0.0.0', 'host_${host_id}', 1, 'checkh${host_id}', 0, 5.0, '24x7', 0, 0, 1, 1, None, 1, 1, 1, None, 'host_${host_id}', 1, '', 1, 0.0, None, 0.0, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', None, 0, None, None, None, None, None, None, 0.0, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, '', 1, 0.0, '', None, 1, 1, 1.0, 0, 1, 0, 0, 0, 4, 1, '', '', None),)"    Host ${host_id} not as expected in hosts table (step 1)
 
-    Should Be Equal    "${output}"    "((1, 'host_1', 1, 0, 0, '', 1, '1.0.0.0', 'host_1', 1, 'checkh1', 0, 5.0, '24x7', 0, 0, '/tmp/var/lib/centreon-engine/check.pl --id 0', 1, 1, None, 1, 1, 1, None, 'host_1', 1, '', 1, 0.0, None, 0.0, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', None, 0, None, None, None, None, None, None, 0.0, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, '', 1, 0.0, '', None, 1, 1, 1.0, 0, 1, 0, 0, 0, 4, 1, '', '', None),)"    Host 1 not as expected in hosts table
+    # We check that for at least one service, the command_line is correctly filled
+    Log To Console    We check that for at least one service, the command_line is correctly filled
+    Check Query Result    SELECT COUNT(command_line) FROM services WHERE host_id=${host_id} AND command_line IS NOT NULL    >    ${0}    retry_timeout=30s    retry_pause=2s
 
-    ${output}    Query    SELECT instance_id, name, active_host_checks, active_service_checks, address, check_hosts_freshness, check_services_freshness, daemon_mode, description, engine, event_handlers, failure_prediction, flap_detection, global_host_event_handler, global_service_event_handler, last_alive, last_command_check, last_log_rotation, modified_host_attributes, modified_service_attributes, notifications, obsess_over_hosts, obsess_over_services, passive_host_checks, passive_service_checks, process_perfdata, running, deleted, outdated FROM instances
-    Should Be Equal    "${output}"    "((1, 'Poller0', None, None, None, None, None, None, None, 'Centreon Engine', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 1, 0, 0),)"    Poller 1 not as expected in instances table
+    Log To Console    What service has its command_line filled?
+    ${output}    QUERY    SELECT service_id FROM services WHERE host_id=${host_id} AND command_line IS NOT NULL LIMIT 1
+    ${service_id}    Evaluate    int(${output[0][0]})
 
+    ${cmd_id}    Ctn Get Service Command Id    ${service_id}
+    Ctn Set Command Status    ${cmd_id}    0
+
+    # We check service host_id:service_id in resources
+    Log To Console    We check service ${host_id}:${service_id} in resources
+    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, last_check, output, enabled, flapping, percent_state_change FROM resources WHERE id=${service_id} AND parent_id=${host_id}
+    Should Be Equal    "${output}"    "((None, 0, 4, 1, 0, 0, 1, 1, 3, 1, None, 'service_${service_id}', None, None, 'host_${host_id}', 0, '', '', '', 0, 1, 1, 1, 0, None, None, 1, 0, 0.0),)"    Service ${host_id}:${service_id} not as expected in resources table (first step)
+
+    # We check host host_id in resources
+    Log To Console    We check host ${host_id} in resources
+    ${output}    Query    SELECT internal_id,type,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, enabled, flapping, percent_state_change FROM resources WHERE id=${host_id} AND parent_id=0
+    Should Be Equal    "${output}"    "((None, 1, 0, 0, 1, 1, 3, 1, None, 'host_${host_id}', 'host_${host_id}', '${host_id}.0.0.0', 'host_${host_id}', 0, '', '', '', 0, 1, 1, 1, 0, 1, 0, 0.0),)"    Host ${host_id} not as expected in resources table (step 1)
+
+    # We check service host_id:service_id in services
+    Log To Console    We check service ${host_id}:${service_id} in services
+    ${output}    Query    SELECT description, acknowledged, acknowledgement_type, action_url, active_checks, check_attempt, check_freshness, check_interval, check_period, check_type, checked, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, execution_time, failure_prediction, failure_prediction_options, first_notification_delay, flap_detection, flap_detection_on_critical, flap_detection_on_ok, flap_detection_on_unknown, flap_detection_on_warning, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_check, last_hard_state, last_hard_state_change, last_notification, last_state_change, last_time_critical, last_time_ok, last_time_unknown, last_time_warning, latency, low_flap_threshold, max_check_attempts, modified_attributes, next_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_critical, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unknown, notify_on_warning, obsess_over_service, output, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_critical, stalk_on_ok, stalk_on_unknown, stalk_on_warning, state, state_type, volatile, real_state FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    Should Be Equal    "${output}"    "(('service_${service_id}', 0, 0, '', 1, 1, 0, 5.0, '24x7', 0, 0, 1, 1, None, 1, 1, 1, None, 'service_${service_id}', 1, '', 1, 0.0, None, None, 0.0, 1, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', None, 0, None, None, None, None, None, None, None, 0.0, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, '', 1, 0.0, '', None, 1, 1, 5.0, 0, 1, 0, 0, 0, 0, 4, 1, 0, None),)"    Service ${host_id}:${service_id} not as expected in services table (first step)
+
+    ${svc_state}    Query    SELECT state FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_last_update}    Query    SELECT last_update FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_next_check}    Query    SELECT next_check FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_latency}    Query    SELECT latency FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+
+    # We check the host host_id command line
+    Log To Console    We check the host host_id command line
+    Check Query Result    SELECT command_line FROM hosts WHERE host_id=${host_id}    ==    /tmp/var/lib/centreon-engine/check.pl --id 0    retry_timeout=120s    retry_pause=2s
+
+    # We check the poller 1
+    Log To Console    We check the poller 1
+    ${output}    Query    SELECT instance_id, name, active_host_checks, active_service_checks, address, check_hosts_freshness, check_services_freshness, daemon_mode, description, engine, event_handlers, failure_prediction, flap_detection, global_host_event_handler, global_service_event_handler, last_log_rotation, modified_host_attributes, modified_service_attributes, notifications, obsess_over_hosts, obsess_over_services, passive_host_checks, passive_service_checks, process_perfdata, running, deleted, outdated FROM instances
+    Should Be Equal    "${output}"    "((1, 'Poller0', None, None, None, None, None, None, None, 'Centreon Engine', None, None, None, None, None, None, None, None, None, None, None, None, None, None, 1, 0, 0),)"    Poller 1 not as expected in instances table (step 1)
+
+    # We check all the customvariables are in database
+    Log To Console    We check all the customvariables are in database
     Check Query Result    SELECT COUNT(*) FROM customvariables    ==    ${1150}    retry_timeout=30s    retry_pause=2s
 
     ${output}    Query    SELECT host_id, service_id, name, default_value, value, modified, type FROM customvariables WHERE host_id = 1 AND service_id = 1
-    Should Be Equal    "${output}"    "((1, 1, 'KEY_SERV1_1', 'VAL_SERV1', 'VAL_SERV1', 0, 1),)"    Custom variable for service 1:1 not as expected in customvariables table
+    Should Be Equal    "${output}"    "((1, 1, 'KEY_SERV1_1', 'VAL_SERV1', 'VAL_SERV1', 0, 1),)"    Custom variable for service ${host_id}:${service_id} not as expected in customvariables table
+    Disconnect From Database
 
-    Check Query Result    SELECT status FROM resources WHERE id=1 AND parent_id=0    ==    ${0}    retry_timeout=30s    retry_pause=2s
-    Check Query Result    SELECT state FROM hosts WHERE host_id=1    ==    ${0}    retry_timeout=30s    retry_pause=2s
-    Check Query Result    SELECT state FROM services WHERE host_id=1 AND service_id=1    ==    ${0}    retry_timeout=30s    retry_pause=2s
+    # We check that host host_id has the good status
+    Log To Console    We check that host ${host_id} has the good status in resources
+    ${output}    Ctn Check Host Status In Resources    ${host_id}    ${0}
+    Should Be True    ${output}    Host ${host_id} should be UP following resources table.
 
-    ${svc_state1}    Query    SELECT state FROM services WHERE host_id=1 AND service_id=1
-    ${svc_last_update1}    Query    SELECT last_update FROM services WHERE host_id=1 AND service_id=1
-    ${svc_next_check1}    Query    SELECT next_check FROM services WHERE host_id=1 AND service_id=1
-    ${svc_latency1}    Query    SELECT latency FROM services WHERE host_id=1 AND service_id=1
+    Log To Console    We check that host ${host_id} has the good status in hosts
+    ${output}    Ctn Check Host Status In Hosts    ${host_id}    ${0}
+    Should Be True    ${output}    Host ${host_id} status in hosts table should be UP
+
+    ${output}    Ctn Check Host Status In Resources    ${host_id}    ${0}
+    Should Be True    ${output}    Host ${host_id} should be UP
+    ${output}    Ctn Check Service Status In Services    ${host_id}    ${service_id}    ${0}
+    Should Be True    ${output}    Service ${host_id}:${service_id} should be OK
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    ${svc_state1}    Query    SELECT state FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_last_update1}    Query    SELECT last_update FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_next_check1}    Query    SELECT next_check FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_latency1}    Query    SELECT latency FROM services WHERE host_id=${host_id} AND service_id=${service_id}
 
     Disconnect From Database
 
@@ -87,47 +133,47 @@ BEUS
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Log To Console    Checking the number of resources
     # We should have 50 hosts + 1000 services
+    Log To Console    We should have 50 hosts + 1000 services
     Check Query Result    SELECT COUNT(*) FROM resources    ==    ${1050}    retry_timeout=30s    retry_pause=2s
 
-    # We check service 1:1 in resources
-    Log To Console    Checking the service 1:1 after Broker Stop
-    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, enabled, flapping, percent_state_change FROM resources WHERE id=1 AND parent_id=1
-    Should Be Equal    "${output}"    "((None, 0, 0, 0, 0, 0, 1, 1, 3, 1, None, 'service_1', None, None, 'host_1', 0, '', '', '', 1, 1, 1, 1, 0, 0, 0, 0.0),)"    Service 1:1 not as expected in resources table (second step)
+    # We check service host_id:service_id in resources
+    Log To Console    We check service ${host_id}:${service_id} in resources
+    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, enabled, flapping, percent_state_change FROM resources WHERE id=${service_id} AND parent_id=${host_id}
+    Should Be Equal    "${output}"    "((None, 0, 0, 0, 0, 0, 1, 1, 3, 1, None, 'service_${service_id}', None, None, 'host_${host_id}', 0, '', '', '', 1, 1, 1, 1, 0, 0, 0, 0.0),)"    Service 1:1 not as expected in resources table (second step)
 
-    # We check host 1 in resources
-    Log To Console    Checking the host 1 after Broker Stop
-    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, enabled, flapping, percent_state_change FROM resources WHERE id=1 AND parent_id=0
-    Should Be Equal    "${output}"    "((None, 1, 0, 0, 0, 0, 1, 1, 3, 1, None, 'host_1', 'host_1', '1.0.0.0', 'host_1', 0, '', '', '', 0, 1, 1, 1, 0, 0, 0, 0.0),)"    Host 1 not as expected in resources table
+    # We check host host_id in resources
+    Log To Console    We check host host_id in resources
+    ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, enabled, flapping, percent_state_change FROM resources WHERE id=${host_id} AND parent_id=0
+    Should Be Equal    "${output}"    "((None, 1, 0, 0, 0, 0, 1, 1, 3, 1, None, 'host_${host_id}', 'host_${host_id}', '${host_id}.0.0.0', 'host_${host_id}', 0, '', '', '', 0, 1, 1, 1, 0, 0, 0, 0.0),)"    Host ${host_id} not as expected in resources table (step 2)
 
-    # We check service 1:1 in services
-    Log To Console    Checking the service 1:1 in services table after Broker Stop
-    ${output}    Query    SELECT description, acknowledged, acknowledgement_type, action_url, active_checks, check_attempt, check_freshness, check_interval, check_period, check_type, checked, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, failure_prediction, failure_prediction_options, first_notification_delay, flap_detection, flap_detection_on_critical, flap_detection_on_ok, flap_detection_on_unknown, flap_detection_on_warning, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_hard_state, last_notification, last_time_critical, last_time_unknown, last_time_warning, low_flap_threshold, max_check_attempts, modified_attributes, next_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_critical, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unknown, notify_on_warning, obsess_over_service, passive_checks, percent_state_change, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_critical, stalk_on_ok, stalk_on_unknown, stalk_on_warning, state, state_type, volatile, real_state FROM services WHERE host_id=1 AND service_id=1
-    Should Be Equal    "${output}"    "(('service_1', 0, 0, '', 1, 1, 0, 5.0, '24x7', 0, 1, 1, 1, None, 1, 1, 1, None, 'service_1', 0, '', 1, None, None, 0.0, 1, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', 0, None, None, None, None, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.0, None, 1, 1, 5.0, 0, 1, 0, 0, 0, 0, 0, 1, 0, None),)"    Service 1:1 not as expected in services table (second step)
+    # We check service host_id:service_id in services
+    Log To Console    We check service ${host_id}:${service_id} in services
+    ${output}    Query    SELECT description, acknowledged, acknowledgement_type, action_url, active_checks, check_attempt, check_freshness, check_interval, check_period, check_type, checked, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, failure_prediction, failure_prediction_options, first_notification_delay, flap_detection, flap_detection_on_critical, flap_detection_on_ok, flap_detection_on_unknown, flap_detection_on_warning, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_hard_state, last_notification, last_time_critical, last_time_unknown, last_time_warning, low_flap_threshold, max_check_attempts, modified_attributes, next_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_critical, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unknown, notify_on_warning, obsess_over_service, passive_checks, percent_state_change, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_critical, stalk_on_ok, stalk_on_unknown, stalk_on_warning, state, state_type, volatile, real_state FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    Should Be Equal    "${output}"    "(('service_${service_id}', 0, 0, '', 1, 1, 0, 5.0, '24x7', 0, 1, 1, 1, None, 1, 1, 1, None, 'service_${service_id}', 0, '', 1, None, None, 0.0, 1, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', 0, None, None, None, None, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.0, None, 1, 1, 5.0, 0, 1, 0, 0, 0, 0, 0, 1, 0, None),)"    Service 1:1 not as expected in services table (second step)
 
 
-    # We check host 1 in hosts
-    Log To Console    Checking the host 1 in hosts table after Broker Stop
-    ${output}    Query    SELECT host_id, name, instance_id, acknowledged, acknowledgement_type, action_url, active_checks, address, alias, check_attempt, check_command, check_freshness, check_interval, check_period, check_type, checked, command_line, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, failure_prediction, first_notification_delay, flap_detection, flap_detection_on_down, flap_detection_on_unreachable, flap_detection_on_up, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_hard_state, last_hard_state_change, last_notification, last_time_down, last_time_unreachable, low_flap_threshold, max_check_attempts, modified_attributes, next_host_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_down, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unreachable, obsess_over_host, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_down, stalk_on_unreachable, stalk_on_up, state, state_type, statusmap_image, timezone, real_state FROM hosts WHERE host_id=1
+    # We check host host_id in hosts
+    Log To Console    We check host ${host_id} in hosts
+    ${output}    Query    SELECT host_id, name, instance_id, acknowledged, acknowledgement_type, action_url, active_checks, address, alias, check_attempt, check_command, check_freshness, check_interval, check_period, check_type, checked, command_line, default_active_checks, default_event_handler_enabled, default_failure_prediction, default_flap_detection, default_notify, default_passive_checks, default_process_perfdata, display_name, enabled, event_handler, event_handler_enabled, failure_prediction, first_notification_delay, flap_detection, flap_detection_on_down, flap_detection_on_unreachable, flap_detection_on_up, flapping, freshness_threshold, high_flap_threshold, icon_image, icon_image_alt, last_hard_state, last_hard_state_change, last_notification, last_time_down, last_time_unreachable, low_flap_threshold, max_check_attempts, modified_attributes, next_host_notification, no_more_notifications, notes, notes_url, notification_interval, notification_number, notification_period, notify, notify_on_down, notify_on_downtime, notify_on_flapping, notify_on_recovery, notify_on_unreachable, obsess_over_host, passive_checks, percent_state_change, perfdata, process_perfdata, retain_nonstatus_information, retain_status_information, retry_interval, scheduled_downtime_depth, should_be_scheduled, stalk_on_down, stalk_on_unreachable, stalk_on_up, state, state_type, statusmap_image, timezone, real_state FROM hosts WHERE host_id=${host_id}
 
-    Should Be Equal    "${output}"    "((1, 'host_1', 1, 0, 0, '', 1, '1.0.0.0', 'host_1', 1, 'checkh1', 0, 5.0, '24x7', 0, 1, '/tmp/var/lib/centreon-engine/check.pl --id 0', 1, 1, None, 1, 1, 1, None, 'host_1', 0, '', 1, None, 0.0, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', 0, None, None, None, None, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, 0.0, '', None, 1, 1, 1.0, 0, 1, 0, 0, 0, 0, 1, '', '', None),)"    Host 1 not as expected in hosts table
+    Should Be Equal    "${output}"    "((${host_id}, 'host_${host_id}', 1, 0, 0, '', 1, '${host_id}.0.0.0', 'host_${host_id}', 1, 'checkh${host_id}', 0, 5.0, '24x7', 0, 1, '/tmp/var/lib/centreon-engine/check.pl --id 0', 1, 1, None, 1, 1, 1, None, 'host_${host_id}', 0, '', 1, None, 0.0, 1, 1, 1, 1, 0, 0.0, 0.0, '', '', 0, None, None, None, None, 0.0, 3, None, None, 0, '', '', 0.0, 0, '', 1, 1, 1, 1, 1, 1, 1, 1, 0.0, '', None, 1, 1, 1.0, 0, 1, 0, 0, 0, 0, 1, '', '', None),)"    Host ${host_id} not as expected in hosts table (step 2)
 
     Log To Console    Checking the poller 1 in instances table after Broker Stop
     ${output}    Query    SELECT instance_id, name, active_host_checks, active_service_checks, address, check_hosts_freshness, check_services_freshness, daemon_mode, description, engine, event_handlers, failure_prediction, flap_detection, global_host_event_handler, global_service_event_handler, last_alive, last_command_check, last_log_rotation, modified_host_attributes, modified_service_attributes, notifications, obsess_over_hosts, obsess_over_services, passive_host_checks, passive_service_checks, process_perfdata, running, deleted, outdated FROM instances
-    Should Be Equal    "${output}"    "((1, 'Poller0', None, None, None, None, None, None, None, 'Centreon Engine', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 0, 0, 0),)"    Poller 1 not as expected in instances table
+    Should Be Equal    "${output}"    "((1, 'Poller0', None, None, None, None, None, None, None, 'Centreon Engine', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, 0, 0, 0),)"    Poller 1 not as expected in instances table (step 2)
 
     Log To Console    Checking the number of customvariables
     Check Query Result    SELECT COUNT(*) FROM customvariables    ==    ${0}    retry_timeout=30s    retry_pause=2s
 
-    ${svc_state2}    Query    SELECT state FROM services WHERE host_id=1 AND service_id=1
-    ${svc_last_update2}    Query    SELECT last_update FROM services WHERE host_id=1 AND service_id=1
-    ${svc_next_check2}    Query    SELECT next_check FROM services WHERE host_id=1 AND service_id=1
-    ${svc_latency2}    Query    SELECT latency FROM services WHERE host_id=1 AND service_id=1
+    ${svc_state2}    Query    SELECT state FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_last_update2}    Query    SELECT last_update FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_next_check2}    Query    SELECT next_check FROM services WHERE host_id=${host_id} AND service_id=${service_id}
+    ${svc_latency2}    Query    SELECT latency FROM services WHERE host_id=${host_id} AND service_id=${service_id}
 
-    Check Query Result    SELECT perfdata FROM services WHERE host_id=1 AND service_id=1    contains    metric=    retry_timeout=30s    retry_pause=2s
-    Check Query Result    SELECT output FROM services WHERE host_id=1 AND service_id=1    contains    Test check    retry_timeout=30s    retry_pause=2s
-    Check Query Result    SELECT command_line FROM services WHERE host_id=1 AND service_id=1    contains    /tmp/var/lib/centreon-engine/check.pl --id    retry_timeout=30s    retry_pause=2s
+    Check Query Result    SELECT perfdata FROM services WHERE host_id=${host_id} AND service_id=${service_id}    contains    metric=    retry_timeout=30s    retry_pause=2s
+    Check Query Result    SELECT output FROM services WHERE host_id=${host_id} AND service_id=${service_id}    contains    Test check    retry_timeout=30s    retry_pause=2s
+    Check Query Result    SELECT command_line FROM services WHERE host_id=${host_id} AND service_id=${service_id}    contains    /tmp/var/lib/centreon-engine/check.pl --id    retry_timeout=30s    retry_pause=2s
 
     Should Be Equal As Integers    ${svc_state[0][0]}    ${4}    Service 1:1 should be UNKNOWN at startup
     Should Be Equal As Integers    ${svc_state1[0][0]}    ${0}    Service 1:1 should be OK after the first check
