@@ -78,8 +78,8 @@ jobs:
         with:
           wsl-version: 2
           distribution: Debian
-          use-cache: 'false'
-          update: 'true'
+          use-cache: 'true'
+          update: 'false'
           wsl-conf: |
             [automount]
             enabled = true
