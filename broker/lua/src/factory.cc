@@ -117,7 +117,10 @@ io::endpoint* factory::new_endpoint(
           " its name is empty");
     std::string t((type.get<std::string>().empty()) ? "string"
                                                     : type.get<std::string>());
-    if (t == "string" || t == "password")
+    if (t == "string") {
+      conf_map.insert({std::string(value_name),
+                       misc::variant(value.get<std::string_view>())});
+    } else if (t == "password")
       conf_map.insert({std::string(value_name),
                        misc::variant(decrypt_param(
                            value_name, value.get<std::string_view>()))});
@@ -157,7 +160,10 @@ io::endpoint* factory::new_endpoint(
       std::string t((type.get<std::string>().empty())
                         ? "string"
                         : type.get<std::string>());
-      if (t == "string" || t == "password") {
+      if (t == "string") {
+        conf_map.insert({std::string(value_name),
+                         misc::variant(value.get<std::string_view>())});
+      } else if (t == "password") {
         conf_map.insert({std::string(value_name),
                          misc::variant(decrypt_param(
                              value_name, value.get<std::string_view>()))});

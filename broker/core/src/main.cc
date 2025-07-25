@@ -88,6 +88,36 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
                                        {0, 0, 0, 0}};
 
 /**
+ * @brief reload /etc/centreon-engine/engine-context.json
+ *
+ * @param core_logger
+ */
+static void reload_engine_context(
+    const std::shared_ptr<spdlog::logger>& core_logger) {
+  try {
+    if (std::filesystem::is_regular_file(_engine_context_path) &&
+        std::filesystem::file_size(_engine_context_path) > 0) {
+      std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+          std::make_unique<com::centreon::common::crypto::aes256>(
+              _engine_context_path);
+      // we test validity of keys
+      std::string encrypted = new_file->encrypt("test encrypt");
+      if (new_file->decrypt(encrypted) == "test encrypt") {
+        credentials_decrypt = std::move(new_file);
+      } else {
+        throw std::invalid_argument(
+            "this keys are unable to crypt and decrypt a sentence");
+      }
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        core_logger, "credentials_encryption is set but we can not read {}: {}",
+        _engine_context_path, e.what());
+    throw;
+  }
+}
+
+/**
  * @brief handle signals SIGHUP and SIGTERM
  *
  * @param err
@@ -121,27 +151,7 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
                             e.what());
       }
 
-      try {
-        if (std::filesystem::is_regular_file(_engine_context_path) &&
-            std::filesystem::file_size(_engine_context_path) > 0) {
-          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
-              std::make_unique<com::centreon::common::crypto::aes256>(
-                  _engine_context_path);
-          // we test validity of keys
-          std::string encrypted = new_file->encrypt("test encrypt");
-          if (new_file->decrypt(encrypted) == "test encrypt") {
-            credentials_decrypt = std::move(new_file);
-          } else {
-            throw std::invalid_argument(
-                "this keys are unable to crypt and decrypt a sentence");
-          }
-        }
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(
-            core_logger,
-            "credentials_encryption is set but we can not read {}: {}",
-            _engine_context_path, e.what());
-      }
+      reload_engine_context(core_logger);
 
       try {
         // Apply resulting configuration.
@@ -319,6 +329,8 @@ int main(int argc, char* argv[]) {
         SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} begin",
                            argv[0], getpid());
 
+        reload_engine_context(core_logger);
+
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
         config::applier::init(common::BROKER, conf);
@@ -372,7 +384,6 @@ int main(int argc, char* argv[]) {
   SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
                      argv[0], getpid(), retval);
   g_io_context->stop();
-  com::centreon::common::pool::unload();
   log_v2::unload();
   return retval;
 }

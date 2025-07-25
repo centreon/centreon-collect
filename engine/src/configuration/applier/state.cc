@@ -1538,30 +1538,27 @@ void applier::state::_processing(configuration::State& new_cfg,
                                            diff_anomalydetections);
 
     // we first reload credentials keys before decrypt macros
-    if (new_cfg.credentials_encryption()) {
-      try {
-        if (std::filesystem::is_regular_file(_engine_context_path) &&
-            std::filesystem::file_size(_engine_context_path) > 0) {
-          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
-              std::make_unique<com::centreon::common::crypto::aes256>(
-                  _engine_context_path);
-          // we test validity of keys
-          std::string encrypted = new_file->encrypt("test encrypt");
-          if (new_file->decrypt(encrypted) == "test encrypt") {
-            credentials_decrypt = std::move(new_file);
-          } else {
-            throw std::invalid_argument(
-                "this keys are unable to crypt and decrypt a sentence");
-          }
+    try {
+      if (std::filesystem::is_regular_file(_engine_context_path) &&
+          std::filesystem::file_size(_engine_context_path) > 0) {
+        std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+            std::make_unique<com::centreon::common::crypto::aes256>(
+                _engine_context_path);
+        // we test validity of keys
+        std::string encrypted = new_file->encrypt("test encrypt");
+        if (new_file->decrypt(encrypted) == "test encrypt") {
+          credentials_decrypt = std::move(new_file);
+        } else {
+          throw std::invalid_argument(
+              "this keys are unable to crypt and decrypt a sentence");
         }
-      } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(
-            config_logger,
-            "credentials_encryption is set but we can not read {}: {}",
-            _engine_context_path, e.what());
       }
-    } else {
-      credentials_decrypt.reset();
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(
+          config_logger,
+          "credentials_encryption is set but we can not read {}: {}",
+          _engine_context_path, e.what());
+      throw;
     }
 
     // Apply new global on the current state.
