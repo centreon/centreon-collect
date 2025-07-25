@@ -12,11 +12,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Variables ***
 @{CONFIG_NAME}      sql    core    processing    tcp    perfdata    victoria_metrics    bam    lua
 
-<<<<<<< HEAD:tests/broker-engine/bench-unstable.robot
-
-=======
 #s of Cases had been removed in order to disable all bench.robot
->>>>>>> 24.10.x:tests/broker-engine/bench.robot
 *** Test Case ***
 BENCH_${nb_checks}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times

@@ -49,7 +49,7 @@ TEST(otl_grpc_config, no_host_json) {
 
 TEST(otl_grpc_config, bad_port_json) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":1000
 })"_json),
@@ -58,7 +58,7 @@ TEST(otl_grpc_config, bad_port_json) {
 
 TEST(otl_grpc_config, bad_port_json2) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":"2500"
 })"_json),
@@ -67,7 +67,7 @@ TEST(otl_grpc_config, bad_port_json2) {
 
 TEST(otl_grpc_config, bad_port_json3) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":250000
 })"_json),
@@ -76,7 +76,7 @@ TEST(otl_grpc_config, bad_port_json3) {
 
 TEST(otl_grpc_config, good_host_port) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500
 })"_json);
@@ -92,7 +92,7 @@ TEST(otl_grpc_config, good_host_port) {
 
 TEST(otl_grpc_config, good_host_port2) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500,
     "encryption":true,
@@ -109,11 +109,10 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
 }
 
-<<<<<<< HEAD
 // test if we can set trusted tokens
 TEST(otl_grpc_config, tokens) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500,
     "encryption":true,
@@ -139,7 +138,7 @@ TEST(otl_grpc_config, tokens) {
 //  test if we can compare trusted tokens
 TEST(otl_grpc_config, tokencompare) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500,
     "encryption":true,
@@ -147,7 +146,7 @@ TEST(otl_grpc_config, tokencompare) {
     "ca_name":"toto"
 })"_json);
   grpc_config c_same(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":true,
@@ -155,7 +154,7 @@ TEST(otl_grpc_config, tokencompare) {
       "ca_name":"toto"
   })"_json);
   grpc_config c2(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":true,
@@ -164,7 +163,7 @@ TEST(otl_grpc_config, tokencompare) {
       "trusted_tokens":["toto","titi"]
   })"_json);
   grpc_config c2_same(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":true,
@@ -173,7 +172,7 @@ TEST(otl_grpc_config, tokencompare) {
       "trusted_tokens":["toto","titi"]
   })"_json);
   grpc_config c2_minos(R"(
-    {   
+    {
         "host":"127.0.0.1",
         "port":2500,
         "encryption":true,
@@ -182,7 +181,7 @@ TEST(otl_grpc_config, tokencompare) {
         "trusted_tokens":["toto"]
     })"_json);
   grpc_config c2_plus(R"(
-      {   
+      {
           "host":"127.0.0.1",
           "port":2500,
           "encryption":true,
@@ -198,49 +197,48 @@ TEST(otl_grpc_config, tokencompare) {
   ASSERT_EQ(c2.compare(c2_minos), 1);
   ASSERT_EQ(c2.compare(c2_plus), -1);
 }
-=======
->>>>>>> 24.10.x
+
 //  test all allow encryption values
 //  full, insecure, no, true, false
 TEST(otl_grpc_config, encryption_value) {
   grpc_config conf_full(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500,
     "encryption":"full"
 })"_json);
   grpc_config conf_insecure(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":"insecure"
   })"_json);
   grpc_config conf_no(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":"no"
   })"_json);
   grpc_config conf_true_s(R"(
-  {   
+  {
       "host":"127.0.0.1",
       "port":2500,
       "encryption":"true"
   })"_json);
   grpc_config conf_false_s(R"(
-    {   
+    {
         "host":"127.0.0.1",
         "port":2500,
         "encryption":"false"
     })"_json);
   grpc_config conf_true(R"(
-      {   
+      {
           "host":"127.0.0.1",
           "port":2500,
           "encryption":true
       })"_json);
   grpc_config conf_false(R"(
-      {   
+      {
           "host":"127.0.0.1",
           "port":2500,
           "encryption":false

@@ -97,7 +97,6 @@ add_library(opentelemetry SHARED ${SRC_DIR}/main.cc)
 target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
-<<<<<<< HEAD
 target_link_libraries(
   opentelemetry
   PRIVATE spdlog::spdlog
@@ -107,15 +106,6 @@ target_link_libraries(
 	  Boost::url
 	  Boost::program_options
 	  ctncrypto)
-=======
-target_link_libraries(opentelemetry
-  pb_open_telemetry_lib   
-  spdlog::spdlog
-  -L${PROTOBUF_LIB_DIR}
-  protobuf
-  -L${Boost_LIBRARY_DIR_RELEASE}
-  boost_program_options)
->>>>>>> 24.10.x
 
 add_dependencies(opentelemetry pb_open_telemetry_lib pb_header_lib pb_neb_lib
                  engine_rpc)
