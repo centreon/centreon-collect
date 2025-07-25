@@ -28,7 +28,7 @@ using config = com::centreon::common::log_v2::config;
 class TestLogV2 : public ::testing::Test {
  public:
   //  void SetUp() override {}
-  void TearDown() override { log_v2::unload(); }
+  void TearDown() override { log_v2::unload(true); }
 };
 
 static std::string read_file(const std::string& name) {

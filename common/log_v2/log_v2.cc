@@ -138,8 +138,18 @@ void log_v2::load(std::string name) {
 /**
  * @brief shutdown log_v2 thread
  */
-void log_v2::unload() {
+void log_v2::unload(bool delete_instance) {
   if (_instance) {
+    if (delete_instance) {
+      delete _instance;
+      _instance = nullptr;
+    } else {
+      for (auto& l : _instance->_loggers) {
+        if (l) {
+          l->flush();
+        }
+      }
+    }
     spdlog::drop_all();
     spdlog::shutdown();
   }
