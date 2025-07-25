@@ -77,7 +77,7 @@ jobs:
 
         with:
           wsl-version: 2
-          distribution: Debian
+          distribution: Debian:bookworm
           use-cache: 'true'
           update: 'true'
           wsl-conf: |
