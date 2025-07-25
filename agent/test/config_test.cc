@@ -76,13 +76,14 @@ TEST(config, token) {
     "port":2500,
     "encryption":true,
     "compression": true,
-    "ca_name":"toto",
+    "ca_common_name":"toto",
     "token":"token1"
 })";
   f.close();
 
   config conf(_json_config_path);  // Declare and initialize conf
   ASSERT_EQ(conf.get_token(), "token1");
+  ASSERT_EQ(conf.get_ca_name(), "toto");
 }
 
 TEST(config, reversed_grpc_streaming_token) {
@@ -96,7 +97,7 @@ TEST(config, reversed_grpc_streaming_token) {
     "encryption":true,
     "compression": true,
     "reversed_grpc_streaming":true,
-    "ca_name":"toto",
+    "ca_common_name":"toto",
     "token":"token1"
 })";
   f.close();
