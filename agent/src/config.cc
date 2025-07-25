@@ -51,11 +51,11 @@ const std::string_view config::config_schema(R"(
             "description": "Path of the SSL private key file .key",
             "type": "string"
         },
-        "ca_certificate": {
+        "ca": {
             "description": "Path of the SSL CA file .crt",
             "type": "string"
         },
-        "ca_name": {
+        "ca_common_name": {
             "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
             "type": "string"
         },
@@ -151,8 +151,8 @@ config::config(const std::string& path) {
   _encryption = json_config.get_bool("encryption", false);
   _public_cert_file = json_config.get_string("public_cert", "");
   _private_key_file = json_config.get_string("private_key", "");
-  _ca_certificate_file = json_config.get_string("ca_certificate", "");
-  _ca_name = json_config.get_string("ca_name", "");
+  _ca_certificate_file = json_config.get_string("ca", "");
+  _ca_name = json_config.get_string("ca_common_name", "");
   _host = json_config.get_string("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
