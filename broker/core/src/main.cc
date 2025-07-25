@@ -72,6 +72,9 @@ std::shared_ptr<boost::asio::signal_set> signals =
 
 std::shared_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 
+constexpr std::string_view _engine_context_path =
+    "/etc/centreon-engine/engine-context.json";
+
 // Main config file.
 static std::vector<std::string> gl_mainconfigfiles;
 static config::state gl_state;
@@ -94,12 +97,13 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
                            const boost::system::error_code& err,
                            int signal_number) {
   if (signal_number == SIGTERM) {
-    core_logger->info("main: SIGTERM received by process {}", getpid());
+    SPDLOG_LOGGER_INFO(core_logger, "main: SIGTERM received by process {}",
+                       getpid());
     gl_term = true;
     return;  // no restart a signals->async_wait
   } else if (signal_number == SIGHUP) {
     // Log message.
-    core_logger->info("main: configuration update requested");
+    SPDLOG_LOGGER_INFO(core_logger, "main: configuration update requested");
 
     try {
       // Parse configuration file.
@@ -111,8 +115,32 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
         log_v2::instance().apply(log_conf);
         /* We update the logger, since the conf has been applied */
       } catch (const std::exception& e) {
-        core_logger->error("problem while reloading cbd: {}", e.what());
-        core_logger->error("problem while reloading cbd: {}", e.what());
+        SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
+                            e.what());
+        SPDLOG_LOGGER_ERROR(core_logger, "problem while reloading cbd: {}",
+                            e.what());
+      }
+
+      try {
+        if (std::filesystem::is_regular_file(_engine_context_path) &&
+            std::filesystem::file_size(_engine_context_path) > 0) {
+          std::unique_ptr<com::centreon::common::crypto::aes256> new_file =
+              std::make_unique<com::centreon::common::crypto::aes256>(
+                  _engine_context_path);
+          // we test validity of keys
+          std::string encrypted = new_file->encrypt("test encrypt");
+          if (new_file->decrypt(encrypted) == "test encrypt") {
+            credentials_decrypt = std::move(new_file);
+          } else {
+            throw std::invalid_argument(
+                "this keys are unable to crypt and decrypt a sentence");
+          }
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(
+            core_logger,
+            "credentials_encryption is set but we can not read {}: {}",
+            _engine_context_path, e.what());
       }
 
       try {
@@ -121,25 +149,30 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
 
         gl_state = conf;
       } catch (const std::exception& e) {
-        core_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            core_logger,
             "main: configuration update could not succeed, reloading previous "
             "configuration: {}",
             e.what());
         config::applier::state::instance().apply(gl_state);
       } catch (...) {
-        core_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            core_logger,
             "main: configuration update could not succeed, reloading previous "
             "configuration");
         config::applier::state::instance().apply(gl_state);
       }
     } catch (const std::exception& e) {
-      core_logger->info("main: configuration update failed: {}", e.what());
+      SPDLOG_LOGGER_INFO(core_logger, "main: configuration update failed: {}",
+                         e.what());
     } catch (...) {
-      core_logger->info("main: configuration update failed: unknown exception");
+      SPDLOG_LOGGER_INFO(
+          core_logger, "main: configuration update failed: unknown exception");
     }
   } else {
-    core_logger->error("main: unimplemented signal handler for signal: {}",
-                       signal_number);
+    SPDLOG_LOGGER_ERROR(core_logger,
+                        "main: unimplemented signal handler for signal: {}",
+                        signal_number);
   }
   signals->async_wait(
       [save_signalset = signals, core_logger](
@@ -222,39 +255,49 @@ int main(int argc, char* argv[]) {
     // Check parameters requirements.
     if (diagnose) {
       if (gl_mainconfigfiles.empty()) {
-        core_logger->error(
+        SPDLOG_LOGGER_ERROR(
+            core_logger,
             "diagnostic: no configuration file provided: DIAGNOSTIC FILE MIGHT "
             "NOT BE USEFUL");
       }
       misc::diagnostic diag;
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
-      core_logger->info(
+      SPDLOG_LOGGER_INFO(
+          core_logger,
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
           argv[0]);
 
-      core_logger->info("  '-s<poolsize>'  Set poolsize threads.");
-      core_logger->info("  '-c'  Check configuration file.");
-      core_logger->info("  '-D'  Generate a diagnostic file.");
-      core_logger->info("  '-h'  Print this help.");
-      core_logger->info("  '-v'  Print Centreon Broker version.");
-      core_logger->info("Centreon Broker " CENTREON_BROKER_VERSION);
-      core_logger->info("Copyright 2009-" CENTREON_CURRENT_YEAR " Centreon");
-      core_logger->info(
+      SPDLOG_LOGGER_INFO(core_logger,
+                         "  '-s<poolsize>'  Set poolsize threads.");
+      SPDLOG_LOGGER_INFO(core_logger, "  '-c'  Check configuration file.");
+      SPDLOG_LOGGER_INFO(core_logger, "  '-D'  Generate a diagnostic file.");
+      SPDLOG_LOGGER_INFO(core_logger, "  '-h'  Print this help.");
+      SPDLOG_LOGGER_INFO(core_logger, "  '-v'  Print Centreon Broker version.");
+      SPDLOG_LOGGER_INFO(core_logger,
+                         "Centreon Broker " CENTREON_BROKER_VERSION);
+      SPDLOG_LOGGER_INFO(core_logger,
+                         "Copyright 2009-" CENTREON_CURRENT_YEAR " Centreon");
+      SPDLOG_LOGGER_INFO(
+          core_logger,
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
       retval = 0;
     } else if (version) {
-      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      SPDLOG_LOGGER_INFO(core_logger, "Centreon Broker {}",
+                         CENTREON_BROKER_VERSION);
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
-      core_logger->error(
+      SPDLOG_LOGGER_ERROR(
+          core_logger,
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n",
           argv[0]);
       return 1;
     } else {
-      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      core_logger->info("Copyright 2009-2021 Centreon");
-      core_logger->info(
+      SPDLOG_LOGGER_INFO(core_logger, "Centreon Broker {}",
+                         CENTREON_BROKER_VERSION);
+      SPDLOG_LOGGER_INFO(core_logger, "Copyright 2009-2021 Centreon");
+      SPDLOG_LOGGER_INFO(
+          core_logger,
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
 
       // Reset locale.
@@ -270,10 +313,11 @@ int main(int argc, char* argv[]) {
         try {
           log_v2::instance().apply(log_conf);
         } catch (const std::exception& e) {
-          core_logger->error("{}", e.what());
+          SPDLOG_LOGGER_ERROR(core_logger, "{}", e.what());
         }
 
-        core_logger->info("main: process {} pid:{} begin", argv[0], getpid());
+        SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} begin",
+                           argv[0], getpid());
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
@@ -305,8 +349,9 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        core_logger->info("main: termination request received by process {}",
-                          getpid());
+        SPDLOG_LOGGER_INFO(core_logger,
+                           "main: termination request received by process {}",
+                           getpid());
       }
       //  Unload endpoints.
       config::applier::deinit();
@@ -315,17 +360,17 @@ int main(int argc, char* argv[]) {
   }
   // Standard exception.
   catch (const std::exception& e) {
-    core_logger->error("Error during cbd exit: {}", e.what());
+    SPDLOG_LOGGER_ERROR(core_logger, "Error during cbd exit: {}", e.what());
     retval = EXIT_FAILURE;
   }
   // Unknown exception.
   catch (...) {
-    core_logger->error("Error general during cbd exit");
+    SPDLOG_LOGGER_ERROR(core_logger, "Error general during cbd exit");
     retval = EXIT_FAILURE;
   }
 
-  core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
-                    getpid(), retval);
+  SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
+                     argv[0], getpid(), retval);
   g_io_context->stop();
   com::centreon::common::pool::unload();
   log_v2::unload();

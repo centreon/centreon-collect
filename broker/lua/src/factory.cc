@@ -21,11 +21,15 @@
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/lua/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/aes256.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
 using namespace nlohmann;
+
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
 
 /**
  *  Find a parameter in configuration.
@@ -84,20 +88,39 @@ io::endpoint* factory::new_endpoint(
   if (!err.empty())
     throw msg_fmt("lua: couldn't read a configuration json");
 
+  auto decrypt_param = [](const std::string_view& value_name,
+                          const std::string_view& raw_val) -> std::string {
+    if (raw_val.substr(0, 9) == "encrypt::") {
+      if (!credentials_decrypt) {
+        throw msg_fmt(
+            "lua: unable to decrypt {}, no encryption key file available",
+            value_name);
+      }
+      try {
+        return credentials_decrypt->decrypt(raw_val.substr(9));
+      } catch (const std::exception& e) {
+        throw msg_fmt("lua: unable to decrypt {}: {}", value_name, e.what());
+      }
+    }
+    return std::string(raw_val);
+  };
+
   if (js.is_object()) {
     json const& name{js.at("name")};
     json const& type{js.at("type")};
     json const& value{js.at("value")};
 
-    if (name.get<std::string>().empty())
+    std::string_view value_name = name.get<std::string_view>();
+    if (value_name.empty())
       throw msg_fmt(
           "lua: couldn't read a configuration field because"
           " its name is empty");
     std::string t((type.get<std::string>().empty()) ? "string"
                                                     : type.get<std::string>());
     if (t == "string" || t == "password")
-      conf_map.insert(
-          {name.get<std::string>(), misc::variant(value.get<std::string>())});
+      conf_map.insert({std::string(value_name),
+                       misc::variant(decrypt_param(
+                           value_name, value.get<std::string_view>()))});
     else if (t == "number") {
       bool ko = false;
       std::string const& v(value.get<std::string>());
@@ -105,20 +128,20 @@ io::endpoint* factory::new_endpoint(
       if (!absl::SimpleAtoi(v, &val))
         ko = true;
       else
-        conf_map.insert({name.get<std::string>(), misc::variant(val)});
+        conf_map.insert({std::string(value_name), misc::variant(val)});
 
       // Second attempt using floating point numbers
       if (ko) {
         double val;
         if (absl::SimpleAtod(v, &val)) {
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+          conf_map.insert({std::string(value_name), misc::variant(val)});
           ko = false;
         } else
           ko = true;
       }
       if (ko)
         throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
-                      name.get<std::string>(), value.get<std::string>());
+                      std::string(value_name), value.get<std::string>());
     }
   } else if (js.is_array()) {
     for (json const& obj : js) {
@@ -126,23 +149,25 @@ io::endpoint* factory::new_endpoint(
       json const& type{obj.at("type")};
       json const& value{obj.at("value")};
 
-      if (name.get<std::string>().empty())
+      std::string_view value_name = name.get<std::string_view>();
+      if (value_name.empty())
         throw msg_fmt(
             "lua: couldn't read a configuration field because"
             " its name is empty");
       std::string t((type.get<std::string>().empty())
                         ? "string"
                         : type.get<std::string>());
-      if (t == "string" || t == "password")
-        conf_map.insert(
-            {name.get<std::string>(), misc::variant(value.get<std::string>())});
-      else if (t == "number") {
+      if (t == "string" || t == "password") {
+        conf_map.insert({std::string(value_name),
+                         misc::variant(decrypt_param(
+                             value_name, value.get<std::string_view>()))});
+      } else if (t == "number") {
         int32_t val;
         if (absl::SimpleAtoi(value.get<std::string>(), &val))
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+          conf_map.insert({std::string(value_name), misc::variant(val)});
         else
           throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
-                        name.get<std::string>(), value.get<std::string>());
+                        std::string(value_name), value.get<std::string>());
       }
     }
   }

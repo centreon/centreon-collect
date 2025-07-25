@@ -22,6 +22,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
@@ -29,6 +30,7 @@ using com::centreon::common::log_v2::log_v2;
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
 
+std::shared_ptr<com::centreon::common::crypto::aes256> credentials_decrypt;
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
   void SetUp() override {

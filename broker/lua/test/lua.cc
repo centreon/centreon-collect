@@ -20,6 +20,9 @@
 #include <gtest/gtest.h>
 
 #include <absl/strings/str_split.h>
+#include <exception>
+#include <memory>
+#include <nlohmann/json_fwd.hpp>
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
@@ -28,9 +31,13 @@
 #include "broker/test/test_server.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
+#include "com/centreon/broker/config/endpoint.hh"
+#include "com/centreon/broker/lua/connector.hh"
+#include "com/centreon/broker/lua/factory.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/crypto/aes256.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -38,6 +45,9 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
+
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
 #define FILE2 CENTREON_BROKER_LUA_SCRIPT_PATH "/test2.lua"
@@ -5085,6 +5095,108 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
             std::string::npos);
   RemoveFile(filename);
   //  RemoveFile("/tmp/log");
+}
+
+TEST_F(LuaTest, encrypted_but_no_credentials) {
+  credentials_decrypt.reset();
+  config::endpoint cfg(config::endpoint::io_type::output);
+  std::string_view json_cfg = R"(
+    {
+      "lua_parameter": {
+        "name": "encrypted_value_name",
+        "type": "password",
+        "value": "encrypt::zefafiefe"
+      }
+    }
+  )";
+
+  try {
+    cfg.cfg = nlohmann::json::parse(json_cfg.begin(), json_cfg.end());
+    cfg.params["path"] = "path_to_lua.lua";
+    lua::factory fact;
+    bool is_acceptor = false;
+    fact.new_endpoint(cfg, std::map<std::string, std::string>(), is_acceptor);
+
+    FAIL() << "should throw a msg_fmt";
+  } catch (const std::exception& e) {
+    std::string detail = e.what();
+    size_t detail_begin = detail.find("lua:");
+    ASSERT_NE(detail_begin, std::string_view::npos);
+    ASSERT_EQ(detail.substr(detail_begin),
+              "lua: unable to decrypt encrypted_value_name, no encryption key "
+              "file available");
+  }
+}
+
+TEST_F(LuaTest, bad_encrypted) {
+  credentials_decrypt = std::make_shared<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+  config::endpoint cfg(config::endpoint::io_type::output);
+  std::string_view json_cfg = R"(
+    {
+      "lua_parameter": {
+        "name": "encrypted_value_name",
+        "type": "password",
+        "value": "encrypt::zefafiefe"
+      }
+    }
+  )";
+
+  try {
+    cfg.cfg = nlohmann::json::parse(json_cfg.begin(), json_cfg.end());
+    cfg.params["path"] = "path_to_lua.lua";
+    lua::factory fact;
+    bool is_acceptor = false;
+    fact.new_endpoint(cfg, std::map<std::string, std::string>(), is_acceptor);
+    credentials_decrypt.reset();
+    FAIL() << "should throw a msg_fmt";
+  } catch (const std::exception& e) {
+    std::string detail = e.what();
+    size_t detail_begin = detail.find("lua:");
+    credentials_decrypt.reset();
+    ASSERT_NE(detail_begin, std::string_view::npos);
+    ASSERT_EQ(detail.substr(detail_begin),
+              "lua: unable to decrypt encrypted_value_name: The content is not "
+              "AES256 encrypted");
+  }
+}
+
+TEST_F(LuaTest, well_encrypted) {
+  credentials_decrypt = std::make_shared<com::centreon::common::crypto::aes256>(
+      "SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=", "U2FsdA==");
+
+  config::endpoint cfg(config::endpoint::io_type::output);
+  std::string json_cfg =
+      fmt::format(R"(
+    {{
+      "lua_parameter": {{
+        "name": "encrypted_value_name",
+        "type": "password",
+        "value": "encrypt::{}"
+      }}
+    }}
+  )",
+                  credentials_decrypt->encrypt("value content"));
+
+  try {
+    cfg.cfg = nlohmann::json::parse(json_cfg.begin(), json_cfg.end());
+    cfg.params["path"] = "path_to_lua.lua";
+    lua::factory fact;
+    bool is_acceptor = false;
+    std::unique_ptr<io::endpoint> connector(fact.new_endpoint(
+        cfg, std::map<std::string, std::string>(), is_acceptor));
+
+    ASSERT_EQ(static_cast<lua::connector*>(connector.get())
+                  ->conf_params()
+                  .find("encrypted_value_name")
+                  ->second.as_string(),
+              "value content");
+    credentials_decrypt.reset();
+
+  } catch (const std::exception& e) {
+    credentials_decrypt.reset();
+    FAIL() << "should not throw an exception " << e.what();
+  }
 }
 
 // When broker.base64_encode() is applied on a string, the string is correctly
