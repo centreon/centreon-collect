@@ -72,12 +72,12 @@ jobs:
       - name: distrib availables
         run: wsl --list --online
 
-      - name: install debian
+      - name: install Ubuntu
         uses: Vampire/setup-wsl@6a8db447be7ed35f2f499c02c6e60ff77ef11278 # v6.0.0
 
         with:
           wsl-version: 2
-          distribution: Debian
+          distribution: Ubuntu-24.04
           use-cache: 'true'
           update: 'true'
           wsl-conf: |
