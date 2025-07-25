@@ -99,7 +99,7 @@ class log_v2 {
 
  public:
   static void load(std::string name);
-  static void unload();
+  static void unload(bool delete_instance = false);
   static log_v2& instance();
   log_v2(std::string name);
   log_v2(const log_v2&) = delete;

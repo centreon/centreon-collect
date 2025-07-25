@@ -136,13 +136,20 @@ void log_v2::load(std::string name) {
 }
 
 /**
- * @brief Destruction of the log_v2 instance. No more call to log_v2 is
- * possible.
+ * @brief shutdown log_v2 thread
  */
-void log_v2::unload() {
+void log_v2::unload(bool delete_instance) {
   if (_instance) {
-    delete _instance;
-    _instance = nullptr;
+    if (delete_instance) {
+      delete _instance;
+      _instance = nullptr;
+    } else {
+      for (auto& l : _instance->_loggers) {
+        if (l) {
+          l->flush();
+        }
+      }
+    }
     spdlog::drop_all();
     spdlog::shutdown();
   }

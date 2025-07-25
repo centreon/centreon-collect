@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
   time_t now = time(NULL);
   set_time(now + 1000);
   g_io_context->stop();
-  com::centreon::common::pool::unload();
   spdlog::shutdown();
   return ret;
 }

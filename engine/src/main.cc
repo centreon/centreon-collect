@@ -503,7 +503,6 @@ int main(int argc, char* argv[]) {
 
   cbm.reset();
   g_io_context->stop();
-  com::centreon::common::pool::unload();
 
   return retval;
 }

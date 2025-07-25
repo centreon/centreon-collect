@@ -41,6 +41,10 @@ class connector : public io::endpoint {
                   std::shared_ptr<persistent_cache> const& cache);
   std::shared_ptr<io::stream> open() override;
 
+  const std::map<std::string, misc::variant>& conf_params() const {
+    return _conf_params;
+  }
+
  private:
   std::string _lua_script;
   std::map<std::string, misc::variant> _conf_params;

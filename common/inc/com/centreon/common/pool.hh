@@ -47,7 +47,7 @@ namespace com::centreon::common {
  * executables
  */
 class pool {
-  static std::unique_ptr<pool> _instance;
+  static pool* _instance;
 
   const std::shared_ptr<asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
@@ -69,7 +69,6 @@ class pool {
 
   static void load(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger);
-  static void unload();
   static pool& instance();
   static asio::io_context& io_context();
   static std::shared_ptr<asio::io_context> io_context_ptr();

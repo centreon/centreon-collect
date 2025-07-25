@@ -1096,7 +1096,7 @@ def ctn_broker_config_remove_item(name, key):
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_broker_config_add_lua_output(name, output, luafile):
+def ctn_broker_config_add_lua_output(name, output, luafile, params: dict = {}):
     """
     Add a lua output to the broker configuration.
 
@@ -1119,12 +1119,14 @@ def ctn_broker_config_add_lua_output(name, output, luafile):
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()
     conf = json.loads(buf)
+    lua_conf_content = {"name": output,
+                        "path": luafile,
+                        "type": "lua"}
+    if len(params) != 0:
+        lua_conf_content["lua_parameter"] = params
+    lua_conf = json.load
     output_dict = conf["centreonBroker"]["output"]
-    output_dict.append({
-        "name": output,
-        "path": luafile,
-        "type": "lua"
-    })
+    output_dict.append(lua_conf_content)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -2130,7 +2132,8 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
                                 break
                             except Exception as e:
                                 if e.args[0] == 1213:
-                                    logger.console(f"Error inserting data: {e}")
+                                    logger.console(
+                                        f"Error inserting data: {e}")
                                     time.sleep(1)
                                 else:
                                     raise e
@@ -2764,6 +2767,7 @@ def ctn_get_hosts_services_count(poller_id: int, expected_hst: int, expected_svc
                     return (hosts, services)
         time.sleep(2)
     return (0, 0)
+
 
 def ctn_get_broker_log_level(port, log, timeout=TIMEOUT):
     """

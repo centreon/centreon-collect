@@ -107,6 +107,63 @@ ENGINE_ENCRYPTION_GOOD_CONF
     Should Be True    ${result}    echo output not found in logs.
 
 
+BROKER_LUA_ENCRYPTION
+    [Documentation]    Given an engine with configured encryption, and key and salt, 
+    ...    cbmod and broker use a lua script that use encrypted credentials
+    ...    we give it an encrypted macro that contains path to a lua output files and 
+    ...    we expect that this file will becreated by lua.
+    [Tags]    broker    macros_decrypt    MON-174126
+
+    Remove File    /tmp/test-LUA.log
+    Remove File    /tmp/output-central.txt
+    Remove File    /tmp/output-cbmod.txt
+
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    neb    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    lua    debug
+
+    Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
+
+    ${new_content}    Catenate    SEPARATOR=\n
+    ...    function init(params)
+    ...        logFile = params['log-file']
+    ...        broker_log:info(0, 'lua start test')
+    ...    end
+    ...    
+    ...    function write(e)
+    ...      local file,err = io.open(logFile, 'a')
+    ...      if file == nil then
+    ...        broker_log:info(3, "Couldn't open file: " .. err)
+    ...      else
+    ...        file:write("event receive")
+    ...        file:close()
+    ...      end
+    ...    end
+    ...
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-LUA.lua    ${new_content}
+
+    ${encrypted}=    Set Variable    mCfbvFEBJzdIRS8+2vo7CoQxcEqOLQLr3PlVgXclU/SV8gsbV957Sg4nBfKYmZwJu1SkaZP007N9jYPPbzDX3dt4hKdZ4W9ktPlOPS7KgbOtmQxiBN6AyYNX3gZzMYMwAgqaUVwcdjS+5BxvgZvL7A==  # /tmp/output-cbmod.txt
+    Ctn Broker Config Add Lua Output    central    test-LUA    /tmp/test-LUA.lua    {"name": "log-file", "type": "password", "value":"encrypt::${encrypted}"}
+
+    ${encrypted}=    Set Variable    PyGtc0616AdGJxB81q7RCKSGXAkGv1ETtjKCKrtnR1e7NqXl+LXEfOlwnbeX1+XDexNr5HNhOpTJ58BIApeCFpsqY54biWFfiJaeF56ErvN2JaZxraRR21aHp36xCNWcIYaoLsP97giJ6jinbUbH/g==    #/tmp/output-cbmod.txt
+    Ctn Broker Config Add Lua Output    module0    test-LUA    /tmp/test-LUA.lua    {"name": "log-file", "type": "password", "value":"encrypt::${encrypted}"}
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Wait Until Created    /tmp/output-central.txt    1min
+    Wait Until Created    /tmp/output-cbmod.txt    10s
+
+
 *** Variables ***
 ${Salt}        U2FsdA==
 ${AppSecret}   SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=
