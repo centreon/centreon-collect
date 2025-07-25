@@ -123,11 +123,12 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         if cert_path is not None:
             ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
         if ca_path is not None:
-            ff.write(f",\n  \"ca_certificate\":\"{ca_path}\"")
+            ff.write(f",\n  \"ca\":\"{ca_path}\"")
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
 
         ff.write("\n}\n")
+
 
 def ctn_config_set_value(key: str, value: str):
     """ctn_config_set_value
@@ -137,7 +138,7 @@ def ctn_config_set_value(key: str, value: str):
         value: value to set
     """
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
-    
+
     with open(f"{CONF_DIR}/centagent.json", "r+") as ff:
         content = json.load(ff)
         print(content)
@@ -145,7 +146,6 @@ def ctn_config_set_value(key: str, value: str):
         ff.seek(0)
         ff.truncate()
         json.dump(content, ff, indent=4)
-        
 
 
 def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None):
@@ -174,7 +174,7 @@ def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = Non
         if cert_path is not None:
             ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
         if ca_path is not None:
-            ff.write(f",\n  \"ca_certificate\":\"{ca_path}\"")
+            ff.write(f",\n  \"ca\":\"{ca_path}\"")
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
         ff.write("\n}\n")
