@@ -76,7 +76,7 @@ jobs:
         uses: Vampire/setup-wsl@6a8db447be7ed35f2f499c02c6e60ff77ef11278 # v6.0.0
 
         with:
-          wsl-version: 2
+          wsl-version: 1
           distribution: Ubuntu-24.04
           use-cache: 'true'
           update: 'true'
@@ -87,6 +87,7 @@ jobs:
             liblua5.3
             python3
             python3-pip
+            python3-venv
             rrdtool
             jq
 
@@ -96,12 +97,6 @@ jobs:
           ipconfig /all
           Write-Host "ip address show"
           wsl ip address show
-
-      - name: install robot framework
-        run: |
-          wsl pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
-          wsl pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
-
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1
         shell: powershell
@@ -117,7 +112,7 @@ jobs:
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ./*.deb
-          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-bullseye-amd64-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-noble-amd64-${{ github.head_ref || github.ref_name }}
           fail-on-cache-miss: true
           enableCrossOsArchive: true
 
