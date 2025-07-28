@@ -267,7 +267,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -294,7 +294,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${token1}
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt    ${None}    ${token1}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1141,7 +1141,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     ${host_host_name}      Ctn Host Hostname
     Ctn Add Otl ServerModule
     ...    0
-    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}}
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}}
 
     Ctn Config Add Otl Connector
     ...    0
@@ -1168,7 +1168,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-     Ctn Config Reverse Centreon Agent    /tmp/server_grpc.key    /tmp/server_grpc.crt    ${None}    ${token1}
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt    ${None}    ${token1}
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
@@ -1811,7 +1811,7 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    Then the connection should be accepted
     [Tags]    broker    engine    opentelemetry    MON-170625
 
-    Ctn Config Engine    ${1}    ${2}    ${5}
+    Ctn Config Engine    ${1}    ${2}    ${2}
 
     Ctn Add Otl ServerModule
     ...    0
@@ -1823,10 +1823,10 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     
     # create a host with otel_check_icmp command
-    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp
-    Ctn Set Services Passive    0    service_5
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_interval    1
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
@@ -1848,9 +1848,8 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    0    120    HARD
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
-    Should Contain    ${content}    OK - 127.0.0.1:
 
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
@@ -2310,7 +2309,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2334,7 +2333,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
+    Ctn Config Reverse Centreon Agent   /tmp/reverse_server_grpc.key  /tmp/reverse_server_grpc.crt   ${None}    ${token1}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
@@ -2363,7 +2362,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2385,7 +2384,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token2}
+    Ctn Config Reverse Centreon Agent   /tmp/reverse_server_grpc.key  /tmp/reverse_server_grpc.crt   ${None}    ${token2}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
@@ -2419,7 +2418,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2442,7 +2441,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
+    Ctn Config Reverse Centreon Agent   /tmp/reverse_server_grpc.key  /tmp/reverse_server_grpc.crt   ${None}    ${token1}
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
     Ctn Broker Config Log    module0    neb    warning
@@ -2478,7 +2477,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     ${host_host_name}      Ctn Host Hostname
-    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/server_grpc.crt"}]}} 
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321,"encryption": true, "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}} 
     Ctn Add Otl ServerModule   0    ${config_content}
     
     Ctn Config Add Otl Connector
@@ -2502,7 +2501,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Reverse Centreon Agent   /tmp/server_grpc.key  /tmp/server_grpc.crt   ${None}    ${token1}
+    Ctn Config Reverse Centreon Agent   /tmp/reverse_server_grpc.key  /tmp/reverse_server_grpc.crt   ${None}    ${token1}
 
     Ctn Broker Config Log    module0    core    warning
     Ctn Broker Config Log    module0    processing    warning
@@ -2533,13 +2532,16 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
-    ${host_name}  Ctn Get Hostname
+    ${host_name}  Ctn Host Hostname
     ${run_env}       Ctn Run Env
     IF    "${run_env}" == "WSL"
         Copy File    ../server_grpc.key    /tmp/server_grpc.key
         Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
+        Copy File    ../reverse_server_grpc.crt    /tmp/reverse_server_grpc.crt
     ELSE
         Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+        Copy File    /tmp/server_grpc.crt    /tmp/reverse_server_grpc.crt
+        Copy File    /tmp/server_grpc.key    /tmp/reverse_server_grpc.key
     END
 
     Ctn Clean Before Suite
