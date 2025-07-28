@@ -141,9 +141,14 @@ jobs:
         run: |
           docker load --input ./${{ inputs.image }}
 
-      - name: Test ${{ matrix.feature }}
+      #  pam sshd authentication doesn't work with privileged containers
+      - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         run: |
-          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          privilege_status=""
+          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+            privilege_status="--privileged"
+          fi
+          docker run --rm $privilege_status --ulimit core=-1 --security-opt seccomp=unconfined \
           -v $(pwd):/test_collect  \
           --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
           --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \

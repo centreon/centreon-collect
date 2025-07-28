@@ -1,0 +1,1 @@
+@echo %env1% %env2%

@@ -37,6 +37,30 @@ ESS4
     Ctn Config Broker    module    ${3}
     Repeat Keyword    5 times    Ctn Start Stop Instances    300ms
 
+ESSCTO
+    [Documentation]    Scenario: Engine services timeout due to missing Perl connector
+    ...    Given the Engine is configured as usual without the Perl connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+    [Tags]    engine    start-stop    MON-168055
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Engine Command Remove Connector    ${0}    *
+    Ctn Config Broker    module
+    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
+
+ESSCTOWC
+    [Documentation]    Scenario: Engine services timeout due to missing Perl connector
+    ...    Given the Engine is configured as usual with some command using the Perl connector
+    ...    When the Engine executes its service commands
+    ...    Then the commands take too long and reach the timeout
+    ...    And the Engine starts and stops two times as a result
+    [Tags]    engine    start-stop    MON-168055
+    Ctn Config Engine    ${1}
+    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
+    Ctn Config Broker    module
+    Repeat Keyword    4 times    Ctn Start Stop Instances    20s
 
 *** Keywords ***
 Ctn Start Stop Instances

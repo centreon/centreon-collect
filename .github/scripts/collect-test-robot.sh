@@ -9,6 +9,11 @@ database_type=$2
 #this env variable is a json that contains some test params
 export TESTS_PARAMS='$3'
 
+if [ -f "/.venv/bin/activate" ]; then
+  echo "########################### activate python virtual env ###########################"
+  source /.venv/bin/activate
+fi
+
 . /etc/os-release
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
@@ -57,7 +62,11 @@ fi
 
 
 ulimit -c unlimited
-echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+
+#only privileged container can write core files
+if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
+  echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+fi
 
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD

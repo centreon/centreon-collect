@@ -88,14 +88,7 @@ connector::connector(const std::string& connector_name,
  */
 connector::~connector() noexcept {
   // Close connector properly.
-  try {
-    _connector_close();
-  } catch (const std::exception& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: could not stop connector properly: " << e.what();
-    runtime_logger->error("Error: could not stop connector properly: {}",
-                          e.what());
-  }
+  stop_connector();
 
   // Wait restart thread.
   {
@@ -393,6 +386,20 @@ void connector::finished(process& p) noexcept {
     runtime_logger->error(
         "Error: Connector '{}' termination routine failed: {}", _name,
         e.what());
+  }
+}
+
+/**
+ * @brief Stop connector.
+ */
+void connector::stop_connector() {
+  try {
+    _connector_close();
+  } catch (const std::exception& e) {
+    engine_logger(log_runtime_error, basic)
+        << "Error: could not stop connector properly: " << e.what();
+    runtime_logger->error("Error: could not stop connector properly: {}",
+                          e.what());
   }
 }
 

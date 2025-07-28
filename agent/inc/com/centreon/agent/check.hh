@@ -31,6 +31,12 @@ using time_point = std::chrono::system_clock::time_point;
 using duration = std::chrono::system_clock::duration;
 
 /**
+ * @brief nagios status values
+ *
+ */
+enum e_status : unsigned { ok = 0, warning = 1, critical = 2, unknown = 3 };
+
+/**
  * @brief base class for check
  * start_expected is set by scheduler and increased by check_period on each
  * check

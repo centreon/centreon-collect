@@ -188,6 +188,7 @@ overrides:
       - perl(lib)
       - perl(JSON) # gorgone_key_thumbprint.pl needs the json module, even when json::xs is already installed
       - perl(RRDs)
+      - perl(Tie::File) # required by MBI module
   deb:
     depends:
       - libdatetime-perl

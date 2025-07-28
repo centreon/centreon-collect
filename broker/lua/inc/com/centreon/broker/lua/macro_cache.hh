@@ -100,6 +100,7 @@ class macro_cache {
   int32_t get_severity(uint64_t host_id, uint64_t service_id) const;
   std::string_view get_check_command(uint64_t host_id,
                                      uint64_t service_id = 0) const;
+  const std::string& get_host_group_alias(uint64_t id) const;
   const std::string& get_host_group_name(uint64_t id) const;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
                   std::shared_ptr<io::data>> const&

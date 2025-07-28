@@ -503,17 +503,23 @@ EBMSSMDBD
     END
 
 EBMSSMPART
-    [Documentation]    1000 services are configured with 100 metrics each.
-    ...    The rrd output is removed from the broker configuration.
-    ...    The data_bin table is configured with two partitions p1 and p2 such
-    ...    that p1 contains old data and p2 contains current data.
-    ...    While metrics are written in the database, we remove the p2 partition.
-    ...    Once the p2 partition is recreated, broker must recover its connection
-    ...    to the database and continue to write metrics.
-    ...    To check that last point, we force a last service check and we check
-    ...    that its metrics are written in the database.
+    [Documentation]    Scenario: Broker continues writing metrics after partition recreation
+    ...    Given 1000 services are configured with 100 metrics each
+    ...    And the rrd output is removed from the broker configuration
+    ...    And the data_bin table is configured with two partitions "p1" and "p2"
+    ...    And "p1" contains old data
+    ...    And "p2" contains current data
+    ...    When metrics are being written in the database
+    ...    And the "p2" partition is removed
+    ...    And the "p2" partition is recreated
+    ...    Then the broker must recover its connection to the database
+    ...    And it must continue writing metrics
+    ...    When a last service check is forced
+    ...    Then its metrics must be written in the database
+
     [Tags]    broker    engine    unified_sql    MON-153321
     Ctn Clear Metrics
+    Ctn Clear Retention
     Ctn Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Ctn Set Services Passive    ${0}    service_.*
@@ -535,6 +541,10 @@ EBMSSMPART
 
     Ctn Wait For Engine To Be Ready    ${start}    1
 
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled=1    >=    ${1000}    retry_timeout=500s    retry_pause=1s
+    Disconnect From Database
+
     ${start}    Ctn Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     Log To Console    Many service checks with 100 metrics each are processed.
@@ -545,12 +555,7 @@ EBMSSMPART
     Log To Console    We wait for at least one metric to be written in the database.
     # Let's wait for all force checks to be in the storage database.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${i}    IN RANGE    ${500}
-        ${output}    Query
-        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
-        IF    ${output[0][0]} >= 1    BREAK
-        Sleep    1s
-    END
+    Check Query Result    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}    >=    ${1}    retry_timeout=500s    retry_pause=3s
     Disconnect From Database
 
     Log To Console    Let's start some database manipulation...
@@ -567,19 +572,24 @@ EBMSSMPART
     Ctn Add P2 To Data Bin
 
     ${start}    Ctn Get Round Current Date
-    Ctn Process Service Check Result With Metrics    host_1    service_1    0    Last Output OK    100
-
-    Log To Console    Let's wait for the last service check to be in the database...
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${i}    IN RANGE    ${120}
-        ${output}    Query    SELECT count(*) FROM data_bin WHERE ctime >= ${start} - 10
-	Log To Console    ${output}
-        IF    ${output[0][0]} >= 100    BREAK
-        Sleep    1s
+    Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
     END
-    Log To Console    ${output}
-    Should Be True    ${output[0][0]} >= 100
-    Disconnect From Database
+
+    Log To Console    Let's wait for new rows in any table.
+    ${content}    Create List    success execute statement
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
+
+    Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
+    FOR    ${i}    IN RANGE    ${1000}
+        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
+    END
+
+    ${content}    Create List    success execute statement 6ae51b48
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
 
     Ctn Init Data Bin Without Partition
 

@@ -43,7 +43,7 @@ namespace commands {
  *  Command execute a command line with their arguments and
  *  notify listener at the end of the command.
  */
-class command {
+class command : public std::enable_shared_from_this<command> {
  public:
   enum class e_type { exec, forward, raw, connector, otel };
   const e_type _type;
@@ -144,6 +144,7 @@ class command {
 
   virtual void set_command_line(const std::string& command_line);
   void set_listener(command_listener* listener) noexcept;
+
   static command_map commands;
 };
 
