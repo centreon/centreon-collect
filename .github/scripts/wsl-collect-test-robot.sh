@@ -5,19 +5,27 @@ test_file=$1
 
 export RUN_ENV=WSL
 export JSON_TEST_PARAMS=$2
-export USED_ADDRESS=`echo $JSON_TEST_PARAMS | jq -r .ip`
 export HOST_NAME=`echo $JSON_TEST_PARAMS | jq -r .host`
 export PWSH_PATH=`echo $JSON_TEST_PARAMS | jq -r .pwsh_path`
 export WINDOWS_PROJECT_PATH=`echo $JSON_TEST_PARAMS | jq -r .current_dir`
+export HOST_HOSTNAME=$HOST_NAME
 
-
-
+export USED_ADDRESS=`ip route show | grep -i default | awk '{ print $3}'`
 #in order to connect to windows we neeed to use windows ip
 echo "127.0.0.1       localhost" > /etc/hosts
 echo "${USED_ADDRESS}      ${HOST_NAME}" >> /etc/hosts
 
 echo "##### /etc/hosts: ######"
 cat /etc/hosts
+
+echo "########################### activate python virtual env ###########################"
+python3 -m venv /.venv
+source /.venv/bin/activate
+# Install Robotframework
+apt-get install -y python3 python3-dev python3-pip
+
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
+/.venv/bin/pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
 
 echo "##### Starting tests ##### with params: $JSON_TEST_PARAMS"
 cd tests
