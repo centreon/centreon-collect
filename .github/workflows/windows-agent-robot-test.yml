@@ -34,8 +34,8 @@ jobs:
       legacy_engine: 'ON'
       build_debug_packages: false
       packages_in_artifact: false
-      image: packaging-centreon-collect-vcpkg-bullseye
-      distrib: bullseye
+      image: packaging-centreon-collect-vcpkg-noble
+      distrib: noble
       package_extension: deb
       runner: centreon-collect
       arch: amd64
@@ -72,12 +72,12 @@ jobs:
       - name: distrib availables
         run: wsl --list --online
 
-      - name: install debian
+      - name: install Ubuntu noble 24.04
         uses: Vampire/setup-wsl@6a8db447be7ed35f2f499c02c6e60ff77ef11278 # v6.0.0
 
         with:
-          wsl-version: 1
-          distribution: Debian
+          wsl-version: 2
+          distribution: Ubuntu-24.04
           use-cache: 'true'
           update: 'true'
           additional-packages:
