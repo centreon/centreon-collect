@@ -619,11 +619,32 @@ sub action_processcopy {
                     $self->{logger}->writeLogError("[action] Copy processing - Untar failed: $tar_error");
                     return -1;
                 }
-            } elsif ($options{data}->{content}->{type} eq 'regular') {
-                copy($cache_file, $options{data}->{content}->{destination});
+            }
+            elsif ($options{data}->{content}->{type} eq 'regular') {
+                my $dest_filename = $options{data}->{content}->{destination};
+                my $copy_status = copy($cache_file, $dest_filename);
+                if ($copy_status != 1){
+                    $self->send_log(
+                        code => GORGONE_ACTION_FINISH_KO,
+                        token => $options{token},
+                        logging => $options{data}->{logging},
+                        data => { message => "Can't copy file to $dest_filename, $!" }
+                    );
+                    $self->{logger}->writeLogError("[action] Copy processing - Can't copy file to $dest_filename, $!");
+                    return -1
+                }
                 my $uid = getpwnam($options{data}->{content}->{owner});
                 my $gid = getgrnam($options{data}->{content}->{group});
-                chown($uid, $gid, $options{data}->{content}->{destination});
+                my $chown_status = chown($uid, $gid, $dest_filename);
+
+                # this should be logged but not quiting the sub, as most of the time it will fail, as we can't change ownership as centreon-gorgone user.
+                if ($chown_status == 0) {
+                    $self->{logger}->writeLogError("[action] Copy processing - can't change permission of file $dest_filename: $!");
+                }
+                if ($options{data}->{content}->{mode}) {
+                    chmod(oct($options{data}->{content}->{mode}), $dest_filename) or
+                        $self->{logger}->writeLogError("[action] Copy processing - can't change mode of file $dest_filename: $!");
+                }
             }
         } else {
             $self->send_log(

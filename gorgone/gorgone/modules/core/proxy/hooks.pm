@@ -616,7 +616,7 @@ sub setlogs {
     my $ctime_recent = 0;
     # Transaction. We don't use last_id (problem if it's clean the sqlite table).
     my $status;
-    $status = $options{dbh}->transaction_mode(1);
+    $status = $options{dbh}->start_transaction();
     return -1 if ($status == -1);
 
     foreach (@{$options{data}->{data}->{result}}) {
@@ -639,12 +639,10 @@ sub setlogs {
     if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
         $status = $options{dbh}->commit();
         return -1 if ($status == -1);
-        $options{dbh}->transaction_mode(0);
 
         $synctime_nodes->{ $options{data}->{data}->{id} }->{ctime} = $ctime_recent if ($ctime_recent != 0); 
     } else {
         $options{dbh}->rollback();
-        $options{dbh}->transaction_mode(0);
         return -1;
     }
 
@@ -1125,12 +1123,18 @@ sub prepare_remote_copy {
         $owner = $options{data}->{content}->{owner} if (defined($options{data}->{content}->{owner}) && $options{data}->{content}->{owner} ne '');
         my $group;
         $group = $options{data}->{content}->{group} if (defined($options{data}->{content}->{group}) && $options{data}->{content}->{group} ne '');
+        my $mode;
+        $mode = $options{data}->{content}->{mode} if (defined($options{data}->{content}->{mode}) && $options{data}->{content}->{mode} ne '');
         foreach my $file (@inventory) {
             next if ($file eq '.');
             $tar->add_files($file);
             if (defined($owner) || defined($group)) {
                 $tar->chown($file, $owner, $group);
             }
+            if (defined($mode)) {
+                $tar->chmod($file, "$mode");
+            }
+
         }
 
         unless (chdir($options{data}->{content}->{cache_dir})) {
@@ -1201,7 +1205,11 @@ sub prepare_remote_copy {
             destination => $dst,
             cache_dir => $options{data}->{content}->{cache_dir},
             owner => $options{data}->{content}->{owner},
-            group => $options{data}->{content}->{group}
+            group => $options{data}->{content}->{group},
+            # We only handle mode for regular files because the permissions of the files
+            # contained in a TAR archive are already managed within the archive
+            $type eq 'regular' ? ( mode => $options{data}->{content}->{mode} // undef )
+                               : ()
         },
         parameters => { no_fork => 1 }
     });

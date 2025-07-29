@@ -43,6 +43,7 @@ tests/failed/*
 **/.idea
 .scannerwork
 **/.cache
+compile_commands.json
 
 ### temp build files ###
 logs/*

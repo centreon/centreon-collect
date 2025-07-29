@@ -25,7 +25,7 @@
 namespace com::centreon::engine {
 class host;
 class hostescalation;
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::string,
@@ -46,7 +46,7 @@ class hostescalation : public escalation {
 
   std::string const& get_hostname() const;
   bool is_viable(int state, uint32_t notification_number) const override;
-  void resolve(int& w, int& e) override;
+  void resolve(int& w, int& e);
 
   static hostescalation_mmap hostescalations;
 
@@ -54,6 +54,6 @@ class hostescalation : public escalation {
   std::string _hostname;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_HOSTESCALATION_HH

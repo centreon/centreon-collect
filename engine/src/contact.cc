@@ -806,9 +806,9 @@ contact::get_service_notification_commands() {
   return _service_notification_commands;
 }
 
-std::ostream& operator<<(std::ostream& os, contact_map_unsafe const& obj) {
-  for (contact_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
-       it != end; ++it) {
+std::ostream& operator<<(std::ostream& os, const contact_map& obj) {
+  for (contact_map::const_iterator it = obj.begin(), end = obj.end(); it != end;
+       ++it) {
     os << it->first;
     if (std::next(it) != end)
       os << ", ";
