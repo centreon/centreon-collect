@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/engine/commands/raw_v2.hh"
-#include <absl/synchronization/mutex.h>
 #include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/globals.hh"
@@ -50,6 +49,10 @@ raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
   }
 }
 
+/**
+ * @brief Destroy the raw v2::raw v2 object and kill all running processes
+ *
+ */
 raw_v2::~raw_v2() {
   for (std::shared_ptr<com::centreon::common::process<true>> to_kill :
        _running) {
@@ -251,20 +254,21 @@ void _build_environment_macros(nagios_macros& macros,
 
 /**
  * @brief search processed_cmd in cache and get command argument if found. If
- * not found, it creates a new one and store it in cache
+ * not found, it creates a new one and store it in cache. cache size is limited
+ * to 100 elements
  *
  * @param processed_cmd
  * @return com::centreon::common::process_args::pointer
  */
-com::centreon::common::process_args::pointer raw_v2::args_from_cmd_line(
+com::centreon::common::process_args::pointer raw_v2::_args_from_cmd_line(
     const std::string& processed_cmd) {
   common::process_args::pointer args;
   absl::MutexLock l(&_data_m);
   auto& cmd_line_index = _args_cache.get<0>();
   auto exist = cmd_line_index.find(processed_cmd);
   if (exist == cmd_line_index.end()) {
-    args = cmd_line_index
-               .insert(args_cache(
+    args = _args_cache
+               .insert(args_cache_element(
                    processed_cmd,
                    common::process<true>::parse_cmd_line(processed_cmd)))
                .first->process_args;
@@ -274,7 +278,7 @@ com::centreon::common::process_args::pointer raw_v2::args_from_cmd_line(
     }
   } else {
     args = exist->process_args;
-    cmd_line_index.modify(exist, args_cache::refresh_last_used);
+    cmd_line_index.modify(exist, args_cache_element::refresh_last_used);
   }
   return args;
 }
@@ -300,7 +304,7 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
-  common::process_args::pointer args = args_from_cmd_line(processed_cmd);
+  common::process_args::pointer args = _args_from_cmd_line(processed_cmd);
 
   uint64_t command_id(get_uniq_id());
 
@@ -318,11 +322,6 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
     std::shared_ptr<com::centreon::common::process<true>> new_process =
         std::make_shared<common::process<true>>(g_io_context, _commands_logger,
                                                 args, true, false, env);
-    {
-      absl::MutexLock l(&_data_m);
-      _running.insert(new_process);
-    }
-
     // we don't want that lambda own raw because raw could be deleted by lambda
     // exit called by pool thread
     new_process->start_process(
@@ -337,6 +336,12 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
           }
         },
         std::chrono::seconds(timeout));
+
+    {
+      absl::MutexLock l(&_data_m);
+      _running.insert(new_process);
+    }
+
     SPDLOG_LOGGER_TRACE(_commands_logger,
                         "raw_v2::run: start process success: id={}",
                         command_id);
@@ -393,8 +398,8 @@ void raw_v2::_on_complete(const common::process<true>& proc,
              (res.exit_code > 3))
     res.exit_code = service::state_unknown;
 
-  SPDLOG_LOGGER_TRACE(_commands_logger, "raw::finished: id={}, {}", command_id,
-                      res);
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw::finished: name:{} id={}, {}",
+                      get_name(), command_id, res);
 
   update_result_cache(command_id, res);
 
@@ -429,7 +434,7 @@ void raw_v2::run(const std::string& processed_cmd,
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
-  common::process_args::pointer args = args_from_cmd_line(processed_cmd);
+  common::process_args::pointer args = _args_from_cmd_line(processed_cmd);
 
   uint64_t command_id(get_uniq_id());
 
