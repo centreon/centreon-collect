@@ -5,6 +5,8 @@ ARG TRIPLET
 
 RUN bash -e <<EOF
 
+sed -i '/^deb .*bullseye-backports/d' /etc/apt/sources.list
+
 apt-get update
 
 apt-get -y install git \
