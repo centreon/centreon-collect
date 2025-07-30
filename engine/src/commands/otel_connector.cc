@@ -177,7 +177,7 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                              uint32_t timeout [[maybe_unused]],
                              const check_result::pointer& to_push_to_checker
                              [[maybe_unused]],
-                             const void* caller [[maybe_unused]]) {
+                             const notifier* caller [[maybe_unused]]) {
   SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
   throw exceptions::msg_fmt("open telemetry services must be passive");
 }

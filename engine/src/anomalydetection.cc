@@ -29,6 +29,7 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
+#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
@@ -167,7 +168,7 @@ class cancellable_command : public command {
                nagios_macros& macors,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
-               const void* caller = nullptr) override;
+               const notifier* caller = nullptr) override;
   void run(const std::string& process_cmd,
            nagios_macros& macros,
            uint32_t timeout,
@@ -198,7 +199,7 @@ uint64_t cancellable_command::run(
     nagios_macros& macros,
     uint32_t timeout,
     const check_result::pointer& to_push_to_checker,
-    const void* caller) {
+    const notifier* caller) {
   if (_fake_result) {
     checks::checker::instance().add_check_result_to_reap(_fake_result);
     SPDLOG_LOGGER_DEBUG(checks_logger,

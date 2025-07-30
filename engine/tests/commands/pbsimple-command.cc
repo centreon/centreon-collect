@@ -167,7 +167,7 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
-  const void* caller[] = {nullptr, path};
+  const notifier* caller[] = {nullptr, reinterpret_cast<const notifier*>(path)};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));
@@ -209,7 +209,7 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
-  const void* caller[] = {nullptr, path};
+  const notifier* caller[] = {nullptr, reinterpret_cast<const notifier*>(path)};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));

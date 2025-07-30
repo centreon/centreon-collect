@@ -89,7 +89,7 @@ class otel_connector : public command {
                        nagios_macros& macros,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
-                       const void* caller = nullptr) override;
+                       const notifier* notifer = nullptr) override;
 
   virtual void run(const std::string& process_cmd,
                    nagios_macros& macros,

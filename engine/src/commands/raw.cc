@@ -82,7 +82,7 @@ uint64_t raw::run(std::string const& processed_cmd,
                   nagios_macros& macros,
                   uint32_t timeout,
                   const check_result::pointer& to_push_to_checker,
-                  const void* caller) {
+                  const notifier* caller) {
   engine_logger(dbg_commands, basic)
       << "raw::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw::run: cmd='{}', timeout={}",

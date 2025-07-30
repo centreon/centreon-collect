@@ -69,7 +69,7 @@ class raw : public command, public process_listener {
                nagios_macros& macros,
                uint32_t timeout,
                const check_result::pointer& to_push_to_checker,
-               const void* caller = nullptr) override;
+               const notifier* caller = nullptr) override;
   void run(const std::string& process_cmd,
            nagios_macros& macros,
            uint32_t timeout,
@@ -77,6 +77,6 @@ class raw : public command, public process_listener {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_RAW_HH
