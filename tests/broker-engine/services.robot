@@ -78,8 +78,8 @@ SRSAS
     Ctn Start Engine
 
     Log To Console    Let's wait for the service to be created in the "services" table
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         Sleep    1s
@@ -98,6 +98,7 @@ SRSAS
 
     Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
     FOR    ${t}    IN RANGE    ${60}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((None, 2),)    BREAK
         Sleep    1s
@@ -123,8 +124,8 @@ HRSAS
     Ctn Start Broker
     Ctn Start Engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         log to console    ${output}
@@ -144,6 +145,7 @@ HRSAS
 
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
     FOR    ${t}    IN RANGE    ${60}
+        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((None, 1),)    BREAK
         Sleep    1s
