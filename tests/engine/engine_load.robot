@@ -40,7 +40,7 @@ ENGINE_MANY_CHECKS
 ENGINE_MANY_CHECK_OK
     [Documentation]    Given a engine with many services and a command shared between several services
     ...                We expect correct check result in logs and we checks returned args and service macros
-    [Tags]    engine    MON-177740
+    [Tags]    engine    MON-177962
 
     #10 hosts of 50 services
     Ctn Config Engine    ${1}    ${10}    ${50}
