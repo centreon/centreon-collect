@@ -1,6 +1,9 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
+
 ARG TRIPLET
 
 RUN bash -e <<EOF
@@ -43,11 +46,9 @@ apt-get -y install git \
     perl-base \
     wget
 
-CMAKE_ARCH="\$(arch)"
-wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-\$CMAKE_ARCH.tar.gz
-tar zxf cmake-3.21.0-linux-\$CMAKE_ARCH.tar.gz
-mv cmake-3.21.0-linux-\$CMAKE_ARCH/bin/cmake /usr/bin/cmake
-rm -rf cmake-3.21.0*
+wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-\$(arch).sh
+bash cmake-3.21.0-linux-\$(arch).sh --skip-license
+rm -f cmake-3.21.0-linux-\$(arch).sh
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 
