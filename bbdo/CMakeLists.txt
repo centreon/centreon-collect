@@ -52,7 +52,7 @@ add_dependencies(pb_header_lib target_header)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(pb_neb_lib STATIC neb.pb.cc neb.pb.h)
-add_dependencies(pb_neb_lib target_neb target_header)
+add_dependencies(pb_neb_lib target_neb target_header target_tag)
 set_target_properties(pb_neb_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library(pb_storage_lib STATIC storage.pb.cc storage.pb.h)
