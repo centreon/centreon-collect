@@ -43,9 +43,15 @@ apt-get -y install git \
     perl-base \
     wget
 
-wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-x86_64.tar.gz
-tar zxf cmake-3.21.0-linux-x86_64.tar.gz
-mv cmake-3.21.0-linux-x86_64/bin/cmake /usr/bin/cmake
+if [ "${TRIPLET}" = "arm64-linux" ] ; then
+  CMAKE_ARCH="aarch64"
+else
+  CMAKE_ARCH="x86_64"
+fi
+
+wget https://cmake.org/files/v3.21/cmake-3.21.0-linux-$CMAKE_ARCH.tar.gz
+tar zxf cmake-3.21.0-linux-$CMAKE_ARCH.tar.gz
+mv cmake-3.21.0-linux-$CMAKE_ARCH/bin/cmake /usr/bin/cmake
 rm -rf cmake-3.21.0*
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
