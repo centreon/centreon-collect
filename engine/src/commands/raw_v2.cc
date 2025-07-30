@@ -42,18 +42,24 @@ raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
                std::string const& command_line,
                command_listener* listener)
     : command(name, command_line, listener, e_type::raw),
-      _io_context(io_context) {
+      _io_context(io_context),
+      _commands_logger(commands_logger) {
   if (_command_line.empty()) {
     throw exceptions::msg_fmt(
         "Could not create {}'' command: command line is empty", _name);
   }
 }
 
+/**
+ * @brief Destroy the raw v2::raw v2 object and kill all running processes
+ *
+ */
 raw_v2::~raw_v2() {
-  if (_running && _process) {
-    process_logger->debug("raw_v2::~raw_v2: killing process for command '{}'",
-                          _name);
-    _process->kill();
+  for (std::shared_ptr<com::centreon::common::process<true>> to_kill :
+       _running) {
+    _commands_logger->debug("raw_v2::~raw_v2: killing process for command '{}'",
+                            _name);
+    to_kill->kill();
   }
 }
 
@@ -249,6 +255,37 @@ void _build_environment_macros(nagios_macros& macros,
 }
 
 /**
+ * @brief search processed_cmd in cache and get command argument if found. If
+ * not found, it creates a new one and store it in cache. cache size is limited
+ * to 100 elements
+ *
+ * @param processed_cmd
+ * @return com::centreon::common::process_args::pointer
+ */
+com::centreon::common::process_args::pointer raw_v2::_args_from_cmd_line(
+    const std::string& processed_cmd) {
+  common::process_args::pointer args;
+  absl::MutexLock l(&_data_m);
+  auto& cmd_line_index = _args_cache.get<0>();
+  auto exist = cmd_line_index.find(processed_cmd);
+  if (exist == cmd_line_index.end()) {
+    args = _args_cache
+               .insert(args_cache_element(
+                   processed_cmd,
+                   common::process<true>::parse_cmd_line(processed_cmd)))
+               .first->process_args;
+    if (_args_cache.size() > 100) {
+      auto& older_index = _args_cache.get<1>();
+      older_index.erase(older_index.begin());
+    }
+  } else {
+    args = exist->process_args;
+    cmd_line_index.modify(exist, args_cache_element::refresh_last_used);
+  }
+  return args;
+}
+
+/**
  *  Run a command.
  *
  *  @param[in] processed_cmd     A full command line with arguments.
@@ -266,19 +303,10 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
                      const void* caller) {
   engine_logger(dbg_commands, basic)
       << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: cmd='{}', timeout={}",
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
-  bool expected = false;
-  if (!_running.compare_exchange_strong(expected, true)) {
-    throw exceptions::msg_fmt("a check is already running for command {}",
-                              _name);
-  }
-
-  if (_last_processed_cmd != processed_cmd) {
-    _process_args = common::process<true>::parse_cmd_line(processed_cmd);
-    _last_processed_cmd = processed_cmd;
-  }
+  common::process_args::pointer args = _args_from_cmd_line(processed_cmd);
 
   uint64_t command_id(get_uniq_id());
 
@@ -289,31 +317,38 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
   std::shared_ptr<boost::process::v2::process_environment> env =
       std::make_shared<boost::process::v2::process_environment>(_empty_args);
 
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: id={}", command_id);
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: id={}", command_id);
   _build_environment_macros(macros, *env);
 
   try {
-    _process = std::make_shared<common::process<true>>(
-        g_io_context, commands_logger, _process_args, true, false, env);
+    std::shared_ptr<com::centreon::common::process<true>> new_process =
+        std::make_shared<common::process<true>>(g_io_context, _commands_logger,
+                                                args, true, false, env);
     // we don't want that lambda own raw because raw could be deleted by lambda
     // exit called by pool thread
-    _process->start_process(
+    new_process->start_process(
         [me = weak_from_this(), command_id, start = time(nullptr)](
-            const common::process<true>&, int exit_code, int exit_status,
+            const common::process<true>& proc, int exit_code, int exit_status,
             const std::string& std_out, const std::string& std_err) {
           std::shared_ptr<raw_v2> parent =
               std::static_pointer_cast<raw_v2>(me.lock());
           if (parent) {
-            parent->_on_complete(command_id, start, exit_code, exit_status,
-                                 std_out, std_err);
+            parent->_on_complete(proc, command_id, start, exit_code,
+                                 exit_status, std_out, std_err);
           }
         },
         std::chrono::seconds(timeout));
-    SPDLOG_LOGGER_TRACE(commands_logger,
+
+    {
+      absl::MutexLock l(&_data_m);
+      _running.insert(new_process);
+    }
+
+    SPDLOG_LOGGER_TRACE(_commands_logger,
                         "raw_v2::run: start process success: id={}",
                         command_id);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_TRACE(commands_logger,
+    SPDLOG_LOGGER_TRACE(_commands_logger,
                         "raw_v2::run: start process failed: id={}, {}: {}",
                         command_id, _name, e.what());
     throw;
@@ -334,20 +369,20 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
  * @param std_out all stdout read from child process
  * @param std_err all stderr read from child process
  */
-void raw_v2::_on_complete(uint64_t command_id,
+void raw_v2::_on_complete(const common::process<true>& proc,
+                          uint64_t command_id,
                           time_t start,
                           int exit_code,
                           int exit_status,
                           const std::string& std_out,
                           const std::string& std_err) {
-  bool expected = true;
-  if (!_running.compare_exchange_strong(expected, false)) {
-    SPDLOG_LOGGER_ERROR(commands_logger, "_bad running state for {}",
-                        get_name());
-    return;
-  }
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::_on_complete: {} id={}",
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::_on_complete: {} id={}",
                       get_name(), command_id);
+
+  {
+    absl::MutexLock l(&_data_m);
+    _running.erase(proc.shared_from_this());
+  }
 
   // Build check result.
   result res;
@@ -365,8 +400,8 @@ void raw_v2::_on_complete(uint64_t command_id,
              (res.exit_code > 3))
     res.exit_code = service::state_unknown;
 
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw::finished: id={}, {}", command_id,
-                      res);
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw::finished: name:{} id={}, {}",
+                      get_name(), command_id, res);
 
   update_result_cache(command_id, res);
 
@@ -375,7 +410,7 @@ void raw_v2::_on_complete(uint64_t command_id,
     if (_listener)
       _listener->finished(res);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(commands_logger, "{} fail to call listener: {}",
+    SPDLOG_LOGGER_ERROR(_commands_logger, "{} fail to call listener: {}",
                         get_name(), e.what());
   }
 }
@@ -398,46 +433,32 @@ void raw_v2::run(const std::string& processed_cmd,
                  result& res) {
   engine_logger(dbg_commands, basic)
       << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: cmd='{}', timeout={}",
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
-  bool expected = false;
-  if (!_running.compare_exchange_strong(expected, true)) {
-    throw exceptions::msg_fmt("a check is yet running for command {}", _name);
-  }
-
-  if (_last_processed_cmd != processed_cmd) {
-    _process_args = common::process<true>::parse_cmd_line(processed_cmd);
-    _last_processed_cmd = processed_cmd;
-  }
+  common::process_args::pointer args = _args_from_cmd_line(processed_cmd);
 
   uint64_t command_id(get_uniq_id());
 
   std::shared_ptr<boost::process::v2::process_environment> env =
       std::make_shared<boost::process::v2::process_environment>(_empty_args);
 
-  SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: id={}", command_id);
+  SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::run: id={}", command_id);
   _build_environment_macros(macros, *env);
 
   absl::Mutex waiter;
   bool done = false;
 
   try {
-    _process = std::make_shared<common::process<true>>(
-        g_io_context, commands_logger, _process_args, true, false, env);
-    _process->start_process(
+    std::shared_ptr<common::process<true>> new_process =
+        std::make_shared<common::process<true>>(g_io_context, _commands_logger,
+                                                args, true, false, env);
+    new_process->start_process(
         [me = shared_from_this(), command_id, start = time(nullptr), &waiter,
          &done, &res](const common::process<true>&, int exit_code,
                       int exit_status, const std::string& std_out,
                       const std::string& std_err) {
           absl::MutexLock lck(&waiter);
-          bool expected = true;
-          if (!me->_running.compare_exchange_strong(expected, false)) {
-            SPDLOG_LOGGER_ERROR(commands_logger,
-                                "bad running state while waiting for {}",
-                                me->get_name());
-            return;
-          }
           res.command_id = command_id;
           res.start_time = start;
           res.end_time = time(nullptr);
@@ -447,11 +468,11 @@ void raw_v2::run(const std::string& processed_cmd,
           done = true;
         },
         std::chrono::seconds(timeout));
-    SPDLOG_LOGGER_TRACE(commands_logger,
+    SPDLOG_LOGGER_TRACE(_commands_logger,
                         "raw_v2::run: start process success: id={}",
                         command_id);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_TRACE(commands_logger,
+    SPDLOG_LOGGER_TRACE(_commands_logger,
                         "raw_v2::run: start process failed: id={}, {}: {}",
                         command_id, _name, e.what());
     throw;
@@ -467,7 +488,7 @@ void raw_v2::run(const std::string& processed_cmd,
              res.exit_code > 3)
     res.exit_code = service::state_unknown;
 
-  SPDLOG_LOGGER_TRACE(commands_logger,
+  SPDLOG_LOGGER_TRACE(_commands_logger,
                       "raw_v2::run: end process: "
                       "id={}, {}",
                       command_id, res);
