@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/engine/commands/otel_connector.hh"
+#include <stdexcept>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -178,8 +179,27 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                              const check_result::pointer& to_push_to_checker
                              [[maybe_unused]],
                              const notifier* caller [[maybe_unused]]) {
-  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
-  throw exceptions::msg_fmt("open telemetry services must be passive");
+  try {
+    std::shared_ptr<otel::open_telemetry_base> otel =
+        otel::open_telemetry_base::instance();
+    if (otel) {
+      if (caller) {
+        if (caller->get_notifier_type() == notifier::service_notification) {
+          const service* serv = static_cast<const service*>(caller);
+          otel->force_check(serv->host_id(), serv->service_id());
+        } else {
+          const host* hst = static_cast<const host*>(caller);
+          otel->force_check(hst->host_id(), 0);
+        }
+      }
+    } else {
+      throw std::invalid_argument("opentelemetry module not loaded");
+    }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "fail to force check : {}", e.what());
+    throw;
+  }
+  return get_uniq_id();
 }
 
 /**
@@ -196,8 +216,11 @@ void otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                          nagios_macros& macros [[maybe_unused]],
                          uint32_t timeout [[maybe_unused]],
                          result& res [[maybe_unused]]) {
-  SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
-  throw exceptions::msg_fmt("open telemetry services must be passive");
+  SPDLOG_LOGGER_ERROR(
+      _logger,
+      "open telemetry force check can't be runned in sycnhronous manner");
+  throw exceptions::msg_fmt(
+      "open telemetry force check can't be runned in sycnhronous manner");
 }
 
 /**

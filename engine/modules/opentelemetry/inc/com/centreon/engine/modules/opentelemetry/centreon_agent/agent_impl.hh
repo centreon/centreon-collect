@@ -72,12 +72,14 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   static absl::Mutex* _instances_m;
 
  protected:
-  void on_new_conf(const agent::AgentConfiguration& conf);
+  void _on_new_conf(const agent::AgentConfiguration& conf);
 
-  void on_done();
+  void _on_done();
+
+  virtual void _force_check(uint64_t host_id, uint64_t serv_id) = 0;
 
   template <typename applier>
-  static void apply_to_all(applier&& apply);
+  static void _apply_to_all(applier&& apply);
 
  public:
   using pointer = std::shared_ptr<agent_impl_base>;
@@ -85,10 +87,19 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   virtual void shutdown() = 0;
   virtual void calc_and_send_config_if_needed(
       const agent_config::pointer& new_conf) = 0;
+
+  static void force_check(uint64_t host_id, uint64_t serv_id);
 };
 
+/**
+ * @brief call apply(agent_impl_base::pointer) on each connection stored in
+ * containers
+ *
+ * @tparam applier
+ * @param apply
+ */
 template <typename applier>
-void agent_impl_base::apply_to_all(applier&& apply) {
+void agent_impl_base::_apply_to_all(applier&& apply) {
   std::vector<pointer> all_conn;
   {
     absl::MutexLock l(_instances_m);
@@ -153,6 +164,8 @@ class agent_impl : public bireactor_class, public agent_impl_base {
   agent_stat::pointer _stats;
 
   mutable absl::Mutex _protect;
+
+  void _force_check(uint64_t host_id, uint64_t serv_id) override;
 
  public:
   agent_impl(const std::shared_ptr<boost::asio::io_context>& io_context,
