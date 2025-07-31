@@ -54,8 +54,8 @@ TEST_F(vault_test, httpsConnection) {
       g_io_context, _logger, "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl",
       true, false, nullptr);
   p->start_process(
-      [](const process<false>& proc, int /*exit_code*/, int, /*exit status*/
-         const std::string& /*stdout*/, const std::string&   /*stderr*/
+      [](const process<false>&, int /*exit_code*/, int,    /*exit status*/
+         const std::string& /*stdout*/, const std::string& /*stderr*/
       ) {},
       {});
 

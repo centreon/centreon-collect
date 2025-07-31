@@ -162,7 +162,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "HARD"
     [Tags]    broker    engine    opentelemetry    mon-34004
     # Just to avoid issues withthe whitelist.
-    Remove Directory    /etc/centreon-engine-whitelist
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule    0    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
@@ -296,11 +296,11 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
 
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
-    [Tags]    broker    engine    opentelemetry    mon-35539
+    [Tags]    broker    engine    opentelemetry    mon-35539    MON-173914
 
     Create Directory    /etc/centreon-engine-whitelist
     Empty Directory    /etc/centreon-engine-whitelist
-    ${whitelist_content}    Catenate   {"whitelist":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}
+    ${whitelist_content}    Catenate   {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
     Ctn Config Engine    ${1}    ${3}    ${3}
@@ -372,7 +372,6 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
 
     Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
 
-    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
     ${content_compare_result}    Ctn Compare String With File
     ...    ${telegraf_conf_response.text}
     ...    resources/opentelemetry/telegraf.conf
@@ -386,4 +385,118 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     Should Be True    ${result}    "service 3 blacklisted unavailable."
 
 
+BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1
+    [Documentation]    Scenario: Serve telegraf configuration with a complex whitelist
+    ...    Given the engine is configured with a telegraf conf server and a complex whitelist
+    ...    When I request the telegraf conf file for host_1
+    ...    Then I should receive the expected telegraf configuration for host_1
+    ...    And service_3 should be blacklisted and unavailable for host_1
+    ...    When I request the telegraf conf file for host_2
+    ...    Then I should receive the expected telegraf configuration for host_2
+    ...    And service_5 should be blacklisted and unavailable for host_2
+    [Tags]    broker    engine    opentelemetry    MON-173914
 
+    Create Directory    /etc/centreon-engine-whitelist
+    Empty Directory    /etc/centreon-engine-whitelist
+    ${whitelist_content}    Catenate   {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]},"hosts":[{"hostname":"host_2","wildcard":["/usr/lib/nagios2/plugins/check_icmp *"]}]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    Ctn Config Engine    ${1}    ${3}    ${3}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "telegraf_conf_server": {"http_server": {"port": 1443, "encryption": false}, "engine_otel_endpoint": "127.0.0.1:4317"}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp_serv_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_1
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.1
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check_icmp_serv_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_2
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.2
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    otel_check_icmp_serv_3
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_3
+    ...    rejected_by_whitelist
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp_host_1
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_1
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.10
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp_host_2
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_host_2
+    ...    /usr/lib/nagios2/plugins/check_icmp 127.0.0.20
+    ...    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp_serv_5
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    otel_check_icmp_serv_5
+    ...    /usr/lib/nagios/plugins/check_icmp 127.0.0.5
+    ...    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    module
+
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+
+    # Let's wait for the otel server start
+    ${content}    Create List    server listen on 0.0.0.0:1443
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "server listen on 0.0.0.0:1443" should be available.
+    Sleep    1
+    ${telegraf_conf_response}    GET
+    ...    url=http://localhost:1443/engine?host=host_1
+
+    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
+
+    ${content_compare_result}    Ctn Compare String With File
+    ...    ${telegraf_conf_response.text}
+    ...    resources/opentelemetry/telegraf.conf
+
+    Should Be True
+    ...    ${content_compare_result}
+    ...    unexpected telegraf server response: ${telegraf_conf_response.text}
+
+    ${content}    Create List    service_3: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "service 3 blacklisted unavailable."
+
+    ${telegraf_conf_response}    GET
+    ...    url=http://localhost:1443/engine?host=host_2
+    
+    Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
+
+    # only host_2 is allowed and service_5 is not allowed
+    ${content_compare_result}    Ctn Compare String With File
+    ...    ${telegraf_conf_response.text}
+    ...    resources/opentelemetry/telegraf_1.conf
+    
+    Should Be True
+    ...    ${content_compare_result}
+    ...    unexpected telegraf server response: ${telegraf_conf_response.text}
+    
+
+    ${content}    Create List    service_5: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "service 5 blacklisted unavailable."
