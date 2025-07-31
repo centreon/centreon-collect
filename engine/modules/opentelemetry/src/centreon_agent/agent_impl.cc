@@ -16,7 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/synchronization/mutex.h>
 #include <google/protobuf/util/message_differencer.h>
+#include <cstdint>
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/globals.hh"
@@ -37,13 +39,37 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
  *
  * @tparam bireactor_class
  */
-template <class bireactor_class>
-std::set<std::shared_ptr<agent_impl<bireactor_class>>>*
-    agent_impl<bireactor_class>::_instances =
-        new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
 
-template <class bireactor_class>
-absl::Mutex agent_impl<bireactor_class>::_instances_m;
+agent_impl_base::instance_container* agent_impl_base::_configured_instance =
+    new agent_impl_base::instance_container;
+
+absl::flat_hash_set<std::shared_ptr<agent_impl_base>>*
+    agent_impl_base::_no_configured_instance =
+        new absl::flat_hash_set<std::shared_ptr<agent_impl_base>>;
+
+absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
+
+void agent_impl_base::on_new_conf(const agent::AgentConfiguration& conf) {
+  absl::MutexLock l(_instances_m);
+  auto me = shared_from_this();
+  _configured_instance->get<1>().erase(me);
+  if (conf.services().empty()) {
+    _no_configured_instance->insert(me);
+  } else {
+    _no_configured_instance->erase(me);
+
+    for (const agent::Service& serv : conf.services()) {
+      _configured_instance->emplace(serv.host_id(), serv.service_id(), me);
+    }
+  }
+}
+
+void agent_impl_base::on_done() {
+  auto me = shared_from_this();
+  absl::MutexLock l(_instances_m);
+  _configured_instance->get<1>().erase(me);
+  _no_configured_instance->erase(me);
+}
 
 /**
  * @brief Construct a new agent impl<bireactor class>::agent impl object
@@ -133,8 +159,7 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
     _conf = new_conf;
   }
   auto to_call = std::packaged_task<int(void)>(
-      [me = std::enable_shared_from_this<agent_impl<bireactor_class>>::
-           shared_from_this()]() mutable -> int32_t {
+      [me = shared_from_this()]() mutable -> int32_t {
         // then we are in the main thread
         // services, hosts and commands are stable
         me->_calc_and_send_config_if_needed();
@@ -151,16 +176,17 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_instances_m);
-  for (auto& instance : *_instances) {
-    instance->calc_and_send_config_if_needed(new_conf);
-  }
+  apply_to_all([&new_conf](const agent_impl_base::pointer& conn) {
+    conn->calc_and_send_config_if_needed(new_conf);
+  });
 }
 
 static bool add_command_to_agent_conf(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const std::string& service,
+    uint64_t host_id,
+    uint64_t service_id,
     uint32_t check_interval,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -249,11 +275,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           _agent_info->init().host(),
           [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
-              const std::string& service, uint32_t check_interval,
+              const std::string& service, uint64_t host_id, uint64_t service_id,
+              uint32_t check_interval,
               const std::shared_ptr<spdlog::logger>& logger) {
-            return add_command_to_agent_conf(cmd_name, cmd_line, service,
-                                             check_interval, cnf, logger, peer,
-                                             crypt_credentials);
+            return add_command_to_agent_conf(
+                cmd_name, cmd_line, service, host_id, service_id,
+                check_interval, cnf, logger, peer, crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
@@ -333,8 +360,7 @@ void agent_impl<bireactor_class>::_write(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
-  absl::MutexLock l(&_instances_m);
-  _instances->insert(strm);
+  strm->on_new_conf(agent::AgentConfiguration());
 }
 
 /**
@@ -454,16 +480,11 @@ void agent_impl<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  asio::post(*_io_context,
-             [me = std::enable_shared_from_this<
-                  agent_impl<bireactor_class>>::shared_from_this(),
-              logger = _logger]() {
-               absl::MutexLock l(&_instances_m);
-               SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
-                                   static_cast<void*>(me.get()));
-               _instances->erase(
-                   std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-             });
+  asio::post(*_io_context, [me = shared_from_this(), logger = _logger]() {
+    SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
+                        static_cast<void*>(me.get()));
+    me->on_done();
+  });
 }
 
 /**
@@ -481,10 +502,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * grpc::Crash. So we uses asio thread to do the job
    */
   asio::post(
-      *_io_context, [me = std::enable_shared_from_this<
-                         agent_impl<bireactor_class>>::shared_from_this(),
-                     status, logger = _logger]() {
-        absl::MutexLock l(&_instances_m);
+      *_io_context, [me = shared_from_this(), status, logger = _logger]() {
         if (status.ok()) {
           SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                               static_cast<void*>(me.get()),
@@ -494,8 +512,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
                               static_cast<void*>(me.get()),
                               status.error_message(), status.error_details());
         }
-        _instances->erase(
-            std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+        me->on_done();
       });
 }
 
@@ -517,15 +534,7 @@ void agent_impl<bireactor_class>::shutdown() {
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
-  std::set<std::shared_ptr<agent_impl>>* to_shutdown;
-  {
-    absl::MutexLock l(&_instances_m);
-    to_shutdown = _instances;
-    _instances = new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
-  }
-  for (std::shared_ptr<agent_impl> conn : *to_shutdown) {
-    conn->shutdown();
-  }
+  apply_to_all([](const agent_impl_base::pointer& conn) { conn->shutdown(); });
 }
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {

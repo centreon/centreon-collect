@@ -100,4 +100,6 @@ message Service {
   string command_name = 2;
   string command_line = 3;
   uint32 check_interval = 4;
+  uint64 host_id = 5;
+  uint64 service_id = 6;
 }
