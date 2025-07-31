@@ -56,15 +56,15 @@ TEST_F(whitelist_test, no_file) {
 
   whitelist file("/tmp/toto");
 
-  ASSERT_TRUE(file.empty());
+  ASSERT_TRUE(file.is_engine_whitelist_empty());
 }
 
 TEST_F(whitelist_test, no_regular_file) {
   whitelist file("/tmp");
-  ASSERT_TRUE(file.empty());
+  ASSERT_TRUE(file.is_engine_whitelist_empty());
 
   whitelist file2("/dev/null");
-  ASSERT_TRUE(file2.empty());
+  ASSERT_TRUE(file2.is_engine_whitelist_empty());
 }
 
 TEST_F(whitelist_test, bad_file) {
@@ -73,7 +73,7 @@ TEST_F(whitelist_test, bad_file) {
   -)");
 
   whitelist file("/tmp/toto");
-  ASSERT_TRUE(file.empty());
+  ASSERT_TRUE(file.is_engine_whitelist_empty());
 }
 
 TEST_F(whitelist_test, wildcards) {
@@ -86,19 +86,19 @@ TEST_F(whitelist_test, wildcards) {
 )");
 
   whitelist file("/tmp/toto");
-  ASSERT_FALSE(file.empty());
+  ASSERT_FALSE(file.is_engine_whitelist_empty());
 
   std::vector<std::string> expected{
       "/usr/lib/centreon/plugins/centreon_*",
       "/usr/lib/centreon/plugins/check_centreon_bam",
       "/tmp/var/lib/centreon-engine/toto* * *",
       "/usr/lib/centreon/plugins/centreon_linux_snmp.pl*"};
-  ASSERT_EQ(file.get_wildcards(), expected);
-  ASSERT_TRUE(
-      file.is_allowed("/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0"));
-  ASSERT_TRUE(
-      file.is_allowed("/usr/lib/centreon/plugins/centreon_rrgersgesrg0"));
-  ASSERT_TRUE(file.is_allowed(
+  ASSERT_EQ(file.get_wildcards_engine(), expected);
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/centreon_rrgersgesrg0"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
       "/usr/lib/centreon/plugins//centreon_linux_snmp.pl "
       "--plugin=os::linux::snmp::plugin --mode=load --hostname=localhost "
       "--snmp-version='2c' --snmp-community='public'  --warning='4,3,2' "
@@ -113,13 +113,18 @@ TEST_F(whitelist_test, regexp) {
 )");
 
   whitelist file("/tmp/toto");
-  ASSERT_FALSE(file.empty());
+  ASSERT_FALSE(file.is_engine_whitelist_empty());
 
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/check_centreon_bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("a/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("/usr/lib/centreon/plugins/centreon_bam"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/check_centreon_bam"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345bam"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("a/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_bam"));
 }
 
 TEST_F(whitelist_test, regexp_and_wildcards) {
@@ -133,23 +138,30 @@ TEST_F(whitelist_test, regexp_and_wildcards) {
 )");
 
   whitelist file("/tmp/toto");
-  ASSERT_FALSE(file.empty());
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/check_centreon_bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("a/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("/usr/lib/centreon/plugins/centreon_bam"));
-  ASSERT_TRUE(file.is_allowed(
-      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti"));
-  ASSERT_FALSE(file.is_allowed(
-      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449"));
-  ASSERT_TRUE(file.is_allowed(
-      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftata"));
+  ASSERT_FALSE(file.is_engine_whitelist_empty());
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/check_centreon_bam"));
   ASSERT_TRUE(
-      file.is_allowed("/usr/lib/centreon/plugins/"
-                      "centreon_totozuiefizenfuieznfizeftata561798189"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_tototata"));
-  ASSERT_FALSE(file.is_allowed("/usr/lib/centreon/plugins/centreon_tototato"));
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345bam"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("a/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_bam"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti"));
+  ASSERT_FALSE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftata"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/"
+      "centreon_totozuiefizenfuieznfizeftata561798189"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_tototata"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_tototato"));
 }
 
 TEST_F(whitelist_test, regexp_and_wildcards_json) {
@@ -165,35 +177,42 @@ TEST_F(whitelist_test, regexp_and_wildcards_json) {
 }})");
 
   whitelist file("/tmp/toto");
-  ASSERT_FALSE(file.empty());
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/check_centreon_bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345bam"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("a/usr/lib/centreon/plugins/centreon_12345"));
-  ASSERT_FALSE(file.is_allowed("/usr/lib/centreon/plugins/centreon_bam"));
-  ASSERT_TRUE(file.is_allowed(
+  ASSERT_FALSE(file.is_engine_whitelist_empty());
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/check_centreon_bam"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345bam"));
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("a/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_bam"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
       "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti"));
-  ASSERT_FALSE(file.is_allowed(
+  ASSERT_FALSE(file.is_allowed_by_engine(
 
       "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449"));
-  ASSERT_TRUE(file.is_allowed(
+  ASSERT_TRUE(file.is_allowed_by_engine(
       "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftata"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib/centreon/plugins/"
+      "centreon_totozuiefizenfuieznfizeftata561798189"));
   ASSERT_TRUE(
-      file.is_allowed("/usr/lib/centreon/plugins/"
-                      "centreon_totozuiefizenfuieznfizeftata561798189"));
-  ASSERT_TRUE(file.is_allowed("/usr/lib/centreon/plugins/centreon_tototata"));
-  ASSERT_FALSE(file.is_allowed("/usr/lib/centreon/plugins/centreon_tototato"));
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_tototata"));
+  ASSERT_FALSE(
+      file.is_allowed_by_engine("/usr/lib/centreon/plugins/centreon_tototato"));
 }
 
 static const char* tmp_whitelist = "/tmp/whitelist";
 
-TEST_F(whitelist_test, empty_allow_all) {
+TEST_F(whitelist_test, empty_engine_allow_all) {
   std::error_code err;
   std::filesystem::remove_all(tmp_whitelist, err);
   whitelist white_list(&tmp_whitelist, &tmp_whitelist + 1);
   mkdir("/tmp/whitelist", S_IRWXU | S_IRGRP | S_IXGRP);
 
-  ASSERT_TRUE(white_list.is_allowed("turlututu"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine("turlututu"));
 }
 
 TEST_F(whitelist_test, no_directory_allow_all) {
@@ -201,7 +220,7 @@ TEST_F(whitelist_test, no_directory_allow_all) {
   std::filesystem::remove_all(tmp_whitelist, err);
   whitelist white_list(&tmp_whitelist, &tmp_whitelist + 1);
 
-  ASSERT_TRUE(white_list.is_allowed("turlututu"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine("turlututu"));
 }
 
 TEST_F(whitelist_test, directory) {
@@ -235,8 +254,8 @@ TEST_F(whitelist_test, directory) {
 
   whitelist white_list(&tmp_whitelist, &tmp_whitelist + 1);
 
-  ASSERT_TRUE(
-      white_list.is_allowed("/usr/lib/nagios/plugins/check_centreon_bam"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine(
+      "/usr/lib/nagios/plugins/check_centreon_bam"));
 
   create_file("/tmp/whitelist/c", R"(whitelist:
   wildcard:
@@ -249,11 +268,12 @@ TEST_F(whitelist_test, directory) {
   ::remove("/tmp/whitelist/b");
   white_list = whitelist(&tmp_whitelist, &tmp_whitelist + 1);
 
-  ASSERT_FALSE(
-      white_list.is_allowed("/usr/lib/nagios/plugins/check_centreon_bam"));
+  ASSERT_FALSE(white_list.is_allowed_by_engine(
+      "/usr/lib/nagios/plugins/check_centreon_bam"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine(
+      "/usr/lib/tata/plugins/check_centreon_bam"));
   ASSERT_TRUE(
-      white_list.is_allowed("/usr/lib/tata/plugins/check_centreon_bam"));
-  ASSERT_TRUE(white_list.is_allowed("/usr/lib/tata/plugins/centreon_12345"));
+      white_list.is_allowed_by_engine("/usr/lib/tata/plugins/centreon_12345"));
   create_file("/tmp/whitelist/9", R"(whitelist:
   wildcard:
     - /usr/lib/titi/plugins/centreon_toto*titi
@@ -264,10 +284,136 @@ TEST_F(whitelist_test, directory) {
 )");
   ::remove("/tmp/whitelist/a");
   white_list = whitelist(&tmp_whitelist, &tmp_whitelist + 1);
+  ASSERT_FALSE(white_list.is_allowed_by_engine(
+      "/usr/lib/tutu/plugins/check_centreon_bam"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine(
+      "/usr/lib/titi/plugins/check_centreon_bam"));
+  ASSERT_TRUE(white_list.is_allowed_by_engine(
+      "/usr/lib/tata/plugins/check_centreon_bam"));
+}
+
+/* * Test with wildcards and regexp in cma-whitelist
+ * - default ruleset
+ * - host specific ruleset
+ */
+TEST_F(whitelist_test, wildcards1) {
+  create_file("/tmp/toto", R"(
+whitelist:
+  regex:
+    - /usr/lib(64)?/nagios/plugins/.*
+    - /usr/lib(64)?/nagios/plugins/.check_.*
+
+cma-whitelist:
+  default:
+    regex:
+      - /usr/lib(64)?/nagios/plugins/.*
+      - /usr/lib(64)?/nagios/plugins/.check_.*
+      - /usr/lib/titi/plugins/centreon_toto
+
+  hosts:
+    - hostname: Host_1
+      regex:
+        - /usr/lib(64)?/nagios1/plugins/.*
+        - /usr/lib(64)?/nagios/plugins/.check_.*
+
+    - hostname: Host_2
+      wildcard:
+        - /usr/lib/titi/plugins/centreon_toto*titi
+        - /usr/lib/titi/plugins/centreon_toto*tata*
+)");
+
+  whitelist file("/tmp/toto");
+
+  ASSERT_FALSE(file.is_engine_whitelist_empty());
+  ASSERT_FALSE(file.is_cma_whitelist_empty());
+
+  ASSERT_TRUE(
+      file.is_allowed_by_engine("/usr/lib/nagios/plugins/check_centreon_bam"));
+  ASSERT_TRUE(file.is_allowed_by_engine(
+      "/usr/lib64/nagios/plugins/check_centreon_bam"));
+
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib/nagios0/plugins/check_centreon_bam", "Host_1"));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/nagios1/plugins/check_centreon_bam", "Host_1"));
+
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/titi/plugins/centreon_totozuiefizenfuieznfizeftiti", "Host_2"));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib/titi0/plugins/centreon_totozuiefizenfuieznfizeftiti",
+      "Host_2"));
+  ASSERT_TRUE(
+      file.is_allowed_by_cma("/usr/lib/titi/plugins/centreon_toto", "Host_3"));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib64/nagios0/plugins/check_centreon", "Host_3"));
+}
+
+/* * Test with wildcards and regexp in cma-whitelist
+ * - default ruleset
+ * - host specific ruleset
+ */
+TEST_F(whitelist_test, cma_regexp_and_wildcards_json) {
+  create_file("/tmp/toto", R"({"cma-whitelist": {"default": {
+  "wildcard": [
+    "/usr/lib/centreon/plugins/centreon_toto*titi",
+    "/usr/lib/centreon/plugins/centreon_toto*tata*"
+  ],
+  "regex": [
+    "/usr/lib/centreon/plugins/centreon_\\d{5}.*",
+    "/usr/lib/centreon/plugins/check_centreon_bam"
+  ]
+  },"hosts": [
+  {
+    "hostname": "host_1",
+    "wildcard": [
+      "/usr/lib1/centreon/plugins/centreon_toto*titi"
+    ]
+  },
+  {
+    "hostname": "host_2",
+    "wildcard": [
+      "/usr/lib2/centreon/plugins/centreon_toto*titi"
+    ]
+  }]}})");
+
+  whitelist file("/tmp/toto");
+  ASSERT_FALSE(file.is_cma_whitelist_empty());
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/check_centreon_bam", ""));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/centreon_12345bam", ""));
+  ASSERT_TRUE(
+      file.is_allowed_by_cma("/usr/lib/centreon/plugins/centreon_12345", ""));
   ASSERT_FALSE(
-      white_list.is_allowed("/usr/lib/tutu/plugins/check_centreon_bam"));
+      file.is_allowed_by_cma("a/usr/lib/centreon/plugins/centreon_12345", ""));
+  ASSERT_FALSE(
+      file.is_allowed_by_cma("/usr/lib/centreon/plugins/centreon_bam", ""));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti", ""));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449",
+      ""));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftata", ""));
   ASSERT_TRUE(
-      white_list.is_allowed("/usr/lib/titi/plugins/check_centreon_bam"));
-  ASSERT_TRUE(
-      white_list.is_allowed("/usr/lib/tata/plugins/check_centreon_bam"));
+      file.is_allowed_by_cma("/usr/lib/centreon/plugins/"
+                             "centreon_totozuiefizenfuieznfizeftata561798189",
+                             ""));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/centreon_tototata", ""));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib/centreon/plugins/centreon_tototato", ""));
+
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib1/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti",
+      "host_1"));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib1/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449",
+      "host_1"));
+  ASSERT_TRUE(file.is_allowed_by_cma(
+      "/usr/lib2/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti",
+      "host_2"));
+  ASSERT_FALSE(file.is_allowed_by_cma(
+      "/usr/lib1/centreon/plugins/centreon_tototiti", "host_2"));
 }
