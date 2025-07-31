@@ -4455,3 +4455,40 @@ def ctn_engine_check_sh_command_output():
                 return 0
             service_checked[service_id] = 1
     return len(service_checked)
+
+
+def ctn_engine_check_command_output():
+    """
+    Scan the engine log and search service::handle_async_check_result lines
+    Check the output of check.pl that returns Test check <id> | metric=53.00;50.00;66.67
+    /tmp/states must be filled with 0 exit satus
+
+    Returns: number of different services checked
+    """
+
+    if not engine:
+        return 0
+    search_pattern = re.compile(
+        r"service::handle_async_check_result\(\) service service_(\d+) res:service_check start_time=(\d+) finish_time=(\d+) timeout=(\d+) ok=(\d+) ret_code=(\d+) output:Test check (\d+)")
+    service_checked = {}
+    with open(f"{VAR_ROOT}/log/centreon-engine/config0/centengine.log") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            service_id = int(m.group(1))
+            timeout = m.group(4)
+            ok = m.group(5)
+            ret_code = m.group(6)
+            if timeout != '0':
+                logger.console(f"check timeout: {line}")
+                return 0
+            if ok != '1':
+                logger.console(f"check nok: {line}")
+                return 0
+            if ret_code != '0':
+                logger.console(f"check ret_code no OK: {line}")
+                return 0
+            service_checked[service_id] = 1
+    return len(service_checked)
