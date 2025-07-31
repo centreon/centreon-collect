@@ -139,7 +139,7 @@ void check_exec::start_check(const duration& timeout) {
  */
 void check_exec::on_completion(unsigned running_index,
                                int exit_code,
-                               int exit_status,
+                               int exit_status [[maybe_unused]],
                                const std::string& std_out) {
   if (running_index != _get_running_check_index()) {
     SPDLOG_LOGGER_ERROR(_logger, "running_index={}, running_index={}",

@@ -3284,7 +3284,7 @@ int service::notify_contact(nagios_macros* mac,
                             const std::string& not_author,
                             const std::string& not_data,
                             int options __attribute__((unused)),
-                            int escalated) {
+                            int escalated [[maybe_unused]]) {
   std::string raw_command;
   std::string processed_command;
   bool early_timeout = false;
