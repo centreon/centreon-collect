@@ -240,6 +240,10 @@ class check : public std::enable_shared_from_this<check> {
     return _service.command_line();
   }
 
+  uint64_t get_host_id() const { return _service.host_id(); }
+
+  uint64_t get_service_id() const { return _service.service_id(); }
+
   const engine_to_agent_request_ptr& get_conf() const { return _conf; }
 
   const time_point& get_last_start() const { return _last_start; }

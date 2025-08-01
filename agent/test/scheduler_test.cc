@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "check.hh"
 #include "check_exec.hh"
 #include "common/crypto/aes256.hh"
@@ -125,6 +126,10 @@ class scheduler_test : public ::testing::Test {
       unsigned export_period,
       unsigned max_concurent_check,
       unsigned check_timeout);
+
+  std::shared_ptr<com::centreon::agent::MessageToAgent> force_check(
+      uint64_t host_id,
+      uint64_t serv_id);
 };
 
 std::shared_ptr<com::centreon::agent::MessageToAgent>
@@ -146,8 +151,21 @@ scheduler_test::create_conf(unsigned nb_serv,
     serv->set_command_name(fmt::format("command{}", serv_index + 1));
     serv->set_command_line("/usr/bin/ls");
     serv->set_check_interval(second_check_period);
+    serv->set_host_id(1);
+    serv->set_service_id(serv_index + 1);
   }
   return conf;
+}
+
+std::shared_ptr<com::centreon::agent::MessageToAgent>
+scheduler_test::force_check(uint64_t host_id, uint64_t serv_id) {
+  std::shared_ptr<com::centreon::agent::MessageToAgent> request =
+      std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto force = request->mutable_force_check();
+  force->set_host_id(host_id);
+  force->set_serv_id(serv_id);
+
+  return request;
 }
 
 TEST_F(scheduler_test, no_config) {
@@ -644,6 +662,60 @@ TEST_F(scheduler_test, max_concurent) {
   std::this_thread::sleep_for(std::chrono::milliseconds(6000));
   EXPECT_EQ(concurent_check::max_active_check, 10);
   EXPECT_EQ(concurent_check::checked.size(), 200);
+}
+
+/**
+ * @brief we fill scheduler waitqueue with 200 services, we force check of midle
+ * and last service and we expect that its will be executed before others
+ *
+ */
+TEST_F(scheduler_test, force_check) {
+  concurent_check::checked.clear();
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host",
+      create_conf(200, 10, 1, 10, 1),
+      [&]([[maybe_unused]] const std::shared_ptr<MessageFromAgent>& req) {},
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, duration check_interval,
+         const Service& service,
+         const engine_to_agent_request_ptr& engine_to_agent_request,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+        return std::make_shared<concurent_check>(
+            io_context, logger, start_expected, check_interval, service,
+            engine_to_agent_request, 0, std::chrono::milliseconds(500),
+            std::move(handler), stat);
+      });
+
+  scheduler_closer closer(sched);
+
+  asio::post(*g_io_context, [this, sched]() {
+    sched->on_engine_request(force_check(1, 100));
+  });
+
+  asio::post(*g_io_context, [this, sched]() {
+    sched->on_engine_request(force_check(1, 200));
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::lock_guard l(concurent_check::checked_m);
+
+  bool serv_100_found = false;
+  bool serv_200_found = false;
+  std::for_each(concurent_check::checked.begin(),
+                concurent_check::checked.end(),
+                [&](const concurent_check* checked) {
+                  if (checked->get_service_id() == 100) {
+                    serv_100_found = true;
+                  } else if (checked->get_service_id() == 200) {
+                    serv_200_found = true;
+                  }
+                });
+
+  ASSERT_TRUE(serv_100_found) << "serv 100 must be checked before others";
+  ASSERT_TRUE(serv_200_found) << "serv 201 must be checked before others";
 }
 
 TEST_F(scheduler_test, can_not_decrypt) {
