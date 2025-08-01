@@ -8,6 +8,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 1-5'
+  pull_request:
+    paths:
+      - agent/**
+      - engine/modules/opentelemetry**
 
 jobs:
   get-environment:
@@ -73,7 +77,7 @@ jobs:
           wsl-version: 2
           distribution: Ubuntu-24.04
           use-cache: 'true'
-          #update: 'true'
+          update: 'true'
           wsl-conf: |
             [automount]
             enabled = true
@@ -97,7 +101,6 @@ jobs:
           ipconfig /all
           Write-Host "ip address show"
           wsl ip address show
-
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off
         shell: powershell
