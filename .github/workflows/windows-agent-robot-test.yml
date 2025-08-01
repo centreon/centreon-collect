@@ -73,7 +73,7 @@ jobs:
           wsl-version: 2
           distribution: Ubuntu-24.04
           use-cache: 'true'
-          update: 'true'
+          #update: 'true'
           wsl-conf: |
             [automount]
             enabled = true
