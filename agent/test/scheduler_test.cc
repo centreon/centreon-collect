@@ -17,7 +17,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <algorithm>
 #include "check.hh"
 #include "check_exec.hh"
 #include "common/crypto/aes256.hh"

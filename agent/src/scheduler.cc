@@ -343,8 +343,10 @@ void scheduler::force_check(const engine_to_agent_request_ptr& request) {
          ++to_check) {
       if (to_check->second->get_service_id() == force.serv_id() &&
           to_check->second->get_host_id() == force.host_id()) {
-        SPDLOG_LOGGER_INFO(_logger, "force check of service {}",
-                           to_check->second->get_service());
+        SPDLOG_LOGGER_INFO(_logger, "force check of service {} {}@{}",
+                           to_check->second->get_service(),
+                           to_check->second->get_service_id(),
+                           to_check->second->get_host_id());
         _start_check(to_check->second);
         _waiting_check_queue.erase(to_check);
         return;
@@ -352,9 +354,9 @@ void scheduler::force_check(const engine_to_agent_request_ptr& request) {
     }
   }
   SPDLOG_LOGGER_INFO(_logger,
-                     "service {} not in queue (perhaps yet running) => it "
+                     "service {}@{} not in queue (perhaps yet running) => it "
                      "won't be check forced",
-                     force.serv_id());
+                     force.serv_id(), force.host_id());
 }
 
 /**
