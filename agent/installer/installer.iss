@@ -1,0 +1,1163 @@
+#define MyAppName "Centreon Monitoring Agent"
+#define MyAppVersion "1.5"
+#define MyAppPublisher "Centreon"
+#define MyAppURL "https://www.centreon.com/"
+#define MyAppExeName "centagent.exe"
+#define PluginURL "https://github.com/centreon/centreon-nsclient-build/releases/download/20240909/centreon_plugins.exe"
+#define PluginSize 20961012
+
+#define LicenseFile "C:\Users\AlterUser\Documents\test\installer_inno\license.txt"
+#define CentreonIcon "logo_centreon.ico"
+#define CentreonLogo "LogoCentreon_dark.bmp"
+#define CentreonLogoLarg "logo_170x170.bmp"
+
+
+[Setup]
+AppId={{D80E49AC-E863-41E6-A157-54AB2960FFC8}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+DefaultDirName={autopf}\Centreon
+UninstallDisplayIcon={app}\{#MyAppExeName}
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+OutputBaseFilename=installer
+SolidCompression=no
+WizardStyle=modern
+WizardResizable=no
+DisableWelcomePage=no
+DisableDirPage=yes
+LicenseFile={#LicenseFile}
+SetupIconFile ={#CentreonIcon}
+PrivilegesRequired=admin
+Uninstallable=yes
+DisableStartupPrompt=yes
+WizardImageFile={#CentreonLogoLarg}
+WizardSmallImageFile={#CentreonLogo}
+WizardImageStretch=yes
+
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Types]
+Name: "custom"; Description: "Custom installation"; Flags: iscustom
+
+
+[Components]
+Name: "agent";   Description: "Centreon Monitoring Agent"; Types: custom 
+Name: "plugins"; Description: "Plugins";  Types: custom 
+
+[Files]
+Source: "C:\Users\AlterUser\centreon-collect\build_windows\agent\{#MyAppExeName}"; DestDir: "{app}\Centreon Monitoring Agent"; Flags: ignoreversion; Components: agent
+Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins
+Source: info.bmp; Flags: dontcopy
+Source: warning.bmp; Flags: dontcopy
+
+[Run]
+Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\Centreon Monitoring Agent\{#MyAppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden
+Filename: "sc.exe"; Parameters: "description CentreonMonitoringAgent ""Centreon agent used for monitoring and metric collection""";Flags: runhidden
+Filename: "sc.exe"; Parameters: "start CentreonMonitoringAgent"; Flags: runhidden
+
+[UninstallRun]
+Filename: "sc.exe"; Parameters: "stop CentreonMonitoringAgent"; Flags: runhidden waituntilterminated; RunOnceId: "StopAgent"
+Filename: "sc.exe"; Parameters: "delete CentreonMonitoringAgent"; Flags: runhidden; RunOnceId: "DeleteAgent"
+Filename: "reg.exe"; Parameters: "delete HKLM\SOFTWARE\Centreon\CentreonMonitoringAgent /f"; Flags: runhidden; RunOnceId: "DeleteRegistry"
+
+[Code]
+
+{ ────────────────────────────────────────────────────────────────────── }
+{ ───────────────────── Global Variables and Widgets ─────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+var
+// ─────────────────────────────────────────────
+// Pages:
+// ─────────────────────────────────────────────
+  DownloadPage: TDownloadWizardPage;
+  ConfigPage: TWizardPage;
+  EncryptionPage: TWizardPage;
+// ─────────────────────────────────────────────
+// Widget for config pages
+// ─────────────────────────────────────────────
+  HostLabel, PollerLabel: TNewStaticText;
+  HostNameEdit, PollerEndpointEdit: TNewEdit;
+  PollerInitiatedCheckBox: TNewCheckBox;
+  HostInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
+  HostWarningBitmapImage, PollerWarningBitmapImage:TBitmapImage;
+  
+  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel: TNewStaticText;
+  LogFileEdit, MaxFileEdit, MaxNumberEdit: TNewEdit;
+  MaxFileInfoBitmapImage, MaxNumberInfoBitmapImage:TBitmapImage;
+  LogTypeComboBox, LogLeveLComboBox:TNewComboBox;
+  LogFileBrowseButton : TButton;
+  LogFileWarningBitmapImage:TBitmapImage;
+// ─────────────────────────────────────────────
+// Widget for Encryption
+// ─────────────────────────────────────────────
+  EncryptionCheckBox: TNewCheckBox;
+  PublicCertLabel, PrivateKeyLabel, CaLabel, CommonNameLabel, TokenLabel: TNewStaticText;
+  PublicCertBrowseButton, PrivateKeyBrowseButton, CABrowseButton : TButton;
+  PublicCertEdit, PrivateKeyEdit, CaEdit, CommonNameEdit, TokenEdit: TNewEdit;
+  PublicCertInfoBitmapImage, PrivateKeyInfoBitmapImage, CaInfoBitmapImage, CommonNameInfoBitmapImage, TokenInfoBitmapImage:TBitmapImage;
+  PublicCertWarningBitmapImage, PrivateKeyWarningBitmapImage, TokenWarningBitmapImage:TBitmapImage;
+  
+  SizeBytes : Int64;
+{ ────────────────────────────────────────────────────────────────────── }
+{ ─────────────────────── Event Handlers ─────────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+procedure BitmapImageOnClick(Sender: TObject);
+begin
+  if Sender = HostInfoBitmapImage then
+    MsgBox('The name of the host as defined in the Centreon interface.', mbInformation, MB_OK)
+  else if Sender = PollerInfoBitmapImage then begin
+    if PollerInitiatedCheckBox.Checked then
+      MsgBox('Interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.', mbInformation, MB_OK)
+    else
+      MsgBox('IP address of DNS name of the poller the agent will connect to.', mbInformation, MB_OK);
+    end 
+  else if Sender = PollerInitiatedInfoBitmapImage then
+    MsgBox('Use when the agent cannot connect to the poller directly: the poller will initiate the connection.', mbInformation, MB_OK)
+  else if Sender = MaxFileInfoBitmapImage then
+    MsgBox('For the rotation of logs to be active, it is necessary that both parameters ''Max File Size'' and ''Max number of files'' are set. The space used by the logs of the agent will not exceed ''Max File Size'' * ''Max number of files''.', mbInformation, MB_OK)
+  else if Sender = MaxNumberInfoBitmapImage then
+    MsgBox('For the rotation of logs to be active, it is necessary that both parameters ''Max File Size'' and ''Max number of files'' are set. The space used by the logs of the agent will not exceed ''Max File Size'' * ''Max number of files''.', mbInformation, MB_OK)
+  else if Sender = PublicCertInfoBitmapImage then
+    MsgBox('Public certificate file path. Mandatory if encryption and poller-initiated connection are active.', mbInformation, MB_OK)
+  else if Sender = PrivateKeyInfoBitmapImage then
+    MsgBox('Private key file path. Mandatory if encryption and poller-initiated connection are active.', mbInformation, MB_OK)
+  else if Sender = CaInfoBitmapImage then
+    MsgBox('Trusted CA''s certificate file.', mbInformation, MB_OK)
+  else if Sender = CommonNameInfoBitmapImage then
+    MsgBox('Expected TLS certificate common name (CN) - leave blank if unsure.', mbInformation, MB_OK)
+  else if Sender = TokenInfoBitmapImage then
+    MsgBox('Expected JWT(Json Web Token)', mbInformation, MB_OK)
+  else
+    MsgBox('Unknown image clicked!', mbInformation, MB_OK);
+end;
+ 
+procedure OnPollerInitiatedToggle(Sender: TObject);
+begin
+  if PollerInitiatedCheckBox.Checked then
+    PollerLabel.Caption := 'Listening interface:'
+  else
+    PollerLabel.Caption := 'Poller endpoint:';
+end;
+
+procedure OnLogTypeChange(Sender: TObject);
+begin
+  if LogTypeComboBox.Text = 'File'  then
+  begin
+    LogFileLabel.Show;
+    LogFileEdit.Show;
+    LogFileBrowseButton.Show;
+    
+    MaxFileLabel.Show;
+    MaxFileEdit.Show;
+    MaxFileInfoBitmapImage.Show;
+    
+    MaxNumberLabel.Show;
+    MaxNumberEdit.Show;
+    MaxNumberInfoBitmapImage.Show;
+    end
+  else
+  begin
+    LogFileLabel.Hide;
+    LogFileEdit.Hide;
+    LogFileBrowseButton.Hide;
+    LogFileWarningBitmapImage.Hide;
+    
+    MaxFileLabel.Hide;
+    MaxFileEdit.Hide;
+    MaxFileInfoBitmapImage.Hide;
+    
+    MaxNumberLabel.Hide;
+    MaxNumberEdit.Hide;
+    MaxNumberInfoBitmapImage.Hide;
+ 
+  end;
+end;
+
+procedure LogFileBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetSaveFileName('Select a file', Path, '','Log Files (*.log)|*.log|Text Documents (*.txt)|*.txt|All Files|*.*','txt')) then
+  begin
+     LogFileEdit.Text:= Path;
+  end;
+end;
+
+procedure NumbersOnlyKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key <> #8 then 
+    if Pos(Key, '0123456789') = 0 then  // #8 = backspace
+    begin
+      SuppressibleMsgBox('Invalid character'#13#10'Please enter numbers only. Letters and special characters are not allowed in this field.', mbError, MB_OK, IDOK);
+      Key := #0;  // cancel the key
+    end;
+end;
+
+procedure OnEncryptionToggle(Sender: TObject);
+begin
+  if EncryptionCheckBox.Checked then
+    begin
+      PublicCertLabel.Show;
+      PublicCertEdit.Show;
+      PublicCertBrowseButton.Show;
+      PublicCertInfoBitmapImage.Show;
+      
+      PrivateKeyLabel.Show;
+      PrivateKeyEdit.Show;
+      PrivateKeyBrowseButton.Show;
+      PrivateKeyInfoBitmapImage.Show;
+      
+      CaLabel.Show;
+      CaEdit.Show;
+      CABrowseButton.Show;
+      CaInfoBitmapImage.Show;
+      
+      CommonNameLabel.Show;
+      CommonNameEdit.Show;
+      CommonNameInfoBitmapImage.Show;
+      
+      TokenLabel.Show;
+      TokenEdit.Show;
+      TokenInfoBitmapImage.Show
+    end
+  else begin
+    PublicCertLabel.Hide;
+    PublicCertEdit.Hide;
+    PublicCertBrowseButton.Hide;
+    PublicCertInfoBitmapImage.Hide;
+    PublicCertWarningBitmapImage.Hide;
+    
+    PrivateKeyLabel.Hide;
+    PrivateKeyEdit.Hide;
+    PrivateKeyBrowseButton.Hide;
+    PrivateKeyInfoBitmapImage.Hide;
+    PrivateKeyWarningBitmapImage.Hide;
+    
+    CaLabel.Hide;
+    CaEdit.Hide;
+    CABrowseButton.Hide;
+    CaInfoBitmapImage.Hide;
+    
+    CommonNameLabel.Hide;
+    CommonNameEdit.Hide;
+    CommonNameInfoBitmapImage.Hide;
+    
+    TokenLabel.Hide;
+    TokenEdit.Hide;
+    TokenInfoBitmapImage.Hide;
+    TokenWarningBitmapImage.Hide;
+  end;
+end;
+
+procedure PublicCertBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select certificate file', Path, '','Certificate Files (*.crt)|*.crt', 'crt')) then
+  begin
+     PublicCertEdit.Text:= Path;
+  end;
+end;
+
+procedure PrivateKeyBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select key file', Path, '','Key Files (*.key)|*.key', 'key')) then
+  begin
+     PrivateKeyEdit.Text:= Path;
+  end;
+end;
+
+procedure CaBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select ca file', Path, '','Certificate Files (*.crt)|*.crt', 'crt')) then
+  begin
+     CaEdit.Text:= Path;
+  end;
+end;
+
+{ ────────────────────────────────────────────────────────────────────── }
+{ ─────────────────────────── Utilities ──────────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+
+function IsValidHostPortFormat(S: String): Boolean;
+var
+  Host, Port: String;
+  ColonPos, i: Integer;
+  c: Char;
+begin
+  Result := False;
+  ColonPos := Pos(':', S);
+
+  if (ColonPos > 1) and (ColonPos < Length(S)) then
+  begin
+    Host := Copy(S, 1, ColonPos - 1);
+    Port := Copy(S, ColonPos + 1, Length(S));
+
+    // Validate host characters
+    for i := 1 to Length(Host) do
+    begin
+      c := Host[i];
+      if not ((c >= 'a') and (c <= 'z') or
+            (c >= 'A') and (c <= 'Z') or
+            (c >= '0') and (c <= '9') or
+            (c = '.') or (c = '-') or (c = '_')) then begin
+      PollerWarningBitmapImage.Hint := 'Host contains invalid characters.';
+      PollerWarningBitmapImage.Show;
+      MsgBox('Host contains invalid characters.', mbError, MB_OK);
+      Exit;
+      end;
+    end;
+
+    // Validate port (must be all digits)
+    if Length(Port) = 0 then begin
+      PollerWarningBitmapImage.Hint := 'Missing port number after ":". Please provide a valid port.';
+      PollerWarningBitmapImage.Show;
+      MsgBox('Missing port number after ":". Please provide a valid port.', mbError, MB_OK);
+      Exit;
+    end;
+    for i := 1 to Length(Port) do
+    begin
+      if Pos(Port[i], '0123456789') = 0 then begin
+        PollerWarningBitmapImage.Hint := 'Invalid port: it must contain only digits (0-9).';
+        PollerWarningBitmapImage.Show;
+        MsgBox('Invalid port: it must contain only digits (0-9).', mbError, MB_OK);
+        Exit;
+      end;
+    end;
+
+    Result := True;
+  end else begin
+    PollerWarningBitmapImage.Hint := 'Invalid format. Please enter in the format "host:port", e.g. "localhost:8080".';
+    PollerWarningBitmapImage.Show;
+    MsgBox('Invalid format. Please enter in the format "host:port", e.g. "localhost:8080".', mbError, MB_OK);
+    Exit;
+  end;
+end;
+
+procedure ReadAgentRegistryValues;
+var
+  RootKey: Integer;
+  BaseKey: String;
+  StrValue: String;
+  DwordValue: DWORD;
+begin
+  RootKey := HKEY_LOCAL_MACHINE;
+  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+
+  if RegQueryStringValue(RootKey, BaseKey, 'host', StrValue) then
+    HostNameEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'endpoint', StrValue) then
+    PollerEndpointEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'log_file', StrValue) then
+    LogFileEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'log_level', StrValue) then
+    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf(StrValue);
+
+  if RegQueryStringValue(RootKey, BaseKey, 'log_type', StrValue) then
+    LogTypeComboBox.ItemIndex := LogTypeComboBox.Items.IndexOf(StrValue);
+
+  if RegQueryStringValue(RootKey, BaseKey, 'public_cert', StrValue) then
+    PublicCertEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'private_key', StrValue) then
+    PrivateKeyEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'ca_certificate', StrValue) then
+    CaEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'ca_name', StrValue) then
+    CommonNameEdit.Text := StrValue;
+
+  if RegQueryStringValue(RootKey, BaseKey, 'token', StrValue) then
+    TokenEdit.Text := StrValue;
+
+  if RegQueryDWordValue(RootKey, BaseKey, 'encryption', DwordValue) then
+    EncryptionCheckBox.Checked := (DwordValue <> 0);
+
+  if RegQueryDWordValue(RootKey, BaseKey, 'log_max_file_size', DwordValue) then
+    MaxFileEdit.Text := IntToStr(DwordValue);
+
+  if RegQueryDWordValue(RootKey, BaseKey, 'log_max_files', DwordValue) then
+    MaxNumberEdit.Text := IntToStr(DwordValue);
+
+  if RegQueryDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', DwordValue) then
+    PollerInitiatedCheckBox.Checked := (DwordValue <> 0);
+end;
+
+procedure WriteAgentRegistryValues;
+var
+  RootKey: Integer;
+  BaseKey: String;
+begin
+  RootKey := HKEY_LOCAL_MACHINE;
+  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+
+  // Strings
+  RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'endpoint', PollerEndpointEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'log_file', LogFileEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'log_level', LowerCase(LogLeveLComboBox.Text));
+  RegWriteStringValue(RootKey, BaseKey, 'log_type', LowerCase(LogTypeComboBox.Text));
+  RegWriteStringValue(RootKey, BaseKey, 'public_cert', PublicCertEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'private_key', PrivateKeyEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'ca_certificate', CaEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'ca_name', CommonNameEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'token', TokenEdit.Text);
+
+  // DWORDs
+  RegWriteDWordValue(RootKey, BaseKey, 'encryption', Integer(EncryptionCheckBox.Checked));
+  RegWriteDWordValue(RootKey, BaseKey, 'log_max_file_size', StrToIntDef(MaxFileEdit.Text, 10));
+  RegWriteDWordValue(RootKey, BaseKey, 'log_max_files', StrToIntDef(MaxNumberEdit.Text, 10));
+  RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
+end;
+
+{ ────────────────────────────────────────────────────────────────────── }
+{ ───────────────────────── Silent Mode ──────────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+procedure LogToStdOutFile(Msg: String);
+var
+  LogFile: String;
+  LogLine: String;
+begin
+  LogFile := ExpandConstant('{log}\installer_output.log');
+  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
+  // Append log line to file, fail silently if error
+  SaveStringToFile(LogFile, LogLine, True);
+end;
+
+function CmdLineParamExists(Param: string): Boolean;
+var
+  I: Integer;
+begin
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), Param) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  Result := False;
+end;
+
+function IsSilentMode: Boolean;
+begin
+  Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
+end;
+
+procedure LoadSilentParameters;
+begin
+  if not IsSilentMode then Exit;
+
+  HostNameEdit.Text := ExpandConstant('{param:host|dd}');
+  PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
+
+  if LowerCase(ExpandConstant('{param:logtype|event-log}')) = 'file' then
+    LogTypeComboBox.ItemIndex := 1
+  else
+    LogTypeComboBox.ItemIndex := 0;
+
+  LogLeveLComboBox.Text := ExpandConstant('{param:loglevel|}');
+  LogFileEdit.Text := ExpandConstant('{param:logfile|}');
+  MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|10}');
+  MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|3}');
+  PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
+
+  EncryptionCheckBox.Checked := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
+  PublicCertEdit.Text := ExpandConstant('{param:cert|}');
+  PrivateKeyEdit.Text := ExpandConstant('{param:key|}');
+  CaEdit.Text := ExpandConstant('{param:ca|}');
+  CommonNameEdit.Text := ExpandConstant('{param:commonname|}');
+  TokenEdit.Text := ExpandConstant('{param:token|}');
+end;
+
+function CheckSilentParameterValidity: Boolean;
+var
+  HostParam, EndpointParam, LogTypeParam, LogFileParam: string;
+  EncryptionEnabled: Boolean;
+begin
+  if not IsSilentMode then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  HostParam := ExpandConstant('{param:host|}');
+  EndpointParam := ExpandConstant('{param:endpoint|}');
+  LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
+  LogFileParam := ExpandConstant('{param:logfile|}');
+  EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
+
+  // HOST
+  if HostParam = '' then
+  begin
+    LogToStdOutFile('Missing parameter: /HOST');
+    Result := False;
+    Exit;
+  end;
+
+  // ENDPOINT format host:port
+  if (Pos(':', EndpointParam) = 0) or (Copy(EndpointParam, Length(EndpointParam), 1) = ':') then
+  begin
+    LogToStdOutFile('Invalid format for /ENDPOINT. Expected "host:port".');
+    Result := False;
+    Exit;
+  end;
+
+  // if logtype = file → log file mandatory
+  if LogTypeParam = 'file' then
+  begin
+    if LogFileParam = '' then
+    begin
+      LogToStdOutFile('Missing /LOGFILE when /LOGTYPE=file');
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  // if encryption test cert key token
+  if EncryptionEnabled then
+  begin
+    if ExpandConstant('{param:cert|}') = '' then
+    begin
+      LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
+      Result := False;
+      Exit;
+    end;
+
+    if ExpandConstant('{param:key|}') = '' then
+    begin
+      LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+      Result := False;
+      Exit;
+    end;
+
+    if ExpandConstant('{param:token|}') = '' then
+    begin
+      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=true');
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  // all good
+  Result := True;
+end;
+
+{ ────────────────────────────────────────────────────────────────────── }
+{ ───────────────────────── Start Wizard ─────────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+function InitializeSetup(): Boolean;
+begin
+  // ── Silent mode
+  Result := CheckSilentParameterValidity;
+end;
+
+procedure InitializeWizard;
+var
+Infobmp: String;
+WarningBmp: String;
+begin
+
+// ── Wizard config
+    WizardForm.ClientWidth := 460;
+    WizardForm.ClientHeight := 400;
+    SizeBytes := DownloadTemporaryFileSize('{#PluginURL}');
+// ── Load resources 
+  ExtractTemporaryFile('info.bmp');
+  Infobmp := ExpandConstant('{tmp}\info.bmp');
+  ExtractTemporaryFile('warning.bmp');
+  WarningBmp := ExpandConstant('{tmp}\warning.bmp');
+// ── Config page 
+  ConfigPage := CreateCustomPage(wpSelectComponents, 'Centreon Agent Configuration', 'Please provide the required information to connect agent.');
+
+  // ──── Host Name
+
+  HostLabel := TNewStaticText.Create(ConfigPage);
+  HostLabel.Parent := ConfigPage.Surface;
+  HostLabel.Top := ScaleY(3);
+  HostLabel.Caption := 'Host name:';
+
+  HostNameEdit := TNewEdit.Create(ConfigPage);
+  HostNameEdit.Parent := ConfigPage.Surface;
+  HostNameEdit.Top := HostLabel.Top - ScaleY(3);
+  HostNameEdit.Left := HostLabel.Width + ScaleX(75);
+  HostNameEdit.Width := ConfigPage.SurfaceWidth div 2;
+  HostNameEdit.Text := 'my-centreon-host';
+
+  HostInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  HostInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  HostInfoBitmapImage.Parent := ConfigPage.Surface;
+  HostInfoBitmapImage.Top := HostLabel.Top- ScaleY(2);
+  HostInfoBitmapImage.Left := HostNameEdit.Left + HostNameEdit.Width + ScaleX(4);
+  HostInfoBitmapImage.Center := True;
+  HostInfoBitmapImage.Width := 20;
+  HostInfoBitmapImage.Height := 20;
+  HostInfoBitmapImage.Stretch := True;
+  HostInfoBitmapImage.Cursor := crHand;
+  HostInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
+  HostWarningBitmapImage := TBitmapImage.Create(ConfigPage);
+  HostWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  HostWarningBitmapImage.Parent := ConfigPage.Surface;
+  HostWarningBitmapImage.Top := HostLabel.Top- ScaleY(3);
+  HostWarningBitmapImage.Left := HostInfoBitmapImage.Left + HostInfoBitmapImage.Width + ScaleX(4);
+  HostWarningBitmapImage.Center := True;
+  HostWarningBitmapImage.Width := 24;
+  HostWarningBitmapImage.Height := 24;
+  HostWarningBitmapImage.Stretch := True;
+  HostWarningBitmapImage.Cursor := crHand;
+  HostWarningBitmapImage.ShowHint := True;
+  HostWarningBitmapImage.Hide;
+
+  // ──── Poller Endpoint
+
+  PollerLabel := TNewStaticText.Create(ConfigPage);
+  PollerLabel.Parent := ConfigPage.Surface;
+  PollerLabel.Top := HostLabel.Top + ScaleY(30);
+  PollerLabel.Caption := 'Poller endpoint:';
+
+  PollerEndpointEdit := TNewEdit.Create(ConfigPage);
+  PollerEndpointEdit.Parent := ConfigPage.Surface;
+  PollerEndpointEdit.Top := PollerLabel.Top - ScaleY(3);
+  PollerEndpointEdit.Left := HostNameEdit.Left;
+  PollerEndpointEdit.Width := ConfigPage.SurfaceWidth div 2;
+  PollerEndpointEdit.Text := '127.0.0.1:4317';
+
+  PollerInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  PollerInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  PollerInfoBitmapImage.Parent := ConfigPage.Surface;
+  PollerInfoBitmapImage.Top := PollerLabel.Top- ScaleY(2);
+  PollerInfoBitmapImage.Left := PollerEndpointEdit.Left + PollerEndpointEdit.Width + ScaleX(4);
+  PollerInfoBitmapImage.Center := True;
+  PollerInfoBitmapImage.Width := 20;
+  PollerInfoBitmapImage.Height := 20;
+  PollerInfoBitmapImage.Stretch := True;
+  PollerInfoBitmapImage.Cursor := crHand;
+  PollerInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
+  PollerWarningBitmapImage := TBitmapImage.Create(ConfigPage);
+  PollerWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  PollerWarningBitmapImage.Parent := ConfigPage.Surface;
+  PollerWarningBitmapImage.Top := PollerLabel.Top - ScaleY(3);
+  PollerWarningBitmapImage.Left := PollerInfoBitmapImage.Left + PollerInfoBitmapImage.Width + ScaleX(4);
+  PollerWarningBitmapImage.Center := True;
+  PollerWarningBitmapImage.Width := 24;
+  PollerWarningBitmapImage.Height := 24;
+  PollerWarningBitmapImage.Stretch := True;
+  PollerWarningBitmapImage.Cursor := crHand;
+  PollerWarningBitmapImage.ShowHint := True;
+  PollerWarningBitmapImage.Hide;
+
+  // ──── Poller-initiated connection
+
+  PollerInitiatedCheckBox := TNewCheckBox.Create(ConfigPage);
+  PollerInitiatedCheckBox.Parent := ConfigPage.Surface;
+  PollerInitiatedCheckBox.Top := PollerLabel.Top + ScaleY(30);
+  PollerInitiatedCheckBox.Caption := 'Poller-initiated connection';
+  PollerInitiatedCheckBox.Width := WizardForm.CalculateButtonWidth([PollerInitiatedCheckBox.Caption]);
+  PollerInitiatedCheckBox.Checked := False;
+  PollerInitiatedCheckBox.OnClick := @OnPollerInitiatedToggle;
+
+  PollerInitiatedInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  PollerInitiatedInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  PollerInitiatedInfoBitmapImage.Parent := ConfigPage.Surface;
+  PollerInitiatedInfoBitmapImage.Top := PollerInitiatedCheckBox.Top - ScaleY(2);
+  PollerInitiatedInfoBitmapImage.Left := PollerEndpointEdit.Width - ScaleX(4);
+  PollerInitiatedInfoBitmapImage.Center := True;
+  PollerInitiatedInfoBitmapImage.Width := 20;
+  PollerInitiatedInfoBitmapImage.Height := 20;
+  PollerInitiatedInfoBitmapImage.Stretch := True;
+  PollerInitiatedInfoBitmapImage.Cursor := crHand;
+  PollerInitiatedInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
+  // ──── Log type
+
+  LogTypeLabel := TNewStaticText.Create(ConfigPage);
+  LogTypeLabel.Parent := ConfigPage.Surface;
+  LogTypeLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  LogTypeLabel.Caption := 'Log type:';
+
+  LogTypeComboBox := TNewComboBox.Create(ConfigPage);
+  LogTypeComboBox.Width := ConfigPage.SurfaceWidth;
+  LogTypeComboBox.top := PollerInitiatedCheckBox.Top + ScaleY(27);
+  LogTypeComboBox.Width := ConfigPage.SurfaceWidth div 2;
+  LogTypeComboBox.Left := HostNameEdit.Left;
+  LogTypeComboBox.Parent := ConfigPage.Surface;
+  LogTypeComboBox.Style := csDropDownList;
+  LogTypeComboBox.Items.Add('Event-log');
+  LogTypeComboBox.Items.Add('File');
+  LogTypeComboBox.ItemIndex := 0;
+  LogTypeComboBox.OnChange := @OnLogTypeChange;
+
+  // ──── Log level
+
+  LogLeveLabel := TNewStaticText.Create(ConfigPage);
+  LogLeveLabel.Parent := ConfigPage.Surface;
+  LogLeveLabel.Top := LogTypeLabel.Top + ScaleY(30);
+  LogLeveLabel.Caption := 'Log level:';
+
+  LogLeveLComboBox := TNewComboBox.Create(ConfigPage);
+  LogLeveLComboBox.Width := ConfigPage.SurfaceWidth;
+  LogLeveLComboBox.top := LogTypeLabel.Top + ScaleY(27);
+  LogLeveLComboBox.Width := ConfigPage.SurfaceWidth div 2;
+  LogLeveLComboBox.Left := HostNameEdit.Left;
+  LogLeveLComboBox.Parent := ConfigPage.Surface;
+  LogLeveLComboBox.Style := csDropDownList;
+  LogLeveLComboBox.Items.Add('Off');
+  LogLeveLComboBox.Items.Add('Critical');
+  LogLeveLComboBox.Items.Add('Error');
+  LogLeveLComboBox.Items.Add('Warning');
+  LogLeveLComboBox.Items.Add('Info');
+  LogLeveLComboBox.Items.Add('Debug');
+  LogLeveLComboBox.Items.Add('Trace');
+  LogLeveLComboBox.ItemIndex := 5;
+
+  // ──── Log file
+
+  LogFileLabel := TNewStaticText.Create(ConfigPage);
+  LogFileLabel.Parent := ConfigPage.Surface;
+  LogFileLabel.Top := LogLeveLabel.Top + ScaleY(30);
+  LogFileLabel.Caption := 'Log file:';
+  LogFileLabel.Hide;
+
+  LogFileEdit := TNewEdit.Create(ConfigPage);
+  LogFileEdit.Parent := ConfigPage.Surface;
+  LogFileEdit.Top := LogFileLabel.Top - ScaleY(3);
+  LogFileEdit.Left := HostNameEdit.Left;
+  LogFileEdit.Width := ConfigPage.SurfaceWidth div 2;
+  LogFileEdit.Text := '';
+  LogFileEdit.Hide;
+
+  LogFileBrowseButton := TButton.Create(ConfigPage);
+  LogFileBrowseButton.Parent := ConfigPage.Surface;
+  LogFileBrowseButton.Caption := 'Browse...';
+  LogFileBrowseButton.Left := LogFileEdit.Left + LogFileEdit.Width + ScaleX(4) ;
+  LogFileBrowseButton.Top := LogFileEdit.Top;
+  LogFileBrowseButton.Width := 75;
+  LogFileBrowseButton.OnClick := @LogFileBrowseFile;
+  LogFileBrowseButton.Hide;
+
+  LogFileWarningBitmapImage := TBitmapImage.Create(ConfigPage);
+  LogFileWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  LogFileWarningBitmapImage.Parent := ConfigPage.Surface;
+  LogFileWarningBitmapImage.Top := LogFileLabel.Top- ScaleY(3);
+  LogFileWarningBitmapImage.Left := LogFileBrowseButton.Left + LogFileBrowseButton.Width + ScaleX(4);
+  LogFileWarningBitmapImage.Center := True;
+  LogFileWarningBitmapImage.Width := 24;
+  LogFileWarningBitmapImage.Height := 24;
+  LogFileWarningBitmapImage.Stretch := True;
+  LogFileWarningBitmapImage.Cursor := crHand;
+  LogFileWarningBitmapImage.ShowHint := True;
+  LogFileWarningBitmapImage.Hide;
+
+  // ──── Max file size
+
+  MaxFileLabel := TNewStaticText.Create(ConfigPage);
+  MaxFileLabel.Parent := ConfigPage.Surface;
+  MaxFileLabel.Top := LogFileLabel.Top + ScaleY(30);
+  MaxFileLabel.Caption := 'Max file size (Mo):';
+  MaxFileLabel.Hide;
+
+  MaxFileEdit := TNewEdit.Create(ConfigPage);
+  MaxFileEdit.Parent := ConfigPage.Surface;
+  MaxFileEdit.Top := MaxFileLabel.Top - ScaleY(3);
+  MaxFileEdit.Left := HostNameEdit.Left;
+  MaxFileEdit.Width := ConfigPage.SurfaceWidth div 2;
+  MaxFileEdit.Text := '';
+  MaxFileEdit.OnKeyPress := @NumbersOnlyKeyPress;
+  MaxFileEdit.Hide;
+
+  MaxFileInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  MaxFileInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  MaxFileInfoBitmapImage.Parent := ConfigPage.Surface;
+  MaxFileInfoBitmapImage.Top := MaxFileLabel.Top - ScaleY(2);
+  MaxFileInfoBitmapImage.Left := MaxFileEdit.Left + MaxFileEdit.Width + ScaleX(4);
+  MaxFileInfoBitmapImage.Center := True;
+  MaxFileInfoBitmapImage.Width := 20;
+  MaxFileInfoBitmapImage.Height := 20;
+  MaxFileInfoBitmapImage.Stretch := True;
+  MaxFileInfoBitmapImage.Cursor := crHand;
+  MaxFileInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  MaxFileInfoBitmapImage.Hide;
+
+  // ──── Max number of files
+
+  MaxNumberLabel := TNewStaticText.Create(ConfigPage);
+  MaxNumberLabel.Parent := ConfigPage.Surface;
+  MaxNumberLabel.Top := MaxFileLabel.Top + ScaleY(30);
+  MaxNumberLabel.Caption := 'Max number of files:';
+  MaxNumberLabel.Hide;
+
+  MaxNumberEdit := TNewEdit.Create(ConfigPage);
+  MaxNumberEdit.Parent := ConfigPage.Surface;
+  MaxNumberEdit.Top := MaxNumberLabel.Top - ScaleY(3);
+  MaxNumberEdit.Left := HostNameEdit.Left;
+  MaxNumberEdit.Width := ConfigPage.SurfaceWidth div 2;
+  MaxNumberEdit.Text := '';
+  MaxNumberEdit.OnKeyPress := @NumbersOnlyKeyPress;
+  MaxNumberEdit.Hide;
+
+  MaxNumberInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  MaxNumberInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  MaxNumberInfoBitmapImage.Parent := ConfigPage.Surface;
+  MaxNumberInfoBitmapImage.Top := MaxNumberLabel.Top - ScaleY(2);
+  MaxNumberInfoBitmapImage.Left := MaxNumberEdit.Left + MaxNumberEdit.Width + ScaleX(4);
+  MaxNumberInfoBitmapImage.Center := True;
+  MaxNumberInfoBitmapImage.Width := 20;
+  MaxNumberInfoBitmapImage.Height := 20;
+  MaxNumberInfoBitmapImage.Stretch := True;
+  MaxNumberInfoBitmapImage.Cursor := crHand;
+  MaxNumberInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  MaxNumberInfoBitmapImage.Hide;
+
+
+// ── Encryption page
+  EncryptionPage := CreateCustomPage(ConfigPage.ID,
+  'Centreon Agent Configuration',
+  'Connection security for agent.');
+  // ──── Encryption
+  EncryptionCheckBox := TNewCheckBox.Create(EncryptionPage);
+  EncryptionCheckBox.Parent := EncryptionPage.Surface;
+  EncryptionCheckBox.Top := HostNameEdit.Top;
+  EncryptionCheckBox.Caption := 'Encryption';
+  EncryptionCheckBox.Checked := False;
+  EncryptionCheckBox.OnClick := @OnEncryptionToggle;
+
+  // ──── Public certificate
+
+  PublicCertLabel := TNewStaticText.Create(EncryptionPage);
+  PublicCertLabel.Parent := EncryptionPage.Surface;
+  PublicCertLabel.Top := EncryptionCheckBox.Top + ScaleY(25);
+  PublicCertLabel.Caption := 'Public certificate:';
+  PublicCertLabel.Hide;
+
+  PublicCertEdit := TNewEdit.Create(EncryptionPage);
+  PublicCertEdit.Parent := EncryptionPage.Surface;
+  PublicCertEdit.Top := PublicCertLabel.Top - ScaleY(3);
+  PublicCertEdit.Left := HostNameEdit.Left;
+  PublicCertEdit.Width := EncryptionPage.SurfaceWidth div 2 - 20;
+  PublicCertEdit.Text := '';
+  PublicCertEdit.Hide;
+
+  PublicCertBrowseButton := TButton.Create(EncryptionPage);
+  PublicCertBrowseButton.Parent := EncryptionPage.Surface;
+  PublicCertBrowseButton.Caption := 'Browse...';
+  PublicCertBrowseButton.Left := PublicCertEdit.Left + PublicCertEdit.Width + ScaleX(4);
+  PublicCertBrowseButton.Top := PublicCertEdit.Top;
+  PublicCertBrowseButton.Width := 75;
+  PublicCertBrowseButton.OnClick := @PublicCertBrowseFile;
+  PublicCertBrowseButton.Hide;
+
+  PublicCertInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  PublicCertInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  PublicCertInfoBitmapImage.Parent := EncryptionPage.Surface;
+  PublicCertInfoBitmapImage.Top := PublicCertEdit.Top;
+  PublicCertInfoBitmapImage.Left := PublicCertBrowseButton.Left + PublicCertBrowseButton.Width + ScaleX(4);
+  PublicCertInfoBitmapImage.Center := True;
+  PublicCertInfoBitmapImage.Width := 20;
+  PublicCertInfoBitmapImage.Height := 20;
+  PublicCertInfoBitmapImage.Stretch := True;
+  PublicCertInfoBitmapImage.Cursor := crHand;
+  PublicCertInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  PublicCertInfoBitmapImage.Hide;
+
+  PublicCertWarningBitmapImage := TBitmapImage.Create(EncryptionPage);
+  PublicCertWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  PublicCertWarningBitmapImage.Parent := EncryptionPage.Surface;
+  PublicCertWarningBitmapImage.Top := PublicCertLabel.Top - ScaleY(3);
+  PublicCertWarningBitmapImage.Left := PublicCertInfoBitmapImage.Left + PublicCertInfoBitmapImage.Width + ScaleX(4);
+  PublicCertWarningBitmapImage.Center := True;
+  PublicCertWarningBitmapImage.Width := 24;
+  PublicCertWarningBitmapImage.Height := 24;
+  PublicCertWarningBitmapImage.Stretch := True;
+  PublicCertWarningBitmapImage.Cursor := crHand;
+  PublicCertWarningBitmapImage.ShowHint := True;
+  PublicCertWarningBitmapImage.Hide;
+
+  // ──── Private key
+
+  PrivateKeyLabel := TNewStaticText.Create(EncryptionPage);
+  PrivateKeyLabel.Parent := EncryptionPage.Surface;
+  PrivateKeyLabel.Top := PublicCertLabel.Top + ScaleY(30);
+  PrivateKeyLabel.Caption := 'Private key:';
+  PrivateKeyLabel.Hide;
+
+  PrivateKeyEdit := TNewEdit.Create(EncryptionPage);
+  PrivateKeyEdit.Parent := EncryptionPage.Surface;
+  PrivateKeyEdit.Top := PrivateKeyLabel.Top - ScaleY(3);
+  PrivateKeyEdit.Left := HostNameEdit.Left;
+  PrivateKeyEdit.Width := EncryptionPage.SurfaceWidth div 2- 20;
+  PrivateKeyEdit.Text := '';
+  PrivateKeyEdit.Hide;
+
+  PrivateKeyBrowseButton := TButton.Create(EncryptionPage);
+  PrivateKeyBrowseButton.Parent := EncryptionPage.Surface;
+  PrivateKeyBrowseButton.Caption := 'Browse...';
+  PrivateKeyBrowseButton.Left := PrivateKeyEdit.Left + PrivateKeyEdit.Width + 8;
+  PrivateKeyBrowseButton.Top := PrivateKeyEdit.Top;
+  PrivateKeyBrowseButton.Width := 75;
+  PrivateKeyBrowseButton.OnClick := @PrivateKeyBrowseFile;
+  PrivateKeyBrowseButton.Hide;
+
+  PrivateKeyInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  PrivateKeyInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  PrivateKeyInfoBitmapImage.Parent := EncryptionPage.Surface;
+  PrivateKeyInfoBitmapImage.Top := PrivateKeyLabel.Top - ScaleY(2);
+  PrivateKeyInfoBitmapImage.Left := PrivateKeyBrowseButton.Left + PrivateKeyBrowseButton.Width + ScaleX(4);
+  PrivateKeyInfoBitmapImage.Center := True;
+  PrivateKeyInfoBitmapImage.Width := 20;
+  PrivateKeyInfoBitmapImage.Height := 20;
+  PrivateKeyInfoBitmapImage.Stretch := True;
+  PrivateKeyInfoBitmapImage.Cursor := crHand;
+  PrivateKeyInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  PrivateKeyInfoBitmapImage.Hide;
+
+  PrivateKeyWarningBitmapImage := TBitmapImage.Create(EncryptionPage);
+  PrivateKeyWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  PrivateKeyWarningBitmapImage.Parent := EncryptionPage.Surface;
+  PrivateKeyWarningBitmapImage.Top := PrivateKeyLabel.Top- ScaleY(3);
+  PrivateKeyWarningBitmapImage.Left := PrivateKeyInfoBitmapImage.Left + PrivateKeyInfoBitmapImage.Width + ScaleX(4);
+  PrivateKeyWarningBitmapImage.Center := True;
+  PrivateKeyWarningBitmapImage.Width := 24;
+  PrivateKeyWarningBitmapImage.Height := 24;
+  PrivateKeyWarningBitmapImage.Stretch := True;
+  PrivateKeyWarningBitmapImage.Cursor := crHand;
+  PrivateKeyWarningBitmapImage.ShowHint := True;
+  PrivateKeyWarningBitmapImage.Hide;
+
+  // ──── Ca
+
+  CaLabel := TNewStaticText.Create(EncryptionPage);
+  CaLabel.Parent := EncryptionPage.Surface;
+  CaLabel.Top := PrivateKeyLabel.Top + ScaleY(30);
+  CaLabel.Caption := 'Ca:';
+  CaLabel.Hide;
+
+  CaEdit := TNewEdit.Create(EncryptionPage);
+  CaEdit.Parent := EncryptionPage.Surface;
+  CaEdit.Top := CaLabel.Top - ScaleY(3);
+  CaEdit.Left := HostNameEdit.Left;
+  CaEdit.Width := EncryptionPage.SurfaceWidth div 2 - 20;
+  CaEdit.Text := '';
+  CaEdit.Hide;
+
+  CaBrowseButton := TButton.Create(EncryptionPage);
+  CaBrowseButton.Parent := EncryptionPage.Surface;
+  CaBrowseButton.Caption := 'Browse...';
+  CaBrowseButton.Left := CaEdit.Left + CaEdit.Width + 8;
+  CaBrowseButton.Top := CaEdit.Top;
+  CaBrowseButton.Width := 75;
+  CaBrowseButton.OnClick := @CaBrowseFile;
+  CaBrowseButton.Hide;
+
+  CaInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  CaInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  CaInfoBitmapImage.Parent := EncryptionPage.Surface;
+  CaInfoBitmapImage.Top := CaLabel.Top - ScaleY(2);
+  CaInfoBitmapImage.Left := CaBrowseButton.Left + CaBrowseButton.Width + ScaleX(4);
+  CaInfoBitmapImage.Center := True;
+  CaInfoBitmapImage.Width := 20;
+  CaInfoBitmapImage.Height := 20;
+  CaInfoBitmapImage.Stretch := True;
+  CaInfoBitmapImage.Cursor := crHand;
+  CaInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  CaInfoBitmapImage.Hide;
+  
+  // ──── Ca common name (CN)
+
+  CommonNameLabel:= TNewStaticText.Create(EncryptionPage);
+  CommonNameLabel.Parent := EncryptionPage.Surface;
+  CommonNameLabel.Top := CaLabel.Top + ScaleY(30);
+  CommonNameLabel.Caption := 'Ca common name (CN):';
+  CommonNameLabel.Hide;
+
+  CommonNameEdit := TNewEdit.Create(EncryptionPage);
+  CommonNameEdit.Parent := EncryptionPage.Surface;
+  CommonNameEdit.Top := CommonNameLabel.Top - ScaleY(3);
+  CommonNameEdit.Left := HostNameEdit.Left;
+  CommonNameEdit.Width := EncryptionPage.SurfaceWidth div 2;
+  CommonNameEdit.Text := '';
+  CommonNameEdit.Hide;
+
+  CommonNameInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  CommonNameInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  CommonNameInfoBitmapImage.Parent := EncryptionPage.Surface;
+  CommonNameInfoBitmapImage.Top := CommonNameLabel.Top - ScaleY(2);
+  CommonNameInfoBitmapImage.Left := CommonNameEdit.Left + CommonNameEdit.Width + ScaleX(4);
+  CommonNameInfoBitmapImage.Center := True;
+  CommonNameInfoBitmapImage.Width := 20;
+  CommonNameInfoBitmapImage.Height := 20;
+  CommonNameInfoBitmapImage.Stretch := True;
+  CommonNameInfoBitmapImage.Cursor := crHand;
+  CommonNameInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  CommonNameInfoBitmapImage.Hide;
+
+  // ──── Token
+
+  TokenLabel := TNewStaticText.Create(EncryptionPage);
+  TokenLabel.Parent := EncryptionPage.Surface;
+  TokenLabel.Top := CommonNameLabel.Top + ScaleY(30);
+  TokenLabel.Caption := 'Token:';
+  TokenLabel.Hide;
+
+  TokenEdit := TNewEdit.Create(EncryptionPage);
+  TokenEdit.Parent := EncryptionPage.Surface;
+  TokenEdit.Top := TokenLabel.Top - ScaleY(3);
+  TokenEdit.Left := HostNameEdit.Left;
+  TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
+  TokenEdit.Text := '';
+  TokenEdit.Hide;
+
+  TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  TokenInfoBitmapImage.Parent := EncryptionPage.Surface;
+  TokenInfoBitmapImage.Top := TokenLabel.Top - ScaleY(2);
+  TokenInfoBitmapImage.Left := TokenEdit.Left + TokenEdit.Width + ScaleX(4);
+  TokenInfoBitmapImage.Center := True;
+  TokenInfoBitmapImage.Width := 20;
+  TokenInfoBitmapImage.Height := 20;
+  TokenInfoBitmapImage.Stretch := True;
+  TokenInfoBitmapImage.Cursor := crHand;
+  TokenInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  TokenInfoBitmapImage.Hide;
+
+  TokenWarningBitmapImage := TBitmapImage.Create(EncryptionPage);
+  TokenWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  TokenWarningBitmapImage.Parent := EncryptionPage.Surface;
+  TokenWarningBitmapImage.Top := TokenLabel.Top- ScaleY(3);
+  TokenWarningBitmapImage.Left := TokenInfoBitmapImage.Left + TokenInfoBitmapImage.Width + ScaleX(4);
+  TokenWarningBitmapImage.Center := True;
+  TokenWarningBitmapImage.Width := 24;
+  TokenWarningBitmapImage.Height := 24;
+  TokenWarningBitmapImage.Stretch := True;
+  TokenWarningBitmapImage.Cursor := crHand;
+  TokenWarningBitmapImage.ShowHint := True;
+  TokenWarningBitmapImage.Hide;
+
+  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
+  ReadAgentRegistryValues;
+  LoadSilentParameters;
+
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
+    Result := not WizardIsComponentSelected('agent')
+  else if PageID = DownloadPage.ID then
+    Result := not WizardIsComponentSelected('plugins')
+  else
+    Result := False;
+end;
+{ ────────────────────────────────────────────────────────────────────── }
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  Error: String;
+begin
+  if CurPageID = wpReady then begin
+    if WizardIsComponentSelected('plugins') then begin
+      WriteAgentRegistryValues;
+      DownloadPage.Clear;
+      DownloadPage.Add('{#PluginURL}','centreon_plugins.exe','');
+      DownloadPage.Show;
+      try
+        try
+          DownloadPage.Download; // This downloads the files to {tmp}
+          Result := True;
+        except
+          if DownloadPage.AbortedByUser then
+            Log('Aborted by user.')
+          else begin
+            Error := Format('%s: %s', [DownloadPage.Name, GetExceptionMessage]);
+            SuppressibleMsgBox(AddPeriod(Error), mbCriticalError, MB_OK, IDOK);
+          end;
+          Result := False;
+          exit;
+        end;
+      finally
+        DownloadPage.Hide;
+      end;
+      end;
+      Result := True;
+  end else if CurPageID = wpSelectComponents then begin
+    if not WizardIsComponentSelected('agent') and not WizardIsComponentSelected('plugins') then begin
+      MsgBox('Please select at least one component before continuing.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    Result := True;
+  end else if CurPageID = ConfigPage.ID then begin
+    // disable all warnings
+    HostWarningBitmapImage.Hide;
+    PollerWarningBitmapImage.Hide;
+    LogFileWarningBitmapImage.Hide;
+    PublicCertWarningBitmapImage.Hide;
+    PrivateKeyWarningBitmapImage.Hide;
+    TokenWarningBitmapImage.Hide;
+    
+    if HostNameEdit.Text = '' then begin
+      HostWarningBitmapImage.Hint := 'Please select at least one component before continuing.';
+      HostWarningBitmapImage.Show;
+      MsgBox('Please enter the host name. This field cannot be left empty.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+
+    if not IsValidHostPortFormat(PollerEndpointEdit.Text) then begin
+      Result := False;
+      exit;
+    end;
+
+    if (LogTypeComboBox.Text = 'File') and (LogFileEdit.Text = '') then begin
+      LogFileWarningBitmapImage.Hint := 'Please select a log file before continuing.';
+      LogFileWarningBitmapImage.Show;
+      MsgBox('Please enter the log file path. This field cannot be left empty.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    Result := True;
+  end else if CurPageID = EncryptionPage.ID then begin
+    if EncryptionCheckBox.Checked then begin
+      if PublicCertEdit.Text = '' then begin
+        PublicCertWarningBitmapImage.Hint := 'Please select a public certificate file before continuing.';
+        PublicCertWarningBitmapImage.Show;
+        MsgBox('Please enter the public certificate file path. This field cannot be left empty.', mbError, MB_OK);
+        Result := False;
+        exit;
+      end;
+
+      if PrivateKeyEdit.Text = '' then begin
+        PrivateKeyWarningBitmapImage.Hint := 'Please select a private key file before continuing.';
+        PrivateKeyWarningBitmapImage.Show;
+        MsgBox('Please enter the private key file path. This field cannot be left empty.', mbError, MB_OK);
+        Result := False;
+        exit;
+      end;
+
+      if TokenEdit.Text = '' then begin
+        TokenWarningBitmapImage.Hint := 'Please select a CA file before continuing.';
+        TokenWarningBitmapImage.Show;
+        MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
+        Result := False;
+        exit;
+      end;
+    end;
+    Result := True;
+  end else
+    Result := True;
+end;
