@@ -188,8 +188,9 @@ void streaming_client::on_incomming_request(
     const std::shared_ptr<client_reactor>& caller [[maybe_unused]],
     const std::shared_ptr<MessageToAgent>& request) {
   // incoming request is used in main thread
-  asio::post(*_io_context,
-             [request, sched = _sched]() { sched->update(request); });
+  asio::post(*_io_context, [request, sched = _sched]() {
+    sched->on_engine_request(request);
+  });
 }
 
 /**

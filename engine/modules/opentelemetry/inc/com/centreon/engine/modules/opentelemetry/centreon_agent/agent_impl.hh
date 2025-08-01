@@ -19,6 +19,7 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/synchronization/mutex.h>
 #include <algorithm>
@@ -67,7 +68,7 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
 
   static instance_container* _configured_instance
       ABSL_GUARDED_BY(*_instances_m);
-  static absl::flat_hash_set<std::shared_ptr<agent_impl_base>>*
+  static absl::btree_set<std::shared_ptr<agent_impl_base>>*
       _no_configured_instance ABSL_GUARDED_BY(*_instances_m);
   static absl::Mutex* _instances_m;
 

@@ -134,16 +134,12 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
              time_point first_start_expected,
              duration check_interval,
-             const std::string& serv,
-             const std::string& command_name,
-             const std::string& cmd_line,
+             const Service& serv,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
              const checks_statistics::pointer& stat)
     : _start_expected(first_start_expected, check_interval),
       _service(serv),
-      _command_name(command_name),
-      _command_line(cmd_line),
       _conf(cnf),
       _time_out_timer(*io_context),
       _completion_handler(handler),
@@ -169,7 +165,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
 bool check::_start_check(const duration& timeout) {
   if (_running_check) {
     SPDLOG_LOGGER_ERROR(_logger, "check for service {} is already running",
-                        _service);
+                        _service.service_description());
     asio::post(*_io_context,
                [me = shared_from_this(), to_call = _completion_handler]() {
                  to_call(me, e_status::unknown,
@@ -180,12 +176,13 @@ bool check::_start_check(const duration& timeout) {
   }
   _running_check = true;
   _start_timeout_timer(timeout);
-  SPDLOG_LOGGER_TRACE(_logger, "start check for service {}", _service);
+  SPDLOG_LOGGER_TRACE(_logger, "start check for service {}",
+                      _service.service_description());
 
   time_point now = std::chrono::system_clock::now();
 
   if (_last_start.time_since_epoch().count() != 0) {
-    _stat->add_interval_stat(_command_name, now - _last_start);
+    _stat->add_interval_stat(get_command_name(), now - _last_start);
   }
 
   _last_start = now;
@@ -220,11 +217,11 @@ void check::_timeout_timer_handler(const boost::system::error_code& err,
   }
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_ERROR(_logger, "check timeout for service {} cmd: {}",
-                        _service, _command_name);
+                        _service.service_description(), get_command_name());
     this->_on_timeout();
     on_completion(start_check_index, 3 /*unknown*/,
                   std::list<com::centreon::common::perfdata>(),
-                  {"Timeout at execution of " + _command_line});
+                  {"Timeout at execution of " + get_command_line()});
   }
 }
 
@@ -246,12 +243,12 @@ void check::on_completion(
   if (start_check_index == _running_check_index) {
     SPDLOG_LOGGER_TRACE(_logger,
                         "end check for service {} cmd: {} status:{} output: {}",
-                        _service, _command_name, status,
-                        outputs.empty() ? "" : outputs.front());
+                        _service.service_description(), get_command_name(),
+                        status, outputs.empty() ? "" : outputs.front());
     _time_out_timer.cancel();
     _running_check = false;
     ++_running_check_index;
-    _stat->add_duration_stat(_command_name,
+    _stat->add_duration_stat(get_command_name(),
                              std::chrono::system_clock::now() - _last_start);
     _completion_handler(shared_from_this(), status, perfdata, outputs);
   }

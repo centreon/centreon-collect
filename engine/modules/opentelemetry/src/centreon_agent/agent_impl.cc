@@ -42,9 +42,9 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 agent_impl_base::instance_container* agent_impl_base::_configured_instance =
     new agent_impl_base::instance_container;
 
-absl::flat_hash_set<std::shared_ptr<agent_impl_base>>*
+absl::btree_set<std::shared_ptr<agent_impl_base>>*
     agent_impl_base::_no_configured_instance =
-        new absl::flat_hash_set<std::shared_ptr<agent_impl_base>>;
+        new absl::btree_set<std::shared_ptr<agent_impl_base>>;
 
 absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
 
