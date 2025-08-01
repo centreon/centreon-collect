@@ -25,6 +25,8 @@ extern std::shared_ptr<spdlog::logger> g_logger;
 
 void set_grpc_logger();
 
+void init_log_flush_timer(const std::shared_ptr<asio::io_context>& io_context);
+
 }  // namespace com::centreon::agent
 
 #endif

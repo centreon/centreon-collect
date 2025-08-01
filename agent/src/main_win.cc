@@ -212,7 +212,7 @@ int _main(bool service_start) {
 
   g_logger->flush_on(spdlog::level::warn);
 
-  spdlog::flush_every(std::chrono::seconds(1));
+  init_log_flush_timer(g_io_context);
 
   set_grpc_logger();
 

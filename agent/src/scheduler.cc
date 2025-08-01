@@ -351,10 +351,10 @@ void scheduler::force_check(const engine_to_agent_request_ptr& request) {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(
-      _logger,
-      "service {} not in queue (perhaps yet running) => it won't be started",
-      force.serv_id());
+  SPDLOG_LOGGER_INFO(_logger,
+                     "service {} not in queue (perhaps yet running) => it "
+                     "won't be check forced",
+                     force.serv_id());
 }
 
 /**

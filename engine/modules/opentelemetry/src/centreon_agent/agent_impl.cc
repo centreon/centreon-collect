@@ -92,8 +92,8 @@ void agent_impl_base::force_check(uint64_t host_id, uint64_t serv_id) {
   auto search = host_serv_index.find(std::make_pair(host_id, serv_id));
   if (search == host_serv_index.end()) {
     throw exceptions::msg_fmt(
-        "No agent that checks service {} of host {} connected", host_id,
-        serv_id);
+        "No agent that checks service {} of host {} connected", serv_id,
+        host_id);
   }
   search->connection->_force_check(host_id, serv_id);
 }
@@ -236,6 +236,8 @@ static bool add_command_to_agent_conf(
   com::centreon::agent::Service* serv = cnf->add_services();
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
+  serv->set_host_id(host_id);
+  serv->set_service_id(service_id);
   if (encrypt_credentials && pb_config.credentials_encryption() &&
       credentials_decrypt) {
     serv->set_command_line("encrypt::" +
@@ -318,6 +320,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(
             *cnf, _last_sent_config->config())) {
+      _on_new_conf(new_conf->config());
       _last_sent_config = new_conf;
     } else {
       new_conf.reset();
