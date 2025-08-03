@@ -14,6 +14,9 @@
 #define WarningIcon "resources\warning_icon.bmp"
 #define InfoIcon "resources\info_icon.bmp"
 
+#define OutputDir "@OUTPUT_DIR@"
+#define OutputBaseFilename "@OUTPUT_BASE_FILENAME@"
+
 
 [Setup]
 AppId={{D80E49AC-E863-41E6-A157-54AB2960FFC8}}
@@ -29,7 +32,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-OutputBaseFilename=installer
+OutputBaseFilename={#OutputBaseFilename}
+OutputDir={#OutputDir}
 SolidCompression=no
 WizardStyle=modern
 WizardResizable=no
@@ -40,7 +44,7 @@ SetupIconFile ={#CentreonIcon}
 PrivilegesRequired=admin
 Uninstallable=yes
 DisableStartupPrompt=yes
-WizardImageFile={#CentreonLogoLarg}
+WizardImageFile={#CentreonLogoLarge}
 WizardSmallImageFile={#CentreonLogo}
 WizardImageStretch=yes
 
@@ -59,8 +63,8 @@ Name: "plugins"; Description: "Plugins";  Types: custom
 [Files]
 Source: "{#AppExePath}"; DestDir: "{app}\Centreon Monitoring Agent"; Flags: ignoreversion; Components: agent
 Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins
-Source: resources\info.bmp; Flags: dontcopy
-Source: resources\warning.bmp; Flags: dontcopy
+Source: {#InfoIcon}; Flags: dontcopy
+Source: {#WarningIcon}; Flags: dontcopy
 
 [Run]
 Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\Centreon Monitoring Agent\{#AppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden
@@ -581,10 +585,10 @@ begin
     WizardForm.ClientHeight := 400;
     SizeBytes := DownloadTemporaryFileSize('{#PluginURL}');
 // ── Load resources 
-  ExtractTemporaryFile('info.bmp');
-  Infobmp := ExpandConstant('{tmp}\info.bmp');
-  ExtractTemporaryFile('warning.bmp');
-  WarningBmp := ExpandConstant('{tmp}\warning.bmp');
+  ExtractTemporaryFile('info_icon.bmp');
+  Infobmp := ExpandConstant('{tmp}\info_icon.bmp');
+  ExtractTemporaryFile('warning_icon.bmp');
+  WarningBmp := ExpandConstant('{tmp}\warning_icon.bmp');
 // ── Config page 
   ConfigPage := CreateCustomPage(wpSelectComponents, 'Centreon Agent Configuration', 'Please provide the required information to connect agent.');
 
