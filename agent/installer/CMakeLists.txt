@@ -30,41 +30,33 @@ endif()
 
 string(REPLACE "/" "\\" CENTAGENT_PATH "${CENTAGENT_PATH}") 
 
-#uncomment if makensis is not in the path
-set(MKNSIS "C:/Program Files (x86)/NSIS/Bin/makensis.exe")
+set(AGENT_VERSION "${AGENT_MAJOR}.${AGENT_MINOR}.${AGENT_PATCH}")
 
-#set(MKNSIS "makensis.exe")
+# Path to Inno Setup Compiler
+set(ISCC_EXECUTABLE "C:/Program Files (x86)/Inno Setup 6/ISCC.exe")
 
-# Configure files.
-configure_file("${PROJECT_SOURCE_DIR}/version.nsi.in" "${PROJECT_SOURCE_DIR}/version.nsi")
+# Inno script path
+set(INNO_SCRIPT "${PROJECT_SOURCE_DIR}/installer.iss")
 
-file(GLOB COMMON_INSTALLERS_FILES "${PROJECT_SOURCE_DIR}/version.nsi" "${PROJECT_SOURCE_DIR}/dlg_helper.nsi" "${PROJECT_SOURCE_DIR}/resources/*")
+# Define your output path for the installer
+set(INSTALLER_OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
 
+# # Resource files (optional use)
+# file(GLOB INSTALLER_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources/*")
 
-message(NOTICE "---------------- Generate installer in ${PROJECT_SOURCE_DIR} ---------------")
+# Create configured .iss file from .in template
+configure_file(
+  ${PROJECT_SOURCE_DIR}/installer.iss.in
+  ${PROJECT_SOURCE_DIR}/installer_configured.iss
+  @ONLY
+)
 
-# modify binary called from the application manager
-# embedded in installer
-add_custom_command(
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.nsi"  ${COMMON_INSTALLERS_FILES} ${CENTREON_AGENT}
-  COMMENT "--------- Generating cma configuration modifier --------"
-  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
-  COMMAND ${MKNSIS} "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.nsi")
-
-add_custom_target("centreon-monitoring-agent-modifier" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe")
-
-configure_file("${PROJECT_SOURCE_DIR}/compile_installer.ps1.in" "${PROJECT_SOURCE_DIR}/compile_installer.ps1")
-
-#final installer
-add_custom_command(
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.nsi" "centreon-monitoring-agent-modifier" ${COMMON_INSTALLERS_FILES}  "${PROJECT_SOURCE_DIR}/compile_installer.ps1"
-  COMMENT "--------- Generating cma configuration installer --------"
-  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
-  COMMAND pwsh.exe -File "${PROJECT_SOURCE_DIR}/compile_installer.ps1")
-
-if (WITH_BUILD_AGENT_INSTALLER)
-  add_custom_target("centreon-monitoring-agent-installer" ALL DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
-endif()
-
+# Inno Setup command
+# Add a custom target to build the installer
+# Custom target to run Inno Setup
+add_custom_target(installer
+  COMMAND "${ISCC_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/installer_configured.iss"
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  COMMENT "Building installer using Inno Setup with version ${MY_APP_VERSION}"
+  VERBATIM
+)

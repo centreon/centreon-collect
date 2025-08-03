@@ -1,30 +1,33 @@
-#define MyAppName "Centreon Monitoring Agent"
-#define MyAppVersion "1.5"
-#define MyAppPublisher "Centreon"
-#define MyAppURL "https://www.centreon.com/"
-#define MyAppExeName "centagent.exe"
+#define AppName "Centreon Monitoring Agent"
+#define AppVersion "@AGENT_VERSION@"
+#define AppExePath "@CENTAGENT_PATH@"
+#define AppPublisher "Centreon"
+#define AppURL "https://www.centreon.com/"
+#define AppExeName "centagent.exe"
 #define PluginURL "https://github.com/centreon/centreon-nsclient-build/releases/download/20240909/centreon_plugins.exe"
 #define PluginSize 20961012
 
-#define LicenseFile "C:\Users\AlterUser\Documents\test\installer_inno\license.txt"
-#define CentreonIcon "logo_centreon.ico"
-#define CentreonLogo "LogoCentreon_dark.bmp"
-#define CentreonLogoLarg "logo_170x170.bmp"
+#define LicenseFile "resources\license.txt"
+#define CentreonIcon "resources\centreon_icon.ico"
+#define CentreonLogo "resources\centreon_logo.bmp"
+#define CentreonLogoLarge "resources\centreon_logo_large.bmp"
+#define WarningIcon "resources\warning_icon.bmp"
+#define InfoIcon "resources\info_icon.bmp"
 
 
 [Setup]
-AppId={{D80E49AC-E863-41E6-A157-54AB2960FFC8}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
-AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
+AppId={{D80E49AC-E863-41E6-A157-54AB2960FFC8}}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppPublisher={#AppPublisher}
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}
+AppUpdatesURL={#AppURL}
 DefaultDirName={autopf}\Centreon
-UninstallDisplayIcon={app}\{#MyAppExeName}
+UninstallDisplayIcon={app}\{#AppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-DefaultGroupName={#MyAppName}
+DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputBaseFilename=installer
 SolidCompression=no
@@ -54,13 +57,13 @@ Name: "agent";   Description: "Centreon Monitoring Agent"; Types: custom
 Name: "plugins"; Description: "Plugins";  Types: custom 
 
 [Files]
-Source: "C:\Users\AlterUser\centreon-collect\build_windows\agent\{#MyAppExeName}"; DestDir: "{app}\Centreon Monitoring Agent"; Flags: ignoreversion; Components: agent
+Source: "{#AppExePath}"; DestDir: "{app}\Centreon Monitoring Agent"; Flags: ignoreversion; Components: agent
 Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins
-Source: info.bmp; Flags: dontcopy
-Source: warning.bmp; Flags: dontcopy
+Source: resources\info.bmp; Flags: dontcopy
+Source: resources\warning.bmp; Flags: dontcopy
 
 [Run]
-Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\Centreon Monitoring Agent\{#MyAppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden
+Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\Centreon Monitoring Agent\{#AppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden
 Filename: "sc.exe"; Parameters: "description CentreonMonitoringAgent ""Centreon agent used for monitoring and metric collection""";Flags: runhidden
 Filename: "sc.exe"; Parameters: "start CentreonMonitoringAgent"; Flags: runhidden
 
