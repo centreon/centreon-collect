@@ -48,9 +48,9 @@ apt-get -y install git \
     librhash0 \
     libuv1
 
-wget https://cmake.org/files/v3.21/cmake-3.21.7-linux-\$(arch).sh
-bash cmake-3.21.7-linux-\$(arch).sh --skip-license
-rm -f cmake-3.21.7-linux-\$(arch).sh
+wget https://cmake.org/files/v3.25/cmake-3.25.3-linux-\$(arch).sh
+bash cmake-3.25.3-linux-\$(arch).sh --skip-license
+rm -f cmake-3.25.3-linux-\$(arch).sh
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
 

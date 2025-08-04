@@ -649,6 +649,8 @@ message(STATUS "  System")
 message(STATUS "    - Name                        ${CMAKE_SYSTEM_NAME}")
 message(STATUS "    - Version                     ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "    - Processor                   ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "    - Distrib                     ${DISTRIB}")
+message(STATUS "    - Distrib version             ${DISTRIB_VERSION_ID}")
 message(STATUS "")
 message(STATUS "  Build")
 message(

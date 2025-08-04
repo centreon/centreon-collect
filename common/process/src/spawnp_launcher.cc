@@ -100,13 +100,13 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
   pid_t pid(static_cast<pid_t>(-1));
 
 // child not play with parent fds
-// alma8 does not provide close_range => syscall for all os, we don't use
-// close_range
-/* Set the FD_CLOEXEC bit instead of closing the file descriptor. */
+// alma8 does not provide SYS_close_range
+#ifdef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
 #ifndef CLOSE_RANGE_CLOEXEC
 #define CLOSE_RANGE_CLOEXEC (1U << 2)
 #endif
   ::syscall(SYS_close_range, 3, ~0u, CLOSE_RANGE_CLOEXEC);
+#endif
 
   if (posix_spawnp(&pid, args->get_c_args()[0], &file_action.actions,
                    &attr.attr,

@@ -20,6 +20,21 @@
 #define CENTREON_COMMON_PROCESS_SPAWNP_LAUNCHER_HH
 
 #if !defined(BOOST_PROCESS_V2_WINDOWS)
+
+/**
+ * @brief almalinux 8 uses very old kernels 4.18 so we can't use nor
+ * SYS_pidfd_open nor SYS_close_range
+ *
+ */
+
+#define CAN_USE_SYS_CLOSE_RANGE 1
+#ifdef DISTRIB_ALMA
+#if defined(DISTRIB_MAJOR) && DISTRIB_MAJOR < 9
+#undef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
+#endif
+#endif
+
+#ifdef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
 /**
  * we force usage of pidfd_open as SYS_close_range and SYS_pidfd_open are
  * available in alma8 even if glibc wrapper are not
@@ -32,6 +47,7 @@
 #endif
 #ifndef SYS_close_range
 #define SYS_close_range 436
+#endif
 #endif
 #endif
 
