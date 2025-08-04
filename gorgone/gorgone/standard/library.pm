@@ -952,9 +952,11 @@ sub init_database {
     return if (!defined($options{autocreate_schema}) || $options{autocreate_schema} != 1);
 
     my $db_version = '1.0';
-    my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT `value` FROM gorgone_information WHERE `key` = 'version'} });
+    # don't log errors for this query as we know the tables may not exist, and
+    # that's the info we're looking for
+    my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT `value` FROM gorgone_information WHERE `key` = 'version'}, no_error_log => 1 });
     if ($status == -1) {
-        ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT 1 FROM gorgone_identity LIMIT 1} });
+        ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT 1 FROM gorgone_identity LIMIT 1}, no_error_log => 1 });
         if ($status == -1) {
             create_schema(gorgone => $options{gorgone}, logger => $options{logger}, version => $options{version});
             return ;

@@ -20,9 +20,10 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/storage/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/storage/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/storage/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${INC_DIR}" "${SRC_DIR}"
+"${PROJECT_SOURCE_DIR}/neb/inc"
+${CMAKE_BINARY_DIR}/common/process_stat
+"${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/storage")
 
 # conflict_manager library.
@@ -44,10 +45,14 @@ add_dependencies(conflictmgr
 	pb_header_lib
 	pb_storage_lib
 	pb_open_telemetry_lib
+	pb_bbdo_lib
+	pb_rebuild_message_lib
+	pb_remove_graph_message_lib
+	process_stat
 	)
 
 set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(conflictmgr spdlog::spdlog)
+target_link_libraries(conflictmgr PRIVATE spdlog::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.
@@ -69,11 +74,11 @@ add_library(
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/rebuilder.hh"
   "${INC_DIR}/stream.hh")
-set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
-add_dependencies("${STORAGE}" target_rebuild_message
-                 target_remove_graph_message table_max_size)
-target_link_libraries(${STORAGE}
-  -L${PROTOBUF_LIB_DIR}
+set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
+add_dependencies("${STORAGE}" pb_rebuild_message_lib
+                 pb_remove_graph_message_lib table_max_size)
+target_link_libraries(${STORAGE} PRIVATE
   conflictmgr rokerbase bbdo_storage
   pb_rebuild_message_lib pb_remove_graph_message_lib)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)

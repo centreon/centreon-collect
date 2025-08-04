@@ -227,6 +227,8 @@ class check : public std::enable_shared_from_this<check> {
 
   time_point get_start_expected() const { return _start_expected.value(); }
 
+  duration get_check_interval() const { return _start_expected.get_step(); }
+
   const time_step& get_raw_start_expected() const { return _start_expected; }
 
   const std::string& get_service() const { return _service; }

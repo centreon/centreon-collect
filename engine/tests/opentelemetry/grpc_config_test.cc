@@ -49,7 +49,7 @@ TEST(otl_grpc_config, no_host_json) {
 
 TEST(otl_grpc_config, bad_port_json) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":1000
 })"_json),
@@ -58,7 +58,7 @@ TEST(otl_grpc_config, bad_port_json) {
 
 TEST(otl_grpc_config, bad_port_json2) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":"2500"
 })"_json),
@@ -67,7 +67,7 @@ TEST(otl_grpc_config, bad_port_json2) {
 
 TEST(otl_grpc_config, bad_port_json3) {
   ASSERT_THROW(grpc_config t(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":250000
 })"_json),
@@ -76,7 +76,7 @@ TEST(otl_grpc_config, bad_port_json3) {
 
 TEST(otl_grpc_config, good_host_port) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500
 })"_json);
@@ -92,7 +92,7 @@ TEST(otl_grpc_config, good_host_port) {
 
 TEST(otl_grpc_config, good_host_port2) {
   grpc_config c(R"(
-{   
+{
     "host":"127.0.0.1",
     "port":2500,
     "encryption":true,
@@ -109,6 +109,94 @@ TEST(otl_grpc_config, good_host_port2) {
   ASSERT_EQ(c.get_second_keepalive_interval(), 30);
 }
 
+// test if we can set trusted tokens
+TEST(otl_grpc_config, tokens) {
+  grpc_config c(R"(
+{
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":true,
+    "compression": true,
+    "ca_name":"toto",
+    "token":"token1",
+    "trusted_tokens":["toto","titi"]
+})"_json);
+  ASSERT_EQ(c.get_hostport(), "127.0.0.1:2500");
+  ASSERT_TRUE(c.is_compressed());
+  ASSERT_TRUE(c.is_crypted());
+  ASSERT_TRUE(c.get_cert().empty());
+  ASSERT_TRUE(c.get_key().empty());
+  ASSERT_EQ(c.get_ca_name(), "toto");
+  ASSERT_TRUE(c.get_ca().empty());
+  ASSERT_EQ(c.get_second_keepalive_interval(), 30);
+  ASSERT_EQ(c.get_token(), "token1");
+  ASSERT_EQ(c.get_trusted_tokens()->size(), 2);
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("toto"));
+  ASSERT_TRUE(c.get_trusted_tokens()->contains("titi"));
+}
+
+//  test if we can compare trusted tokens
+TEST(otl_grpc_config, tokencompare) {
+  grpc_config c(R"(
+{
+    "host":"127.0.0.1",
+    "port":2500,
+    "encryption":true,
+    "compression": true,
+    "ca_name":"toto"
+})"_json);
+  grpc_config c_same(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":true,
+      "compression": true,
+      "ca_name":"toto"
+  })"_json);
+  grpc_config c2(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":true,
+      "compression": true,
+      "ca_name":"toto",
+      "trusted_tokens":["toto","titi"]
+  })"_json);
+  grpc_config c2_same(R"(
+  {
+      "host":"127.0.0.1",
+      "port":2500,
+      "encryption":true,
+      "compression": true,
+      "ca_name":"toto",
+      "trusted_tokens":["toto","titi"]
+  })"_json);
+  grpc_config c2_minos(R"(
+    {
+        "host":"127.0.0.1",
+        "port":2500,
+        "encryption":true,
+        "compression": true,
+        "ca_name":"toto",
+        "trusted_tokens":["toto"]
+    })"_json);
+  grpc_config c2_plus(R"(
+      {
+          "host":"127.0.0.1",
+          "port":2500,
+          "encryption":true,
+          "compression": true,
+          "ca_name":"toto",
+          "trusted_tokens":["toto","titi","tata"]
+      })"_json);
+
+  ASSERT_EQ(c.compare(c_same), 0);
+  ASSERT_EQ(c.compare(c2), -1);
+  ASSERT_EQ(c2.compare(c), 1);
+  ASSERT_EQ(c2.compare(c2_same), 0);
+  ASSERT_EQ(c2.compare(c2_minos), 1);
+  ASSERT_EQ(c2.compare(c2_plus), -1);
+}
 //  test all allow encryption values
 //  full, insecure, no, true, false
 TEST(otl_grpc_config, encryption_value) {

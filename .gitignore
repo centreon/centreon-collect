@@ -70,6 +70,8 @@ report.html
 agent/scripts/centagent.service
 agent/conf/centagent.json
 opentelemetry-proto
+agent/src/agent.rc
+agent/inc/com/centreon/agent/version.hh
 
 # bbdo
 bbdo/*_accessor.hh
@@ -95,6 +97,9 @@ broker/compile_commands.json
 broker/grpc/grpc_stream.proto
 broker/grpc/src/grpc_bridge.cc
 
+# agent
+agent/inc/com/centreon/agent/version.hh
+agent/src/agent.rc
 
 # clib
 clib/inc/com/centreon/clib/version.hh

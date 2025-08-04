@@ -21,7 +21,6 @@
 
 #include <mysql.h>
 
-#include <fmt/format.h>
 #include <cmath>
 
 namespace com::centreon::broker {

@@ -31,10 +31,10 @@ on:
       is_nightly:
         required: false
         type: string
-      only_robot_cma:
+      features_pattern:
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: .robot
     secrets:
       registry_username:
         required: true
@@ -56,7 +56,7 @@ on:
         required: true
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -88,8 +88,8 @@ jobs:
       - name: image to cache
         uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: ./${{inputs.image}}
-          key: ${{inputs.image_test}}
+          path: ./${{ inputs.image }}
+          key: ${{ inputs.image_test }}
 
   robot-test-list:
     needs: [test-image-to-cache]
@@ -105,17 +105,11 @@ jobs:
         id: list-features
         run: |
           cd tests
-          if [ "${{ inputs.only_robot_cma }}" == "true" ]
-          then
-            FEATURES_PATTERN="cma.robot"
-          else
-            FEATURES_PATTERN=".robot"
-          fi
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep "$FEATURES_PATTERN" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${{ inputs.features_pattern }}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -133,8 +127,8 @@ jobs:
       - name: Restore image
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: ./${{inputs.image}}
-          key: ${{inputs.image_test}}
+          path: ./${{ inputs.image }}
+          key: ${{ inputs.image_test }}
           fail-on-cache-miss: true
 
       - name: Restore packages

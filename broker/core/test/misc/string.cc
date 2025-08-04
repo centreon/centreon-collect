@@ -49,14 +49,6 @@ TEST(StringSplit, ManyPart) {
   ASSERT_EQ(lst, res);
 }
 
-TEST(StringBase64, Encode) {
-  ASSERT_EQ(string::base64_encode("A first little attempt."),
-            "QSBmaXJzdCBsaXR0bGUgYXR0ZW1wdC4=");
-  ASSERT_EQ(string::base64_encode("A"), "QQ==");
-  ASSERT_EQ(string::base64_encode("AB"), "QUI=");
-  ASSERT_EQ(string::base64_encode("ABC"), "QUJD");
-}
-
 TEST(escape, simple) {
   ASSERT_EQ("Hello", string::escape("Hello", 10));
   ASSERT_EQ("Hello", string::escape("Hello", 5));

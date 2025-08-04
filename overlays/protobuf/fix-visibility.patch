@@ -1,0 +1,19 @@
+diff --git a/cmake/libprotobuf.cmake b/cmake/libprotobuf.cmake
+index 11c09b1bc..871e4cb12 100644
+--- a/cmake/libprotobuf.cmake
++++ b/cmake/libprotobuf.cmake
+@@ -41,10 +41,10 @@ set_target_properties(libprotobuf PROPERTIES
+     VERSION ${protobuf_VERSION}
+     OUTPUT_NAME ${LIB_PREFIX}protobuf
+     DEBUG_POSTFIX "${protobuf_DEBUG_POSTFIX}"
+-    # For -fvisibility=hidden and -fvisibility-inlines-hidden
+-    C_VISIBILITY_PRESET hidden
+-    CXX_VISIBILITY_PRESET hidden
+-    VISIBILITY_INLINES_HIDDEN ON
++#    # For -fvisibility=hidden and -fvisibility-inlines-hidden
++#    C_VISIBILITY_PRESET hidden
++#    CXX_VISIBILITY_PRESET hidden
++#    VISIBILITY_INLINES_HIDDEN ON
+ )
+ add_library(protobuf::libprotobuf ALIAS libprotobuf)
+

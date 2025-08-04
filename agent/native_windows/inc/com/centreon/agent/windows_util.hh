@@ -40,6 +40,8 @@ inline std::chrono::file_clock::duration convert_filetime_to_duration(
   return std::chrono::file_clock::duration(uli.QuadPart);
 }
 
+void com_init();
+
 }  // namespace com::centreon::agent
 
 #endif

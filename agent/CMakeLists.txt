@@ -63,7 +63,7 @@ foreach(name IN LISTS service_files)
     COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto 
+    --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
     --grpc_out=${SRC_DIR} ${proto_file}
     VERBATIM
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -145,6 +145,8 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/check_event_log.cc
   ${NATIVE_SRC}/check_process.cc
   ${NATIVE_SRC}/check_uptime.cc
+  ${NATIVE_SRC}/check_counter.cc
+  ${NATIVE_SRC}/check_sched.cc
   ${NATIVE_SRC}/event_log/container.cc
   ${NATIVE_SRC}/event_log/data.cc
   ${NATIVE_SRC}/event_log/uniq.cc
@@ -155,6 +157,7 @@ set( SRC_WINDOWS
   ${NATIVE_SRC}/process/process_container.cc
   ${NATIVE_SRC}/process/process_data.cc
   ${NATIVE_SRC}/process/process_filter.cc
+  ${NATIVE_SRC}/check_files.cc
 )
 
 set( SRC_LINUX
@@ -183,8 +186,8 @@ add_library(centagent_lib STATIC
 
 include_directories(
   ${INCLUDE_DIR}
-  ${NATIVE_INC} 
-  ${SRC_DIR} 
+  ${NATIVE_INC}
+  ${SRC_DIR}
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
@@ -199,14 +202,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
-    -L${PROTOBUF_LIB_DIR}
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     centagent_lib
     centreon_common
     centreon_grpc
     centreon_process
-    -L${Boost_LIBRARY_DIR_RELEASE}
-    boost_program_options
+    Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
     stdc++fs)
@@ -222,8 +223,11 @@ else()
     gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
     absl::any absl::log absl::base absl::bits
     Boost::program_options
+    Boost::process
     fmt::fmt
-    pdh)
+    pdh
+    taskschd
+    Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # The linker needs to know to retain debug symbols.

@@ -11,8 +11,8 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
  *
+ * limitations under the License.
  * For more information : contact@centreon.com
  */
 
@@ -33,6 +33,7 @@
 #include <spdlog/spdlog.h>
 
 #include <absl/base/thread_annotations.h>
+#include <absl/container/btree_map.h>
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
@@ -55,7 +56,6 @@ namespace asio = boost::asio;
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/process/v2.hpp>
 #include <boost/program_options.hpp>
 
 #include <rapidjson/document.h>

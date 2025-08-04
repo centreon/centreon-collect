@@ -20,8 +20,8 @@
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
+#include "common/crypto/base64.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -61,7 +61,7 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
 
   _authorization = "Basic ";
   _authorization +=
-      misc::string::base64_encode(conf->get_user() + ':' + conf->get_pwd());
+      common::crypto::base64_encode(conf->get_user() + ':' + conf->get_pwd());
 }
 
 std::shared_ptr<stream> stream::load(

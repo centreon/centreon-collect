@@ -1,5 +1,5 @@
 #
-# Copyright 2021-2022 Centreon
+# Copyright 2021-2025 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -16,71 +16,39 @@
 # For more information : contact@centreon.com
 #
 
-set(protobuf_files
-    header
-    rebuild_message
-    remove_graph_message
-    bbdo
-    neb
-    storage
-    bam
-    bam_state
-    extcmd)
-
-foreach(name IN LISTS protobuf_files)
-  set(proto_file "${name}.proto")
-  set(full_proto_file "${CMAKE_SOURCE_DIR}/bbdo/${name}.proto")
-  add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-           "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
-    DEPENDS ${full_proto_file}
-    COMMENT "Generating interface files of the bbdo file ${proto_file}"
-    COMMAND
-      ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
-      --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
-    VERBATIM)
-
-  add_custom_target(
-    "target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-                             "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
-endforeach()
-
-add_library(pb_header_lib STATIC header.pb.cc header.pb.h)
-add_dependencies(pb_header_lib target_header)
+add_library(pb_header_lib header.proto)
 set_target_properties(pb_header_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_header_lib)
 
-add_library(pb_neb_lib STATIC neb.pb.cc neb.pb.h)
-add_dependencies(pb_neb_lib target_neb target_header)
+add_library(pb_neb_lib neb.proto)
+add_dependencies(pb_neb_lib pb_header_lib)
 set_target_properties(pb_neb_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_neb_lib)
 
-add_library(pb_storage_lib STATIC storage.pb.cc storage.pb.h)
-add_dependencies(pb_storage_lib target_storage target_header)
-set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(pb_rebuild_message_lib rebuild_message.proto)
+set_target_properties(pb_rebuild_message_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_rebuild_message_lib)
 
-add_library(pb_bbdo_lib STATIC bbdo.pb.cc bbdo.pb.h)
-add_dependencies(pb_bbdo_lib target_bbdo)
+add_library(pb_remove_graph_message_lib remove_graph_message.proto)
+set_target_properties(pb_remove_graph_message_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_remove_graph_message_lib)
+
+add_library(pb_bbdo_lib bbdo.proto)
 set_target_properties(pb_bbdo_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_bbdo_lib)
 
-add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h bam_state.pb.cc bam_state.pb.h)
-add_dependencies(pb_bam_lib target_bam target_bam_state target_header)
+add_library(pb_storage_lib storage.proto)
+set_target_properties(pb_storage_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_storage_lib)
+
+add_library(pb_bam_lib bam.proto bam_state.proto)
+add_dependencies(pb_bam_lib pb_header_lib)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_bam_lib)
 
-add_library(pb_extcmd_lib STATIC extcmd.pb.cc extcmd.pb.h)
-add_dependencies(pb_extcmd_lib target_extcmd target_header)
+add_library(pb_extcmd_lib extcmd.proto)
 set_target_properties(pb_extcmd_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(pb_rebuild_message_lib STATIC rebuild_message.pb.cc
-                                          rebuild_message.pb.h)
-add_dependencies(pb_rebuild_message_lib target_rebuild_message target_header)
-set_target_properties(pb_rebuild_message_lib
-                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-add_library(pb_remove_graph_message_lib STATIC remove_graph_message.pb.cc
-                                               remove_graph_message.pb.h)
-add_dependencies(pb_remove_graph_message_lib target_remove_graph_message
-                 target_header)
-set_target_properties(pb_remove_graph_message_lib
-                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_extcmd_lib)
 
 set(otl_protobuf_files
     opentelemetry/proto/collector/metrics/v1/metrics_service
@@ -88,6 +56,7 @@ set(otl_protobuf_files
     opentelemetry/proto/common/v1/common
     opentelemetry/proto/resource/v1/resource
 )
+
 foreach(name IN LISTS otl_protobuf_files)
   set(proto_file "${name}.proto")
   add_custom_command(
@@ -96,12 +65,13 @@ foreach(name IN LISTS otl_protobuf_files)
     #DEPENDS ${CMAKE_BINARY_DIR}/opentelemetry-proto/${proto_file}
     DEPENDS opentelemetry-proto-files
     COMMAND
-      ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
+      protobuf::protoc ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
       --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto ${proto_file}
     VERBATIM)
 endforeach()
-           
-add_library(pb_open_telemetry_lib STATIC 
+
+
+add_library(pb_open_telemetry_lib STATIC
 ${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
 ${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/metrics/v1/metrics.pb.cc
 ${CMAKE_SOURCE_DIR}/bbdo/opentelemetry/proto/common/v1/common.pb.cc
@@ -137,7 +107,7 @@ add_library(
   "bbdo/bbdo_version.hh")
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(bbdo_bbdo target_bbdo target_extcmd)
+add_dependencies(bbdo_bbdo pb_bbdo_lib pb_extcmd_lib)
 
 add_library(
   bbdo_storage STATIC

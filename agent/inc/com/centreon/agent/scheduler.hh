@@ -46,8 +46,15 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const checks_statistics::pointer& /*stat*/)>;
 
  private:
+  /**
+   * @brief we split time in slots, length of a time slot is given by
+   * _check_time_step._step As we start at most one check per time slot, queue
+   * is indexed by step number from scheduling calculation (the time we receive
+   * configuration from engine)
+   *
+   */
   using check_queue =
-      absl::btree_set<check::pointer, check::pointer_start_compare>;
+      absl::btree_map<uint64_t /*number of steps*/, check::pointer>;
 
   check_queue _waiting_check_queue;
   // running check counter that must not exceed max_concurrent_check
@@ -84,9 +91,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // last received configuration
   engine_to_agent_request_ptr _conf;
 
-  // As protobuf message calculation can be expensive, we measure size of first protobuf message of ten metrics for example,
-  // then we devide it by the number of metrics and we store it in this variable
-  // For the next frames, we multiply metrics number by this variable to estimate message length
+  // As protobuf message calculation can be expensive, we measure size of first
+  // protobuf message of ten metrics for example, then we devide it by the
+  // number of metrics and we store it in this variable For the next frames, we
+  // multiply metrics number by this variable to estimate message length
   unsigned _average_metric_length;
 
   void _start();
@@ -146,6 +154,8 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   scheduler(const scheduler&) = delete;
   scheduler operator=(const scheduler&) = delete;
+
+  ~scheduler();
 
   void update(const engine_to_agent_request_ptr& conf);
 

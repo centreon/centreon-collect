@@ -17,17 +17,19 @@ ANO_NOFILE
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
-    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1    only_central=True
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     Remove File    /tmp/anomaly_threshold.json
     Ctn Clear Retention
     Ctn Clear Db    services
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker    True
     Ctn Start engine
+    Ctn Wait For Engine To Be Ready    ${start}
     Ctn Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Ctn Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Ctn Kindly Stop Broker    True
-    Ctn Stop engine
+    Ctn Stop Engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
     [Documentation]    an anomaly detection without threshold file doesn't display error on config check
@@ -242,7 +244,8 @@ ANO_DT1
     Ctn Kindly Stop Broker
 
 ANO_DT2
-    [Documentation]    delete downtime on dependent service delete one on ano serv
+    [Documentation]    Given a service and its AD, 
+    ...    when we delete downtime on dependent service, AD must not be in downtime anymore
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -273,9 +276,9 @@ ANO_DT2
 
     Ctn Delete Service Downtime    host_1    service_1
     ${result}    Ctn Check Service Downtime With Timeout    host_1    service_1    0    60
-    Should Be True    ${result}    dependent service must be in downtime
+    Should Be True    ${result}    dependent service must not be in downtime
     ${result}    Ctn Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
-    Should Be True    ${result}    anomaly service must be in downtime
+    Should Be True    ${result}    anomaly service must not be in downtime
 
     Ctn Stop engine
     Ctn Kindly Stop Broker

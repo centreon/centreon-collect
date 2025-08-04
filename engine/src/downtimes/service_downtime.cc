@@ -320,10 +320,9 @@ int service_downtime::subscribe() {
 }
 
 int service_downtime::handle() {
-  time_t event_time(0L);
-  int attr(0);
+  time_t event_time = 0L;
+  int attr = 0;
 
-  engine_logger(dbg_functions, basic) << "handle_downtime()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_downtime()");
 
   auto found = service::services_by_id.find({host_id(), service_id()});
@@ -381,12 +380,6 @@ int service_downtime::handle() {
     found->second->dec_scheduled_downtime_depth();
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
-      engine_logger(dbg_downtime, basic)
-          << "Service '" << found->second->description() << "' on host '"
-          << found->second->get_hostname()
-          << "' has exited from a period of "
-             "scheduled downtime (id="
-          << get_downtime_id() << ").";
       SPDLOG_LOGGER_TRACE(
           downtimes_logger,
           "Service '{}' on host '{}' has exited from a period of "
@@ -395,11 +388,6 @@ int service_downtime::handle() {
           get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
-      engine_logger(log_info_message, basic)
-          << "SERVICE DOWNTIME ALERT: " << found->second->get_hostname() << ";"
-          << found->second->description()
-          << ";STOPPED; Service has exited from a period of scheduled "
-             "downtime";
       SPDLOG_LOGGER_INFO(
           events_logger,
           "SERVICE DOWNTIME ALERT: {};{};STOPPED; Service has exited from a "
@@ -415,7 +403,7 @@ int service_downtime::handle() {
     /* update the status data */
     /* We update with CHECK_RESULT level, so notifications numbers, downtimes,
      * and check infos will be updated. */
-    found->second->update_status();
+    found->second->update_status(service::STATUS_DOWNTIME_DEPTH);
 
     /* decrement pending flex downtime if necessary */
     if (!is_fixed() && _incremented_pending_downtime) {

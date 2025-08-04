@@ -16,8 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CENTREON_AGENT_CHECK_PROCESS_HH
-#define CENTREON_AGENT_CHECK_PROCESS_HH
+#ifndef CENTREON_COMMON_PROCESS_HH
+#define CENTREON_COMMON_PROCESS_HH
+
+#include "boost/process/v2/environment.hpp"
+#include "com/centreon/common/process/process_args.hh"
 
 namespace com::centreon::common {
 
@@ -51,139 +54,194 @@ class lock<false> {
   lock(mutex<false>* dummy_mut) {}
 };
 
+struct boost_process;
+
 }  // namespace detail
 
 /**
- * @brief This class allow to exec a process asynchronously.
- * It's a base class. If you want to get stdin and stdout returned data, you
- * must inherit from this and override on_stdout_read and on_stderr_read
- * You can call start_process at any moment, if a process is already running,
- * it's killed
- * As we can start a process at any moment, all handlers take a caller in
- * parameter, if this caller is not equal to current _proc, we do nothing.
- * When completion methods like on_stdout_read are called, _protect is already
- * locked
+ * @brief status of execution of a child process
+ * crash is never returned but is there to ensure backward compatibility
+ * with clib
+ *
  */
+enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
 
+/**
+ * @brief This class creates a child process, stdin, stdout and stderr are piped
+ * to father process.
+ * It's full asynchronous, and relies on boost v2 process. On linux version, we
+ * don't use boost process child process launcher but a spawnp home made one.
+ *
+ * It's a one shot class not reusable.
+ * That's why we pass executable path, arguments and environment with shared
+ * pointers in order to not compute, allocate these parameters each time we
+ * start the same process.
+ *
+ * It also manages a timeout. When child duration goes more than
+ * timeout, we kill (-9) child process and we handle child process die the same
+ * way as normal completion. The normal usage of this class is to create a
+ * shared_ptr of this class, start child process with start_process method and
+ * forget it. Be carefull if you keep a reference of this pointer because
+ * process keeps completion handler and you may have a mutual ownership.
+ *
+ * pipe to stdin is optional because some windows scripts may fails if they do
+ * not manage stdin
+ * You can write to stdin with write_to_stdin method. writes are non blocking,
+ * buffered and thread safe.
+ *
+ * Example:
+ * @code {.cpp}
+ *  std::tie(_last_exe_path, _last_args) =
+ *  common::process<true>::parse_cmd_line(processed_cmd);
+ *
+ *  std::shared_ptr<common::process<true>> p =
+ *  std::make_shared<common::process<true>>(g_io_context, commands_logger,
+ *                                               _last_exe_path, true, false,
+ *                                               _last_args, env);
+ *  p->start_process(
+ *      [me = shared_from_this(), command_id, start = time(nullptr)](
+ *         const common::process<true>& proc, int exit_code, int exit_status,
+ *         const std::string& std_out, const std::string& std_err) {
+ *         me->_on_complete(command_id, start, exit_code, exit_status, std_out,
+ *         std_err);
+ *      },
+ *      std::chrono::seconds(timeout));
+ * @endcode
+ *
+ *
+ * @tparam use_mutex true for multi-threads programs
+ */
 template <bool use_mutex = true>
 class process : public std::enable_shared_from_this<process<use_mutex>> {
+ public:
   using std::enable_shared_from_this<process<use_mutex>>::shared_from_this;
-  std::string _exe_path;
-  std::vector<std::string> _args;
 
+  using shared_env = std::shared_ptr<boost::process::v2::process_environment>;
+
+ private:
+  process_args::pointer _args;
+  bool _use_setpgid;
+  bool _use_stdin;
+  shared_env _env;
   std::deque<std::shared_ptr<std::string>> _stdin_write_queue;
-  bool _write_pending;
-
-  std::shared_ptr<detail::boost_process> _proc;
-
-  int _exit_status = 0;
-
-  detail::mutex<use_mutex> _protect;
-
-  void stdin_write_no_lock(const std::shared_ptr<std::string>& data);
-  void stdin_write(const std::shared_ptr<std::string>& data);
-
-  void stdout_read();
-  void stderr_read();
-
- protected:
-  std::shared_ptr<asio::io_context> _io_context;
+  bool _write_pending = false;
   std::shared_ptr<spdlog::logger> _logger;
+
+  std::shared_ptr<asio::io_context> _io_context;
+  asio::system_timer _timeout_timer;
+  asio::readable_pipe _stdout_pipe;
+  asio::readable_pipe _stderr_pipe;
+  asio::writable_pipe _stdin_pipe;
+  detail::boost_process* _proc = nullptr;
+  /**
+   * @brief workaround
+   * in process lib, terminate method calls waitpid and father process can get
+   * exit status. Then on async_wait completion, waitpid is also called and
+   * waitpid may return ECHILD( unknown child). So in that case, we don't take
+   * this error into account and we use status previously stored in first
+   * waitpid
+   * issue: https://github.com/boostorg/process/issues/496
+   */
+  bool _terminated = false;
+
+  using handler_type = std::function<void(const process<use_mutex>& proc,
+                                          int /*exit_code*/,
+                                          int, /*exit status*/
+                                          const std::string& /*stdout*/,
+                                          const std::string& /*stderr*/
+                                          )>;
+
+  handler_type _handler;
+  std::string _stdout;
+  std::string _stderr;
+  int _exit_status = e_exit_status::crash;
+  int _exit_code = -1;
+
+  enum e_completion_flags : unsigned {
+    process_end = 1,
+    stdout_eof = 2,
+    stderr_eof = 4,
+    all_completed = 7,
+    handler_called = 8
+  };
+
+  std::atomic_uint _completion_flags = 0;
+
+  void _stdin_write_no_lock(const std::shared_ptr<std::string>& data);
+  void _stdin_write(const std::shared_ptr<std::string>& data);
+
+  void _stdout_read();
+  void _stderr_read();
 
   char _stdout_read_buffer[0x1000];
   char _stderr_read_buffer[0x1000];
 
-  virtual void on_stdout_read(const boost::system::error_code& err,
-                              size_t nb_read);
-  virtual void on_stderr_read(const boost::system::error_code& err,
-                              size_t nb_read);
+  mutable detail::mutex<use_mutex> _protect;
 
-  virtual void on_process_end(const boost::system::error_code& err,
-                              int raw_exit_status);
+  void _on_stdout_read(const boost::system::error_code& err, size_t nb_read);
+  void _on_stderr_read(const boost::system::error_code& err, size_t nb_read);
 
-  virtual void on_stdin_write(const boost::system::error_code& err);
+  void _on_process_end(const boost::system::error_code& err,
+                       int raw_exit_status);
+
+  void _on_stdin_write(const boost::system::error_code& err);
+
+  void _on_timeout();
+
+  void _on_completion();
+
+  void _create_process();
 
  public:
-  template <typename string_iterator>
-  process(const std::shared_ptr<boost::asio::io_context>& io_context,
-          const std::shared_ptr<spdlog::logger>& logger,
-          const std::string_view& exe_path,
-          string_iterator arg_begin,
-          string_iterator arg_end);
-
-  template <typename args_container>
-  process(const std::shared_ptr<boost::asio::io_context>& io_context,
-          const std::shared_ptr<spdlog::logger>& logger,
-          const std::string_view& exe_path,
-          const args_container& args);
-
   template <typename string_type>
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
           const std::string_view& exe_path,
-          const std::initializer_list<string_type>& args);
+          bool use_setpgid,
+          bool use_stdin,
+          const std::initializer_list<string_type>& args,
+          const shared_env& env);
 
   process(const std::shared_ptr<boost::asio::io_context>& io_context,
           const std::shared_ptr<spdlog::logger>& logger,
-          const std::string_view& cmd_line);
+          const process_args::pointer& args,
+          bool use_setpgid,
+          bool use_stdin,
+          const shared_env& env);
 
-  virtual ~process() = default;
+  process(const std::shared_ptr<boost::asio::io_context>& io_context,
+          const std::shared_ptr<spdlog::logger>& logger,
+          const std::string_view& cmd_line,
+          bool use_setpgid,
+          bool use_stdin,
+          const shared_env& env);
+
+  ~process();
+
+  static process_args::pointer parse_cmd_line(const std::string_view& cmd_line);
 
   int get_pid();
 
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 
-  void start_process(bool enable_stdin);
+  void start_process(handler_type&& handler,
+                     const std::chrono::system_clock::duration& timeout);
+
+  std::string get_stdout() const {
+    detail::lock<use_mutex> l(&_protect);
+    return _stdout;
+  }
+
+  std::string get_stderr() const {
+    detail::lock<use_mutex> l(&_protect);
+    return _stderr;
+  }
+
+  int get_exit_code() const { return _exit_code; }
 
   void kill();
-
-  int get_exit_status() const { return _exit_status; }
-  const std::string& get_exe_path() const { return _exe_path; }
 };
-
-/**
- * @brief Construct a new process::process object
- *
- * @tparam string_iterator
- * @param io_context
- * @param logger
- * @param exe_path path of executable without arguments
- * @param arg_begin iterator to first argument
- * @param arg_end iterator after the last argument
- */
-template <bool use_mutex>
-template <typename string_iterator>
-process<use_mutex>::process(const std::shared_ptr<asio::io_context>& io_context,
-                            const std::shared_ptr<spdlog::logger>& logger,
-                            const std::string_view& exe_path,
-                            string_iterator arg_begin,
-                            string_iterator arg_end)
-    : _exe_path(exe_path),
-      _args(arg_begin, arg_end),
-      _io_context(io_context),
-      _logger(logger) {}
-
-/**
- * @brief Construct a new process::process object
- *
- * @tparam args_container
- * @param io_context
- * @param logger
- * @param exe_path path of executable without argument
- * @param args container of arguments
- */
-template <bool use_mutex>
-template <typename args_container>
-process<use_mutex>::process(
-    const std::shared_ptr<boost::asio::io_context>& io_context,
-    const std::shared_ptr<spdlog::logger>& logger,
-    const std::string_view& exe_path,
-    const args_container& args)
-    : _exe_path(exe_path),
-      _args(args),
-      _io_context(io_context),
-      _logger(logger) {}
 
 /**
  * @brief Construct a new process::process object
@@ -192,8 +250,11 @@ process<use_mutex>::process(
  * anything else that can be used to construct a std::string
  * @param io_context
  * @param logger
- * @param exe_path path of executable without argument
+ * @param exe_path exe without arguments
+ * @param use_setpgid if true, we set process group of child process
+ * @param use_stdin if true, we open a pipe to child stdin
  * @param args brace of arguments {"--flag1", "arg1", "-c", "arg2"}
+ * @param env child environment
  */
 template <bool use_mutex>
 template <typename string_type>
@@ -201,12 +262,20 @@ process<use_mutex>::process(
     const std::shared_ptr<boost::asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string_view& exe_path,
-    const std::initializer_list<string_type>& args)
-    : _exe_path(exe_path), _io_context(io_context), _logger(logger) {
-  _args.reserve(args.size());
-  for (const auto& str : args) {
-    _args.emplace_back(str);
-  }
+    bool use_setpgid,
+    bool use_stdin,
+    const std::initializer_list<string_type>& args,
+    const shared_env& env)
+    : _use_setpgid(use_setpgid),
+      _use_stdin(use_stdin),
+      _env(env),
+      _logger(logger),
+      _io_context(io_context),
+      _timeout_timer(*io_context),
+      _stdout_pipe(*io_context),
+      _stderr_pipe(*io_context),
+      _stdin_pipe(*io_context) {
+  _args = std::make_shared<process_args>(exe_path, args);
 }
 
 /**
@@ -219,7 +288,7 @@ process<use_mutex>::process(
 template <bool use_mutex>
 template <typename string_class>
 void process<use_mutex>::write_to_stdin(const string_class& content) {
-  stdin_write(std::make_shared<std::string>(content));
+  _stdin_write(std::make_shared<std::string>(content));
 }
 
 }  // namespace com::centreon::common

@@ -228,7 +228,8 @@ void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
   std::string json_dump;
-  google::protobuf::util::MessageToJsonString(this->obj(), &json_dump);
+  auto status =
+      google::protobuf::util::MessageToJsonString(this->obj(), &json_dump);
   s << " content:'" << json_dump << '\'';
 }
 

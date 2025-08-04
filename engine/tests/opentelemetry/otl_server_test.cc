@@ -84,7 +84,7 @@ class otl_server_test : public ::testing::Test {
   void start_server(const grpc_config::pointer& conf,
                     const metric_handler_type& handler) {
     std::shared_ptr<centreon_agent::agent_config> agent_conf =
-        std::make_shared<centreon_agent::agent_config>(60, 100, 60, 10);
+        std::make_shared<centreon_agent::agent_config>(100, 60, 10);
     _server = otl_server::load(
         g_io_context, conf, agent_conf, handler, spdlog::default_logger(),
         std::make_shared<centreon_agent::agent_stat>(g_io_context));

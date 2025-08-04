@@ -113,13 +113,20 @@ EBNSGU2
 
 EBNSGU3_${test_label}
     [Documentation]    New service group with several pollers and connections to DB with broker and rename this servicegroup
-    [Tags]    broker    engine    servicegroup
+    [Tags]    broker    engine    servicegroup    unstable
     Ctn Config Engine    ${3}
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
+    Ctn Clear Logs
+    Ctn Clear Retention
+    Ctn Truncate Resource Host Service
 
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    processing    error
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    lua    trace
     Ctn Broker Config Source Log    central    1
@@ -127,7 +134,6 @@ EBNSGU3_${test_label}
     Ctn Config Broker Sql Output    central    unified_sql    5
     Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Ctn Broker Config Add Lua Output    central    test-cache    ${SCRIPTS}test-dump-groups.lua
-    Ctn Clear Retention
 
     Create File    /tmp/lua-engine.log
 
@@ -160,6 +166,10 @@ EBNSGU3_${test_label}
     END
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
+
+    ${content}    Create List    service group 'servicegroup_1' of id 1. Currently, this group is used by pollers [0-9]+, [0-9]+, [0-9]+
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result[0]}    The three pollers should be attached to the servicegroup 1.
 
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test

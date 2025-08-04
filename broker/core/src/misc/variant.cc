@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/misc/variant.hh"
-#include <fmt/format.h>
 #include <cassert>
 
 using namespace com::centreon::broker::misc;

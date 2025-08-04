@@ -30,20 +30,24 @@ set( SRC_COMMON
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
 else()
-  set(SRC ${SRC_COMMON}
-    filter_test.cc
-    check_event_log_data_test.cc
-    check_event_log_filter_test.cc
-    check_event_log_test.cc
-    check_event_log_uniq_test.cc
-    check_process_container_test.cc
-    check_process_data_test.cc
-    check_process_filter_test.cc
-    check_process_test.cc
-    check_windows_cpu_test.cc  
-    check_windows_memory_test.cc 
-    check_uptime_test.cc 
-    check_windows_service_test.cc)
+  set(SRC
+      ${SRC_COMMON}
+      filter_test.cc
+      check_event_log_data_test.cc
+      check_event_log_filter_test.cc
+      check_event_log_test.cc
+      check_event_log_uniq_test.cc
+      check_process_container_test.cc
+      check_process_data_test.cc
+      check_process_filter_test.cc
+      check_process_test.cc
+      check_windows_cpu_test.cc
+      check_windows_counter.cc
+      check_windows_memory_test.cc
+      check_windows_sched.cc
+      check_windows_files_test.cc
+      check_uptime_test.cc
+      check_windows_service_test.cc)
 
   set_source_files_properties(filter_test.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
@@ -62,38 +66,39 @@ set_target_properties(
                RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    target_link_libraries(ut_agent PRIVATE 
-        centagent_lib 
+    target_link_libraries(ut_agent PRIVATE
+        centagent_lib
         centreon_common
         centreon_process
-        GTest::gtest 
-        GTest::gtest_main 
-        GTest::gmock 
+        GTest::gtest
+        GTest::gtest_main
+        GTest::gmock
         GTest::gmock_main
-        -L${Boost_LIBRARY_DIR_RELEASE}
-        boost_program_options
+        Boost::program_options
         stdc++fs
-        -L${PROTOBUF_LIB_DIR}
-        gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+        gRPC::grpc++
         fmt::fmt pthread
         crypto ssl
         )
+    add_dependencies(ut_agent centreon_common centagent_lib process_stat)
 else()
-    target_link_libraries(ut_agent PRIVATE 
-    centagent_lib 
-    centreon_common
-    centreon_process
-    GTest::gtest 
-    GTest::gtest_main 
-    GTest::gmock 
-    GTest::gmock_main
-    Boost::program_options
-    gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
-    fmt::fmt
-    pdh)
+  target_link_libraries(
+    ut_agent
+    PRIVATE centagent_lib
+            centreon_common
+            centreon_process
+            GTest::gtest
+            GTest::gtest_main
+            GTest::gmock
+            GTest::gmock_main
+            Boost::program_options
+            gRPC::grpc++
+            fmt::fmt
+            pdh
+            taskschd
+            Version.lib)
+  add_dependencies(ut_agent centreon_common centagent_lib)
 endif()
-
-add_dependencies(ut_agent centreon_common centagent_lib)
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
 

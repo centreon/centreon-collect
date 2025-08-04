@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+
+#include "utf8.hh"
+
 /**
  * @brief Checks if the string given as parameter is a real UTF-8 string.
  * If it is not, it tries to convert it to UTF-8. Encodings correctly changed
@@ -26,9 +29,6 @@
  * @return The string itself or a new string converted to UTF-8. The output
  * string should always be an UTF-8 string.
  */
-
-#include "utf8.hh"
-
 std::string com::centreon::common::check_string_utf8(
     const std::string_view& str) noexcept {
   std::string_view::const_iterator it;

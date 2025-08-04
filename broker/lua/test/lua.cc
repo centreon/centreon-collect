@@ -21,11 +21,11 @@
 
 #include <absl/strings/str_split.h>
 
-#include "../../core/test/test_server.hh"
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
@@ -175,7 +175,7 @@ TEST_F(LuaTest, SimpleScript) {
   char tmp[256];
   getcwd(tmp, 256);
   std::cout << "##########################\n" << tmp << std::endl;
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   std::string filename("/tmp/test-lua3.lua");
   CreateScript(
@@ -235,7 +235,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
   conf.insert({"port", 8857});
   conf.insert({"name", "test-centreon"});
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
 
   auto bnd{std::make_unique<luabinding>(FILE3, conf, *_cache)};
   ASSERT_TRUE(bnd.get());
@@ -552,7 +552,7 @@ TEST_F(LuaTest, CacheTest) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, HostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
@@ -596,7 +596,7 @@ TEST_F(LuaTest, HostCacheTest) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, HostCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
@@ -634,7 +634,7 @@ TEST_F(LuaTest, HostCacheTestAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, HostCacheV2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
@@ -673,7 +673,7 @@ TEST_F(LuaTest, HostCacheV2TestAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbHostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
@@ -711,7 +711,7 @@ TEST_F(LuaTest, PbHostCacheTest) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbHostCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
@@ -751,7 +751,7 @@ TEST_F(LuaTest, PbHostCacheTestAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
@@ -827,7 +827,7 @@ TEST_F(LuaTest, ServiceCacheTest) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, ServiceCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
@@ -865,7 +865,7 @@ TEST_F(LuaTest, ServiceCacheTestAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::pb_service>();
@@ -919,7 +919,7 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
@@ -958,7 +958,7 @@ TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::pb_service>();
@@ -1197,7 +1197,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
 
 TEST_F(LuaTest, MetricMappingCacheTestV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto mm{std::make_shared<storage::metric_mapping>()};
@@ -1245,6 +1245,37 @@ TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is nil"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
+
+// When a query for a host group alias is made
+// And the cache does know about it
+// Then the alias is returned by the lua method.
+TEST_F(LuaTest, HostGroupCacheTestAlias) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/cache_test.lua");
+  auto hg{std::make_shared<neb::pb_host_group>()};
+  auto& obj = hg->mut_obj();
+  obj.set_hostgroup_id(28);
+  obj.set_name("centreon");
+  obj.set_alias("centreon_alias");
+  obj.set_enabled(true);
+
+  _cache->write(hg);
+
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local hg = broker_cache:get_hostgroup_alias(28)\n"
+               "  broker_log:info(1, 'host group is ' .. tostring(hg))\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string lst(ReadFile("/tmp/log"));
+
+  ASSERT_NE(lst.find("host group is centreon_alias"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -1673,7 +1704,7 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
 
 TEST_F(LuaTest, BamCacheTestBaV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/bam/20-bam.so");
+  modules.load_file("./broker/lib/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_ba_event> ba(
@@ -1772,7 +1803,7 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
 
 TEST_F(LuaTest, BamCacheTestBvV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/bam/20-bam.so");
+  modules.load_file("./broker/lib/20-bam.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_bv_event> bv(
@@ -2569,7 +2600,7 @@ TEST_F(LuaTest, CacheSeverity) {
 
 TEST_F(LuaTest, BrokerEventIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -2611,7 +2642,7 @@ TEST_F(LuaTest, BrokerEventIndex) {
 
 TEST_F(LuaTest, BrokerEventPairs) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -2716,7 +2747,7 @@ TEST_F(LuaTest, PbCacheSeverity) {
 
 TEST_F(LuaTest, PbBrokerEventIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -2763,7 +2794,7 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
 
 TEST_F(LuaTest, PbBrokerEventPairs) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -2800,7 +2831,7 @@ TEST_F(LuaTest, PbBrokerEventPairs) {
 
 TEST_F(LuaTest, BrokerEventJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -2866,7 +2897,7 @@ TEST_F(LuaTest, BrokerEventJsonEncode) {
 
 TEST_F(LuaTest, TestHostApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -2893,7 +2924,7 @@ TEST_F(LuaTest, TestHostApiV1) {
 
 TEST_F(LuaTest, TestHostApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -2920,7 +2951,7 @@ TEST_F(LuaTest, TestHostApiV2) {
 
 TEST_F(LuaTest, PbTestHostApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -2948,7 +2979,7 @@ TEST_F(LuaTest, PbTestHostApiV1) {
 
 TEST_F(LuaTest, PbTestHostApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -2976,7 +3007,7 @@ TEST_F(LuaTest, PbTestHostApiV2) {
 
 TEST_F(LuaTest, PbTestCommentApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_comment>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3047,7 +3078,7 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
 
 TEST_F(LuaTest, PbTestCommentApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_comment>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3117,7 +3148,7 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
 
 TEST_F(LuaTest, TestSvcApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -3148,7 +3179,7 @@ TEST_F(LuaTest, TestSvcApiV2) {
 
 TEST_F(LuaTest, TestSvcApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -3179,7 +3210,7 @@ TEST_F(LuaTest, TestSvcApiV1) {
 
 TEST_F(LuaTest, BrokerEventCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -3207,7 +3238,7 @@ TEST_F(LuaTest, BrokerEventCache) {
 
 TEST_F(LuaTest, PbTestSvcApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -3241,7 +3272,7 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
 
 TEST_F(LuaTest, PbTestSvcApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -3275,7 +3306,7 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
 
 TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3338,7 +3369,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
 
 TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3395,7 +3426,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
 
 TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3427,7 +3458,7 @@ TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
 
 TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
@@ -3459,7 +3490,7 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
 
 TEST_F(LuaTest, PbBrokerEventCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -3535,7 +3566,7 @@ TEST_F(LuaTest, emptyMd5) {
 
 TEST_F(LuaTest, BrokerPbServiceStatus) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3584,7 +3615,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3634,7 +3665,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3690,7 +3721,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3746,7 +3777,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3801,7 +3832,7 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
 
 TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3843,7 +3874,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
@@ -3884,7 +3915,7 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbHostStatus) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
@@ -3927,7 +3958,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
@@ -3971,7 +4002,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
@@ -4010,7 +4041,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
 
 TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
@@ -4045,7 +4076,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
@@ -4101,7 +4132,7 @@ TEST_F(LuaTest, BrokerBbdoVersion) {
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
@@ -4136,7 +4167,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
@@ -4170,7 +4201,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
 
 TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_adaptive_host>();
   auto& obj = host->mut_obj();
@@ -4203,7 +4234,7 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
 
 TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   auto host = std::make_shared<neb::pb_adaptive_host>();
   auto& obj = host->mut_obj();
@@ -4241,7 +4272,7 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
@@ -4326,7 +4357,7 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst = std::make_shared<neb::host>();
@@ -4406,7 +4437,7 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service_status>();
@@ -4485,7 +4516,7 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   char tmp[256];
   getcwd(tmp, 256);
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst = std::make_shared<neb::host_status>();
@@ -4562,7 +4593,7 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
 // Then the stream is able to understand it.
 TEST_F(LuaTest, PbDowntime) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto dt{std::make_shared<neb::pb_downtime>()};
@@ -4597,7 +4628,7 @@ TEST_F(LuaTest, PbDowntime) {
 // Then the stream is able to understand it.
 TEST_F(LuaTest, PbDowntimeV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto dt{std::make_shared<neb::pb_downtime>()};
@@ -4634,7 +4665,7 @@ using pb_remove_graph_message =
 
 TEST_F(LuaTest, PbRemoveGraphMessage) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
@@ -4667,7 +4698,7 @@ TEST_F(LuaTest, PbRemoveGraphMessage) {
 
 TEST_F(LuaTest, PbRemoveGraphMessageV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
 
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
@@ -4700,7 +4731,7 @@ TEST_F(LuaTest, PbRemoveGraphMessageV2) {
 
 TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/unified_sql/20-unified_sql.so");
+  modules.load_file("./broker/lib/20-unified_sql.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/test_remove_graph_with_next.lua");
   auto rm{std::make_shared<pb_remove_graph_message>()};
@@ -4769,7 +4800,7 @@ TEST_F(LuaTest, JsonDecodeNull) {
 
 TEST_F(LuaTest, BadLua) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/bad.lua");
   CreateScript(filename,
@@ -4837,7 +4868,7 @@ TEST_F(LuaTest, WithBadFilter2) {
 // Then the host in cache is updated.
 TEST_F(LuaTest, AdaptiveHostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
@@ -4879,7 +4910,7 @@ TEST_F(LuaTest, AdaptiveHostCacheTest) {
 // Then only the written fields are available.
 TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
@@ -4943,7 +4974,7 @@ TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
 // Then the service in cache is updated.
 TEST_F(LuaTest, AdaptiveServiceCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::service>()};
@@ -4989,7 +5020,7 @@ TEST_F(LuaTest, AdaptiveServiceCacheTest) {
 // Then only the written fields are available.
 TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/neb/10-neb.so");
+  modules.load_file("./broker/lib/10-neb.so");
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::service>()};
@@ -5055,4 +5086,32 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
             std::string::npos);
   RemoveFile(filename);
   //  RemoveFile("/tmp/log");
+}
+
+// When broker.base64_encode() is applied on a string, the string is correctly
+// base 64 encoded. And when broker.base64_decode() is applied on a string, the
+// string is correctly base 64 decoded.
+TEST_F(LuaTest, Base64) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/base64_encode.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local str = 'Hello World from Broker!'\n"
+               "  local encoded = broker.base64_encode(str)\n"
+               "  broker_log:info(0, 'Encoded: ' .. tostring(encoded))\n"
+               "  local decoded = broker.base64_decode(encoded)\n"
+               "  broker_log:info(0, 'Decoded: ' .. tostring(decoded))\n"
+               "end\n\n"
+               "function write(d)\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string result(ReadFile("/tmp/log"));
+
+  ASSERT_NE(result.find("INFO: Encoded: SGVsbG8gV29ybGQgZnJvbSBCcm9rZXIh"),
+            std::string::npos);
+  ASSERT_NE(result.find("INFO: Decoded: Hello World from Broker!"),
+            std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
 }

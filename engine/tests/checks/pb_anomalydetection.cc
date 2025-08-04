@@ -49,8 +49,9 @@ class PbAnomalydetectionCheck : public TestEngine {
     init_config_state();
 
     init_loggers();
-    checks_logger->set_level(spdlog::level::trace);
-    commands_logger->set_level(spdlog::level::trace);
+    // checks_logger->set_level(spdlog::level::trace);
+    // commands_logger->set_level(spdlog::level::trace);
+    // functions_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};

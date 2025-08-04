@@ -19,7 +19,6 @@
 #ifndef CCB_PERSISTENT_CACHE_HH
 #define CCB_PERSISTENT_CACHE_HH
 
-#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker {

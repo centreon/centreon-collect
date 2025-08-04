@@ -47,6 +47,7 @@ stream::stream(const std::string& lua_script,
 stream::~stream() noexcept {
   _logger->trace("lua::stream destructor {}", static_cast<void*>(this));
 }
+
 /**
  *  Read from the connector.
  *

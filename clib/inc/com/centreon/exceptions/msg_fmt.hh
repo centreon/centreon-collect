@@ -19,6 +19,7 @@
 #define CC_EXCEPTIONS_MSG_FMT_HH
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 namespace com::centreon::exceptions {
 /**
@@ -39,9 +40,7 @@ class msg_fmt : public std::exception {
   msg_fmt() = delete;
   msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
   msg_fmt& operator=(const msg_fmt&) = delete;
-  const char* what() const noexcept final {
-    return _msg.c_str();
-  }
+  const char* what() const noexcept final { return _msg.c_str(); }
 };
 }  // namespace com::centreon::exceptions
 

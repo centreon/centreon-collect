@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/bam/ba_best.hh"
 
-#include <fmt/format.h>
-
 #include <cassert>
 
 #include "bbdo/bam/ba_status.hh"

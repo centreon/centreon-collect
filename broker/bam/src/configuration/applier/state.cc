@@ -21,6 +21,7 @@
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "com/centreon/broker/bam/exp_builder.hh"
+#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -256,11 +257,11 @@ void applier::state::load_from_cache(persistent_cache& cache) {
   cache.get(d);
   while (d) {
     switch (d->type()) {
-      case inherited_downtime::static_type(): {
-        const inherited_downtime& dwn =
-            *std::static_pointer_cast<const inherited_downtime>(d);
-        _ba_applier.apply_inherited_downtime(dwn);
-      } break;
+      case inherited_downtime::static_type():
+        _ba_applier.apply_inherited_downtime(
+            *std::static_pointer_cast<const pb_inherited_downtime>(
+                neb::bbdo2_to_bbdo3(d)));
+        break;
       case pb_inherited_downtime::static_type(): {
         const pb_inherited_downtime& dwn =
             *std::static_pointer_cast<const pb_inherited_downtime>(d);

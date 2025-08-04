@@ -44,12 +44,14 @@ template <unsigned nb_metric>
 void per_cpu_time_base<nb_metric>::dump(const unsigned& cpu_index,
                                         const std::string_view metric_label[],
                                         std::string* output) const {
-  if (cpu_index == average_cpu_index) {
-    *output += fmt::format("CPU(s) average Usage: {:.2f}%",
-                           (static_cast<double>(_total_used) / _total) * 100);
-  } else {
-    *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
-                           (static_cast<double>(_total_used) / _total) * 100);
+  if (_total) {
+    if (cpu_index == average_cpu_index) {
+      *output += fmt::format("CPU(s) average Usage: {:.2f}%",
+                             (static_cast<double>(_total_used) / _total) * 100);
+    } else {
+      *output += fmt::format("CPU'{}' Usage: {:.2f}%", cpu_index,
+                             (static_cast<double>(_total_used) / _total) * 100);
+    }
   }
 
   for (unsigned field_index = 0; field_index < nb_metric; ++field_index) {
@@ -266,9 +268,18 @@ void native_check_cpu<nb_metric>::start_check(const duration& timeout) {
     std::unique_ptr<check_cpu_detail::cpu_time_snapshot<nb_metric>> begin =
         get_cpu_time_snapshot(true);
 
-    time_point end_measure = std::chrono::system_clock::now() + timeout;
-
-    end_measure -= std::chrono::seconds(1);
+    // end of measure = min(now+timeout, next check)
+    time_point now = std::chrono::system_clock::now();
+    time_point end_measure = now + timeout;
+    time_step next = this->get_raw_start_expected();
+    next.increment_to_after_min(now);
+    if (next.value() < end_measure) {
+      end_measure = next.value();
+    }
+    // we ensure to not reach the timeout
+    if (end_measure - now > std::chrono::seconds(1)) {
+      end_measure -= std::chrono::seconds(1);
+    }
 
     _measure_timer.expires_at(end_measure);
     _measure_timer.async_wait(

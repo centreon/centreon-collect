@@ -76,7 +76,7 @@ bool get_otel_commands(const std::string& host_name,
     if (cache_iter != whitelist_cache.data.end()) {
       return cache_iter->second;
     }
-    bool allowed = wchecker.is_allowed(cmd_line);
+    bool allowed = wchecker.is_allowed_by_cma(cmd_line, host_name);
 
     whitelist_cache.data.emplace(cmd_line, allowed);
     return allowed;
@@ -103,7 +103,8 @@ bool get_otel_commands(const std::string& host_name,
     clear_volatile_macros_r(macros);
 
     if (allowed_by_white_list(cmd_line)) {
-      ret |= handler(hst->check_command(), cmd_line, "", logger);
+      ret |= handler(hst->check_command(), cmd_line, "", hst->check_interval(),
+                     logger);
     } else {
       SPDLOG_LOGGER_ERROR(
           logger,
@@ -131,7 +132,8 @@ bool get_otel_commands(const std::string& host_name,
       clear_volatile_macros_r(macros);
 
       if (allowed_by_white_list(cmd_line)) {
-        ret |= handler(serv->check_command(), cmd_line, serv->name(), logger);
+        ret |= handler(serv->check_command(), cmd_line, serv->name(),
+                       serv->check_interval(), logger);
       } else {
         SPDLOG_LOGGER_ERROR(
             logger,

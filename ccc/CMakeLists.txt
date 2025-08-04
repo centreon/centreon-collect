@@ -41,6 +41,8 @@ if(WITH_LIBCXX)
 endif()
 
 include_directories(
+  ${CMAKE_BINARY_DIR}/common
+  ${CMAKE_BINARY_DIR}/common/process_stat
   ${CMAKE_SOURCE_DIR}/broker/core/src ${CMAKE_SOURCE_DIR}/engine/enginerpc
   ${CMAKE_SOURCE_DIR}/common/src)
 set(ccc_files main.cc client.cc)
@@ -54,13 +56,14 @@ if(WITH_ASAN)
 endif()
 
 add_executable(ccc ${ccc_files})
+add_dependencies(ccc process_stat)
 target_link_libraries(
   ccc PRIVATE
-  -L${PROTOBUF_LIB_DIR}
-  gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts
+  gRPC::grpc++
   cerpc
-  berpc
+  pb_broker_lib
   centreon_common
+  process_stat
   fmt::fmt)
 set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
 

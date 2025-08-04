@@ -24,18 +24,18 @@ EBBM1
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
+    Ctn Clear Logs
     ${start}    Get Current Date
-    ${start_broker}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${1}
 
     FOR    ${i}    IN RANGE    ${10}
         Ctn Process Service Check Result With Big Metrics
 	...    host_1    service_1    1
 	...    Big Metrics    ${10}
+	Sleep    1s
     END
     ${content}    Create List
     ...    Out of range value for column 'current_value'

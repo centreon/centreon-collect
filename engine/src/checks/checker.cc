@@ -161,8 +161,8 @@ void checker::reap() {
           hst->handle_async_check_result_3x(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_error, basic)
-              << "Check result queue errors for "
-              << "host " << hst->host_id() << " : " << e.what();
+              << "Check result queue errors for " << "host " << hst->host_id()
+              << " : " << e.what();
           runtime_logger->error("Check result queue errors for host {} : {}",
                                 hst->host_id(), e.what());
         }
@@ -345,9 +345,7 @@ void checker::run_sync(host* hst,
  *  Default constructor.
  */
 checker::checker(bool used_by_test)
-    : commands::command_listener(),
-      _used_by_test(used_by_test),
-      _finished(false) {}
+    : commands::command_listener(), _used_by_test(used_by_test) {}
 
 /**
  *  Default destructor.
@@ -364,8 +362,7 @@ checker::~checker() noexcept {
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
   engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
-  SPDLOG_LOGGER_TRACE(functions_logger, "checker::finished: res={:p}",
-                      (void*)&res);
+  SPDLOG_LOGGER_TRACE(functions_logger, "checker::finished: res={}", res);
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
@@ -397,7 +394,6 @@ void checker::finished(commands::result const& res) noexcept {
   lock.lock();
   _to_reap_partial.push_back(result);
   if (_used_by_test) {
-    _finished = true;
     lock.unlock();
     _finish_cond.notify_one();
   }
@@ -408,28 +404,18 @@ void checker::wait_completion(e_completion_filter filter) {
     throw std::invalid_argument("checker not in test usage");
   }
   std::unique_lock<std::mutex> lock(_mut_reap);
-  _finished = false;
   if (filter == e_completion_filter::all) {
-    _finish_cond.wait(lock, [this]() { return _finished; });
+    _finish_cond.wait(lock, [this]() { return !_to_reap_partial.empty(); });
   } else {
     check_source filt =
         filter == e_completion_filter::service ? service_check : host_check;
     _finish_cond.wait(lock, [this, filt]() {
-      if (!_finished) {
-        return false;
-      } else {
-        auto found =
-            std::find_if(_to_reap_partial.begin(), _to_reap_partial.end(),
-                         [filt](const check_result::pointer& res) {
-                           return res->get_object_check_type() == filt;
-                         });
-        if (found != _to_reap_partial.end()) {
-          return true;
-        } else {
-          _finished = false;
-          return false;
-        }
-      }
+      auto found =
+          std::find_if(_to_reap_partial.begin(), _to_reap_partial.end(),
+                       [filt](const check_result::pointer& res) {
+                         return res->get_object_check_type() == filt;
+                       });
+      return found != _to_reap_partial.end();
     });
   }
 }

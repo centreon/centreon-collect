@@ -186,8 +186,10 @@ BSCSSTGRR2
 BSCSSCRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Config Broker    module
     Ctn Config Broker Bbdo Output    central    bbdo_server    5670    tcp
     Ctn Config Broker Bbdo Input    rrd    bbdo_client    5670    tcp    localhost
     Ctn Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
@@ -198,9 +200,11 @@ BSCSSCRR1
     Ctn Broker Config Flush Log    central    0
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
+    Ctn Start Engine
     ${content}    Create List    compression: writing
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No compression enabled
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 BSCSSCRR2

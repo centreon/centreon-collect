@@ -20,7 +20,7 @@
 #include "com/centreon/broker/graphite/stream.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/graphite/connector.hh>
-#include "../../core/test/test_server.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

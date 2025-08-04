@@ -20,11 +20,14 @@
 #include "log.hh"
 
 #include "agent_info.hh"
+#include "check_counter.hh"
 #include "check_cpu.hh"
 #include "check_event_log.hh"
+#include "check_files.hh"
 #include "check_health.hh"
 #include "check_memory.hh"
 #include "check_process.hh"
+#include "check_sched.hh"
 #include "check_service.hh"
 #include "check_uptime.hh"
 #include "drive_size.hh"
@@ -133,7 +136,10 @@ void show_help() {
   check_service::help(std::cout);
   check_health::help(std::cout);
   check_event_log::help(std::cout);
+  check_counter::help(std::cout);
   check_process::help(std::cout);
+  check_sched::help(std::cout);
+  check_files::help(std::cout);
 }
 
 /**
@@ -221,7 +227,8 @@ int _main(bool service_start) {
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length());
+        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length(),
+        conf.get_token(), conf.get_trusted_tokens());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -267,6 +274,8 @@ int _main(bool service_start) {
 
   // kill check_drive_size thread if used
   check_drive_size::thread_kill();
+  // kill check_files thread if used
+  check_files::thread_kill();
 
   SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent end");
 

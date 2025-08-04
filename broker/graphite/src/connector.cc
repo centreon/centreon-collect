@@ -22,6 +22,9 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/graphite/internal.hh"
 #include "com/centreon/broker/graphite/stream.hh"
+#include "com/centreon/broker/neb/host.hh"
+#include "com/centreon/broker/neb/instance.hh"
+#include "com/centreon/broker/neb/service.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;

@@ -92,7 +92,6 @@ class checker : public commands::command_listener {
    */
   const bool _used_by_test;
   std::condition_variable _finish_cond;
-  bool _finished;
 };
 
 /**

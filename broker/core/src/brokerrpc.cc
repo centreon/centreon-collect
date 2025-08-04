@@ -18,7 +18,6 @@
  */
 
 #include "com/centreon/broker/brokerrpc.hh"
-#include <fmt/format.h>
 #include <grpcpp/server_builder.h>
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/events.hh"

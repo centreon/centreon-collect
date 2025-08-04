@@ -130,13 +130,13 @@ class connection_send_bagot : public http::connection_base {
 
   void connect(http::connect_callback_type&& callback) override {
     _state = e_idle;
-    _io_context->post([cb = std::move(callback)]() { cb({}, {}); });
+    asio::post(*_io_context, [cb = std::move(callback)]() { cb({}, {}); });
   }
 
   void send(http::request_ptr request,
             http::send_callback_type&& callback) override {
     if (_state != e_idle) {
-      _io_context->post([cb = std::move(callback)]() {
+      asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
       });
     } else {
@@ -145,7 +145,7 @@ class connection_send_bagot : public http::connection_base {
             _logger, "fail id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
-        _io_context->post([cb = std::move(callback), request]() {
+        asio::post(*_io_context, [cb = std::move(callback), request]() {
           cb(std::make_error_code(std::errc::invalid_argument),
              fmt::format("errorrrr id:{} nb_data={}",
                          std::static_pointer_cast<request_test>(request)
@@ -162,7 +162,7 @@ class connection_send_bagot : public http::connection_base {
             _logger, "success id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
-        _io_context->post([cb = std::move(callback)]() {
+        asio::post(*_io_context, [cb = std::move(callback)]() {
           auto resp = std::make_shared<http::response_type>();
           resp->keep_alive(false);
           cb({}, "", resp);
@@ -171,7 +171,8 @@ class connection_send_bagot : public http::connection_base {
     }
   }
 
-  void _on_accept(http::connect_callback_type&& callback) override{};
+  void _on_accept(http::connect_callback_type&& callback
+                  [[maybe_unused]]) override {};
 
   void answer(const http::response_ptr& response,
               http::answer_callback_type&& callback) override {}

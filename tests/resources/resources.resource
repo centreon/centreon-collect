@@ -97,7 +97,7 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False    ${bbdo2}=False
+    [Arguments]    ${only_central}=False    ${bbdo2}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
     ${b1_obj}    Get Process Object   b1
@@ -121,7 +121,7 @@ Ctn Kindly Stop Broker
             # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Ctn Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
-        ELIF	not ${bbdo2}
+        ELSE IF    not ${bbdo2} and not ${only_central} and not ${no_rrd_test}
             Log To Console    "central broker stopped"
             # We have to check if central RRD logs contain errors about data sent in the past.
             ${result}    Grep File    ${rrdLog}    RRD: ignored update error in file
@@ -163,6 +163,8 @@ Ctn Stop Processes
     Ctn Kill Engine
 
 Ctn Start Engine
+    [Arguments]    ${with_centreon_engine_user}=False
+    # Currently we are in BBDO2 by default.
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -175,6 +177,9 @@ Ctn Start Engine
             Remove File    ${lib}/rw/centengine.cmd
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
+        END
+        IF    ${with_centreon_engine_user}
+            Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
         Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
     END
@@ -270,9 +275,15 @@ Ctn Get Engine Pid
     RETURN    ${pid}
 
 Ctn Reload Engine
-    ${count}    Ctn Get Engines Count
-    FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+    [Arguments]    ${poller_index}=-1
+    IF    ${poller_index} == -1
+        ${count}    Ctn Get Engines Count
+        FOR    ${idx}    IN RANGE    0    ${count}
+            ${alias}    Catenate    SEPARATOR=    e    ${idx}
+            Send Signal To Process    SIGHUP    ${alias}
+        END
+    ELSE
+        ${alias}    Catenate    SEPARATOR=    e    ${poller_index}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
@@ -481,3 +492,39 @@ Ctn Wait For Otel Server To Be Ready
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
 
+Ctn Create Otl Request
+    [Documentation]    create an otl request with nagios telegraf style
+    [Arguments]    ${state}    ${host}    ${service}=
+    ${state_attrib}    Create Dictionary    host=${host}    service=${service}
+    ${rta_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rta    unit=ms
+    ${rtmax_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=rtmax    unit=ms
+    ${pl_attrib}    Create Dictionary    host=${host}    service=${service}    perfdata=pl    unit=%
+
+    # state
+    ${state_metric}    Ctn Create Otl Metric    check_icmp_state    1    ${state_attrib}    ${state}
+    # value
+    ${value_metric}    Ctn Create Otl Metric    check_icmp_value    1    ${rta_attrib}    ${0.022}
+    Ctn Add Data Point To Metric    ${value_metric}    ${rtmax_attrib}    ${0.071}
+    Ctn Add Data Point To Metric    ${value_metric}    ${pl_attrib}    ${0.001}
+
+    ${critical_gt_metric}    Ctn Create Otl Metric    check_icmp_critical_gt    1    ${rta_attrib}    ${500}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${80}
+    ${critical_lt_metric}    Ctn Create Otl Metric    check_icmp_critical_lt    1    ${rta_attrib}    ${1}
+    Ctn Add Data Point To Metric    ${critical_gt_metric}    ${pl_attrib}    ${0.00001}
+
+    ${metrics_list}    Create List
+    ...    ${state_metric}
+    ...    ${value_metric}
+    ...    ${critical_gt_metric}
+    ...    ${critical_lt_metric}
+
+    ${scope_attrib}    Create Dictionary
+    ${scope_metric}    Ctn Create Otl Scope Metrics    ${scope_attrib}    ${metrics_list}
+
+    ${scope_metrics_list}    Create List    ${scope_metric}
+
+    ${resource_attrib}    Create Dictionary
+    ${resource_metrics}    Ctn Create Otl Resource Metrics    ${resource_attrib}    ${scope_metrics_list}
+    ${resources_list}    Create List    ${resource_metrics}
+
+    RETURN    ${resources_list}

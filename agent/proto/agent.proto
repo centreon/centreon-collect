@@ -71,7 +71,7 @@ message AgentInfo {
 message AgentConfiguration {
     Version centreon_version = 1;
     //delay between 2 checks of one service, so we will do all check in that period (in seconds)
-    uint32 check_interval = 2;
+    //uint32 check_interval = 2; //removed but we keep it for backward compatibility (no reused of this field index)
     //limit the number of active checks in order to limit charge
     uint32 max_concurrent_checks = 3;
     //period of metric exports (in seconds)
@@ -82,6 +82,8 @@ message AgentConfiguration {
     bool use_exemplar = 6;
     //list of services with their commands
     repeated Service services = 7;
+    //when we calculate checks scheduling, we adjust time step in order to respect all checks interval at max_check_interval_error rounded
+    uint32 max_check_interval_error = 8;
 }
 
 //Service (poller configuration definition)
@@ -90,4 +92,5 @@ message Service {
     string service_description = 1;
     string command_name = 2;
     string command_line = 3;
+    uint32 check_interval = 4;
 }

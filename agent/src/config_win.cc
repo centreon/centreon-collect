@@ -108,5 +108,10 @@ config::config(const std::string& registry_key) {
       get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
 
+  if (_reverse_connection)
+    _trusted_tokens.insert(get_sz_reg_or_default("token", ""));
+  else
+    _token = get_sz_reg_or_default("token", "");
+
   RegCloseKey(h_key);
 }

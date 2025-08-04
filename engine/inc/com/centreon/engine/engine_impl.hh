@@ -1,7 +1,7 @@
 #ifndef CCE_ENGINERPC_ENGINE_IMPL_HH
 #define CCE_ENGINERPC_ENGINE_IMPL_HH
 
-#include "engine.grpc.pb.h"
+#include "engine/enginerpc/engine.grpc.pb.h"
 
 namespace com::centreon::engine {
 class engine_impl final : public Engine::Service {
