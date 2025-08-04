@@ -506,7 +506,6 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
                             "pid:{} fail read from stderr of process {}: {}",
-                            _proc->proc.native_handle(),
                             _proc->proc.native_handle(), *_args, err.message());
       } else {
         SPDLOG_LOGGER_ERROR(
