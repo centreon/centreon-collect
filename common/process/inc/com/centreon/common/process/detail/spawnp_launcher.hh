@@ -27,28 +27,28 @@
  *
  */
 
-#define CAN_USE_SYS_CLOSE_RANGE 1
-#ifdef DISTRIB_ALMA
-#if defined(DISTRIB_MAJOR) && DISTRIB_MAJOR < 9
-#undef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
-#endif
-#endif
+// #define CAN_USE_SYS_CLOSE_RANGE 1
+// #ifdef DISTRIB_ALMA
+// #if defined(DISTRIB_MAJOR) && DISTRIB_MAJOR < 9
+// #undef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
+// #endif
+// #endif
 
-#ifdef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
-/**
- * we force usage of pidfd_open as SYS_close_range and SYS_pidfd_open are
- * available in alma8 even if glibc wrapper are not
- * SYS_pidfd_open and SYS_close_range as were added in kernel 5.3
- */
-#define BOOST_PROCESS_V2_PIDFD_OPEN 1
-#define BOOST_PROCESS_V2_HAS_PROCESS_HANDLE 1
-#ifndef SYS_pidfd_open
-#define SYS_pidfd_open 434
-#endif
-#ifndef SYS_close_range
-#define SYS_close_range 436
-#endif
-#endif
+// #ifdef CAN_USE_SYS_CLOSE_RANGE_AND_PIDFD_OPEN
+// /**
+//  * we force usage of pidfd_open as SYS_close_range and SYS_pidfd_open are
+//  * available in alma8 even if glibc wrapper are not
+//  * SYS_pidfd_open and SYS_close_range as were added in kernel 5.3
+//  */
+// #define BOOST_PROCESS_V2_PIDFD_OPEN 1
+// #define BOOST_PROCESS_V2_HAS_PROCESS_HANDLE 1
+// #ifndef SYS_pidfd_open
+// #define SYS_pidfd_open 434
+// #endif
+// #ifndef SYS_close_range
+// #define SYS_close_range 436
+// #endif
+// #endif
 #endif
 
 #include <boost/process/v2/process.hpp>

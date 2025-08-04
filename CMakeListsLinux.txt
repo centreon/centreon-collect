@@ -21,18 +21,6 @@
 #
 
 
-cmake_host_system_information(RESULT DISTRIB QUERY DISTRIB_ID)
-cmake_host_system_information(RESULT DISTRIB_VERSION_ID QUERY DISTRIB_VERSION_ID)
-
-add_compile_definitions(DISTRIB=${DISTRIB})
-string(REGEX MATCH "^[0-9]+" DISTRIB_MAJOR "${DISTRIB_VERSION_ID}")
-add_compile_definitions(DISTRIB_MAJOR=${DISTRIB_MAJOR})
-
-
-if ( DISTRIB STREQUAL "almalinux")
-  add_compile_definitions(DISTRIB_ALMA=1)
-endif()
-
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
 
