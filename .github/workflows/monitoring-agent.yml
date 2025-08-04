@@ -685,7 +685,7 @@ jobs:
       - name: Deliver monitoring agent to github release
         uses: ./.github/actions/deliver-github-asset
         with:
-          file_pattern: /tmp/promoted-packages/centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
+          file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
           github_release: centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
