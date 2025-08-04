@@ -100,7 +100,7 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
   pid_t pid(static_cast<pid_t>(-1));
 
 // child not play with parent fds
-#ifdef BOOST_PROCESS_V2_PIDFD_OPEN
+#if defined SYS_close_range && defined CLOSE_RANGE_CLOEXEC
   ::syscall(SYS_close_range, 3, ~0u, CLOSE_RANGE_CLOEXEC);
 #endif
 
