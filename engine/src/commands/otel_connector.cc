@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/engine/commands/otel_connector.hh"
-#include <stdexcept>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

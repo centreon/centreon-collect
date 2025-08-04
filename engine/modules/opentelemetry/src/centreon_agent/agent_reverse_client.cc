@@ -83,8 +83,7 @@ void agent_reverse_client::update(const agent_config::pointer& new_conf) {
       _shutdown_connection(connection_iterator);
       connection_iterator = _agents.erase(connection_iterator);
     } else {
-      connection_iterator->second->refresh_agent_configuration_if_needed(
-          new_conf);
+      // agent update will be done later in open_telemetry::_reload
       ++connection_iterator;
       ++conf_iterator;
     }

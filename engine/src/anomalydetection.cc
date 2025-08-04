@@ -29,7 +29,6 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;

@@ -19,27 +19,21 @@
 #ifndef CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 #define CCE_MOD_OTL_CENTREON_AGENT_AGENT_IMPL_HH
 
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_set.h>
-#include <absl/synchronization/mutex.h>
-#include <algorithm>
-#include <boost/multi_index/indexed_by.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <iterator>
-#include <memory>
 #include "agent_stat.hh"
 
-#include "centreon_agent/agent.pb.h"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_config.hh"
 #include "com/centreon/engine/modules/opentelemetry/otl_data_point.hh"
 
 #include "com/centreon/engine/modules/opentelemetry/conf_helper.hh"
-#include "neb.pb.h"
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
+/**
+ * @brief base class of agent connection.
+ * It contains static containers that allow to find agent connection from
+ * service@host ids
+ *
+ */
 class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   struct instance_element {
     instance_element() {}
@@ -86,10 +80,14 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   using pointer = std::shared_ptr<agent_impl_base>;
   // virtual void force_check() = 0;
   virtual void shutdown() = 0;
-  virtual void calc_and_send_config_if_needed(
-      const agent_config::pointer& new_conf) = 0;
 
   static void force_check(uint64_t host_id, uint64_t serv_id);
+
+  static void all_agent_calc_and_send_config_if_needed(
+      const agent_config::pointer& new_conf);
+
+  virtual void calc_and_send_config_if_needed(
+      const agent_config::pointer& new_conf) = 0;
 };
 
 /**
@@ -197,9 +195,6 @@ class agent_impl : public bireactor_class, public agent_impl_base {
 
   void calc_and_send_config_if_needed(
       const agent_config::pointer& new_conf) override;
-
-  static void all_agent_calc_and_send_config_if_needed(
-      const agent_config::pointer& new_conf);
 
   static void update_config();
 

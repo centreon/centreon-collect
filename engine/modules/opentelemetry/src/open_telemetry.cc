@@ -124,15 +124,8 @@ void open_telemetry::_reload() {
     _agent_reverse_client->update(_conf->get_centreon_agent_config());
   }
   // push new configuration to connected agents
-  centreon_agent::agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
-                                                       agent::MessageToAgent>>::
-      all_agent_calc_and_send_config_if_needed(
-          _conf->get_centreon_agent_config());
-
-  centreon_agent::agent_impl<::grpc::ClientBidiReactor<
-      agent::MessageToAgent, agent::MessageFromAgent>>::
-      all_agent_calc_and_send_config_if_needed(
-          _conf->get_centreon_agent_config());
+  centreon_agent::agent_impl_base::all_agent_calc_and_send_config_if_needed(
+      _conf->get_centreon_agent_config());
 }
 
 /**

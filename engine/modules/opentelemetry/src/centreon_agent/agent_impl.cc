@@ -16,9 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
 #include <google/protobuf/util/message_differencer.h>
-#include <cstdint>
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/globals.hh"
@@ -77,6 +75,17 @@ void agent_impl_base::_on_done() {
   absl::MutexLock l(_instances_m);
   _configured_instance->get<1>().erase(me);
   _no_configured_instance->erase(me);
+}
+
+/**
+ * @brief static method used to push new configuration to all agents
+ *
+ */
+void agent_impl_base::all_agent_calc_and_send_config_if_needed(
+    const agent_config::pointer& new_conf) {
+  _apply_to_all([&new_conf](const agent_impl_base::pointer& conn) {
+    conn->calc_and_send_config_if_needed(new_conf);
+  });
 }
 
 /**
@@ -193,19 +202,6 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
         return 0;
       });
   command_manager::instance().enqueue(std::move(to_call));
-}
-
-/**
- * @brief static method used to push new configuration to all agents
- *
- * @tparam bireactor_class
- */
-template <class bireactor_class>
-void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
-    const agent_config::pointer& new_conf) {
-  _apply_to_all([&new_conf](const agent_impl_base::pointer& conn) {
-    conn->calc_and_send_config_if_needed(new_conf);
-  });
 }
 
 static bool add_command_to_agent_conf(
