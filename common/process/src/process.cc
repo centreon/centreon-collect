@@ -206,7 +206,7 @@ void process<use_mutex>::start_process(
           me->_on_process_end(err, raw_exit_status);
         });
     SPDLOG_LOGGER_DEBUG(_logger, "pid:{} process started: {}",
-                        _proc->proc.native_handle(), *_args);
+                        _proc->proc.handle().id(), *_args);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to start {}: {}", *_args, e.what());
     throw;
@@ -309,7 +309,7 @@ void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
         _exit_code = _proc->proc.exit_code();
       } else {
         SPDLOG_LOGGER_ERROR(_logger, "pid:{} fail async_wait of {}: {}",
-                            _proc->proc.native_handle(), *_args, err.message());
+                            _proc->proc.handle().id(), *_args, err.message());
         _exit_code = -1;
       }
     } else {
@@ -318,7 +318,7 @@ void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
       }
       _exit_code = proc::evaluate_exit_code(raw_exit_status);
       SPDLOG_LOGGER_DEBUG(_logger, "pid:{} end of process {}, exit_code={}",
-                          _proc->proc.native_handle(), *_args, _exit_code);
+                          _proc->proc.handle().id(), *_args, _exit_code);
     }
   }
   _completion_flags.fetch_or(e_completion_flags::process_end);
@@ -535,7 +535,7 @@ void process<use_mutex>::_on_timeout() {
   _exit_status = e_exit_status::timeout;
   if (_proc->proc.is_open()) {
     SPDLOG_LOGGER_ERROR(_logger, "pid:{} timeout process {} => kill",
-                        _proc->proc.native_handle(), *_args);
+                        _proc->proc.handle().id(), *_args);
     boost::system::error_code err;
     _proc->proc.terminate(err);
     _terminated = true;
