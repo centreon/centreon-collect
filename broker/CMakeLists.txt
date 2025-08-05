@@ -420,6 +420,7 @@ target_link_libraries(
   centreon_common
   gRPC::grpc++
   protobuf::libprotobuf
+  stdc++fs
   -Wl,--no-whole-archive
 )
 
