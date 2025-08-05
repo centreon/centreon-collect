@@ -38,6 +38,10 @@ jobs:
             image: centreon-collect-alma8
             tag: ${{ needs.get-environment.outputs.img_version }}
           - runner: centreon-collect
+            dockerfile: centreon-collect-alma8-test
+            image: centreon-collect-alma8-test
+            tag: ${{ needs.get-environment.outputs.test_img_version }}
+          - runner: centreon-collect
             dockerfile: centreon-collect-alma9
             image: centreon-collect-alma9
             tag: ${{ needs.get-environment.outputs.img_version }}
