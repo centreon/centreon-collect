@@ -9,7 +9,7 @@ sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 
 dnf install -y dnf-plugins-core
-dnf config-manager --set-enabled crb
+dnf config-manager --set-enabled powertools
 dnf install -y epel-release
 
 #################################
