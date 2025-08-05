@@ -11,9 +11,9 @@ if command -v python3.8 >/dev/null 2>&1; then
     echo "Alias python → python3.8 activé"
 fi
 
-$my_python -m grpc_tools.protoc -I../../engine/enginerpc -I../../common/src --python_out=. --grpc_python_out=. engine.proto
-$my_python -m grpc_tools.protoc -I../../broker/core/src -I../../common/src --python_out=. --grpc_python_out=. broker.proto
-$my_python -m grpc_tools.protoc -I../../common/src --python_out=. --grpc_python_out=. process_stat.proto
+$my_python -m grpc_tools.protoc -I../../engine/enginerpc -I../../common/process_stat --python_out=. --grpc_python_out=. engine.proto
+$my_python -m grpc_tools.protoc -I../../broker/core/src -I../../common/process_stat --python_out=. --grpc_python_out=. broker.proto
+$my_python -m grpc_tools.protoc -I../../common/process_stat --python_out=. --grpc_python_out=. process_stat.proto
 for file in `ls ../../bbdo/*.proto`
 do
     $my_python -m grpc_tools.protoc -I../../bbdo --python_out=. --grpc_python_out=. `basename $file`
