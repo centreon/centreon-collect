@@ -208,7 +208,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids: tuple[int, int]):
+    def _create_service(self, host_id: int, cmd_ids):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
