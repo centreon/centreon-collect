@@ -195,12 +195,13 @@ TestWhiteList
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"regex":["/usr/lib64/nagios/plugins/check_by_ssh .+"]}}
     Create File    /etc/centreon-engine-whitelist/test2    ${whitelist_content}
+
+    #on bookworm arm we must wait a little to have file available
+    Sleep    1s
+
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
-
-    ${content}    Create List    'toto=127.0.0.1'
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     IF    "${run_env}" == "docker"
         ${content}    Create List    'toto=127.0.0.1'
