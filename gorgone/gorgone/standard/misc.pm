@@ -252,8 +252,7 @@ sub backtick {
             # This Does not work as it keep the quotes around the arguments
             #my @lcommand_list = (split(/ /, $arg{command}));
             exec {$command_list[0]} @command_list, @{$arg{arguments}};
-        }
-        if (scalar(@{$arg{arguments}}) <= 0) {
+        } elsif (scalar(@{$arg{arguments}}) <= 0) {
             exec($arg{command});
         } else {
             exec($arg{command}, @{$arg{arguments}});
