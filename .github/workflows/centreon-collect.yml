@@ -347,7 +347,7 @@ jobs:
       matrix:
         include:
           - distrib: el8
-            image: centreon-collect-alma8-test
+            image: centreon-collect-mariadb-alma8-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
