@@ -402,19 +402,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - distrib: el8
+            image: centreon-collect-mariadb-alma8-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-el8-amd64
+            tests_params: '{}'
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
             tests_params: '{}'
           - distrib: bullseye
             image: centreon-collect-mariadb-bullseye-arm64-test
