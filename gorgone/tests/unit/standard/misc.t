@@ -125,6 +125,16 @@ sub test_unix_execute {
         );
         is($output, $test->{expect}, $test->{msg});
     }
+    # If the binary executed is not found, the command should not be rerun with a shell
+    unlink('/tmp/injected_commandUnitTest.txt');
+    my ($status, $output, $status_code) = gorgone::standard::misc::backtick(
+        logger                    => $logger,
+        wait_exit                 => 1,
+        command                   => './binary_not_found with args ; echo "injected command from binary_not_found" >> /tmp/injected_commandUnitTest.txt',
+        'no_shell_interpretation' => 1,
+    );
+    # is($status, 127, 'Command not found returns 127');
+    ok(!-r '/tmp/injected_commandUnitTest.txt', 'No binary interpretation and no binary does not execute the command, no file created');
 }
 chdir($FindBin::Bin);
 chmod(0755, './showArgs.sh');
