@@ -354,6 +354,8 @@ sub execute_cmd {
                     cache_dir => $cache_dir,
                     owner => 'centreon',
                     group => 'centreon',
+                    # With SYNCTRAP the destination file must have permissions 0664
+                    mode => '0664',
                     metadata => {
                         centcore_proxy => 1,
                         centcore_cmd => 'SYNCTRAP'

@@ -1125,12 +1125,18 @@ sub prepare_remote_copy {
         $owner = $options{data}->{content}->{owner} if (defined($options{data}->{content}->{owner}) && $options{data}->{content}->{owner} ne '');
         my $group;
         $group = $options{data}->{content}->{group} if (defined($options{data}->{content}->{group}) && $options{data}->{content}->{group} ne '');
+        my $mode;
+        $mode = $options{data}->{content}->{mode} if (defined($options{data}->{content}->{mode}) && $options{data}->{content}->{mode} ne '');
         foreach my $file (@inventory) {
             next if ($file eq '.');
             $tar->add_files($file);
             if (defined($owner) || defined($group)) {
                 $tar->chown($file, $owner, $group);
             }
+            if (defined($mode)) {
+                $tar->chmod($file, "$mode");
+            }
+
         }
 
         unless (chdir($options{data}->{content}->{cache_dir})) {
@@ -1201,7 +1207,11 @@ sub prepare_remote_copy {
             destination => $dst,
             cache_dir => $options{data}->{content}->{cache_dir},
             owner => $options{data}->{content}->{owner},
-            group => $options{data}->{content}->{group}
+            group => $options{data}->{content}->{group},
+            # We only handle mode for regular files because the permissions of the files
+            # contained in a TAR archive are already managed within the archive
+            $type eq 'regular' ? ( mode => $options{data}->{content}->{mode} // undef )
+                               : ()
         },
         parameters => { no_fork => 1 }
     });

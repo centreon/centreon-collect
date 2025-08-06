@@ -26,6 +26,7 @@ Legacycmd with ${communication_mode} communication
 
     Force Check Execution On Poller    comm=${communication_mode}
     Push Engine And vmware Configuration    comm=${communication_mode}
+    Test SYNCTRAP Execution
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
@@ -42,6 +43,7 @@ Legacycmd Teardown
     Run    rm -rf /etc/centreon/centreon_vmware.json
     Run    rm -rf /etc/centreon-engine/randomBigFile.cfg
     Run    rm -rf /etc/centreon-engine/engine-hosts.cfg
+    Run    rm -f /etc/snmp/centreon_traps/centreontrapd.sdb
     
 Push Engine And vmware Configuration
     [Arguments]    ${comm}=    ${poller_id}=2
@@ -107,3 +109,31 @@ Force Check Execution On Poller
     ${log_query}    Create List    ${forced_check_command}
     ${log_status}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${comm}_gorgone_central_legacycmd/legacycmd-pipe-poller.log    content=${log_query}    regex=0    timeout=20
     Should Be True    ${log_status}    Didn't found the logs : ${log_status}
+
+Test SYNCTRAP Execution
+    [Arguments]    ${poller_id}=2
+    ${source}=    Set Variable    /etc/snmp/centreon_traps/${poller_id}/centreontrapd.sdb
+    ${destination}=    Set Variable    /etc/snmp/centreon_traps/centreontrapd.sdb
+
+    Log To Console    Test mode of file after SYNCTRAP
+    Run    mkdir /etc/snmp/centreon_traps/${poller_id} -p
+    Run    echo "DATA" > ${source}
+
+    Run    rm -f ${destination}
+    Run    chmod 644 ${source}
+    Run    echo SYNCTRAP:${poller_id} > /var/lib/centreon/centcore/random.cmd
+    Wait Until Keyword Succeeds    10x    2s    File Should Exist    ${destination}
+    ${testmode}=    Run Process    stat    -c     %a     ${destination}    stdout=True
+    ${mode}=    Strip String    ${testmode.stdout}
+    Should Be Equal    ${mode}    664    Permissions of file must always be 664
+
+    Run    rm -f ${destination}
+    Run    chmod 664 ${source}
+    Run    echo SYNCTRAP:${poller_id} > /var/lib/centreon/centcore/random.cmd
+    Wait Until Keyword Succeeds    10x    2s    File Should Exist    ${destination}
+    ${testmode}=    Run Process    stat    -c     %a     ${destination}    stdout=True
+    ${mode}=    Strip String    ${testmode.stdout}
+    Should Be Equal    ${mode}    664    Permissions of file must always be 664
+
+    Run    rm -f ${source}
+    Run    rm -f ${destination}
