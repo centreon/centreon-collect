@@ -42,6 +42,9 @@ jobs:
       matrix:
         include:
           - runner: centreon-collect
+            distrib: alma8
+            database: mariadb
+          - runner: centreon-collect
             distrib: alma9
             database: mariadb
           - runner: centreon-collect

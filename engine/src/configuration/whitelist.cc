@@ -75,7 +75,7 @@ void whitelist::init_ryml_error_handler() {
   });
 }
 
-static std::atomic_uint _instance_gen(1);
+std::atomic_uint whitelist::_instance_gen(1);
 
 /**
  * @brief Construct a new whitelist::whitelist object

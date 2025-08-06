@@ -88,7 +88,7 @@ Whitelist_Host
     # no file => no restriction
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for host_1
 
@@ -98,6 +98,9 @@ Whitelist_Host
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
     Run    chmod 750 -R /etc/centreon-engine-whitelist
+
+    #on bookworm arm we must wait a little to have file available
+    Sleep    1s
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
@@ -113,7 +116,7 @@ Whitelist_Host
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
@@ -122,7 +125,7 @@ Whitelist_Host
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
@@ -204,7 +207,7 @@ Whitelist_Service
     # no file => no restriction
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check result found for service_1
 
@@ -225,7 +228,7 @@ Whitelist_Service
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 not run
 
@@ -234,7 +237,7 @@ Whitelist_Service
     Ctn Reload Engine
     ${start}    Get Current Date
     Ctn Schedule Forced Service Check    host_1    service_1
-    ${content}    Create List    raw_v2::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
+    ${content}    Create List    raw::run: cmd='/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0'
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
