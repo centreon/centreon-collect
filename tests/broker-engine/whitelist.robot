@@ -99,6 +99,12 @@ Whitelist_Host
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist/test
     Run    chmod 750 -R /etc/centreon-engine-whitelist
 
+<<<<<<< HEAD
+=======
+    #on bookworm arm we must wait a little to have file available
+    Sleep    1s
+
+>>>>>>> 24.10.x
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
     ${start}    Get Current Date

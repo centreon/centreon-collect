@@ -1010,7 +1010,67 @@ sub init_database {
 
     return if (!defined($options{autocreate_schema}) || $options{autocreate_schema} != 1);
 
+<<<<<<< HEAD
     create_schema(gorgone => $options{gorgone}, logger => $options{logger}, version => $options{version});
+=======
+    my $db_version = '1.0';
+    # don't log errors for this query as we know the tables may not exist, and
+    # that's the info we're looking for
+    my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT `value` FROM gorgone_information WHERE `key` = 'version'}, no_error_log => 1 });
+    if ($status == -1) {
+        ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => q{SELECT 1 FROM gorgone_identity LIMIT 1}, no_error_log => 1 });
+        if ($status == -1) {
+            create_schema(gorgone => $options{gorgone}, logger => $options{logger}, version => $options{version});
+            return ;
+        }
+    } else {
+        my $row = $sth->fetchrow_arrayref();
+        $db_version = $row->[0] if (defined($row));
+    }
+
+    $options{logger}->writeLogInfo("[core] update schema $db_version -> $options{version}");
+    
+    if ($db_version eq '1.0') {
+        my $schema = [
+            q{
+                PRAGMA encoding = "UTF-8"
+            },
+            q{
+                CREATE TABLE `gorgone_information` (
+                  `key` varchar(1024) DEFAULT NULL,
+                  `value` varchar(1024) DEFAULT NULL
+                );
+            },
+            qq{
+                INSERT INTO gorgone_information (`key`, `value`) VALUES ('version', '$options{version}');
+            },
+            q{
+                ALTER TABLE `gorgone_identity` ADD COLUMN `mtime` int(11) DEFAULT NULL DEFAULT NULL;
+            },
+            q{
+                ALTER TABLE `gorgone_identity` ADD COLUMN `oldkey` varchar(1024) DEFAULT NULL;
+            },
+            q{
+                ALTER TABLE `gorgone_identity` ADD COLUMN `oldiv` varchar(1024) DEFAULT NULL;
+            },
+            q{
+                ALTER TABLE `gorgone_identity` ADD COLUMN `iv` varchar(1024) DEFAULT NULL;
+            }
+        ];
+        foreach (@$schema) {
+            my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $_ });
+            if ($status == -1) {
+                $options{logger}->writeLogError("[core] update schema issue");
+                exit(1);
+            }
+        }
+        $db_version = '22.04.0';
+    }
+
+    if ($db_version ne $options{version}) {
+        $options{gorgone}->{db_gorgone}->query({ query => "UPDATE gorgone_information SET `value` = '$options{version}' WHERE `key` = 'version'" });
+    }
+>>>>>>> 24.10.x
 }
 
 1;
