@@ -42,13 +42,24 @@ jobs:
       matrix:
         include:
           - runner: centreon-collect
+            distrib: alma8
+            database: mariadb
+          - runner: centreon-collect
             distrib: alma9
+            database: mariadb
+          - runner: centreon-collect
+            distrib: alma8
             database: mariadb
           - runner: centreon-collect
             distrib: alma9
             database: mysql
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
+          - runner: centreon-collect
+            distrib: alma8
+            database: mysql
+            dockerfile: centreon-collect-mysql-alma8-test
+            image: centreon-collect-mysql-alma8-test
           - runner: centreon-collect
             distrib: bookworm
             database: mariadb

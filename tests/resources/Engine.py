@@ -208,7 +208,7 @@ class EngineInstance:
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids: tuple[int, int]):
+    def _create_service(self, host_id: int, cmd_ids):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
@@ -1142,12 +1142,12 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r_contact_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
+    r_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
     r_key = re.compile(rf"^\s*{key}\s+[\w\.,]+\s*$")
     in_block = False
     for i, line in enumerate(lines):
         if not in_block:
-            if r_contact_name.match(line):
+            if r_name.match(line):
                 in_block = True
         else:
             if r_key.match(line):
@@ -4452,6 +4452,43 @@ def ctn_engine_check_sh_command_output():
                 return 0
             if host_id != env_host_id_2:
                 logger.console(f"bad env val_host id:{line}")
+                return 0
+            service_checked[service_id] = 1
+    return len(service_checked)
+
+
+def ctn_engine_check_command_output():
+    """
+    Scan the engine log and search service::handle_async_check_result lines
+    Check the output of check.pl that returns Test check <id> | metric=53.00;50.00;66.67
+    /tmp/states must be filled with 0 exit satus
+
+    Returns: number of different services checked
+    """
+
+    if not engine:
+        return 0
+    search_pattern = re.compile(
+        r"service::handle_async_check_result\(\) service service_(\d+) res:service_check start_time=(\d+) finish_time=(\d+) timeout=(\d+) ok=(\d+) ret_code=(\d+) output:Test check (\d+)")
+    service_checked = {}
+    with open(f"{VAR_ROOT}/log/centreon-engine/config0/centengine.log") as f:
+        lines = f.readlines()
+
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            service_id = int(m.group(1))
+            timeout = m.group(4)
+            ok = m.group(5)
+            ret_code = m.group(6)
+            if timeout != '0':
+                logger.console(f"check timeout: {line}")
+                return 0
+            if ok != '1':
+                logger.console(f"check nok: {line}")
+                return 0
+            if ret_code != '0':
+                logger.console(f"check ret_code no OK: {line}")
                 return 0
             service_checked[service_id] = 1
     return len(service_checked)
