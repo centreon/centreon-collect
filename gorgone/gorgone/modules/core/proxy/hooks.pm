@@ -632,7 +632,6 @@ sub setlogs {
         and (!defined($node_status->{total_msg})
         or $node_status->{total_msg} == -1)) {
         $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg};
-        $options{logger}->writeLogInfo("[proxy] SETLOGS was split in $options{data}->{data}->{nb_total_msg} messages.");
     }
 
     my $ctime_recent = 0;

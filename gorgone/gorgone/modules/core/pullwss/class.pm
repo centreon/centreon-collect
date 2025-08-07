@@ -294,7 +294,7 @@ sub transmit_back {
 
             if (scalar(@{$logs}) <= 0) {
                 $self->{logger}->writeLogDebug("[pullwss] [$token] getlog message included no logs, sending an empty response");
-                $msg_recv->{data}->{nb_total_msg} = $nb_msg + 1;
+                $msg_recv->{data}->{nb_total_msg} = 1;
                 $msg_recv->{data}->{result} = [];
                 my $message = $msg_header . encode_json($msg_recv);
                 $self->send_message(message => $message);
@@ -348,7 +348,6 @@ sub read_zmq_events {
 
         # on the worst case $message could be huge (all of gorgone_history data from the sqlite db for example).
         # So this is a passby reference to avoid copying the data.
-        # the format of the getlog message stop us from using only reference inside the transmit_back function.
         $self->transmit_back(message => \$message);
 
 

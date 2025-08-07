@@ -7,18 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../../";
 use gorgone::modules::core::pullwss::class;
 use gorgone::class::module;
-
-# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
-# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
-BEGIN {
-    package centreon::common::logger;
-    sub writeLogError {};
-    sub writeLogInfo {};
-    sub writeLogDebug {};
-    sub new {return bless({}, 'centreon::common::logger');}
-
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
-}
+use tests::unit::lib::mockLogger;
 
 sub test_transmit_back{
     my $mock = mock_send_message(qr/\[SETLOGS\] \[token\] \[\] (.*)/,[10, 11,12,13], [20, 21,22,23], [30, 31,32,33]);
