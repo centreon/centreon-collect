@@ -1,4 +1,3 @@
-
 package tests::unit::lib::mockLogger;
 use strict;
 use warnings;

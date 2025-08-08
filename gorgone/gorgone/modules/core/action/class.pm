@@ -464,6 +464,7 @@ sub action_command {
         my ($error, $stdout, $return_code) = gorgone::standard::misc::backtick(
             command => $command->{command},
             timeout => (defined($command->{timeout})) ? $command->{timeout} : $self->{command_timeout},
+            no_shell_interpretation => (defined($command->{no_shell_interpretation})) ? $command->{no_shell_interpretation} : undef,
             wait_exit => 1,
             redirect_stderr => 1,
             logger => $self->{logger}
@@ -931,3 +932,82 @@ sub run {
 }
 
 1;
+
+=head1 METHODS
+
+=head2 action_command
+
+ my $status_code = $self->action_command(%options)
+
+Run a list of commands, after installing required packages if necessary.
+
+=over 4
+
+=item C<%options> - A hash of options. The following keys are supported:
+
+=over 4
+
+=item C<token> (required): Token of the request.
+
+=item C<socket_log> (required):
+ZMQ socket used for logging the result of the command execution.
+
+=item C<data> (hash reference):
+Contains the list of commands to run and their associated metadata.
+
+=over 4
+
+=item C<content> (array reference):
+List of commands to execute. Each entry is a hash reference with the following keys:
+
+=over 4
+
+=item C<command> (required): The command to execute.
+
+=item C<timeout> (default: 30): Timeout for the command execution, in seconds.
+
+can be overridden in the Gorgone configuration file.
+
+=item C<no_shell_interpretation> (default: false):
+
+If set to true (1), the command will be executed without shell interpretation.
+
+if set to false (0 or undef) commands are interpreted by the shell.
+
+=item C<continue_on_error> (optional):
+
+If set to 0, command execution will stop on the first error.
+
+Default is undef, meaning execution will continue even if an error occurs.
+
+=item C<metadata> (optional, hash reference):
+Additional metadata for the command.
+
+=over 2
+
+=item C<pkg_install> (optional, hash reference):
+List of plugins/packages to install before running the command.
+
+=back
+
+=back
+
+=back
+
+=back
+
+=back
+
+=head3 Returns
+
+=over 4
+
+=item Sends a ZMQ event on the C<socket_log> with the result of the command execution.
+
+=item Return 0 if all commands have been executed successfully.
+
+=item Return -1 if an error occurred during execution or if one of the commands is not allowed by the whitelist.
+
+=back
+
+=cut
