@@ -799,7 +799,8 @@ sub service_execute_commands {
                         content => [
                             {
                                 command => $command,
-                                timeout => 90
+                                timeout => 90,
+                                no_shell_interpretation => $self->{config}->{no_shell_interpretation},
                             }
                         ]
                     }
