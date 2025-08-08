@@ -1,0 +1,6 @@
+{
+    "filter_rules": [
+        "OS-Linux-SNMP-injection"
+    ],
+    "force_rule": 1
+}
