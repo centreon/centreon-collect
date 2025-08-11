@@ -12,7 +12,9 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 *** Test Cases ***
 NO_ENGINE_ENCRYPTION
-    [Documentation]    Given an engine without configured encryption, we give him several macros and we expect to retrieve them in logs.
+    [Documentation]    Given an engine without configured encryption
+    ...    When we provide the service macros CLEAR_MAC, RAW_MAC and ENCRYPT_MAC
+    ...    Then we should see these macros in the logs
     [Tags]    engine    macros_decrypt    MON-158788
     Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Set Value In Services    0    service_1    _CLEAR_MAC    clear_mac
@@ -30,13 +32,15 @@ NO_ENGINE_ENCRYPTION
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
+    Ctn Schedule Forced Service Check    host_1    service_1
     ${content}    Create List    clear_mac raw::raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
-    
+
 ENGINE_ENCRYPTION_BAD_CONF
-    [Documentation]    Given an engine with configured encryption, but without key and salt, 
-    ...    we give him several macros and we expect to retrieve them in logs without decrypt.
+    [Documentation]    Given an engine with configured encryption, but without key and salt,
+    ...    When we provide the service macros CLEAR_MAC, RAW_MAC and ENCRYPT_MAC
+    ...    Then we should see these macros in the logs without decryption.
     [Tags]    engine    macros_decrypt    MON-158788
     Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Add Value    0    credentials_encryption    1
@@ -55,7 +59,9 @@ ENGINE_ENCRYPTION_BAD_CONF
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
-    
+
+    Ctn Schedule Forced Service Check    host_1    service_1
+
     ${content}    Create List     no encryption configured => can't decryp macro _SERVICEENCRYPT_MAC
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    error message not found in logs
@@ -63,11 +69,11 @@ ENGINE_ENCRYPTION_BAD_CONF
     ${content}    Create List    clear_mac raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
-    
 
 ENGINE_ENCRYPTION_GOOD_CONF
-    [Documentation]    Given an engine with configured encryption, and key and salt, 
-    ...    we give him several macros and we expect to retrieve them in logs without decrypt.
+    [Documentation]    Given an engine with configured encryption, with also key and salt,
+    ...    When we provide the service macros CLEAR_MAC, RAW_MAC and ENCRYPT_MAC
+    ...    Then we should see these macros in logs but with encrypted values hidden.
     [Tags]    engine    macros_decrypt    MON-158788
 
     #we need broker to encode values
@@ -80,7 +86,7 @@ ENGINE_ENCRYPTION_GOOD_CONF
 
     Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Add Value    0    credentials_encryption    1
-    
+
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
 
 
@@ -101,7 +107,9 @@ ENGINE_ENCRYPTION_GOOD_CONF
 
     Sleep    1s
     Remove File    /etc/centreon-engine/engine-context.json
-    
+
+    Ctn Schedule Forced Service Check    host_1    service_1
+
     ${content}    Create List   clear_mac raw_mac The content to encode
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw_mac The content to encode" not found in logs.
