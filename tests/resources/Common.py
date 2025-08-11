@@ -623,8 +623,8 @@ def ctn_set_command_status(cmd, status):
         state_path = "/tmp/states"
 
     if os.path.exists(state_path):
-        f = open(state_path)
-        lines = f.readlines()
+        with open(state_path, 'r') as f:
+            lines = f.readlines()
     else:
         lines = []
     p = re.compile("{}=>(.*)$".format(cmd))

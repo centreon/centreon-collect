@@ -160,7 +160,18 @@ Ctn Kindly Stop Broker
                 END
             ELSE
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
+                Log To Console    The RRD logs contain errors about metrics sent in the past. They are removed.
+                Ctn Save Logs
+		Remove File    ${centralLog}
             END
+
+	    # We check negative metric_id
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    IF    len("""${result}""") > 0
+                Log To Console    The central logs contain errors about metrics with negative IDs.
+                Ctn Save Logs
+                Remove File    ${centralLog}
+	    END
         END
     END
 
