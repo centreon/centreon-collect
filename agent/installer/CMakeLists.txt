@@ -33,14 +33,12 @@ string(REPLACE "/" "\\" CENTAGENT_PATH "${CENTAGENT_PATH}")
 set(AGENT_VERSION "${AGENT_MAJOR}.${AGENT_MINOR}.${AGENT_PATCH}")
 
 #set the output directory for the installer and the output base filename
-set(OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-set(OUTPUT_BASE_FILENAME "centreon-agent-monitoring")
+set(OUTPUT_DIR "${PROJECT_SOURCE_DIR}")
+set(OUTPUT_BASE_FILENAME_INSTALLER "centreon-monitoring-agent")
+set(OUTPUT_BASE_FILENAME_MODIFIER "centreon-monitoring-agent-modify")
 
 # Path to Inno Setup Compiler
 set(ISCC_EXECUTABLE "C:/Program Files (x86)/Inno Setup 6/ISCC.exe")
-
-# Inno script path
-set(INNO_SCRIPT "${PROJECT_SOURCE_DIR}/installer.iss")
 
 # Download plugins
 
@@ -111,20 +109,47 @@ if(EXISTS "${PLUGIN_DOWNLOAD_PATH}")
 endif()
 
 
-# Create configured .iss file from .in template
+# installer .iss file from .in template
 configure_file(
   ${PROJECT_SOURCE_DIR}/installer.iss.in
   ${PROJECT_SOURCE_DIR}/installer_configured.iss
   @ONLY
 )
+# modifier .iss file from .in template
+configure_file(
+  ${PROJECT_SOURCE_DIR}/modifier.iss.in
+  ${PROJECT_SOURCE_DIR}/modifier_configured.iss
+  @ONLY
+)
+
+
+
 # Inno Setup command
-# Add a custom target to build the installer
-# Custom target to run Inno Setup
-add_custom_target(installer
+# Add a custom target to build the  modifier/installer
+# Modifier build
+add_custom_command(
+  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+  DEPENDS "${PROJECT_SOURCE_DIR}/modifier_configured.iss" ${CENTREON_AGENT}
+  COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/modifier_configured.iss
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  COMMENT "Building modifier using Inno Setup"
+  VERBATIM
+)
+add_custom_target("centreon-monitoring-agent-modifier" ALL
+  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+)
+
+# Installer build (depends on modifier output file)
+add_custom_command(
+  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
+  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
   COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/installer_configured.iss
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   COMMENT "Building installer using Inno Setup"
   VERBATIM
 )
-# Add dependencies to ensure the agent binary is built before the installer
-add_dependencies(installer "${CENTREON_AGENT}")
+if(WITH_BUILD_AGENT_INSTALLER)
+  add_custom_target("centreon-monitoring-agent-installer" ALL
+    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
+  )
+endif()

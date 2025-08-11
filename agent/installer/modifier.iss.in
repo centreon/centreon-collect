@@ -1,17 +1,10 @@
 #define AppName "Centreon Monitoring Agent"
 #define AppVersion "@AGENT_VERSION@"
-#define AppExePath "@CENTAGENT_PATH@"
 #define AppPublisher "Centreon"
 #define AppURL "https://www.centreon.com/"
 #define AppExeName "centagent.exe"
-#define PluginExePath "@PLUGIN_DOWNLOAD_PATH@"
-#define BaseUrl "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
-#define PluginSize "@PLUGIN_SIZE@"
-#define EmbeddedPluginVer "@PLUGIN_VERSION@"
-#define ModifierPathexe "@OUTPUT_DIR@/@OUTPUT_BASE_FILENAME_MODIFIER@.exe"
 
 
-#define LicenseFile "resources\license.txt"
 #define CentreonIcon "resources\centreon_icon.ico"
 #define CentreonLogo "resources\centreon_logo.bmp"
 #define CentreonLogoLarge "resources\centreon_logo_large.bmp"
@@ -19,12 +12,10 @@
 #define InfoIcon "resources\info_icon.bmp"
 
 #define OutputDir "@OUTPUT_DIR@"
-#define OutputBaseFilename "@OUTPUT_BASE_FILENAME_INSTALLER@"
+#define OutputBaseFilename "@OUTPUT_BASE_FILENAME_MODIFIER@"
 
-#define AppId "D80E49AC-E863-41E6-A157-54AB2960FFC8"
 
 [Setup]
-AppId={{{#AppId}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
@@ -32,22 +23,17 @@ AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
 DefaultDirName={autopf}\Centreon
-UninstallDisplayIcon={app}\{#AppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-DefaultGroupName={#AppName}
-DisableProgramGroupPage=yes
 OutputBaseFilename={#OutputBaseFilename}
 OutputDir={#OutputDir}
-SolidCompression=no
 WizardStyle=modern
 WizardResizable=no
-DisableWelcomePage=no
+DisableWelcomePage=yes
 DisableDirPage=yes
-LicenseFile={#LicenseFile}
 SetupIconFile ={#CentreonIcon}
 PrivilegesRequired=admin
-Uninstallable=yes
+Uninstallable=no
 DisableStartupPrompt=yes
 WizardImageFile={#CentreonLogoLarge}
 WizardSmallImageFile={#CentreonLogo}
@@ -57,51 +43,11 @@ WizardImageStretch=yes
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Types]
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
-
-
-[Components]
-Name: "agent";   Description: "Centreon Monitoring Agent"; Types: custom 
-Name: "plugins"; Description: "Plugins";  Types: custom 
-
 [Files]
-Source: "{#AppExePath}"; DestDir: "{app}\CentreonMonitoringAgent"; Flags: ignoreversion; Components: agent
-Source: "{#ModifierPathexe}"; DestDir: "{app}"; Flags: ignoreversion; Components: agent
-Source: "{#PluginExePath}"; DestDir: "{app}\Plugins";Components: plugins; Flags: ignoreversion; Check: ShouldInstallEmbeddedPlugin
-Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins;Check: not(ShouldInstallEmbeddedPlugin)
-Source: {#InfoIcon}; Flags: dontcopy
+Source: {#InfoIcon};   Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
-[Run]
-Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\CentreonMonitoringAgent\{#AppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden; Components: agent
-Filename: "sc.exe"; Parameters: "description CentreonMonitoringAgent ""Centreon agent used for monitoring and metric collection""";Flags: runhidden; Components: agent
-Filename: "sc.exe"; Parameters: "start CentreonMonitoringAgent"; Flags: runhidden ; Components: agent
-
-[UninstallRun]
-Filename: "sc.exe"; Parameters: "stop CentreonMonitoringAgent"; Flags: runhidden waituntilterminated; RunOnceId: "StopAgent";Components: agent
-Filename: "sc.exe"; Parameters: "delete CentreonMonitoringAgent"; Flags: runhidden waituntilterminated; RunOnceId: "DeleteAgent";Components: agent
-Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM {#AppExeName}";Flags: runhidden waituntilterminated; Components: agent; RunOnceId: "KillAgent"
-Filename: "reg.exe"; Parameters: "delete HKLM\SOFTWARE\Centreon\CentreonMonitoringAgent /f"; Flags: runhidden; RunOnceId: "DeleteRegistry";Components: agent
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{app}\CentreonMonitoringAgent";Components: agent
-Type: filesandordirs; Name: "{app}\Plugins";Components: plugins;
-
-
 [Code]
-{ ────────────────────────────────────────────────────────────────────── }
-{ ──────────────────────────── Dll ───────────────────────────────────── }
-{ ────────────────────────────────────────────────────────────────────── }
-
-function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
-  external 'GetComputerNameW@kernel32.dll stdcall';
-
-function InternetCheckConnectionW(lpszUrl: string; dwFlags: DWORD; dwReserved: DWORD): BOOL;
-  external 'InternetCheckConnectionW@wininet.dll stdcall';
-
-procedure ExitProcess(uExitCode: UINT);
-  external 'ExitProcess@kernel32.dll stdcall';
 
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────── Global Variables and Widgets ─────────────────── }
@@ -110,7 +56,6 @@ var
 // ─────────────────────────────────────────────
 // Pages:
 // ─────────────────────────────────────────────
-  DownloadPage: TDownloadWizardPage;
   ConfigPage: TWizardPage;
   EncryptionPage: TWizardPage;
 // ─────────────────────────────────────────────
@@ -138,9 +83,6 @@ var
   PublicCertInfoBitmapImage, PrivateKeyInfoBitmapImage, CaInfoBitmapImage, CommonNameInfoBitmapImage, TokenInfoBitmapImage:TBitmapImage;
   PublicCertWarningBitmapImage, PrivateKeyWarningBitmapImage, TokenWarningBitmapImage,CaWarningBitmapImage:TBitmapImage;
   
-  PluginURL : String;
-  PluginVer : String;
-  PluginSrc : String;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -334,31 +276,6 @@ end;
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 
-procedure LogToStdOutFile(Msg: String);
-var
-  LogFile: String;
-  LogLine: String;
-begin
-  LogFile := AddBackslash(ExtractFileDir(ExpandConstant('{srcexe}'))) +
-             'installer_output.log';
-  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
-  // Append log line to file, fail silently if error
-  SaveStringToFile(LogFile, LogLine, True);
-end;
-
-function CmdLineParamExists(Param: string): Boolean;
-var
-  I: Integer;
-begin
-  for I := 1 to ParamCount do
-    if CompareText(ParamStr(I), Param) = 0 then
-    begin
-      Result := True;
-      Exit;
-    end;
-  Result := False;
-end;
-
 function IsPathValid(Path: string): Boolean;
 var
   I: Integer;
@@ -440,6 +357,9 @@ begin
     Exit;
   end;
 end;
+
+function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
+  external 'GetComputerNameW@kernel32.dll stdcall';
 
 function GetWindowsHostName: String;
 var
@@ -536,114 +456,42 @@ begin
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
 end;
 
-
-function PosEx(const SubStr, S: string; Offset: Integer): Integer;
-var
-  i: Integer; L: Integer;
+procedure RestartService;
+var rc: Integer;
 begin
-  Result := 0;
-  if Offset < 1 then Offset := 1;
-  L := Length(SubStr);
-  for i := Offset to Length(S) - L + 1 do
-    if Copy(S, i, L) = SubStr then
-    begin
-      Result := i;
-      Exit;
-    end;
-end;
-
-
-function HttpGet(const Url: string; out Body: string; out Status: Integer): Boolean;
-var
-  Http: Variant;
-  Flags: DWORD;
-begin
-  Result := False;
-  Body := '';
-  Status := 0;
-  
-   Flags := 0;
-  if not InternetCheckConnectionW('https://api.github.com/',  1, 0) then
-    Exit;
-
-  try
-    Http := CreateOleObject('WinHttp.WinHttpRequest.5.1');
-    Http.Open('GET', Url, False);
-    // GitHub requires a User-Agent
-    Http.SetRequestHeader('User-Agent', 'InnoSetup/6.4.3');
-    Http.SetRequestHeader('Accept', 'application/vnd.github+json');
-    // timeouts: resolve, connect, send, receive (ms)
-    Http.SetTimeouts(8000, 8000, 15000, 15000);
-    Http.Send('');
-    Status := Http.Status;
-    if (Status >= 200) and (Status < 300) then
-    begin
-      Body := Http.ResponseText;
-      Result := True;
-    end;
-  except
-    // swallow, Result stays False
-  end;
- end;
-
-function GetBrowserDownloadURL(const ApiUrl, AssetName: string): string;
-var
-  Json: string;
-  Status: Integer;
-  p, p2: Integer;
-begin
-  Result := '';
-  if not HttpGet(ApiUrl, Json, Status) then
-  begin
-    Log(Format('HTTP failed (status=%d) for %s', [Status, ApiUrl]));
-    Exit;
-  end;
-
-  // First try: find the specific asset by name, then its URL after
-  p := Pos('"name":"' + AssetName + '"', Json);
-  if p > 0 then
-  begin
-    p := PosEx('"browser_download_url":"', Json, p);
-    if p > 0 then
-    begin
-      p := p + Length('"browser_download_url":"');
-      p2 := PosEx('"', Json, p);
-      if p2 > p then
-      begin
-        Result := Copy(Json, p, p2 - p);
-        Exit;
-      end;
-    end;
-  end;
-end;
-
-function ExtractVersionFromURL(const Url: string): string;
-var
-  p1, p2: Integer;
-begin
-  Result := '';
-  p1 := Pos('download/', Url);
-  if p1 > 0 then
-  begin
-    p1 := p1 + Length('download/');
-    p2 := Pos('/centreon_plugins.exe', Copy(Url, p1, MaxInt));
-    if p2 > 0 then
-      Result := Copy(Url, p1, p2 - 1);
-  end;
-end;
-
-function ShouldInstallEmbeddedPlugin: Boolean;
-begin
-  // Only install embedded version if no URL or same version
-  if PluginSrc = 'embedded' then
-    Result := True
-  else
-  Result := (pluginUrl = '') or (pluginVer = '{#EmbeddedPluginVer}');
+  Exec('sc.exe', 'stop CentreonMonitoringAgent', '', SW_HIDE, ewWaitUntilTerminated, rc);
+  ; // small grace period
+  Sleep(1000);
+  Exec('sc.exe', 'start CentreonMonitoringAgent', '', SW_HIDE, ewWaitUntilTerminated, rc);
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Silent Mode ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+procedure LogToStdOutFile(Msg: String);
+var
+  LogFile: String;
+  LogLine: String;
+begin
+  LogFile := ExpandConstant('{log}\installer_output.log');
+  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
+  // Append log line to file, fail silently if error
+  SaveStringToFile(LogFile, LogLine, True);
+end;
+
+function CmdLineParamExists(Param: string): Boolean;
+var
+  I: Integer;
+begin
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), Param) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  Result := False;
+end;
+
 function IsSilentMode: Boolean;
 begin
   Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
@@ -661,17 +509,7 @@ begin
   else
     LogTypeComboBox.ItemIndex := 0;
 
-  // Set log level using item index, matching lower case
-  case LowerCase(ExpandConstant('{param:loglevel|error}')) of
-    'off':      LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Off');
-    'critical': LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Critical');
-    'error':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Error');
-    'warning':  LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Warning');
-    'info':     LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Info');
-    'debug':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Debug');
-    'trace':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Trace');
-    else        LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Error');
-  end;
+  LogLeveLComboBox.Text := ExpandConstant('{param:loglevel|}');
   LogFileEdit.Text := ExpandConstant('{param:logfile|}');
   MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|10}');
   MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|3}');
@@ -683,15 +521,12 @@ begin
   CaEdit.Text := ExpandConstant('{param:ca|}');
   CommonNameEdit.Text := ExpandConstant('{param:commonname|}');
   TokenEdit.Text := ExpandConstant('{param:token|}');
-
-  PluginSrc := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
 end;
 
 function CheckSilentParameterValidity: Boolean;
 var
-  HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
-  Pluginsrc_p: string;
-  EncryptionEnabled,PollerInitiatedEnabled: Boolean;
+  HostParam, EndpointParam, LogTypeParam, LogFileParam: string;
+  EncryptionEnabled: Boolean;
 begin
   if not IsSilentMode then
   begin
@@ -704,7 +539,6 @@ begin
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
   LogFileParam := ExpandConstant('{param:logfile|}');
   EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
-  PollerInitiatedEnabled := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
 
   // HOST
   if HostParam = '' then
@@ -733,62 +567,29 @@ begin
     end;
   end;
 
-  // check log level 
-  Loglvl := LowerCase(ExpandConstant('{param:loglevel|error}'));
-  if (Loglvl <> 'off') and (Loglvl <> 'critical') and (Loglvl <> 'error') and (Loglvl <> 'warning') and (Loglvl <> 'info') and (Loglvl <> 'debug') and (Loglvl <> 'trace') then
-  begin
-    LogToStdOutFile('Invalid /LOGLEVEL value. Allowed values: off|critical|error|warning|info|debug|trace');
-    Result := False;
-    Exit;
-  end;
-
-  if (LogTypeComboBox.Text = 'File') and not(IsPathValid(LogFileParam)) then 
-    begin
-      LogToStdOutFile('Invalid log file path. Please enter a valid absolute path (e.g. C:\logs\agent.log).', mbError, MB_OK);
-      Result := False;
-      exit;
-  end;
-
   // if encryption test cert key token
   if EncryptionEnabled then
   begin
-    if PollerInitiatedEnabled then begin
-      if ExpandConstant('{param:cert|}') = '' or not(IsPathValid(ExpandConstant('{param:cert|}'))) then
-      begin
-        LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
-        Result := False;
-        Exit;
-      end;
-
-      if ExpandConstant('{param:key|}') = '' not(IsPathValid(ExpandConstant('{param:key|}'))) then
-      begin
-        LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
-        Result := False;
-        Exit;
-      end;
-     end
-    else
-      if not(ExpandConstant('{param:ca|}') = '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
-        begin
-          LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
-          Result := False;
-          Exit;
-        end;
+    if ExpandConstant('{param:cert|}') = '' then
+    begin
+      LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
+      Result := False;
+      Exit;
     end;
-     
+
+    if ExpandConstant('{param:key|}') = '' then
+    begin
+      LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+      Result := False;
+      Exit;
+    end;
+
     if ExpandConstant('{param:token|}') = '' then
     begin
       LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=true');
       Result := False;
       Exit;
     end;
-  end;
-
-  Pluginsrc_p := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
-  if (Pluginsrc_p <> 'auto') and (Pluginsrc_p <> 'embedded') then begin
-    LogToStdOutFile('Invalid /PLUGINSRC value. Use auto|embedded.');
-    Result := False;
-    Exit;
   end;
 
   // all good
@@ -800,17 +601,8 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 function InitializeSetup(): Boolean;
 begin
-  PluginSrc := 'auto';
   // ── Silent mode
-   if CmdLineParamExists('/VERSION') then
-  begin
-    LogToStdOutFile('{#AppName} {#AppVersion}'#13#10);
-    ExitProcess(0);
-  end;
   Result := CheckSilentParameterValidity;
-
-  if not Result then
-  ExitProcess(1)  
 end;
 
 procedure InitializeWizard;
@@ -822,10 +614,6 @@ begin
 // ── Wizard config
   WizardForm.ClientWidth := 460;
   WizardForm.ClientHeight := 400;
-  PluginURL := GetBrowserDownloadURL(
-         'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
-         'centreon_plugins.exe');
-  PluginVer := ExtractVersionFromURL(PluginURL);
 
 // ── Load resources 
   ExtractTemporaryFile('info_icon.bmp');
@@ -975,7 +763,7 @@ begin
   LogLeveLComboBox.Items.Add('Info');
   LogLeveLComboBox.Items.Add('Debug');
   LogLeveLComboBox.Items.Add('Trace');
-  LogLeveLComboBox.ItemIndex := 2;
+  LogLeveLComboBox.ItemIndex := 5;
 
   // ──── Log file
 
@@ -1241,7 +1029,6 @@ begin
   CaWarningBitmapImage.ShowHint := True;
   CaWarningBitmapImage.Hide;
 
-  
   // ──── Ca common name (CN)
 
   CommonNameLabel:= TNewStaticText.Create(EncryptionPage);
@@ -1313,63 +1100,17 @@ begin
   TokenWarningBitmapImage.ShowHint := True;
   TokenWarningBitmapImage.Hide;
 
-  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
   ReadAgentRegistryValues;
   LoadSilentParameters;
 
 end;
 
-function ShouldSkipPage(PageID: Integer): Boolean;
-begin
-  if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
-    Result := not WizardIsComponentSelected('agent')
-  else if PageID = DownloadPage.ID then
-    Result := not WizardIsComponentSelected('plugins')
-  else
-    Result := False;
-end;
 { ────────────────────────────────────────────────────────────────────── }
 function NextButtonClick(CurPageID: Integer): Boolean;
-var
-  Error: String;
 begin
   if CurPageID = wpReady then begin
     WriteAgentRegistryValues;
-    if WizardIsComponentSelected('plugins') then begin
-      DownloadPage.Clear;
-      if (pluginUrl = '') or ('{#EmbeddedPluginVer}' = PluginVer) then
-      begin
-        Result := True;
-        Exit;
-      end;
-        
-      DownloadPage.Add(PluginURL,'centreon_plugins.exe','');
-      DownloadPage.Show;
-      try
-        try
-          DownloadPage.Download; // This downloads the files to {tmp}
-          Result := True;
-        except
-          if DownloadPage.AbortedByUser then
-            Log('Aborted by user.')
-          else begin
-            Error := Format('%s: %s', [DownloadPage.Name, GetExceptionMessage]);
-            SuppressibleMsgBox(AddPeriod(Error), mbCriticalError, MB_OK, IDOK);
-          end;
-          Result := False;
-          exit;
-        end;
-      finally
-        DownloadPage.Hide;
-      end;
-      end;
-      Result := True;
-  end else if CurPageID = wpSelectComponents then begin
-    if not WizardIsComponentSelected('agent') and not WizardIsComponentSelected('plugins') then begin
-      MsgBox('Please select at least one component before continuing.', mbError, MB_OK);
-      Result := False;
-      exit;
-    end;
+    RestartService;
     Result := True;
   end else if CurPageID = ConfigPage.ID then begin
     // disable all warnings
@@ -1477,24 +1218,4 @@ begin
   end
   else
     Result := True;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  Key: string;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{' + '{#AppId}' + '}_is1';
-
-    // point Modify to your modify exe in {app}
-    RegWriteStringValue(HKEY_LOCAL_MACHINE, Key, 'ModifyPath',
-      '"' + ExpandConstant('{app}\centreon-monitoring-agent-modify.exe') + '"');
-
-    // enable Modify button
-    RegWriteDWordValue(HKEY_LOCAL_MACHINE, Key, 'NoModify', 0);
-
-    // (optional) keep Repair hidden
-    RegWriteDWordValue(HKEY_LOCAL_MACHINE, Key, 'NoRepair', 1);
-  end;
 end;
