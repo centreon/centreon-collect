@@ -4,8 +4,11 @@
 #define AppPublisher "Centreon"
 #define AppURL "https://www.centreon.com/"
 #define AppExeName "centagent.exe"
-#define PluginURL "https://github.com/centreon/centreon-nsclient-build/releases/download/20240909/centreon_plugins.exe"
-#define PluginSize 20961012
+#define PluginExePath "@PLUGIN_DOWNLOAD_PATH@"
+#define BaseUrl "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest"
+#define PluginSize "@PLUGIN_SIZE@"
+#define EmbeddedPluginVer "@PLUGIN_VERSION@"
+
 
 #define LicenseFile "resources\license.txt"
 #define CentreonIcon "resources\centreon_icon.ico"
@@ -62,7 +65,8 @@ Name: "plugins"; Description: "Plugins";  Types: custom
 
 [Files]
 Source: "{#AppExePath}"; DestDir: "{app}\Centreon Monitoring Agent"; Flags: ignoreversion; Components: agent
-Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins
+Source: "{#PluginExePath}"; DestDir: "{app}\Plugins"; Flags: ignoreversion; Check: ShouldInstallEmbeddedPlugin
+Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins;Check: not(ShouldInstallEmbeddedPlugin)
 Source: {#InfoIcon}; Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
@@ -114,6 +118,8 @@ var
   PublicCertWarningBitmapImage, PrivateKeyWarningBitmapImage, TokenWarningBitmapImage:TBitmapImage;
   
   SizeBytes : Int64;
+  PluginURL : String;
+  PluginVer : String;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -434,6 +440,109 @@ begin
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
 end;
 
+function InternetCheckConnectionW(lpszUrl: string; dwFlags: DWORD; dwReserved: DWORD): BOOL;
+  external 'InternetCheckConnectionW@wininet.dll stdcall';
+
+function PosEx(const SubStr, S: string; Offset: Integer): Integer;
+var
+  i: Integer; L: Integer;
+begin
+  Result := 0;
+  if Offset < 1 then Offset := 1;
+  L := Length(SubStr);
+  for i := Offset to Length(S) - L + 1 do
+    if Copy(S, i, L) = SubStr then
+    begin
+      Result := i;
+      Exit;
+    end;
+end;
+
+
+function HttpGet(const Url: string; out Body: string; out Status: Integer): Boolean;
+var
+  Http: Variant;
+  Flags: DWORD;
+begin
+  Result := False;
+  Body := '';
+  Status := 0;
+  
+   Flags := 0;
+  if not InternetCheckConnectionW('https://api.github.com/',  1, 0) then
+    Exit;
+
+  try
+    Http := CreateOleObject('WinHttp.WinHttpRequest.5.1');
+    Http.Open('GET', Url, False);
+    // GitHub requires a User-Agent
+    Http.SetRequestHeader('User-Agent', 'InnoSetup/6.4.3');
+    Http.SetRequestHeader('Accept', 'application/vnd.github+json');
+    // timeouts: resolve, connect, send, receive (ms)
+    Http.SetTimeouts(8000, 8000, 15000, 15000);
+    Http.Send('');
+    Status := Http.Status;
+    if (Status >= 200) and (Status < 300) then
+    begin
+      Body := Http.ResponseText;
+      Result := True;
+    end;
+  except
+    // swallow, Result stays False
+  end;
+ end;
+
+function GetBrowserDownloadURL(const ApiUrl, AssetName: string): string;
+var
+  Json: string;
+  Status: Integer;
+  p, p2: Integer;
+begin
+  Result := '';
+  if not HttpGet(ApiUrl, Json, Status) then
+  begin
+    Log(Format('HTTP failed (status=%d) for %s', [Status, ApiUrl]));
+    Exit;
+  end;
+
+  // First try: find the specific asset by name, then its URL after
+  p := Pos('"name":"' + AssetName + '"', Json);
+  if p > 0 then
+  begin
+    p := PosEx('"browser_download_url":"', Json, p);
+    if p > 0 then
+    begin
+      p := p + Length('"browser_download_url":"');
+      p2 := PosEx('"', Json, p);
+      if p2 > p then
+      begin
+        Result := Copy(Json, p, p2 - p);
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function ExtractVersionFromURL(const Url: string): string;
+var
+  p1, p2: Integer;
+begin
+  Result := '';
+  p1 := Pos('download/', Url);
+  if p1 > 0 then
+  begin
+    p1 := p1 + Length('download/');
+    p2 := Pos('/centreon_plugins.exe', Copy(Url, p1, MaxInt));
+    if p2 > 0 then
+      Result := Copy(Url, p1, p2 - 1);
+  end;
+end;
+
+function ShouldInstallEmbeddedPlugin: Boolean;
+begin
+  // Only install embedded version if no URL or same version
+  Result := (pluginUrl = '') or (pluginVer = '{#EmbeddedPluginVer}');
+end;
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Silent Mode ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -581,9 +690,13 @@ WarningBmp: String;
 begin
 
 // ── Wizard config
-    WizardForm.ClientWidth := 460;
-    WizardForm.ClientHeight := 400;
-    SizeBytes := DownloadTemporaryFileSize('{#PluginURL}');
+  WizardForm.ClientWidth := 460;
+  WizardForm.ClientHeight := 400;
+  PluginURL := GetBrowserDownloadURL(
+         'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
+         'centreon_plugins.exe');
+  PluginVer := ExtractVersionFromURL(PluginURL);
+
 // ── Load resources 
   ExtractTemporaryFile('info_icon.bmp');
   Infobmp := ExpandConstant('{tmp}\info_icon.bmp');
@@ -1080,7 +1193,13 @@ begin
     if WizardIsComponentSelected('plugins') then begin
       WriteAgentRegistryValues;
       DownloadPage.Clear;
-      DownloadPage.Add('{#PluginURL}','centreon_plugins.exe','');
+      if (pluginUrl = '') or ('{#EmbeddedPluginVer}' = PluginVer) then
+      begin
+        Result := True;
+        Exit;
+      end;
+        
+      DownloadPage.Add(PluginURL,'centreon_plugins.exe','');
       DownloadPage.Show;
       try
         try

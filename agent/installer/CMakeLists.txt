@@ -18,7 +18,6 @@
 
 project("Centreon agent Installer")
 
-
 # set the centagent.exe path 
 set(CENTAGENT_PATH_OUTPUT_DIR ${Centreon\ agent_BINARY_DIR})
 
@@ -43,19 +42,87 @@ set(ISCC_EXECUTABLE "C:/Program Files (x86)/Inno Setup 6/ISCC.exe")
 # Inno script path
 set(INNO_SCRIPT "${PROJECT_SOURCE_DIR}/installer.iss")
 
+# Download plugins
+
+# Define GitHub URL
+set(PLUGINS_RELEASE_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest")
+set(RELEASE_JSON "${CMAKE_CURRENT_BINARY_DIR}/plugins_release.json")
+file(DOWNLOAD "${PLUGINS_RELEASE_URL}" "${RELEASE_JSON}"
+     STATUS status
+     TIMEOUT 10)
+
+list(GET status 0 status_code)
+if(NOT status_code EQUAL 0)
+  message(FATAL_ERROR "Failed to download release status: ${status}")
+  exit(1)
+endif()
+
+file(READ "${RELEASE_JSON}" RELEASE_CONTENT)
+
+# Get latest tag
+string(JSON RELEASE_TAG GET "${RELEASE_CONTENT}" "tag_name")
+
+# Get array length
+string(JSON ASSETS_LENGTH LENGTH "${RELEASE_CONTENT}" "assets")
+
+# Search for asset by name
+set(CENTREON_PLUGIN_URL "")
+math(EXPR LAST_INDEX "${ASSETS_LENGTH} - 1")
+foreach(i RANGE 0 ${LAST_INDEX})
+  # Extract the whole asset object
+  string(JSON ASSET_JSON GET "${RELEASE_CONTENT}" "assets" "${i}")
+
+  # Extract the 'name' field from the object
+  string(JSON ASSET_NAME GET "${ASSET_JSON}" "name")
+  if(ASSET_NAME STREQUAL "centreon_plugins.exe")
+      string(JSON CENTREON_PLUGIN_URL GET "${ASSET_JSON}" "browser_download_url")
+      break()
+    endif()
+endforeach()
+
+if(CENTREON_PLUGIN_URL STREQUAL "")
+  message(FATAL_ERROR "centreon_plugins.exe not found in latest release.")
+  exit(1)
+endif()
+
+# Extract version number between /download/ and /centreon_plugins
+string(REGEX MATCH "/download/([0-9]+)/centreon_plugins\\.exe" _match "${CENTREON_PLUGIN_URL}")
+
+if(CMAKE_MATCH_COUNT GREATER 0)
+    set(PLUGIN_VERSION "${CMAKE_MATCH_1}")
+    message(STATUS "Latest centreon_plugins.exe version: ${PLUGIN_VERSION}")
+else()
+    message(WARNING "Could not extract version from centreon_plugins.exe URL: ${CENTREON_PLUGIN_URL}")
+    set(PLUGIN_VERSION "")
+endif()
+
+
+
+
+# Download the centreon_plugins.exe
+set(PLUGIN_DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}/centreon_plugins.exe")
+file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
+  STATUS status
+  TIMEOUT 10)
+
+# Get the size of the downloaded file
+if(EXISTS "${PLUGIN_DOWNLOAD_PATH}")
+  file(SIZE "${PLUGIN_DOWNLOAD_PATH}" PLUGIN_SIZE)
+endif()
+
+
 # Create configured .iss file from .in template
 configure_file(
   ${PROJECT_SOURCE_DIR}/installer.iss.in
   ${PROJECT_SOURCE_DIR}/installer_configured.iss
   @ONLY
 )
-
 # Inno Setup command
 # Add a custom target to build the installer
 # Custom target to run Inno Setup
 add_custom_target(installer
-  COMMAND "${ISCC_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/installer_configured.iss"
-  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/installer_configured.iss
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   COMMENT "Building installer using Inno Setup"
   VERBATIM
 )
