@@ -28,7 +28,7 @@ BEUS
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Ctn Config BBDO3    3
+    Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
